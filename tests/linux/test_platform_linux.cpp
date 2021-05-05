@@ -323,6 +323,19 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
+TEST_F(PlatformLinux, workflowsURLOverrideSetReturnsExpectedData)
+{
+    const QString fake_url{"https://a.fake.url"};
+    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", fake_url.toUtf8());
+
+    EXPECT_EQ(MP_PLATFORM.get_workflows_url_override(), fake_url);
+}
+
+TEST_F(PlatformLinux, workflowsURLOverrideNotSetReturnsEmptyString)
+{
+    EXPECT_TRUE(MP_PLATFORM.get_workflows_url_override().isEmpty());
+}
+
 TEST_F(PlatformLinux, test_is_remote_supported_returns_true)
 {
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported("release"));

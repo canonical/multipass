@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "ubuntu_image_host.h"
 
 #include <multipass/client_cert_store.h>
+#include <multipass/default_vm_workflow_provider.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
@@ -166,9 +167,21 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (network_proxy == nullptr)
         network_proxy = discover_http_proxy();
 
+    if (workflow_provider == nullptr)
+    {
+        auto workflow_provider_url = MP_PLATFORM.get_workflows_url_override();
+
+        if (!workflow_provider_url.isEmpty())
+            workflow_provider = std::make_unique<DefaultVMWorkflowProvider>(
+                QUrl(workflow_provider_url), url_downloader.get(), cache_directory, manifest_ttl);
+        else
+            workflow_provider =
+                std::make_unique<DefaultVMWorkflowProvider>(url_downloader.get(), cache_directory, manifest_ttl);
+    }
+
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
         std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
         std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), std::move(client_cert_store),
-        std::move(update_prompt), multiplexing_logger, std::move(network_proxy), cache_directory, data_directory,
-        server_address, ssh_username, connection_type, image_refresh_timer});
+        std::move(update_prompt), multiplexing_logger, std::move(network_proxy), std::move(workflow_provider),
+        cache_directory, data_directory, server_address, ssh_username, connection_type, image_refresh_timer});
 }

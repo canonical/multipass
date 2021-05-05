@@ -189,9 +189,18 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 template <typename T>
-auto name_from(const std::string& requested_name, mp::NameGenerator& name_gen, const T& currently_used_names)
+auto name_from(const std::string& requested_name, const std::string& workflow_name, mp::NameGenerator& name_gen,
+               const T& currently_used_names)
 {
-    if (requested_name.empty())
+    if (!requested_name.empty())
+    {
+        return requested_name;
+    }
+    else if (!workflow_name.empty())
+    {
+        return workflow_name;
+    }
+    else
     {
         auto name = name_gen.make_name();
         constexpr int num_retries = 100;
@@ -203,7 +212,6 @@ auto name_from(const std::string& requested_name, mp::NameGenerator& name_gen, c
         }
         throw std::runtime_error("unable to generate a unique name");
     }
-    return requested_name;
 }
 
 std::vector<mp::NetworkInterface> read_extra_interfaces(const QJsonObject& record)
@@ -812,6 +820,17 @@ void add_aliases(mp::FindReply& response, const std::string& remote_name, const 
     }
 }
 
+auto timeout_for(const int requested_timeout, const int workflow_timeout)
+{
+    if (requested_timeout > 0)
+        return std::chrono::seconds(requested_timeout);
+
+    if (workflow_timeout > 0)
+        return std::chrono::seconds(workflow_timeout);
+
+    return mp::default_timeout;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1051,8 +1070,26 @@ try // clang-format on
 
     if (!request->search_string().empty())
     {
-        auto vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
-                                                           Query::Type::Alias, request->allow_unsupported()});
+        std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
+
+        try
+        {
+            vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
+                                                          Query::Type::Alias, request->allow_unsupported()});
+        }
+        catch (const std::exception&)
+        {
+            try
+            {
+                vm_images_info.push_back(
+                    std::make_pair("", config->workflow_provider->info_for(request->search_string())));
+            }
+            catch (const std::exception&)
+            {
+                throw std::runtime_error(
+                    fmt::format("Unable to find an image or workflow matching \"{}\"", request->search_string()));
+            }
+        }
 
         for (const auto& [remote, info] : vm_images_info)
         {
@@ -1096,6 +1133,13 @@ try // clang-format on
             };
 
             image_host->for_each_entry_do(action);
+        }
+
+        auto vm_workflows_info = config->workflow_provider->all_workflows();
+
+        for (const auto& info : vm_workflows_info)
+        {
+            add_aliases(response, "", info, "");
         }
     }
     else
@@ -2012,15 +2056,16 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 {
     auto checked_args = validate_create_arguments(request, *config->factory);
 
-    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
-
     if (!checked_args.option_errors.error_codes().empty())
     {
         return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
                                                       checked_args.option_errors.SerializeAsString()));
     }
 
-    auto name = name_from(checked_args.instance_name, *config->name_generator, vm_instances);
+    // TODO: We should only need to query the Workflow Provider once for all info, so this (and timeout below) will
+    //       need a refactoring to do so.
+    auto name = name_from(checked_args.instance_name, config->workflow_provider->name_from_workflow(request->image()),
+                          *config->name_generator, vm_instances);
 
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
@@ -2044,6 +2089,10 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
     if (!instances_running(vm_instances))
         config->factory->hypervisor_health_check();
+
+    // TODO: We should only need to query the Workflow Provider once for all info, so this (and name above) will
+    //       need a refactoring to do so.
+    auto timeout = timeout_for(request->timeout(), config->workflow_provider->workflow_timeout(name));
 
     preparing_instances.insert(name);
 
@@ -2116,7 +2165,38 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
         try
         {
-            auto query = query_from(request, name);
+            CreateReply reply;
+            reply.set_create_message("Creating " + name);
+            server->Write(reply);
+
+            Query query;
+            VirtualMachineDescription vm_desc{
+                request->num_cores(),
+                MemorySize{request->mem_size().empty() ? "0b" : request->mem_size()},
+                MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
+                name,
+                "",
+                checked_args.extra_interfaces,
+                config->ssh_username,
+                VMImage{},
+                "",
+                YAML::Node{},
+                YAML::Node{},
+                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
+                                              config->factory->get_backend_version_string().toStdString()),
+                YAML::Node{}};
+
+            try
+            {
+                query = config->workflow_provider->fetch_workflow_for(request->image(), vm_desc);
+                query.name = name;
+            }
+            catch (const std::out_of_range&)
+            {
+                // Workflow not found, move on
+                query = query_from(request, name);
+                vm_desc.mem_size = checked_args.mem_size;
+            }
 
             auto progress_monitor = [server](int progress_type, int percentage) {
                 CreateReply create_reply;
@@ -2135,14 +2215,12 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
             auto fetch_type = config->factory->fetch_type();
 
-            CreateReply reply;
-            reply.set_create_message("Creating " + name);
-            server->Write(reply);
             auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
-            const auto disk_space =
-                compute_final_image_size(image_size, checked_args.disk_space, config->data_directory);
+            vm_desc.disk_space = compute_final_image_size(
+                image_size, vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
+                config->data_directory);
 
             reply.set_create_message("Configuring " + name);
             server->Write(reply);
@@ -2160,33 +2238,18 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 if (iface.mac_address.empty())
                     iface.mac_address = generate_unused_mac_address(new_macs);
 
-            auto default_mac_addr = generate_unused_mac_address(new_macs);
-            auto vendor_data_cloud_init_config =
-                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
-                                              config->factory->get_backend_version_string().toStdString());
-            auto meta_data_cloud_init_config = make_cloud_init_meta_config(name);
-            auto user_data_cloud_init_config = YAML::Load(request->cloud_init_user_data());
-            prepare_user_data(user_data_cloud_init_config, vendor_data_cloud_init_config);
+            vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
+            vm_desc.meta_data_config = make_cloud_init_meta_config(name);
+            vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
 
-            auto network_data_cloud_init_config =
-                make_cloud_init_network_config(default_mac_addr, checked_args.extra_interfaces);
+            if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
+                vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
-            auto num_cores{request->num_cores() < std::stoi(mp::min_cpu_cores) ? std::stoi(mp::default_cpu_cores)
-                                                                               : request->num_cores()};
-            VirtualMachineDescription vm_desc{num_cores,
-                                              checked_args.mem_size,
-                                              disk_space,
-                                              name,
-                                              default_mac_addr,
-                                              checked_args.extra_interfaces,
-                                              config->ssh_username,
-                                              vm_image,
-                                              "",
-                                              meta_data_cloud_init_config,
-                                              user_data_cloud_init_config,
-                                              vendor_data_cloud_init_config,
-                                              network_data_cloud_init_config};
+            vm_desc.network_data_config =
+                make_cloud_init_network_config(vm_desc.default_mac_address, checked_args.extra_interfaces);
 
+            vm_desc.image = vm_image;
             config->factory->configure(vm_desc);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
@@ -2316,7 +2379,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                 server->Write(reply);
             }
 
-            mp::utils::wait_for_cloud_init(vm.get(), timeout, *config->ssh_key_provider);
+            MP_UTILS.wait_for_cloud_init(vm.get(), timeout, *config->ssh_key_provider);
         }
 
         std::vector<std::string> invalid_mounts;

@@ -1,4 +1,4 @@
-# Copyright © 2017-2021 Canonical Ltd.
+# Copyright © 2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -12,28 +12,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_library(utils STATIC
-  file_ops.cpp
-  memory_size.cpp
-  settings.cpp
-  snap_utils.cpp
-  standard_paths.cpp
-  timer.cpp
-  utils.cpp
-  vm_image_vault_utils.cpp)
+add_library(workflow_provider STATIC
+  default_vm_workflow_provider.cpp)
 
-target_link_libraries(utils
-  fmt
-  logger
-  ssh_common
-  ssh
-  yaml
-  xz_image_decoder
+target_link_libraries(workflow_provider PRIVATE
+  poco_utils
   Qt5::Core
-  Qt5::Gui)
-
-add_library(poco_utils
-  poco_zip_utils.cpp)
-
-target_link_libraries(poco_utils
-  Poco::Zip)
+  utils
+  yaml)

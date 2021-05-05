@@ -15,26 +15,26 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_UTILS_H
-#define MULTIPASS_MOCK_UTILS_H
+#ifndef MULTIPASS_MOCK_POCO_ZIP_UTILS_H
+#define MULTIPASS_MOCK_POCO_ZIP_UTILS_H
 
 #include "mock_singleton_helpers.h"
 
-#include <multipass/utils.h>
+#include <multipass/poco_zip_utils.h>
 
 #include <gmock/gmock.h>
 
 namespace multipass::test
 {
-class MockUtils : public Utils
+class MockPocoZipUtils : public PocoZipUtils
 {
 public:
-    using Utils::Utils;
-    MOCK_METHOD1(filesystem_bytes_available, qint64(const QString&));
-    MOCK_METHOD1(exit, void(int));
-    MOCK_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
+    using PocoZipUtils::PocoZipUtils;
 
-    MP_MOCK_SINGLETON_BOILERPLATE(::testing::NiceMock<MockUtils>, Utils);
+    MOCK_METHOD1(zip_archive_for, Poco::Zip::ZipArchive(std::ifstream&));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockPocoZipUtils, PocoZipUtils);
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_UTILS_FUNCTIONS_H
+
+#endif // MULTIPASS_MOCK_POCO_ZIP_UTILS_H

@@ -51,6 +51,7 @@ public:
     Platform(const Singleton::PrivatePass&) noexcept;
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
+    virtual QString get_workflows_url_override();
     virtual bool is_alias_supported(const std::string& alias, const std::string& remote);
     virtual bool is_remote_supported(const std::string& remote);
     virtual int chown(const char* path, unsigned int uid, unsigned int gid);

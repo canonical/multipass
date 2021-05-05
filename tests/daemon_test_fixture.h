@@ -38,6 +38,7 @@
 #include "stub_terminal.h"
 #include "stub_virtual_machine_factory.h"
 #include "stub_vm_image_vault.h"
+#include "stub_vm_workflow_provider.h"
 #include "temp_dir.h"
 
 #include <gmock/gmock.h>
@@ -155,6 +156,7 @@ struct DaemonTestFixture : public ::Test
         config_builder.connection_type = RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<StubLogger>();
         config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
+        config_builder.workflow_provider = std::make_unique<StubVMWorkflowProvider>();
     }
 
     void SetUp() override
@@ -222,6 +224,19 @@ struct DaemonTestFixture : public ::Test
             loop.quit();
         });
         loop.exec();
+    }
+
+    int total_lines_of_output(std::stringstream& output)
+    {
+        int count{0};
+        std::string line;
+
+        while (std::getline(output, line))
+        {
+            count++;
+        }
+
+        return count;
     }
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS

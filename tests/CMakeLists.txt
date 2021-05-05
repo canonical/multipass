@@ -48,6 +48,7 @@ add_executable(multipass_tests
   test_constants.cpp
   test_custom_image_host.cpp
   test_daemon.cpp
+  test_daemon_find.cpp
   test_delayed_shutdown.cpp
   test_format_utils.cpp
   test_output_formatter.cpp
@@ -80,6 +81,7 @@ add_executable(multipass_tests
   test_ubuntu_image_host.cpp
   test_utils.cpp
   test_with_mocked_bin_path.cpp
+  test_workflow_provider.cpp
 
   ${MULTIPASS_GMOCK_DIR}/src/gmock-all.cc
   ${MULTIPASS_GTEST_DIR}/src/gtest-all.cc
@@ -115,6 +117,7 @@ target_link_libraries(multipass_tests
   metrics
   network
   petname
+  poco_utils
   simplestreams
   sftp_test
   ssh_test
