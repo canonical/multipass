@@ -504,22 +504,29 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
     ASSERT_TRUE(interface_dir.mkpath("bridge"));
     ASSERT_TRUE(members_dir.mkpath("."));
 
+    using net_value_type = decltype(MP_PLATFORM.get_network_interfaces_info())::value_type;
+    std::vector<Matcher<net_value_type>> network_expectations{};
     std::vector<Matcher<std::string>> substrs_expectations{};
     for (const auto& member : GetParam())
     {
         ASSERT_TRUE(members_dir.mkpath(QString::fromStdString(member)));
+
+        auto member_type_path = fake_sys_class_net.filePath(QString::fromStdString(member) + "/type");
+        ASSERT_EQ(mpt::make_file_with_content(member_type_path, "1"), 1);
+
         substrs_expectations.push_back(HasSubstr(member));
+        network_expectations.push_back(Field(&net_value_type::first, member));
     }
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
-    using value_type = decltype(net_map)::value_type;
     using Net = mp::NetworkInterfaceInfo;
+    network_expectations.push_back(
+        AllOf(Field(&net_value_type::first, fake_bridge),
+              Field(&net_value_type::second, AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
+                                                   Field(&Net::description, AllOfArray(substrs_expectations))))));
 
-    EXPECT_THAT(net_map, ElementsAre(AllOf(Field(&value_type::first, fake_bridge),
-                                           Field(&value_type::second,
-                                                 AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
-                                                       Field(&Net::description, AllOfArray(substrs_expectations)))))));
+    EXPECT_THAT(net_map, UnorderedElementsAreArray(network_expectations));
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, BridgeMemberTest,
