@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,14 @@ public:
         : mp::BasicProcess{spec}, apparmor{aa}
     {
         apparmor.load_policy(process_spec->apparmor_profile().toLatin1());
+
+        connect(this, &AppArmoredProcess::state_changed, [this](QProcess::ProcessState state) {
+            if (state == QProcess::Starting)
+            {
+                mpl::log(mpl::Level::debug, "daemon",
+                         fmt::format("Applied AppArmor policy: {}", process_spec->apparmor_profile_name()));
+            }
+        });
     }
 
     void setup_child_process() final

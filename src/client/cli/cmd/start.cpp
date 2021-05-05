@@ -105,7 +105,12 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status, details);
     };
 
-    auto streaming_callback = [&spinner](mp::StartReply& reply) {
+    auto streaming_callback = [this, &spinner](mp::StartReply& reply) {
+        if (!reply.log_line().empty())
+        {
+            spinner.print(cerr, reply.log_line());
+        }
+
         spinner.stop();
         spinner.start(reply.reply_message());
     };

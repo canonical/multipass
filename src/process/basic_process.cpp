@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,9 @@
  *
  */
 
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/basic_process.h>
-
-#include <fmt/format.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -63,6 +62,7 @@ mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_
             [this](QProcess::ProcessError error) { emit mp::Process::error_occurred(error, error_string()); });
     connect(&process, &QProcess::readyReadStandardOutput, this, &mp::Process::ready_read_standard_output);
     connect(&process, &QProcess::readyReadStandardError, this, &mp::Process::ready_read_standard_error);
+    connect(&process, &QProcess::stateChanged, this, &mp::Process::state_changed);
 
     process.setProgram(process_spec->program());
     process.setArguments(process_spec->arguments());
@@ -214,10 +214,9 @@ void mp::BasicProcess::setup_child_process()
 void mp::BasicProcess::handle_started()
 {
     pid = process.processId(); // save this, so we know it even after finished
-    const auto& program = qUtf8Printable(process_spec->program());
-
+    const auto& program = process_spec->program().toStdString();
     mpl::log(mpl::Level::debug, program,
-             fmt::format("[{}] started: {} {}", pid, program, qUtf8Printable(process_spec->arguments().join(' '))));
+             fmt::format("[{}] started: {} {}", pid, program, process_spec->arguments().join(' ')));
 
     emit mp::Process::started();
 }
