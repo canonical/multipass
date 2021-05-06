@@ -168,6 +168,29 @@ bool mp::utils::invalid_target_path(const QString& target_path)
     return matcher.exactMatch(sanitized_path);
 }
 
+void mp::utils::make_file_with_content(const std::string& file_name, const std::string& content)
+{
+    QFile file(QString::fromStdString(file_name));
+    if (file.exists())
+        throw std::runtime_error(fmt::format("file '{}' already exists", file_name));
+
+    QDir parent_dir{QFileInfo{file}.absoluteDir()};
+    if (!parent_dir.mkpath("."))
+        throw std::runtime_error(fmt::format("failed to create dir '{}'", parent_dir.path()));
+
+    QDir file_dir = QFileInfo(file).absoluteDir();
+    if (!file_dir.exists())
+        file_dir.mkpath(file_dir.absolutePath());
+
+    if (!file.open(QFile::WriteOnly))
+        throw std::runtime_error(fmt::format("failed to open file '{}' for writing", file_name));
+
+    if (file.write(content.data(), content.size()) != (qint64)content.size())
+        throw std::runtime_error(fmt::format("error writing to file '{}'", file_name));
+
+    return;
+}
+
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
 {
     fmt::memory_buffer buf;

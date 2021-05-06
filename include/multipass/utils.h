@@ -71,6 +71,7 @@ QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string filename_for(const std::string& path);
 std::string contents_of(const multipass::Path& file_path);
 bool invalid_target_path(const QString& target_path);
+void make_file_with_content(const std::string& file_name, const std::string& content);
 
 // special-file helpers
 void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
