@@ -18,11 +18,20 @@
 #ifndef MULTIPASS_DAEMON_MONITOR_SETTINGS_H
 #define MULTIPASS_DAEMON_MONITOR_SETTINGS_H
 
-#include <QString>
+#include <QFileSystemWatcher>
+
+#include <string>
 
 namespace multipass
 {
-void monitor_and_quit_on_settings_change(const QString& current_driver); // temporary
-}
+class DaemonSettingsMonitor
+{
+public:
+    DaemonSettingsMonitor(const std::string& current_driver);
+
+private:
+    QFileSystemWatcher watcher;
+};
+} // namespace multipass
 
 #endif // MULTIPASS_DAEMON_MONITOR_SETTINGS_H

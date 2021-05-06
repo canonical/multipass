@@ -861,7 +861,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
       metrics_provider{"https://api.jujucharms.com/omnibus/v4/multipass/metrics", get_unique_id(config->data_directory),
                        config->data_directory},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)},
-      instance_mounts{*config->ssh_key_provider}
+      instance_mounts{*config->ssh_key_provider},
+      settings_monitor{config->factory->name()}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
