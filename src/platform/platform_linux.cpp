@@ -124,9 +124,7 @@ mp::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
         std::transform(bridge_members.cbegin(), bridge_members.cend(), std::back_inserter(links),
                        [](const QString& interface) { return interface.toStdString(); });
 
-        auto description = bridge_members.isEmpty() ? "Empty network bridge"
-                                                    : fmt::format("Network bridge with {}", bridge_members.join(", "));
-        return {{std::move(id), bridge, std::move(description), std::move(links)}};
+        return {{std::move(id), bridge, /*description=*/"", std::move(links)}}; // description needs updating with links
     }
     else if (is_ethernet(net_dir))
         return {{std::move(id), "ethernet", "Ethernet device"}};
@@ -138,8 +136,8 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
 {
     for (auto& item : networks)
     {
-        if (auto& net = item.second; !net.links.empty())
-        {
+        if (auto& net = item.second; net.type == "bridge")
+        { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
             auto is_unknown = [&networks](const std::string& id) {
                 auto same_as = [&id](const auto& other) { return other.first == id; };
@@ -148,7 +146,6 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
             links.erase(std::remove_if(links.begin(), links.end(), is_unknown),
                         links.end()); // filter links to networks we don't recognize
 
-            assert(net.type == "bridge");
             net.description =
                 links.empty() ? "Empty network bridge"
                               : fmt::format("Network bridge with {}", fmt::join(links.cbegin(), links.cend(), ", "));
