@@ -129,7 +129,7 @@ protected:
         return dispatch(rpc_func, request, on_success, on_failure, [this](ReplyType& reply) {
             if (!reply.log_line().empty())
             {
-                cerr << reply.log_line();
+                cerr << reply.log_line() << "\n";
             }
         });
     }
