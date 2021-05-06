@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,12 +15,23 @@
  *
  */
 
-#ifndef MULTIPASS_DAEMON_MONITOR_SETTINGS_H
-#define MULTIPASS_DAEMON_MONITOR_SETTINGS_H
+#ifndef MULTIPASS_DAEMON_SETTINGS_MONITOR_H
+#define MULTIPASS_DAEMON_SETTINGS_MONITOR_H
+
+#include <QFileSystemWatcher>
+
+#include <string>
 
 namespace multipass
 {
-void monitor_and_quit_on_settings_change(); // temporary
-}
+class DaemonSettingsMonitor
+{
+public:
+    DaemonSettingsMonitor(const std::string& current_driver);
 
-#endif // MULTIPASS_DAEMON_MONITOR_SETTINGS_H
+private:
+    QFileSystemWatcher watcher;
+};
+} // namespace multipass
+
+#endif // MULTIPASS_DAEMON_SETTINGS_MONITOR_H

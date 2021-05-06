@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,11 @@ namespace test
 {
 struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 {
+    std::string name() override
+    {
+        return "stub";
+    }
+
     multipass::VirtualMachine::UPtr create_virtual_machine(const multipass::VirtualMachineDescription&,
                                                            multipass::VMStatusMonitor&) override
     {

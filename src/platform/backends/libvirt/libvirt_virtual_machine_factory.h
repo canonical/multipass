@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,10 @@ public:
     explicit LibVirtVirtualMachineFactory(const Path& data_dir);
     ~LibVirtVirtualMachineFactory();
 
+    std::string name() override
+    {
+        return "libvirt";
+    };
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;

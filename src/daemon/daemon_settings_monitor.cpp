@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,13 +15,12 @@
  *
  */
 
-#include "daemon_monitor_settings.h"
+#include "daemon_settings_monitor.h"
 
 #include <multipass/settings.h>
 #include <multipass/utils.h>
 
 #include <QCoreApplication>
-#include <QFileSystemWatcher>
 #include <QObject>
 
 namespace mp = multipass;
@@ -31,11 +30,21 @@ namespace
 constexpr const int settings_changed_code = 42;
 } // namespace
 
-void multipass::monitor_and_quit_on_settings_change() // temporary
+namespace multipass
 {
-    static const auto filename = mp::Settings::get_daemon_settings_file_path();
+DaemonSettingsMonitor::DaemonSettingsMonitor(const std::string& current_driver) // temporary
+{
+    const auto filename = MP_SETTINGS.get_daemon_settings_file_path();
     mp::utils::check_and_create_config_file(filename); // create if not there
 
-    static QFileSystemWatcher monitor{{filename}};
-    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(settings_changed_code); });
+    watcher.addPath(filename);
+
+    QObject::connect(&watcher, &QFileSystemWatcher::fileChanged, [this, current_driver, filename] {
+        if (mp::utils::get_driver_str() != current_driver.c_str())
+            MP_UTILS.exit(settings_changed_code);
+
+        if (!watcher.files().contains(filename))
+            watcher.addPath(filename);
+    });
 }
+} // namespace multipass

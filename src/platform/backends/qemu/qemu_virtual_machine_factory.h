@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,10 @@ public:
     explicit QemuVirtualMachineFactory(const Path& data_dir);
     ~QemuVirtualMachineFactory();
 
+    std::string name() override
+    {
+        return "qemu";
+    };
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;

@@ -44,7 +44,7 @@ public:
     template <typename T>
     T get_as(const QString& key) const;
 
-    static QString get_daemon_settings_file_path(); // temporary
+    virtual QString get_daemon_settings_file_path(); // temporary
     static QString get_client_settings_file_path(); // idem
 
 protected:

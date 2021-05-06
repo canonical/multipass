@@ -90,6 +90,14 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
 };
 
+TEST_F(QemuBackend, returns_expected_name)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    EXPECT_EQ(backend.name(), "qemu");
+}
+
 TEST_F(QemuBackend, creates_in_off_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;

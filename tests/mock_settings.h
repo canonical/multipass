@@ -39,6 +39,7 @@ public:
 
     MOCK_CONST_METHOD1(get, QString(const QString&));
     MOCK_METHOD2(set, void(const QString&, const QString&));
+    MOCK_METHOD0(get_daemon_settings_file_path, QString());
 
 private:
     void setup_mock_defaults();

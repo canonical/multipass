@@ -20,6 +20,7 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
+#include "daemon_settings_monitor.h" // temporary
 
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/memory_size.h>
@@ -179,6 +180,7 @@ private:
     MetricsProvider metrics_provider;
     MetricsOptInData metrics_opt_in;
     SSHFSMounts instance_mounts;
+    DaemonSettingsMonitor settings_monitor;
     std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;

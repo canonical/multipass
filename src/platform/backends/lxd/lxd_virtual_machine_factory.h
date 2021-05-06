@@ -34,6 +34,10 @@ public:
     explicit LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const Path& data_dir,
                                       const QUrl& base_url = lxd_socket_url);
 
+    std::string name() override
+    {
+        return backend_name;
+    };
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;
@@ -45,7 +49,7 @@ public:
     void hypervisor_health_check() override;
     QString get_backend_directory_name() override
     {
-        return "lxd";
+        return backend_name;
     };
     QString get_backend_version_string() override;
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
@@ -59,6 +63,7 @@ private:
     NetworkAccessManager::UPtr manager;
     const Path data_dir;
     const QUrl base_url;
+    static constexpr auto backend_name = "lxd";
 };
 } // namespace multipass
 
