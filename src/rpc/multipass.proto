@@ -72,7 +72,8 @@ message LaunchRequest {
         string mac_address = 3;
     }
     repeated NetworkOptions network_options = 12;
-    int32 timeout = 13;
+    bool permission_to_bridge = 13;
+    int32 timeout = 14;
 }
 
 message LaunchError {
@@ -131,6 +132,7 @@ message LaunchReply {
     string log_line = 6;
     UpdateInfo update_info = 7;
     string reply_message = 8;
+    repeated string nets_need_bridging = 9;
 }
 
 message PurgeRequest {
