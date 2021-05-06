@@ -39,9 +39,12 @@ DaemonSettingsMonitor::DaemonSettingsMonitor(const std::string& current_driver) 
 
     watcher.addPath(filename);
 
-    QObject::connect(&watcher, &QFileSystemWatcher::fileChanged, [current_driver] {
-        if (mp::utils::get_driver_str().toStdString() != current_driver)
-            QCoreApplication::exit(settings_changed_code);
+    QObject::connect(&watcher, &QFileSystemWatcher::fileChanged, [this, current_driver, filename] {
+        if (mp::utils::get_driver_str() != current_driver.c_str())
+            MP_UTILS.exit(settings_changed_code);
+
+        if (!watcher.files().contains(filename))
+            watcher.addPath(filename);
     });
 }
 } // namespace multipass
