@@ -25,7 +25,6 @@
 #include <QDir>
 #include <QEventLoop>
 #include <QFile>
-#include <QNetworkAccessManager>
 #include <QNetworkDiskCache>
 #include <QNetworkReply>
 #include <QTimer>
@@ -119,6 +118,16 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
 }
 } // namespace
 
+mp::NetworkManagerFactory::NetworkManagerFactory(const Singleton<NetworkManagerFactory>::PrivatePass& pass) noexcept
+    : Singleton<NetworkManagerFactory>::Singleton{pass}
+{
+}
+
+std::unique_ptr<QNetworkAccessManager> mp::NetworkManagerFactory::make_network_manager(const mp::Path& cache_dir_path)
+{
+    return ::make_network_manager(cache_dir_path);
+}
+
 mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout) : URLDownloader{Path(), timeout}
 {
 }
@@ -131,7 +140,7 @@ mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::millise
 void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                                     const mp::ProgressMonitor& monitor)
 {
-    auto manager{make_network_manager(cache_dir_path)};
+    auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
     QFile file{file_name};
     file.open(QIODevice::ReadWrite | QIODevice::Truncate);
@@ -178,7 +187,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
 {
-    auto manager{make_network_manager(cache_dir_path)};
+    auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
     // This will connect to the QNetworkReply::readReady signal and when emitted,
     // reset the timer.
@@ -198,7 +207,7 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
 
 QDateTime mp::URLDownloader::last_modified(const QUrl& url)
 {
-    auto manager{make_network_manager(cache_dir_path)};
+    auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
     QEventLoop event_loop;
 
