@@ -46,6 +46,7 @@ public:
 
     void prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) override
     {
+        // only certain backends need to do anything to prepare networking
     }
 
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
