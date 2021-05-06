@@ -398,10 +398,10 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
 
     using value_type = decltype(net_map)::value_type;
     using Net = mp::NetworkInterfaceInfo;
-    EXPECT_THAT(net_map, ElementsAre(AllOf(Field(&value_type::first, fake_bridge),
-                                           Field(&value_type::second,
-                                                 AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
-                                                       Field(&Net::description, HasSubstr("Empty network bridge")))))));
+    EXPECT_THAT(net_map, ElementsAre(AllOf(
+                             Field(&value_type::first, fake_bridge),
+                             Field(&value_type::second, AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
+                                                              Field(&Net::description, StrEq("Network bridge")))))));
 }
 
 TEST_F(PlatformLinux, retrieves_ethernet_devices)

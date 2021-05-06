@@ -147,7 +147,7 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
                         links.end()); // filter links to networks we don't recognize
 
             net.description =
-                links.empty() ? "Empty network bridge"
+                links.empty() ? "Network bridge"
                               : fmt::format("Network bridge with {}", fmt::join(links.cbegin(), links.cend(), ", "));
         }
     }
