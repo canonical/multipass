@@ -369,6 +369,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
     auto on_failure = [this, &parser](grpc::Status& status, mp::LaunchReply& reply) {
         spinner->stop();
+        if (timer)
+            timer->pause();
 
         LaunchError launch_error;
         launch_error.ParseFromString(status.error_details());
