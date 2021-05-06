@@ -2225,6 +2225,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             reply.set_create_message("Configuring " + name);
             server->Write(reply);
 
+            config->factory->prepare_networking(checked_args.extra_interfaces);
+
             // This set stores the MAC's which need to be in the allocated_mac_addrs if everything goes well.
             auto new_macs = allocated_mac_addrs;
 

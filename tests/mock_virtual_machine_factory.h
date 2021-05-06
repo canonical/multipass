@@ -35,6 +35,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD1(remove_resources_for, void(const std::string&));
 
     MOCK_METHOD0(fetch_type, FetchType());
+    MOCK_METHOD1(prepare_networking, void(std::vector<NetworkInterface>&));
     MOCK_METHOD1(prepare_source_image, VMImage(const VMImage&));
     MOCK_METHOD2(prepare_instance_image, void(const VMImage&, const VirtualMachineDescription&));
     MOCK_METHOD0(hypervisor_health_check, void());

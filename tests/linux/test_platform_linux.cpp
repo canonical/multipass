@@ -397,27 +397,6 @@ TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
                          Values(QStringLiteral("hyperkit"), QStringLiteral("hyper-v"), QStringLiteral("other")));
 
-TEST_F(PlatformLinux, retrieves_networks_from_the_system)
-{
-    const mpt::TempDir tmp_dir;
-    const auto fake_nets = {"eth0", "foo", "kkkkk"};
-
-    QDir fake_sys_class_net{tmp_dir.path()};
-    for (const auto& net : fake_nets)
-        ASSERT_TRUE(fake_sys_class_net.mkpath(net));
-
-    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
-    ASSERT_EQ(net_map.size(), fake_nets.size());
-
-    auto expect_it = std::cbegin(fake_nets);
-    for (const auto& [key, val] : net_map)
-    {
-        ASSERT_NE(expect_it, std::cend(fake_nets));
-        EXPECT_EQ(key, *expect_it++);
-        EXPECT_EQ(val.id, key);
-    }
-}
-
 TEST_F(PlatformLinux, retrieves_empty_bridges)
 {
     const mpt::TempDir tmp_dir;
@@ -432,10 +411,10 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
 
     using value_type = decltype(net_map)::value_type;
     using Net = mp::NetworkInterfaceInfo;
-    EXPECT_THAT(net_map, ElementsAre(AllOf(Field(&value_type::first, fake_bridge),
-                                           Field(&value_type::second,
-                                                 AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
-                                                       Field(&Net::description, HasSubstr("Empty network bridge")))))));
+    EXPECT_THAT(net_map, ElementsAre(AllOf(
+                             Field(&value_type::first, fake_bridge),
+                             Field(&value_type::second, AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
+                                                              Field(&Net::description, StrEq("Network bridge")))))));
 }
 
 TEST_F(PlatformLinux, retrieves_ethernet_devices)
@@ -457,7 +436,19 @@ TEST_F(PlatformLinux, retrieves_ethernet_devices)
     EXPECT_EQ(it->second.description, "Ethernet device");
 }
 
-TEST_F(PlatformLinux, does_not_identify_other_virtual)
+TEST_F(PlatformLinux, does_not_retrieve_unknown_networks)
+{
+    const mpt::TempDir tmp_dir;
+    const auto fake_nets = {"eth0", "foo", "kkkkk"};
+
+    QDir fake_sys_class_net{tmp_dir.path()};
+    for (const auto& net : fake_nets)
+        ASSERT_TRUE(fake_sys_class_net.mkpath(net));
+
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
+}
+
+TEST_F(PlatformLinux, does_not_retrieve_other_virtual)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_virt = "somevirt";
@@ -465,18 +456,10 @@ TEST_F(PlatformLinux, does_not_identify_other_virtual)
     QDir fake_sys_class_net{tmp_dir.path() + "/virtual"};
     ASSERT_EQ(mpt::make_file_with_content(fake_sys_class_net.filePath(fake_virt) + "/type", "1"), 1);
 
-    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
-
-    ASSERT_EQ(net_map.size(), 1u);
-
-    auto it = net_map.cbegin();
-    EXPECT_EQ(it->first, fake_virt);
-    EXPECT_EQ(it->second.id, fake_virt);
-    EXPECT_TRUE(it->second.type.empty());
-    EXPECT_TRUE(it->second.description.empty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
 }
 
-TEST_F(PlatformLinux, does_not_identify_wireless)
+TEST_F(PlatformLinux, does_not_retrieve_wireless)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_wifi = "somewifi";
@@ -486,18 +469,10 @@ TEST_F(PlatformLinux, does_not_identify_wireless)
     ASSERT_EQ(mpt::make_file_with_content(wifi_dir.filePath("type"), "1"), 1);
     ASSERT_TRUE(wifi_dir.mkpath("wireless"));
 
-    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
-
-    ASSERT_EQ(net_map.size(), 1u);
-
-    auto it = net_map.cbegin();
-    EXPECT_EQ(it->first, fake_wifi);
-    EXPECT_EQ(it->second.id, fake_wifi);
-    EXPECT_TRUE(it->second.type.empty());
-    EXPECT_TRUE(it->second.description.empty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
 }
 
-TEST_F(PlatformLinux, does_not_identify_protocols)
+TEST_F(PlatformLinux, does_not_retrieve_protocols)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_net = "somenet";
@@ -505,18 +480,10 @@ TEST_F(PlatformLinux, does_not_identify_protocols)
     QDir fake_sys_class_net{tmp_dir.path()};
     ASSERT_EQ(mpt::make_file_with_content(fake_sys_class_net.filePath(fake_net) + "/type", "32"), 2);
 
-    auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
-
-    ASSERT_EQ(net_map.size(), 1u);
-
-    auto it = net_map.cbegin();
-    EXPECT_EQ(it->first, fake_net);
-    EXPECT_EQ(it->second.id, fake_net);
-    EXPECT_TRUE(it->second.type.empty());
-    EXPECT_TRUE(it->second.description.empty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
 }
 
-TEST_F(PlatformLinux, does_not_identify_other_specified_device_types)
+TEST_F(PlatformLinux, does_not_retrieve_other_specified_device_types)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_net = "somenet";
@@ -530,16 +497,10 @@ TEST_F(PlatformLinux, does_not_identify_other_specified_device_types)
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
-    ASSERT_EQ(net_map.size(), 1u);
-
-    auto it = net_map.cbegin();
-    EXPECT_EQ(it->first, fake_net);
-    EXPECT_EQ(it->second.id, fake_net);
-    EXPECT_TRUE(it->second.type.empty());
-    EXPECT_TRUE(it->second.description.empty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
 }
 
-struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::string>>
+struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::pair<std::string, bool>>>
 {
 };
 
@@ -556,26 +517,41 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
     ASSERT_TRUE(interface_dir.mkpath("bridge"));
     ASSERT_TRUE(members_dir.mkpath("."));
 
-    std::vector<Matcher<std::string>> substrs_expectations{};
-    for (const auto& member : GetParam())
+    using net_value_type = decltype(MP_PLATFORM.get_network_interfaces_info())::value_type;
+    std::vector<Matcher<net_value_type>> network_matchers{};
+    std::vector<Matcher<std::string>> substrs_matchers{};
+    for (const auto& [member, recognized] : GetParam())
     {
+        QDir member_dir = fake_sys_class_net.filePath(QString::fromStdString(member));
+        ASSERT_TRUE(member_dir.mkpath("."));
         ASSERT_TRUE(members_dir.mkpath(QString::fromStdString(member)));
-        substrs_expectations.push_back(HasSubstr(member));
+
+        if (recognized)
+        {
+            ASSERT_EQ(mpt::make_file_with_content(member_dir.filePath("type"), "1"), 1);
+
+            substrs_matchers.push_back(HasSubstr(member));
+            network_matchers.push_back(Field(&net_value_type::first, member));
+        }
+        else
+            substrs_matchers.push_back(Not(HasSubstr(member)));
     }
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
-    using value_type = decltype(net_map)::value_type;
     using Net = mp::NetworkInterfaceInfo;
+    network_matchers.push_back(
+        AllOf(Field(&net_value_type::first, fake_bridge),
+              Field(&net_value_type::second, AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
+                                                   Field(&Net::description, AllOfArray(substrs_matchers))))));
 
-    EXPECT_THAT(net_map, ElementsAre(AllOf(Field(&value_type::first, fake_bridge),
-                                           Field(&value_type::second,
-                                                 AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
-                                                       Field(&Net::description, AllOfArray(substrs_expectations)))))));
+    EXPECT_THAT(net_map, UnorderedElementsAreArray(network_matchers));
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformLinux, BridgeMemberTest,
-                         Values(std::vector<std::string>{"en0"}, std::vector<std::string>{"en0, en1"},
-                                std::vector<std::string>{"asdf", "ggi", "a1", "fu"}));
+using Param = std::vector<std::pair<std::string, bool>>;
+INSTANTIATE_TEST_SUITE_P(
+    PlatformLinux, BridgeMemberTest,
+    Values(Param{{"en0", true}}, Param{{"en0", false}}, Param{{"en0", false}, {"en1", true}},
+           Param{{"asdf", true}, {"ggi", true}, {"a1", true}, {"fu", false}, {"ho", true}, {"ra", false}}));
 
 } // namespace

@@ -19,9 +19,12 @@
 #include "lxd_virtual_machine.h"
 #include "lxd_vm_image_vault.h"
 
+#include <shared/linux/backend_utils.h>
+
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
@@ -36,6 +39,7 @@ namespace
 {
 constexpr auto category = "lxd factory";
 const QString multipass_bridge_name = "mpbr0";
+
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
@@ -173,7 +177,8 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
                         auto description = lxd_description.isEmpty() ? std::move(platform_it->second.description)
                                                                      : lxd_description.toStdString();
 
-                        ret.push_back({std::move(id), std::move(type), std::move(description)});
+                        ret.push_back({std::move(id), std::move(type), std::move(description),
+                                       std::move(platform_it->second.links)});
 
                         platform_networks.erase(platform_it); // prevent matching with this network again
                     }
@@ -183,4 +188,21 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
     }
 
     return ret;
+}
+
+void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
+{
+    auto host_nets = networks();
+    for (auto& net : extra_interfaces)
+    {
+        auto it = std::find_if(host_nets.cbegin(), host_nets.cend(),
+                               [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
+        if (it != host_nets.end() && it->type == "ethernet")
+        {
+            it = std::find_if(host_nets.cbegin(), host_nets.cend(), [&net](const mp::NetworkInterfaceInfo& info) {
+                return info.type == "bridge" && info.has_link(net.id);
+            });
+            net.id = it != host_nets.cend() ? it->id : mp::backend::create_bridge_with(net.id);
+        }
+    }
 }

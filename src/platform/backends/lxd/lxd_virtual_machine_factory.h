@@ -34,6 +34,7 @@ public:
     explicit LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const Path& data_dir,
                                       const QUrl& base_url = lxd_socket_url);
 
+    void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;
