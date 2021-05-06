@@ -1,8 +1,8 @@
-description: Invalid file name workflow
+description: Invalid host name workflow
 version: 0.1
 
 instances:
-  invalid-$filename-workflow:
+  42-invalid-hostname-workflow:
     image: "default"
     limits:
       min-cpu: 2
