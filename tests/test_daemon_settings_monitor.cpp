@@ -16,18 +16,14 @@
  */
 
 #include "mock_settings.h"
+#include "mock_utils.h"
 
 #include <multipass/constants.h>
 #include <src/daemon/daemon_settings_monitor.h>
 
 #include <gtest/gtest.h>
 
-#include <QCoreApplication>
-#include <QFileSystemWatcher>
 #include <QTemporaryFile>
-#include <QTimer>
-
-#include <iostream>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -44,15 +40,10 @@ struct SettingsMonitor : public Test
         EXPECT_CALL(mock_settings, get_daemon_settings_file_path).WillOnce(Return(fake_settings_file.fileName()));
     }
 
-    void setup_file_change_trigger()
+    void trigger_file_change()
     {
-        // Trigger a file change as soon as QCoreApplication starts
-        QTimer::singleShot(0, [this] {
-            fake_settings_file.write("blah");
-            fake_settings_file.close();
-        });
-        // Exit if the one above doesn't
-        QTimer::singleShot(1, []() { QCoreApplication::exit(1); });
+        fake_settings_file.write("blah");
+        fake_settings_file.close();
     }
 
     QTemporaryFile fake_settings_file;
@@ -62,25 +53,21 @@ struct SettingsMonitor : public Test
 
 TEST_F(SettingsMonitor, exits_on_driver_changed)
 {
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return("other"));
-    setup_file_change_trigger();
+    EXPECT_CALL(*mock_utils, exit(42));
 
     mp::DaemonSettingsMonitor monitor{"this"};
-
-    auto ret = QCoreApplication::exec();
-
-    EXPECT_EQ(ret, 42) << "Settings monitor did not quit.";
+    trigger_file_change();
 }
 
 TEST_F(SettingsMonitor, does_not_exit_on_driver_stable)
 {
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return("this"));
-    setup_file_change_trigger();
+    EXPECT_CALL(*mock_utils, exit(_)).Times(0);
 
     mp::DaemonSettingsMonitor monitor{"this"};
-
-    auto ret = QCoreApplication::exec();
-
-    EXPECT_NE(ret, 42) << "Settings monitor quit when it shouldn't have.";
+    trigger_file_change();
 }
 } // namespace
