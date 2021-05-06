@@ -2176,7 +2176,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
                 name,
                 "",
-                checked_args.extra_interfaces,
+                {},
                 config->ssh_username,
                 VMImage{},
                 "",
@@ -2241,6 +2241,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                     iface.mac_address = generate_unused_mac_address(new_macs);
 
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
+            vm_desc.extra_interfaces = checked_args.extra_interfaces;
+
             vm_desc.meta_data_config = make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
