@@ -222,17 +222,6 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
 
     if (reply->error() != QNetworkReply::NoError)
     {
-        auto network_cache = manager->cache();
-        auto metadata = network_cache->metaData(url);
-
-        if (metadata.isValid())
-        {
-            mpl::log(mpl::Level::warning, category,
-                     fmt::format("Cannot retrieve last modified date for {}: {}. Using cached data instead.",
-                                 url.toString(), reply->errorString()));
-            return metadata.lastModified();
-        }
-
         throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
     }
 
