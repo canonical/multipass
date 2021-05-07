@@ -131,6 +131,13 @@ jobs:
               }}
 
               if [ '${{ matrix.os }}' == 'Linux' ]; then
+                OVERRIDE_CONF="/etc/systemd/system/snap.multipass.multipassd.service.d"
+                _run sudo mkdir $( dirname ${OVERRIDE_CONF} )
+                _run sudo tee ${OVERRIDE_CONF} <<EOF
+              [Service]
+              ExecStart=
+              ExecStart=/usr/bin/snap run multipass.multipassd --verbosity trace
+              EOF
                 # Give snapd time to settle
                 _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.snap-channel }}
 
