@@ -93,6 +93,22 @@ mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Co
 {
 }
 
+mp::ParseCode mp::ArgParser::prepare_alias_execution()
+{
+    if (parser.positionalArguments().size() > 1)
+    {
+        cerr << "Aliases admit no arguments\n";
+
+        return mp::ParseCode::CommandFail;
+    }
+    else
+    {
+        chosen_command = findCommand("exec");
+
+        return mp::ParseCode::Ok;
+    }
+}
+
 mp::ParseCode mp::ArgParser::parse(const multipass::optional<multipass::AliasDict>& aliases)
 {
     QCommandLineOption help_option = parser.addHelpOption();
@@ -149,11 +165,7 @@ mp::ParseCode mp::ArgParser::parse(const multipass::optional<multipass::AliasDic
         execute_alias = aliases->get_alias(requested_command.toStdString());
 
         if (execute_alias)
-        {
-            chosen_command = findCommand("exec");
-
-            return ParseCode::Ok;
-        }
+            return prepare_alias_execution();
     }
 
     // Fall through

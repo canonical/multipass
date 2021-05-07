@@ -78,6 +78,7 @@ public:
 private:
     QString generalHelpText();
     QString helpText(cmd::Command* command);
+    ParseCode prepare_alias_execution();
 
     const QStringList& arguments;
     const std::vector<cmd::Command::UPtr>& commands;
