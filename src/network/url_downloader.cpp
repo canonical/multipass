@@ -38,6 +38,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "url downloader";
+using NetworkReplyUPtr = std::unique_ptr<QNetworkReply>;
 
 auto make_network_manager(const mp::Path& cache_dir_path)
 {
@@ -71,13 +72,13 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute,
                          force_cache ? QNetworkRequest::AlwaysCache : QNetworkRequest::PreferNetwork);
 
-    auto reply = manager->get(request);
+    NetworkReplyUPtr reply{manager->get(request)};
 
-    QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
-    QObject::connect(reply, &QNetworkReply::downloadProgress, [&](qint64 bytes_received, qint64 bytes_total) {
-        on_progress(reply, bytes_received, bytes_total);
+    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+    QObject::connect(reply.get(), &QNetworkReply::downloadProgress, [&](qint64 bytes_received, qint64 bytes_total) {
+        on_progress(reply.get(), bytes_received, bytes_total);
     });
-    QObject::connect(reply, &QNetworkReply::readyRead, [&]() { on_download(reply, download_timeout); });
+    QObject::connect(reply.get(), &QNetworkReply::readyRead, [&]() { on_download(reply.get(), download_timeout); });
     QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
         download_timeout.stop();
         reply->abort();
@@ -214,8 +215,8 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
     QNetworkRequest request{url};
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 
-    auto reply = manager->head(request);
-    QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+    NetworkReplyUPtr reply{manager->head(request)};
+    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
 
     event_loop.exec();
 
