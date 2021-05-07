@@ -40,7 +40,7 @@ Path convert_to_qcow_if_necessary(const Path& image_path);
 QString cpu_arch();
 void check_for_kvm_support();
 void check_if_kvm_is_in_use();
-void create_bridge_with(const std::string& interface);
+std::string create_bridge_with(const std::string& interface);
 
 class CreateBridgeException : public std::runtime_error
 {

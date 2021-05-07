@@ -322,7 +322,7 @@ void mp::backend::check_if_kvm_is_in_use()
 
 // @precondition no bridge exists for this interface
 // @precondition interface identifies an ethernet device
-void mp::backend::create_bridge_with(const std::string& interface)
+std::string mp::backend::create_bridge_with(const std::string& interface)
 {
     static constexpr auto log_category_create = "create bridge";
     static constexpr auto log_category_rollback = "rollback bridge";
@@ -359,7 +359,11 @@ void mp::backend::create_bridge_with(const std::string& interface)
     for '/' to signal null `device` and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
 
     rollback_guard.dismiss(); // we succeeded!
-    mpl::log(mpl::Level::info, log_category_create, fmt::format("Created bridge: {}", parent_name));
+
+    auto ret = parent_name.toStdString();
+    mpl::log(mpl::Level::info, log_category_create, fmt::format("Created bridge: {}", ret));
+
+    return ret;
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error,

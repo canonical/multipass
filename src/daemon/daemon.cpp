@@ -33,6 +33,7 @@
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
+#include <multipass/settings.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -353,6 +354,7 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
 
 std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
                                                             const mp::VirtualMachineFactory& factory,
+                                                            std::vector<std::string>& nets_need_bridging,
                                                             mp::LaunchError& option_errors)
 {
     std::vector<mp::NetworkInterface> interfaces;
@@ -366,6 +368,18 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
     for (const auto& net : request->network_options())
     {
+        auto net_id = net.id();
+
+        if (net_id == mp::bridged_network_name)
+        {
+            const auto bridged_id = MP_SETTINGS.get(mp::bridged_interface_key);
+            if (bridged_id == "")
+                throw std::runtime_error(
+                    fmt::format("You have to `multipass set {}=<name>` to use the `--bridged` shortcut.",
+                                mp::bridged_interface_key));
+            net_id = bridged_id.toStdString();
+        }
+
         if (!factory_networks)
         {
             try
@@ -385,20 +399,28 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         }
 
         // Check that the id the user specified is valid.
-        auto pred = [net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id(); };
-        const auto& result = std::find_if(factory_networks->cbegin(), factory_networks->cend(), pred);
+        auto pred = [net_id](const mp::NetworkInterfaceInfo& info) { return info.id == net_id; };
+        auto host_net_it = std::find_if(factory_networks->cbegin(), factory_networks->cend(), pred);
 
-        if (result == factory_networks->cend())
+        if (host_net_it == factory_networks->cend())
         {
-            mpl::log(mpl::Level::warning, category, fmt::format("Invalid network name \"{}\"", net.id()));
+            if (net.id() == mp::bridged_network_name)
+                throw std::runtime_error(
+                    fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
+                                "correct. See `multipass networks` for valid names.",
+                                net_id, mp::bridged_interface_key));
+
+            mpl::log(mpl::Level::warning, category, fmt::format("Invalid network name \"{}\"", net_id));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
+        else if (host_net_it->needs_authorization)
+            nets_need_bridging.push_back(host_net_it->id);
 
         // In case the user specified a MAC address, check it is valid.
         if (const auto& mac = QString::fromStdString(net.mac_address()).toLower().toStdString();
             mac.empty() || mpu::valid_mac_address(mac))
             interfaces.push_back(
-                mp::NetworkInterface{net.id(), mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
+                mp::NetworkInterface{net_id, mac, net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
         {
             mpl::log(mpl::Level::warning, category, fmt::format("Invalid MAC address \"{}\"", mac));
@@ -447,7 +469,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Virtu
     if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    auto extra_interfaces = validate_extra_interfaces(request, factory, option_errors);
+    std::vector<std::string> nets_need_bridging;
+    auto extra_interfaces = validate_extra_interfaces(request, factory, nets_need_bridging, option_errors);
 
     struct CheckedArguments
     {
@@ -455,8 +478,14 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Virtu
         mp::optional<mp::MemorySize> disk_space;
         std::string instance_name;
         std::vector<mp::NetworkInterface> extra_interfaces;
+        std::vector<std::string> nets_need_bridging;
         mp::LaunchError option_errors;
-    } ret{mem_size, disk_space, instance_name, extra_interfaces, option_errors};
+    } ret{mem_size,
+          disk_space,
+          std::move(instance_name),
+          std::move(extra_interfaces),
+          std::move(nets_need_bridging),
+          std::move(option_errors)};
     return ret;
 }
 
@@ -2061,6 +2090,20 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
         return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
                                                       checked_args.option_errors.SerializeAsString()));
     }
+    else if (auto& nets = checked_args.nets_need_bridging; !nets.empty() && !request->permission_to_bridge())
+    {
+        CreateError create_error;
+        create_error.add_error_codes(CreateError::INVALID_NETWORK);
+
+        CreateReply reply;
+        *reply.mutable_nets_need_bridging() = {std::make_move_iterator(nets.begin()),
+                                               std::make_move_iterator(nets.end())}; /* this constructs a temporary
+                                               RepeatedPtrField from the range, then move-assigns that temporary in */
+        server->Write(reply);
+
+        return status_promise->set_value(
+            grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Missing bridges", create_error.SerializeAsString()});
+    }
 
     // TODO: We should only need to query the Workflow Provider once for all info, so this (and timeout below) will
     //       need a refactoring to do so.
@@ -2176,7 +2219,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
                 name,
                 "",
-                checked_args.extra_interfaces,
+                {},
                 config->ssh_username,
                 VMImage{},
                 "",
@@ -2225,6 +2268,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
             reply.set_create_message("Configuring " + name);
             server->Write(reply);
 
+            config->factory->prepare_networking(checked_args.extra_interfaces);
+
             // This set stores the MAC's which need to be in the allocated_mac_addrs if everything goes well.
             auto new_macs = allocated_mac_addrs;
 
@@ -2239,6 +2284,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                     iface.mac_address = generate_unused_mac_address(new_macs);
 
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
+            vm_desc.extra_interfaces = checked_args.extra_interfaces;
+
             vm_desc.meta_data_config = make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);

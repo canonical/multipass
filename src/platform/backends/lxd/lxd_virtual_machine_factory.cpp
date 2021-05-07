@@ -19,9 +19,12 @@
 #include "lxd_virtual_machine.h"
 #include "lxd_vm_image_vault.h"
 
+#include <shared/linux/backend_utils.h>
+
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
@@ -36,6 +39,47 @@ namespace
 {
 constexpr auto category = "lxd factory";
 const QString multipass_bridge_name = "mpbr0";
+
+template <typename NetworkContainer>
+auto find_bridge_with(const NetworkContainer& networks, const std::string& member_network)
+{
+    return std::find_if(std::cbegin(networks), std::cend(networks),
+                        [&member_network](const mp::NetworkInterfaceInfo& info) {
+                            return info.type == "bridge" && info.has_link(member_network);
+                        });
+}
+
+mp::NetworkInterfaceInfo munch_network(std::map<std::string, mp::NetworkInterfaceInfo>& platform_networks,
+                                       const QJsonObject& network)
+{
+    using namespace std::string_literals;
+    static const std::array supported_types{"bridge"s, "ethernet"s};
+
+    mp::NetworkInterfaceInfo ret;
+    if (auto qid = network["name"].toString(); !qid.isEmpty())
+    {
+        auto id = qid.toStdString();
+        if (auto platform_it = platform_networks.find(id); platform_it != platform_networks.cend())
+        {
+            if (auto& type = platform_it->second.type;
+                std::find(supported_types.cbegin(), supported_types.cend(), type) != supported_types.cend())
+            {
+                auto lxd_description = network["description"].toString();
+                auto description = lxd_description.isEmpty() ? std::move(platform_it->second.description)
+                                                             : lxd_description.toStdString();
+                auto require_authorization = type != "bridge";
+
+                ret = {std::move(id), std::move(type), std::move(description), std::move(platform_it->second.links),
+                       require_authorization};
+
+                platform_networks.erase(platform_it); // prevent matching with this network again
+            }
+        }
+    }
+
+    return ret;
+}
+
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
@@ -146,9 +190,6 @@ mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(std::vec
 
 auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    using namespace std::string_literals;
-    static const std::array supported_types{"bridge"s, "ethernet"s};
-
     auto url = QUrl{QString{"%1/networks?recursion=1"}.arg(base_url.toString())}; // no network filter ATTOW
     auto reply = lxd_request(manager.get(), "GET", url);
 
@@ -159,28 +200,28 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
     {
         auto platform_networks = MP_PLATFORM.get_network_interfaces_info();
         for (const QJsonValueRef net_value : networks)
-        {
-            auto network = net_value.toObject();
-            if (auto qid = network["name"].toString(); !qid.isEmpty())
-            {
-                auto id = qid.toStdString();
-                if (auto platform_it = platform_networks.find(id); platform_it != platform_networks.cend())
-                {
-                    if (auto& type = platform_it->second.type;
-                        std::find(supported_types.cbegin(), supported_types.cend(), type) != supported_types.cend())
-                    {
-                        auto lxd_description = network["description"].toString();
-                        auto description = lxd_description.isEmpty() ? std::move(platform_it->second.description)
-                                                                     : lxd_description.toStdString();
+            if (auto network = munch_network(platform_networks, net_value.toObject()); !network.id.empty())
+                ret.push_back(std::move(network));
 
-                        ret.push_back({std::move(id), std::move(type), std::move(description)});
-
-                        platform_networks.erase(platform_it); // prevent matching with this network again
-                    }
-                }
-            }
-        }
+        for (auto& net : ret)
+            if (net.needs_authorization && find_bridge_with(ret, net.id) != ret.cend())
+                net.needs_authorization = false;
     }
 
     return ret;
+}
+
+void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
+{
+    auto host_nets = networks();
+    for (auto& net : extra_interfaces)
+    {
+        auto it = std::find_if(host_nets.cbegin(), host_nets.cend(),
+                               [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
+        if (it != host_nets.end() && it->type == "ethernet")
+        {
+            it = find_bridge_with(host_nets, net.id);
+            net.id = it != host_nets.cend() ? it->id : mp::backend::create_bridge_with(net.id);
+        }
+    }
 }

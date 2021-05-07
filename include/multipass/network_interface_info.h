@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,25 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 
+#include <algorithm>
+#include <string>
+#include <vector>
+
 namespace multipass
 {
 struct NetworkInterfaceInfo
 {
+    bool has_link(const std::string& net) const
+    {
+        auto end = links.cend();
+        return std::find(links.cbegin(), end, net) != end;
+    }
+
     std::string id;
     std::string type;
     std::string description;
+    std::vector<std::string> links = {}; // default initializer allows aggregate init of the other 3
+    bool needs_authorization = false;    // idem
 };
 } // namespace multipass
 #endif // MULTIPASS_NETWORK_INTERFACE_INFO_H

@@ -111,25 +111,47 @@ bool is_ethernet(const QDir& net_dir)
            get_net_devtype(net_dir).isEmpty();
 }
 
-mp::NetworkInterfaceInfo get_network(const QDir& net_dir)
+mp::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
 {
     static const auto bridge_fname = QStringLiteral("brif");
+    auto id = net_dir.dirName().toStdString();
 
-    std::string type, description;
     if (auto bridge = "bridge"; net_dir.exists(bridge))
     {
-        type = bridge;
+        std::vector<std::string> links;
         QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
-        description = bridge_members.isEmpty() ? "Empty network bridge"
-                                               : fmt::format("Network bridge with {}", bridge_members.join(", "));
+
+        links.reserve(bridge_members.size());
+        std::transform(bridge_members.cbegin(), bridge_members.cend(), std::back_inserter(links),
+                       [](const QString& interface) { return interface.toStdString(); });
+
+        return {{std::move(id), bridge, /*description=*/"", std::move(links)}}; // description needs updating with links
     }
     else if (is_ethernet(net_dir))
-    {
-        type = "ethernet";
-        description = "Ethernet device";
-    }
+        return {{std::move(id), "ethernet", "Ethernet device"}};
 
-    return mp::NetworkInterfaceInfo{net_dir.dirName().toStdString(), std::move(type), std::move(description)};
+    return mp::nullopt;
+}
+
+void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
+{
+    for (auto& item : networks)
+    {
+        if (auto& net = item.second; net.type == "bridge")
+        { // bridge descriptions and links depend on what other networks we recognized
+            auto& links = net.links;
+            auto is_unknown = [&networks](const std::string& id) {
+                auto same_as = [&id](const auto& other) { return other.first == id; };
+                return std::find_if(networks.cbegin(), networks.cend(), same_as) == networks.cend();
+            };
+            links.erase(std::remove_if(links.begin(), links.end(), is_unknown),
+                        links.end()); // filter links to networks we don't recognize
+
+            net.description =
+                links.empty() ? "Network bridge"
+                              : fmt::format("Network bridge with {}", fmt::join(links.cbegin(), links.cend(), ", "));
+        }
+    }
 }
 } // namespace
 
@@ -166,10 +188,14 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     auto ifaces_info = std::map<std::string, mp::NetworkInterfaceInfo>();
     for (const auto& entry : sys_dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs))
     {
-        auto iface = get_network(QDir{sys_dir.filePath(entry)});
-        auto name = iface.id; // (can't rely on param evaluation order)
-        ifaces_info.emplace(std::move(name), std::move(iface));
+        if (auto iface = get_network(QDir{sys_dir.filePath(entry)}); iface)
+        {
+            auto name = iface->id; // (can't rely on param evaluation order)
+            ifaces_info.emplace(std::move(name), std::move(*iface));
+        }
     }
+
+    update_bridges(ifaces_info);
 
     return ifaces_info;
 }

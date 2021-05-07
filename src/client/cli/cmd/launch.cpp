@@ -52,6 +52,16 @@ const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
 const std::regex later{"l|later", std::regex::icase | std::regex::optimize};
 const std::regex show{"s|show", std::regex::icase | std::regex::optimize};
 
+constexpr bool on_windows()
+{ // TODO when we have remote client-daemon communication, we need to get the daemon's platform
+    return
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+        true;
+#else
+        false;
+#endif
+}
+
 auto checked_mode(const std::string& mode)
 {
     if (mode == "auto")
@@ -196,13 +206,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "Add a network interface to the instance, where <spec> is in the "
                                      "\"key=value,key=value\" format, with the following keys available:\n"
                                      "  name: the network to connect to (required), use the networks command for a "
-                                     "list of possible values\n"
+                                     "list of possible values, or use 'bridged' to use the interface configured via "
+                                     "`multipass set local.bridged-network`.\n"
                                      "  mode: auto|manual (default: auto)\n"
                                      "  mac: hardware address (default: random).\n"
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
+    QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
 
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption});
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -300,6 +312,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
     }
 
+    if (parser->isSet(bridgedOption))
+    {
+        request.mutable_network_options()->Add(net_digest(mp::bridged_network_name));
+    }
+
     try
     {
         if (parser->isSet(networkOption))
@@ -325,7 +342,9 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
             cout); // Creating just in time to work around canonical/multipass#2075
 
-    if (parser->isSet("timeout") && !timer)
+    if (timer)
+        timer->resume();
+    else if (parser->isSet("timeout"))
     {
         timer = cmd::make_timer(parser->value("timeout").toInt(), spinner.get(), cerr,
                                 "Timed out waiting for instance launch.");
@@ -334,58 +353,12 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
     auto on_success = [this, &parser](mp::LaunchReply& reply) {
         spinner->stop();
+        if (timer)
+            timer->pause();
 
         if (reply.metrics_pending())
         {
-            if (term->is_live())
-            {
-                if (timer)
-                    timer->pause();
-
-                cout << "One quick question before we launch … Would you like to help\n"
-                     << "the Multipass developers, by sending anonymous usage data?\n"
-                     << "This includes your operating system, which images you use,\n"
-                     << "the number of instances, their properties and how long you use them.\n"
-                     << "We’d also like to measure Multipass’s speed.\n\n"
-                     << (reply.metrics_show_info().has_host_info() ? "Choose “show” to see an example usage report.\n\n"
-                                                                     "Send usage data (yes/no/Later/show)? "
-                                                                   : "Send usage data (yes/no/Later)? ");
-
-                while (true)
-                {
-                    std::string answer;
-                    std::getline(term->cin(), answer);
-                    if (std::regex_match(answer, yes))
-                    {
-                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::ACCEPTED);
-                        cout << "Thank you!\n";
-                        break;
-                    }
-                    else if (std::regex_match(answer, no))
-                    {
-                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::DENIED);
-                        break;
-                    }
-                    else if (answer.empty() || std::regex_match(answer, later))
-                    {
-                        request.mutable_opt_in_reply()->set_opt_in_status(OptInStatus::LATER);
-                        break;
-                    }
-                    else if (reply.metrics_show_info().has_host_info() && std::regex_match(answer, show))
-                    {
-                        // TODO: Display actual metrics data here provided by daemon
-                        cout << "Show metrics example here\n\n"
-                             << "Send usage data (yes/no/Later/show)? ";
-                    }
-                    else
-                    {
-                        cout << (reply.metrics_show_info().has_host_info() ? "Please answer yes/no/Later/show: "
-                                                                           : "Please answer yes/no/Later: ");
-                    }
-                }
-            }
-            if (timer)
-                timer->resume();
+            request.mutable_opt_in_reply()->set_opt_in_status(ask_metrics_permission(reply));
             return request_launch(parser);
         }
 
@@ -401,8 +374,10 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this, &parser](grpc::Status& status, mp::LaunchReply& reply) {
         spinner->stop();
+        if (timer)
+            timer->pause();
 
         LaunchError launch_error;
         launch_error.ParseFromString(status.error_details());
@@ -424,6 +399,12 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             }
             else if (error == LaunchError::INVALID_NETWORK)
             {
+                if (reply.nets_need_bridging_size() && ask_bridge_permission(reply))
+                {
+                    request.set_permission_to_bridge(true);
+                    return request_launch(parser);
+                }
+
                 // TODO: show the option which triggered the error only. This will need a refactor in the
                 // LaunchError proto.
                 error_details = "Invalid network options supplied";
@@ -475,4 +456,84 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     };
 
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
+}
+
+auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInStatus::Status
+{
+    if (term->is_live())
+    {
+        cout << "One quick question before we launch … Would you like to help\n"
+             << "the Multipass developers, by sending anonymous usage data?\n"
+             << "This includes your operating system, which images you use,\n"
+             << "the number of instances, their properties and how long you use them.\n"
+             << "We’d also like to measure Multipass’s speed.\n\n"
+             << (reply.metrics_show_info().has_host_info() ? "Choose “show” to see an example usage report.\n\n"
+                                                             "Send usage data (yes/no/Later/show)? "
+                                                           : "Send usage data (yes/no/Later)? ");
+
+        while (true)
+        {
+            std::string answer;
+            std::getline(term->cin(), answer);
+            if (std::regex_match(answer, yes))
+            {
+                cout << "Thank you!\n";
+                return OptInStatus::ACCEPTED;
+            }
+            else if (std::regex_match(answer, no))
+            {
+                return OptInStatus::DENIED;
+            }
+            else if (answer.empty() || std::regex_match(answer, later))
+            {
+                return OptInStatus::LATER;
+            }
+            else if (reply.metrics_show_info().has_host_info() && std::regex_match(answer, show))
+            {
+                // TODO: Display actual metrics data here provided by daemon
+                cout << "Show metrics example here\n\n"
+                     << "Send usage data (yes/no/Later/show)? ";
+            }
+            else
+            {
+                cout << (reply.metrics_show_info().has_host_info() ? "Please answer yes/no/Later/show: "
+                                                                   : "Please answer yes/no/Later: ");
+            }
+        }
+    }
+
+    return OptInStatus::UNKNOWN;
+}
+
+bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
+{
+    static constexpr auto plural = "Multipass needs to create {} to connect to {}.\nThis will temporarily disrupt "
+                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)?";
+    static constexpr auto singular = "Multipass needs to create a {} to connect to {}.\nThis will temporarily disrupt "
+                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)?";
+    static constexpr auto nodes = on_windows() ? "switches" : "bridges";
+    static constexpr auto node = on_windows() ? "switch" : "bridge";
+
+    if (term->is_live())
+    {
+        assert(reply.nets_need_bridging_size()); // precondition
+        if (reply.nets_need_bridging_size() != 1)
+            fmt::print(cout, plural, nodes, fmt::join(reply.nets_need_bridging(), ", "));
+        else
+            fmt::print(cout, singular, node, reply.nets_need_bridging(0));
+
+        while (true)
+        {
+            std::string answer;
+            std::getline(term->cin(), answer);
+            if (std::regex_match(answer, yes))
+                return true;
+            else if (std::regex_match(answer, no))
+                return false;
+            else
+                cout << "Please answer yes/no: ";
+        }
+    }
+
+    return false;
 }
