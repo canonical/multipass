@@ -10,7 +10,7 @@ Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey
 
 After chocolatey is installed you can now install the rest of the dependencies:
 
-    choco install visualcpp-build-tools cmake ninja cmder qemu-img nsis openssl -yfd
+    choco install visualstudio2019buildtools visualstudio2019-workload-vctools cmake ninja cmder qemu-img nsis openssl -yfd
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker.
 Search for Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable Real-time protection.
@@ -23,13 +23,13 @@ find "Microsoft Visual Studio Installer" and click "Modify".
 You need to enable symlinks in Windows Git, have a look at [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
 ### Qt5
-Install the latest stable version of Qt5 (5.12.4 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
+Install the latest stable version of Qt5 (5.15.2 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
 
-In the online installer, under Qt, select MSVC 2017 64-bit.
+In the online installer, under Qt, select MSVC 2019 64-bit.
 
 If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
 
-Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt5_5124/qt.qt5.5124.win64_msvc2017_64/5.12.4-0-201906140149qtbase-Windows-Windows_10-MSVC2017-Windows-Windows_10-X86_64.7z) and extract it to `C:\Qt` (so it ends up in `C:\Qt\5.12.4`).
+Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt5_5152/qt.qt5.5152.win64_msvc2019_64/5.15.2-0-202011130602qtbase-Windows-Windows_10-MSVC2019-Windows-Windows_10-X86_64.7z) and extract it to `C:\Qt` (so it ends up in `C:\Qt\5.15.2`).
 
 ### Path setup
 You'll have to manually add CMake and Qt to your account's PATH variable.
@@ -37,12 +37,12 @@ You'll have to manually add CMake and Qt to your account's PATH variable.
 Search for "Edit environment variables for your account" then edit your Path variable.
 Add the following:
      `C:\Program Files\CMake\bin`
-     `C:\Qt\5.12.4\msvc2017_64\bin`
+     `C:\Qt\5.15.2\msvc2019_64\bin`
 
 ### Cmder setup
 Cmder is a sane terminal emulator for windows, which includes git and SSH support among other things.
 
-The following will setup a task that you can use to build things with the VS2017 compiler toolchain.
+The following will setup a task that you can use to build things with the VS2019 compiler toolchain.
 
 Run cmder which should be installed by default on C:\tools\cmder\Cmder.exe
 Click on the green "+" sign on the right lower corner of cmder
@@ -51,15 +51,15 @@ Click the "+" button to add a new task
 In the  task parameters box add (basically copying from cmd:Cmder task):
     /icon "%CMDER_ROOT%\icons\cmder.ico"
 In the commands box, add:
-    cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%
+    cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%
 
-Give the task a name (first box), such as vs2017 and click Save Settings.
+Give the task a name (first box), such as vs2019 and click Save Settings.
 
 Building
 ---------------------------------------
 
-Run cmder, click on the green "+" and click on the vs2017 task
-This will open a new terminal tab and run the VS2017 setup. CMake can now find the VS compiler.
+Run cmder, click on the green "+" and click on the vs2019 task
+This will open a new terminal tab and run the VS2019 setup. CMake can now find the VS compiler.
 
     cd <multipass>
     git submodule update --init --recursive
