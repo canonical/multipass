@@ -11,3 +11,8 @@ parts
 prime
 stage
 snap/.snapcraft/state
+
+# build artifacts
+build/
+multipass-build-deps*
+
