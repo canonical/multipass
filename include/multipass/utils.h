@@ -126,6 +126,8 @@ template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
                     Args&&... args);
 
+std::pair<QString, QString> parse_LSB_Release(const QStringList& lsb_file_data, const char& delimiter = '=');
+
 } // namespace utils
 
 class Utils : public Singleton<Utils>
