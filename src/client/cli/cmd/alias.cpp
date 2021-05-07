@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/platform.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -31,9 +32,17 @@ mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    aliases.add_alias(alias_name, alias_definition);
+    try
+    {
+        MP_PLATFORM.create_alias_script(alias_name, alias_definition);
+    }
+    catch (std::runtime_error&)
+    {
+        cerr << fmt::format("Cannot create script for alias '{}'\n", alias_name);
+        return ReturnCode::CommandLineError;
+    }
 
-    // TODO: create symlink/script to directly execute the alias
+    aliases.add_alias(alias_name, alias_definition);
 
     return ReturnCode::Ok;
 }

@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/platform.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -33,7 +34,15 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
 
     if (aliases.remove_alias(alias_to_remove))
     {
-        // TODO: remove symlink/script associated with this alias
+        try
+        {
+            MP_PLATFORM.remove_alias_script(alias_to_remove);
+        }
+        catch (std::runtime_error&)
+        {
+            cerr << fmt::format("Warning: cannot remove script for '{}'\n", alias_to_remove);
+        }
+
         return ReturnCode::Ok;
     }
     else
