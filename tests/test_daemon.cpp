@@ -32,6 +32,7 @@
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_process_factory.h"
+#include "mock_settings.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
@@ -107,11 +108,19 @@ struct Daemon : public mpt::DaemonTestFixture
         EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
     }
 
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_settings, get(_))
+            .Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests. */
+    }
+
     mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject()};
     NiceMock<mpt::MockUtils>* mock_utils = attr.first;
 
     mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = platform_attr.first;
+    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
+                                                                              reset at the end of each test */
 };
 
 TEST_F(Daemon, receives_commands)
@@ -1305,4 +1314,47 @@ INSTANTIATE_TEST_SUITE_P(Daemon, DaemonLaunchTimeoutValueTestSuite,
                          Values(std::make_tuple(0, 600, 600), // client_timeout, workflow_timeout, expected_timeout
                                 std::make_tuple(1000, 600, 1000), std::make_tuple(1000, 0, 1000),
                                 std::make_tuple(0, 0, 300)));
+
+TEST_F(Daemon, launches_with_bridged)
+{
+    mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, networks());
+    EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillRepeatedly(Return("eth0"));
+
+    ASSERT_NO_THROW(send_command({"launch", "--network", "bridged"}));
+}
+
+TEST_F(Daemon, refuses_launch_bridged_without_setting)
+{
+    mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, networks()).Times(0);
+
+    std::stringstream err_stream;
+    send_command({"launch", "--network", "bridged"}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(),
+                HasSubstr("You have to `multipass set local.bridged-network=<name>` to use the `--bridged` shortcut."));
+}
+
+TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
+{
+    mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, networks());
+    EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillRepeatedly(Return("invalid"));
+
+    std::stringstream err_stream;
+    send_command({"launch", "--network", "bridged"}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(),
+                HasSubstr("Invalid network 'invalid' set as bridged interface, use `multipass set "
+                          "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
+}
+
 } // namespace

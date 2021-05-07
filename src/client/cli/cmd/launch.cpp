@@ -206,13 +206,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "Add a network interface to the instance, where <spec> is in the "
                                      "\"key=value,key=value\" format, with the following keys available:\n"
                                      "  name: the network to connect to (required), use the networks command for a "
-                                     "list of possible values\n"
+                                     "list of possible values, or use 'bridged' to use the interface configured via "
+                                     "`multipass set local.bridged-network`.\n"
                                      "  mode: auto|manual (default: auto)\n"
                                      "  mac: hardware address (default: random).\n"
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
+    QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
 
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption});
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -308,6 +310,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             cerr << "error loading cloud-init config: " << e.what() << "\n";
             return ParseCode::CommandLineError;
         }
+    }
+
+    if (parser->isSet(bridgedOption))
+    {
+        request.mutable_network_options()->Add(net_digest(mp::bridged_network_name));
     }
 
     try
