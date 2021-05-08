@@ -575,7 +575,7 @@ std::pair<QString, QString> mp::utils::parse_LSB_Release(const QStringList& lsb_
 
     for (QString line : lsb_file_data)
     {
-        QStringList split = line.split(delimiter);
+        QStringList split = line.split(delimiter, Qt::KeepEmptyParts);
         if (split.length() != 2)
             continue;
 
@@ -596,12 +596,15 @@ std::pair<QString, QString> mp::utils::read_LSB_Release(const QString& path)
     if (fd.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         QTextStream input(&fd);
+
         QString line = input.readLine();
         while (!line.isNull())
         {
             lsb_file_data.append(line);
             line = input.readLine();
         }
+
+        fd.close();
 
         return parse_LSB_Release(lsb_file_data);
     }

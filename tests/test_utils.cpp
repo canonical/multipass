@@ -612,7 +612,7 @@ TEST(Utils, parse_LSB_Release_Ubuntu2104LTS)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_Rotation)
+TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_rotation)
 {
     QStringList input = {{"DISTRIB_CODENAME=hirsute"},
                          {"DISTRIB_RELEASE=21.04"},
@@ -642,7 +642,7 @@ TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_delimiter)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_Delimiter_Fail)
+TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_delimiter_fail)
 {
     QStringList input = {{"DISTRIB_CODENAME=hirsute"},
                          {"DISTRIB_RELEASE=21.04"},
