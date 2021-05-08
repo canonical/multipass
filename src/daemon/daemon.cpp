@@ -123,8 +123,11 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     auto pollinate_user_agent_string =
         fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
     pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
-    pollinate_user_agent_string += fmt::format("multipass/host/{}-{} # written by Multipass\n", QSysInfo::productType(),
-                                               QSysInfo::productVersion());
+
+    auto OS_descriptor = mp::utils::read_LSB_Release();
+    pollinate_user_agent_string += fmt::format("multipass/host/{}-{} # written by Multipass\n",
+                                               OS_descriptor.first,
+                                               OS_descriptor.second);
 
     YAML::Node pollinate_user_agent_node;
     pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
