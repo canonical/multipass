@@ -1,0 +1,4 @@
+DISTRIB_ID=distribution_name
+DISTRIB_RELEASE=distribution_release
+DISTRIB_CODENAME=distribution_codename
+DISTRIB_DESCRIPTION=distribution_description

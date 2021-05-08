@@ -671,3 +671,23 @@ TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_case_insenstive)
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
+
+TEST(Utils, read_LSB_Release_from_file)
+{
+    auto expected = std::pair<std::string, std::string>("distribution_name", "distribution_release");
+
+    auto output = mp::utils::read_LSB_Release("../../tests/test_data/lsb-release_dummy");
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST(Utils, read_LSB_Release_from_OS)
+{
+    auto expected = std::pair(QSysInfo::productType(), QSysInfo::productVersion());
+
+    auto output = mp::utils::read_LSB_Release("/non-existent/dummy/file/no-where-to-be-found");
+
+    EXPECT_EQ(expected.first.toStdString(), output.first.toStdString());
+    EXPECT_EQ(expected.second.toStdString(), output.second.toStdString());
+}

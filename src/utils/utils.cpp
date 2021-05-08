@@ -33,6 +33,7 @@
 #include <QStorageInfo>
 #include <QUuid>
 #include <QtGlobal>
+#include <QTextStream>
 
 #include <algorithm>
 #include <array>
@@ -586,4 +587,26 @@ std::pair<QString, QString> mp::utils::parse_LSB_Release(const QStringList& lsb_
     }
 
     return std::pair(distro_id, distro_rel);
+}
+
+std::pair<QString, QString> mp::utils::read_LSB_Release(const QString& path)
+{
+    QStringList lsb_file_data;
+    QFile fd(path);
+    if (fd.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        QTextStream input(&fd);
+        QString line = input.readLine();
+        while (!line.isNull())
+        {
+            lsb_file_data.append(line);
+            line = input.readLine();
+        }
+
+        return parse_LSB_Release(lsb_file_data);
+    }
+    else
+    {
+        return std::pair(QSysInfo::productType(), QSysInfo::productVersion());
+    }
 }
