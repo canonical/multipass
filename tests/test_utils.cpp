@@ -584,3 +584,110 @@ TEST(VaultUtils, copy_throws_when_file_does_not_exist)
     MP_EXPECT_THROW_THAT(mp::vault::copy(file_name, temp_dir.path()), std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("{} missing", file_name))));
 }
+
+TEST(Utils, parse_LSB_Release_empty)
+{
+    QStringList input = {};
+
+    auto expected = std::pair<std::string, std::string>("parse_distro-id_failed", "parse_distro-release_failed");
+
+    auto output = mp::utils::parse_LSB_Release(input);
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST(Utils, parse_LSB_Release_Ubuntu2104LTS)
+{
+    QStringList input = {{"DISTRIB_ID=Ubuntu"},
+                         {"DISTRIB_RELEASE=21.04"},
+                         {"DISTRIB_CODENAME=hirsute"},
+                         {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""}};
+
+    auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
+
+    auto output = mp::utils::parse_LSB_Release(input);
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_rotation)
+{
+    QStringList input = {{"DISTRIB_CODENAME=hirsute"},
+                         {"DISTRIB_RELEASE=21.04"},
+                         {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""},
+                         {"DISTRIB_ID=Ubuntu"}};
+
+    auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
+
+    auto output = mp::utils::parse_LSB_Release(input);
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_delimiter)
+{
+    QStringList input = {{"DISTRIB_CODENAME#hirsute"},
+                         {"DISTRIB_RELEASE#21.04"},
+                         {"DISTRIB_DESCRIPTION#\"Ubuntu 21.04\""},
+                         {"DISTRIB_ID#Ubuntu"}};
+
+    auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
+
+    auto output = mp::utils::parse_LSB_Release(input, '#');
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_delimiter_fail)
+{
+    QStringList input = {{"DISTRIB_CODENAME=hirsute"},
+                         {"DISTRIB_RELEASE=21.04"},
+                         {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""},
+                         {"DISTRIB_ID=Ubuntu"}};
+
+    auto expected = std::pair<std::string, std::string>("parse_distro-id_failed", "parse_distro-release_failed");
+
+    auto output = mp::utils::parse_LSB_Release(input, '#');
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_case_insenstive)
+{
+    QStringList input = {{"DISTRIB_id=Ubuntu"},
+                         {"DISTRIB_release=21.04"},
+                         {"DISTRIB_CODENAME=hirsute"},
+                         {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""}};
+
+    auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
+
+    auto output = mp::utils::parse_LSB_Release(input);
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST(Utils, read_LSB_Release_from_file)
+{
+    auto expected = std::pair<std::string, std::string>("distribution_name", "distribution_release");
+
+    auto output = mp::utils::read_LSB_Release("../../tests/test_data/lsb-release_dummy");
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST(Utils, read_LSB_Release_from_OS)
+{
+    auto expected = std::pair(QSysInfo::productType(), QSysInfo::productVersion());
+
+    auto output = mp::utils::read_LSB_Release("/non-existent/dummy/file/no-where-to-be-found");
+
+    EXPECT_EQ(expected.first.toStdString(), output.first.toStdString());
+    EXPECT_EQ(expected.second.toStdString(), output.second.toStdString());
+}
