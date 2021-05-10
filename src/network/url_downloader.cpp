@@ -88,8 +88,6 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
     event_loop.exec();
     if (reply->error() != QNetworkReply::NoError)
     {
-        on_error();
-
         const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
 
         if (reply->error() == QNetworkReply::ProxyAuthenticationRequiredError)
@@ -97,10 +95,12 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
 
         if (abort_download)
         {
+            on_error();
             throw mp::AbortedDownloadException{msg};
         }
         else if (force_cache)
         {
+            on_error();
             throw mp::DownloadException{url.toString().toStdString(), msg};
         }
         else
