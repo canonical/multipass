@@ -953,6 +953,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     for (const auto& bad_spec : invalid_specs)
     {
+        mpl::log(mpl::Level::warning, category, fmt::format("Removing invalid instance: {}", bad_spec));
         vm_instance_specs.erase(bad_spec);
     }
 
