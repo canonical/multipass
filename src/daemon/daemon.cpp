@@ -901,6 +901,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        if (!QFile::exists(vm_image.image_path))
+        {
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("Could not find image for '{}'. Expected location: {}", name, vm_image.image_path));
+            invalid_specs.push_back(name);
+            continue;
+        }
+
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
         mp::VirtualMachineDescription vm_desc{spec.num_cores,
