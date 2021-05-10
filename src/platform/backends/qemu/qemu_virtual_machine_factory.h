@@ -49,7 +49,7 @@ private:
     const Path network_dir;
     const std::string subnet;
     DNSMasqServer dnsmasq_server;
-    IPTablesConfig iptables_config;
+    FirewallConfig firewall_config;
     std::unordered_map<std::string, std::string> name_to_mac_map;
 };
 } // namespace multipass

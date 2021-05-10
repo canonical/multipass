@@ -29,7 +29,7 @@ using namespace testing;
 
 namespace
 {
-struct IPTablesConfig : public Test
+struct FirewallConfig : public Test
 {
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     mpt::ResetProcessFactory scope; // will otherwise pollute other tests
@@ -38,8 +38,8 @@ struct IPTablesConfig : public Test
     const QString evilbr0{QStringLiteral("evilbr0")};
     const std::string subnet{"192.168.2"};
 
-    mpt::MockProcessFactory::Callback iptables_callback = [this](mpt::MockProcess* process) {
-        if (process->program() == "iptables")
+    mpt::MockProcessFactory::Callback firewall_callback = [this](mpt::MockProcess* process) {
+        if (process->program() == "firewall")
         {
             if (process->arguments().contains(goodbr0))
             {
@@ -59,22 +59,22 @@ struct IPTablesConfig : public Test
 };
 } // namespace
 
-TEST_F(IPTablesConfig, iptables_no_error_no_throw)
+TEST_F(FirewallConfig, firewall_no_error_no_throw)
 {
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(iptables_callback);
+    factory->register_callback(firewall_callback);
 
-    mp::IPTablesConfig iptables_config{goodbr0, subnet};
+    mp::FirewallConfig firewall_config{goodbr0, subnet};
 
-    EXPECT_NO_THROW(iptables_config.verify_iptables_rules());
+    EXPECT_NO_THROW(firewall_config.verify_firewall_rules());
 }
 
-TEST_F(IPTablesConfig, iptables_error_throws)
+TEST_F(FirewallConfig, firewall_error_throws)
 {
     auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(iptables_callback);
+    factory->register_callback(firewall_callback);
 
-    mp::IPTablesConfig iptables_config{evilbr0, subnet};
+    mp::FirewallConfig firewall_config{evilbr0, subnet};
 
-    EXPECT_THROW(iptables_config.verify_iptables_rules(), std::runtime_error);
+    EXPECT_THROW(firewall_config.verify_firewall_rules(), std::runtime_error);
 }

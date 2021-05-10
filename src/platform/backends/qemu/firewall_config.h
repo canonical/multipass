@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_IPTABLES_CONFIG_H
-#define MULTIPASS_IPTABLES_CONFIG_H
+#ifndef MULTIPASS_FIREWALL_CONFIG_H
+#define MULTIPASS_FIREWALL_CONFIG_H
 
 #include <string>
 
@@ -24,23 +24,23 @@
 
 namespace multipass
 {
-class IPTablesConfig
+class FirewallConfig
 {
 public:
-    IPTablesConfig(const QString& bridge_name, const std::string& subnet);
-    ~IPTablesConfig();
+    FirewallConfig(const QString& bridge_name, const std::string& subnet);
+    virtual ~FirewallConfig();
 
-    void verify_iptables_rules();
+    void verify_firewall_rules();
 
 private:
-    void clear_all_iptables_rules();
+    void clear_all_firewall_rules();
 
     const QString bridge_name;
     const QString cidr;
     const QString comment;
 
-    bool iptables_error{false};
+    bool firewall_error{false};
     std::string error_string;
 };
 } // namespace multipass
-#endif // MULTIPASS_IPTABLES_CONFIG_H
+#endif // MULTIPASS_FIREWALL_CONFIG_H
