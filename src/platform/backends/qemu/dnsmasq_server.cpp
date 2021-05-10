@@ -52,10 +52,10 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
     conf_file.open();
     conf_file.close();
 
-    QFile fd_Hosts(QDir(data_dir).filePath("dnsmasq.hosts"));
-    if (!fd_Hosts.exists())
+    QFile dnsmasq_hosts(QDir(data_dir).filePath("dnsmasq.hosts"));
+    if (!dnsmasq_hosts.exists())
     {
-        fd_Hosts.open(QIODevice::WriteOnly);
+        dnsmasq_hosts.open(QIODevice::WriteOnly);
     }
 
     dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
