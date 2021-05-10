@@ -56,7 +56,6 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const QString& bridge_nam
     if (!fd_Hosts.exists())
     {
         fd_Hosts.open(QIODevice::WriteOnly);
-        fd_Hosts.close();
     }
 
     dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
