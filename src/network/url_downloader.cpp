@@ -19,6 +19,7 @@
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
@@ -174,7 +175,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
         else
             return;
 
-        if (file.write(reply->readAll()) < 0)
+        if (MP_FILEOPS.write(file, reply->readAll()) < 0)
         {
             mpl::log(mpl::Level::error, category, fmt::format("error writing image: {}", file.errorString()));
             reply->abort();
