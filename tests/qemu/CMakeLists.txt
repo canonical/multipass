@@ -5,7 +5,7 @@ target_sources(multipass_tests
     ${CMAKE_CURRENT_LIST_DIR}/test_qemu_vmstate_process_spec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_dnsmasq_server.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_dnsmasq_process_spec.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_iptables_config.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_firewall_config.cpp
 )
 
 add_executable(qemu-system-x86_64

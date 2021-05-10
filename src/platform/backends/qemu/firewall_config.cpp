@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  *
  */
 
-#include "iptables_config.h"
+#include "firewall_config.h"
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
