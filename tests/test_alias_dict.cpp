@@ -246,7 +246,9 @@ TEST_P(RemoveInstanceTestsuite, removes_instance_aliases)
 
     mp::AliasDict dict;
 
-    ASSERT_EQ(dict.remove_aliases_for_instance("instance_to_remove"), dict.size() - remaining_aliases.size());
+    auto original_dict_size = dict.size();
+
+    ASSERT_EQ(dict.remove_aliases_for_instance("instance_to_remove"), original_dict_size - remaining_aliases.size());
 
     ASSERT_EQ(dict.size(), remaining_aliases.size());
 
