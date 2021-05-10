@@ -146,8 +146,8 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
     QFile file{file_name};
     file.open(QIODevice::ReadWrite | QIODevice::Truncate);
 
-    auto progress_monitor = [&monitor, download_type, size](QNetworkReply* reply, qint64 bytes_received,
-                                                            qint64 bytes_total) {
+    auto progress_monitor = [this, &monitor, download_type, size](QNetworkReply* reply, qint64 bytes_received,
+                                                                  qint64 bytes_total) {
         if (bytes_received == 0)
             return;
 
@@ -157,6 +157,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
         auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
         if (!monitor(download_type, progress))
         {
+            abort_all_downloads();
             reply->abort();
         }
     };
