@@ -54,6 +54,11 @@ public:
         emit finished();
     };
 
+    void set_error(QNetworkReply::NetworkError errorCode, const QString& errorString)
+    {
+        setError(errorCode, errorString);
+    };
+
     void set_attribute(QNetworkRequest::Attribute code, const QVariant& value)
     {
         setAttribute(code, value);
