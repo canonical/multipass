@@ -17,9 +17,11 @@
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/format.h>
 
 #include "extra_assertions.h"
 #include "mock_file_ops.h"
+#include "mock_logger.h"
 #include "mock_network.h"
 #include "temp_dir.h"
 
@@ -27,8 +29,8 @@
 
 #include <gtest/gtest.h>
 
-#include <multipass/format.h>
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace std::chrono_literals;
@@ -52,6 +54,7 @@ struct URLDownloader : public Test
     mpt::MockNetworkManagerFactory* mock_network_manager_factory{attr.first};
     std::unique_ptr<NiceMock<mpt::MockQNetworkAccessManager>> mock_network_access_manager;
     const QUrl fake_url{"http://a.fake.url"};
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 } // namespace
 
@@ -70,6 +73,10 @@ TEST_F(URLDownloader, simpleDownloadReturnsExpectedData)
             return data_size;
         })
         .WillOnce(Return(0));
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         fmt::format("Found {} in cache: false", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 1s);
 
@@ -108,6 +115,12 @@ TEST_F(URLDownloader, simpleDownloadNetworkTimeoutTriesCache)
             });
             return mock_reply_cache;
         });
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         fmt::format("Found {} in cache: true", fake_url.toString()));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning, fmt::format("Error getting {}: Network timeout - trying cache.", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 1ms);
 
@@ -186,6 +199,10 @@ TEST_F(URLDownloader, fileDownloadNoErrorHasExpectedResults)
         return true;
     };
 
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         fmt::format("Found {} in cache: false", fake_url.toString()));
+
     mp::URLDownloader downloader(cache_dir.path(), 1ms);
 
     mpt::TempDir file_dir;
@@ -233,6 +250,12 @@ TEST_F(URLDownloader, fileDownloadErrorTriesCache)
         .WillRepeatedly(Return(0));
 
     auto progress_monitor = [](auto...) { return true; };
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         fmt::format("Found {} in cache: true", fake_url.toString()));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning, fmt::format("Error getting {}: Network timeout - trying cache.", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 1ms);
 
@@ -293,6 +316,10 @@ TEST_F(URLDownloader, fileDownloadZeroBytesReceivedDoesNotCallMonitor)
 
         return true;
     };
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         fmt::format("Found {} in cache: false", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 1ms);
 
@@ -360,6 +387,10 @@ TEST_F(URLDownloader, fileDownloadUnknownBytesSetToQueriedSize)
         return true;
     };
 
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         fmt::format("Found {} in cache: false", fake_url.toString()));
+
     mp::URLDownloader downloader(cache_dir.path(), 1ms);
 
     mpt::TempDir file_dir;
@@ -389,6 +420,10 @@ TEST_F(URLDownloader, fileDownloadTimeoutDoesNotWriteFile)
         .WillOnce(Return(mock_reply_abort2));
 
     auto progress_monitor = [](auto...) { return true; };
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning, fmt::format("Error getting {}: Network timeout - trying cache.", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 1ms);
 
@@ -429,6 +464,9 @@ TEST_F(URLDownloader, fileDownloadWriteFailsLogsErrorAndThrows)
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(-1));
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "error writing image:");
 
     mp::URLDownloader downloader(cache_dir.path(), 1ms);
 
