@@ -45,14 +45,19 @@ public:
 
     MOCK_METHOD2(readData, qint64(char*, qint64));
 
-    void abortOperation()
+    void abort_operation()
     {
         setError(OperationCanceledError, "Operation canceled");
         emit error(OperationCanceledError);
 
         setFinished(true);
         emit finished();
-    }
+    };
+
+    void set_attribute(QNetworkRequest::Attribute code, const QVariant& value)
+    {
+        setAttribute(code, value);
+    };
 
 public Q_SLOTS:
     MOCK_METHOD0(abort, void());
