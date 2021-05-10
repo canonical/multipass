@@ -917,18 +917,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {},
                                               {}};
 
-        try
-        {
-            auto& instance_record = spec.deleted ? deleted_instances : vm_instances;
-            instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Removing instance {}: {}", name, e.what()));
-            invalid_specs.push_back(name);
-            config->vault->remove(name);
-            continue;
-        }
+        auto& instance_record = spec.deleted ? deleted_instances : vm_instances;
+        instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
 
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
