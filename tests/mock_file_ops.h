@@ -41,6 +41,7 @@ public:
     MOCK_METHOD2(seek, bool(QFile&, qint64 pos));
     MOCK_METHOD2(setPermissions, bool(QFile&, QFileDevice::Permissions));
     MOCK_METHOD3(write, qint64(QFile&, const char*, qint64));
+    MOCK_METHOD2(write, qint64(QFile&, const QByteArray&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };
