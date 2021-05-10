@@ -91,10 +91,7 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
     {
         const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
 
-        if (reply->error() == QNetworkReply::ProxyAuthenticationRequiredError)
-            reply->abort();
-
-        if (abort_download)
+        if (reply->error() == QNetworkReply::ProxyAuthenticationRequiredError || abort_download)
         {
             on_error();
             throw mp::AbortedDownloadException{msg};
@@ -178,6 +175,7 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
         if (MP_FILEOPS.write(file, reply->readAll()) < 0)
         {
             mpl::log(mpl::Level::error, category, fmt::format("error writing image: {}", file.errorString()));
+            abort_all_downloads();
             reply->abort();
         }
         download_timeout.start();
