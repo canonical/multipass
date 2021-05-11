@@ -565,7 +565,7 @@ std::string mp::utils::emit_cloud_config(const YAML::Node& node)
     return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
 }
 
-std::pair<QString, QString> mp::utils::parse_LSB_Release(const QStringList& lsb_file_data, const char& delimiter)
+std::pair<QString, QString> mp::utils::parse_lsb_release(const QStringList& lsb_file_data, const char& delimiter)
 {
     const QString id_postfix = "_ID";
     const QString release_postfix = "_RELEASE";
@@ -589,7 +589,7 @@ std::pair<QString, QString> mp::utils::parse_LSB_Release(const QStringList& lsb_
     return std::pair(distro_id, distro_rel);
 }
 
-std::pair<QString, QString> mp::utils::read_LSB_Release(const QString& path)
+std::pair<QString, QString> mp::utils::read_lsb_release(const QString& path)
 {
     QStringList lsb_file_data;
     QFile fd(path);
@@ -606,7 +606,7 @@ std::pair<QString, QString> mp::utils::read_LSB_Release(const QString& path)
 
         fd.close();
 
-        return parse_LSB_Release(lsb_file_data);
+        return parse_lsb_release(lsb_file_data);
     }
     else
     {
