@@ -181,10 +181,11 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
     return mpu::emit_yaml(find);
 }
 
-std::string mp::YamlFormatter::format(const VersionReply& reply) const
+std::string mp::YamlFormatter::format(const VersionReply& reply, const std::string& multipassVer) const
 {
     YAML::Node version;
-    version["version"] = reply.version();
+    version["multipass"] = multipassVer;
+    version["multipassd"] = reply.version();
 
     if (mp::cmd::update_available(reply.update_info()))
     {
