@@ -1082,8 +1082,7 @@ const auto version_daemon_update_reply = construct_version_info_multipassd_updat
 
 const std::vector<FormatterParamType> version_formatter_outputs {
     {&table_formatter, &version_client_reply,
-     "multipass:      Client version\n"
-     "multipassd:     \n",
+     "multipass:      Client version\n",
      "table_version_client"},
     {&table_formatter, &version_daemon_no_update_reply,
      "multipass:      Client version\n"

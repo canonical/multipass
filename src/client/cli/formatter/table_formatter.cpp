@@ -226,14 +226,17 @@ std::string mp::TableFormatter::format(const VersionReply& reply, const std::str
 {
     fmt::memory_buffer buf;
     fmt::format_to(buf, "{:<16}{}\n", "multipass:", multipassVer);
-    fmt::format_to(buf, "{:<16}{}\n", "multipassd:", reply.version());
 
-    if (mp::cmd::update_available(reply.update_info()))
+    if (!reply.version().empty())
     {
-        fmt::format_to(buf, "{:<16}{}\n", "title:", reply.update_info().title());
-        fmt::format_to(buf, "{:<16}{}\n", "description:", reply.update_info().description());
-        fmt::format_to(buf, "{:<16}{}\n", "url:", reply.update_info().url());
-    }
+        fmt::format_to(buf, "{:<16}{}\n", "multipassd:", reply.version());
 
+        if (mp::cmd::update_available(reply.update_info()))
+        {
+            fmt::format_to(buf, "{:<16}{}\n", "title:", reply.update_info().title());
+            fmt::format_to(buf, "{:<16}{}\n", "description:", reply.update_info().description());
+            fmt::format_to(buf, "{:<16}{}\n", "url:", reply.update_info().url());
+        }
+    }
     return fmt::to_string(buf);
 }
