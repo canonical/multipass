@@ -29,6 +29,7 @@ public:
     std::string format(const ListReply& list) const override;
     std::string format(const NetworksReply& list) const override;
     std::string format(const FindReply& list) const override;
+    std::string format(const VersionReply& list) const override;
 };
 }
 #endif // MULTIPASS_JSON_FORMATTER
