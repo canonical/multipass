@@ -185,16 +185,20 @@ std::string mp::YamlFormatter::format(const VersionReply& reply, const std::stri
 {
     YAML::Node version;
     version["multipass"] = multipassVer;
-    version["multipassd"] = reply.version();
 
-    if (mp::cmd::update_available(reply.update_info()))
+    if (!reply.version().empty())
     {
-        YAML::Node update;
-        update["title"] = reply.update_info().title();
-        update["description"] = reply.update_info().description();
-        update["url"] = reply.update_info().url();
+        version["multipassd"] = reply.version();
 
-        version["update"] = update;
+        if (mp::cmd::update_available(reply.update_info()))
+        {
+            YAML::Node update;
+            update["title"] = reply.update_info().title();
+            update["description"] = reply.update_info().description();
+            update["url"] = reply.update_info().url();
+
+            version["update"] = update;
+        }
     }
 
     return mpu::emit_yaml(version);
