@@ -179,3 +179,19 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
 
     return mpu::emit_yaml(find);
 }
+
+std::string mp::YamlFormatter::format(const VersionReply& reply) const
+{
+    YAML::Node version;
+    version["multipass"] = reply.version();
+    version["mulitpassd"] = reply.log_line();
+
+    YAML::Node update;
+    update["title"] = reply.update_info().title();
+    update["description"] = reply.update_info().description();
+    update["url"] = reply.update_info().url();
+
+    version["update"] = update;
+
+    return mpu::emit_yaml(version);
+}
