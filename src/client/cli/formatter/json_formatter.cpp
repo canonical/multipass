@@ -194,17 +194,20 @@ std::string mp::JsonFormatter::format(const VersionReply& reply, const std::stri
     QJsonObject version_json;
 
     version_json.insert("multipass", QString::fromStdString(multipassVer));
-    version_json.insert("multipassd", QString::fromStdString(reply.version()));
 
-    if (mp::cmd::update_available(reply.update_info()))
+    if (!reply.version().empty())
     {
-        QJsonObject update;
-        update.insert("title", QString::fromStdString(reply.update_info().title()));
-        update.insert("description", QString::fromStdString(reply.update_info().description()));
-        update.insert("url", QString::fromStdString(reply.update_info().url()));
+        version_json.insert("multipassd", QString::fromStdString(reply.version()));
 
-        version_json.insert("update", update);
+        if (mp::cmd::update_available(reply.update_info()))
+        {
+            QJsonObject update;
+            update.insert("title", QString::fromStdString(reply.update_info().title()));
+            update.insert("description", QString::fromStdString(reply.update_info().description()));
+            update.insert("url", QString::fromStdString(reply.update_info().url()));
+
+            version_json.insert("update", update);
+        }
     }
-
     return QString(QJsonDocument(version_json).toJson()).toStdString();
 }

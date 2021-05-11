@@ -1097,8 +1097,7 @@ const std::vector<FormatterParamType> version_formatter_outputs {
      "table_version_daemon_updates"},
     {&json_formatter, &version_client_reply,
      "{\n"
-     "    \"multipass\": \"Client version\",\n"
-     "    \"multipassd\": \"\"\n"
+     "    \"multipass\": \"Client version\"\n"
      "}\n",
      "json_version_client"},
     {&json_formatter, &version_daemon_no_update_reply,
