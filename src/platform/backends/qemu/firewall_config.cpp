@@ -27,6 +27,8 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "firewall";
+
 // QString constants for all of the different firewall calls
 const QString iptables{QStringLiteral("iptables-legacy")};
 const QString negate{QStringLiteral("!")};
@@ -227,10 +229,19 @@ void clear_firewall_rules_for(const QString& firewall, const QString& table, con
         }
     }
 }
+
+auto detect_firewall()
+{
+    QString firewall_exec{iptables};
+
+    mpl::log(mpl::Level::info, category, fmt::format("Using {} for firewall rules.", firewall_exec));
+
+    return firewall_exec;
+}
 } // namespace
 
 mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string& subnet)
-    : firewall{iptables},
+    : firewall{detect_firewall()},
       bridge_name{bridge_name},
       cidr{QString("%1.0/24").arg(QString::fromStdString(subnet))},
       comment{multipass_firewall_comment(bridge_name)}
