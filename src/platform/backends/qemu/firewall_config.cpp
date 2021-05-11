@@ -22,6 +22,8 @@
 #include <multipass/process/process.h>
 #include <shared/linux/process_factory.h>
 
+#include <QRegularExpression>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -230,9 +232,35 @@ void clear_firewall_rules_for(const QString& firewall, const QString& table, con
     }
 }
 
+auto is_iptables_in_use()
+{
+    const QStringList tables{filter, nat, mangle, "raw"};
+    QRegularExpression re{"^-[ARIN]"};
+
+    for (const auto& table : tables)
+    {
+        auto rules = get_firewall_rules(iptables, table);
+
+        for (const auto& line : rules.split('\n'))
+        {
+            if (re.match(line).hasMatch())
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 auto detect_firewall()
 {
     QString firewall_exec{iptables};
+
+    if (is_iptables_in_use())
+    {
+        // Nothing to do - fall through
+    }
 
     mpl::log(mpl::Level::info, category, fmt::format("Using {} for firewall rules.", firewall_exec));
 
