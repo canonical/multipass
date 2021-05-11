@@ -318,6 +318,31 @@ auto construct_find_multiple_reply_duplicate_image()
 
     return reply;
 }
+
+auto construct_version_info_multipass()
+{
+    auto reply = mp::VersionReply();
+
+
+    return reply;
+}
+
+auto construct_version_info_multipassd_update_available()
+{
+    auto reply = mp::VersionReply();
+
+
+    return reply;
+}
+
+auto construct_version_info_multipassd_up_to_date()
+{
+    auto reply = mp::VersionReply();
+
+
+    return reply;
+}
+
 class LocaleSettingTest : public testing::Test
 {
 public:
@@ -1050,6 +1075,10 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "yaml_find_multiple_duplicate_image"}};
 } // namespace
 
+const std::vector<FormatterParamType> version_formatter_outputs {
+
+}
+
 TEST_P(FormatterSuite, properly_formats_output)
 {
     const auto& [formatter, reply, expected_output, test_name] = GetParam();
@@ -1064,6 +1093,8 @@ TEST_P(FormatterSuite, properly_formats_output)
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::FindReply*>(reply))
+        output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::VersionReply*>(reply))
         output = formatter->format(*input);
     else
         FAIL() << "Not a supported reply type.";
