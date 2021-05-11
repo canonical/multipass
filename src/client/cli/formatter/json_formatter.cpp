@@ -16,8 +16,8 @@
  */
 
 #include <multipass/cli/json_formatter.h>
-
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/client_common.h>
 #include <multipass/utils.h>
 
 #include <QJsonArray>
@@ -192,16 +192,17 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
 std::string mp::JsonFormatter::format(const VersionReply& reply) const
 {
     QJsonObject version_json;
-    QJsonObject update;
+    version_json.insert("version", QString::fromStdString(reply.version()));
 
-    version_json.insert("multipass", QString::fromStdString(reply.version()));
-    version_json.insert("multipassd", QString::fromStdString(reply.log_line()));
+    if (mp::cmd::update_available(reply.update_info()))
+    {
+        QJsonObject update;
+        update.insert("title", QString::fromStdString(reply.update_info().title()));
+        update.insert("description", QString::fromStdString(reply.update_info().description()));
+        update.insert("url", QString::fromStdString(reply.update_info().url()));
 
-    update.insert("title", QString::fromStdString(reply.update_info().title()));
-    update.insert("description", QString::fromStdString(reply.update_info().description()));
-    update.insert("url", QString::fromStdString(reply.update_info().url()));
-
-    version_json.insert("update", update);
+        version_json.insert("update", update);
+    }
 
     return QString(QJsonDocument(version_json).toJson()).toStdString();
 }
