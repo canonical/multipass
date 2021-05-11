@@ -1199,19 +1199,21 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
 
 TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
 {
-    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
     auto temp_dir = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    EXPECT_CALL(*mock_image_vault, fetch_image)
+        .WillOnce(Return(mp::VMImage{})) // cause the Daemon's ctor to fail verifying that the img exists
+        .WillRepeatedly(DoDefault());
+    config_builder.vault = std::move(mock_image_vault);
+
     auto mock_factory = use_a_mock_vm_factory();
-    EXPECT_CALL(*mock_factory, create_virtual_machine)
-        .Times(3)                          // expect one call in the constructor and three in launch
-        .WillOnce(Throw(std::exception{})) // fail the first one
-        .WillRepeatedly(DoDefault());      // succeed the rest (this avoids gmock warnings)
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(2); // no launch in ctor, two launch commands
+
     mp::Daemon daemon{config_builder.build()};
 
     for (const auto& mac : {mac1, mac2})
