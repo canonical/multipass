@@ -20,6 +20,7 @@
 #include "extra_assertions.h"
 #include "fake_alias_config.h"
 #include "mock_environment_helpers.h"
+#include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
@@ -290,7 +291,13 @@ struct ClientAlias : public Client, public FakeAliasConfig
     {
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
             .WillRepeatedly(Return(fake_alias_dir.path()));
+
+        EXPECT_CALL(*mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
+        EXPECT_CALL(*mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
     }
+
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = attr.first;
 };
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
@@ -2485,6 +2492,20 @@ TEST_F(ClientAlias, alias_creates_alias)
                                    "another_instance,another_command\n");
 }
 
+TEST_F(ClientAlias, fails_if_cannot_write_script)
+{
+    EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("")));
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"alias", "instance:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Cannot create script for alias 'command'"));
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\n");
+}
+
 TEST_F(ClientAlias, alias_does_not_overwrite_alias)
 {
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
@@ -2594,6 +2615,23 @@ TEST_F(ClientAlias, unalias_removes_existing_alias)
                                    {"another_alias", {"another_instance", "another_command"}}});
 
     EXPECT_EQ(send_command({"unalias", "another_alias"}), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+}
+
+TEST_F(ClientAlias, unalias_succeeds_even_if_script_cannot_be_removed)
+{
+    EXPECT_CALL(*mock_platform, remove_alias_script(_)).Times(1).WillRepeatedly(Throw(std::runtime_error("")));
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
+                                   {"another_alias", {"another_instance", "another_command"}}});
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"unalias", "another_alias"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Warning: cannot remove script for 'another_alias'"));
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);

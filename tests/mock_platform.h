@@ -37,6 +37,8 @@ public:
     MOCK_CONST_METHOD2(link, bool(const char*, const char*));
     MOCK_CONST_METHOD3(symlink, bool(const char*, const char*, bool));
     MOCK_CONST_METHOD3(utime, int(const char*, int, int));
+    MOCK_CONST_METHOD2(create_alias_script, void(const std::string&, const AliasDefinition&));
+    MOCK_CONST_METHOD1(remove_alias_script, void(const std::string&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };
