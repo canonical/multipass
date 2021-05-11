@@ -106,7 +106,7 @@ mp::ParseCode mp::ArgParser::parse()
     parser.addOption(version_option);
 
     //-- Switch formatting to <stderr> or <stdout> for updates notice.
-    QCommandLineOption version_option_format("format", "Outputs the \"Updates Notice\" for the \"-V\" and \"--version\"
+    QCommandLineOption version_option_format("format", "Outputs the \"Updates Notice\" for the \"-V\" and \"--version\""
                                              "command to <stderr> instead of <stdout> for more reliable parsing.");
     parser.addOption(version_option_format);
     //--
