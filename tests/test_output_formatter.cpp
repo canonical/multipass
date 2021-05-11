@@ -322,10 +322,8 @@ auto construct_find_multiple_reply_duplicate_image()
 auto construct_version_info_multipass()
 {
     auto reply = mp::VersionReply();
-    reply.set_version("Client Version");
+    reply.set_version("Client version");
     reply.set_log_line("Some logline goes here");
-
-    reply.set_allocated_update_info(nullptr);
 
     return reply;
 }
@@ -333,15 +331,16 @@ auto construct_version_info_multipass()
 auto construct_version_info_multipassd_update_available()
 {
     auto reply = mp::VersionReply();
-    reply.set_version("Daemon Version");
+    reply.set_version("Daemon version");
     reply.set_log_line("Some logline goes here");
 
-    mp::UpdateInfo updateInfo;
-    updateInfo.set_title("update title information");
-    updateInfo.set_description("update description information");
-    updateInfo.set_version("update version number");
+    mp::UpdateInfo *updateInfo = new mp::UpdateInfo; // Leak? expecting protobuf to deal with memory dealloc.
+    updateInfo->set_version("update version number");
+    updateInfo->set_title("update title information");
+    updateInfo->set_description("update description information");
+    updateInfo->set_url("http://multipass.web");
 
-    reply.set_allocated_update_info(&updateInfo);
+    reply.set_allocated_update_info(updateInfo);
 
     return reply;
 }
@@ -349,10 +348,8 @@ auto construct_version_info_multipassd_update_available()
 auto construct_version_info_multipassd_up_to_date()
 {
     auto reply = mp::VersionReply();
-    reply.set_version("Daemon Version");
+    reply.set_version("Daemon version");
     reply.set_log_line("Some logline goes here");
-
-    reply.set_allocated_update_info(nullptr);
 
     return reply;
 }
@@ -1093,16 +1090,16 @@ const auto version_daemon_no_update_reply = construct_version_info_multipassd_up
 const auto version_daemon_update_reply = construct_version_info_multipassd_update_available();
 
 const std::vector<FormatterParamType> version_formatter_outputs {
-    {&yaml_formatter, &version_client_reply, "version: Client Version\n", "VERSION: Client version"},
+    {&yaml_formatter, &version_client_reply, "version: Client version\n", "yaml_version_client"},
     {&yaml_formatter, &version_daemon_no_update_reply,
-     "version: Daemon Version\n",
-     "VERSION: Daemon version with no updates available."},
+     "version: Daemon version\n",
+     "yaml_version_daemon_no_updates"},
     {&yaml_formatter, &version_daemon_update_reply,
-     "version: Daemon Version\n"
-     "  - title: update title information\n"
-     "    description: update description information\n"
-     "    update version number:\n",
-     "VERSION: Daemon version with updates available."}
+     "version: Daemon version\n"
+     "update:\n  title: update title information\n"
+     "  description: update description information\n"
+     "  url: \"http://multipass.web\"\n",
+     "yaml_version_daemon_updates"}
 };
 
 } // namespace
