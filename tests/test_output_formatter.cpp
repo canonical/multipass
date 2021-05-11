@@ -1090,6 +1090,26 @@ const auto version_daemon_no_update_reply = construct_version_info_multipassd_up
 const auto version_daemon_update_reply = construct_version_info_multipassd_update_available();
 
 const std::vector<FormatterParamType> version_formatter_outputs {
+    {&json_formatter, &version_client_reply,
+     "{\n"
+     "    \"version\": \"Client version\"\n"
+     "}\n",
+     "json_version_client"},
+    {&json_formatter, &version_daemon_no_update_reply,
+     "{\n"
+     "    \"version\": \"Daemon version\"\n"
+     "}\n",
+     "json_version_daemon_no_updates"},
+    {&json_formatter, &version_daemon_update_reply,
+     "{\n"
+     "    \"update\": {\n"
+     "        \"description\": \"update description information\",\n"
+     "        \"title\": \"update title information\",\n"
+     "        \"url\": \"http://multipass.web\"\n"
+     "    },\n"
+     "    \"version\": \"Daemon version\"\n"
+     "}\n",
+     "json_version_daemon_updates"},
     {&yaml_formatter, &version_client_reply, "version: Client version\n", "yaml_version_client"},
     {&yaml_formatter, &version_daemon_no_update_reply,
      "version: Daemon version\n",
