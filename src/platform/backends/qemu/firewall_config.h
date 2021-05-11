@@ -35,6 +35,7 @@ public:
 private:
     void clear_all_firewall_rules();
 
+    const QString firewall;
     const QString bridge_name;
     const QString cidr;
     const QString comment;
