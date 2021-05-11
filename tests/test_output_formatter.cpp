@@ -322,7 +322,10 @@ auto construct_find_multiple_reply_duplicate_image()
 auto construct_version_info_multipass()
 {
     auto reply = mp::VersionReply();
+    reply.set_version("CLIENT Version");
+    reply.set_log_line("Some logline goes here");
 
+    reply.set_allocated_update_info(nullptr);
 
     return reply;
 }
@@ -330,7 +333,15 @@ auto construct_version_info_multipass()
 auto construct_version_info_multipassd_update_available()
 {
     auto reply = mp::VersionReply();
+    reply.set_version("Daemon Version");
+    reply.set_log_line("Some logline goes here");
 
+    mp::UpdateInfo updateInfo;
+    updateInfo.set_title("update title information");
+    updateInfo.set_description("update description information");
+    updateInfo.set_version("update version number");
+
+    reply.set_allocated_update_info(&updateInfo);
 
     return reply;
 }
@@ -338,7 +349,16 @@ auto construct_version_info_multipassd_update_available()
 auto construct_version_info_multipassd_up_to_date()
 {
     auto reply = mp::VersionReply();
+    reply.set_version("MULTIPASS DEAMON VERSION");
+    reply.set_log_line("THIS IS THE LOGLINE");
+    reply.set_allocated_update_info(nullptr);
 
+//    mp::UpdateInfo updateInfo;
+//    updateInfo.set_title("update title information");
+//    updateInfo.set_description("update description information");
+//    updateInfo.set_version("update version number");
+//
+//    reply.set_allocated_update_info(&updateInfo);
 
     return reply;
 }
