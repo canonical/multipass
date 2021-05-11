@@ -36,7 +36,7 @@ public:
     virtual std::string format(const ListReply& reply) const = 0;
     virtual std::string format(const NetworksReply& reply) const = 0;
     virtual std::string format(const FindReply& reply) const = 0;
-    virtual std::string format(const VersionReply& reply) const = 0;
+    virtual std::string format(const VersionReply& reply, const std::string& multipassVer) const = 0;
 
 protected:
     Formatter() = default;
