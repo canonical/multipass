@@ -197,6 +197,10 @@ std::string mp::JsonFormatter::format(const VersionReply& reply) const
     version_json.insert("multipass", QString::fromStdString(reply.version()));
     version_json.insert("multipassd", QString::fromStdString(reply.log_line()));
 
+    update.insert("title", QString::fromStdString(reply.update_info().title()));
+    update.insert("description", QString::fromStdString(reply.update_info().description()));
+    update.insert("url", QString::fromStdString(reply.update_info().url()));
+
     version_json.insert("update", update);
 
     return QString(QJsonDocument(version_json).toJson()).toStdString();
