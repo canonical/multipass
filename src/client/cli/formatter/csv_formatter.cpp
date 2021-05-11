@@ -100,3 +100,18 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
 
     return fmt::to_string(buf);
 }
+
+std::string mp::CSVFormatter::format(const VersionReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(buf, "Multipass,Multipassd,Title,Description,URL\n");
+
+    fmt::format_to(buf, "{},{},{},{},{}\n", reply.version(),
+                                                        reply.log_line(),
+                                                        reply.update_info().title(),
+                                                        reply.update_info().description(),
+                                                        reply.update_info().url());
+
+    return fmt::to_string(buf);
+}
