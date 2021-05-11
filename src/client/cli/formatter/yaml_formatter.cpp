@@ -17,6 +17,7 @@
 
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/client_common.h>
 #include <multipass/utils.h>
 
 #include <multipass/format.h>
@@ -183,15 +184,17 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
 std::string mp::YamlFormatter::format(const VersionReply& reply) const
 {
     YAML::Node version;
-    version["multipass"] = reply.version();
-    version["mulitpassd"] = reply.log_line();
+    version["version"] = reply.version();
 
-    YAML::Node update;
-    update["title"] = reply.update_info().title();
-    update["description"] = reply.update_info().description();
-    update["url"] = reply.update_info().url();
+    if (mp::cmd::update_available(reply.update_info()))
+    {
+        YAML::Node update;
+        update["title"] = reply.update_info().title();
+        update["description"] = reply.update_info().description();
+        update["url"] = reply.update_info().url();
 
-    version["update"] = update;
+        version["update"] = update;
+    }
 
     return mpu::emit_yaml(version);
 }

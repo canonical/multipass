@@ -322,7 +322,7 @@ auto construct_find_multiple_reply_duplicate_image()
 auto construct_version_info_multipass()
 {
     auto reply = mp::VersionReply();
-    reply.set_version("CLIENT Version");
+    reply.set_version("Client Version");
     reply.set_log_line("Some logline goes here");
 
     reply.set_allocated_update_info(nullptr);
@@ -349,16 +349,10 @@ auto construct_version_info_multipassd_update_available()
 auto construct_version_info_multipassd_up_to_date()
 {
     auto reply = mp::VersionReply();
-    reply.set_version("MULTIPASS DEAMON VERSION");
-    reply.set_log_line("THIS IS THE LOGLINE");
-    reply.set_allocated_update_info(nullptr);
+    reply.set_version("Daemon Version");
+    reply.set_log_line("Some logline goes here");
 
-//    mp::UpdateInfo updateInfo;
-//    updateInfo.set_title("update title information");
-//    updateInfo.set_description("update description information");
-//    updateInfo.set_version("update version number");
-//
-//    reply.set_allocated_update_info(&updateInfo);
+    reply.set_allocated_update_info(nullptr);
 
     return reply;
 }
@@ -1093,11 +1087,27 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "    version: 20190520\n"
      "    remote: snapcraft\n",
      "yaml_find_multiple_duplicate_image"}};
-} // namespace
+
+const auto version_client_reply = construct_version_info_multipass();
+const auto version_daemon_no_update_reply = construct_version_info_multipassd_up_to_date();
+const auto version_daemon_update_reply = construct_version_info_multipassd_update_available();
 
 const std::vector<FormatterParamType> version_formatter_outputs {
+    {&yaml_formatter, &version_client_reply, "version: Client Version\n", "VERSION: Client version"},
+    {&yaml_formatter, &version_daemon_no_update_reply,
+     "version: Daemon Version\n",
+     "VERSION: Daemon version with no updates available."},
+    {&yaml_formatter, &version_daemon_update_reply,
+     "version: Daemon Version\n"
+     "  - title: update title information\n"
+     "    description: update description information\n"
+     "    update version number:\n",
+     "VERSION: Daemon version with updates available."}
+};
 
-}
+} // namespace
+
+
 
 TEST_P(FormatterSuite, properly_formats_output)
 {
@@ -1129,6 +1139,8 @@ INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter, FormatterSuite,
 INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_formatter_outputs), print_param_name);
 INSTANTIATE_TEST_SUITE_P(NonOrderableNetworksOutputFormatter, FormatterSuite,
                          ValuesIn(non_orderable_networks_formatter_outputs), print_param_name);
+INSTANTIATE_TEST_SUITE_P(VersionInfoOutputFormatter, FormatterSuite,
+                         ValuesIn(version_formatter_outputs), print_param_name);
 
 #if GTEST_HAS_POSIX_RE
 TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
