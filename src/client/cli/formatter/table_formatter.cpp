@@ -222,7 +222,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::TableFormatter::format(const VersionReply& reply) const
+std::string mp::TableFormatter::format(const VersionReply& reply, const std::string& multipassVer) const
 {
     fmt::memory_buffer buf;
 
