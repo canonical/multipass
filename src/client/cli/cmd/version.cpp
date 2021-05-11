@@ -18,6 +18,7 @@
 #include "version.h"
 #include "common_cli.h"
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/formatter.h>
 #include <multipass/version.h>
 
 namespace mp = multipass;
@@ -32,17 +33,39 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    cout << "multipass  " << multipass::version_string << "\n";
+    bool formatIsSet = parser->isSet("format");
 
-    auto on_success = [this](mp::VersionReply& reply) {
-        cout << "multipassd " << reply.version() << "\n";
-        if (term->is_live() && update_available(reply.update_info()))
-            cout << update_notice(reply.update_info());
+    if (!formatIsSet)
+    {
+        cout << "multipass  " << multipass::version_string << "\n";
+    }
+
+    auto on_success = [this, &formatIsSet] (mp::VersionReply& reply) {
+
+        if (formatIsSet)
+        {
+            cout << chosen_formatter->format(reply, multipass::version_string);
+        }
+        else
+        {
+            cout << "multipassd " << reply.version() << "\n";
+            if (term->is_live() && update_available(reply.update_info()))
+                cout << update_notice(reply.update_info());
+        }
 
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [](grpc::Status& status) { return ReturnCode::Ok; };
+    auto on_failure = [this, &formatIsSet](grpc::Status& status) {
+
+        if (formatIsSet)
+        {
+            VersionReply reply;
+            cout << chosen_formatter->format(reply, multipass::version_string);
+        }
+
+        return ReturnCode::Ok;
+    };
 
     mp::VersionRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
