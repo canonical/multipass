@@ -1105,16 +1105,16 @@ const std::vector<FormatterParamType> version_formatter_outputs {
      "}\n",
      "json_version_daemon_updates"},
     {&csv_formatter, &version_client_reply,
-     "Multipass,Mulitpassd,Title,Description,URL\n"
-     "Client version,,,\n",
+     "Multipass,Multipassd,Title,Description,URL\n"
+     "Client version,,,,\n",
      "csv_version_client"},
     {&csv_formatter, &version_daemon_no_update_reply,
-     "Multipass,Mulitpassd,Title,Description,URL\n"
-     "Client version, Daemon version,,,\n",
+     "Multipass,Multipassd,Title,Description,URL\n"
+     "Client version,Daemon version,,,\n",
      "csv_version_daemon_no_updates"},
     {&csv_formatter, &version_daemon_update_reply,
-     "Multipass,Mulitpassd,Title,Description,URLn"
-     "Client version, Daemon version,update title information,update description information,\"http://multipass.web\"\n",
+     "Multipass,Multipassd,Title,Description,URL\n"
+     "Client version,Daemon version,update title information,update description information,http://multipass.web\n",
      "csv_version_daemon_updates"},
     {&yaml_formatter, &version_client_reply, "version: Client version\n", "yaml_version_client"},
     {&yaml_formatter, &version_daemon_no_update_reply,
