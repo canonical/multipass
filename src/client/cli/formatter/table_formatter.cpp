@@ -221,3 +221,12 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
 
     return fmt::to_string(buf);
 }
+
+std::string mp::TableFormatter::format(const VersionReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    // TODO: STUBBED.
+
+    return fmt::to_string(buf);
+}
