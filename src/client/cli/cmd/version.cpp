@@ -34,13 +34,11 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
 
     cout << "multipass  " << multipass::version_string << "\n";
 
-    auto on_success = [this, &parser](mp::VersionReply& reply) {
+    auto on_success = [this](mp::VersionReply& reply) {
         cout << "multipassd " << reply.version() << "\n";
         if (term->is_live() && update_available(reply.update_info()))
-        {
-            std::ostream& output = parser->isSet("format") ? cerr : cout;
-            output << update_notice(reply.update_info());
-        }
+            cout << update_notice(reply.update_info());
+
         return ReturnCode::Ok;
     };
 
@@ -69,5 +67,26 @@ QString cmd::Version::description() const
 
 mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 {
-    return parser->commandParse(this);
+    QCommandLineOption formatOption(
+        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
+        "format", "table");
+
+    parser->addOption(formatOption);
+
+    auto status = parser->commandParse(this);
+
+    if (status != ParseCode::Ok)
+    {
+        return status;
+    }
+
+    if (parser->positionalArguments().count() > 0)
+    {
+        cerr << "Wrong number of arguments\n";
+        return ParseCode::CommandLineError;
+    }
+
+    status = handle_format_option(parser, &chosen_formatter, cerr);
+
+    return status;
 }
