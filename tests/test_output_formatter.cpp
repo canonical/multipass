@@ -1081,6 +1081,21 @@ const auto version_daemon_no_update_reply = construct_version_info_multipassd_up
 const auto version_daemon_update_reply = construct_version_info_multipassd_update_available();
 
 const std::vector<FormatterParamType> version_formatter_outputs {
+    {&table_formatter, &version_client_reply,
+     "multipass:      Client version\n"
+     "multipassd:     \n",
+     "table_version_client"},
+    {&table_formatter, &version_daemon_no_update_reply,
+     "multipass:      Client version\n"
+     "multipassd:     Daemon version\n",
+     "table_version_daemon_no_updates"},
+    {&table_formatter, &version_daemon_update_reply,
+     "multipass:      Client version\n"
+     "multipassd:     Daemon version\n"
+     "title:          update title information\n"
+     "description:    update description information\n"
+     "url:            http://multipass.web\n",
+     "table_version_daemon_updates"},
     {&json_formatter, &version_client_reply,
      "{\n"
      "    \"multipass\": \"Client version\",\n"
