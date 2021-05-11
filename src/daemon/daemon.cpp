@@ -124,7 +124,7 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
         fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
     pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
 
-    auto OS_descriptor = mp::utils::read_LSB_Release();
+    auto OS_descriptor = mp::utils::read_lsb_release();
     pollinate_user_agent_string += fmt::format("multipass/host/{}-{} # written by Multipass\n",
                                                OS_descriptor.first,
                                                OS_descriptor.second);
