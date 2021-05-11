@@ -189,10 +189,12 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
     return QString(QJsonDocument(find_json).toJson()).toStdString();
 }
 
-std::string mp::JsonFormatter::format(const VersionReply& reply) const
+std::string mp::JsonFormatter::format(const VersionReply& reply, const std::string& multipassVer) const
 {
     QJsonObject version_json;
-    version_json.insert("version", QString::fromStdString(reply.version()));
+
+    version_json.insert("multipass", QString::fromStdString(multipassVer));
+    version_json.insert("multipassd", QString::fromStdString(reply.version()));
 
     if (mp::cmd::update_available(reply.update_info()))
     {
