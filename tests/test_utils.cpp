@@ -25,6 +25,7 @@
 #include "mock_ssh.h"
 #include "mock_ssh_process_exit_status.h"
 #include "mock_virtual_machine.h"
+#include "path.h"
 #include "stub_ssh_key_provider.h"
 #include "temp_dir.h"
 #include "temp_file.h"
@@ -585,19 +586,19 @@ TEST(VaultUtils, copy_throws_when_file_does_not_exist)
                          mpt::match_what(StrEq(fmt::format("{} missing", file_name))));
 }
 
-TEST(Utils, parse_LSB_Release_empty)
+TEST(Utils, parse_lsb_release_empty)
 {
     QStringList input = {};
 
     auto expected = std::pair<std::string, std::string>("parse_distro-id_failed", "parse_distro-release_failed");
 
-    auto output = mp::utils::parse_LSB_Release(input);
+    auto output = mp::utils::parse_lsb_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_LSB_Release_Ubuntu2104LTS)
+TEST(Utils, parse_lsb_release_ubuntu2104lts)
 {
     QStringList input = {{"DISTRIB_ID=Ubuntu"},
                          {"DISTRIB_RELEASE=21.04"},
@@ -606,13 +607,13 @@ TEST(Utils, parse_LSB_Release_Ubuntu2104LTS)
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
-    auto output = mp::utils::parse_LSB_Release(input);
+    auto output = mp::utils::parse_lsb_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_rotation)
+TEST(Utils, parse_lsb_release_ubuntu2104lts_rotation)
 {
     QStringList input = {{"DISTRIB_CODENAME=hirsute"},
                          {"DISTRIB_RELEASE=21.04"},
@@ -621,13 +622,13 @@ TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_rotation)
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
-    auto output = mp::utils::parse_LSB_Release(input);
+    auto output = mp::utils::parse_lsb_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_delimiter)
+TEST(Utils, parse_lsb_release_ubuntu2104lts_delimiter)
 {
     QStringList input = {{"DISTRIB_CODENAME#hirsute"},
                          {"DISTRIB_RELEASE#21.04"},
@@ -636,13 +637,13 @@ TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_delimiter)
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
-    auto output = mp::utils::parse_LSB_Release(input, '#');
+    auto output = mp::utils::parse_lsb_release(input, '#');
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_delimiter_fail)
+TEST(Utils, parse_lsb_release_ubuntu2104lts_delimiter_fail)
 {
     QStringList input = {{"DISTRIB_CODENAME=hirsute"},
                          {"DISTRIB_RELEASE=21.04"},
@@ -651,13 +652,13 @@ TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_delimiter_fail)
 
     auto expected = std::pair<std::string, std::string>("parse_distro-id_failed", "parse_distro-release_failed");
 
-    auto output = mp::utils::parse_LSB_Release(input, '#');
+    auto output = mp::utils::parse_lsb_release(input, '#');
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_case_insenstive)
+TEST(Utils, parse_lsb_release_ubuntu2104lts_case_insenstive)
 {
     QStringList input = {{"DISTRIB_id=Ubuntu"},
                          {"DISTRIB_release=21.04"},
@@ -666,27 +667,27 @@ TEST(Utils, parse_LSB_Release_Ubuntu2104LTS_case_insenstive)
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
-    auto output = mp::utils::parse_LSB_Release(input);
+    auto output = mp::utils::parse_lsb_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, read_LSB_Release_from_file)
+TEST(Utils, read_lsb_release_from_file)
 {
     auto expected = std::pair<std::string, std::string>("distribution_name", "distribution_release");
 
-    auto output = mp::utils::read_LSB_Release("../../tests/test_data/lsb-release_dummy");
+    auto output = mp::utils::read_lsb_release(mpt::test_data_path() + "lsb-release_dummy");
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, read_LSB_Release_from_OS)
+TEST(Utils, read_lsb_release_from_os)
 {
     auto expected = std::pair(QSysInfo::productType(), QSysInfo::productVersion());
 
-    auto output = mp::utils::read_LSB_Release("/non-existent/dummy/file/no-where-to-be-found");
+    auto output = mp::utils::read_lsb_release("/non-existent/dummy/file/no-where-to-be-found");
 
     EXPECT_EQ(expected.first.toStdString(), output.first.toStdString());
     EXPECT_EQ(expected.second.toStdString(), output.second.toStdString());
