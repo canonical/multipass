@@ -105,6 +105,12 @@ mp::ParseCode mp::ArgParser::parse()
     parser.addOption(verbose_option);
     parser.addOption(version_option);
 
+    //-- Switch formatting to <stderr> or <stdout> for updates notice.
+    QCommandLineOption version_option_format("format", "Outputs the \"Updates Notice\" for the \"-V\" and \"--version\"
+                                             "command to <stderr> instead of <stdout> for more reliable parsing.");
+    parser.addOption(version_option_format);
+    //--
+
     // Register "command" as the first positional argument, will need to be removed from all help text later
     parser.addPositionalArgument("command", "The command to execute", "<command>");
 
