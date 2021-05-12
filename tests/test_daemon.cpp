@@ -1122,6 +1122,19 @@ TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometim
     mp::Daemon daemon{config_builder.build()};
 }
 
+TEST_F(Daemon, ctor_lets_exceptions_arising_from_vm_creation_through)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents("ab:ab:ab:ab:ab:ab", {}));
+    config_builder.data_directory = temp_dir->path();
+
+    const std::string msg = "asdf";
+    auto mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Throw(std::runtime_error{msg}));
+
+    MP_EXPECT_THROW_THAT(mp::Daemon{config_builder.build()}, std::runtime_error, mpt::match_what(msg));
+}
+
 TEST_F(Daemon, ctor_drops_removed_instances)
 {
     const std::string stayed{"foo"}, gone{"fighters"};
