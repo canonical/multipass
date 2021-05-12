@@ -20,10 +20,10 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/process.h>
+#include <multipass/utils.h>
 #include <shared/linux/process_factory.h>
 
 #include <QRegularExpression>
-#include <QSysInfo>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -262,7 +262,7 @@ auto is_firewall_in_use(const QString& firewall)
 // Taken from LXD :)
 void check_kernel_support()
 {
-    const auto kernel_version_parts{QSysInfo::kernelVersion().split('.')};
+    const auto kernel_version_parts{MP_UTILS.get_kernel_version().split('.')};
 
     if (kernel_version_parts.size() < 2)
     {
