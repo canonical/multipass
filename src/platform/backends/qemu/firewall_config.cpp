@@ -23,6 +23,7 @@
 #include <shared/linux/process_factory.h>
 
 #include <QRegularExpression>
+#include <QSysInfo>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -33,12 +34,17 @@ constexpr auto category = "firewall";
 
 // QString constants for all of the different firewall calls
 const QString iptables{QStringLiteral("iptables-legacy")};
+const QString nftables{QStringLiteral("iptables-nft")};
 const QString negate{QStringLiteral("!")};
 
 //   Different tables to use
 const QString filter{QStringLiteral("filter")};
 const QString nat{QStringLiteral("nat")};
 const QString mangle{QStringLiteral("mangle")};
+const QString raw{QStringLiteral("raw")};
+
+//   List of all tables
+const QStringList firewall_tables{filter, nat, mangle, raw};
 
 //   Chain constants
 const QString INPUT{QStringLiteral("INPUT")};
@@ -232,14 +238,13 @@ void clear_firewall_rules_for(const QString& firewall, const QString& table, con
     }
 }
 
-auto is_iptables_in_use()
+auto is_firewall_in_use(const QString& firewall)
 {
-    const QStringList tables{filter, nat, mangle, "raw"};
     QRegularExpression re{"^-[ARIN]"};
 
-    for (const auto& table : tables)
+    for (const auto& table : firewall_tables)
     {
-        auto rules = get_firewall_rules(iptables, table);
+        auto rules = get_firewall_rules(firewall, table);
 
         for (const auto& line : rules.split('\n'))
         {
@@ -253,13 +258,79 @@ auto is_iptables_in_use()
     return false;
 }
 
+// We require a >= 5.2 kernel to avoid weird conflicts with xtables and support for inet table NAT rules.
+// Taken from LXD :)
+void check_kernel_support()
+{
+    const auto kernel_version_parts{QSysInfo::kernelVersion().split('.')};
+
+    if (kernel_version_parts.size() < 2)
+    {
+        throw std::runtime_error("Failed converting kernel version into parts");
+    }
+
+    bool ok;
+    auto major_version = kernel_version_parts[0].toInt(&ok);
+    if (!ok)
+    {
+        throw std::runtime_error("Cannot parse kernel major number");
+    }
+
+    auto minor_version = kernel_version_parts[1].toInt(&ok);
+    if (!ok)
+    {
+        throw std::runtime_error("Cannot parse kernel minor number");
+    }
+
+    if (major_version < 5 || (major_version == 5 && minor_version < 2))
+    {
+        throw std::runtime_error("Kernel version does not meet minimum requirement of 5.2");
+    }
+}
+
+auto iptables_in_use()
+{
+    try
+    {
+        return is_firewall_in_use(iptables);
+    }
+    catch (const std::runtime_error& e)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Cannot use iptables: {}", e.what()));
+        return false;
+    }
+}
+
+auto nftables_in_use()
+{
+    try
+    {
+        check_kernel_support();
+
+        return is_firewall_in_use(nftables);
+    }
+    catch (const std::runtime_error& e)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Cannot use nftables: {}", e.what()));
+        return false;
+    }
+}
+
 auto detect_firewall()
 {
-    QString firewall_exec{iptables};
+    QString firewall_exec;
 
-    if (is_iptables_in_use())
+    if (nftables_in_use())
     {
-        // Nothing to do - fall through
+        firewall_exec = nftables;
+    }
+    else if (iptables_in_use())
+    {
+        firewall_exec = iptables;
+    }
+    else
+    {
+        firewall_exec = nftables;
     }
 
     mpl::log(mpl::Level::info, category, fmt::format("Using {} for firewall rules.", firewall_exec));
