@@ -1148,9 +1148,12 @@ TEST_F(Daemon, ctor_drops_removed_instances)
 
     std::stringstream stream;
     send_command({"list"}, stream);
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
 
-    // TODO@ricab verify json
+    auto instance_matchers = AllOf(HasSubstr(stayed), Not(HasSubstr(gone)));
+    EXPECT_THAT(stream.str(), instance_matchers);
+
+    auto updated_json = mpt::load(filename);
+    EXPECT_THAT(updated_json.toStdString(), instance_matchers);
 }
 
 TEST_P(ListIP, lists_with_ip)
