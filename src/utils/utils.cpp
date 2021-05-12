@@ -31,6 +31,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QStorageInfo>
+#include <QSysInfo>
 #include <QUuid>
 #include <QtGlobal>
 
@@ -115,6 +116,11 @@ void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
     };
     auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
     mp::utils::try_action_for(on_timeout, timeout, action);
+}
+
+QString mp::Utils::get_kernel_version()
+{
+    return QSysInfo::kernelVersion();
 }
 
 QDir mp::utils::base_dir(const QString& path)

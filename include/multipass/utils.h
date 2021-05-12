@@ -139,6 +139,9 @@ public:
     // virtual machine helpers
     virtual void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                      const SSHKeyProvider& key_provider);
+
+    // system info helpers
+    virtual QString get_kernel_version();
 };
 } // namespace multipass
 
