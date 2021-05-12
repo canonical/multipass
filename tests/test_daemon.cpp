@@ -944,6 +944,17 @@ std::string fake_json_contents(const std::string& default_mac, const std::vector
     return contents.toStdString();
 }
 
+std::pair<std::unique_ptr<mpt::TempDir>, QString> // unique_ptr bypasses missing move ctor
+plant_instance_json(const std::string& contents)
+{
+    auto temp_dir = std::make_unique<mpt::TempDir>();
+    QString filename(temp_dir->path() + "/multipassd-vm-instances.json");
+
+    mpt::make_file_with_content(filename, contents);
+
+    return {std::move(temp_dir), filename};
+}
+
 void check_interfaces_in_json(const QString& file, const std::string& mac,
                               const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
@@ -982,15 +993,10 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
         mp::NetworkInterface{"wlx60e3270f55fe", "52:54:00:bd:19:41", true},
         mp::NetworkInterface{"enp3s0", "01:23:45:67:89:ab", false}};
 
-    std::string json_contents = fake_json_contents(mac_addr, extra_interfaces);
-
-    mpt::TempDir temp_dir;
-    QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
-
-    mpt::make_file_with_content(filename, json_contents);
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
-    config_builder.data_directory = temp_dir.path();
+    config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
 
     // By issuing the `list` command, we check at least that the instance was indeed read and there were no errors.
@@ -1067,17 +1073,6 @@ std::vector<std::string> old_releases{"10.04",   "lucid",  "11.10",   "oneiric",
 
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging, Combine(Values("release", ""), ValuesIn(old_releases)));
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseSnapcraft, RefuseBridging, Values(std::make_tuple("snapcraft", "core")));
-
-std::pair<std::unique_ptr<mpt::TempDir>, QString> // unique_ptr bypasses missing move ctor
-plant_instance_json(const std::string& contents)
-{
-    auto temp_dir = std::make_unique<mpt::TempDir>();
-    QString filename(temp_dir->path() + "/multipassd-vm-instances.json");
-
-    mpt::make_file_with_content(filename, contents);
-
-    return {std::move(temp_dir), filename};
-}
 
 constexpr auto ghost_template = R"(
 "{}": {{
