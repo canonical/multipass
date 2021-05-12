@@ -308,3 +308,34 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 {
     return ux_id;
 }
+
+std::pair<QString, QString> mp::platform::parse_os_release(const QStringList& lsb_file_data, const char& delimiter)
+{
+    const QString id_field = "NAME";
+    const QString version_field = "VERSION_ID";
+
+    QString distro_id = "unknown";
+    QString distro_rel = "unknown";
+
+    for (QString line : lsb_file_data)
+    {
+        QStringList split = line.split(delimiter, Qt::KeepEmptyParts);
+        if (split.length() == 2)
+        {
+            if (split[0] == id_field)
+            {
+                distro_id = split[1];
+                distro_id.remove(0,1);
+                distro_id.remove(distro_id.length() - 1,1);
+            }
+            else if (split[0] == version_field)
+            {
+                distro_rel = split[1];
+                distro_rel.remove(0,1);
+                distro_rel.remove(distro_id.length() - 1,1);
+            }
+        }
+    }
+
+    return std::pair(distro_id, distro_rel);
+}
