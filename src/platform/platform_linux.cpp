@@ -340,25 +340,32 @@ std::pair<QString, QString> mp::platform::parse_os_release(const QStringList& ls
     return std::pair(distro_id, distro_rel);
 }
 
-std::pair<QString, QString> mp::platform::read_os_release(const QString& path)
+std::string mp::platform::read_os_release(const QString& path)
 {
     QStringList lsb_file_data;
     QFile fd(path);
     if (fd.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         QTextStream input(&fd);
-
         QString line = input.readLine();
         while (!line.isNull())
         {
             lsb_file_data.append(line);
             line = input.readLine();
         }
-
         fd.close();
 
-        return parse_os_release(lsb_file_data);
+        auto parsed = parse_os_release(lsb_file_data);
+
+        return fmt::format("{}-{}", parsed.first, parsed.second);
     }
 
-    return std::pair("unknown", "unknown");
+    return "unknown-unknown";
+}
+
+std::string multipass::platform::host_version()
+{
+    return mu::in_multipass_snap() ?
+           read_os_release() :
+           fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
