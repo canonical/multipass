@@ -555,7 +555,7 @@ INSTANTIATE_TEST_SUITE_P(
     Values(Param{{"en0", true}}, Param{{"en0", false}}, Param{{"en0", false}, {"en1", true}},
            Param{{"asdf", true}, {"ggi", true}, {"a1", true}, {"fu", false}, {"ho", true}, {"ra", false}}));
 
-TEST(Utils, parse_os_release_empty)
+TEST(PlatformLinux, parse_os_release_empty)
 {
     QStringList input = {};
 
@@ -567,12 +567,27 @@ TEST(Utils, parse_os_release_empty)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_os_release_ubuntu2104lts)
+TEST(PlatformLinux, parse_os_release_ubuntu2104lts)
 {
-    QStringList input = {{"DISTRIB_ID=Ubuntu"},
+    QStringList input = {{"NAME=\"Ubuntu\""},
                          {"DISTRIB_RELEASE=21.04"},
                          {"DISTRIB_CODENAME=hirsute"},
                          {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""}};
+
+    /*
+        NAME="Ubuntu"
+        VERSION="21.04 (Hirsute Hippo)"
+        ID=ubuntu
+        ID_LIKE=debian
+        PRETTY_NAME="Ubuntu 21.04"
+        VERSION_ID="21.04"
+        HOME_URL="https://www.ubuntu.com/"
+        SUPPORT_URL="https://help.ubuntu.com/"
+        BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+        PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+        VERSION_CODENAME=hirsute
+        UBUNTU_CODENAME=hirsute
+     */
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
@@ -582,7 +597,7 @@ TEST(Utils, parse_os_release_ubuntu2104lts)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_os_release_ubuntu2104lts_rotation)
+TEST(PlatformLinux, parse_os_release_ubuntu2104lts_rotation)
 {
     QStringList input = {{"DISTRIB_CODENAME=hirsute"},
                          {"DISTRIB_RELEASE=21.04"},
@@ -597,7 +612,7 @@ TEST(Utils, parse_os_release_ubuntu2104lts_rotation)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_os_release_ubuntu2104lts_delimiter)
+TEST(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter)
 {
     QStringList input = {{"DISTRIB_CODENAME#hirsute"},
                          {"DISTRIB_RELEASE#21.04"},
@@ -612,7 +627,7 @@ TEST(Utils, parse_os_release_ubuntu2104lts_delimiter)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_os_release_ubuntu2104lts_delimiter_fail)
+TEST(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter_fail)
 {
     QStringList input = {{"DISTRIB_CODENAME=hirsute"},
                          {"DISTRIB_RELEASE=21.04"},
@@ -627,7 +642,7 @@ TEST(Utils, parse_os_release_ubuntu2104lts_delimiter_fail)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, parse_os_release_ubuntu2104lts_case_insenstive)
+TEST(PlatformLinux, parse_os_release_ubuntu2104lts_case_insenstive)
 {
     QStringList input = {{"DISTRIB_id=Ubuntu"},
                          {"DISTRIB_release=21.04"},
@@ -642,7 +657,7 @@ TEST(Utils, parse_os_release_ubuntu2104lts_case_insenstive)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, read_osrelease_from_file)
+TEST(PlatformLinux, read_osrelease_from_file)
 {
     auto expected = std::pair<std::string, std::string>("distribution_name", "distribution_release");
 
@@ -652,7 +667,7 @@ TEST(Utils, read_osrelease_from_file)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(Utils, read_os_release_from_os)
+TEST(PlatformLinux, read_os_release_from_os)
 {
     auto expected = std::pair(QSysInfo::productType(), QSysInfo::productVersion());
 
