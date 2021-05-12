@@ -1126,6 +1126,36 @@ TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometim
     mp::Daemon daemon{config_builder.build()};
 }
 
+TEST_F(Daemon, ctor_drops_removed_instances)
+{
+    const std::string stayed{"foo"}, gone{"fighters"};
+    auto stayed_json = fmt::format(valid_template, stayed, "12");
+    auto gone_json = fmt::format(valid_template, gone, "34");
+    auto temp_dir = plant_instance_json(fmt::format("{{\n{},\n{}\n}}", std::move(stayed_json), std::move(gone_json)));
+    config_builder.data_directory = temp_dir->path();
+
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, stayed), _, _))
+        .WillRepeatedly(DoDefault()); // returns an image that can be verified to exist for this instance
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, gone), _, _))
+        .WillOnce(Return(mp::VMImage{})); // an image that can't be verified to exist for this instance
+    config_builder.vault = std::move(mock_image_vault);
+
+    auto mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, stayed), _))
+        .Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _))
+        .Times(0);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"list"}, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
+
+    // TODO@ricab verify json
+}
+
 TEST_P(ListIP, lists_with_ip)
 {
     auto mock_factory = use_a_mock_vm_factory();
