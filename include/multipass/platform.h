@@ -85,6 +85,10 @@ std::function<int()> make_quit_watchdog(); // call while single-threaded; call r
 
 std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
 
+std::pair<QString, QString> read_os_release(const QString& path = "/var/lib/snapd/hostfs/etc/os-release");
+
+std::pair<QString, QString> parse_os_release(const QStringList& lsb_file_data, const char& delimiter = '=');
+
 } // namespace platform
 } // namespace multipass
 
