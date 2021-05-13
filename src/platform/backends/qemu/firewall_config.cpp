@@ -344,7 +344,7 @@ mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, "firewall", e.what());
+        mpl::log(mpl::Level::warning, category, e.what());
         firewall_error = true;
         error_string = e.what();
     }
@@ -358,7 +358,7 @@ mp::FirewallConfig::~FirewallConfig()
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, "firewall", e.what());
+        mpl::log(mpl::Level::warning, category, e.what());
     }
 }
 
