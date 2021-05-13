@@ -33,6 +33,7 @@ public:
     MOCK_CONST_METHOD1(isReadable, bool(QDir&));
     MOCK_CONST_METHOD2(rmdir, bool(QDir&, const QString& dirName));
     MOCK_CONST_METHOD2(open, bool(QFile&, QIODevice::OpenMode));
+    MOCK_CONST_METHOD2(mkpath, bool(QDir&, const QString& dirName));
     MOCK_CONST_METHOD1(is_open, bool(const QFile&));
     MOCK_CONST_METHOD3(read, qint64(QFile&, char*, qint64));
     MOCK_CONST_METHOD1(read_all, QByteArray(QFile&));
@@ -45,6 +46,7 @@ public:
     MOCK_CONST_METHOD1(size, qint64(QFile&));
     MOCK_CONST_METHOD3(write, qint64(QFile&, const char*, qint64));
     MOCK_CONST_METHOD2(write, qint64(QFile&, const QByteArray&));
+    MOCK_CONST_METHOD1(exists, bool(QFile&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };

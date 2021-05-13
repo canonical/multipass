@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "file_operations.h"
+#include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_ssh.h"
 #include "mock_ssh_process_exit_status.h"
@@ -41,6 +42,25 @@ namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
+
+namespace
+{
+std::string file_contents{"line 1 of file contents\nline 2\n"};
+
+void check_file_contents(QFile& checked_file, const std::string& checked_contents)
+{
+    checked_file.open(QIODevice::ReadOnly | QIODevice::Text);
+
+    QString actual_contents;
+
+    while (!checked_file.atEnd())
+        actual_contents += checked_file.readLine();
+
+    checked_file.close();
+
+    ASSERT_EQ(checked_contents, actual_contents.toStdString());
+}
+} // namespace
 
 TEST(Utils, hostname_begins_with_letter_is_valid)
 {
@@ -165,6 +185,86 @@ TEST(Utils, path_home_ubuntu_foo_valid)
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/ubuntu/foo")));
+}
+
+TEST(Utils, make_file_with_content_works)
+{
+    mpt::TempDir temp_dir;
+    QString file_name = temp_dir.path() + "/test-file";
+
+    EXPECT_NO_THROW(mp::utils::make_file_with_content(file_name.toStdString(), file_contents));
+
+    QFile checked_file(file_name);
+    check_file_contents(checked_file, file_contents);
+}
+
+TEST(Utils, make_file_with_content_does_not_overwrite)
+{
+    mpt::TempDir temp_dir;
+    QString file_name = temp_dir.path() + "/test-file";
+
+    EXPECT_NO_THROW(mp::utils::make_file_with_content(file_name.toStdString(), file_contents));
+
+    QFile checked_file(file_name);
+    check_file_contents(checked_file, file_contents);
+
+    MP_EXPECT_THROW_THAT(mp::utils::make_file_with_content(file_name.toStdString(), "other stuff\n"),
+                         std::runtime_error, mpt::match_what(HasSubstr("already exists")));
+
+    check_file_contents(checked_file, file_contents);
+}
+
+TEST(Utils, make_file_with_content_creates_path)
+{
+    mpt::TempDir temp_dir;
+    QString file_name = temp_dir.path() + "/new_dir/test-file";
+
+    EXPECT_NO_THROW(mp::utils::make_file_with_content(file_name.toStdString(), file_contents));
+
+    QFile checked_file(file_name);
+    check_file_contents(checked_file, file_contents);
+}
+
+TEST(Utils, make_file_with_content_fails_if_path_cannot_be_created)
+{
+    std::string file_name{"some_dir/test-file"};
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(mp::utils::make_file_with_content(file_name, file_contents), std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to create dir")));
+}
+
+TEST(Utils, make_file_with_content_fails_if_file_cannot_be_created)
+{
+    std::string file_name{"some_dir/test-file"};
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(mp::utils::make_file_with_content(file_name, file_contents), std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to open file")));
+}
+
+TEST(Utils, make_file_with_content_throws_on_write_error)
+{
+    std::string file_name{"some_dir/test-file"};
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));
+
+    MP_EXPECT_THROW_THAT(mp::utils::make_file_with_content(file_name, file_contents), std::runtime_error,
+                         mpt::match_what(HasSubstr("error writing to file")));
 }
 
 TEST(Utils, to_cmd_output_has_no_quotes)
