@@ -33,6 +33,11 @@ bool mp::FileOps::rmdir(QDir& dir, const QString& dirName) const
     return dir.rmdir(dirName);
 }
 
+bool mp::FileOps::mkpath(QDir& dir, const QString& dirName) const
+{
+    return dir.mkpath(dirName);
+}
+
 bool mp::FileOps::open(QFile& file, QIODevice::OpenMode mode) const
 {
     return file.open(mode);
@@ -96,4 +101,9 @@ qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize) const
 qint64 mp::FileOps::write(QFile& file, const QByteArray& data) const
 {
     return file.write(data);
+}
+
+bool mp::FileOps::exists(QFile& file)
+{
+    return file.exists();
 }
