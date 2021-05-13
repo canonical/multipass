@@ -233,8 +233,16 @@ void clear_firewall_rules_for(const QString& firewall, const QString& table, con
             // Remove the policy type since delete doesn't use that
             rule.remove(0, 3);
 
-            // Pass the chain and rule wholesale since we capture the whole line
-            delete_firewall_rule(firewall, table, QStringList() << rule);
+            try
+            {
+                // Pass the chain and rule wholesale since we capture the whole line
+                delete_firewall_rule(firewall, table, QStringList() << rule);
+            }
+            catch (const std::runtime_error& e)
+            {
+                mpl::log(mpl::Level::error, category,
+                         fmt::format("Error deleting firewall rule '{}': {}", rule, e.what()));
+            }
         }
     }
 }
@@ -352,14 +360,7 @@ mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string
 
 mp::FirewallConfig::~FirewallConfig()
 {
-    try
-    {
-        clear_all_firewall_rules();
-    }
-    catch (const std::exception& e)
-    {
-        mpl::log(mpl::Level::warning, category, e.what());
-    }
+    clear_all_firewall_rules();
 }
 
 void mp::FirewallConfig::verify_firewall_rules()
@@ -372,7 +373,8 @@ void mp::FirewallConfig::verify_firewall_rules()
 
 void mp::FirewallConfig::clear_all_firewall_rules()
 {
-    clear_firewall_rules_for(firewall, filter, bridge_name, cidr, comment);
-    clear_firewall_rules_for(firewall, nat, bridge_name, cidr, comment);
-    clear_firewall_rules_for(firewall, mangle, bridge_name, cidr, comment);
+    for (const auto& table : firewall_tables)
+    {
+        clear_firewall_rules_for(firewall, table, bridge_name, cidr, comment);
+    }
 }
