@@ -130,7 +130,8 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
 
     if (!exit_state.completed_successfully())
         throw std::runtime_error(
-            fmt::format("Failed to get firewall list for table {}: {}", table, process->read_all_standard_error()));
+            fmt::format("Failed to get firewall list for table {}: {}", table,
+                        (exit_state.error) ? exit_state.failure_message() : process->read_all_standard_error()));
 
     return process->read_all_standard_output();
 }
@@ -290,47 +291,38 @@ void check_kernel_support()
 
 auto iptables_in_use()
 {
-    try
-    {
-        return is_firewall_in_use(iptables);
-    }
-    catch (const std::runtime_error& e)
-    {
-        mpl::log(mpl::Level::warning, category, fmt::format("Cannot use iptables: {}", e.what()));
-        return false;
-    }
+    return is_firewall_in_use(iptables);
 }
 
 auto nftables_in_use()
 {
-    try
-    {
-        check_kernel_support();
-
-        return is_firewall_in_use(nftables);
-    }
-    catch (const std::runtime_error& e)
-    {
-        mpl::log(mpl::Level::warning, category, fmt::format("Cannot use nftables: {}", e.what()));
-        return false;
-    }
+    check_kernel_support();
+    return is_firewall_in_use(nftables);
 }
 
 auto detect_firewall()
 {
     QString firewall_exec;
 
-    if (nftables_in_use())
+    try
     {
-        firewall_exec = nftables;
+        if (nftables_in_use())
+        {
+            firewall_exec = nftables;
+        }
+        else if (iptables_in_use())
+        {
+            firewall_exec = iptables;
+        }
+        else
+        {
+            firewall_exec = nftables;
+        }
     }
-    else if (iptables_in_use())
+    catch (const std::runtime_error& e)
     {
         firewall_exec = iptables;
-    }
-    else
-    {
-        firewall_exec = nftables;
+        mpl::log(mpl::Level::warning, category, fmt::format("{}: defaulting to {}", e.what(), firewall_exec));
     }
 
     mpl::log(mpl::Level::info, category, fmt::format("Using {} for firewall rules.", firewall_exec));
