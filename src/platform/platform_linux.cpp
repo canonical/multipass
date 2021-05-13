@@ -320,20 +320,13 @@ std::pair<QString, QString> mp::platform::parse_os_release(const QStringList& ls
     for (QString line : lsb_file_data)
     {
         QStringList split = line.split(delimiter, Qt::KeepEmptyParts);
-        if (split.length() == 2)
+        if (split.length() == 2 && split[1].length() > 2)
         {
+            QString val = split[1].mid(1, split[1].length() - 2);
             if (split[0] == id_field)
-            {
-                distro_id = split[1];
-                distro_id.remove(0,1);
-                distro_id.remove(distro_id.length() - 1,1);
-            }
+                distro_id = val;
             else if (split[0] == version_field)
-            {
-                distro_rel = split[1];
-                distro_rel.remove(0,1);
-                distro_rel.remove(distro_id.length() - 1,1);
-            }
+                distro_rel = val;
         }
     }
 
