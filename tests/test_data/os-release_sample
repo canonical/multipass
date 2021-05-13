@@ -1,9 +1,9 @@
-NAME="Ubuntu"
+NAME="distribution_name"
 VERSION="21.04 (Hirsute Hippo)"
 ID=ubuntu
 ID_LIKE=debian
 PRETTY_NAME="Ubuntu 21.04"
-VERSION_ID="21.04"
+VERSION_ID="distribution_release"
 HOME_URL="https://www.ubuntu.com/"
 SUPPORT_URL="https://help.ubuntu.com/"
 BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"

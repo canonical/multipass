@@ -555,7 +555,7 @@ INSTANTIATE_TEST_SUITE_P(
     Values(Param{{"en0", true}}, Param{{"en0", false}}, Param{{"en0", false}, {"en1", true}},
            Param{{"asdf", true}, {"ggi", true}, {"a1", true}, {"fu", false}, {"ho", true}, {"ra", false}}));
 
-TEST(PlatformLinux, parse_os_release_empty)
+TEST_F(PlatformLinux, parse_os_release_empty)
 {
     QStringList input = {};
 
@@ -567,27 +567,66 @@ TEST(PlatformLinux, parse_os_release_empty)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(PlatformLinux, parse_os_release_ubuntu2104lts)
+TEST_F(PlatformLinux, parse_os_release_empty_fields)
+{
+    QStringList input = {{"NAME=\"\""},
+                         {"VERSION=\"21.04 (Hirsute Hippo)\""},
+                         {"ID=ubuntu"},
+                         {"ID_LIKE=debian"},
+                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
+                         {"VERSION_ID=\"\""},
+                         {"HOME_URL=\"https://www.ubuntu.com/\""},
+                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+                         {"VERSION_CODENAME=hirsute"},
+                         {"UBUNTU_CODENAME=hirsute"}};
+
+    auto expected = std::pair<std::string, std::string>("unknown", "unknown");
+
+    auto output = mp::platform::parse_os_release(input);
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST_F(PlatformLinux, parse_os_release_single_char_fields)
+{
+    QStringList input = {{"NAME=\"A\""},
+                         {"VERSION=\"21.04 (Hirsute Hippo)\""},
+                         {"ID=ubuntu"},
+                         {"ID_LIKE=debian"},
+                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
+                         {"VERSION_ID=\"B\""},
+                         {"HOME_URL=\"https://www.ubuntu.com/\""},
+                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+                         {"VERSION_CODENAME=hirsute"},
+                         {"UBUNTU_CODENAME=hirsute"}};
+
+    auto expected = std::pair<std::string, std::string>("A", "B");
+
+    auto output = mp::platform::parse_os_release(input);
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts)
 {
     QStringList input = {{"NAME=\"Ubuntu\""},
-                         {"DISTRIB_RELEASE=21.04"},
-                         {"DISTRIB_CODENAME=hirsute"},
-                         {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""}};
-
-    /*
-        NAME="Ubuntu"
-        VERSION="21.04 (Hirsute Hippo)"
-        ID=ubuntu
-        ID_LIKE=debian
-        PRETTY_NAME="Ubuntu 21.04"
-        VERSION_ID="21.04"
-        HOME_URL="https://www.ubuntu.com/"
-        SUPPORT_URL="https://help.ubuntu.com/"
-        BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
-        PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
-        VERSION_CODENAME=hirsute
-        UBUNTU_CODENAME=hirsute
-     */
+                         {"VERSION=\"21.04 (Hirsute Hippo)\""},
+                         {"ID=ubuntu"},
+                         {"ID_LIKE=debian"},
+                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
+                         {"VERSION_ID=\"21.04\""},
+                         {"HOME_URL=\"https://www.ubuntu.com/\""},
+                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+                         {"VERSION_CODENAME=hirsute"},
+                         {"UBUNTU_CODENAME=hirsute"}};
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
@@ -597,12 +636,20 @@ TEST(PlatformLinux, parse_os_release_ubuntu2104lts)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(PlatformLinux, parse_os_release_ubuntu2104lts_rotation)
+TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts_rotation)
 {
-    QStringList input = {{"DISTRIB_CODENAME=hirsute"},
-                         {"DISTRIB_RELEASE=21.04"},
-                         {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""},
-                         {"DISTRIB_ID=Ubuntu"}};
+    QStringList input = {{"VERSION=\"21.04 (Hirsute Hippo)\""},
+                         {"ID=ubuntu"},
+                         {"ID_LIKE=debian"},
+                         {"VERSION_ID=\"21.04\""},
+                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
+                         {"HOME_URL=\"https://www.ubuntu.com/\""},
+                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+                         {"VERSION_CODENAME=hirsute"},
+                         {"NAME=\"Ubuntu\""},
+                         {"UBUNTU_CODENAME=hirsute"}};
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
@@ -612,12 +659,20 @@ TEST(PlatformLinux, parse_os_release_ubuntu2104lts_rotation)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter)
+TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter)
 {
-    QStringList input = {{"DISTRIB_CODENAME#hirsute"},
-                         {"DISTRIB_RELEASE#21.04"},
-                         {"DISTRIB_DESCRIPTION#\"Ubuntu 21.04\""},
-                         {"DISTRIB_ID#Ubuntu"}};
+    QStringList input = {{"NAME#\"Ubuntu\""},
+                         {"VERSION#\"21.04 (Hirsute Hippo)\""},
+                         {"ID#ubuntu"},
+                         {"ID_LIKE#debian"},
+                         {"PRETTY_NAME#\"Ubuntu 21.04\""},
+                         {"VERSION_ID#\"21.04\""},
+                         {"HOME_URL#\"https://www.ubuntu.com/\""},
+                         {"SUPPORT_URL#\"https://help.ubuntu.com/\""},
+                         {"BUG_REPORT_URL#\"https://bugs.launchpad.net/ubuntu/\""},
+                         {"PRIVACY_POLICY_URL#\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+                         {"VERSION_CODENAME#hirsute"},
+                         {"UBUNTU_CODENAME#hirsute"}};
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
@@ -627,14 +682,22 @@ TEST(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter_fail)
+TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter_fail)
 {
-    QStringList input = {{"DISTRIB_CODENAME=hirsute"},
-                         {"DISTRIB_RELEASE=21.04"},
-                         {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""},
-                         {"DISTRIB_ID=Ubuntu"}};
+    QStringList input = {{"NAME=\"Ubuntu\""},
+                         {"VERSION=\"21.04 (Hirsute Hippo)\""},
+                         {"ID=ubuntu"},
+                         {"ID_LIKE=debian"},
+                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
+                         {"VERSION_ID=\"21.04\""},
+                         {"HOME_URL=\"https://www.ubuntu.com/\""},
+                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+                         {"VERSION_CODENAME=hirsute"},
+                         {"UBUNTU_CODENAME=hirsute"}};
 
-    auto expected = std::pair<std::string, std::string>("parse_distro-id_failed", "parse_distro-release_failed");
+    auto expected = std::pair<std::string, std::string>("unknown", "unknown");
 
     auto output = mp::platform::parse_os_release(input, '#');
 
@@ -642,39 +705,22 @@ TEST(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter_fail)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST(PlatformLinux, parse_os_release_ubuntu2104lts_case_insenstive)
+TEST_F(PlatformLinux, read_os_release_from_file)
 {
-    QStringList input = {{"DISTRIB_id=Ubuntu"},
-                         {"DISTRIB_release=21.04"},
-                         {"DISTRIB_CODENAME=hirsute"},
-                         {"DISTRIB_DESCRIPTION=\"Ubuntu 21.04\""}};
-
-    auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
-
-    auto output = mp::platform::parse_os_release(input);
-
-    EXPECT_EQ(expected.first, output.first.toStdString());
-    EXPECT_EQ(expected.second, output.second.toStdString());
-}
-
-TEST(PlatformLinux, read_osrelease_from_file)
-{
-    auto expected = std::pair<std::string, std::string>("distribution_name", "distribution_release");
+    std::string expected = "distribution_name-distribution_release";
 
     auto output = mp::platform::read_os_release(mpt::test_data_path() + "os-release_sample");
 
-    EXPECT_EQ(expected.first, output.first.toStdString());
-    EXPECT_EQ(expected.second, output.second.toStdString());
+    EXPECT_EQ(expected, output);
 }
 
-TEST(PlatformLinux, read_os_release_from_os)
+TEST_F(PlatformLinux, read_os_release_missing_file)
 {
-    auto expected = std::pair(QSysInfo::productType(), QSysInfo::productVersion());
+    std::string expected = "unknown-unknown";
 
     auto output = mp::platform::read_os_release("/non-existent/dummy/file/no-where-to-be-found");
 
-    EXPECT_EQ(expected.first.toStdString(), output.first.toStdString());
-    EXPECT_EQ(expected.second.toStdString(), output.second.toStdString());
+    EXPECT_EQ(expected, output);
 }
 
 } // namespace
