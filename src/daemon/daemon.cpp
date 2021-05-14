@@ -123,8 +123,8 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     auto pollinate_user_agent_string =
         fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
     pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
-    pollinate_user_agent_string += fmt::format("multipass/host/{}-{} # written by Multipass\n", QSysInfo::productType(),
-                                               QSysInfo::productVersion());
+    pollinate_user_agent_string +=
+        fmt::format("multipass/host/{} # written by Multipass\n", multipass::platform::host_version());
 
     YAML::Node pollinate_user_agent_node;
     pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
@@ -944,10 +944,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             assert(!spec.deleted);
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
-            QTimer::singleShot(0, [this, &name] {
-                vm_instances[name]->start();
-                on_restart(name);
-            });
+            QTimer::singleShot(0,
+                               [this, &name]
+                               {
+                                   vm_instances[name]->start();
+                                   on_restart(name);
+                               });
         }
     }
 
@@ -964,45 +966,51 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     // Fire timer every six hours to perform maintenance on source images such as
     // pruning expired images and updating to newly released images.
-    connect(&source_images_maintenance_task, &QTimer::timeout, [this]() {
-        if (image_update_future.isRunning())
-        {
-            mpl::log(mpl::Level::info, category, "Image updater already running. Skipping…");
-        }
-        else
-        {
-            image_update_future = QtConcurrent::run([this] {
-                config->vault->prune_expired_images();
-
-                auto prepare_action = [this](const VMImage& source_image) -> VMImage {
-                    return config->factory->prepare_source_image(source_image);
-                };
-
-                auto download_monitor = [](int download_type, int percentage) {
-                    static int last_percentage_logged = -1;
-                    if (percentage % 10 == 0)
-                    {
-                        // Note: The progress callback may be called repeatedly with the same percentage,
-                        // so this logic is to only log it once
-                        if (last_percentage_logged != percentage)
-                        {
-                            mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
-                            last_percentage_logged = percentage;
-                        }
-                    }
-                    return true;
-                };
-                try
+    connect(&source_images_maintenance_task, &QTimer::timeout,
+            [this]()
+            {
+                if (image_update_future.isRunning())
                 {
-                    config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
+                    mpl::log(mpl::Level::info, category, "Image updater already running. Skipping…");
                 }
-                catch (const std::exception& e)
+                else
                 {
-                    mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
+                    image_update_future = QtConcurrent::run(
+                        [this]
+                        {
+                            config->vault->prune_expired_images();
+
+                            auto prepare_action = [this](const VMImage& source_image) -> VMImage
+                            { return config->factory->prepare_source_image(source_image); };
+
+                            auto download_monitor = [](int download_type, int percentage)
+                            {
+                                static int last_percentage_logged = -1;
+                                if (percentage % 10 == 0)
+                                {
+                                    // Note: The progress callback may be called repeatedly with the same percentage,
+                                    // so this logic is to only log it once
+                                    if (last_percentage_logged != percentage)
+                                    {
+                                        mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
+                                        last_percentage_logged = percentage;
+                                    }
+                                }
+                                return true;
+                            };
+                            try
+                            {
+                                config->vault->update_images(config->factory->fetch_type(), prepare_action,
+                                                             download_monitor);
+                            }
+                            catch (const std::exception& e)
+                            {
+                                mpl::log(mpl::Level::error, category,
+                                         fmt::format("Error updating images: {}", e.what()));
+                            }
+                        });
                 }
             });
-        }
-    });
     source_images_maintenance_task.start(config->image_refresh_timer);
 }
 
@@ -1151,7 +1159,8 @@ try // clang-format on
         {
             std::unordered_set<std::string> images_found;
             auto action = [&images_found, &default_remote, request, &response](const std::string& remote,
-                                                                               const mp::VMImageInfo& info) {
+                                                                               const mp::VMImageInfo& info)
+            {
                 if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
                     images_found.find(info.release_title.toStdString()) == images_found.end())
                 {
@@ -1751,11 +1760,13 @@ try // clang-format on
                 instances_to_suspend.push_back(pair.first);
         }
 
-        status = cmd_vms(instances_to_suspend, [this](auto& vm) {
-            vm.suspend();
-            instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
-            return grpc::Status::OK;
-        });
+        status = cmd_vms(instances_to_suspend,
+                         [this](auto& vm)
+                         {
+                             vm.suspend();
+                             instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
+                             return grpc::Status::OK;
+                         });
     }
 
     status_promise->set_value(status);
@@ -1980,7 +1991,8 @@ QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfac
 
 void mp::Daemon::persist_instances()
 {
-    auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
+    auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject
+    {
         QJsonObject json;
         json.insert("num_cores", specs.num_cores);
         json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
@@ -2143,7 +2155,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 
     QObject::connect(
         prepare_future_watcher, &QFutureWatcher<VirtualMachineDescription>::finished,
-        [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level] {
+        [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level]
+        {
             mpl::ClientLogger<CreateReply> logger{log_level, *config->logger, server};
 
             try
@@ -2174,12 +2187,14 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                     auto& vm = vm_instances[name];
                     vm->start();
 
-                    auto future_watcher = create_future_watcher([this, server, name] {
-                        LaunchReply reply;
-                        reply.set_vm_instance_name(name);
-                        config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
-                        server->Write(reply);
-                    });
+                    auto future_watcher = create_future_watcher(
+                        [this, server, name]
+                        {
+                            LaunchReply reply;
+                            reply.set_vm_instance_name(name);
+                            config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                            server->Write(reply);
+                        });
                     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
                                                                 server, std::vector<std::string>{name}, timeout,
                                                                 status_promise));
@@ -2202,7 +2217,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
         });
 
     auto make_vm_description = [this, server, request, name, checked_args,
-                                log_level]() mutable -> VirtualMachineDescription {
+                                log_level]() mutable -> VirtualMachineDescription
+    {
         mpl::ClientLogger<CreateReply> logger{log_level, *config->logger, server};
 
         try
@@ -2240,14 +2256,16 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
                 vm_desc.mem_size = checked_args.mem_size;
             }
 
-            auto progress_monitor = [server](int progress_type, int percentage) {
+            auto progress_monitor = [server](int progress_type, int percentage)
+            {
                 CreateReply create_reply;
                 create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
                 create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
                 return server->Write(create_reply);
             };
 
-            auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+            auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage
+            {
                 CreateReply reply;
                 reply.set_create_message("Preparing image for " + name);
                 server->Write(reply);
@@ -2396,7 +2414,8 @@ mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 
     auto future_watcher = async_future_watchers.back().get();
     QObject::connect(future_watcher, &QFutureWatcher<AsyncOperationStatus>::finished,
-                     [this, future_watcher, finished_op] {
+                     [this, future_watcher, finished_op]
+                     {
                          finished_op();
                          finish_async_operation(future_watcher->future());
                      });
@@ -2540,9 +2559,8 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerWriter<Reply>* server, const st
 void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_future)
 {
     auto it = std::find_if(async_future_watchers.begin(), async_future_watchers.end(),
-                           [&async_future](const std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>& watcher) {
-                               return watcher->future() == async_future;
-                           });
+                           [&async_future](const std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>& watcher)
+                           { return watcher->future() == async_future; });
 
     if (it != async_future_watchers.end())
     {
