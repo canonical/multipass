@@ -139,7 +139,8 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         if (auto& net = item.second; net.type == "bridge")
         { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
-            auto is_unknown = [&networks](const std::string& id) {
+            auto is_unknown = [&networks](const std::string& id)
+            {
                 auto same_as = [&id](const auto& other) { return other.first == id; };
                 return std::find_if(networks.cbegin(), networks.cend(), same_as) == networks.cend();
             };
