@@ -8,18 +8,6 @@ target_sources(multipass_tests
     ${CMAKE_CURRENT_LIST_DIR}/test_firewall_config.cpp
 )
 
-add_executable(qemu-system-x86_64
-        mock_qemu_system.cpp)
-
-set_target_properties(qemu-system-x86_64
-        PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
-
-target_link_libraries(qemu-system-x86_64
-        Qt5::Core)
-
 add_executable(dnsmasq
   mock_dnsmasq.cpp)
 
@@ -51,7 +39,6 @@ set_target_properties(qemu-img
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
 add_dependencies(multipass_tests
-  qemu-system-x86_64
   dnsmasq
   dhcp_release
   qemu-img
