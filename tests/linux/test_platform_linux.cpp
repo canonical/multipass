@@ -18,6 +18,7 @@
 #include "tests/fake_handle.h"
 #include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
@@ -291,11 +292,13 @@ TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
 
 TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
 {
+    auto factory = mpt::MockProcessFactory::Inject();
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>();
 }
 
 TEST_F(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
 {
+    auto factory = mpt::MockProcessFactory::Inject();
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
@@ -319,6 +322,7 @@ TEST_F(PlatformLinux, test_qemu_in_env_var_is_ignored)
 
 TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 {
+    auto factory = mpt::MockProcessFactory::Inject();
     mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
