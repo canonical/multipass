@@ -139,7 +139,8 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         if (auto& net = item.second; net.type == "bridge")
         { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
-            auto is_unknown = [&networks](const std::string& id) {
+            auto is_unknown = [&networks](const std::string& id)
+            {
                 auto same_as = [&id](const auto& other) { return other.first == id; };
                 return std::find_if(networks.cbegin(), networks.cend(), same_as) == networks.cend();
             };
@@ -317,7 +318,7 @@ std::pair<QString, QString> mp::platform::parse_os_release(const QStringList& ls
     QString distro_id = "unknown";
     QString distro_rel = "unknown";
 
-    for (QString line : lsb_file_data)
+    for (const QString& line : lsb_file_data)
     {
         QStringList split = line.split(delimiter, Qt::KeepEmptyParts);
         if (split.length() == 2 && split[1].length() > 2)
@@ -358,7 +359,6 @@ std::string mp::platform::read_os_release(const QString& path)
 
 std::string multipass::platform::host_version()
 {
-    return mu::in_multipass_snap() ?
-           read_os_release() :
-           fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+    return mu::in_multipass_snap() ? read_os_release()
+                                   : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
