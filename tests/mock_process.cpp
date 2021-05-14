@@ -27,5 +27,7 @@ int main(int argc, char* argv[])
 
     // Print out what was supplied by stdin
     std::cout << s;
+    std::cerr << s;
+
     return atoi(argv[1]);
 }
