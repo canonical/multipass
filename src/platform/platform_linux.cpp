@@ -273,7 +273,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 {
     QDir aliases_folder = get_aliases_folder();
 
-    std::string file_path = aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
+    QString file_path = aliases_folder.absoluteFilePath(QString::fromStdString(alias));
 
     std::string multipass_exec = mu::in_multipass_snap() ? "exec /usr/bin/snap run multipass"
                                                          : QCoreApplication::applicationFilePath().toStdString();
@@ -282,17 +282,18 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
     {
         std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + "\n";
 
-        mu::make_file_with_content(file_path, script);
+        mu::make_file_with_content(file_path.toStdString(), script);
     }
     catch (const std::runtime_error&)
     {
         throw std::runtime_error(fmt::format("error creating alias script '{}'", file_path));
     }
 
-    const char* c_file_path = file_path.c_str();
-    struct stat statbuf;
+    QFile file(file_path);
+    auto permissions =
+        MP_FILEOPS.permissions(file) | QFileDevice::ExeOwner | QFileDevice::ExeGroup | QFileDevice::ExeOther;
 
-    if (stat(c_file_path, &statbuf) || chmod(c_file_path, statbuf.st_mode | S_IXUSR | S_IXGRP | S_IXOTH))
+    if (!MP_FILEOPS.setPermissions(file, permissions))
         throw std::runtime_error(fmt::format("error setting permissions to alias script '{}'", file_path));
 }
 
