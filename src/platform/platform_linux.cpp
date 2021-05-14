@@ -139,8 +139,7 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         if (auto& net = item.second; net.type == "bridge")
         { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
-            auto is_unknown = [&networks](const std::string& id)
-            {
+            auto is_unknown = [&networks](const std::string& id) {
                 auto same_as = [&id](const auto& other) { return other.first == id; };
                 return std::find_if(networks.cbegin(), networks.cend(), same_as) == networks.cend();
             };
@@ -153,6 +152,57 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         }
     }
 }
+
+std::pair<QString, QString> parse_os_release(const QStringList& os_data)
+{
+    const QString id_field = "NAME";
+    const QString version_field = "VERSION_ID";
+
+    QString distro_id = "unknown";
+    QString distro_rel = "unknown";
+
+    for (const QString& line : os_data)
+    {
+        QStringList split = line.split('=', Qt::KeepEmptyParts);
+        if (split.length() == 2 && split[1].length() > 2) // Check for at least 1 char between quotes.
+        {
+            QString val = split[1].mid(1, split[1].length() - 2); // Removing quotes from input string.
+            if (split[0] == id_field)
+                distro_id = val;
+            else if (split[0] == version_field)
+                distro_rel = val;
+        }
+    }
+
+    return std::pair(distro_id, distro_rel);
+}
+
+std::string read_os_release(const QString& os_release_path)
+{
+    QFile fd(os_release_path);
+    if (!QFileInfo::exists(os_release_path) && QFileInfo::exists("/var/lib/snapd/hostfs/etc/os-release"))
+        fd.setFileName("/var/lib/snapd/hostfs/etc/os-release");
+
+    QStringList os_info;
+    if (fd.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        QTextStream input(&fd);
+        QString line = input.readLine();
+        while (!line.isNull())
+        {
+            os_info.append(line);
+            line = input.readLine();
+        }
+        fd.close();
+
+        auto parsed = parse_os_release(os_info);
+
+        return fmt::format("{}-{}", parsed.first, parsed.second);
+    }
+
+    return "unknown-unknown";
+}
+
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -310,55 +360,8 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
     return ux_id;
 }
 
-std::pair<QString, QString> mp::platform::parse_os_release(const QStringList& lsb_file_data, const char& delimiter)
-{
-    const QString id_field = "NAME";
-    const QString version_field = "VERSION_ID";
-
-    QString distro_id = "unknown";
-    QString distro_rel = "unknown";
-
-    for (const QString& line : lsb_file_data)
-    {
-        QStringList split = line.split(delimiter, Qt::KeepEmptyParts);
-        if (split.length() == 2 && split[1].length() > 2)
-        {
-            QString val = split[1].mid(1, split[1].length() - 2);
-            if (split[0] == id_field)
-                distro_id = val;
-            else if (split[0] == version_field)
-                distro_rel = val;
-        }
-    }
-
-    return std::pair(distro_id, distro_rel);
-}
-
-std::string mp::platform::read_os_release(const QString& path)
-{
-    QStringList lsb_file_data;
-    QFile fd(path);
-    if (fd.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
-        QTextStream input(&fd);
-        QString line = input.readLine();
-        while (!line.isNull())
-        {
-            lsb_file_data.append(line);
-            line = input.readLine();
-        }
-        fd.close();
-
-        auto parsed = parse_os_release(lsb_file_data);
-
-        return fmt::format("{}-{}", parsed.first, parsed.second);
-    }
-
-    return "unknown-unknown";
-}
-
 std::string multipass::platform::host_version()
 {
-    return mu::in_multipass_snap() ? read_os_release()
+    return mu::in_multipass_snap() ? ::read_os_release("/etc/os-release")
                                    : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
