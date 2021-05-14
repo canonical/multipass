@@ -313,14 +313,13 @@ void mp::QemuVirtualMachine::suspend()
 {
     if ((state == State::running || state == State::delayed_shutdown) && vm_process->running())
     {
-        vm_process->write(hmc_to_qmp_json("savevm " + QString::fromStdString(suspend_tag)));
-
         if (update_shutdown_status)
         {
             state = State::suspending;
             update_state();
-
             update_shutdown_status = false;
+
+            vm_process->write(hmc_to_qmp_json("savevm " + QString::fromStdString(suspend_tag)));
             vm_process->wait_for_finished();
             vm_process.reset(nullptr);
         }
