@@ -28,14 +28,24 @@ bool mp::FileOps::isReadable(QDir& dir) const
     return dir.isReadable();
 }
 
+bool mp::FileOps::mkpath(QDir& dir, const QString& dirName) const
+{
+    return dir.mkpath(dirName);
+}
+
 bool mp::FileOps::rmdir(QDir& dir, const QString& dirName) const
 {
     return dir.rmdir(dirName);
 }
 
-bool mp::FileOps::mkpath(QDir& dir, const QString& dirName) const
+bool mp::FileOps::exists(QFile& file) const
 {
-    return dir.mkpath(dirName);
+    return file.exists();
+}
+
+bool mp::FileOps::is_open(const QFile& file) const
+{
+    return file.isOpen();
 }
 
 bool mp::FileOps::open(QFile& file, QIODevice::OpenMode mode) const
@@ -43,9 +53,9 @@ bool mp::FileOps::open(QFile& file, QIODevice::OpenMode mode) const
     return file.open(mode);
 }
 
-bool mp::FileOps::is_open(const QFile& file) const
+QFileDevice::Permissions mp::FileOps::permissions(const QFile& file)
 {
-    return file.isOpen();
+    return file.permissions();
 }
 
 qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize) const
@@ -101,9 +111,4 @@ qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize) const
 qint64 mp::FileOps::write(QFile& file, const QByteArray& data) const
 {
     return file.write(data);
-}
-
-bool mp::FileOps::exists(QFile& file)
-{
-    return file.exists();
 }

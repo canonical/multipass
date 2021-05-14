@@ -41,8 +41,10 @@ public:
     virtual bool mkpath(QDir& dir, const QString& dirName) const;
 
     // QFile operations
-    virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
+    virtual bool exists(QFile& file) const;
     virtual bool is_open(const QFile& file) const;
+    virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
+    virtual QFileDevice::Permissions permissions(const QFile& file) const;
     virtual qint64 read(QFile& file, char* data, qint64 maxSize) const;
     virtual QByteArray read_all(QFile& file) const;
     virtual QString read_line(QTextStream& text_stream) const;
@@ -54,7 +56,6 @@ public:
     virtual qint64 size(QFile& file) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFile& file, const QByteArray& data) const;
-    virtual bool exists(QFile& file) const;
 };
 } // namespace multipass
 
