@@ -183,9 +183,9 @@ std::string mp::platform::Platform::read_os_release(const QString& os_release_pa
 {
     QFile fd(os_release_path);
     bool exists_os_rel_path = QFileInfo::exists(os_release_path); // Check once, going to disk is expensive.
-    if (!exists_os_rel_path && QFileInfo::exists("/var/lib/snapd/hostfs/usr/lib/os-release"))
+    if (!exists_os_rel_path && QFileInfo::exists("/var/lib/snapd/hostfs/etc/os-release"))
         fd.setFileName("/var/lib/snapd/hostfs/usr/lib/os-release");
-    else if (!exists_os_rel_path && QFileInfo::exists("/var/lib/snapd/hostfs/etc/os-release"))
+    else if (!exists_os_rel_path && QFileInfo::exists("/var/lib/snapd/hostfs/usr/lib/os-release"))
         fd.setFileName("/var/lib/snapd/hostfs/etc/os-release");
 
     QStringList os_info;
@@ -365,6 +365,6 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 
 std::string multipass::platform::host_version()
 {
-    return mu::in_multipass_snap() ? mp::platform::Platform::read_os_release("/etc/os-release")
+    return mu::in_multipass_snap() ? mp::platform::Platform::read_os_release("/var/lib/snapd/hostfs/etc/os-release")
                                    : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
