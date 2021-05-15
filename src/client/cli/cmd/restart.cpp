@@ -42,7 +42,8 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
     auto on_success = [](mp::RestartReply& reply) { return ReturnCode::Ok; };
 
     AnimatedSpinner spinner{cout};
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status)
+    {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };
@@ -82,6 +83,9 @@ QString cmd::Restart::description() const
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 {
     const auto petenv_name = MP_SETTINGS.get(petenv_key);
+    if (petenv_name.isEmpty())
+        return ParseCode::CommandFail;
+
     parser->addPositionalArgument(
         "name",
         QString{"Names of instances to restart. If omitted, and without the --all option, '%1' will be assumed."}.arg(

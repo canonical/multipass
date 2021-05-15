@@ -42,7 +42,7 @@ Instances sorted(const Instances& instances);
 
 void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases);
 } // namespace format
-}
+} // namespace multipass
 
 template <typename Instances>
 Instances multipass::format::sorted(const Instances& instances)
@@ -51,15 +51,21 @@ Instances multipass::format::sorted(const Instances& instances)
         return instances;
 
     auto ret = instances;
+
     const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
-    std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
-        if (a.name() == petenv_name)
-            return true;
-        else if (b.name() == petenv_name)
-            return false;
-        else
-            return a.name() < b.name();
-    });
+    if (petenv_name.empty())
+        return ret;
+
+    std::sort(std::begin(ret), std::end(ret),
+              [&petenv_name](const auto& a, const auto& b)
+              {
+                  if (a.name() == petenv_name)
+                      return true;
+                  else if (b.name() == petenv_name)
+                      return false;
+                  else
+                      return a.name() < b.name();
+              });
 
     return ret;
 }

@@ -120,6 +120,9 @@ auto net_digest(const QString& options)
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
+    if (petenv_name.isEmpty())
+        return ReturnCode::CommandFail;
+
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
     {
         return parser->returnCodeFrom(ret);
@@ -351,7 +354,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         timer->start();
     }
 
-    auto on_success = [this, &parser](mp::LaunchReply& reply) {
+    auto on_success = [this, &parser](mp::LaunchReply& reply)
+    {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -374,7 +378,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &parser](grpc::Status& status, mp::LaunchReply& reply) {
+    auto on_failure = [this, &parser](grpc::Status& status, mp::LaunchReply& reply)
+    {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -414,7 +419,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
-    auto streaming_callback = [this](mp::LaunchReply& reply) {
+    auto streaming_callback = [this](mp::LaunchReply& reply)
+    {
         std::unordered_map<int, std::string> progress_messages{
             {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
             {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
