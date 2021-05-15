@@ -57,6 +57,8 @@ public:
     virtual bool link(const char* target, const char* link);
     virtual bool symlink(const char* target, const char* link, bool is_dir);
     virtual int utime(const char* path, int atime, int mtime);
+    static std::string read_os_release(const QString& os_release_path);
+    static std::pair<QString, QString> parse_os_release(const QStringList& os_data);
 };
 
 std::map<QString, QString> extra_settings_defaults();
@@ -70,7 +72,7 @@ void setup_gui_autostart_prerequisites();
 std::string default_server_address();
 QString default_driver();
 
-QString daemon_config_home();                      // temporary
+QString daemon_config_home(); // temporary
 
 bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);

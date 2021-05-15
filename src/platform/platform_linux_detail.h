@@ -25,6 +25,8 @@
 namespace multipass::platform::detail
 {
 std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_from(const QDir& sys_dir);
+std::pair<QString, QString> parse_os_release(const QStringList& os_data);
+std::string read_os_release(const QString& os_release_path);
 }
 
 #endif // MULTIPASS_PLATFORM_LINUX_DETAIL_H

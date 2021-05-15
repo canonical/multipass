@@ -153,8 +153,9 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         }
     }
 }
+} // namespace
 
-std::pair<QString, QString> parse_os_release(const QStringList& os_data)
+std::pair<QString, QString> mp::platform::Platform::parse_os_release(const QStringList& os_data)
 {
     const QString id_field = "NAME";
     const QString version_field = "VERSION_ID";
@@ -178,10 +179,13 @@ std::pair<QString, QString> parse_os_release(const QStringList& os_data)
     return std::pair(distro_id, distro_rel);
 }
 
-std::string read_os_release(const QString& os_release_path)
+std::string mp::platform::Platform::read_os_release(const QString& os_release_path)
 {
     QFile fd(os_release_path);
-    if (!QFileInfo::exists(os_release_path) && QFileInfo::exists("/var/lib/snapd/hostfs/etc/os-release"))
+    bool exists_os_rel_path = QFileInfo::exists(os_release_path); // Check once, going to disk is expensive.
+    if (!exists_os_rel_path && QFileInfo::exists("/var/lib/snapd/hostfs/usr/lib/os-release"))
+        fd.setFileName("/var/lib/snapd/hostfs/usr/lib/os-release");
+    else if (!exists_os_rel_path && QFileInfo::exists("/var/lib/snapd/hostfs/etc/os-release"))
         fd.setFileName("/var/lib/snapd/hostfs/etc/os-release");
 
     QStringList os_info;
@@ -203,8 +207,6 @@ std::string read_os_release(const QString& os_release_path)
 
     return "unknown-unknown";
 }
-
-} // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
@@ -363,6 +365,6 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 
 std::string multipass::platform::host_version()
 {
-    return mu::in_multipass_snap() ? ::read_os_release("/etc/os-release")
+    return mu::in_multipass_snap() ? mp::platform::Platform::read_os_release("/etc/os-release")
                                    : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }

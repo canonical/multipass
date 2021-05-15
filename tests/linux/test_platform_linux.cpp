@@ -105,7 +105,7 @@ auto setup_autostart_desktop_file_test()
     // Now mock filesystem tree and environment, reverting when done
 
     auto guard_fs = sg::make_scope_guard([test_dir]() mutable noexcept { // std::terminate ok if this throws
-        test_dir.removeRecursively(); // succeeds if not there
+        test_dir.removeRecursively();                                    // succeeds if not there
     });
 
     QDir data_dir{test_dir.filePath("data")};
@@ -561,7 +561,7 @@ TEST_F(PlatformLinux, parse_os_release_empty)
 
     auto expected = std::pair<std::string, std::string>("unknown", "unknown");
 
-    auto output = mp::platform::parse_os_release(input);
+    auto output = mp::platform::Platform::parse_os_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
@@ -584,7 +584,7 @@ TEST_F(PlatformLinux, parse_os_release_empty_fields)
 
     auto expected = std::pair<std::string, std::string>("unknown", "unknown");
 
-    auto output = mp::platform::parse_os_release(input);
+    auto output = mp::platform::Platform::parse_os_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
@@ -607,7 +607,7 @@ TEST_F(PlatformLinux, parse_os_release_single_char_fields)
 
     auto expected = std::pair<std::string, std::string>("A", "B");
 
-    auto output = mp::platform::parse_os_release(input);
+    auto output = mp::platform::Platform::parse_os_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
@@ -630,7 +630,7 @@ TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts)
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
-    auto output = mp::platform::parse_os_release(input);
+    auto output = mp::platform::Platform::parse_os_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
@@ -653,53 +653,7 @@ TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts_rotation)
 
     auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
 
-    auto output = mp::platform::parse_os_release(input);
-
-    EXPECT_EQ(expected.first, output.first.toStdString());
-    EXPECT_EQ(expected.second, output.second.toStdString());
-}
-
-TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter)
-{
-    QStringList input = {{"NAME#\"Ubuntu\""},
-                         {"VERSION#\"21.04 (Hirsute Hippo)\""},
-                         {"ID#ubuntu"},
-                         {"ID_LIKE#debian"},
-                         {"PRETTY_NAME#\"Ubuntu 21.04\""},
-                         {"VERSION_ID#\"21.04\""},
-                         {"HOME_URL#\"https://www.ubuntu.com/\""},
-                         {"SUPPORT_URL#\"https://help.ubuntu.com/\""},
-                         {"BUG_REPORT_URL#\"https://bugs.launchpad.net/ubuntu/\""},
-                         {"PRIVACY_POLICY_URL#\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
-                         {"VERSION_CODENAME#hirsute"},
-                         {"UBUNTU_CODENAME#hirsute"}};
-
-    auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
-
-    auto output = mp::platform::parse_os_release(input, '#');
-
-    EXPECT_EQ(expected.first, output.first.toStdString());
-    EXPECT_EQ(expected.second, output.second.toStdString());
-}
-
-TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts_delimiter_fail)
-{
-    QStringList input = {{"NAME=\"Ubuntu\""},
-                         {"VERSION=\"21.04 (Hirsute Hippo)\""},
-                         {"ID=ubuntu"},
-                         {"ID_LIKE=debian"},
-                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
-                         {"VERSION_ID=\"21.04\""},
-                         {"HOME_URL=\"https://www.ubuntu.com/\""},
-                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
-                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
-                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
-                         {"VERSION_CODENAME=hirsute"},
-                         {"UBUNTU_CODENAME=hirsute"}};
-
-    auto expected = std::pair<std::string, std::string>("unknown", "unknown");
-
-    auto output = mp::platform::parse_os_release(input, '#');
+    auto output = mp::platform::Platform::parse_os_release(input);
 
     EXPECT_EQ(expected.first, output.first.toStdString());
     EXPECT_EQ(expected.second, output.second.toStdString());
@@ -709,7 +663,7 @@ TEST_F(PlatformLinux, read_os_release_from_file)
 {
     std::string expected = "distribution_name-distribution_release";
 
-    auto output = mp::platform::read_os_release(mpt::test_data_path() + "os-release_sample");
+    auto output = mp::platform::Platform::read_os_release(mpt::test_data_path() + "os-release_sample");
 
     EXPECT_EQ(expected, output);
 }
@@ -718,7 +672,7 @@ TEST_F(PlatformLinux, read_os_release_missing_file)
 {
     std::string expected = "unknown-unknown";
 
-    auto output = mp::platform::read_os_release("/non-existent/dummy/file/no-where-to-be-found");
+    auto output = mp::platform::Platform::read_os_release("/non-existent/dummy/file/no-where-to-be-found");
 
     EXPECT_EQ(expected, output);
 }
