@@ -555,11 +555,75 @@ INSTANTIATE_TEST_SUITE_P(
     Values(Param{{"en0", true}}, Param{{"en0", false}}, Param{{"en0", false}, {"en1", true}},
            Param{{"asdf", true}, {"ggi", true}, {"a1", true}, {"fu", false}, {"ho", true}, {"ra", false}}));
 
-TEST_F(PlatformLinux, parse_os_release_empty)
+using OSReleaseTestParam = std::pair<QStringList, std::pair<std::string, std::string>>;
+struct OSReleaseTest : public PlatformLinux, WithParamInterface<OSReleaseTestParam>
 {
-    QStringList input = {};
+};
 
-    auto expected = std::pair<std::string, std::string>("unknown", "unknown");
+OSReleaseTestParam parse_os_release_empty = {
+    {{"NAME=\"\""},
+     {"VERSION=\"21.04 (Hirsute Hippo)\""},
+     {"ID=ubuntu"},
+     {"ID_LIKE=debian"},
+     {"PRETTY_NAME=\"Ubuntu 21.04\""},
+     {"VERSION_ID=\"\""},
+     {"HOME_URL=\"https://www.ubuntu.com/\""},
+     {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+     {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+     {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+     {"VERSION_CODENAME=hirsute"},
+     {"UBUNTU_CODENAME=hirsute"}},
+    {"unknown", "unknown"}};
+
+OSReleaseTestParam parse_os_release_single_char_fields = {
+    {{"NAME=\"A\""},
+     {"VERSION=\"21.04 (Hirsute Hippo)\""},
+     {"ID=ubuntu"},
+     {"ID_LIKE=debian"},
+     {"PRETTY_NAME=\"Ubuntu 21.04\""},
+     {"VERSION_ID=\"B\""},
+     {"HOME_URL=\"https://www.ubuntu.com/\""},
+     {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+     {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+     {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+     {"VERSION_CODENAME=hirsute"},
+     {"UBUNTU_CODENAME=hirsute"}},
+    {"A", "B"}};
+
+OSReleaseTestParam parse_os_release_ubuntu2104lts = {
+    {{"NAME=\"Ubuntu\""},
+     {"VERSION=\"21.04 (Hirsute Hippo)\""},
+     {"ID=ubuntu"},
+     {"ID_LIKE=debian"},
+     {"PRETTY_NAME=\"Ubuntu 21.04\""},
+     {"VERSION_ID=\"21.04\""},
+     {"HOME_URL=\"https://www.ubuntu.com/\""},
+     {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+     {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+     {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+     {"VERSION_CODENAME=hirsute"},
+     {"UBUNTU_CODENAME=hirsute"}},
+    {"Ubuntu", "21.04"}};
+
+OSReleaseTestParam parse_os_release_ubuntu2104lts_rotation = {
+    {{"VERSION=\"21.04 (Hirsute Hippo)\""},
+     {"ID=ubuntu"},
+     {"ID_LIKE=debian"},
+     {"VERSION_ID=\"21.04\""},
+     {"PRETTY_NAME=\"Ubuntu 21.04\""},
+     {"HOME_URL=\"https://www.ubuntu.com/\""},
+     {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+     {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+     {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+     {"VERSION_CODENAME=hirsute"},
+     {"NAME=\"Ubuntu\""},
+     {"UBUNTU_CODENAME=hirsute"}},
+    {"Ubuntu", "21.04"}};
+
+TEST_P(OSReleaseTest, test_parse_os_release)
+{
+    auto expected = std::get<1>(GetParam());
+    const QStringList input = std::get<0>(GetParam());
 
     auto output = mp::platform::Platform::parse_os_release(input);
 
@@ -567,97 +631,10 @@ TEST_F(PlatformLinux, parse_os_release_empty)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-TEST_F(PlatformLinux, parse_os_release_empty_fields)
-{
-    QStringList input = {{"NAME=\"\""},
-                         {"VERSION=\"21.04 (Hirsute Hippo)\""},
-                         {"ID=ubuntu"},
-                         {"ID_LIKE=debian"},
-                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
-                         {"VERSION_ID=\"\""},
-                         {"HOME_URL=\"https://www.ubuntu.com/\""},
-                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
-                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
-                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
-                         {"VERSION_CODENAME=hirsute"},
-                         {"UBUNTU_CODENAME=hirsute"}};
-
-    auto expected = std::pair<std::string, std::string>("unknown", "unknown");
-
-    auto output = mp::platform::Platform::parse_os_release(input);
-
-    EXPECT_EQ(expected.first, output.first.toStdString());
-    EXPECT_EQ(expected.second, output.second.toStdString());
-}
-
-TEST_F(PlatformLinux, parse_os_release_single_char_fields)
-{
-    QStringList input = {{"NAME=\"A\""},
-                         {"VERSION=\"21.04 (Hirsute Hippo)\""},
-                         {"ID=ubuntu"},
-                         {"ID_LIKE=debian"},
-                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
-                         {"VERSION_ID=\"B\""},
-                         {"HOME_URL=\"https://www.ubuntu.com/\""},
-                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
-                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
-                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
-                         {"VERSION_CODENAME=hirsute"},
-                         {"UBUNTU_CODENAME=hirsute"}};
-
-    auto expected = std::pair<std::string, std::string>("A", "B");
-
-    auto output = mp::platform::Platform::parse_os_release(input);
-
-    EXPECT_EQ(expected.first, output.first.toStdString());
-    EXPECT_EQ(expected.second, output.second.toStdString());
-}
-
-TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts)
-{
-    QStringList input = {{"NAME=\"Ubuntu\""},
-                         {"VERSION=\"21.04 (Hirsute Hippo)\""},
-                         {"ID=ubuntu"},
-                         {"ID_LIKE=debian"},
-                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
-                         {"VERSION_ID=\"21.04\""},
-                         {"HOME_URL=\"https://www.ubuntu.com/\""},
-                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
-                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
-                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
-                         {"VERSION_CODENAME=hirsute"},
-                         {"UBUNTU_CODENAME=hirsute"}};
-
-    auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
-
-    auto output = mp::platform::Platform::parse_os_release(input);
-
-    EXPECT_EQ(expected.first, output.first.toStdString());
-    EXPECT_EQ(expected.second, output.second.toStdString());
-}
-
-TEST_F(PlatformLinux, parse_os_release_ubuntu2104lts_rotation)
-{
-    QStringList input = {{"VERSION=\"21.04 (Hirsute Hippo)\""},
-                         {"ID=ubuntu"},
-                         {"ID_LIKE=debian"},
-                         {"VERSION_ID=\"21.04\""},
-                         {"PRETTY_NAME=\"Ubuntu 21.04\""},
-                         {"HOME_URL=\"https://www.ubuntu.com/\""},
-                         {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
-                         {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
-                         {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
-                         {"VERSION_CODENAME=hirsute"},
-                         {"NAME=\"Ubuntu\""},
-                         {"UBUNTU_CODENAME=hirsute"}};
-
-    auto expected = std::pair<std::string, std::string>("Ubuntu", "21.04");
-
-    auto output = mp::platform::Platform::parse_os_release(input);
-
-    EXPECT_EQ(expected.first, output.first.toStdString());
-    EXPECT_EQ(expected.second, output.second.toStdString());
-}
+INSTANTIATE_TEST_SUITE_P(PlatformLinux, OSReleaseTest,
+                         Values(OSReleaseTestParam{{}, {"unknown", "unknown"}}, parse_os_release_empty,
+                                parse_os_release_single_char_fields, parse_os_release_ubuntu2104lts,
+                                parse_os_release_ubuntu2104lts_rotation));
 
 TEST_F(PlatformLinux, read_os_release_from_file)
 {
