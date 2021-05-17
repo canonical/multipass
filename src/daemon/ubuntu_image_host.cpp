@@ -89,7 +89,7 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
     auto key = key_from(query.release);
     auto image_id = images.front().second.id;
 
-    // If more than one match and query is a hash but not a full hash, throw an exception
+    // If a partial hash query matches more than once, throw an exception
     if (images.size() > 1 && key != image_id && image_id.startsWith(key))
         throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
 
