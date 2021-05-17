@@ -155,7 +155,7 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
 }
 } // namespace
 
-std::unique_ptr<QFile> mp::platform::Platform::find_os_release()
+std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
 {
     const std::array<QString, 3> options{QStringLiteral("/var/lib/snapd/hostfs/etc/os-release"),
                                          QStringLiteral("/var/lib/snapd/hostfs/usr/lib/os-release"),
@@ -169,7 +169,7 @@ std::unique_ptr<QFile> mp::platform::Platform::find_os_release()
     return ret; // need the unique_ptr because QFile is non-copyable
 }
 
-std::pair<QString, QString> mp::platform::Platform::parse_os_release(const QStringList& os_data)
+std::pair<QString, QString> multipass::platform::detail::parse_os_release(const QStringList& os_data)
 {
     const QString id_field = "NAME";
     const QString version_field = "VERSION_ID";
