@@ -72,3 +72,8 @@ qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize)
 {
     return file.write(data, maxSize);
 }
+
+qint64 mp::FileOps::write(QFile& file, const QByteArray& data)
+{
+    return file.write(data);
+}

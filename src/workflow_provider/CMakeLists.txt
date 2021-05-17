@@ -17,6 +17,7 @@ add_library(workflow_provider STATIC
 
 target_link_libraries(workflow_provider PRIVATE
   poco_utils
+  network
   Qt5::Core
   utils
   yaml)

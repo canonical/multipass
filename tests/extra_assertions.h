@@ -60,7 +60,7 @@ namespace multipass::test
 template <typename MsgMatcher>
 auto match_what(MsgMatcher&& matcher)
 {
-    return testing::Property(&std::runtime_error::what, std::forward<MsgMatcher>(matcher));
+    return testing::Property(&std::exception::what, std::forward<MsgMatcher>(matcher));
 }
 } // namespace multipass::test
 
