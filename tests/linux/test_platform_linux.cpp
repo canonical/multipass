@@ -24,6 +24,7 @@
 #include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
 #include "tests/mock_standard_paths.h"
+#include "tests/mock_utils.h"
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
@@ -802,12 +803,10 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
 {
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    auto [mock_utils, guard1] = mpt::MockUtils::inject();
+    auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(69)); // 69 is the real script length, not random.
+    EXPECT_CALL(*mock_utils, make_file_with_content(_, _)).Times(1);
     EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
     EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(false));
 
@@ -823,7 +822,7 @@ TEST_F(PlatformLinux, remove_alias_script_works)
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    mpu::make_file_with_content(script_file.fileName().toStdString(), "script content\n");
+    MP_UTILS.make_file_with_content(script_file.fileName().toStdString(), "script content\n");
 
     EXPECT_NO_THROW(MP_PLATFORM.remove_alias_script("alias_name"));
 
