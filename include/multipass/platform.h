@@ -57,8 +57,6 @@ public:
     virtual bool link(const char* target, const char* link);
     virtual bool symlink(const char* target, const char* link, bool is_dir);
     virtual int utime(const char* path, int atime, int mtime);
-    static std::string read_os_release(const QString& os_release_path);
-    static std::pair<QString, QString> parse_os_release(const QStringList& os_data);
 };
 
 std::map<QString, QString> extra_settings_defaults();
