@@ -172,9 +172,6 @@ QDir get_aliases_folder()
         aliases_folder = QDir{location};
     }
 
-    if (!aliases_folder.mkpath(aliases_folder.path()))
-        throw std::runtime_error(fmt::format("error creating \"{}\"\n", aliases_folder.path()));
-
     return aliases_folder;
 }
 } // namespace
