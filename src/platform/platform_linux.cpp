@@ -177,19 +177,17 @@ std::pair<QString, QString> multipass::platform::detail::parse_os_release(const 
     QString distro_id = "unknown";
     QString distro_rel = "unknown";
 
+    auto strip_quotes = [](const QString& val) -> QString { return val.mid(1, val.length() - 2); };
+
     for (const QString& line : os_data)
     {
-        QString* datum = nullptr;
         QStringList split = line.split('=', Qt::KeepEmptyParts);
         if (split.length() == 2 && split[1].length() > 2) // Check for at least 1 char between quotes.
         {
             if (split[0] == id_field)
-                datum = &distro_id;
+                distro_id = strip_quotes(split[1]);
             else if (split[0] == version_field)
-                datum = &distro_rel;
-
-            if (datum)
-                *datum = split[1].mid(1, split[1].length() - 2); // Removing quotes from input string.
+                distro_rel = strip_quotes(split[1]);
         }
     }
 
