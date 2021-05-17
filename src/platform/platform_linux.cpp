@@ -19,6 +19,7 @@
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -153,6 +154,20 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
     }
 }
 } // namespace
+
+std::unique_ptr<QFile> mp::platform::Platform::find_os_release()
+{
+    const std::array<QString, 3> options{QStringLiteral("/var/lib/snapd/hostfs/etc/os-release"),
+                                         QStringLiteral("/var/lib/snapd/hostfs/usr/lib/os-release"),
+                                         QStringLiteral("")};
+
+    auto it = options.cbegin();
+    auto ret = std::make_unique<QFile>(*it);
+    while (++it != options.cend() && !MP_FILEOPS.open(*ret, QIODevice::ReadOnly | QIODevice::Text))
+        ret->setFileName(*it);
+
+    return ret; // need the unique_ptr because QFile is non-copyable
+}
 
 std::pair<QString, QString> mp::platform::Platform::parse_os_release(const QStringList& os_data)
 {
