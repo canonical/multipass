@@ -139,8 +139,7 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         if (auto& net = item.second; net.type == "bridge")
         { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
-            auto is_unknown = [&networks](const std::string& id)
-            {
+            auto is_unknown = [&networks](const std::string& id) {
                 auto same_as = [&id](const auto& other) { return other.first == id; };
                 return std::find_if(networks.cbegin(), networks.cend(), same_as) == networks.cend();
             };
@@ -165,14 +164,17 @@ std::pair<QString, QString> mp::platform::Platform::parse_os_release(const QStri
 
     for (const QString& line : os_data)
     {
+        QString* datum = nullptr;
         QStringList split = line.split('=', Qt::KeepEmptyParts);
         if (split.length() == 2 && split[1].length() > 2) // Check for at least 1 char between quotes.
         {
-            QString val = split[1].mid(1, split[1].length() - 2); // Removing quotes from input string.
             if (split[0] == id_field)
-                distro_id = val;
+                datum = &distro_id;
             else if (split[0] == version_field)
-                distro_rel = val;
+                datum = &distro_rel;
+
+            if (datum)
+                *datum = split[1].mid(1, split[1].length() - 2); // Removing quotes from input string.
         }
     }
 
