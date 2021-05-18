@@ -123,8 +123,8 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     auto pollinate_user_agent_string =
         fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
     pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
-    pollinate_user_agent_string +=
-        fmt::format("multipass/host/{} # written by Multipass\n", multipass::platform::host_version());
+    pollinate_user_agent_string += fmt::format("multipass/host/{}-{} # written by Multipass\n", QSysInfo::productType(),
+                                               QSysInfo::productVersion());
 
     YAML::Node pollinate_user_agent_node;
     pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
@@ -607,7 +607,7 @@ grpc::Status validate_requested_instances(const Instances& instances, const Inst
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
 auto find_requested_instances(const Instances& instances, const InstanceMap& vms, InstanceCheck check_instance)
--> std::pair<std::vector<typename Instances::value_type>, grpc::Status>
+    -> std::pair<std::vector<typename Instances::value_type>, grpc::Status>
 { // TODO: use this in commands that currently duplicate the same kind of code
     auto status = validate_requested_instances(instances, vms, check_instance);
     auto valid_instances = std::vector<typename Instances::value_type>{};
@@ -627,8 +627,8 @@ auto find_requested_instances(const Instances& instances, const InstanceMap& vms
 template <typename Instances, typename InstanceMap>
 auto find_instances_to_delete(const Instances& instances, const InstanceMap& operational_vms,
                               const InstanceMap& trashed_vms)
--> std::tuple<std::vector<typename Instances::value_type>, std::vector<typename Instances::value_type>,
-    grpc::Status>
+    -> std::tuple<std::vector<typename Instances::value_type>, std::vector<typename Instances::value_type>,
+                  grpc::Status>
 {
     fmt::memory_buffer errors;
     std::vector<typename Instances::value_type> operational_instances_to_delete, trashed_instances_to_delete;
@@ -945,8 +945,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
             QTimer::singleShot(0, [this, &name] {
-              vm_instances[name]->start();
-              on_restart(name);
+                vm_instances[name]->start();
+                on_restart(name);
             });
         }
     }
@@ -965,43 +965,43 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     // Fire timer every six hours to perform maintenance on source images such as
     // pruning expired images and updating to newly released images.
     connect(&source_images_maintenance_task, &QTimer::timeout, [this]() {
-      if (image_update_future.isRunning())
-      {
-          mpl::log(mpl::Level::info, category, "Image updater already running. Skipping…");
-      }
-      else
-      {
-          image_update_future = QtConcurrent::run([this] {
-            config->vault->prune_expired_images();
+        if (image_update_future.isRunning())
+        {
+            mpl::log(mpl::Level::info, category, "Image updater already running. Skipping…");
+        }
+        else
+        {
+            image_update_future = QtConcurrent::run([this] {
+                config->vault->prune_expired_images();
 
-            auto prepare_action = [this](const VMImage& source_image) -> VMImage {
-              return config->factory->prepare_source_image(source_image);
-            };
+                auto prepare_action = [this](const VMImage& source_image) -> VMImage {
+                    return config->factory->prepare_source_image(source_image);
+                };
 
-            auto download_monitor = [](int download_type, int percentage) {
-              static int last_percentage_logged = -1;
-              if (percentage % 10 == 0)
-              {
-                  // Note: The progress callback may be called repeatedly with the same percentage,
-                  // so this logic is to only log it once
-                  if (last_percentage_logged != percentage)
-                  {
-                      mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
-                      last_percentage_logged = percentage;
-                  }
-              }
-              return true;
-            };
-            try
-            {
-                config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
-            }
-          });
-      }
+                auto download_monitor = [](int download_type, int percentage) {
+                    static int last_percentage_logged = -1;
+                    if (percentage % 10 == 0)
+                    {
+                        // Note: The progress callback may be called repeatedly with the same percentage,
+                        // so this logic is to only log it once
+                        if (last_percentage_logged != percentage)
+                        {
+                            mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
+                            last_percentage_logged = percentage;
+                        }
+                    }
+                    return true;
+                };
+                try
+                {
+                    config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
+                }
+                catch (const std::exception& e)
+                {
+                    mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
+                }
+            });
+        }
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
 }
@@ -1152,12 +1152,12 @@ try // clang-format on
             std::unordered_set<std::string> images_found;
             auto action = [&images_found, &default_remote, request, &response](const std::string& remote,
                                                                                const mp::VMImageInfo& info) {
-              if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                  images_found.find(info.release_title.toStdString()) == images_found.end())
-              {
-                  add_aliases(response, remote, info, default_remote);
-                  images_found.insert(info.release_title.toStdString());
-              }
+                if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                    images_found.find(info.release_title.toStdString()) == images_found.end())
+                {
+                    add_aliases(response, remote, info, default_remote);
+                    images_found.insert(info.release_title.toStdString());
+                }
             };
 
             image_host->for_each_entry_do(action);
@@ -1540,8 +1540,8 @@ try // clang-format on
     mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     const auto [instances, status] =
-    find_requested_instances(request->instance_names().instance_name(), deleted_instances,
-                             std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
+        find_requested_instances(request->instance_names().instance_name(), deleted_instances,
+                                 std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
 
     if (status.ok())
     {
@@ -1651,8 +1651,8 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
             errors->insert({name, deleted_instances.find(name) == deleted_instances.end()
-                                  ? mp::StartError::DOES_NOT_EXIST
-                                  : mp::StartError::INSTANCE_DELETED});
+                                      ? mp::StartError::DOES_NOT_EXIST
+                                      : mp::StartError::INSTANCE_DELETED});
         else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
         else if (it->second->current_state() != VirtualMachine::State::running)
@@ -1697,8 +1697,8 @@ try // clang-format on
     mpl::ClientLogger<StopReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     auto [instances, status] =
-    find_requested_instances(request->instance_names().instance_name(), vm_instances,
-                             std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
+        find_requested_instances(request->instance_names().instance_name(), vm_instances,
+                                 std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
 
     if (status.ok())
     {
@@ -1752,9 +1752,9 @@ try // clang-format on
         }
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
-          vm.suspend();
-          instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
-          return grpc::Status::OK;
+            vm.suspend();
+            instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
+            return grpc::Status::OK;
         });
     }
 
@@ -1774,8 +1774,8 @@ try // clang-format on
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
     auto [instances, status] =
-    find_requested_instances(request->instance_names().instance_name(), vm_instances,
-                             std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
+        find_requested_instances(request->instance_names().instance_name(), vm_instances,
+                                 std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
 
     if (!status.ok())
     {
@@ -1806,7 +1806,7 @@ try // clang-format on
     mpl::ClientLogger<DeleteReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
     const auto [operational_instances_to_delete, trashed_instances_to_delete, status] =
-    find_instances_to_delete(request->instance_names().instance_name(), vm_instances, deleted_instances);
+        find_instances_to_delete(request->instance_names().instance_name(), vm_instances, deleted_instances);
 
     if (status.ok())
     {
@@ -1981,55 +1981,55 @@ QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfac
 void mp::Daemon::persist_instances()
 {
     auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
-      QJsonObject json;
-      json.insert("num_cores", specs.num_cores);
-      json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
-      json.insert("disk_space", QString::number(specs.disk_space.in_bytes()));
-      json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
-      json.insert("state", static_cast<int>(specs.state));
-      json.insert("deleted", specs.deleted);
-      json.insert("metadata", specs.metadata);
+        QJsonObject json;
+        json.insert("num_cores", specs.num_cores);
+        json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
+        json.insert("disk_space", QString::number(specs.disk_space.in_bytes()));
+        json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
+        json.insert("state", static_cast<int>(specs.state));
+        json.insert("deleted", specs.deleted);
+        json.insert("metadata", specs.metadata);
 
-      // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
-      // default network interface. Then, write all the information about the rest of the interfaces.
-      json.insert("mac_addr", QString::fromStdString(specs.default_mac_address));
-      json.insert("extra_interfaces", to_json_array(specs.extra_interfaces));
+        // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
+        // default network interface. Then, write all the information about the rest of the interfaces.
+        json.insert("mac_addr", QString::fromStdString(specs.default_mac_address));
+        json.insert("extra_interfaces", to_json_array(specs.extra_interfaces));
 
-      QJsonArray mounts;
-      for (const auto& mount : specs.mounts)
-      {
-          QJsonObject entry;
-          entry.insert("source_path", QString::fromStdString(mount.second.source_path));
-          entry.insert("target_path", QString::fromStdString(mount.first));
+        QJsonArray mounts;
+        for (const auto& mount : specs.mounts)
+        {
+            QJsonObject entry;
+            entry.insert("source_path", QString::fromStdString(mount.second.source_path));
+            entry.insert("target_path", QString::fromStdString(mount.first));
 
-          QJsonArray uid_map;
-          for (const auto& map : mount.second.uid_map)
-          {
-              QJsonObject map_entry;
-              map_entry.insert("host_uid", map.first);
-              map_entry.insert("instance_uid", map.second);
+            QJsonArray uid_map;
+            for (const auto& map : mount.second.uid_map)
+            {
+                QJsonObject map_entry;
+                map_entry.insert("host_uid", map.first);
+                map_entry.insert("instance_uid", map.second);
 
-              uid_map.append(map_entry);
-          }
+                uid_map.append(map_entry);
+            }
 
-          entry.insert("uid_mappings", uid_map);
+            entry.insert("uid_mappings", uid_map);
 
-          QJsonArray gid_map;
-          for (const auto& map : mount.second.gid_map)
-          {
-              QJsonObject map_entry;
-              map_entry.insert("host_gid", map.first);
-              map_entry.insert("instance_gid", map.second);
+            QJsonArray gid_map;
+            for (const auto& map : mount.second.gid_map)
+            {
+                QJsonObject map_entry;
+                map_entry.insert("host_gid", map.first);
+                map_entry.insert("instance_gid", map.second);
 
-              gid_map.append(map_entry);
-          }
+                gid_map.append(map_entry);
+            }
 
-          entry.insert("gid_mappings", gid_map);
-          mounts.append(entry);
-      }
+            entry.insert("gid_mappings", gid_map);
+            mounts.append(entry);
+        }
 
-      json.insert("mounts", mounts);
-      return json;
+        json.insert("mounts", mounts);
+        return json;
     };
     QJsonObject instance_records_json;
     for (const auto& record : vm_instance_specs)
@@ -2144,169 +2144,169 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
     QObject::connect(
         prepare_future_watcher, &QFutureWatcher<VirtualMachineDescription>::finished,
         [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level] {
-          mpl::ClientLogger<CreateReply> logger{log_level, *config->logger, server};
+            mpl::ClientLogger<CreateReply> logger{log_level, *config->logger, server};
 
-          try
-          {
-              auto vm_desc = prepare_future_watcher->future().result();
+            try
+            {
+                auto vm_desc = prepare_future_watcher->future().result();
 
-              vm_instance_specs[name] = {vm_desc.num_cores,
-                                         vm_desc.mem_size,
-                                         vm_desc.disk_space,
-                                         vm_desc.default_mac_address,
-                                         vm_desc.extra_interfaces,
-                                         config->ssh_username,
-                                         VirtualMachine::State::off,
-                                         {},
-                                         false,
-                                         QJsonObject()};
-              vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
-              preparing_instances.erase(name);
+                vm_instance_specs[name] = {vm_desc.num_cores,
+                                           vm_desc.mem_size,
+                                           vm_desc.disk_space,
+                                           vm_desc.default_mac_address,
+                                           vm_desc.extra_interfaces,
+                                           config->ssh_username,
+                                           VirtualMachine::State::off,
+                                           {},
+                                           false,
+                                           QJsonObject()};
+                vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+                preparing_instances.erase(name);
 
-              persist_instances();
+                persist_instances();
 
-              if (start)
-              {
-                  LaunchReply reply;
-                  reply.set_create_message("Starting " + name);
-                  server->Write(reply);
-
-                  auto& vm = vm_instances[name];
-                  vm->start();
-
-                  auto future_watcher = create_future_watcher([this, server, name] {
+                if (start)
+                {
                     LaunchReply reply;
-                    reply.set_vm_instance_name(name);
-                    config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                    reply.set_create_message("Starting " + name);
                     server->Write(reply);
-                  });
-                  future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
-                                                              server, std::vector<std::string>{name}, timeout,
-                                                              status_promise));
-              }
-              else
-              {
-                  status_promise->set_value(grpc::Status::OK);
-              }
-          }
-          catch (const std::exception& e)
-          {
-              preparing_instances.erase(name);
-              release_resources(name);
-              vm_instances.erase(name);
-              persist_instances();
-              status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
-          }
 
-          delete prepare_future_watcher;
+                    auto& vm = vm_instances[name];
+                    vm->start();
+
+                    auto future_watcher = create_future_watcher([this, server, name] {
+                        LaunchReply reply;
+                        reply.set_vm_instance_name(name);
+                        config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                        server->Write(reply);
+                    });
+                    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
+                                                                server, std::vector<std::string>{name}, timeout,
+                                                                status_promise));
+                }
+                else
+                {
+                    status_promise->set_value(grpc::Status::OK);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                preparing_instances.erase(name);
+                release_resources(name);
+                vm_instances.erase(name);
+                persist_instances();
+                status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+            }
+
+            delete prepare_future_watcher;
         });
 
     auto make_vm_description = [this, server, request, name, checked_args,
-        log_level]() mutable -> VirtualMachineDescription {
-      mpl::ClientLogger<CreateReply> logger{log_level, *config->logger, server};
+                                log_level]() mutable -> VirtualMachineDescription {
+        mpl::ClientLogger<CreateReply> logger{log_level, *config->logger, server};
 
-      try
-      {
-          CreateReply reply;
-          reply.set_create_message("Creating " + name);
-          server->Write(reply);
-
-          Query query;
-          VirtualMachineDescription vm_desc{
-              request->num_cores(),
-              MemorySize{request->mem_size().empty() ? "0b" : request->mem_size()},
-              MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
-              name,
-              "",
-              {},
-              config->ssh_username,
-              VMImage{},
-              "",
-              YAML::Node{},
-              YAML::Node{},
-              make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
-                                            config->factory->get_backend_version_string().toStdString()),
-              YAML::Node{}};
-
-          try
-          {
-              query = config->workflow_provider->fetch_workflow_for(request->image(), vm_desc);
-              query.name = name;
-          }
-          catch (const std::out_of_range&)
-          {
-              // Workflow not found, move on
-              query = query_from(request, name);
-              vm_desc.mem_size = checked_args.mem_size;
-          }
-
-          auto progress_monitor = [server](int progress_type, int percentage) {
-            CreateReply create_reply;
-            create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
-            create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
-            return server->Write(create_reply);
-          };
-
-          auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+        try
+        {
             CreateReply reply;
-            reply.set_create_message("Preparing image for " + name);
+            reply.set_create_message("Creating " + name);
             server->Write(reply);
 
-            return config->factory->prepare_source_image(source_image);
-          };
+            Query query;
+            VirtualMachineDescription vm_desc{
+                request->num_cores(),
+                MemorySize{request->mem_size().empty() ? "0b" : request->mem_size()},
+                MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
+                name,
+                "",
+                {},
+                config->ssh_username,
+                VMImage{},
+                "",
+                YAML::Node{},
+                YAML::Node{},
+                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
+                                              config->factory->get_backend_version_string().toStdString()),
+                YAML::Node{}};
 
-          auto fetch_type = config->factory->fetch_type();
+            try
+            {
+                query = config->workflow_provider->fetch_workflow_for(request->image(), vm_desc);
+                query.name = name;
+            }
+            catch (const std::out_of_range&)
+            {
+                // Workflow not found, move on
+                query = query_from(request, name);
+                vm_desc.mem_size = checked_args.mem_size;
+            }
 
-          auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
+            auto progress_monitor = [server](int progress_type, int percentage) {
+                CreateReply create_reply;
+                create_reply.mutable_launch_progress()->set_percent_complete(std::to_string(percentage));
+                create_reply.mutable_launch_progress()->set_type((CreateProgress::ProgressTypes)progress_type);
+                return server->Write(create_reply);
+            };
 
-          const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
-          vm_desc.disk_space = compute_final_image_size(
-              image_size, vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
-              config->data_directory);
+            auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+                CreateReply reply;
+                reply.set_create_message("Preparing image for " + name);
+                server->Write(reply);
 
-          reply.set_create_message("Configuring " + name);
-          server->Write(reply);
+                return config->factory->prepare_source_image(source_image);
+            };
 
-          config->factory->prepare_networking(checked_args.extra_interfaces);
+            auto fetch_type = config->factory->fetch_type();
 
-          // This set stores the MAC's which need to be in the allocated_mac_addrs if everything goes well.
-          auto new_macs = allocated_mac_addrs;
+            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
 
-          // check for repetition of requested macs
-          for (auto& iface : checked_args.extra_interfaces)
-              if (!iface.mac_address.empty() && !new_macs.insert(iface.mac_address).second)
-                  throw std::runtime_error(fmt::format("Repeated MAC address {}", iface.mac_address));
+            const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
+            vm_desc.disk_space = compute_final_image_size(
+                image_size, vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
+                config->data_directory);
 
-          // generate missing macs in a second pass, to avoid repeating macs that the user requested
-          for (auto& iface : checked_args.extra_interfaces)
-              if (iface.mac_address.empty())
-                  iface.mac_address = generate_unused_mac_address(new_macs);
+            reply.set_create_message("Configuring " + name);
+            server->Write(reply);
 
-          vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
-          vm_desc.extra_interfaces = checked_args.extra_interfaces;
+            config->factory->prepare_networking(checked_args.extra_interfaces);
 
-          vm_desc.meta_data_config = make_cloud_init_meta_config(name);
-          vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
-          prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
+            // This set stores the MAC's which need to be in the allocated_mac_addrs if everything goes well.
+            auto new_macs = allocated_mac_addrs;
 
-          if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
-              vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
+            // check for repetition of requested macs
+            for (auto& iface : checked_args.extra_interfaces)
+                if (!iface.mac_address.empty() && !new_macs.insert(iface.mac_address).second)
+                    throw std::runtime_error(fmt::format("Repeated MAC address {}", iface.mac_address));
 
-          vm_desc.network_data_config =
-              make_cloud_init_network_config(vm_desc.default_mac_address, checked_args.extra_interfaces);
+            // generate missing macs in a second pass, to avoid repeating macs that the user requested
+            for (auto& iface : checked_args.extra_interfaces)
+                if (iface.mac_address.empty())
+                    iface.mac_address = generate_unused_mac_address(new_macs);
 
-          vm_desc.image = vm_image;
-          config->factory->configure(vm_desc);
-          config->factory->prepare_instance_image(vm_image, vm_desc);
+            vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
+            vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-          // Everything went well, add the MAC addresses used in this instance.
-          allocated_mac_addrs = std::move(new_macs);
-          return vm_desc;
-      }
-      catch (const std::exception& e)
-      {
-          throw CreateImageException(e.what());
-      }
+            vm_desc.meta_data_config = make_cloud_init_meta_config(name);
+            vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
+
+            if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
+                vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
+
+            vm_desc.network_data_config =
+                make_cloud_init_network_config(vm_desc.default_mac_address, checked_args.extra_interfaces);
+
+            vm_desc.image = vm_image;
+            config->factory->configure(vm_desc);
+            config->factory->prepare_instance_image(vm_image, vm_desc);
+
+            // Everything went well, add the MAC addresses used in this instance.
+            allocated_mac_addrs = std::move(new_macs);
+            return vm_desc;
+        }
+        catch (const std::exception& e)
+        {
+            throw CreateImageException(e.what());
+        }
     };
 
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
@@ -2397,8 +2397,8 @@ mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
     auto future_watcher = async_future_watchers.back().get();
     QObject::connect(future_watcher, &QFutureWatcher<AsyncOperationStatus>::finished,
                      [this, future_watcher, finished_op] {
-                       finished_op();
-                       finish_async_operation(future_watcher->future());
+                         finished_op();
+                         finish_async_operation(future_watcher->future());
                      });
 
     return future_watcher;
@@ -2541,7 +2541,7 @@ void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_futu
 {
     auto it = std::find_if(async_future_watchers.begin(), async_future_watchers.end(),
                            [&async_future](const std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>& watcher) {
-                             return watcher->future() == async_future;
+                               return watcher->future() == async_future;
                            });
 
     if (it != async_future_watchers.end())
