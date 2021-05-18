@@ -26,7 +26,6 @@
 #include <multipass/singleton.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
-#include <multipass/url_downloader.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
 

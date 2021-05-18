@@ -901,6 +901,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        if (!QFile::exists(vm_image.image_path))
+        {
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("Could not find image for '{}'. Expected location: {}", name, vm_image.image_path));
+            invalid_specs.push_back(name);
+            continue;
+        }
+
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
         const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
         mp::VirtualMachineDescription vm_desc{spec.num_cores,
@@ -917,18 +925,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {},
                                               {}};
 
-        try
-        {
-            auto& instance_record = spec.deleted ? deleted_instances : vm_instances;
-            instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Removing instance {}: {}", name, e.what()));
-            invalid_specs.push_back(name);
-            config->vault->remove(name);
-            continue;
-        }
+        auto& instance_record = spec.deleted ? deleted_instances : vm_instances;
+        instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
 
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
@@ -955,6 +953,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     for (const auto& bad_spec : invalid_specs)
     {
+        mpl::log(mpl::Level::warning, category, fmt::format("Removing invalid instance: {}", bad_spec));
         vm_instance_specs.erase(bad_spec);
     }
 

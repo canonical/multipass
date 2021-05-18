@@ -79,6 +79,7 @@ add_executable(multipass_tests
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
+  test_url_downloader.cpp
   test_utils.cpp
   test_with_mocked_bin_path.cpp
   test_workflow_provider.cpp

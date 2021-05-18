@@ -132,7 +132,7 @@ jobs:
 
               if [ '${{ matrix.os }}' == 'Linux' ]; then
                 OVERRIDE_CONF="/etc/systemd/system/snap.multipass.multipassd.service.d"
-                _run sudo mkdir $( dirname ${OVERRIDE_CONF} )
+                _run sudo mkdir -p $( dirname ${OVERRIDE_CONF} )
                 _run sudo tee ${OVERRIDE_CONF} <<EOF
               [Service]
               ExecStart=

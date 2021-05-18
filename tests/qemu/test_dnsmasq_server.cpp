@@ -171,6 +171,14 @@ TEST_F(DNSMasqServer, dnsmasq_creates_conf_file)
     EXPECT_FALSE(QDir(data_dir.path()).entryList({"dnsmasq-??????.conf"}, QDir::Files).isEmpty());
 }
 
+TEST_F(DNSMasqServer, dnsmasq_creates_empty_dnsmasq_hosts_file)
+{
+    const QString dnsmasq_hosts{QDir{data_dir.path()}.filePath("dnsmasq.hosts")};
+    auto dns = make_default_dnsmasq_server();
+
+    EXPECT_TRUE(QFile::exists(dnsmasq_hosts));
+}
+
 struct DNSMasqServerMockedProcess : public DNSMasqServer
 {
     void SetUp() override

@@ -20,6 +20,7 @@
 
 #include "singleton.h"
 
+#include <QByteArray>
 #include <QDir>
 #include <QFile>
 #include <QString>
@@ -46,6 +47,7 @@ public:
     virtual bool seek(QFile& file, qint64 pos);
     virtual bool setPermissions(QFile& file, QFileDevice::Permissions permissions);
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize);
+    virtual qint64 write(QFile& file, const QByteArray& data);
 };
 } // namespace multipass
 

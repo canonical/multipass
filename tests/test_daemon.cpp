@@ -944,6 +944,17 @@ std::string fake_json_contents(const std::string& default_mac, const std::vector
     return contents.toStdString();
 }
 
+std::pair<std::unique_ptr<mpt::TempDir>, QString> // unique_ptr bypasses missing move ctor
+plant_instance_json(const std::string& contents)
+{
+    auto temp_dir = std::make_unique<mpt::TempDir>();
+    QString filename(temp_dir->path() + "/multipassd-vm-instances.json");
+
+    mpt::make_file_with_content(filename, contents);
+
+    return {std::move(temp_dir), filename};
+}
+
 void check_interfaces_in_json(const QString& file, const std::string& mac,
                               const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
@@ -982,15 +993,10 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
         mp::NetworkInterface{"wlx60e3270f55fe", "52:54:00:bd:19:41", true},
         mp::NetworkInterface{"enp3s0", "01:23:45:67:89:ab", false}};
 
-    std::string json_contents = fake_json_contents(mac_addr, extra_interfaces);
-
-    mpt::TempDir temp_dir;
-    QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
-
-    mpt::make_file_with_content(filename, json_contents);
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
-    config_builder.data_directory = temp_dir.path();
+    config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
 
     // By issuing the `list` command, we check at least that the instance was indeed read and there were no errors.
@@ -1068,16 +1074,6 @@ std::vector<std::string> old_releases{"10.04",   "lucid",  "11.10",   "oneiric",
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging, Combine(Values("release", ""), ValuesIn(old_releases)));
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseSnapcraft, RefuseBridging, Values(std::make_tuple("snapcraft", "core")));
 
-std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents) // unique_ptr bypasses missing move ctor
-{
-    auto temp_dir = std::make_unique<mpt::TempDir>();
-    QString filename(temp_dir->path() + "/multipassd-vm-instances.json");
-
-    mpt::make_file_with_content(filename, contents);
-
-    return temp_dir;
-}
-
 constexpr auto ghost_template = R"(
 "{}": {{
     "deleted": false,
@@ -1113,8 +1109,8 @@ TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometim
     auto ghost2 = fmt::format(ghost_template, "ghost2");
     auto valid1 = fmt::format(valid_template, id1, "56");
     auto valid2 = fmt::format(valid_template, id2, "78");
-    auto temp_dir = plant_instance_json(fmt::format("{{\n{},\n{},\n{},\n{}\n}}", std::move(ghost1), std::move(ghost2),
-                                                    std::move(valid1), std::move(valid2)));
+    const auto [temp_dir, filename] = plant_instance_json(fmt::format(
+        "{{\n{},\n{},\n{},\n{}\n}}", std::move(ghost1), std::move(ghost2), std::move(valid1), std::move(valid2)));
 
     config_builder.data_directory = temp_dir->path();
     auto mock_factory = use_a_mock_vm_factory();
@@ -1124,6 +1120,53 @@ TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometim
     EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id2), _)).Times(1);
 
     mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, ctor_lets_exceptions_arising_from_vm_creation_through)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents("ab:ab:ab:ab:ab:ab", {}));
+    config_builder.data_directory = temp_dir->path();
+
+    const std::string msg = "asdf";
+    auto mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Throw(std::runtime_error{msg}));
+
+    MP_EXPECT_THROW_THAT(mp::Daemon{config_builder.build()}, std::runtime_error, mpt::match_what(msg));
+}
+
+TEST_F(Daemon, ctor_drops_removed_instances)
+{
+    const std::string stayed{"foo"}, gone{"fighters"};
+    auto stayed_json = fmt::format(valid_template, stayed, "12");
+    auto gone_json = fmt::format(valid_template, gone, "34");
+    const auto [temp_dir, filename] =
+        plant_instance_json(fmt::format("{{\n{},\n{}\n}}", std::move(stayed_json), std::move(gone_json)));
+    config_builder.data_directory = temp_dir->path();
+
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, stayed), _, _))
+        .WillRepeatedly(DoDefault()); // returns an image that can be verified to exist for this instance
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, gone), _, _))
+        .WillOnce(Return(mp::VMImage{})); // an image that can't be verified to exist for this instance
+    config_builder.vault = std::move(mock_image_vault);
+
+    auto mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, stayed), _))
+        .Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _))
+        .Times(0);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"list"}, stream);
+
+    auto instance_matchers = AllOf(HasSubstr(stayed), Not(HasSubstr(gone)));
+    EXPECT_THAT(stream.str(), instance_matchers);
+
+    auto updated_json = mpt::load(filename);
+    EXPECT_THAT(updated_json.toStdString(), instance_matchers);
 }
 
 TEST_P(ListIP, lists_with_ip)
@@ -1168,7 +1211,7 @@ TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     std::string repeated_mac{"52:54:00:bd:19:41"};
-    auto temp_dir = plant_instance_json(fake_json_contents(repeated_mac, {}));
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(repeated_mac, {}));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_factory = use_a_mock_vm_factory();
@@ -1187,7 +1230,7 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
     std::string mac_addr("52:54:00:73:76:28");
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac_addr, true}};
 
-    auto temp_dir = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_factory = use_a_mock_vm_factory();
@@ -1199,19 +1242,21 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
 
 TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
 {
-    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
-    auto temp_dir = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    EXPECT_CALL(*mock_image_vault, fetch_image)
+        .WillOnce(Return(mp::VMImage{})) // cause the Daemon's ctor to fail verifying that the img exists
+        .WillRepeatedly(DoDefault());
+    config_builder.vault = std::move(mock_image_vault);
+
     auto mock_factory = use_a_mock_vm_factory();
-    EXPECT_CALL(*mock_factory, create_virtual_machine)
-        .Times(3)                          // expect one call in the constructor and three in launch
-        .WillOnce(Throw(std::exception{})) // fail the first one
-        .WillRepeatedly(DoDefault());      // succeed the rest (this avoids gmock warnings)
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(2); // no launch in ctor, two launch commands
+
     mp::Daemon daemon{config_builder.build()};
 
     for (const auto& mac : {mac1, mac2})
