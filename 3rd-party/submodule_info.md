@@ -27,7 +27,7 @@ Version: 1.4.2 |
 <https://github.com/Skycoder42/QHotkey/releases>
 
 ### scope_guard
-Version: 0.2.3 (+[upstream patches](https://github.com/ricab/scope_guard/compare/v0.2.3..760de0a)) |
+Version: 1.0.0 |
 <https://github.com/ricab/scope_guard.git> |
 <https://github.com/ricab/scope_guard/releases>
 
