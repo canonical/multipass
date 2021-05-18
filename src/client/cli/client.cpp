@@ -79,7 +79,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Transfer>();
     add_command<cmd::Unalias>(aliases);
     add_command<cmd::Restart>();
-    add_command<cmd::Delete>();
+    add_command<cmd::Delete>(aliases);
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
 
