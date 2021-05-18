@@ -266,12 +266,16 @@ INSTANTIATE_TEST_SUITE_P(
            std::make_pair(AliasesVector{{"alias", {"instance", "command"}}}, std::vector<std::string>{"alias"}),
            std::make_pair(AliasesVector{{"alias", {"instance_to_remove", "command"}}}, std::vector<std::string>{})));
 
-struct DaemonAlias : public mpt::DaemonTestFixture, public FakeAliasConfig
+struct DaemonAliasTestsuite : public mpt::DaemonTestFixture,
+                              public FakeAliasConfig,
+                              public WithParamInterface<std::vector<std::vector<std::string>>>
 {
 };
 
-TEST_F(DaemonAlias, purge_removes_purged_instance_aliases)
+TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
 {
+    auto commands = GetParam();
+
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     std::string json_contents = make_instance_json();
@@ -291,12 +295,15 @@ TEST_F(DaemonAlias, purge_removes_purged_instance_aliases)
     send_command({"aliases", "--format", "csv"}, stream);
     EXPECT_EQ(stream.str(), "Alias,Instance,Command\nlsp,primary,ls\nlsz,real-zebraphant,ls\n");
 
-    send_command({"delete", "real-zebraphant"});
-    send_command({"purge"});
+    for (const auto& command : commands)
+        send_command(command);
 
     stream.str({});
     send_command({"aliases", "--format", "csv"}, stream);
     EXPECT_EQ(stream.str(), "Alias,Instance,Command\nlsp,primary,ls\n");
 }
 
+INSTANTIATE_TEST_SUITE_P(AliasDictionary, DaemonAliasTestsuite,
+                         Values(std::vector<std::vector<std::string>>{{"delete", "real-zebraphant"}, {"purge"}},
+                                std::vector<std::vector<std::string>>{{"delete", "--purge", "real-zebraphant"}}));
 } // namespace
