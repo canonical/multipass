@@ -800,6 +800,21 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
                          std::runtime_error, mpt::match_what(HasSubstr("error creating alias script '")));
 }
 
+TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(69)); // 69 is the real script length, not random.
+    EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
+    EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+                         std::runtime_error, mpt::match_what(HasSubstr("error setting permissions to alias script '")));
+}
+
 TEST_F(PlatformLinux, remove_alias_script_works)
 {
     const mpt::TempDir tmp_dir;

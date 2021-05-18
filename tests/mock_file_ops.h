@@ -31,10 +31,12 @@ public:
     using FileOps::FileOps;
 
     MOCK_CONST_METHOD1(isReadable, bool(QDir&));
-    MOCK_CONST_METHOD2(rmdir, bool(QDir&, const QString& dirName));
-    MOCK_CONST_METHOD2(open, bool(QFile&, QIODevice::OpenMode));
     MOCK_CONST_METHOD2(mkpath, bool(QDir&, const QString& dirName));
+    MOCK_CONST_METHOD2(rmdir, bool(QDir&, const QString& dirName));
+    MOCK_CONST_METHOD1(exists, bool(QFile&));
     MOCK_CONST_METHOD1(is_open, bool(const QFile&));
+    MOCK_CONST_METHOD2(open, bool(QFile&, QIODevice::OpenMode));
+    MOCK_CONST_METHOD1(permissions, QFileDevice::Permissions(const QFile&));
     MOCK_CONST_METHOD3(read, qint64(QFile&, char*, qint64));
     MOCK_CONST_METHOD1(read_all, QByteArray(QFile&));
     MOCK_CONST_METHOD1(read_line, QString(QTextStream&));
