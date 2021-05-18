@@ -155,18 +155,18 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
 }
 } // namespace
 
-QString multipass::platform::detail::find_os_release()
+std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
 {
     const std::array<QString, 3> options{QStringLiteral("/var/lib/snapd/hostfs/etc/os-release"),
                                          QStringLiteral("/var/lib/snapd/hostfs/usr/lib/os-release"),
                                          QStringLiteral("")};
 
     auto it = options.cbegin();
-    QFile ret(*it);
-    while (++it != options.cend() && !MP_FILEOPS.open(ret, QIODevice::ReadOnly | QIODevice::Text))
-        ret.setFileName(*it);
+    auto ret = std::make_unique<QFile>(*it);
+    while (++it != options.cend() && !MP_FILEOPS.open(*ret, QIODevice::ReadOnly | QIODevice::Text))
+        ret->setFileName(*it);
 
-    return ret.fileName();
+    return ret;
 }
 
 std::pair<QString, QString> multipass::platform::detail::parse_os_release(const QStringList& os_data)
@@ -196,7 +196,7 @@ std::pair<QString, QString> multipass::platform::detail::parse_os_release(const 
 
 std::string multipass::platform::detail::read_os_release()
 {
-    QFile os_release(find_os_release());
+    QFile& os_release = *find_os_release().release();
 
     QStringList os_info;
     if (!os_release.fileName().isEmpty() && os_release.open(QIODevice::ReadOnly | QIODevice::Text))
