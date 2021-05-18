@@ -638,6 +638,14 @@ INSTANTIATE_TEST_SUITE_P(PlatformLinux, OSReleaseTest,
                                 parse_os_release_single_char_fields, parse_os_release_ubuntu2104lts,
                                 parse_os_release_ubuntu2104lts_rotation));
 
+TEST_F(PlatformLinux, find_os_release)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(false));
+
+    auto output = multipass::platform::detail::find_os_release();
+}
+
 TEST_F(PlatformLinux, read_os_release_from_file)
 {
     const std::string expected = "distribution_name-distribution_release";
@@ -645,7 +653,7 @@ TEST_F(PlatformLinux, read_os_release_from_file)
     QFile os_release_dummy(mpt::test_data_path() + "os-release_sample");
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(false));
 
     auto output = multipass::platform::detail::read_os_release();
 
