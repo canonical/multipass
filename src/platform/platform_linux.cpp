@@ -174,6 +174,13 @@ QDir get_aliases_folder()
 
     return aliases_folder;
 }
+
+std::string get_alias_script_path(const std::string& alias)
+{
+    QDir aliases_folder = get_aliases_folder();
+
+    return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
+}
 } // namespace
 
 std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
@@ -268,9 +275,7 @@ bool mp::platform::Platform::link(const char* target, const char* link) const
 
 void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def)
 {
-    QDir aliases_folder = get_aliases_folder();
-
-    QString file_path = aliases_folder.absoluteFilePath(QString::fromStdString(alias));
+    std::string file_path = get_alias_script_path(alias);
 
     std::string multipass_exec = mu::in_multipass_snap() ? "exec /usr/bin/snap run multipass"
                                                          : QCoreApplication::applicationFilePath().toStdString();
@@ -279,14 +284,14 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
     {
         std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + "\n";
 
-        MP_UTILS.make_file_with_content(file_path.toStdString(), script);
+        MP_UTILS.make_file_with_content(file_path, script);
     }
     catch (const std::runtime_error&)
     {
         throw std::runtime_error(fmt::format("error creating alias script '{}'", file_path));
     }
 
-    QFile file(file_path);
+    QFile file(QString::fromStdString(file_path));
     auto permissions =
         MP_FILEOPS.permissions(file) | QFileDevice::ExeOwner | QFileDevice::ExeGroup | QFileDevice::ExeOther;
 
@@ -296,9 +301,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 
 void mp::platform::Platform::remove_alias_script(const std::string& alias)
 {
-    QDir aliases_folder = get_aliases_folder();
-
-    std::string file_path = aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
+    std::string file_path = get_alias_script_path(alias);
 
     if (::unlink(file_path.c_str()))
         throw std::runtime_error("error removing alias script");
