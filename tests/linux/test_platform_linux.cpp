@@ -638,22 +638,47 @@ INSTANTIATE_TEST_SUITE_P(PlatformLinux, OSReleaseTest,
                                 parse_os_release_single_char_fields, parse_os_release_ubuntu2104lts,
                                 parse_os_release_ubuntu2104lts_rotation));
 
-TEST_F(PlatformLinux, find_os_release)
+TEST_F(PlatformLinux, find_os_release_none_found)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2);
 
     auto output = multipass::platform::detail::find_os_release();
+    EXPECT_EQ(output->fileName(), "");
+}
+
+TEST_F(PlatformLinux, find_os_release_dummy_file)
+{
+    const QString test_file_path = mpt::test_data_path() + "os-release_sample";
+    auto os_release_dummy = std::make_unique<QFile>(test_file_path);
+
+//    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+//    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(1);
+
+    auto output = multipass::platform::detail::find_os_release();
+    EXPECT_EQ(output->fileName(), test_file_path);
+}
+
+TEST_F(PlatformLinux, read_os_release_from_file_not_found)
+{
+    const std::string expected = "unknown-unknown";
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2);
+
+    auto output = multipass::platform::detail::read_os_release();
+
+    EXPECT_EQ(expected, output);
 }
 
 TEST_F(PlatformLinux, read_os_release_from_file)
 {
     const std::string expected = "distribution_name-distribution_release";
+    const QString test_file_path = mpt::test_data_path() + "os-release_sample";
+    auto os_release_dummy = std::make_unique<QFile>(test_file_path);
 
-    QFile os_release_dummy(mpt::test_data_path() + "os-release_sample");
-
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(false));
+//    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+//    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(3);
 
     auto output = multipass::platform::detail::read_os_release();
 
