@@ -242,8 +242,7 @@ bool mp::utils::valid_mac_address(const std::string& mac)
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                   std::function<void()> const& ensure_vm_is_running)
 {
-    mpl::log(mpl::Level::debug, virtual_machine->vm_name,
-             fmt::format("Trying SSH on {}:{}", virtual_machine->ssh_hostname(), virtual_machine->ssh_port()));
+    mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
     auto action = [virtual_machine, &ensure_vm_is_running] {
         ensure_vm_is_running();
         try
