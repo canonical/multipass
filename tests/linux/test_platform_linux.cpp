@@ -42,7 +42,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <multipass/file_ops.h>
 #include <stdexcept>
+#include <tests/mock_file_ops.h>
 #include <tests/path.h>
 
 namespace mp = multipass;
@@ -636,22 +638,18 @@ INSTANTIATE_TEST_SUITE_P(PlatformLinux, OSReleaseTest,
                                 parse_os_release_single_char_fields, parse_os_release_ubuntu2104lts,
                                 parse_os_release_ubuntu2104lts_rotation));
 
-//TEST_F(PlatformLinux, read_os_release_from_file)
-//{
-//    std::string expected = "distribution_name-distribution_release";
-//
-//    auto output = multipass::platform::detail::read_os_release(mpt::test_data_path() + "os-release_sample");
-//
-//    EXPECT_EQ(expected, output);
-//}
-//
-//TEST_F(PlatformLinux, read_os_release_missing_file)
-//{
-//    std::string expected = "unknown-unknown";
-//
-//    auto output = multipass::platform::detail::read_os_release("/non-existent/dummy/file/no-where-to-be-found");
-//
-//    EXPECT_EQ(expected, output);
-//}
+TEST_F(PlatformLinux, read_os_release_from_file)
+{
+    const std::string expected = "distribution_name-distribution_release";
+
+    QFile os_release_dummy(mpt::test_data_path() + "os-release_sample");
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
+
+    auto output = multipass::platform::detail::read_os_release();
+
+    EXPECT_EQ(expected, output);
+}
 
 } // namespace
