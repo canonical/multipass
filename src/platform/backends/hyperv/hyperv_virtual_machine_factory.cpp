@@ -20,6 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/network_interface_info.h>
+#include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/shared_backend_utils.h>
@@ -236,7 +237,12 @@ std::vector<mp::NetworkInterfaceInfo> get_switches()
 
 std::vector<mp::NetworkInterfaceInfo> get_adapters()
 {
-    return {}; // TODO@ricab
+    std::vector<mp::NetworkInterfaceInfo> ret;
+    for (const auto& item : MP_PLATFORM.get_network_interfaces_info())
+        if (const auto& type = item.second.type; type == "ethernet" || type == "wifi")
+            ret.push_back(item.second);
+
+    return ret;
 }
 
 } // namespace
