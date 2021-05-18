@@ -651,9 +651,9 @@ TEST_F(PlatformLinux, find_os_release_dummy_file)
 {
     const QString test_file_path = mpt::test_data_path() + "os-release_sample";
     auto os_release_dummy = std::make_unique<QFile>(test_file_path);
-
-//    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-//    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(1);
+// FAIL LINT, STOP BUILD.
+    //    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(1);
 
     auto output = multipass::platform::detail::find_os_release();
     EXPECT_EQ(output->fileName(), test_file_path);
@@ -677,10 +677,47 @@ TEST_F(PlatformLinux, read_os_release_from_file)
     const QString test_file_path = mpt::test_data_path() + "os-release_sample";
     auto os_release_dummy = std::make_unique<QFile>(test_file_path);
 
-//    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-//    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(3);
+    //    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(3);
 
     auto output = multipass::platform::detail::read_os_release();
+
+    EXPECT_EQ(expected, output);
+}
+
+TEST_F(PlatformLinux, host_version_from_file)
+{
+    const std::string expected = "distribution_name-distribution_release";
+    const QString test_file_path = mpt::test_data_path() + "os-release_sample";
+    auto os_release_dummy = std::make_unique<QFile>(test_file_path);
+
+    //    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(3);
+
+    auto output = multipass::platform::host_version();
+
+    EXPECT_EQ(expected, output);
+}
+
+TEST_F(PlatformLinux, host_version_from_unknown)
+{
+    const std::string expected = "unknown-unknown";
+    const QString test_file_path = "/some/random/nonexistent/directory/os-release_sample";
+    auto os_release_dummy = std::make_unique<QFile>(test_file_path);
+
+    //    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(3);
+
+    auto output = multipass::platform::host_version();
+
+    EXPECT_EQ(expected, output);
+}
+
+TEST_F(PlatformLinux, host_version_from_os)
+{
+    const std::string expected = fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+
+    auto output = multipass::platform::host_version();
 
     EXPECT_EQ(expected, output);
 }
