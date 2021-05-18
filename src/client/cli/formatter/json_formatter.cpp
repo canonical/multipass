@@ -15,9 +15,9 @@
  *
  */
 
-#include <multipass/cli/json_formatter.h>
-#include <multipass/cli/format_utils.h>
 #include <multipass/cli/client_common.h>
+#include <multipass/cli/format_utils.h>
+#include <multipass/cli/json_formatter.h>
 #include <multipass/utils.h>
 
 #include <QJsonArray>
@@ -189,11 +189,11 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
     return QString(QJsonDocument(find_json).toJson()).toStdString();
 }
 
-std::string mp::JsonFormatter::format(const VersionReply& reply, const std::string& multipassVer) const
+std::string mp::JsonFormatter::format(const VersionReply& reply, const std::string& multipass_version) const
 {
     QJsonObject version_json;
 
-    version_json.insert("multipass", QString::fromStdString(multipassVer));
+    version_json.insert("multipass", QString::fromStdString(multipass_version));
 
     if (!reply.version().empty())
     {

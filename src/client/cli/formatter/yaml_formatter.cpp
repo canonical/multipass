@@ -15,9 +15,9 @@
  *
  */
 
-#include <multipass/cli/yaml_formatter.h>
-#include <multipass/cli/format_utils.h>
 #include <multipass/cli/client_common.h>
+#include <multipass/cli/format_utils.h>
+#include <multipass/cli/yaml_formatter.h>
 #include <multipass/utils.h>
 
 #include <multipass/format.h>
@@ -181,10 +181,10 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
     return mpu::emit_yaml(find);
 }
 
-std::string mp::YamlFormatter::format(const VersionReply& reply, const std::string& multipassVer) const
+std::string mp::YamlFormatter::format(const VersionReply& reply, const std::string& multipass_version) const
 {
     YAML::Node version;
-    version["multipass"] = multipassVer;
+    version["multipass"] = multipass_version;
 
     if (!reply.version().empty())
     {

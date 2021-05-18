@@ -15,9 +15,9 @@
  *
  */
 
-#include <multipass/cli/table_formatter.h>
-#include <multipass/cli/format_utils.h>
 #include <multipass/cli/client_common.h>
+#include <multipass/cli/format_utils.h>
+#include <multipass/cli/table_formatter.h>
 
 #include <multipass/format.h>
 
@@ -222,10 +222,10 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::TableFormatter::format(const VersionReply& reply, const std::string& multipassVer) const
+std::string mp::TableFormatter::format(const VersionReply& reply, const std::string& multipass_version) const
 {
     fmt::memory_buffer buf;
-    fmt::format_to(buf, "{:<16}{}\n", "multipass:", multipassVer);
+    fmt::format_to(buf, "{:<16}{}\n", "multipass:", multipass_version);
 
     if (!reply.version().empty())
     {

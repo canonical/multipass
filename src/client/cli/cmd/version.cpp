@@ -40,8 +40,7 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         cout << "multipass  " << multipass::version_string << "\n";
     }
 
-    auto on_success = [this, &formatIsSet] (mp::VersionReply& reply) {
-
+    auto on_success = [this, &formatIsSet](mp::VersionReply& reply) {
         if (formatIsSet)
         {
             cout << chosen_formatter->format(reply, multipass::version_string);
@@ -57,7 +56,6 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this, &formatIsSet](grpc::Status& status) {
-
         if (formatIsSet)
         {
             VersionReply reply;
