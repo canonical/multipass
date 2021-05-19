@@ -2534,25 +2534,26 @@ TEST_P(ArgumentCheckTestsuite, answers_correctly)
     std::stringstream cout_stream, cerr_stream;
     EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream), expected_return_code);
 
-    EXPECT_EQ(cout_stream.str(), expected_cout);
+    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_cout));
     EXPECT_EQ(cerr_stream.str(), expected_cerr);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    Client, ArgumentCheckTestsuite,
-    Values(std::make_tuple(std::vector<std::string>{"alias"}, mp::ReturnCode::CommandLineError, "",
-                           "Wrong number of arguments given\n"),
-           std::make_tuple(std::vector<std::string>{"alias", "instance", "command", "alias_name"},
-                           mp::ReturnCode::CommandLineError, "", "Wrong number of arguments given\n"),
-           std::make_tuple(std::vector<std::string>{"alias", "instance", "alias_name"},
-                           mp::ReturnCode::CommandLineError, "", "No command given\n"),
-           std::make_tuple(std::vector<std::string>{"alias", "instance:command", "alias_name"}, mp::ReturnCode::Ok, "",
-                           ""),
-           std::make_tuple(std::vector<std::string>{"alias", "instance:command"}, mp::ReturnCode::Ok, "", ""),
-           std::make_tuple(std::vector<std::string>{"alias", ":command"}, mp::ReturnCode::CommandLineError, "",
-                           "No instance name given\n"),
-           std::make_tuple(std::vector<std::string>{"alias", ":command", "alias_name"},
-                           mp::ReturnCode::CommandLineError, "", "No instance name given\n")));
+INSTANTIATE_TEST_SUITE_P(Client, ArgumentCheckTestsuite,
+                         Values(std::make_tuple(std::vector<std::string>{"alias"}, mp::ReturnCode::CommandLineError, "",
+                                                "Wrong number of arguments given\n"),
+                                std::make_tuple(std::vector<std::string>{"alias", "instance", "command", "alias_name"},
+                                                mp::ReturnCode::CommandLineError, "",
+                                                "Wrong number of arguments given\n"),
+                                std::make_tuple(std::vector<std::string>{"alias", "instance", "alias_name"},
+                                                mp::ReturnCode::CommandLineError, "", "No command given\n"),
+                                std::make_tuple(std::vector<std::string>{"alias", "instance:command", "alias_name"},
+                                                mp::ReturnCode::Ok, "You'll need to add", ""),
+                                std::make_tuple(std::vector<std::string>{"alias", "instance:command"},
+                                                mp::ReturnCode::Ok, "You'll need to add", ""),
+                                std::make_tuple(std::vector<std::string>{"alias", ":command"},
+                                                mp::ReturnCode::CommandLineError, "", "No instance name given\n"),
+                                std::make_tuple(std::vector<std::string>{"alias", ":command", "alias_name"},
+                                                mp::ReturnCode::CommandLineError, "", "No instance name given\n")));
 
 TEST_F(ClientAlias, empty_aliases)
 {
