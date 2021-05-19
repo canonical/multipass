@@ -199,7 +199,7 @@ std::string multipass::platform::detail::read_os_release()
     std::unique_ptr<QFile> os_release = find_os_release();
 
     QStringList os_info;
-    if (!os_release->fileName().isEmpty() && os_release->open(QIODevice::ReadOnly | QIODevice::Text))
+    if (os_release->isOpen())
     {
         QTextStream input(&(*os_release));
         QString line = input.readLine();

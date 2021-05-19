@@ -678,7 +678,7 @@ TEST_F(PlatformLinux, read_os_release_from_file)
     auto os_release_dummy = std::make_unique<QFile>(test_file_path);
 
     //    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(3);
+    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(2);
 
     auto output = multipass::platform::detail::read_os_release();
 
@@ -692,7 +692,7 @@ TEST_F(PlatformLinux, host_version_from_file)
     auto os_release_dummy = std::make_unique<QFile>(test_file_path);
 
     //    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(3);
+    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(2);
 
     auto output = multipass::platform::host_version();
 
@@ -706,7 +706,7 @@ TEST_F(PlatformLinux, host_version_from_unknown)
     auto os_release_dummy = std::make_unique<QFile>(test_file_path);
 
     //    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(3);
+    //    EXPECT_CALL(*mock_file_ops, open(os_release_dummy, _)).Times(2);
 
     auto output = multipass::platform::host_version();
 
