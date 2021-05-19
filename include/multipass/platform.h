@@ -30,6 +30,9 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
 
+#include <libssh/sftp.h>
+
+#include <QDir>
 #include <QString>
 
 #include <functional>
@@ -51,7 +54,6 @@ public:
     Platform(const Singleton::PrivatePass&) noexcept;
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
-*******
     virtual QString get_workflows_url_override() const;
     virtual bool is_alias_supported(const std::string& alias, const std::string& remote) const;
     virtual bool is_remote_supported(const std::string& remote) const;
@@ -59,6 +61,7 @@ public:
     virtual bool link(const char* target, const char* link) const;
     virtual bool symlink(const char* target, const char* link, bool is_dir) const;
     virtual int utime(const char* path, int atime, int mtime) const;
+    virtual QDir get_alias_scripts_folder() const;
     virtual void create_alias_script(const std::string& alias, const AliasDefinition& def) const;
     virtual void remove_alias_script(const std::string& alias) const;
 };

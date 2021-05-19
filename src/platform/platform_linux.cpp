@@ -158,26 +158,9 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
     }
 }
 
-QDir get_aliases_folder()
-{
-    QDir aliases_folder;
-
-    if (mu::in_multipass_snap())
-    {
-        aliases_folder = QDir(QString(mu::snap_user_common_dir()) + "/bin");
-    }
-    else
-    {
-        QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
-        aliases_folder = QDir{location};
-    }
-
-    return aliases_folder;
-}
-
 std::string get_alias_script_path(const std::string& alias)
 {
-    QDir aliases_folder = get_aliases_folder();
+    QDir aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
 
     return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
 }
@@ -271,6 +254,23 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     return ::link(target, link) == 0;
+}
+
+QDir mp::platform::Platform::get_alias_scripts_folder()
+{
+    QDir aliases_folder;
+
+    if (mu::in_multipass_snap())
+    {
+        aliases_folder = QDir(QString(mu::snap_user_common_dir()) + "/bin");
+    }
+    else
+    {
+        QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
+        aliases_folder = QDir{location};
+    }
+
+    return aliases_folder;
 }
 
 void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def)
