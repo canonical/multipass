@@ -46,6 +46,8 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+using namespace std::chrono_literals;
+
 namespace
 {
 constexpr auto category = "utils";
@@ -247,7 +249,7 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
         ensure_vm_is_running();
         try
         {
-            mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port()};
+            mp::SSHSession session{virtual_machine->ssh_hostname(1ms), virtual_machine->ssh_port()};
 
             std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             virtual_machine->state = VirtualMachine::State::running;
