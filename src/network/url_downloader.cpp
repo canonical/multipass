@@ -57,12 +57,25 @@ auto make_network_manager(const mp::Path& cache_dir_path)
     return manager;
 }
 
+void wait_for_reply(QNetworkReply* reply, QTimer& download_timeout)
+{
+    QEventLoop event_loop;
+
+    QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+    QObject::connect(&download_timeout, &QTimer::timeout, [reply, &download_timeout]() {
+        download_timeout.stop();
+        reply->abort();
+    });
+
+    download_timeout.start();
+    event_loop.exec();
+}
+
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
 QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
                     DownloadAction&& on_download, ErrorAction&& on_error, const std::atomic_bool& abort_download,
                     const bool force_cache = false)
 {
-    QEventLoop event_loop;
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
@@ -75,18 +88,12 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
 
     NetworkReplyUPtr reply{manager->get(request)};
 
-    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
     QObject::connect(reply.get(), &QNetworkReply::downloadProgress, [&](qint64 bytes_received, qint64 bytes_total) {
         on_progress(reply.get(), bytes_received, bytes_total);
     });
     QObject::connect(reply.get(), &QNetworkReply::readyRead, [&]() { on_download(reply.get(), download_timeout); });
-    QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
-        download_timeout.stop();
-        reply->abort();
-    });
 
-    download_timeout.start();
-    event_loop.exec();
+    wait_for_reply(reply.get(), download_timeout);
 
     if (reply->error() != QNetworkReply::NoError)
     {
@@ -121,7 +128,6 @@ template <typename Time>
 auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkRequest::KnownHeaders header,
                 const Time& timeout)
 {
-    QEventLoop event_loop;
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
@@ -129,13 +135,8 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 
     NetworkReplyUPtr reply{manager->head(request)};
-    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
-    QObject::connect(&download_timeout, &QTimer::timeout, [&download_timeout, &reply] {
-        download_timeout.stop();
-        reply->abort();
-    });
 
-    event_loop.exec();
+    wait_for_reply(reply.get(), download_timeout);
 
     if (reply->error() != QNetworkReply::NoError)
     {
