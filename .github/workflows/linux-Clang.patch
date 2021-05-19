@@ -6,7 +6,7 @@ index 0b4136fa..0eabe4ae 100644
      - on armhf: [libgles2-mesa-dev]
      - build-essential
      - ccache
-+    - clang-10
++    - clang-11
      - git
      - golang
      - libapparmor-dev
@@ -14,8 +14,8 @@ index 0b4136fa..0eabe4ae 100644
      - -DMULTIPASS_UPSTREAM=origin
      - -DCMAKE_C_COMPILER_LAUNCHER=ccache
      - -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-+    - -DCMAKE_C_COMPILER=clang-10
-+    - -DCMAKE_CXX_COMPILER=clang++-10
++    - -DCMAKE_C_COMPILER=clang-11
++    - -DCMAKE_CXX_COMPILER=clang++-11
      override-build: |
        snapcraftctl build
        set -e
