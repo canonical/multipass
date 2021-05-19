@@ -201,7 +201,7 @@ std::string multipass::platform::detail::read_os_release()
     QStringList os_info;
     if (os_release->isOpen())
     {
-        QTextStream input(&(*os_release));
+        QTextStream input(os_release.get());
         QString line = input.readLine();
         while (!line.isNull())
         {
