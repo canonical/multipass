@@ -140,8 +140,9 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
 
     if (reply->error() != QNetworkReply::NoError)
     {
-        mpl::log(mpl::Level::warning, category,
-                 fmt::format("Cannot retrieve headers for {}: {}", url.toString(), reply->errorString()));
+        const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
+
+        mpl::log(mpl::Level::warning, category, fmt::format("Cannot retrieve headers for {}: {}", url.toString(), msg));
 
         throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
     }
