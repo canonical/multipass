@@ -87,6 +87,7 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
 
     download_timeout.start();
     event_loop.exec();
+
     if (reply->error() != QNetworkReply::NoError)
     {
         const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
@@ -211,12 +212,18 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
     QEventLoop event_loop;
+    QTimer download_timeout;
+    download_timeout.setInterval(timeout);
 
     QNetworkRequest request{url};
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 
     NetworkReplyUPtr reply{manager->head(request)};
     QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+    QObject::connect(&download_timeout, &QTimer::timeout, [&download_timeout, &reply] {
+        download_timeout.stop();
+        reply->abort();
+    });
 
     event_loop.exec();
 
