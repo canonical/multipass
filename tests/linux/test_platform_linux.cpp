@@ -673,7 +673,6 @@ TEST_F(PlatformLinux, find_os_release_usr_lib)
     InSequence seq;
     EXPECT_CALL(*mock_file_ops,
                 open(Property(&QFile::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
-        //        .Times(2)
         .WillOnce(Return(false))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
@@ -698,30 +697,26 @@ TEST_F(PlatformLinux, read_os_release_from_file)
 {
     const std::string expected = "distribution_name-distribution_release";
     const auto expected_filename = QStringLiteral("/var/lib/snapd/hostfs/etc/os-release");
-    QTextStream os_rel_file;
-    os_rel_file << "NAME=\"distribution_name\"\n"
-                << "VERSION=\"21.04 (Hirsute Hippo)\"\n"
-                << "ID=ubuntu\n"
-                << "ID_LIKE=debian\n"
-                << "PRETTY_NAME=\"Ubuntu 21.04\"\n"
-                << "VERSION_ID=\"distribution_release\"\n"
-                << "HOME_URL=\"https://www.ubuntu.com/\"\n"
-                << "SUPPORT_URL=\"https://help.ubuntu.com/\"\n"
-                << "BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\n"
-                << "PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\n"
-                << "VERSION_CODENAME=hirsute\n"
-                << "UBUNTU_CODENAME=hirsute\n";
+    QTextStream os_rel_file("NAME=\"distribution_name\"\n"
+                            "VERSION=\"21.04 (Hirsute Hippo)\"\n"
+                            "ID=ubuntu\n"
+                            "ID_LIKE=debian\n"
+                            "PRETTY_NAME=\"Ubuntu 21.04\"\n"
+                            "VERSION_ID=\"distribution_release\"\n"
+                            "HOME_URL=\"https://www.ubuntu.com/\"\n"
+                            "SUPPORT_URL=\"https://help.ubuntu.com/\"\n"
+                            "BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\n"
+                            "PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\n"
+                            "VERSION_CODENAME=hirsute\n"
+                            "UBUNTU_CODENAME=hirsute\n");
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     InSequence seq;
-    EXPECT_CALL(*mock_file_ops,
-                open(Property(&QFile::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
-        .Times(1)
-        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
-//    EXPECT_CALL(*mock_file_ops, read(Property(&QFile::fileName, Eq(expected_filename)), _, _))
-//        .WillRepeatedly(Return(os_rel_file.readLine()));
+    //    EXPECT_CALL(*mock_file_ops, read(Property(&QFile::fileName, Eq(expected_filename)), _, _))
+    //        .WillRepeatedly(Return(os_rel_file.readLine()));
 
     auto output = multipass::platform::detail::read_os_release();
 

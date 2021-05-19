@@ -201,7 +201,14 @@ std::string multipass::platform::detail::read_os_release()
     QStringList os_info;
     if (os_release->isOpen())
     {
-        QTextStream input(os_release.get());
+        const size_t buffer_size = 32;
+        char buffer[buffer_size];
+        QTextStream input;
+        while (MP_FILEOPS.read(*os_release, buffer, sizeof(char) * buffer_size) <= 0)
+        {
+            input << buffer;
+        }
+
         QString line = input.readLine();
         while (!line.isNull())
         {
