@@ -31,7 +31,8 @@
 namespace mpu = multipass::utils;
 
 std::string make_instance_json(const mp::optional<std::string>& default_mac,
-                               const std::vector<mp::NetworkInterface>& extra_ifaces)
+                               const std::vector<mp::NetworkInterface>& extra_ifaces,
+                               const std::vector<std::string>& extra_instances)
 {
     QString contents("{\n"
                      "    \"real-zebraphant\": {\n"
@@ -67,9 +68,36 @@ std::string make_instance_json(const mp::optional<std::string>& default_mac,
                                                    "        \"num_cores\": 1,\n"
                                                    "        \"ssh_username\": \"ubuntu\",\n"
                                                    "        \"state\": 2\n"
-                                                   "    }}\n"
-                                                   "}}",
+                                                   "    }}\n",
                                                    default_mac ? *default_mac : mpu::generate_mac_address()));
+
+    for (const auto& instance : extra_instances)
+    {
+        contents += QString::fromStdString(fmt::format(",\n"
+                                                       "    \"{}\": {{\n"
+                                                       "        \"deleted\": false,\n"
+                                                       "        \"disk_space\": \"5368709120\",\n"
+                                                       "        \"extra_interfaces\": [\n"
+                                                       "        ],\n"
+                                                       "        \"mac_addr\": \"{}\",\n"
+                                                       "        \"mem_size\": \"1073741824\",\n"
+                                                       "        \"metadata\": {{\n"
+                                                       "            \"arguments\": [\n"
+                                                       "                \"many\",\n"
+                                                       "                \"arguments\"\n"
+                                                       "            ],\n"
+                                                       "            \"machine_type\": \"dmc-de-lorean\"\n"
+                                                       "        }},\n"
+                                                       "        \"mounts\": [\n"
+                                                       "        ],\n"
+                                                       "        \"num_cores\": 1,\n"
+                                                       "        \"ssh_username\": \"ubuntu\",\n"
+                                                       "        \"state\": 2\n"
+                                                       "    }}",
+                                                       instance, mpu::generate_mac_address()));
+    }
+
+    contents += "}";
 
     return contents.toStdString();
 }

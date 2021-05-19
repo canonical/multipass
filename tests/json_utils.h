@@ -31,8 +31,9 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
-std::string make_instance_json(const mp::optional<std::string>& default_mac = std::nullopt,
-                               const std::vector<mp::NetworkInterface>& extra_ifaces = {});
+std::string make_instance_json(const mp::optional<std::string>& default_mac = mp::nullopt,
+                               const std::vector<mp::NetworkInterface>& extra_ifaces = {},
+                               const std::vector<std::string>& extra_instances = {});
 
 std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents); // unique_ptr bypasses missing move ctor
 
