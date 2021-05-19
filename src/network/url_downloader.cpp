@@ -116,6 +116,37 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
 
     return reply->readAll();
 }
+
+template <typename Time>
+auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkRequest::KnownHeaders header,
+                const Time& timeout)
+{
+    QEventLoop event_loop;
+    QTimer download_timeout;
+    download_timeout.setInterval(timeout);
+
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+
+    NetworkReplyUPtr reply{manager->head(request)};
+    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+    QObject::connect(&download_timeout, &QTimer::timeout, [&download_timeout, &reply] {
+        download_timeout.stop();
+        reply->abort();
+    });
+
+    event_loop.exec();
+
+    if (reply->error() != QNetworkReply::NoError)
+    {
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Cannot retrieve headers for {}: {}", url.toString(), reply->errorString()));
+
+        throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
+    }
+
+    return reply->header(header);
+}
 } // namespace
 
 mp::NetworkManagerFactory::NetworkManagerFactory(const Singleton<NetworkManagerFactory>::PrivatePass& pass) noexcept
@@ -211,28 +242,7 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
 {
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
-    QEventLoop event_loop;
-    QTimer download_timeout;
-    download_timeout.setInterval(timeout);
-
-    QNetworkRequest request{url};
-    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-
-    NetworkReplyUPtr reply{manager->head(request)};
-    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
-    QObject::connect(&download_timeout, &QTimer::timeout, [&download_timeout, &reply] {
-        download_timeout.stop();
-        reply->abort();
-    });
-
-    event_loop.exec();
-
-    if (reply->error() != QNetworkReply::NoError)
-    {
-        throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
-    }
-
-    return reply->header(QNetworkRequest::LastModifiedHeader).toDateTime();
+    return get_header(manager.get(), url, QNetworkRequest::LastModifiedHeader, timeout).toDateTime();
 }
 
 void mp::URLDownloader::abort_all_downloads()
