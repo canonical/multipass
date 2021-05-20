@@ -57,12 +57,12 @@ Instances multipass::format::sorted(const Instances& instances)
         return ret;
 
     std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
-      if (a.name() == petenv_name)
-          return true;
-      else if (b.name() == petenv_name)
-          return false;
-      else
-          return a.name() < b.name();
+        if (a.name() == petenv_name)
+            return true;
+        else if (b.name() == petenv_name)
+            return false;
+        else
+            return a.name() < b.name();
     });
 
     return ret;

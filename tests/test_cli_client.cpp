@@ -234,8 +234,7 @@ struct Client : public Test
 
     auto make_fill_listreply(std::vector<mp::InstanceStatus_Status> statuses)
     {
-        return [statuses](Unused, Unused, grpc::ServerWriter<mp::ListReply>* response)
-        {
+        return [statuses](Unused, Unused, grpc::ServerWriter<mp::ListReply>* response) {
             mp::ListReply list_reply;
 
             for (mp::InstanceStatus_Status status : statuses)
