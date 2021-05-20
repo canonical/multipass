@@ -48,10 +48,6 @@ constexpr auto unknown_error_fmt = "Instance '{}' failed in an unexpected way, c
 mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
-    if (petenv_name.isEmpty())
-    {
-        return ReturnCode::CommandFail;
-    }
 
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -155,7 +151,9 @@ QString cmd::Start::description() const
 {
     return QStringLiteral("Start the named instances. Exits with return code 0\n"
                           "when the instances start, or with an error code if\n"
-                          "any fail to start.");
+                          "any fail to start.\n"
+                          "If primary instances are disabled and no instance\n"
+                          "name is provided, an error code will be returned.");
 }
 
 mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
@@ -177,6 +175,12 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
 
     if (status != ParseCode::Ok)
         return status;
+
+    if (petenv_name.isEmpty() && parser->positionalArguments().empty())
+    {
+        cerr << "Primary environment is disabled.\n";
+        return ParseCode::CommandFail;
+    }
 
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
     if (parse_code != ParseCode::Ok)

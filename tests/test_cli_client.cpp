@@ -1104,6 +1104,16 @@ TEST_F(Client, start_cmd_disabled_petenv_fails)
     EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::CommandFail));
 }
 
+TEST_F(Client, start_cmd_disabled_petenv_with_instance_passes)
+{
+    const auto custom_petenv = "";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>("foo");
+    EXPECT_CALL(mock_daemon, start(_, petenv_matcher, _));
+
+    EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
 namespace
 {
 grpc::Status aborted_start_status(const std::vector<std::string>& absent_instances = {},
