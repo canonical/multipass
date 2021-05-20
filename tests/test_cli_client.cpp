@@ -1096,15 +1096,16 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
     EXPECT_THAT(send_command({"start", "foo", petenv_name(), "bar", "baz"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_disabled_petenv_fails)
+TEST_F(Client, start_cmd_disabled_petenv)
 {
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
     EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"start", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_disabled_petenv_with_instance_passes)
+TEST_F(Client, start_cmd_disabled_petenv_with_instance)
 {
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
@@ -1112,6 +1113,7 @@ TEST_F(Client, start_cmd_disabled_petenv_with_instance_passes)
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher, _));
 
     EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
 namespace
