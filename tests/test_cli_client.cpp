@@ -1089,7 +1089,7 @@ TEST_F(Client, start_cmd_disabled_petenv_fails)
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
     const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(custom_petenv);
-    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::CommandFail));
 }
 
 namespace
