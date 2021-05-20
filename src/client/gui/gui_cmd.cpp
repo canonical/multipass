@@ -139,18 +139,16 @@ void cmd::GuiCmd::create_actions()
 
     mp::utils::check_and_create_config_file(client_config_path);
     config_watcher.addPath(client_config_path);
-    QObject::connect(&config_watcher, &QFileSystemWatcher::fileChanged, this,
-                     [this](const QString& path)
-                     {
-                         update_hotkey();
-                         autostart_option.setChecked(MP_SETTINGS.get_as<bool>(autostart_key));
+    QObject::connect(&config_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString& path) {
+        update_hotkey();
+        autostart_option.setChecked(MP_SETTINGS.get_as<bool>(autostart_key));
 
-                         // Needed since the original watched file may be removed and opened as a new file
-                         if (!config_watcher.files().contains(path) && QFile::exists(path))
-                         {
-                             config_watcher.addPath(path);
-                         }
-                     });
+        // Needed since the original watched file may be removed and opened as a new file
+        if (!config_watcher.files().contains(path) && QFile::exists(path))
+        {
+            config_watcher.addPath(path);
+        }
+    });
 
     about_separator = tray_icon_menu.addSeparator();
     quit_action = tray_icon_menu.addAction("Quit");
@@ -161,14 +159,12 @@ void cmd::GuiCmd::create_actions()
 
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [] { mp::cli::platform::open_multipass_shell(QString()); });
-    QObject::connect(
-        &petenv_stop_action, &QAction::triggered,
-        [this]
-        { future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, current_petenv_name)); });
-    QObject::connect(
-        &petenv_start_action, &QAction::triggered,
-        [this]
-        { future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name)); });
+    QObject::connect(&petenv_stop_action, &QAction::triggered, [this] {
+        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, current_petenv_name));
+    });
+    QObject::connect(&petenv_start_action, &QAction::triggered, [this] {
+        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
+    });
 }
 
 void cmd::GuiCmd::update_menu()
@@ -279,12 +275,10 @@ void cmd::GuiCmd::create_menu()
     QObject::connect(&menu_update_timer, &QTimer::timeout, this, [this] { initiate_menu_layout(); });
 
     // Use a singleShot here to make sure the event loop is running before the quit() runs
-    QObject::connect(quit_action, &QAction::triggered,
-                     [this]
-                     {
-                         future_synchronizer.waitForFinished();
-                         QTimer::singleShot(0, [] { QCoreApplication::quit(); });
-                     });
+    QObject::connect(quit_action, &QAction::triggered, [this] {
+        future_synchronizer.waitForFinished();
+        QTimer::singleShot(0, [] { QCoreApplication::quit(); });
+    });
 
     QObject::connect(&version_watcher, &QFutureWatcher<VersionReply>::finished, this, &GuiCmd::update_about_menu);
     QObject::connect(&about_update_timer, &QTimer::timeout, this, [this] { initiate_about_menu_layout(); });
@@ -342,15 +336,13 @@ void cmd::GuiCmd::initiate_about_menu_layout()
 mp::ListReply cmd::GuiCmd::retrieve_all_instances()
 {
     ListReply list_reply;
-    auto on_success = [&list_reply](ListReply& reply)
-    {
+    auto on_success = [&list_reply](ListReply& reply) {
         list_reply = reply;
 
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status)
-    {
+    auto on_failure = [this](grpc::Status& status) {
         tray_icon_menu.insertAction(about_separator, &failure_action);
 
         return standard_failure_handler_for(name(), cerr, status);
@@ -369,21 +361,19 @@ void cmd::GuiCmd::create_menu_actions_for(const std::string& instance_name, cons
         std::make_unique<QMenu>(set_title_string_for(instance_name, state));
 
     instance_menu->addAction("Start");
-    QObject::connect(
-        instance_menu->actions().back(), &QAction::triggered,
-        [this, instance_name]
-        { future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, instance_name)); });
+    QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
+        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, instance_name));
+    });
 
     instance_menu->addAction("Open Shell");
-    QObject::connect(instance_menu->actions().back(), &QAction::triggered,
-                     [instance_name]
-                     { mp::cli::platform::open_multipass_shell(QString::fromStdString(instance_name)); });
+    QObject::connect(instance_menu->actions().back(), &QAction::triggered, [instance_name] {
+        mp::cli::platform::open_multipass_shell(QString::fromStdString(instance_name));
+    });
 
     instance_menu->addAction("Stop");
-    QObject::connect(
-        instance_menu->actions().back(), &QAction::triggered,
-        [this, instance_name]
-        { future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, instance_name)); });
+    QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
+        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, instance_name));
+    });
 
     set_input_state_for(instance_menu->actions(), state);
 
@@ -394,7 +384,9 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
 {
     auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
     if (petenv_name.empty())
+    {
         return;
+    }
 
     auto petenv_instance =
         std::find_if(instances.cbegin(), instances.cend(),
@@ -471,8 +463,7 @@ mp::VersionReply cmd::GuiCmd::retrieve_version_and_update_info()
 {
     VersionReply version_reply;
 
-    auto on_success = [&version_reply](VersionReply& reply)
-    {
+    auto on_success = [&version_reply](VersionReply& reply) {
         version_reply = reply;
         return ReturnCode::Ok;
     };
