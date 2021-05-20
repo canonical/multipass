@@ -1528,8 +1528,18 @@ TEST_F(Client, suspend_cmd_disabled_petenv_fails)
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
-    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(custom_petenv);
-    EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, suspend_cmd_disabled_petenv_with_instance_passes)
+{
+    const auto custom_petenv = "";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>("foo");
+    EXPECT_CALL(mock_daemon, suspend(_, petenv_matcher, _));
+
+    EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 // restart cli tests
