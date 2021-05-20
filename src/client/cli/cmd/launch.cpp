@@ -120,8 +120,6 @@ auto net_digest(const QString& options)
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
-    if (petenv_name.isEmpty())
-        return ReturnCode::CommandFail;
 
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
     {

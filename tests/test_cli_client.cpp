@@ -531,14 +531,6 @@ TEST_F(Client, shell_cmd_fails_unknown_options)
     EXPECT_THAT(send_command({"shell", "--not", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, shell_cmd_disabled_petenv_fails)
-{
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
-
-    EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
-}
-
 // launch cli tests
 TEST_F(Client, launch_cmd_good_arguments)
 {
@@ -687,12 +679,12 @@ TEST_F(Client, launch_cmd_does_not_automount_in_normal_instances)
     EXPECT_THAT(send_command({"launch"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, launch_cmd_disabled_petenv_fails)
+TEST_F(Client, launch_cmd_disabled_petenv_passes)
 {
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
-    EXPECT_THAT(send_command({"launch", "--name", "foo"}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"launch", "--name", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
