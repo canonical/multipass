@@ -174,7 +174,8 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
                                       virtual_machine);
 
-        lxd_wait(manager, base_url, json_reply, 300000);
+        // TODO: Need a way to pass in the daemon timeout and make in general for all back ends
+        lxd_wait(manager, base_url, json_reply, 600000);
 
         current_state();
     }
