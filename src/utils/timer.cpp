@@ -92,3 +92,10 @@ void mpu::Timer::stop()
     if (t.joinable())
         t.join();
 }
+
+mpu::TimerState mpu::Timer::current_state()
+{
+    std::lock_guard<std::mutex> lk(cv_m);
+
+    return state;
+}
