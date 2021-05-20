@@ -531,6 +531,25 @@ TEST_F(Client, shell_cmd_fails_unknown_options)
     EXPECT_THAT(send_command({"shell", "--not", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, shell_cmd_disabled_petenv_fails)
+{
+    const auto custom_petenv = "";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, shell_cmd_disabled_petenv_with_instance_passes)
+{
+    const auto custom_petenv = "";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    const auto petenv_matcher = make_ssh_info_instance_matcher("foo");
+    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
+
+    EXPECT_THAT(send_command({"shell", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
 // launch cli tests
 TEST_F(Client, launch_cmd_good_arguments)
 {

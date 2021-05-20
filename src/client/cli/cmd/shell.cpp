@@ -124,7 +124,9 @@ QString cmd::Shell::short_help() const
 
 QString cmd::Shell::description() const
 {
-    return QStringLiteral("Open a shell prompt on the instance.");
+    return QStringLiteral("Open a shell prompt on the instance."
+                          "If primary instances are disabled and no instance\n"
+                          "name is provided, an error code will be returned.");
 }
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
@@ -144,6 +146,12 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
     {
         return status;
+    }
+
+    if (petenv_name.isEmpty() && parser->positionalArguments().empty())
+    {
+        cerr << "Primary environment is disabled.\n";
+        return ParseCode::CommandFail;
     }
 
     try
