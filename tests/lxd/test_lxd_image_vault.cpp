@@ -398,16 +398,21 @@ TEST_F(LXDImageVault, percent_complete_returns_negative_on_metadata_download)
 
 TEST_F(LXDImageVault, delete_requested_on_instance_remove)
 {
-    bool delete_requested{false};
+    bool delete_requested{false}, wait_requested{false};
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&delete_requested](auto, auto request, auto) {
+        .WillByDefault([&delete_requested, &wait_requested](auto, auto request, auto) {
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
             if (op == "DELETE" && url.contains("1.0/virtual-machines/pied-piper-valley"))
             {
                 delete_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::delete_vm_data);
+            }
+            else if (op == "GET" && url.contains("1.0/operations/1c6265fc-8194-4790-9ab0-3225b0479155"))
+            {
+                wait_requested = true;
                 return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
             }
 
@@ -419,6 +424,7 @@ TEST_F(LXDImageVault, delete_requested_on_instance_remove)
 
     EXPECT_NO_THROW(image_vault.remove(instance_name));
     EXPECT_TRUE(delete_requested);
+    EXPECT_TRUE(wait_requested);
 }
 
 TEST_F(LXDImageVault, logs_warning_when_removing_nonexistent_instance)
