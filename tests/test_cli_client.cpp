@@ -702,7 +702,7 @@ TEST_F(Client, launch_cmd_disabled_petenv_passes)
 {
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
-    
+
     const auto petenv_matcher = make_launch_instance_matcher("foo");
     EXPECT_CALL(mock_daemon, launch(_, petenv_matcher, _));
 
