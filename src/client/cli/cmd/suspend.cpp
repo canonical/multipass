@@ -62,7 +62,7 @@ QString cmd::Suspend::short_help() const
 QString cmd::Suspend::description() const
 {
     return QStringLiteral("Suspend the named instances, if running. Exits with\n"
-                          "return code 0 if successful."
+                          "return code 0 if successful.\n"
                           "If primary instances are disabled and no instance\n"
                           "name is provided, an error code will be returned.");
 }

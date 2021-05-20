@@ -124,7 +124,7 @@ QString cmd::Shell::short_help() const
 
 QString cmd::Shell::description() const
 {
-    return QStringLiteral("Open a shell prompt on the instance."
+    return QStringLiteral("Open a shell prompt on the instance.\n"
                           "If primary instances are disabled and no instance\n"
                           "name is provided, an error code will be returned.");
 }
