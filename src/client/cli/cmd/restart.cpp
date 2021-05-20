@@ -76,14 +76,14 @@ QString cmd::Restart::description() const
 {
     return QStringLiteral("Restart the named instances. Exits with return\n"
                           "code 0 when the instances restart, or with an\n"
-                          "error code if any fail to restart.");
+                          "error code if any fail to restart.\n"
+                          "If primary instances are disabled and no instance\n"
+                          "name is provided, an error code will be returned.");
 }
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 {
     const auto petenv_name = MP_SETTINGS.get(petenv_key);
-    if (petenv_name.isEmpty())
-        return ParseCode::CommandFail;
 
     parser->addPositionalArgument(
         "name",
@@ -100,6 +100,12 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 
     if (status != ParseCode::Ok)
         return status;
+
+    if (petenv_name.isEmpty() && parser->positionalArguments().empty())
+    {
+        cerr << "Primary environment is disabled.\n";
+        return ParseCode::CommandFail;
+    }
 
     try
     {
