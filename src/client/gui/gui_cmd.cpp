@@ -383,11 +383,6 @@ void cmd::GuiCmd::create_menu_actions_for(const std::string& instance_name, cons
 void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrField<mp::ListVMInstance>& instances)
 {
     auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
-    if (petenv_name.empty())
-    {
-        return;
-    }
-
     auto petenv_instance =
         std::find_if(instances.cbegin(), instances.cend(),
                      [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
