@@ -42,8 +42,7 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
     auto on_success = [](mp::RestartReply& reply) { return ReturnCode::Ok; };
 
     AnimatedSpinner spinner{cout};
-    auto on_failure = [this, &spinner](grpc::Status& status)
-    {
+    auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };

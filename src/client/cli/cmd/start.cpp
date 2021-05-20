@@ -61,16 +61,14 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     AnimatedSpinner spinner{cout};
 
-    auto on_success = [&spinner, this](mp::StartReply& reply)
-    {
+    auto on_success = [&spinner, this](mp::StartReply& reply) {
         spinner.stop();
         if (term->is_live() && update_available(reply.update_info()))
             cout << update_notice(reply.update_info());
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner, parser](grpc::Status& status)
-    {
+    auto on_failure = [this, &spinner, parser](grpc::Status& status) {
         spinner.stop();
 
         std::string details;
@@ -112,8 +110,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status, details);
     };
 
-    auto streaming_callback = [this, &spinner](mp::StartReply& reply)
-    {
+    auto streaming_callback = [this, &spinner](mp::StartReply& reply) {
         if (!reply.log_line().empty())
         {
             spinner.print(cerr, reply.log_line());

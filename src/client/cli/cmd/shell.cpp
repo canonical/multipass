@@ -60,8 +60,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     // at a time
     auto instance_name = request.instance_name()[0];
 
-    auto on_success = [this, &timer](mp::SSHInfoReply& reply)
-    {
+    auto on_success = [this, &timer](mp::SSHInfoReply& reply) {
         if (timer)
             timer->stop();
 
@@ -91,8 +90,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &instance_name, parser](grpc::Status& status)
-    {
+    auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
         QStringList retry_args{};
 
         if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name.toStdString())
@@ -116,10 +114,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     return return_code;
 }
 
-std::string cmd::Shell::name() const
-{
-    return "shell";
-}
+std::string cmd::Shell::name() const { return "shell"; }
 
 std::vector<std::string> cmd::Shell::aliases() const
 {
