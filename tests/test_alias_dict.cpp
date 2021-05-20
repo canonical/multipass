@@ -266,19 +266,21 @@ INSTANTIATE_TEST_SUITE_P(
            std::make_pair(AliasesVector{{"alias", {"instance", "command"}}}, std::vector<std::string>{"alias"}),
            std::make_pair(AliasesVector{{"alias", {"instance_to_remove", "command"}}}, std::vector<std::string>{})));
 
+typedef std::vector<std::vector<std::string>> CmdList;
+
 struct DaemonAliasTestsuite : public mpt::DaemonTestFixture,
                               public FakeAliasConfig,
-                              public WithParamInterface<std::vector<std::vector<std::string>>>
+                              public WithParamInterface<std::pair<CmdList, std::string>>
 {
 };
 
 TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
 {
-    auto commands = GetParam();
+    auto [commands, expected_output] = GetParam();
 
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    std::string json_contents = make_instance_json();
+    std::string json_contents = make_instance_json(mp::nullopt, {}, {"primary"});
 
     populate_db_file(AliasesVector{{"lsp", {"primary", "ls"}}, {"lsz", {"real-zebraphant", "ls"}}});
 
@@ -292,6 +294,11 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
+    send_command({"list", "--format", "csv"}, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("primary"));
+    EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
+
+    stream.str({});
     send_command({"aliases", "--format", "csv"}, stream);
     EXPECT_EQ(stream.str(), "Alias,Instance,Command\nlsp,primary,ls\nlsz,real-zebraphant,ls\n");
 
@@ -300,10 +307,15 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
 
     stream.str({});
     send_command({"aliases", "--format", "csv"}, stream);
-    EXPECT_EQ(stream.str(), "Alias,Instance,Command\nlsp,primary,ls\n");
+    EXPECT_EQ(stream.str(), expected_output);
 }
 
 INSTANTIATE_TEST_SUITE_P(AliasDictionary, DaemonAliasTestsuite,
-                         Values(std::vector<std::vector<std::string>>{{"delete", "real-zebraphant"}, {"purge"}},
-                                std::vector<std::vector<std::string>>{{"delete", "--purge", "real-zebraphant"}}));
+                         Values(std::make_pair(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+                                               std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}),
+                                std::make_pair(CmdList{{"delete", "--purge", "real-zebraphant"}},
+                                               std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}),
+                                std::make_pair(CmdList{{"delete", "primary"},
+                                                       {"delete", "primary", "real-zebraphant", "--purge"}},
+                                               std::string{"Alias,Instance,Command\n"})));
 } // namespace
