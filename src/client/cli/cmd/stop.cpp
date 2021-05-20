@@ -62,14 +62,14 @@ QString cmd::Stop::short_help() const
 QString cmd::Stop::description() const
 {
     return QStringLiteral("Stop the named instances, if running. Exits with\n"
-                          "return code 0 if successful.");
+                          "return code 0 if successful.\n"
+                          "If primary instances are disabled and no instance\n"
+                          "name is provided, an error code will be returned.");
 }
 
 mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
 {
     const auto petenv_name = MP_SETTINGS.get(petenv_key);
-    if (petenv_name.isEmpty())
-        return ParseCode::CommandFail;
 
     parser->addPositionalArgument(
         "name",
@@ -86,6 +86,12 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
+
+    if (petenv_name.isEmpty() && parser->positionalArguments().empty())
+    {
+        cerr << "Primary environment is disabled.\n";
+        return ParseCode::CommandFail;
+    }
 
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
     if (parse_code != ParseCode::Ok)
