@@ -692,7 +692,7 @@ TEST_F(Client, launch_cmd_disabled_petenv_fails)
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
-    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"launch", "--name", "foo"}), Eq(mp::ReturnCode::CommandFail));
 }
 
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
@@ -1431,7 +1431,7 @@ TEST_F(Client, stop_cmd_disabled_petenv_fails)
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
     const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(custom_petenv);
-    EXPECT_THAT(send_command({"stop", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"stop", "foo"}), Eq(mp::ReturnCode::CommandFail));
 }
 
 // suspend cli tests
@@ -1520,7 +1520,7 @@ TEST_F(Client, suspend_cmd_disabled_petenv_fails)
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
     const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(custom_petenv);
-    EXPECT_THAT(send_command({"suspend", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::CommandFail));
 }
 
 // restart cli tests
@@ -1623,7 +1623,7 @@ TEST_F(Client, restart_cmd_disabled_petenv_fails)
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
     const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(custom_petenv);
-    EXPECT_THAT(send_command({"restart", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::CommandFail));
 }
 
 // delete cli tests
