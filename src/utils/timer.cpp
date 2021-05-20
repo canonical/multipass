@@ -18,20 +18,19 @@
 #include <multipass/timer.h>
 #include <multipass/top_catch_all.h>
 
-namespace multipass::utils
-{
+namespace mpu = multipass::utils;
 
-Timer::Timer(std::chrono::seconds timeout, std::function<void()> callback)
+mpu::Timer::Timer(std::chrono::seconds timeout, std::function<void()> callback)
     : timeout(timeout), callback(callback), state(TimerState::Stopped)
 {
 }
 
-Timer::~Timer()
+mpu::Timer::~Timer()
 {
     multipass::top_catch_all("timer", [this]() { stop(); });
 }
 
-void Timer::start()
+void mpu::Timer::start()
 {
     stop();
 
@@ -39,7 +38,7 @@ void Timer::start()
     t = std::thread(&Timer::main, this);
 }
 
-void Timer::main()
+void mpu::Timer::main()
 {
     auto remaining_time = timeout;
     std::unique_lock<std::mutex> lk(cv_m);
@@ -60,7 +59,7 @@ void Timer::main()
     }
 }
 
-void Timer::pause()
+void mpu::Timer::pause()
 {
     {
         std::lock_guard<std::mutex> lk(cv_m);
@@ -71,7 +70,7 @@ void Timer::pause()
     cv.notify_all();
 }
 
-void Timer::resume()
+void mpu::Timer::resume()
 {
     {
         std::lock_guard<std::mutex> lk(cv_m);
@@ -82,7 +81,7 @@ void Timer::resume()
     cv.notify_all();
 }
 
-void Timer::stop()
+void mpu::Timer::stop()
 {
     {
         std::lock_guard<std::mutex> lk(cv_m);
@@ -93,5 +92,3 @@ void Timer::stop()
     if (t.joinable())
         t.join();
 }
-
-} // namespace multipass::utils
