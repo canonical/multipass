@@ -53,12 +53,12 @@ TEST_F(Timer, times_out)
 
     t.start();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Running);
+    EXPECT_EQ(t.state(), mpu::TimerState::Running);
 
     cv.wait_for(lk, 10ms); // Windows CI needs longer...
 
     ASSERT_TRUE(timedout.load()) << "Should have timed out";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Stopped);
+    EXPECT_EQ(t.state(), mpu::TimerState::Stopped);
 }
 
 TEST_F(Timer, stops)
@@ -67,13 +67,13 @@ TEST_F(Timer, stops)
 
     t.start();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Running);
+    EXPECT_EQ(t.state(), mpu::TimerState::Running);
 
     t.stop();
     std::this_thread::sleep_for(5ms);
 
     ASSERT_FALSE(timedout.load()) << "Should not have timed out";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Stopped);
+    EXPECT_EQ(t.state(), mpu::TimerState::Stopped);
 }
 
 TEST_F(Timer, pauses)
@@ -82,13 +82,13 @@ TEST_F(Timer, pauses)
 
     t.start();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Running);
+    EXPECT_EQ(t.state(), mpu::TimerState::Running);
 
     t.pause();
     std::this_thread::sleep_for(5ms);
 
     ASSERT_FALSE(timedout.load()) << "Should not have timed out";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Paused);
+    EXPECT_EQ(t.state(), mpu::TimerState::Paused);
 }
 
 TEST_F(Timer, resumes)
@@ -104,23 +104,23 @@ TEST_F(Timer, resumes)
 
     t.start();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Running);
+    EXPECT_EQ(t.state(), mpu::TimerState::Running);
 
     lk.unlock();
 
     t.pause();
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Paused);
+    EXPECT_EQ(t.state(), mpu::TimerState::Paused);
 
     std::this_thread::sleep_for(5ms);
     lk.lock();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
 
     t.resume();
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Running);
+    EXPECT_EQ(t.state(), mpu::TimerState::Running);
 
     cv.wait_for(lk, 10ms); // Windows CI needs longer...
     ASSERT_TRUE(timedout.load()) << "Should have timed out now";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Stopped);
+    EXPECT_EQ(t.state(), mpu::TimerState::Stopped);
 }
 
 TEST_F(Timer, stops_paused)
@@ -129,16 +129,16 @@ TEST_F(Timer, stops_paused)
 
     t.start();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Running);
+    EXPECT_EQ(t.state(), mpu::TimerState::Running);
 
     t.pause();
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Paused);
+    EXPECT_EQ(t.state(), mpu::TimerState::Paused);
 
     t.stop();
     std::this_thread::sleep_for(5ms);
 
     ASSERT_FALSE(timedout.load()) << "Should not have timed out";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Stopped);
+    EXPECT_EQ(t.state(), mpu::TimerState::Stopped);
 }
 
 TEST_F(Timer, cancels)
@@ -185,7 +185,7 @@ TEST_F(Timer, stopped_ignores_pause)
     t.pause();
 
     ASSERT_FALSE(timedout.load()) << "Should not have timed out";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Stopped);
+    EXPECT_EQ(t.state(), mpu::TimerState::Stopped);
 }
 
 TEST_F(Timer, stopped_ignores_resume)
@@ -195,7 +195,7 @@ TEST_F(Timer, stopped_ignores_resume)
     t.resume();
 
     ASSERT_FALSE(timedout.load()) << "Should not have timed out";
-    EXPECT_EQ(t.current_state(), mpu::TimerState::Stopped);
+    EXPECT_EQ(t.state(), mpu::TimerState::Stopped);
 }
 
 TEST_F(Timer, running_ignores_resume)
