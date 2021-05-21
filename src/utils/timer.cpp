@@ -21,7 +21,7 @@
 namespace mpu = multipass::utils;
 
 mpu::Timer::Timer(std::chrono::seconds timeout, std::function<void()> callback)
-    : timeout(timeout), callback(callback), state(TimerState::Stopped)
+    : timeout(timeout), callback(callback), current_state(TimerState::Stopped)
 {
 }
 
@@ -34,7 +34,7 @@ void mpu::Timer::start()
 {
     stop();
 
-    state = TimerState::Running;
+    current_state = TimerState::Running;
     t = std::thread(&Timer::main, this);
 }
 
@@ -42,15 +42,15 @@ void mpu::Timer::main()
 {
     auto remaining_time = timeout;
     std::unique_lock<std::mutex> lk(cv_m);
-    while (state != TimerState::Stopped)
+    while (current_state != TimerState::Stopped)
     {
         auto start_time = std::chrono::system_clock::now();
-        if (state == TimerState::Running && cv.wait_for(lk, remaining_time) == std::cv_status::timeout)
+        if (current_state == TimerState::Running && cv.wait_for(lk, remaining_time) == std::cv_status::timeout)
         {
-            state = TimerState::Stopped;
+            current_state = TimerState::Stopped;
             callback();
         }
-        else if (state == TimerState::Paused)
+        else if (current_state == TimerState::Paused)
         {
             remaining_time = std::chrono::duration_cast<std::chrono::seconds>(
                 remaining_time - (std::chrono::system_clock::now() - start_time));
@@ -63,9 +63,9 @@ void mpu::Timer::pause()
 {
     {
         std::lock_guard<std::mutex> lk(cv_m);
-        if (state != TimerState::Running)
+        if (current_state != TimerState::Running)
             return;
-        state = TimerState::Paused;
+        current_state = TimerState::Paused;
     }
     cv.notify_all();
 }
@@ -74,9 +74,9 @@ void mpu::Timer::resume()
 {
     {
         std::lock_guard<std::mutex> lk(cv_m);
-        if (state != TimerState::Paused)
+        if (current_state != TimerState::Paused)
             return;
-        state = TimerState::Running;
+        current_state = TimerState::Running;
     }
     cv.notify_all();
 }
@@ -85,7 +85,7 @@ void mpu::Timer::stop()
 {
     {
         std::lock_guard<std::mutex> lk(cv_m);
-        state = TimerState::Stopped;
+        current_state = TimerState::Stopped;
     }
     cv.notify_all();
 
@@ -97,5 +97,5 @@ mpu::TimerState mpu::Timer::state()
 {
     std::lock_guard<std::mutex> lk(cv_m);
 
-    return state;
+    return current_state;
 }
