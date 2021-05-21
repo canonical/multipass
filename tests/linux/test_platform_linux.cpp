@@ -671,9 +671,11 @@ TEST_F(PlatformLinux, find_os_release_usr_lib)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     InSequence seq;
+    EXPECT_CALL(*mock_file_ops, open(Property(&QFile::fileName, Eq("/var/lib/snapd/hostfs/etc/os-release")),
+                                     QIODevice::ReadOnly | QIODevice::Text))
+        .WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops,
                 open(Property(&QFile::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
-        .WillOnce(Return(false))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
 
