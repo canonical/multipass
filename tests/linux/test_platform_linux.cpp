@@ -716,9 +716,10 @@ TEST_F(PlatformLinux, read_os_release_from_file)
     EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
     EXPECT_CALL(*mock_file_ops, isOpen).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, readLine)
-        .Times(13) // 12 lines of data and 1 EOF.
-        .WillRepeatedly(Return(os_rel_file.readLine()));
+    for (int idx = 0, len = 13; idx < len; ++idx)
+    {
+        EXPECT_CALL(*mock_file_ops, readLine).WillOnce(Return(os_rel_file.readLine())).RetiresOnSaturation();
+    }
 
     auto output = multipass::platform::detail::read_os_release();
 
