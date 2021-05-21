@@ -697,6 +697,7 @@ TEST_F(PlatformLinux, read_os_release_from_file)
 {
     const std::string expected = "distribution_name-distribution_release";
     const auto expected_filename = QStringLiteral("/var/lib/snapd/hostfs/etc/os-release");
+    const size_t os_rel_len = 13; // 12 lines of data + 1 for EOF.
     QTextStream os_rel_file("NAME=\"distribution_name\"\n"
                             "VERSION=\"21.04 (Hirsute Hippo)\"\n"
                             "ID=ubuntu\n"
@@ -716,7 +717,7 @@ TEST_F(PlatformLinux, read_os_release_from_file)
     EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
     EXPECT_CALL(*mock_file_ops, isOpen).Times(1).WillOnce(Return(true));
-    for (int idx = 0, len = 13; idx < len; ++idx)
+    for (size_t idx = 0; idx < os_rel_len; ++idx)
     {
         EXPECT_CALL(*mock_file_ops, readLine).WillOnce(Return(os_rel_file.readLine())).RetiresOnSaturation();
     }
