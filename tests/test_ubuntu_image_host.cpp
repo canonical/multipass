@@ -242,13 +242,13 @@ TEST_F(UbuntuImageHost, all_images_for_release_unsupported_returns_five_matches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
-TEST_F(UbuntuImageHost, all_images_for_daily_returns_two_matches)
+TEST_F(UbuntuImageHost, all_images_for_daily_returns_all_matches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     auto images = host.all_images_for(daily_remote_spec.first, false);
 
-    const size_t expected_matches{2};
+    const size_t expected_matches{3};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
@@ -361,6 +361,25 @@ TEST_F(UbuntuImageHost, info_for_too_many_hash_matches_throws)
 
     MP_EXPECT_THROW_THAT(host.info_for(make_query(release, release_remote_spec.first)), std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("Too many images matching \"{}\"", release))));
+}
+
+TEST_F(UbuntuImageHost, info_for_same_full_hash_in_both_remotes_does_not_throw)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    const auto hash_query{"ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c"};
+
+    EXPECT_NO_THROW(host.info_for(make_query(hash_query, "")));
+}
+
+TEST_F(UbuntuImageHost, info_for_partial_hash_in_both_remotes_throws)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
+
+    const auto hash_query{"ab115"};
+
+    MP_EXPECT_THROW_THAT(host.info_for(make_query(hash_query, "")), std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("Too many images matching \"{}\"", hash_query))));
 }
 
 TEST_F(UbuntuImageHost, all_info_for_no_remote_query_defaults_to_release)
