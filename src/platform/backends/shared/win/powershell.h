@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ public:
     explicit PowerShell(const std::string& name);
     ~PowerShell();
 
-    bool run(const QStringList& args, QString& output = QString());
+    bool run(const QStringList& args, QString& output = QString(), bool whisper = false);
 
     static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
 
