@@ -83,14 +83,18 @@ mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query
 {
     auto images = all_info_for(query);
 
-    // If more than one match and query is a hash, throw an exception
-    if (images.size() > 1 && images.front().second.id.startsWith(key_from(query.release)))
-        throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
-    // If query is an alias, choose the first one returned if more than one
-    else if (images.size() != 0)
-        return images.front().second;
-    else
+    if (images.size() == 0)
         return nullopt;
+
+    auto key = key_from(query.release);
+    auto image_id = images.front().second.id;
+
+    // If a partial hash query matches more than once, throw an exception
+    if (images.size() > 1 && key != image_id && image_id.startsWith(key))
+        throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
+
+    // It's not a hash match, so choose the first one no matter what
+    return images.front().second;
 }
 
 std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for(const Query& query)

@@ -42,6 +42,40 @@
           "pubname": "ubuntu-artful-daily-amd64-server-20170702"
         }
       }
+    },
+    "com.ubuntu.cloud:server:17.04:amd64": {
+      "aliases": "17.04,z,zesty",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "zesty",
+      "release_codename": "Zesty Zapus",
+      "release_title": "17.04",
+      "support_eol": "2018-01-25",
+      "supported": true,
+      "version": "17.04",
+      "versions": {
+        "20170619.1": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "cc2bc360fec3086edcd4e69d7d8113fc",
+              "path": "zesty_newest.img",
+              "sha256": "ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c",
+              "size": 346882048
+            },
+            "lxd.tar.xz": {
+              "combined_squashfs_sha256": "f50337be60f7fce4ddd71397285490115e208aeb37565b8d77529cb352cdad05",
+              "ftype": "lxd.tar.xz",
+              "md5": "21a945923eff127e1553d581c8872bb6",
+              "path": "server/releases/zesty/release-20170619.1/ubuntu-17.04-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "c258ec70a733b5ea22c7b8a608d2b2e95fb1cf6ec01e0ffba367bd46baf1f8e1",
+              "size": 848
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-zesty-17.04-amd64-server-20170619.1"
+        }
+      }
     }
   },
   "updated": "Wed, 18 Oct 2017 12:14:50 +0000"
