@@ -901,7 +901,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
-        if (!QFile::exists(vm_image.image_path))
+        if (!vm_image.image_path.isEmpty() && !QFile::exists(vm_image.image_path))
         {
             mpl::log(mpl::Level::warning, category,
                      fmt::format("Could not find image for '{}'. Expected location: {}", name, vm_image.image_path));
