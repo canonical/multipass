@@ -1118,6 +1118,15 @@ TEST_F(Client, start_cmd_disabled_petenv_with_instance)
     EXPECT_THAT(send_command({"start", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
+
+TEST_F(Client, start_cmd_disabled_petenv_succeeds_with_all)
+{
+    const auto custom_petenv = "";
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+
+    EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
+}
+
 namespace
 {
 grpc::Status aborted_start_status(const std::vector<std::string>& absent_instances = {},
