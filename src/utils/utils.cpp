@@ -118,9 +118,9 @@ void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
-QString mp::Utils::get_kernel_version() const
+std::string mp::Utils::get_kernel_version() const
 {
-    return QSysInfo::kernelVersion();
+    return QSysInfo::kernelVersion().toStdString();
 }
 
 QDir mp::utils::base_dir(const QString& path)
