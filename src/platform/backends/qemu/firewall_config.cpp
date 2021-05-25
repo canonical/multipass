@@ -263,51 +263,35 @@ bool is_firewall_in_use(const QString& firewall)
 
 // We require a >= 5.2 kernel to avoid weird conflicts with xtables and support for inet table NAT rules.
 // Taken from LXD :)
-void check_kernel_support()
+bool kernel_supports_nftables()
 {
     const auto kernel_version{MP_UTILS.get_kernel_version()};
     try
     {
-        if (version::Semver200_version(kernel_version) < version::Semver200_version("5.2.0"))
+        auto kernel_supported{version::Semver200_version(kernel_version) >= version::Semver200_version("5.2.0")};
+
+        if (!kernel_supported)
         {
-            throw std::runtime_error("Kernel version does not meet minimum requirement of 5.2");
+            mpl::log(mpl::Level::warning, category, "Kernel version does not meet minimum requirement of 5.2");
         }
+
+        return kernel_supported;
     }
     catch (version::Parse_error&)
     {
-        throw std::runtime_error(fmt::format("Cannot parse kernel version \'{}\'", kernel_version));
+        mpl::log(mpl::Level::warning, category, fmt::format("Cannot parse kernel version \'{}\'", kernel_version));
+        return false;
     }
-}
-
-bool iptables_in_use()
-{
-    return is_firewall_in_use(iptables);
-}
-
-bool nftables_in_use()
-{
-    check_kernel_support();
-    return is_firewall_in_use(nftables);
 }
 
 QString detect_firewall()
 {
     QString firewall_exec;
-
     try
     {
-        if (nftables_in_use())
-        {
-            firewall_exec = nftables;
-        }
-        else if (iptables_in_use())
-        {
-            firewall_exec = iptables;
-        }
-        else
-        {
-            firewall_exec = nftables;
-        }
+        firewall_exec = (is_firewall_in_use(nftables) || (!is_firewall_in_use(iptables) && kernel_supports_nftables()))
+                            ? nftables
+                            : iptables;
     }
     catch (const std::runtime_error& e)
     {
