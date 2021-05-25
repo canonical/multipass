@@ -23,6 +23,8 @@
 #include <multipass/utils.h>
 #include <shared/linux/process_factory.h>
 
+#include <semver200.h>
+
 #include <QRegularExpression>
 
 namespace mp = multipass;
@@ -263,29 +265,17 @@ bool is_firewall_in_use(const QString& firewall)
 // Taken from LXD :)
 void check_kernel_support()
 {
-    const auto kernel_version_parts{MP_UTILS.get_kernel_version().split('.')};
-
-    if (kernel_version_parts.size() < 2)
+    const auto kernel_version{MP_UTILS.get_kernel_version()};
+    try
     {
-        throw std::runtime_error("Failed converting kernel version into parts");
+        if (version::Semver200_version(kernel_version) < version::Semver200_version("5.2.0"))
+        {
+            throw std::runtime_error("Kernel version does not meet minimum requirement of 5.2");
+        }
     }
-
-    bool ok;
-    auto major_version = kernel_version_parts[0].toInt(&ok);
-    if (!ok)
+    catch (version::Parse_error&)
     {
-        throw std::runtime_error("Cannot parse kernel major number");
-    }
-
-    auto minor_version = kernel_version_parts[1].toInt(&ok);
-    if (!ok)
-    {
-        throw std::runtime_error("Cannot parse kernel minor number");
-    }
-
-    if (major_version < 5 || (major_version == 5 && minor_version < 2))
-    {
-        throw std::runtime_error("Kernel version does not meet minimum requirement of 5.2");
+        throw std::runtime_error(fmt::format("Cannot parse kernel version \'{}\'", kernel_version));
     }
 }
 
