@@ -247,7 +247,7 @@ void clear_firewall_rules_for(const QString& firewall, const QString& table, con
     }
 }
 
-auto is_firewall_in_use(const QString& firewall)
+bool is_firewall_in_use(const QString& firewall)
 {
 
     return std::any_of(firewall_tables.cbegin(), firewall_tables.cend(), [&firewall](const QString& table) {
@@ -289,18 +289,18 @@ void check_kernel_support()
     }
 }
 
-auto iptables_in_use()
+bool iptables_in_use()
 {
     return is_firewall_in_use(iptables);
 }
 
-auto nftables_in_use()
+bool nftables_in_use()
 {
     check_kernel_support();
     return is_firewall_in_use(nftables);
 }
 
-auto detect_firewall()
+QString detect_firewall()
 {
     QString firewall_exec;
 
