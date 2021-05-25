@@ -141,7 +141,7 @@ public:
                                      const SSHKeyProvider& key_provider);
 
     // system info helpers
-    virtual QString get_kernel_version();
+    virtual QString get_kernel_version() const;
 };
 } // namespace multipass
 
