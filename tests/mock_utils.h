@@ -35,7 +35,7 @@ public:
     MOCK_METHOD1(filesystem_bytes_available, qint64(const QString&));
     MOCK_METHOD1(exit, void(int));
     MOCK_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
-    MOCK_METHOD0(get_kernel_version, QString());
+    MOCK_CONST_METHOD0(get_kernel_version, std::string());
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };

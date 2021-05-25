@@ -49,7 +49,7 @@ struct FirewallConfig : public Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
-struct KernelCheckTestSuite : FirewallConfig, WithParamInterface<std::tuple<QString, std::string>>
+struct KernelCheckTestSuite : FirewallConfig, WithParamInterface<std::tuple<std::string, std::string>>
 {
 };
 } // namespace
@@ -277,8 +277,6 @@ TEST_P(KernelCheckTestSuite, usesIptablesAndLogsWithBadKernelInfo)
 }
 
 INSTANTIATE_TEST_SUITE_P(FirewallConfig, KernelCheckTestSuite,
-                         Values(std::make_tuple("undefined", "Failed converting kernel version into parts"),
-                                std::make_tuple("Bad.42.0", "Cannot parse kernel major number"),
-                                std::make_tuple("5.terrible.1", "Cannot parse kernel minor number"),
+                         Values(std::make_tuple("undefined", "Cannot parse kernel version \'undefined\'"),
                                 std::make_tuple("4.20.1", "Kernel version does not meet minimum requirement of 5.2"),
                                 std::make_tuple("5.1.4", "Kernel version does not meet minimum requirement of 5.2")));
