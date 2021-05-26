@@ -49,76 +49,14 @@ struct FirewallConfig : public Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
+struct FirewallToUseTestSuite : FirewallConfig, WithParamInterface<std::tuple<std::string, QByteArray, QByteArray>>
+{
+};
+
 struct KernelCheckTestSuite : FirewallConfig, WithParamInterface<std::tuple<std::string, std::string>>
 {
 };
 } // namespace
-
-TEST_F(FirewallConfig, iptablesInUseUsesIptablesLegacy)
-{
-    mpt::MockProcessFactory::Callback firewall_callback = [](mpt::MockProcess* process) {
-        if (process->program() == "iptables-nft" && process->arguments().contains("--list-rules"))
-        {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray()));
-        }
-        else if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
-        {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return("-N FOO"));
-        }
-    };
-
-    auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(firewall_callback);
-
-    logger_scope.mock_logger->screen_logs(mpl::Level::info);
-    logger_scope.mock_logger->expect_log(mpl::Level::info, "iptables-legacy");
-
-    mp::FirewallConfig firewall_config{goodbr0, subnet};
-}
-
-TEST_F(FirewallConfig, nftablesInUseUsesIptablesNft)
-{
-    mpt::MockProcessFactory::Callback firewall_callback = [](mpt::MockProcess* process) {
-        if (process->program() == "iptables-nft" && process->arguments().contains("--list-rules"))
-        {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return("-N FOO"));
-        }
-        else if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
-        {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray()));
-        }
-    };
-
-    auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(firewall_callback);
-
-    logger_scope.mock_logger->screen_logs(mpl::Level::info);
-    logger_scope.mock_logger->expect_log(mpl::Level::info, "iptables-nft");
-
-    mp::FirewallConfig firewall_config{goodbr0, subnet};
-}
-
-TEST_F(FirewallConfig, noFirewallInUseUsesNftables)
-{
-    mpt::MockProcessFactory::Callback firewall_callback = [](mpt::MockProcess* process) {
-        if (process->program() == "iptables-nft" && process->arguments().contains("--list-rules"))
-        {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray()));
-        }
-        else if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
-        {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray()));
-        }
-    };
-
-    auto factory = mpt::MockProcessFactory::Inject();
-    factory->register_callback(firewall_callback);
-
-    logger_scope.mock_logger->screen_logs(mpl::Level::info);
-    logger_scope.mock_logger->expect_log(mpl::Level::info, "iptables-nft");
-
-    mp::FirewallConfig firewall_config{goodbr0, subnet};
-}
 
 TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
 {
@@ -250,6 +188,36 @@ TEST_F(FirewallConfig, dtorDeleteErrorLogsErrorAndContinues)
         mp::FirewallConfig firewall_config{goodbr0, subnet};
     }
 }
+
+TEST_P(FirewallToUseTestSuite, usesExpectedFirewall)
+{
+    auto& [expected_firewall, nft_response, legacy_response] = GetParam();
+
+    mpt::MockProcessFactory::Callback firewall_callback = [&nft_response, &legacy_response](mpt::MockProcess* process) {
+        if (process->program() == "iptables-nft" && process->arguments().contains("--list-rules"))
+        {
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(nft_response));
+        }
+        else if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
+        {
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(legacy_response));
+        }
+    };
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(firewall_callback);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, expected_firewall);
+
+    mp::FirewallConfig firewall_config{goodbr0, subnet};
+}
+
+INSTANTIATE_TEST_SUITE_P(FirewallConfig, FirewallToUseTestSuite,
+                         Values(std::make_tuple("iptables-legacy", QByteArray(), "-N FOO"),
+                                std::make_tuple("iptables-nft", "-N FOO", QByteArray()),
+                                std::make_tuple("iptables-nft", QByteArray(), QByteArray()),
+                                std::make_tuple("iptables-nft", "-N FOO", "-N FOO")));
 
 TEST_P(KernelCheckTestSuite, usesIptablesAndLogsWithBadKernelInfo)
 {
