@@ -311,9 +311,15 @@ auto mp::HyperVVirtualMachineFactory::get_switches() -> std::vector<NetworkInter
 auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInterfaceInfo>
 {
     std::vector<mp::NetworkInterfaceInfo> ret;
-    for (const auto& item : MP_PLATFORM.get_network_interfaces_info())
-        if (const auto& type = item.second.type; type == "ethernet" || type == "wifi")
-            ret.push_back(item.second);
+    for (auto& item : MP_PLATFORM.get_network_interfaces_info())
+    {
+        auto& net = item.second;
+        if (const auto& type = net.type; type == "ethernet" || type == "wifi")
+        {
+            net.needs_authorization = true;
+            ret.emplace_back(std::move(net));
+        }
+    }
 
     return ret;
 }
