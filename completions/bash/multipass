@@ -48,6 +48,28 @@ _multipass_complete()
         opts=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
     }
 
+    _multipass_instances_with_colon()
+    {
+        local opts_bak="${opts}"
+        opts=""
+
+        _multipass_instances
+        local instances="${opts}"
+        opts="$opts_bak"
+
+        for instance in ${instances}; do
+            opts="${opts} ${instance}:"
+        done
+    }
+
+    # Set $multipass_aliases to the list of available aliases.
+    _multipass_aliases()
+    {
+        local cmd="bin/multipass aliases --format=csv 2>/dev/null"
+
+        multipass_aliases=$( \eval $cmd | \grep -Ev '(\+--|Alias)' | \cut -d',' -f 1 )
+    }
+
     # Removes the comma or equals sign at the end of $cur.
     _remove_trailing_char()
     {
@@ -126,7 +148,7 @@ _multipass_complete()
         COMP_WORDBREAKS="${COMP_WORDBREAKS}="
     fi
 
-    local cur cmd opts prev prev2 prev_opts
+    local cur cmd opts prev prev2 prev_opts multipass_aliases
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -134,9 +156,14 @@ _multipass_complete()
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="transfer delete exec find help info launch list mount networks \
-                    purge recover shell start stop suspend restart umount version get set"
+                    purge recover shell start stop suspend restart umount version get set \
+                    alias aliases unalias"
 
-    opts="--help --verbose"
+    if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
+    then
+        opts="--help --verbose"
+    fi
+
     case "${cmd}" in
         "info")
             opts="${opts} --all --format"
@@ -164,6 +191,9 @@ _multipass_complete()
         ;;
         "find")
             opts="${opts} --show-unsupported --format"
+        ;;
+        "aliases")
+            opts="${opts} --format"
         ;;
     esac
 
@@ -266,6 +296,10 @@ _multipass_complete()
                     return
                 fi
             ;;
+            "alias")
+                _multipass_instances_with_colon
+                compopt -o nospace
+            ;;
             "help")
                 opts=$multipass_cmds
             ;;
@@ -273,7 +307,8 @@ _multipass_complete()
     fi
 
     if [[ ${COMP_CWORD} -eq 1 ]]; then
-        opts="${opts} ${multipass_cmds}"
+        _multipass_aliases
+        opts="${opts} ${multipass_cmds} ${multipass_aliases}"
     fi
 
     if [[ -n "${opts}" ]]; then
