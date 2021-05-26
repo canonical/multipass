@@ -64,6 +64,11 @@ public:
         setAttribute(code, value);
     };
 
+    void set_header(QNetworkRequest::KnownHeaders header, const QVariant& value)
+    {
+        setHeader(header, value);
+    }
+
 public Q_SLOTS:
     MOCK_METHOD0(abort, void());
 };
