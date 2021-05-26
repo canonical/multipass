@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 
 #include "tests/extra_assertions.h"
 #include "tests/mock_logger.h"
+#include "tests/mock_platform.h"
 #include "tests/mock_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
@@ -184,6 +185,8 @@ struct HyperVNetworks : public Test
     }
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = attr.first;
     mp::HyperVVirtualMachineFactory backend;
     mpt::PowerShellTestHelper ps_helper;
     inline static constexpr auto cmdlet = "Get-VMSwitch";
