@@ -204,6 +204,13 @@ TEST_F(HyperVNetworks, requests_switches)
     backend.networks();
 }
 
+TEST_F(HyperVNetworks, requests_platform_interfaces)
+{
+    ps_helper.mock_ps_exec("");
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).Times(1);
+    backend.networks();
+}
+
 TEST_F(HyperVNetworks, returns_empty_when_no_switches_found)
 {
     ps_helper.mock_ps_exec("");
