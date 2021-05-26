@@ -136,7 +136,7 @@ TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     logger_scope.mock_logger->expect_log(mpl::Level::warning,
-                                         fmt::format("{}: defaulting to iptables-legacy", error_msg));
+                                         fmt::format("({}): with output: : defaulting to iptables-legacy", error_msg));
 
     mp::FirewallConfig firewall_config{goodbr0, subnet};
 }

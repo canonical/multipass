@@ -131,9 +131,8 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw std::runtime_error(
-            fmt::format("Failed to get firewall list for table {}: {}", table,
-                        (exit_state.error) ? exit_state.failure_message() : process->read_all_standard_error()));
+        throw std::runtime_error(fmt::format("Failed to get firewall list for table {} ({}): with output: {}", table,
+                                             exit_state.failure_message(), process->read_all_standard_error()));
 
     return process->read_all_standard_output();
 }
