@@ -21,6 +21,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/process.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <shared/linux/process_factory.h>
 
@@ -240,7 +241,7 @@ void clear_firewall_rules_for(const QString& firewall, const QString& table, con
                 // Pass the chain and rule wholesale since we capture the whole line
                 delete_firewall_rule(firewall, table, QStringList() << rule);
             }
-            catch (const std::runtime_error& e)
+            catch (const mp::FirewallException& e)
             {
                 mpl::log(mpl::Level::error, category,
                          fmt::format("Error deleting firewall rule '{}': {}", rule, e.what()));
@@ -293,10 +294,10 @@ QString detect_firewall()
                             ? nftables
                             : iptables;
     }
-    catch (const std::runtime_error& e)
+    catch (const mp::FirewallException& e)
     {
         firewall_exec = iptables;
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: defaulting to {}", e.what(), firewall_exec));
+        mpl::log(mpl::Level::warning, category, e.what());
     }
 
     mpl::log(mpl::Level::info, category, fmt::format("Using {} for firewall rules.", firewall_exec));
@@ -316,7 +317,7 @@ mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string
         clear_all_firewall_rules();
         set_firewall_rules(firewall, bridge_name, cidr, comment);
     }
-    catch (const std::exception& e)
+    catch (const FirewallException& e)
     {
         mpl::log(mpl::Level::warning, category, e.what());
         firewall_error = true;
@@ -326,7 +327,7 @@ mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string
 
 mp::FirewallConfig::~FirewallConfig()
 {
-    clear_all_firewall_rules();
+    mp::top_catch_all(category, [this] { clear_all_firewall_rules(); });
 }
 
 void mp::FirewallConfig::verify_firewall_rules()
