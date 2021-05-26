@@ -87,15 +87,12 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    if (petenv_name.isEmpty() && parser->positionalArguments().empty())
-    {
-        cerr << "Primary environment is disabled.\n";
-        return ParseCode::CommandFail;
-    }
-
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
+    {
+        cerr << "error: primary instance disabled, need an instance name or --all\n";
         return parse_code;
+    }
 
     if (parser->isSet(time_option) && parser->isSet(cancel_option))
     {
