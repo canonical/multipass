@@ -43,6 +43,22 @@ namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace multipass::test
+{
+struct HyperVNetworkAccessor
+{
+    static auto get_switches()
+    {
+        return mp::HyperVVirtualMachineFactory::get_switches(); // private, but we're friends
+    }
+
+    static auto get_adapters()
+    {
+        return mp::HyperVVirtualMachineFactory::get_adapters(); // private, but we're friends
+    }
+};
+} // namespace multipass::test
+
 namespace
 {
 struct HyperVBackend : public Test
@@ -211,10 +227,10 @@ TEST_F(HyperVNetworks, requests_platform_interfaces)
     backend.networks();
 }
 
-TEST_F(HyperVNetworks, returns_empty_when_no_switches_found)
+TEST_F(HyperVNetworks, get_switches_returns_empty_when_no_switches_found)
 {
     ps_helper.mock_ps_exec("");
-    EXPECT_THAT(backend.networks(), IsEmpty());
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), IsEmpty());
 }
 
 TEST_F(HyperVNetworks, throws_on_failure_to_execute_cmdlet)
@@ -252,13 +268,13 @@ INSTANTIATE_TEST_SUITE_P(HyperVNetworks, TestWrongFields,
                                 "an, internal switch, shouldn't be connected to an external adapter",
                                 "nor should a, private, one", "but an, external one should,"));
 
-TEST_F(HyperVNetworks, returns_as_many_items_as_lines_in_proper_output)
+TEST_F(HyperVNetworks, get_switches_returns_as_many_items_as_lines_in_proper_output)
 {
     ps_helper.mock_ps_exec("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
-    EXPECT_THAT(backend.networks(), SizeIs(7));
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), SizeIs(7));
 }
 
-TEST_F(HyperVNetworks, returns_provided_interface_ids)
+TEST_F(HyperVNetworks, get_switches_returns_provided_interface_ids)
 {
     constexpr auto id1 = "\"toto\"";
     constexpr auto id2 = " te et te";
@@ -269,13 +285,14 @@ TEST_F(HyperVNetworks, returns_provided_interface_ids)
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
     auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
-    EXPECT_THAT(backend.networks(), UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(),
+                UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
 }
 
-TEST_F(HyperVNetworks, returns_only_switches)
+TEST_F(HyperVNetworks, get_switches_returns_only_switches)
 {
     ps_helper.mock_ps_exec("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
-    EXPECT_THAT(backend.networks(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
 template <typename Str>
