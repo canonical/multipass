@@ -176,15 +176,12 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    if (petenv_name.isEmpty() && parser->positionalArguments().empty() && !parser->isSet(all_option))
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
+    if (parse_code != ParseCode::Ok)
     {
         cerr << "error: primary instance disabled, need an instance name or --all\n";
-        return ParseCode::CommandFail;
-    }
-
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/true);
-    if (parse_code != ParseCode::Ok)
         return parse_code;
+    }
 
     try
     {
