@@ -1679,20 +1679,22 @@ TEST_F(Client, restart_cmd_disabled_petenv)
 {
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    EXPECT_CALL(mock_daemon, restart(_, _, _));
 
-    EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"restart", "-h"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, restart_cmd_disabled_petenv_with_instance_passes)
 {
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
-    const auto matcher = make_instances_matcher<mp::RestartRequest>(ElementsAre(StrEq("foo")));
-    EXPECT_CALL(mock_daemon, restart(_, matcher, _));
+    EXPECT_CALL(mock_daemon, restart(_, _, _)).Times(2);
 
     EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"restart", "-h"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 // delete cli tests
