@@ -150,6 +150,7 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     template <typename VMFactoryType>
     void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
     {
+        auto factory = mpt::MockProcessFactory::Inject();
         setup_driver_settings(driver);
 
         decltype(mp::platform::vm_backend("")) factory_ptr;
@@ -292,13 +293,11 @@ TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
 
 TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
 {
-    auto factory = mpt::MockProcessFactory::Inject();
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>();
 }
 
 TEST_F(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
 {
-    auto factory = mpt::MockProcessFactory::Inject();
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
@@ -322,7 +321,6 @@ TEST_F(PlatformLinux, test_qemu_in_env_var_is_ignored)
 
 TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 {
-    auto factory = mpt::MockProcessFactory::Inject();
     mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
