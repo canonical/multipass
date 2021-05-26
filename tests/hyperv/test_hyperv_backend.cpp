@@ -227,12 +227,6 @@ TEST_F(HyperVNetworks, requests_platform_interfaces)
     backend.networks();
 }
 
-TEST_F(HyperVNetworks, get_switches_returns_empty_when_no_switches_found)
-{
-    ps_helper.mock_ps_exec("");
-    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), IsEmpty());
-}
-
 TEST_F(HyperVNetworks, throws_on_failure_to_execute_cmdlet)
 {
     auto& logger = *logger_scope.mock_logger;
@@ -267,33 +261,6 @@ INSTANTIATE_TEST_SUITE_P(HyperVNetworks, TestWrongFields,
                          Values("too,many,fields,here", "insufficient,fields",
                                 "an, internal switch, shouldn't be connected to an external adapter",
                                 "nor should a, private, one", "but an, external one should,"));
-
-TEST_F(HyperVNetworks, get_switches_returns_as_many_items_as_lines_in_proper_output)
-{
-    ps_helper.mock_ps_exec("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
-    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), SizeIs(7));
-}
-
-TEST_F(HyperVNetworks, get_switches_returns_provided_interface_ids)
-{
-    constexpr auto id1 = "\"toto\"";
-    constexpr auto id2 = " te et te";
-    constexpr auto id3 = "\"ti\"-+%ti\t";
-    constexpr auto output_format = "{},Private,\n"
-                                   "{},Internal,\n"
-                                   "{},External,adapter description\n";
-
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
-    auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
-    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(),
-                UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
-}
-
-TEST_F(HyperVNetworks, get_switches_returns_only_switches)
-{
-    ps_helper.mock_ps_exec("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
-    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
-}
 
 template <typename Str>
 QRegularExpression make_case_insensitive_regex(Str&& str)
@@ -351,6 +318,39 @@ TEST_F(HyperVNetworks, handles_unknown_switch_types)
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("Custom Switch,{},", type)));
     EXPECT_THAT(backend.networks(), matcher);
+}
+
+TEST_F(HyperVNetworks, get_switches_returns_empty_when_no_switches_found)
+{
+    ps_helper.mock_ps_exec("");
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), IsEmpty());
+}
+
+TEST_F(HyperVNetworks, get_switches_returns_as_many_items_as_lines_in_proper_output)
+{
+    ps_helper.mock_ps_exec("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), SizeIs(7));
+}
+
+TEST_F(HyperVNetworks, get_switches_returns_provided_interface_ids)
+{
+    constexpr auto id1 = "\"toto\"";
+    constexpr auto id2 = " te et te";
+    constexpr auto id3 = "\"ti\"-+%ti\t";
+    constexpr auto output_format = "{},Private,\n"
+                                   "{},Internal,\n"
+                                   "{},External,adapter description\n";
+
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
+    auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(),
+                UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
+}
+
+TEST_F(HyperVNetworks, get_switches_returns_only_switches)
+{
+    ps_helper.mock_ps_exec("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
 } // namespace
