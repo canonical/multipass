@@ -17,6 +17,7 @@
 
 #include "firewall_config.h"
 
+#include <multipass/exceptions/firewall_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/process.h>
@@ -106,7 +107,7 @@ void add_firewall_rule(const QString& firewall, const QString& table, const QStr
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw std::runtime_error(
+        throw mp::FirewallException(
             fmt::format("Failed to set firewall rule for table {}: {}", table, process->read_all_standard_error()));
 }
 
@@ -120,7 +121,7 @@ void delete_firewall_rule(const QString& firewall, const QString& table, const Q
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw std::runtime_error(
+        throw mp::FirewallException(
             fmt::format("Failed to delete firewall rule for table {}: {}", table, process->read_all_standard_error()));
 }
 
@@ -131,8 +132,8 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw std::runtime_error(fmt::format("Failed to get firewall list for table {} ({}): with output: {}", table,
-                                             exit_state.failure_message(), process->read_all_standard_error()));
+        throw mp::FirewallException(fmt::format("Failed to get firewall list for table {} ({}): with output: {}", table,
+                                                exit_state.failure_message(), process->read_all_standard_error()));
 
     return process->read_all_standard_output();
 }
