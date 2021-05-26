@@ -114,8 +114,8 @@ struct Daemon : public mpt::DaemonTestFixture
             .Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests. */
     }
 
-    mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject()};
-    NiceMock<mpt::MockUtils>* mock_utils = attr.first;
+    mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils* mock_utils = attr.first;
 
     mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = platform_attr.first;
