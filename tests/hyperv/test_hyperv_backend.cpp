@@ -201,7 +201,7 @@ struct HyperVNetworks : public Test
     }
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform::GuardedMock attr = mpt::MockPlatform::inject<NiceMock>();
     mpt::MockPlatform* mock_platform = attr.first;
     mp::HyperVVirtualMachineFactory backend;
     mpt::PowerShellTestHelper ps_helper;
