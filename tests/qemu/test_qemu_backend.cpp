@@ -91,7 +91,8 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
         }
     };
 
-    mpt::MockProcessFactory::Callback handle_qemu_system = [](mpt::MockProcess* process) {
+    static void handle_qemu_system(mpt::MockProcess* process)
+    {
         if (process->program().contains("qemu-system"))
         {
             EXPECT_CALL(*process, start()).WillRepeatedly([process] {
