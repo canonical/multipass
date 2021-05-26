@@ -205,46 +205,6 @@ std::string switch_description(const QString& switch_type, const QString& physic
         return fmt::format("Unknown Virtual Switch type: {}", switch_type);
 }
 
-std::vector<mp::NetworkInterfaceInfo> get_switches()
-{
-    static const auto ps_cmd_base = QStringLiteral("Get-VMSwitch | Select-Object -Property Name,SwitchType,"
-                                                   "NetAdapterInterfaceDescription");
-    static const auto ps_args = ps_cmd_base.split(' ', QString::SkipEmptyParts) + mp::PowerShell::Snippets::to_bare_csv;
-
-    QString ps_output;
-    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
-    {
-        std::vector<mp::NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
-        {
-            auto terms = line.split(',', QString::KeepEmptyParts);
-            if (terms.size() != 3)
-            {
-                throw std::runtime_error{fmt::format(
-                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
-            }
-
-            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
-        }
-
-        return ret;
-    }
-
-    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
-    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
-    throw std::runtime_error{err};
-}
-
-std::vector<mp::NetworkInterfaceInfo> get_adapters()
-{
-    std::vector<mp::NetworkInterfaceInfo> ret;
-    for (const auto& item : MP_PLATFORM.get_network_interfaces_info())
-        if (const auto& type = item.second.type; type == "ethernet" || type == "wifi")
-            ret.push_back(item.second);
-
-    return ret;
-}
-
 } // namespace
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -316,4 +276,44 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
     move(adapters.begin(), adapters.end(), back_inserter(switches));
 
     return switches;
+}
+
+auto mp::HyperVVirtualMachineFactory::get_switches() -> std::vector<NetworkInterfaceInfo>
+{
+    static const auto ps_cmd_base = QStringLiteral("Get-VMSwitch | Select-Object -Property Name,SwitchType,"
+                                                   "NetAdapterInterfaceDescription");
+    static const auto ps_args = ps_cmd_base.split(' ', QString::SkipEmptyParts) + mp::PowerShell::Snippets::to_bare_csv;
+
+    QString ps_output;
+    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
+    {
+        std::vector<mp::NetworkInterfaceInfo> ret{};
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
+        {
+            auto terms = line.split(',', QString::KeepEmptyParts);
+            if (terms.size() != 3)
+            {
+                throw std::runtime_error{fmt::format(
+                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
+            }
+
+            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
+        }
+
+        return ret;
+    }
+
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
+    throw std::runtime_error{err};
+}
+
+auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInterfaceInfo>
+{
+    std::vector<mp::NetworkInterfaceInfo> ret;
+    for (const auto& item : MP_PLATFORM.get_network_interfaces_info())
+        if (const auto& type = item.second.type; type == "ethernet" || type == "wifi")
+            ret.push_back(item.second);
+
+    return ret;
 }
