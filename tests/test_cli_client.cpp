@@ -536,7 +536,7 @@ TEST_F(Client, shell_cmd_disabled_petenv)
     const auto custom_petenv = "";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
-    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
