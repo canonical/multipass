@@ -90,7 +90,9 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
     {
-        cerr << "error: primary instance disabled, need an instance name or --all\n";
+        if (petenv_name.isEmpty())
+            fmt::print(cerr, "The primary instance is disabled.\n");
+
         return parse_code;
     }
 
