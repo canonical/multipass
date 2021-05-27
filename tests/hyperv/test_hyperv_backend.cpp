@@ -339,6 +339,27 @@ TEST_F(HyperVNetworksPS, handles_unknown_switch_types)
     EXPECT_THAT(backend.networks(), matcher);
 }
 
+TEST_F(HyperVNetworksPS, includes_switch_links_to_known_adapters)
+{
+    mp::NetworkInterfaceInfo net_a{"a", "ethernet", "an a a aaa"};
+    mp::NetworkInterfaceInfo net_b{"b", "wifi", "a bbb b b"};
+    mp::NetworkInterfaceInfo net_c{"c", "ethernet", "a c cc cc"};
+
+    std::map<std::string, mp::NetworkInterfaceInfo> platform_adapters;
+    for (const auto& net : {net_a, net_b, net_c})
+        platform_adapters.emplace(net.id, net);
+
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(platform_adapters));
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(
+        "switch_{},external,{}\nswitch_{},external,{}", net_b.id, net_b.description, net_c.id, net_c.description)));
+
+    auto match = [](const auto& expect_link) {
+        return AllOf(Field(&mp::NetworkInterfaceInfo::id, EndsWith(expect_link)),
+                     Field(&mp::NetworkInterfaceInfo::links, ElementsAre(expect_link)));
+    };
+    EXPECT_THAT(backend.networks(), IsSupersetOf({match(net_b.id), match(net_c.id)}));
+}
+
 TEST_F(HyperVNetworksPS, get_switches_returns_empty_when_no_switches_found)
 {
     ps_helper.mock_ps_exec("");
