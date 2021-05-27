@@ -232,6 +232,20 @@ TEST_F(HyperVNetworksPS, requests_platform_interfaces)
     backend.networks();
 }
 
+TEST_F(HyperVNetworksPS, joins_switches_and_adapters)
+{
+    ps_helper.mock_ps_exec("switch,External, a switch\n");
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"wlan", {"wlan", "wifi", "wireless"}},
+                                                                         {"eth", {"eth", "ethernet", "wired"}}}));
+
+    auto got_nets = backend.networks();
+    EXPECT_THAT(got_nets, SizeIs(3));
+    EXPECT_THAT(got_nets, Contains(Field(&mp::NetworkInterfaceInfo::type, Eq("wifi"))));
+    EXPECT_THAT(got_nets, Contains(Field(&mp::NetworkInterfaceInfo::type, Eq("switch"))));
+    EXPECT_THAT(got_nets, Contains(Field(&mp::NetworkInterfaceInfo::type, Eq("ethernet"))));
+}
+
 TEST_F(HyperVNetworksPS, throws_on_failure_to_execute_cmdlet)
 {
     auto& logger = *logger_scope.mock_logger;
