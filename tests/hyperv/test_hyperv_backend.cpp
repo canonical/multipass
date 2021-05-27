@@ -360,6 +360,18 @@ TEST_F(HyperVNetworksPS, includes_switch_links_to_known_adapters)
     EXPECT_THAT(backend.networks(), IsSupersetOf({match(net_b.id), match(net_c.id)}));
 }
 
+TEST_F(HyperVNetworksPS, excludes_switch_links_to_unknown_adapters)
+{
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"asdf", {"asdf", "ethernet", "lkjads"}},
+                                                                         {"jeje", {"jeje", "wifi", "oiafg ansg"}}}));
+    ps_helper.mock_ps_exec("switchin,external,crazy adapter\nnope,external,nope");
+
+    auto switch_matcher =
+        AllOf(Field(&mp::NetworkInterfaceInfo::type, Eq("switch")), Field(&mp::NetworkInterfaceInfo::links, IsEmpty()));
+    EXPECT_THAT(backend.networks(), IsSupersetOf({switch_matcher, switch_matcher})); // expect two such switches
+}
+
 TEST_F(HyperVNetworksPS, get_switches_returns_empty_when_no_switches_found)
 {
     ps_helper.mock_ps_exec("");
