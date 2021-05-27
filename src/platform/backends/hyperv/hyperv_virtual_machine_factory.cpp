@@ -186,6 +186,20 @@ void check_hyperv_support()
     }
 }
 
+std::vector<std::string> switch_links(const std::vector<mp::NetworkInterfaceInfo>& adapters,
+                                      const QString& adapter_description)
+{
+    std::vector<std::string> ret;
+    if (!adapter_description.isEmpty())
+    {
+        auto same = [&adapter_description](const auto& net) { return adapter_description == net.description.c_str(); };
+        if (auto it = std::find_if(adapters.cbegin(), adapters.cend(), same); it != adapters.cend())
+            ret.emplace_back(it->id);
+    }
+
+    return ret;
+}
+
 std::string switch_description(const QString& switch_type, const QString& physical_adapter)
 {
     if (switch_type.contains("external", Qt::CaseInsensitive))
@@ -266,8 +280,9 @@ void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 
 auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    auto switches = get_switches();
     auto adapters = get_adapters();
+    auto switches = get_switches(adapters);
+    //    update_adapter_authorizations(adapters); // TODO@ricab
 
     if (adapters.size() > switches.size())
         swap(adapters, switches);                        // we want to move the smallest one
@@ -278,7 +293,8 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
     return switches;
 }
 
-auto mp::HyperVVirtualMachineFactory::get_switches() -> std::vector<NetworkInterfaceInfo>
+auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInterfaceInfo>& adapters)
+    -> std::vector<NetworkInterfaceInfo>
 {
     static const auto ps_cmd_base = QStringLiteral("Get-VMSwitch | Select-Object -Property Name,SwitchType,"
                                                    "NetAdapterInterfaceDescription");
@@ -297,7 +313,8 @@ auto mp::HyperVVirtualMachineFactory::get_switches() -> std::vector<NetworkInter
                     "Could not determine available networks - unexpected powershell output: {}", ps_output)};
             }
 
-            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
+            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2)),
+                           switch_links(adapters, terms.at(2))}); // TODO@ricab mention links in description instead
         }
 
         return ret;

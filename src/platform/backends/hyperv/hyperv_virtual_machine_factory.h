@@ -45,7 +45,7 @@ public:
 
 private:
     friend struct multipass::test::HyperVNetworkAccessor;
-    static std::vector<NetworkInterfaceInfo> get_switches();
+    static std::vector<NetworkInterfaceInfo> get_switches(const std::vector<NetworkInterfaceInfo>& adapters);
     static std::vector<NetworkInterfaceInfo> get_adapters();
 };
 } // namespace multipass

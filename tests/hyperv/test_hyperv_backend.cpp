@@ -48,9 +48,9 @@ namespace multipass::test
 {
 struct HyperVNetworkAccessor
 {
-    static auto get_switches()
+    static auto get_switches(const std::vector<mp::NetworkInterfaceInfo>& adapters)
     {
-        return mp::HyperVVirtualMachineFactory::get_switches(); // private, but we're friends
+        return mp::HyperVVirtualMachineFactory::get_switches(adapters); // private, but we're friends
     }
 
     static auto get_adapters()
@@ -342,13 +342,13 @@ TEST_F(HyperVNetworksPS, handles_unknown_switch_types)
 TEST_F(HyperVNetworksPS, get_switches_returns_empty_when_no_switches_found)
 {
     ps_helper.mock_ps_exec("");
-    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), IsEmpty());
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({}), IsEmpty());
 }
 
 TEST_F(HyperVNetworksPS, get_switches_returns_as_many_items_as_lines_in_proper_output)
 {
     ps_helper.mock_ps_exec("a,b,\nd,e,\ng,h,\nj,k,\n,,\n,m,\njj,external,asdf\n");
-    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), SizeIs(7));
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({{}}), SizeIs(7));
 }
 
 TEST_F(HyperVNetworksPS, get_switches_returns_provided_interface_ids)
@@ -362,14 +362,14 @@ TEST_F(HyperVNetworksPS, get_switches_returns_provided_interface_ids)
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
     auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
-    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(),
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({{}, {}}),
                 UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
 }
 
 TEST_F(HyperVNetworksPS, get_switches_returns_only_switches)
 {
     ps_helper.mock_ps_exec("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
-    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
+    EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({}), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
 TEST_F(HyperVNetworks, get_adapters_returns_ethernet_and_wifi)
