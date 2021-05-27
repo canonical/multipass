@@ -447,7 +447,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
      "Load:           --\n"
      "Disk usage:     --\n"
-     "Memory usage:   --\n",
+     "Memory usage:   --\n"
+     "Mounts:         --\n",
      "table_info_multiple"},
 
     {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4\n", "csv_list_empty"},
