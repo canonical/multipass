@@ -37,6 +37,7 @@
 #include <gmock/gmock.h>
 
 #include <stdexcept>
+#include <tuple>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -355,6 +356,34 @@ TEST_F(HyperVNetworksPS, get_switches_returns_only_switches)
 {
     ps_helper.mock_ps_exec("a,b,\nc,d,\nasdf,internal,\nsdfg,external,dfgh\nfghj,private,");
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches(), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
+}
+
+TEST_F(HyperVNetworks, get_adapters_returns_ethernet_and_wifi)
+{
+    mp::NetworkInterfaceInfo strange{"strange", "strangewire", "waka waka"};
+    mp::NetworkInterfaceInfo weird{"weird", "future tech", "wika wika"};
+    mp::NetworkInterfaceInfo unknown{"virtio", "unknown", "wuka wuka"};
+    mp::NetworkInterfaceInfo eth1{"eth1", "ethernet", "ethththth"};
+    mp::NetworkInterfaceInfo eth2{"eth2", "ethernet", "ethththth"};
+    mp::NetworkInterfaceInfo wifi1{"wireless1", "wifi", "wiiiiiii"};
+    mp::NetworkInterfaceInfo wifi2{"wireless2", "wifi", "wiiiiiii"};
+
+    std::map<std::string, mp::NetworkInterfaceInfo> platform_adapters;
+    for (const auto& net : {strange, eth1, unknown, wifi1, eth2, weird, wifi2})
+        platform_adapters.emplace(net.id, net);
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(platform_adapters));
+
+    auto got_nets = mpt::HyperVNetworkAccessor::get_adapters();
+    EXPECT_EQ(got_nets.size(), 4);
+
+    auto same_net = [](const mp::NetworkInterfaceInfo& a, const mp::NetworkInterfaceInfo& b) {
+        return make_tuple(a.id, a.type, a.description) == make_tuple(b.id, b.type, b.description);
+    };
+
+    for (const auto& expected_net : {eth1, eth2, wifi1, wifi2})
+        EXPECT_TRUE(std::any_of(got_nets.begin(), got_nets.end(), [&expected_net, &same_net](const auto& got_net) {
+            return same_net(got_net, expected_net);
+        }));
 }
 
 } // namespace
