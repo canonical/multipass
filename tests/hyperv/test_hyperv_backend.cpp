@@ -372,21 +372,20 @@ TEST_F(HyperVNetworksPS, includes_switch_links_to_known_adapters)
     EXPECT_THAT(backend.networks(), IsSupersetOf({match(net_b.id), match(net_c.id)}));
 }
 
-TEST_F(HyperVNetworksPS, excludes_switch_links_to_unknown_adapters)
+struct TestSwitchUnsupportedLinks : public HyperVNetworksPS,
+                                    public WithParamInterface<std::vector<mp::NetworkInterfaceInfo>>
 {
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(network_map_from_vector({{"asdf", "ethernet", "lkjads"}, {"jeje", "wifi", "oiafg ansg"}})));
+};
+
+TEST_F(TestSwitchUnsupportedLinks, excludes_switch_links_to_unknown_adapters)
+{
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector(GetParam())));
     ps_helper.mock_ps_exec("switchin,external,crazy adapter\nnope,external,nope");
 
     auto switch_matcher =
         AllOf(Field(&mp::NetworkInterfaceInfo::type, Eq("switch")), Field(&mp::NetworkInterfaceInfo::links, IsEmpty()));
     EXPECT_THAT(backend.networks(), IsSupersetOf({switch_matcher, switch_matcher})); // expect two such switches
 }
-
-struct TestSwitchUnsupportedLinks : public HyperVNetworksPS,
-                                    public WithParamInterface<std::vector<mp::NetworkInterfaceInfo>>
-{
-};
 
 TEST_P(TestSwitchUnsupportedLinks, omits_unsupported_adapter_from_external_switch_description)
 {
