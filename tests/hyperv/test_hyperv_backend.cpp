@@ -196,6 +196,18 @@ struct HyperVNetworks : public Test
         logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     }
 
+    std::map<std::string, mp::NetworkInterfaceInfo> network_map_from_vector(std::vector<mp::NetworkInterfaceInfo> nets)
+    {
+        std::map<std::string, mp::NetworkInterfaceInfo> ret;
+        for (const auto& net : nets)
+        {
+            auto id = net.id; // avoid param evaluation order issues - we'd need the copy anyway
+            ret.emplace(std::move(id), std::move(net));
+        }
+
+        return ret;
+    }
+
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::MockPlatform::GuardedMock attr = mpt::MockPlatform::inject<NiceMock>();
     mpt::MockPlatform* mock_platform = attr.first;
@@ -376,14 +388,26 @@ TEST_F(HyperVNetworksPS, excludes_switch_links_to_unknown_adapters)
     EXPECT_THAT(backend.networks(), IsSupersetOf({switch_matcher, switch_matcher})); // expect two such switches
 }
 
-TEST_F(HyperVNetworksPS, omits_unsupported_adapter_from_external_switch_description)
+struct TestSwitchUnsupportedLinks : public HyperVNetworksPS,
+                                    public WithParamInterface<std::vector<mp::NetworkInterfaceInfo>>
 {
+};
+
+TEST_P(TestSwitchUnsupportedLinks, omits_unsupported_adapter_from_external_switch_description)
+{
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector(GetParam())));
     const auto matcher = adapt_to_single_description_matcher(
         make_required_forbidden_regex_matcher("^(?=.*switch)(?=.*external)", "via|internal|private"));
 
     ps_helper.mock_ps_exec("some switch,external,some unknown NIC");
     EXPECT_THAT(backend.networks(), matcher);
-} // TODO@ricab parameterize with unseen/unknown
+} // TODO@ricab move test above about links here too
+
+INSTANTIATE_TEST_SUITE_P(
+    HyperVNetworksPS, TestSwitchUnsupportedLinks,
+    Values(std::vector<mp::NetworkInterfaceInfo>{},
+           std::vector<mp::NetworkInterfaceInfo>{{"nic,wifi,a wifi"}, {"eth,ethernet,an ethernet"}},
+           std::vector<mp::NetworkInterfaceInfo>{{"nic,crazy_type,some unknown NIC"}, {"eth,ethernet,an ethernet"}}));
 
 TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_description)
 {
