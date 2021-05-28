@@ -276,21 +276,39 @@ TEST_F(HyperVNetworksPS, throws_on_unexpected_cmdlet_output)
                          Property(&std::runtime_error::what, AllOf(HasSubstr(output), HasSubstr("unexpected"))));
 }
 
-struct TestWrongFields : public HyperVNetworksPS, public WithParamInterface<std::string>
+struct TestWrongNumFields : public HyperVNetworksPS, public WithParamInterface<std::string>
 {
     inline static constexpr auto bad_line_in_output_format = "a,few,\ngood,lines,\n{}\naround,a,\nbad,one,";
 };
 
-TEST_P(TestWrongFields, throws_on_output_with_wrong_fields)
+TEST_P(TestWrongNumFields, throws_on_output_with_wrong_fields)
 {
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())));
     ASSERT_THROW(backend.networks(), std::runtime_error);
 }
 
-INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestWrongFields,
-                         Values("too,many,fields,here", "insufficient,fields",
-                                "an, internal switch, shouldn't be connected to an external adapter",
-                                "nor should a, private, one", "but an, external one should,"));
+INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestWrongNumFields, Values("too,many,fields,here", "insufficient,fields"));
+
+struct TestNonExternalSwitchesWithLinks : public HyperVNetworksPS, public WithParamInterface<std::string>
+{
+    inline static constexpr auto bad_line_in_output_format = TestWrongNumFields::bad_line_in_output_format;
+};
+
+TEST_P(TestNonExternalSwitchesWithLinks, throws_on_non_external_switch_with_link)
+{
+    constexpr auto link_description = "foo bar net";
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(network_map_from_vector({{"eth", "ethernet", link_description}})));
+
+    auto switch_type = GetParam();
+    auto switch_line = fmt::format("a switch,{},{}", switch_type, link_description);
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, switch_line)));
+
+    MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Unexpected"), HasSubstr("non-external"))));
+}
+
+INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestNonExternalSwitchesWithLinks, Values("internal", "private"));
 
 template <typename Str>
 QRegularExpression make_case_insensitive_regex(Str&& str)
