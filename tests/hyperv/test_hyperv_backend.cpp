@@ -395,7 +395,7 @@ TEST_P(TestSwitchUnsupportedLinks, omits_unsupported_adapter_from_external_switc
 
     ps_helper.mock_ps_exec("some switch,external,some unknown NIC");
     EXPECT_THAT(backend.networks(), matcher);
-} // TODO@ricab move test above about links here too
+}
 
 INSTANTIATE_TEST_SUITE_P(
     HyperVNetworksPS, TestSwitchUnsupportedLinks,
@@ -406,14 +406,20 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_description)
 {
     mp::NetworkInterfaceInfo wifi{"wlan", "wifi", "A Wifi NIC"};
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({wifi})));
+    mp::NetworkInterfaceInfo eth{"Ethernet", "ethernet", "An Ethernet NIC"};
+    mp::NetworkInterfaceInfo other{"Quantumwire", "quantum wire", "Future tech"};
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(network_map_from_vector({wifi, eth, other})));
 
-    const auto desc_matcher = AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(wifi.id));
-    const auto switch_matcher = Field(&mp::NetworkInterfaceInfo::description, desc_matcher);
+    auto match = [](const auto& expect_link) {
+        return Field(&mp::NetworkInterfaceInfo::description,
+                     AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(expect_link)));
+    };
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,external,{}", wifi.description)));
-    EXPECT_THAT(backend.networks(), Contains(switch_matcher));
-} // TODO@ricab parameterize with wifi/ether
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(
+        fmt::format("some switch,external,{}\nanother,external,{}", eth.description, wifi.description)));
+    EXPECT_THAT(backend.networks(), IsSupersetOf({match(wifi.id), match(eth.id)}));
+}
 
 TEST_F(HyperVNetworksPS, get_switches_returns_empty_when_no_switches_found)
 {
