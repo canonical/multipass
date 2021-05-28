@@ -97,7 +97,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
         for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
         {
             if (mount != mount_paths.cbegin())
-                fmt::format_to(buf, "{:<16}", " ");
+                fmt::format_to(buf, "{:<16}", "");
             fmt::format_to(buf, "{:{}} => {}\n", mount->source_path(), info.mount_info().longest_path_len(),
                            mount->target_path());
 
