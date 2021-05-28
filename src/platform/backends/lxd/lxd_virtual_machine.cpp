@@ -261,8 +261,35 @@ void mp::LXDVirtualMachine::start()
     update_state();
 }
 
-void mp::LXDVirtualMachine::shutdown()
+void mp::LXDVirtualMachine::shutdown(bool force)
 {
+    if (force)
+    {
+        auto present_state = current_state();
+
+        if (present_state != State::stopped && present_state != State::off)
+        {
+            const QJsonObject state_json{{"action", "stop"}, {"force", true}};
+
+            auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
+
+            try
+            {
+                lxd_wait(manager, base_url, state_task, 60000);
+            }
+            catch (const LXDNotFoundException&)
+            {
+            }
+
+            state = State::stopped;
+        }
+
+        if (update_shutdown_status)
+            update_state();
+
+        return;
+    }
+
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
 
