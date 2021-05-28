@@ -210,8 +210,7 @@ std::string switch_description(const QString& switch_type, const std::vector<std
         return fmt::format("Virtual Switch with external networking via \"{}\"", fmt::join(links, ", "));
     }
     else if (!links.empty())
-        throw std::runtime_error{
-            fmt::format("Unexpected adapter(s) for non-external switch: {}", fmt::join(links, ", "))};
+        throw std::runtime_error{fmt::format("Unexpected link(s) for non-external switch: {}", fmt::join(links, ", "))};
     else if (switch_type.contains("private", Qt::CaseInsensitive))
         return "Private virtual switch";
     else if (switch_type.contains("internal", Qt::CaseInsensitive))
