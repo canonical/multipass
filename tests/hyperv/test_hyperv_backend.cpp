@@ -376,6 +376,28 @@ TEST_F(HyperVNetworksPS, excludes_switch_links_to_unknown_adapters)
     EXPECT_THAT(backend.networks(), IsSupersetOf({switch_matcher, switch_matcher})); // expect two such switches
 }
 
+TEST_F(HyperVNetworksPS, omits_unsupported_adapter_from_external_switch_description)
+{
+    const auto matcher = adapt_to_single_description_matcher(
+        make_required_forbidden_regex_matcher("^(?=.*switch)(?=.*external)", "via|internal|private"));
+
+    ps_helper.mock_ps_exec("some switch,external,some unknown NIC");
+    EXPECT_THAT(backend.networks(), matcher);
+} // TODO@ricab parameterize with unseen/unknown
+
+TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_description)
+{
+    mp::NetworkInterfaceInfo wifi{"wlan", "wifi", "A Wifi NIC"};
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{wifi.id, wifi}}));
+
+    const auto desc_matcher = AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(wifi.id));
+    const auto switch_matcher = Field(&mp::NetworkInterfaceInfo::description, desc_matcher);
+
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,external,{}", wifi.description)));
+    EXPECT_THAT(backend.networks(), Contains(switch_matcher));
+} // TODO@ricab parameterize with wifi/ether
+
 TEST_F(HyperVNetworksPS, get_switches_returns_empty_when_no_switches_found)
 {
     ps_helper.mock_ps_exec("");
