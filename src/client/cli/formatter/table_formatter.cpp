@@ -93,11 +93,11 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
         fmt::format_to(buf, "{:<16}{}\n", "Memory usage:", to_usage(info.memory_usage(), info.memory_total()));
 
         auto mount_paths = info.mount_info().mount_paths();
-        fmt::format_to(buf, "{:<16}{}", "Mounts:", (mount_paths.empty()) ? "--\n" : "");
+        fmt::format_to(buf, "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
         for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
         {
             if (mount != mount_paths.cbegin())
-                fmt::format_to(buf, "{:<16}", " ");
+                fmt::format_to(buf, "{:<16}", "");
             fmt::format_to(buf, "{:{}} => {}\n", mount->source_path(), info.mount_info().longest_path_len(),
                            mount->target_path());
 
