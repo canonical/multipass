@@ -2133,6 +2133,8 @@ try // clang-format on
         std::function<grpc::Status(VirtualMachine&)> operation;
         if (request->cancel_shutdown())
             operation = std::bind(&Daemon::cancel_vm_shutdown, this, std::placeholders::_1);
+        else if (request->force_stop())
+            operation = std::bind(&Daemon::switch_off_vm, this, std::placeholders::_1);
         else
             operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
                                   std::chrono::minutes(request->time_minutes()));
@@ -3071,7 +3073,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
             delayed_shutdown_instances.erase(name);
 
         mounts[name].clear();
-        instance->shutdown();
+        instance->shutdown(purge);
 
         if (!purge)
         {
@@ -3133,6 +3135,26 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
                          [this, name]() { delayed_shutdown_instances.erase(name); });
 
         shutdown_timer->start(delay);
+    }
+    else
+        mpl::log(mpl::Level::debug, category, fmt::format("instance \"{}\" does not need stopping", name));
+
+    return grpc::Status::OK;
+}
+
+grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
+{
+    const auto& name = vm.vm_name;
+    const auto& state = vm.current_state();
+
+    using St = VirtualMachine::State;
+    const auto skip_states = {St::off, St::stopped};
+
+    if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
+    {
+        delayed_shutdown_instances.erase(name);
+
+        vm.shutdown(true);
     }
     else
         mpl::log(mpl::Level::debug, category, fmt::format("instance \"{}\" does not need stopping", name));
