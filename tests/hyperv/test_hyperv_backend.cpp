@@ -248,8 +248,7 @@ TEST_F(HyperVNetworksPS, joins_switches_and_adapters)
 {
     ps_helper.mock_ps_exec("switch,External, a switch\n");
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"wlan", {"wlan", "wifi", "wireless"}},
-                                                                         {"eth", {"eth", "ethernet", "wired"}}}));
+        .WillOnce(Return(network_map_from_vector({{"wlan", "wifi", "wireless"}, {"eth", "ethernet", "wired"}})));
 
     auto got_nets = backend.networks();
     EXPECT_THAT(got_nets, SizeIs(3));
@@ -361,11 +360,8 @@ TEST_F(HyperVNetworksPS, includes_switch_links_to_known_adapters)
     mp::NetworkInterfaceInfo net_b{"b", "wifi", "a bbb b b"};
     mp::NetworkInterfaceInfo net_c{"c", "ethernet", "a c cc cc"};
 
-    std::map<std::string, mp::NetworkInterfaceInfo> platform_adapters;
-    for (const auto& net : {net_a, net_b, net_c})
-        platform_adapters.emplace(net.id, net);
-
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(platform_adapters));
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(network_map_from_vector({net_a, net_b, net_c})));
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(
         "switch_{},external,{}\nswitch_{},external,{}", net_b.id, net_b.description, net_c.id, net_c.description)));
 
@@ -379,8 +375,7 @@ TEST_F(HyperVNetworksPS, includes_switch_links_to_known_adapters)
 TEST_F(HyperVNetworksPS, excludes_switch_links_to_unknown_adapters)
 {
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"asdf", {"asdf", "ethernet", "lkjads"}},
-                                                                         {"jeje", {"jeje", "wifi", "oiafg ansg"}}}));
+        .WillOnce(Return(network_map_from_vector({{"asdf", "ethernet", "lkjads"}, {"jeje", "wifi", "oiafg ansg"}})));
     ps_helper.mock_ps_exec("switchin,external,crazy adapter\nnope,external,nope");
 
     auto switch_matcher =
@@ -412,8 +407,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_description)
 {
     mp::NetworkInterfaceInfo wifi{"wlan", "wifi", "A Wifi NIC"};
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{wifi.id, wifi}}));
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({wifi})));
 
     const auto desc_matcher = AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(wifi.id));
     const auto switch_matcher = Field(&mp::NetworkInterfaceInfo::description, desc_matcher);
@@ -465,10 +459,8 @@ TEST_F(HyperVNetworks, get_adapters_returns_ethernet_and_wifi)
     mp::NetworkInterfaceInfo wifi1{"wireless1", "wifi", "wiiiiiii"};
     mp::NetworkInterfaceInfo wifi2{"wireless2", "wifi", "wiiiiiii"};
 
-    std::map<std::string, mp::NetworkInterfaceInfo> platform_adapters;
-    for (const auto& net : {strange, eth1, unknown, wifi1, eth2, weird, wifi2})
-        platform_adapters.emplace(net.id, net);
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(platform_adapters));
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(network_map_from_vector({strange, eth1, unknown, wifi1, eth2, weird, wifi2})));
 
     auto got_nets = mpt::HyperVNetworkAccessor::get_adapters();
     EXPECT_EQ(got_nets.size(), 4);
