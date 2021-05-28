@@ -321,12 +321,16 @@ INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestNonExternalSwitchTypes, Values("P
 
 TEST_F(HyperVNetworksPS, recognizes_external_switch)
 {
-    constexpr auto nic = "some NIC";
-    const auto matcher = adapt_to_single_description_matcher(
-        AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(nic)));
+    const auto name = "some switch";
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,external,{}", nic)));
-    EXPECT_THAT(backend.networks(), matcher);
+    const auto id_matcher = Field(&mp::NetworkInterfaceInfo::id, name);
+    const auto type_matcher = Field(&mp::NetworkInterfaceInfo::type, "switch");
+    const auto desc_matcher =
+        Field(&mp::NetworkInterfaceInfo::description, make_required_forbidden_regex_matcher("external", "unknown"));
+    const auto switch_matcher = AllOf(id_matcher, type_matcher, desc_matcher);
+
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("{},external,fake nic", name)));
+    EXPECT_THAT(backend.networks(), ElementsAre(switch_matcher));
 }
 
 TEST_F(HyperVNetworksPS, handles_unknown_switch_types)
