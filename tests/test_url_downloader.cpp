@@ -476,3 +476,60 @@ TEST_F(URLDownloader, fileDownloadWriteFailsLogsErrorAndThrows)
     EXPECT_THROW(downloader.download_to(fake_url, download_file, -1, -1, progress_monitor),
                  mp::AbortedDownloadException);
 }
+
+TEST_F(URLDownloader, lastModifiedHeaderReturnsExpectedData)
+{
+    const QDateTime date_time{QDateTime::currentDateTimeUtc()};
+    mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
+
+    mock_reply->set_header(QNetworkRequest::LastModifiedHeader, QVariant(date_time));
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce(Return(mock_reply));
+
+    mp::URLDownloader downloader(cache_dir.path(), 1s);
+
+    QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
+
+    auto last_modified = downloader.last_modified(fake_url);
+
+    EXPECT_EQ(date_time, last_modified);
+}
+
+TEST_F(URLDownloader, lastModifiedHeaderTimeoutThrows)
+{
+    mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
+
+    EXPECT_CALL(*mock_reply, abort()).WillOnce([&mock_reply] { mock_reply->abort_operation(); });
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce(Return(mock_reply));
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning, fmt::format("Cannot retrieve headers for {}: Network timeout", fake_url.toString()));
+
+    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+
+    EXPECT_THROW(downloader.last_modified(fake_url), mp::DownloadException);
+}
+
+TEST_F(URLDownloader, lastModifiedHeaderErrorThrows)
+{
+    const QString error_msg{"Host not found"};
+    mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply, &error_msg](auto...) {
+        QTimer::singleShot(0, [&mock_reply, &error_msg] {
+            mock_reply->set_error(QNetworkReply::HostNotFoundError, error_msg);
+            mock_reply->finished();
+        });
+        return mock_reply;
+    });
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning, fmt::format("Cannot retrieve headers for {}: {}", fake_url.toString(), error_msg));
+
+    mp::URLDownloader downloader(cache_dir.path(), 1s);
+
+    EXPECT_THROW(downloader.last_modified(fake_url), mp::DownloadException);
+}

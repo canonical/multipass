@@ -34,7 +34,7 @@ public:
     MOCK_METHOD1(exit, void(int));
     MOCK_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
 
-    MP_MOCK_SINGLETON_BOILERPLATE(::testing::NiceMock<MockUtils>, Utils);
+    MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };
 } // namespace multipass::test
 #endif // MULTIPASS_MOCK_UTILS_FUNCTIONS_H

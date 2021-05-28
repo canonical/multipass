@@ -57,12 +57,25 @@ auto make_network_manager(const mp::Path& cache_dir_path)
     return manager;
 }
 
+void wait_for_reply(QNetworkReply* reply, QTimer& download_timeout)
+{
+    QEventLoop event_loop;
+
+    QObject::connect(reply, &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
+    QObject::connect(&download_timeout, &QTimer::timeout, [reply, &download_timeout]() {
+        download_timeout.stop();
+        reply->abort();
+    });
+
+    download_timeout.start();
+    event_loop.exec();
+}
+
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
 QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
                     DownloadAction&& on_download, ErrorAction&& on_error, const std::atomic_bool& abort_download,
                     const bool force_cache = false)
 {
-    QEventLoop event_loop;
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
@@ -75,18 +88,13 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
 
     NetworkReplyUPtr reply{manager->get(request)};
 
-    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
     QObject::connect(reply.get(), &QNetworkReply::downloadProgress, [&](qint64 bytes_received, qint64 bytes_total) {
         on_progress(reply.get(), bytes_received, bytes_total);
     });
     QObject::connect(reply.get(), &QNetworkReply::readyRead, [&]() { on_download(reply.get(), download_timeout); });
-    QObject::connect(&download_timeout, &QTimer::timeout, [&]() {
-        download_timeout.stop();
-        reply->abort();
-    });
 
-    download_timeout.start();
-    event_loop.exec();
+    wait_for_reply(reply.get(), download_timeout);
+
     if (reply->error() != QNetworkReply::NoError)
     {
         const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
@@ -114,6 +122,32 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
                          reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool()));
 
     return reply->readAll();
+}
+
+template <typename Time>
+auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkRequest::KnownHeaders header,
+                const Time& timeout)
+{
+    QTimer download_timeout;
+    download_timeout.setInterval(timeout);
+
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+
+    NetworkReplyUPtr reply{manager->head(request)};
+
+    wait_for_reply(reply.get(), download_timeout);
+
+    if (reply->error() != QNetworkReply::NoError)
+    {
+        const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
+
+        mpl::log(mpl::Level::warning, category, fmt::format("Cannot retrieve headers for {}: {}", url.toString(), msg));
+
+        throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
+    }
+
+    return reply->header(header);
 }
 } // namespace
 
@@ -210,22 +244,7 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
 {
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
-    QEventLoop event_loop;
-
-    QNetworkRequest request{url};
-    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-
-    NetworkReplyUPtr reply{manager->head(request)};
-    QObject::connect(reply.get(), &QNetworkReply::finished, &event_loop, &QEventLoop::quit);
-
-    event_loop.exec();
-
-    if (reply->error() != QNetworkReply::NoError)
-    {
-        throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
-    }
-
-    return reply->header(QNetworkRequest::LastModifiedHeader).toDateTime();
+    return get_header(manager.get(), url, QNetworkRequest::LastModifiedHeader, timeout).toDateTime();
 }
 
 void mp::URLDownloader::abort_all_downloads()

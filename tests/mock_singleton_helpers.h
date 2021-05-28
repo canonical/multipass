@@ -44,10 +44,11 @@ public:                                                                         
 
 #define MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)                                                             \
 public:                                                                                                                \
+    template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NaggyMock>                         \
     [[nodiscard]] static GuardedMock inject()                                                                          \
     {                                                                                                                  \
         parent_class::reset();                                                                                         \
-        parent_class::mock<mock_class>();                                                                              \
+        parent_class::mock<MockCharacter<mock_class>>();                                                               \
         return std::make_pair(&mock_instance(), academy());                                                            \
     } // one at a time, please!
 
@@ -55,7 +56,8 @@ public:                                                                         
 public:                                                                                                                \
     MP_MOCK_SINGLETON_HELPER_TYPES(mock_class, parent_class)                                                           \
     MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                                             \
-    MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)
+    MP_MOCK_SINGLETON_INJECT(mock_class, parent_class)                                                                 \
+    void please_dont_call_this_undefined_method_that_gobbles_semicolons() // see https://godbolt.org/z/7ac1zaGxr
 
 namespace multipass::test
 {
