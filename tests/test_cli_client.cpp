@@ -601,6 +601,11 @@ TEST_F(Client, launch_cmd_cpu_option_zero_fail)
     EXPECT_THAT(send_command({"launch", "-c", "0"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, launch_cmd_cpu_option_negative_fail)
+{
+    EXPECT_THAT(send_command({"launch", "-c", "-2"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 TEST_F(Client, launch_cmd_cpu_option_fails_no_value)
 {
     EXPECT_THAT(send_command({"launch", "-c"}), Eq(mp::ReturnCode::CommandLineError));

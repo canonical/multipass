@@ -268,7 +268,16 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(cpusOption))
     {
-        request.set_num_cores(parser->value(cpusOption).toInt());
+        bool conversion_pass;
+        const int cpu_count = parser->value(cpusOption).toInt(&conversion_pass); // Base 10 conversion with check.
+
+        if (!conversion_pass || cpu_count < 1)
+        {
+            cerr << "error: Please enter a non-zero integer value for the CPU count.\n ";
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_num_cores(cpu_count);
     }
 
     if (parser->isSet(memOption))
