@@ -269,15 +269,16 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     if (parser->isSet(cpusOption))
     {
         bool conversion_pass;
-        const int cpu_text = parser->value(cpusOption).toInt(&conversion_pass); // Base 10 conversion with check.
+        const auto& cpu_text = parser->value(cpusOption);
+        const int cpu_count = cpu_text.toInt(&conversion_pass); // Base 10 conversion with check.
 
-        if (!conversion_pass || cpu_text < 1)
+        if (!conversion_pass || cpu_count < 1)
         {
             fmt::print(cerr, "error: Invalid CPU count '{}', need a positive integer value.\n", cpu_text);
             return ParseCode::CommandLineError;
         }
 
-        request.set_num_cores(cpu_text);
+        request.set_num_cores(cpu_count);
     }
 
     if (parser->isSet(memOption))
