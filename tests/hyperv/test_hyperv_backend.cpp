@@ -439,6 +439,36 @@ TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_descripti
     EXPECT_THAT(backend.networks(), IsSupersetOf({match(wifi.id), match(eth.id)}));
 }
 
+struct TestAdapterAuthorization : public HyperVNetworksPS, public WithParamInterface<mp::NetworkInterfaceInfo>
+{
+};
+
+TEST_P(TestAdapterAuthorization, requires_no_authorization_for_known_adapters_in_switches)
+{
+    const auto& net = GetParam();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
+
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("switch,external,{}\n", net.description)));
+    EXPECT_THAT(backend.networks(), Contains(AllOf(Field(&mp::NetworkInterfaceInfo::id, net.id),
+                                                   Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
+}
+
+TEST_P(TestAdapterAuthorization, requires_authorization_for_known_adapters_in_no_switches)
+{
+    const auto& net = GetParam();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
+
+    ps_helper.mock_ps_exec("switch,external,unknown adapter\n");
+    EXPECT_THAT(backend.networks(), Contains(AllOf(Field(&mp::NetworkInterfaceInfo::id, net.id),
+                                                   Field(&mp::NetworkInterfaceInfo::needs_authorization, true))));
+}
+
+INSTANTIATE_TEST_SUITE_P(HyperVNetworkPS, TestAdapterAuthorization,
+                         Values(mp::NetworkInterfaceInfo{"abc", "ethernet", "An adapter", {}, false},
+                                mp::NetworkInterfaceInfo{"def", "wifi", "Another adapter", {}, true},
+                                mp::NetworkInterfaceInfo{"ghi", "ethernet", "Yet another", {"x", "y", "z"}, false},
+                                mp::NetworkInterfaceInfo{"jkl", "wifi", "And a final one", {"w"}, true}));
+
 TEST_F(HyperVNetworksPS, get_switches_returns_empty_when_no_switches_found)
 {
     ps_helper.mock_ps_exec("");
