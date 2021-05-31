@@ -219,6 +219,15 @@ std::string switch_description(const QString& switch_type, const std::vector<std
         return fmt::format("Unknown Virtual Switch type: {}", switch_type);
 }
 
+void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapters,
+                                   const std::vector<mp::NetworkInterfaceInfo>& switches)
+{
+    for (auto& adapter : adapters)
+        adapter.needs_authorization = std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
+            return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) != switch_.links.cend();
+        });
+}
+
 } // namespace
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -282,7 +291,7 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
 {
     auto adapters = get_adapters();
     auto switches = get_switches(adapters);
-    //    update_adapter_authorizations(adapters); // TODO@ricab
+    update_adapter_authorizations(adapters, switches);
 
     if (adapters.size() > switches.size())
         swap(adapters, switches);                        // we want to move the smallest one
