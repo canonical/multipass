@@ -395,7 +395,7 @@ struct TestSwitchUnsupportedLinks : public HyperVNetworksPS,
 {
 };
 
-TEST_F(TestSwitchUnsupportedLinks, excludes_switch_links_to_unknown_adapters)
+TEST_P(TestSwitchUnsupportedLinks, excludes_switch_links_to_unknown_adapters)
 {
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector(GetParam())));
     ps_helper.mock_ps_exec("switchin,external,crazy adapter\nnope,external,nope");
