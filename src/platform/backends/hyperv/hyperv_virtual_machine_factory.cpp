@@ -200,17 +200,18 @@ std::vector<std::string> switch_links(const std::vector<mp::NetworkInterfaceInfo
     return ret;
 }
 
-std::string switch_description(const QString& switch_type, const QString& physical_adapter)
+std::string switch_description(const QString& switch_type, const std::vector<std::string>& links)
 {
     if (switch_type.contains("external", Qt::CaseInsensitive))
     {
-        if (physical_adapter.isEmpty())
-            throw std::runtime_error{"Missing adapter for external switch"};
+        if (links.empty())
+            return "Virtual Switch with external networking";
 
-        return fmt::format("Virtual Switch with external networking via \"{}\"", physical_adapter);
+        return fmt::format("Virtual Switch with external networking via \"{}\"", fmt::join(links, ", "));
     }
-    else if (!physical_adapter.isEmpty())
-        throw std::runtime_error{fmt::format("Unexpected adapter for non-external switch: {}", physical_adapter)};
+    else if (!links.empty())
+        throw std::runtime_error{
+            fmt::format("Unexpected adapter(s) for non-external switch: {}", fmt::join(links, ", "))};
     else if (switch_type.contains("private", Qt::CaseInsensitive))
         return "Private virtual switch";
     else if (switch_type.contains("internal", Qt::CaseInsensitive))
@@ -313,8 +314,8 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
                     "Could not determine available networks - unexpected powershell output: {}", ps_output)};
             }
 
-            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2)),
-                           switch_links(adapters, terms.at(2))}); // TODO@ricab mention links in description instead
+            auto links = switch_links(adapters, terms.at(2));
+            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), links), links});
         }
 
         return ret;
