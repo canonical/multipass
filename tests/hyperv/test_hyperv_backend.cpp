@@ -463,6 +463,21 @@ TEST_P(TestAdapterAuthorization, requires_authorization_for_known_adapters_in_no
                                                    Field(&mp::NetworkInterfaceInfo::needs_authorization, true))));
 }
 
+TEST_P(TestAdapterAuthorization, requires_no_authorization_for_switches)
+{
+    const auto& net = GetParam();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
+
+    constexpr auto ps_output = "ext_switch_a,external,unknown adapter\next_switch_a,external,{}"
+                               "\nint_switch,internal,\npriv_switch,private,\n";
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(ps_output, net.description)));
+
+    const auto networks = backend.networks();
+    EXPECT_THAT(std::count_if(networks.cbegin(), networks.cend(), [](const auto& x) { return x.type == "switch"; }), 4);
+    EXPECT_THAT(networks, Each(AnyOf(Field(&mp::NetworkInterfaceInfo::type, Ne("switch")),
+                                     Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
+}
+
 INSTANTIATE_TEST_SUITE_P(HyperVNetworkPS, TestAdapterAuthorization,
                          Values(mp::NetworkInterfaceInfo{"abc", "ethernet", "An adapter", {}, false},
                                 mp::NetworkInterfaceInfo{"def", "wifi", "Another adapter", {}, true},
