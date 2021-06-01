@@ -61,32 +61,28 @@ void mpu::Timer::main()
 
 void mpu::Timer::pause()
 {
-    {
-        std::lock_guard<std::mutex> lk(cv_m);
-        if (current_state != TimerState::Running)
-            return;
-        current_state = TimerState::Paused;
-    }
+    if (current_state != TimerState::Running)
+        return;
+
+    current_state = TimerState::Paused;
+
     cv.notify_all();
 }
 
 void mpu::Timer::resume()
 {
-    {
-        std::lock_guard<std::mutex> lk(cv_m);
-        if (current_state != TimerState::Paused)
-            return;
-        current_state = TimerState::Running;
-    }
+    if (current_state != TimerState::Paused)
+        return;
+
+    current_state = TimerState::Running;
+
     cv.notify_all();
 }
 
 void mpu::Timer::stop()
 {
-    {
-        std::lock_guard<std::mutex> lk(cv_m);
-        current_state = TimerState::Stopped;
-    }
+    current_state = TimerState::Stopped;
+
     cv.notify_all();
 
     if (t.joinable())

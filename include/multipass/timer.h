@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_TIMER_H
 #define MULTIPASS_TIMER_H
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -53,7 +54,7 @@ private:
     void main();
     const std::chrono::seconds timeout;
     const std::function<void()> callback;
-    TimerState current_state;
+    std::atomic<TimerState> current_state;
     std::thread t;
     std::condition_variable cv;
     std::mutex cv_m;
