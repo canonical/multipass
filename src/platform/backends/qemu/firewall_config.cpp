@@ -36,6 +36,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "firewall";
+static constexpr auto table_error_template{"for table {} ({}): with output: {}"};
 
 // QString constants for all of the different firewall calls
 const QString iptables{QStringLiteral("iptables-legacy")};
@@ -115,8 +116,9 @@ void add_firewall_rule(const QString& firewall, const QString& table, const QStr
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw FirewallException(
-            fmt::format("Failed to set firewall rule for table {}: {}", table, process->read_all_standard_error()));
+        throw FirewallException(fmt::format("Failed to set firewall rule {}",
+                                            fmt::format(table_error_template, table, exit_state.failure_message(),
+                                                        process->read_all_standard_error())));
 }
 
 void delete_firewall_rule(const QString& firewall, const QString& table, const QStringList& chain_and_rule)
@@ -129,8 +131,9 @@ void delete_firewall_rule(const QString& firewall, const QString& table, const Q
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw FirewallException(
-            fmt::format("Failed to delete firewall rule for table {}: {}", table, process->read_all_standard_error()));
+        throw FirewallException(fmt::format("Failed to delete firewall rule {}",
+                                            fmt::format(table_error_template, table, exit_state.failure_message(),
+                                                        process->read_all_standard_error())));
 }
 
 auto get_firewall_rules(const QString& firewall, const QString& table)
@@ -140,8 +143,9 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw FirewallException(fmt::format("Failed to get firewall list for table {} ({}): with output: {}", table,
-                                            exit_state.failure_message(), process->read_all_standard_error()));
+        throw FirewallException(fmt::format("Failed to get firewall list {}",
+                                            fmt::format(table_error_template, table, exit_state.failure_message(),
+                                                        process->read_all_standard_error())));
 
     return process->read_all_standard_output();
 }
