@@ -147,9 +147,37 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
         QJsonObject project{{"name", lxd_project_name}, {"description", "Project for Multipass instances"}};
 
         lxd_request(manager.get(), "POST", QUrl(QString("%1/projects").arg(base_url.toString())), project);
+    }
 
-        // TODO: Detect if default storage pool is available and if not, create a directory based pool for
-        //       Multipass
+    auto storage_pools =
+        lxd_request(manager.get(), "GET", QUrl(QString("%1/storage-pools?recursion=1").arg(base_url.toString())));
+
+    // Detect if there is a storage pool to use
+    for (const auto& pool : storage_pools["metadata"].toArray())
+    {
+        auto pool_name = pool.toObject()["name"].toString();
+        if (pool_name == "default")
+        {
+            mpl::log(mpl::Level::debug, category, "Using the \'default\' storage pool.");
+            storage_pool = pool_name;
+            break;
+        }
+        else if (pool_name == "multipass")
+        {
+            mpl::log(mpl::Level::debug, category, "Using the \'multipass\' storage pool.");
+            storage_pool = pool_name;
+            break;
+        }
+    }
+
+    // No storage pool to use, so create a multipass dir-based pool
+    if (storage_pool.isEmpty())
+    {
+        storage_pool = "multipass";
+        mpl::log(mpl::Level::info, category, "No storage pool found for multpass: creating…");
+        QJsonObject pool_config{
+            {"description", "Storage pool for Multipass"}, {"name", storage_pool}, {"driver", "dir"}};
+        lxd_request(manager.get(), "POST", QUrl(QString("%1/storage-pools").arg(base_url.toString())), pool_config);
     }
 
     try
