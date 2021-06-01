@@ -624,8 +624,7 @@ OSReleaseTestParam parse_os_release_ubuntu2104lts_rotation = {
 
 TEST_P(OSReleaseTest, test_parse_os_release)
 {
-    auto expected = std::get<1>(GetParam());
-    const QStringList input = std::get<0>(GetParam());
+    const auto& [input, expected] = GetParam();
 
     auto output = multipass::platform::detail::parse_os_release(input);
 
