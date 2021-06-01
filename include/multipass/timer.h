@@ -47,7 +47,6 @@ public:
     void pause();
     void resume();
     void stop();
-    TimerState state();
 
 private:
     void main();
