@@ -224,23 +224,23 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return detail::get_network_interfaces_from(sysfs);
 }
 
-QString mp::platform::Platform::get_workflows_url_override()
+QString mp::platform::Platform::get_workflows_url_override() const
 {
     return QString::fromUtf8(qgetenv("MULTIPASS_WORKFLOWS_URL"));
 }
 
-bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
+bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
     return true;
 }
 
-bool mp::platform::Platform::is_remote_supported(const std::string& remote)
+bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
     // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
     return remote != "snapcraft" || utils::get_driver_str() != "lxd";
 }
 
-bool mp::platform::Platform::link(const char* target, const char* link)
+bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     return ::link(target, link) == 0;
 }
