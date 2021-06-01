@@ -717,8 +717,7 @@ TEST_F(PlatformLinux, read_os_release_from_file)
 
     InSequence seq;
     EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
-    EXPECT_CALL(*mock_file_ops, isOpen).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, isOpen).WillOnce(Return(true));
     for (size_t idx = 0; idx < os_rel_len; ++idx)
     {
         EXPECT_CALL(*mock_file_ops, readLine).WillOnce(Return(os_rel_file.readLine())).RetiresOnSaturation();
