@@ -17,7 +17,6 @@
 
 #include "firewall_config.h"
 
-#include <multipass/exceptions/firewall_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/process.h>
@@ -26,6 +25,8 @@
 #include <shared/linux/process_factory.h>
 
 #include <semver200.h>
+
+#include <stdexcept>
 
 #include <QRegularExpression>
 
@@ -94,6 +95,12 @@ const QString RETURN{QStringLiteral("RETURN")};
 const QString reject_with{QStringLiteral("--reject-with")};
 const QString icmp_port_unreachable{QStringLiteral("icmp-port-unreachable")};
 
+class FirewallException : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
 auto multipass_firewall_comment(const QString& bridge_name)
 {
     return QString("generated for Multipass network %1").arg(bridge_name);
@@ -108,7 +115,7 @@ void add_firewall_rule(const QString& firewall, const QString& table, const QStr
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw mp::FirewallException(
+        throw FirewallException(
             fmt::format("Failed to set firewall rule for table {}: {}", table, process->read_all_standard_error()));
 }
 
@@ -122,7 +129,7 @@ void delete_firewall_rule(const QString& firewall, const QString& table, const Q
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw mp::FirewallException(
+        throw FirewallException(
             fmt::format("Failed to delete firewall rule for table {}: {}", table, process->read_all_standard_error()));
 }
 
@@ -133,8 +140,8 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
-        throw mp::FirewallException(fmt::format("Failed to get firewall list for table {} ({}): with output: {}", table,
-                                                exit_state.failure_message(), process->read_all_standard_error()));
+        throw FirewallException(fmt::format("Failed to get firewall list for table {} ({}): with output: {}", table,
+                                            exit_state.failure_message(), process->read_all_standard_error()));
 
     return process->read_all_standard_output();
 }
@@ -241,7 +248,7 @@ void clear_firewall_rules_for(const QString& firewall, const QString& table, con
                 // Pass the chain and rule wholesale since we capture the whole line
                 delete_firewall_rule(firewall, table, QStringList() << rule);
             }
-            catch (const mp::FirewallException& e)
+            catch (const FirewallException& e)
             {
                 mpl::log(mpl::Level::error, category,
                          fmt::format("Error deleting firewall rule '{}': {}", rule, e.what()));
@@ -294,7 +301,7 @@ QString detect_firewall()
                             ? nftables
                             : iptables;
     }
-    catch (const mp::FirewallException& e)
+    catch (const FirewallException& e)
     {
         firewall_exec = iptables;
         mpl::log(mpl::Level::warning, category, e.what());
