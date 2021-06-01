@@ -24,7 +24,7 @@ mp::PocoZipUtils::PocoZipUtils(const Singleton<PocoZipUtils>::PrivatePass& pass)
 {
 }
 
-Poco::Zip::ZipArchive mp::PocoZipUtils::zip_archive_for(std::ifstream& zip_stream)
+Poco::Zip::ZipArchive mp::PocoZipUtils::zip_archive_for(std::ifstream& zip_stream) const
 {
     return Poco::Zip::ZipArchive{zip_stream};
 }
