@@ -150,12 +150,6 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
 
         // TODO: Detect if default storage pool is available and if not, create a directory based pool for
         //       Multipass
-
-        QJsonObject devices{
-            {"eth0", QJsonObject{{"name", "eth0"}, {"nictype", "bridged"}, {"parent", "mpbr0"}, {"type", "nic"}}}};
-        QJsonObject profile{{"description", "Default profile for Multipass project"}, {"devices", devices}};
-
-        lxd_request(manager.get(), "PUT", QUrl(QString("%1/profiles/default").arg(base_url.toString())), profile);
     }
 
     try
