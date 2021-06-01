@@ -310,7 +310,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     throw std::runtime_error{err};
 }
 
-bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
+bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
     // snapcraft:core image doesn't work yet
     if (remote == "snapcraft" && alias == "core")
@@ -338,7 +338,7 @@ bool mp::platform::Platform::is_alias_supported(const std::string& alias, const 
     return false;
 }
 
-bool mp::platform::Platform::is_remote_supported(const std::string& remote)
+bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
     if (remote.empty() || check_unlock_code())
         return true;
@@ -480,23 +480,23 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
-int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid)
+int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
     return 0;
 }
 
-bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir)
+bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
     DWORD flags = is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
     return CreateSymbolicLink(link, target, flags);
 }
 
-bool mp::platform::Platform::link(const char* target, const char* link)
+bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     return CreateHardLink(link, target, nullptr);
 }
 
-int mp::platform::Platform::utime(const char* path, int atime, int mtime)
+int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 {
     DWORD ret = NO_ERROR;
     auto handle = CreateFile(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
