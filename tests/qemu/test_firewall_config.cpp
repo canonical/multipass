@@ -191,7 +191,7 @@ TEST_F(FirewallConfig, dtorDeleteErrorLogsErrorAndContinues)
 
 TEST_P(FirewallToUseTestSuite, usesExpectedFirewall)
 {
-    auto& [expected_firewall, nft_response, legacy_response] = GetParam();
+    const auto& [expected_firewall, nft_response, legacy_response] = GetParam();
 
     mpt::MockProcessFactory::Callback firewall_callback = [&nft_response, &legacy_response](mpt::MockProcess* process) {
         if (process->program() == "iptables-nft" && process->arguments().contains("--list-rules"))
