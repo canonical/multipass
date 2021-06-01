@@ -41,9 +41,9 @@ public:
 
     // QFile operations
     virtual bool open(QFile& file, QIODevice::OpenMode mode);
-    virtual bool isOpen(QFile& file);
+    virtual bool is_open(const QFile& file) const;
     virtual qint64 read(QFile& file, char* data, qint64 maxSize);
-    virtual QString readLine(QTextStream& text_stream);
+    virtual QString read_line(QTextStream& text_stream) const;
     virtual bool remove(QFile& file);
     virtual bool rename(QFile& file, const QString& newName);
     virtual bool resize(QFile& file, qint64 sz);
