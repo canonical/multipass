@@ -150,24 +150,21 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
         lxd_request(manager.get(), "POST", QUrl(QString("%1/projects").arg(base_url.toString())), project);
     }
 
-    auto storage_pools =
-        lxd_request(manager.get(), "GET", QUrl(QString("%1/storage-pools?recursion=1").arg(base_url.toString())));
-
-    // Detect if there is a storage pool to use
-    for (const auto& pool : storage_pools["metadata"].toArray())
+    const QStringList pools_to_try{{"multipass", "default"}};
+    for (const auto& pool : pools_to_try)
     {
-        auto pool_name = pool.toObject()["name"].toString();
-        if (pool_name == "default")
+        try
         {
-            mpl::log(mpl::Level::debug, category, "Using the \'default\' storage pool.");
-            storage_pool = pool_name;
+            lxd_request(manager.get(), "GET", QUrl(QString("%1/storage-pools/%2").arg(base_url.toString()).arg(pool)));
+
+            storage_pool = pool;
+            mpl::log(mpl::Level::debug, category, fmt::format("Using the \'{}\' storage pool.", pool));
+
             break;
         }
-        else if (pool_name == "multipass")
+        catch (const LXDNotFoundException&)
         {
-            mpl::log(mpl::Level::debug, category, "Using the \'multipass\' storage pool.");
-            storage_pool = pool_name;
-            break;
+            // Keep going
         }
     }
 
