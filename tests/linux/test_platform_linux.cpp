@@ -696,31 +696,18 @@ TEST_F(PlatformLinux, read_os_release_from_file_not_found)
 
 TEST_F(PlatformLinux, read_os_release_from_file)
 {
-    const std::string expected = "distribution_name-distribution_release";
-    const auto expected_filename = QStringLiteral("/var/lib/snapd/hostfs/etc/os-release");
-    const size_t os_rel_len = 13; // 12 lines of data + 1 for EOF.
-    QTextStream os_rel_file("NAME=\"distribution_name\"\n"
-                            "VERSION=\"21.04 (Hirsute Hippo)\"\n"
-                            "ID=ubuntu\n"
-                            "ID_LIKE=debian\n"
-                            "PRETTY_NAME=\"Ubuntu 21.04\"\n"
-                            "VERSION_ID=\"distribution_release\"\n"
-                            "HOME_URL=\"https://www.ubuntu.com/\"\n"
-                            "SUPPORT_URL=\"https://help.ubuntu.com/\"\n"
-                            "BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\n"
-                            "PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\n"
-                            "VERSION_CODENAME=hirsute\n"
-                            "UBUNTU_CODENAME=hirsute\n");
+    const auto& [input, expected_pair] = parse_os_release_ubuntu2104lts;
+    auto expected = fmt::format("{}-{}", expected_pair.first, expected_pair.second);
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     InSequence seq;
     EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_open).WillOnce(Return(true));
-    for (size_t idx = 0; idx < os_rel_len; ++idx)
-    {
-        EXPECT_CALL(*mock_file_ops, read_line).WillOnce(Return(os_rel_file.readLine())).RetiresOnSaturation();
-    }
+
+    for (const auto& line : input)
+        EXPECT_CALL(*mock_file_ops, read_line).WillOnce(Return(line)).RetiresOnSaturation();
+    EXPECT_CALL(*mock_file_ops, read_line).WillOnce(Return(QString{}));
 
     auto output = multipass::platform::detail::read_os_release();
 
