@@ -18,6 +18,7 @@
 #include "tests/fake_handle.h"
 #include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
@@ -149,6 +150,7 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     template <typename VMFactoryType>
     void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
     {
+        auto factory = mpt::MockProcessFactory::Inject();
         setup_driver_settings(driver);
 
         decltype(mp::platform::vm_backend("")) factory_ptr;

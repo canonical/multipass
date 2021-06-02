@@ -123,7 +123,7 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_di
       network_dir{mp::utils::make_dir(QDir(data_dir), "network")},
       subnet{mp::backend::get_subnet(network_dir, bridge_name)},
       dnsmasq_server{create_dnsmasq_server(network_dir, bridge_name, subnet)},
-      iptables_config{bridge_name, subnet}
+      firewall_config{bridge_name, subnet}
 {
 }
 
@@ -172,7 +172,7 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
     mp::backend::check_if_kvm_is_in_use();
 
     dnsmasq_server.check_dnsmasq_running();
-    iptables_config.verify_iptables_rules();
+    firewall_config.verify_firewall_rules();
 }
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string()
