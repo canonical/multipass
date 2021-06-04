@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -261,4 +261,29 @@ TEST_F(BasicProcessTest, reports_previous_pid_after_finished)
     EXPECT_TRUE(process.wait_for_finished());
     ASSERT_GT(pid, 0);
     EXPECT_EQ(process.process_id(), pid);
+}
+
+TEST_F(BasicProcessTest, reads_expected_data_from_stdout_and_stderr)
+{
+    const QByteArray data{"Some data the mock process will return"};
+    mp::BasicProcess process(mp::simple_process_spec("mock_process", {"0", "stay-alive"}));
+
+    QObject::connect(&process, &mp::Process::ready_read_standard_output, [&process, &data] {
+        auto stdout_data = process.read_all_standard_output();
+        EXPECT_EQ(data, stdout_data);
+    });
+
+    QObject::connect(&process, &mp::Process::ready_read_standard_error, [&process, &data] {
+        auto stderr_data = process.read_all_standard_error();
+        EXPECT_EQ(data, stderr_data);
+    });
+
+    EXPECT_TRUE(process.working_directory().isEmpty());
+
+    process.start();
+
+    process.write(data);
+    process.write(QByteArray(1, '\0'));
+
+    EXPECT_TRUE(process.wait_for_finished());
 }

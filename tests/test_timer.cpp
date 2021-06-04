@@ -87,7 +87,9 @@ TEST_F(Timer, pauses)
 
 TEST_F(Timer, resumes)
 {
-    mpu::Timer t{duration_cast<seconds>(5ms), [this]() {
+    const std::chrono::milliseconds timeout(10);
+
+    mpu::Timer t{duration_cast<seconds>(timeout), [this]() {
                      {
                          std::lock_guard<std::mutex> lk{cv_m};
                          timedout.store(true);
@@ -103,13 +105,13 @@ TEST_F(Timer, resumes)
 
     t.pause();
 
-    std::this_thread::sleep_for(5ms);
+    std::this_thread::sleep_for(timeout + 5ms);
     lk.lock();
     ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
 
     t.resume();
 
-    cv.wait_for(lk, 10ms); // Windows CI needs longer...
+    cv.wait_for(lk, timeout); // Windows CI needs longer...
     ASSERT_TRUE(timedout.load()) << "Should have timed out now";
 }
 

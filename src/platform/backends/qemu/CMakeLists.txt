@@ -1,4 +1,4 @@
-# Copyright © 2017-2020 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -17,7 +17,7 @@ set (CMAKE_AUTOMOC ON)
 add_library(qemu_backend STATIC
   dnsmasq_process_spec.cpp
   dnsmasq_server.cpp
-  iptables_config.cpp
+  firewall_config.cpp
   qemu_base_process_spec.cpp
   qemu_vm_process_spec.cpp
   qemu_vmstate_process_spec.cpp
