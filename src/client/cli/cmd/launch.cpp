@@ -29,11 +29,14 @@
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 
+#include <multipass/url_downloader.h>
+
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
 #include <QFileInfo>
 #include <QTimeZone>
+#include <QUrl>
 
 #include <cstdlib>
 #include <regex>
@@ -47,6 +50,8 @@ using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
+constexpr auto download_timeout = std::chrono::minutes(1);
+
 const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
 const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
 const std::regex later{"l|later", std::regex::icase | std::regex::optimize};
@@ -300,6 +305,14 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             if (cloudInitFile == "-")
             {
                 node = YAML::Load(term->read_all_cin());
+            }
+            else if (cloudInitFile.startsWith("http://") || cloudInitFile.startsWith("https://"))
+            {
+                URLDownloader downloader(::download_timeout);
+                QByteArray downloaded_yaml = downloader.download(QUrl(cloudInitFile));
+
+                std::string yaml_str(downloaded_yaml.constData(), downloaded_yaml.size());
+                node = YAML::Load(yaml_str);
             }
             else
             {
