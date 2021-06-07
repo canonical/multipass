@@ -221,7 +221,12 @@ void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterfa
         if (it != host_nets.end() && it->type == "ethernet")
         {
             it = find_bridge_with(host_nets, net.id);
-            net.id = it != host_nets.cend() ? it->id : mp::backend::create_bridge_with(net.id);
+            net.id = it != host_nets.cend() ? it->id : create_bridge_with(net.id);
         }
     }
+}
+
+std::string mp::LXDVirtualMachineFactory::create_bridge_with(const std::string& interface)
+{
+    return mp::backend::create_bridge_with(interface);
 }

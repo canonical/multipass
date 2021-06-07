@@ -56,6 +56,9 @@ public:
 
     std::vector<NetworkInterfaceInfo> networks() const override;
 
+protected:
+    std::string create_bridge_with(const std::string& interface) override;
+
 private:
     NetworkAccessManager::UPtr manager;
     const Path data_dir;
