@@ -18,11 +18,26 @@
 #include "base_virtual_machine_factory.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/network_interface.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
 namespace mp = multipass;
 namespace mpu = multipass::utils;
+
+namespace
+{
+template <typename NetworkContainer>
+auto find_bridge_with(const NetworkContainer& networks, const std::string& member_network,
+                      const std::string& bridge_type)
+{
+    return std::find_if(std::cbegin(networks), std::cend(networks),
+                        [&member_network, &bridge_type](const mp::NetworkInterfaceInfo& info) {
+                            return info.type == bridge_type && info.has_link(member_network);
+                        });
+}
+} // namespace
 
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
@@ -42,4 +57,20 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
     }
 
     vm_desc.cloud_init_iso = cloud_init_iso;
+}
+
+void mp::BaseVirtualMachineFactory::prepare_networking_guts(std::vector<NetworkInterface>& extra_interfaces,
+                                                            const std::string& bridge_type)
+{
+    auto host_nets = networks();
+    for (auto& net : extra_interfaces)
+    {
+        auto net_it = std::find_if(host_nets.cbegin(), host_nets.cend(),
+                                   [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
+        if (net_it != host_nets.end() && net_it->type != bridge_type)
+        {
+            auto bridge_it = find_bridge_with(host_nets, net.id, bridge_type);
+            net.id = bridge_it != host_nets.cend() ? bridge_it->id : create_bridge_with(*net_it);
+        }
+    }
 }
