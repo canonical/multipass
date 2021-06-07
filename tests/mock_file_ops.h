@@ -34,7 +34,9 @@ public:
     MOCK_METHOD1(isReadable, bool(QDir&));
     MOCK_METHOD2(rmdir, bool(QDir&, const QString& dirName));
     MOCK_METHOD2(open, bool(QFile&, QIODevice::OpenMode));
+    MOCK_CONST_METHOD1(is_open, bool(const QFile&));
     MOCK_METHOD3(read, qint64(QFile&, char*, qint64));
+    MOCK_CONST_METHOD1(read_line, QString(QTextStream&));
     MOCK_METHOD1(remove, bool(QFile&));
     MOCK_METHOD2(rename, bool(QFile&, const QString& newName));
     MOCK_METHOD2(resize, bool(QFile&, qint64 sz));

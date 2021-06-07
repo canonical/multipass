@@ -43,7 +43,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <multipass/file_ops.h>
 #include <stdexcept>
+#include <tests/mock_file_ops.h>
+#include <tests/path.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -105,7 +108,7 @@ auto setup_autostart_desktop_file_test()
     // Now mock filesystem tree and environment, reverting when done
 
     auto guard_fs = sg::make_scope_guard([test_dir]() mutable noexcept { // std::terminate ok if this throws
-        test_dir.removeRecursively(); // succeeds if not there
+        test_dir.removeRecursively();                                    // succeeds if not there
     });
 
     QDir data_dir{test_dir.filePath("data")};
@@ -555,5 +558,171 @@ INSTANTIATE_TEST_SUITE_P(
     PlatformLinux, BridgeMemberTest,
     Values(Param{{"en0", true}}, Param{{"en0", false}}, Param{{"en0", false}, {"en1", true}},
            Param{{"asdf", true}, {"ggi", true}, {"a1", true}, {"fu", false}, {"ho", true}, {"ra", false}}));
+
+using OSReleaseTestParam = std::pair<QStringList, std::pair<std::string, std::string>>;
+struct OSReleaseTest : public PlatformLinux, WithParamInterface<OSReleaseTestParam>
+{
+};
+
+OSReleaseTestParam parse_os_release_empty = {
+    {{"NAME=\"\""},
+     {"VERSION=\"21.04 (Hirsute Hippo)\""},
+     {"ID=ubuntu"},
+     {"ID_LIKE=debian"},
+     {"PRETTY_NAME=\"Ubuntu 21.04\""},
+     {"VERSION_ID=\"\""},
+     {"HOME_URL=\"https://www.ubuntu.com/\""},
+     {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+     {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+     {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+     {"VERSION_CODENAME=hirsute"},
+     {"UBUNTU_CODENAME=hirsute"}},
+    {"unknown", "unknown"}};
+
+OSReleaseTestParam parse_os_release_single_char_fields = {
+    {{"NAME=\"A\""},
+     {"VERSION=\"21.04 (Hirsute Hippo)\""},
+     {"ID=ubuntu"},
+     {"ID_LIKE=debian"},
+     {"PRETTY_NAME=\"Ubuntu 21.04\""},
+     {"VERSION_ID=\"B\""},
+     {"HOME_URL=\"https://www.ubuntu.com/\""},
+     {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+     {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+     {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+     {"VERSION_CODENAME=hirsute"},
+     {"UBUNTU_CODENAME=hirsute"}},
+    {"A", "B"}};
+
+OSReleaseTestParam parse_os_release_ubuntu2104lts = {
+    {{"NAME=\"Ubuntu\""},
+     {"VERSION=\"21.04 (Hirsute Hippo)\""},
+     {"ID=ubuntu"},
+     {"ID_LIKE=debian"},
+     {"PRETTY_NAME=\"Ubuntu 21.04\""},
+     {"VERSION_ID=\"21.04\""},
+     {"HOME_URL=\"https://www.ubuntu.com/\""},
+     {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+     {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+     {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+     {"VERSION_CODENAME=hirsute"},
+     {"UBUNTU_CODENAME=hirsute"}},
+    {"Ubuntu", "21.04"}};
+
+OSReleaseTestParam parse_os_release_ubuntu2104lts_rotation = {
+    {{"VERSION=\"21.04 (Hirsute Hippo)\""},
+     {"ID=ubuntu"},
+     {"ID_LIKE=debian"},
+     {"VERSION_ID=\"21.04\""},
+     {"PRETTY_NAME=\"Ubuntu 21.04\""},
+     {"HOME_URL=\"https://www.ubuntu.com/\""},
+     {"SUPPORT_URL=\"https://help.ubuntu.com/\""},
+     {"BUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\""},
+     {"PRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\""},
+     {"VERSION_CODENAME=hirsute"},
+     {"NAME=\"Ubuntu\""},
+     {"UBUNTU_CODENAME=hirsute"}},
+    {"Ubuntu", "21.04"}};
+
+TEST_P(OSReleaseTest, test_parse_os_release)
+{
+    const auto& [input, expected] = GetParam();
+
+    auto output = multipass::platform::detail::parse_os_release(input);
+
+    EXPECT_EQ(expected.first, output.first.toStdString());
+    EXPECT_EQ(expected.second, output.second.toStdString());
+}
+
+INSTANTIATE_TEST_SUITE_P(PlatformLinux, OSReleaseTest,
+                         Values(OSReleaseTestParam{{}, {"unknown", "unknown"}}, parse_os_release_empty,
+                                parse_os_release_single_char_fields, parse_os_release_ubuntu2104lts,
+                                parse_os_release_ubuntu2104lts_rotation));
+
+TEST_F(PlatformLinux, find_os_release_none_found)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(false));
+
+    auto output = multipass::platform::detail::find_os_release();
+    EXPECT_EQ(output->fileName(), "");
+}
+
+TEST_F(PlatformLinux, find_os_release_etc)
+{
+    const auto expected_filename = QStringLiteral("/var/lib/snapd/hostfs/etc/os-release");
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops,
+                open(Property(&QFile::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
+        .Times(1)
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
+
+    auto output = multipass::platform::detail::find_os_release();
+    EXPECT_EQ(output->fileName(), expected_filename);
+}
+
+TEST_F(PlatformLinux, find_os_release_usr_lib)
+{
+    const auto expected_filename = QStringLiteral("/var/lib/snapd/hostfs/usr/lib/os-release");
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, open(Property(&QFile::fileName, Eq("/var/lib/snapd/hostfs/etc/os-release")),
+                                     QIODevice::ReadOnly | QIODevice::Text))
+        .WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops,
+                open(Property(&QFile::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
+
+    auto output = multipass::platform::detail::find_os_release();
+    EXPECT_EQ(output->fileName(), expected_filename);
+}
+
+TEST_F(PlatformLinux, read_os_release_from_file_not_found)
+{
+    const std::string expected = "unknown-unknown";
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(false));
+
+    auto output = multipass::platform::detail::read_os_release();
+
+    EXPECT_EQ(expected, output);
+}
+
+TEST_F(PlatformLinux, read_os_release_from_file)
+{
+    const auto& [input, expected_pair] = parse_os_release_ubuntu2104lts;
+    auto expected = fmt::format("{}-{}", expected_pair.first, expected_pair.second);
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open).WillOnce(Return(true));
+
+    for (const auto& line : input)
+        EXPECT_CALL(*mock_file_ops, read_line).WillOnce(Return(line)).RetiresOnSaturation();
+    EXPECT_CALL(*mock_file_ops, read_line).WillOnce(Return(QString{}));
+
+    auto output = multipass::platform::detail::read_os_release();
+
+    EXPECT_EQ(expected, output);
+}
+
+TEST_F(PlatformLinux, host_version_from_os)
+{
+    const std::string expected = fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+
+    auto output = multipass::platform::host_version();
+
+    EXPECT_EQ(expected, output);
+}
 
 } // namespace

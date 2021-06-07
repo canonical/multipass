@@ -38,9 +38,19 @@ bool mp::FileOps::open(QFile& file, QIODevice::OpenMode mode)
     return file.open(mode);
 }
 
+bool mp::FileOps::is_open(const QFile& file) const
+{
+    return file.isOpen();
+}
+
 qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize)
 {
     return file.read(data, maxSize);
+}
+
+QString mp::FileOps::read_line(QTextStream& text_stream) const
+{
+    return text_stream.readLine();
 }
 
 bool mp::FileOps::remove(QFile& file)

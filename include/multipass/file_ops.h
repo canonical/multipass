@@ -24,6 +24,7 @@
 #include <QDir>
 #include <QFile>
 #include <QString>
+#include <QTextStream>
 
 #define MP_FILEOPS multipass::FileOps::instance()
 
@@ -40,7 +41,9 @@ public:
 
     // QFile operations
     virtual bool open(QFile& file, QIODevice::OpenMode mode);
+    virtual bool is_open(const QFile& file) const;
     virtual qint64 read(QFile& file, char* data, qint64 maxSize);
+    virtual QString read_line(QTextStream& text_stream) const;
     virtual bool remove(QFile& file);
     virtual bool rename(QFile& file, const QString& newName);
     virtual bool resize(QFile& file, qint64 sz);
