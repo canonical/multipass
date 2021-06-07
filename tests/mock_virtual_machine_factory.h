@@ -45,6 +45,9 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                  VMImageVault::UPtr(std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&));
     MOCK_METHOD1(configure, void(VirtualMachineDescription&));
     MOCK_CONST_METHOD0(networks, std::vector<NetworkInterfaceInfo>());
+
+    // originally protected:
+    MOCK_METHOD1(create_bridge_with, std::string(const std::string&));
 };
 }
 }
