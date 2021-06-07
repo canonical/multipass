@@ -47,7 +47,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_CONST_METHOD0(networks, std::vector<NetworkInterfaceInfo>());
 
     // originally protected:
-    MOCK_METHOD1(create_bridge_with, std::string(const std::string&));
+    MOCK_METHOD1(create_bridge_with, std::string(const NetworkInterfaceInfo&));
 };
 }
 }

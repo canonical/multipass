@@ -65,7 +65,7 @@ public:
     };
 
 protected:
-    std::string create_bridge_with(const std::string& interface) override
+    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override
     {
         throw NotImplementedOnThisBackendException{"bridge creation"};
     }
