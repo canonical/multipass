@@ -311,21 +311,24 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
 {
     assert(interface.type == "ethernet" || interface.type == "wifi");
 
-    const auto if_name = QStringLiteral("'%1'").arg(interface.id.c_str());
-    const auto switch_name = QStringLiteral("'ExtSwitch (%1)'").arg(interface.id.c_str());
-    auto ps_args = QStringList{"New-VMSwitch", "-NetAdapterName", if_name,
-                               "-Name",        switch_name,       "-AllowManagementOS",
-                               "$true",        "-Notes",          "'Created by Multipass'"};
+    const auto switch_name = QStringLiteral("ExtSwitch (%1)").arg(interface.id.c_str());
+    auto quote = [](const auto& str) { return QStringLiteral("'%1'").arg(str); };
+    auto ps_args = QStringList{"New-VMSwitch", "-NetAdapterName",  quote(interface.id.c_str()),
+                               "-Name",        quote(switch_name), "-AllowManagementOS",
+                               "$true",        "-Notes",           "'Created by Multipass'"};
     ps_args << expand_property << "Name";
 
     QString ps_output;
-    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Creation", ps_output)) // TODO should probably cache a PS process
-        return ps_output.toStdString();                                      // TODO@ricab verify
+    if (!mp::PowerShell::exec(ps_args, "Hyper-V Switch Creation", ps_output) // TODO should probably cache PS processes
+        || ps_output != switch_name)
+    {
+        // TODO@ricab refactor this with below
+        auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+        auto err = fmt::format("Could not create external switch - error executing powershell command.{}", detail);
+        throw std::runtime_error{err};
+    }
 
-    // TODO@ricab refactor this with below
-    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
-    auto err = fmt::format("Could not create external switch - error executing powershell command.{}", detail);
-    throw std::runtime_error{err};
+    return ps_output.toStdString();
 }
 
 auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInterfaceInfo>& adapters)
