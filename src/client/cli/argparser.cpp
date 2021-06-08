@@ -109,7 +109,7 @@ mp::ParseCode mp::ArgParser::prepare_alias_execution()
     }
 }
 
-mp::ParseCode mp::ArgParser::parse(const multipass::optional<multipass::AliasDict>& aliases)
+mp::ParseCode mp::ArgParser::parse(const mp::optional<mp::AliasDict>& aliases)
 {
     QCommandLineOption help_option = parser.addHelpOption();
     QCommandLineOption verbose_option({"v", "verbose"},

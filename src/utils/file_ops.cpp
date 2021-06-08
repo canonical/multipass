@@ -38,7 +38,7 @@ bool mp::FileOps::rmdir(QDir& dir, const QString& dirName) const
     return dir.rmdir(dirName);
 }
 
-bool mp::FileOps::exists(QFile& file) const
+bool mp::FileOps::exists(const QFile& file) const
 {
     return file.exists();
 }

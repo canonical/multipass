@@ -33,6 +33,7 @@ void show_path_message(std::ostream& os)
                       MP_PLATFORM.get_alias_scripts_folder().absolutePath());
 }
 } // namespace
+
 mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
