@@ -287,6 +287,11 @@ void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
     check_hyperv_support();
 }
 
+void mp::HyperVVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
+{
+    prepare_networking_guts(extra_interfaces, "switch");
+}
+
 auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
     auto adapters = get_adapters();
@@ -300,6 +305,12 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
     std::move(adapters.begin(), adapters.end(), std::back_inserter(switches));
 
     return switches;
+}
+
+std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
+{
+    assert(interface.type == "ethernet" || interface.type == "wifi");
+    return "TODO"; // TODO@ricab
 }
 
 auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInterfaceInfo>& adapters)

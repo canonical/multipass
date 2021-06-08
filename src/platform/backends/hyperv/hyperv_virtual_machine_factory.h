@@ -41,7 +41,11 @@ public:
         return "hyperv";
     };
 
+    void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
     std::vector<NetworkInterfaceInfo> networks() const override;
+
+protected:
+    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
 
 private:
     friend struct multipass::test::HyperVNetworkAccessor;
