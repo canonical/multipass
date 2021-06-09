@@ -70,7 +70,7 @@ void setup_gui_autostart_prerequisites();
 std::string default_server_address();
 QString default_driver();
 
-QString daemon_config_home();                      // temporary
+QString daemon_config_home(); // temporary
 
 bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
@@ -84,6 +84,8 @@ bool is_image_url_supported();
 std::function<int()> make_quit_watchdog(); // call while single-threaded; call result later, in dedicated thread
 
 std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
+
+std::string host_version();
 
 } // namespace platform
 } // namespace multipass
