@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/format.h>
 #include <multipass/platform.h>
 
 #include "platform_proprietary.h"
@@ -30,4 +31,9 @@ QString mp::platform::Platform::get_workflows_url_override()
     }
 
     return {};
+}
+
+std::string mp::platform::host_version()
+{
+    return fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
