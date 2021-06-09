@@ -200,23 +200,29 @@ std::vector<std::string> switch_links(const std::vector<mp::NetworkInterfaceInfo
     return ret;
 }
 
-std::string switch_description(const QString& switch_type, const std::vector<std::string>& links)
+std::string switch_description(const QString& switch_type, const std::vector<std::string>& links, const QString& notes)
 {
+    std::string ret;
     if (switch_type.contains("external", Qt::CaseInsensitive))
     {
         if (links.empty())
-            return "Virtual Switch with external networking";
-
-        return fmt::format("Virtual Switch with external networking via \"{}\"", fmt::join(links, ", "));
+            ret = "Virtual Switch with external networking";
+        else
+            ret = fmt::format("Virtual Switch with external networking via \"{}\"", fmt::join(links, ", "));
     }
     else if (!links.empty())
         throw std::runtime_error{fmt::format("Unexpected link(s) for non-external switch: {}", fmt::join(links, ", "))};
     else if (switch_type.contains("private", Qt::CaseInsensitive))
-        return "Private virtual switch";
+        ret = "Private virtual switch";
     else if (switch_type.contains("internal", Qt::CaseInsensitive))
-        return "Virtual Switch with internal networking";
+        ret = "Virtual Switch with internal networking";
     else
-        return fmt::format("Unknown Virtual Switch type: {}", switch_type);
+        ret = fmt::format("Unknown Virtual Switch type: {}", switch_type);
+
+    if (!notes.isEmpty())
+        ret = fmt::format("{} ({})", ret, notes);
+
+    return ret;
 }
 
 void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapters,
@@ -338,7 +344,7 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
 {
     static const auto ps_cmd_base =
         QStringLiteral("Get-VMSwitch -ComputerName localhost " // workaround for names with more than 15 chars
-                       "| Select-Object -Property Name,SwitchType,NetAdapterInterfaceDescription"); // TODO@ricab notes
+                       "| Select-Object -Property Name,SwitchType,NetAdapterInterfaceDescription,Notes");
     static const auto ps_args = ps_cmd_base.split(' ', QString::SkipEmptyParts) + mp::PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
@@ -348,14 +354,15 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
         {
             auto terms = line.split(',', QString::KeepEmptyParts);
-            if (terms.size() != 3)
+            if (terms.size() != 4)
             {
                 throw std::runtime_error{fmt::format(
                     "Could not determine available networks - unexpected powershell output: {}", ps_output)};
             }
 
             auto links = switch_links(adapters, terms.at(2));
-            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), links), links});
+            auto description = switch_description(terms.at(1), links, terms.at(3));
+            ret.push_back({terms.at(0).toStdString(), "switch", description, links});
         }
 
         return ret;
