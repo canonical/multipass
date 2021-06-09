@@ -215,6 +215,14 @@ TEST_F(HyperVBackend, create_bridge_requests_new_switch)
 
     EXPECT_ANY_THROW(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net));
 }
+
+TEST_F(HyperVBackend, create_bridge_returns_new_switch_name)
+{
+    const mp::NetworkInterfaceInfo net{"w1", "wifi", "Wireless network"};
+    const auto switch_name = fmt::format("ExtSwitch ({})", net.id);
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(switch_name));
+    EXPECT_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), Eq(switch_name));
+}
 struct HyperVNetworks : public Test
 {
     void SetUp() override
