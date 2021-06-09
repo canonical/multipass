@@ -29,6 +29,8 @@
 
 #include "../../daemon/json_writer.h"
 
+namespace mp = multipass;
+
 mp::AliasDict::AliasDict()
 {
     const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);

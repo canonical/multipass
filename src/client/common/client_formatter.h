@@ -34,16 +34,16 @@ public:
     {
     }
 
-    std::string format(const mp::AliasDict& aliases) const;
+    std::string format(const AliasDict& aliases) const;
 
 private:
     typedef std::map<AliasDict::key_type, AliasDict::mapped_type> sorted_map;
 
-    sorted_map sort_dict(const mp::AliasDict& aliases) const;
-    std::string format_csv(const mp::AliasDict& aliases) const;
-    std::string format_json(const mp::AliasDict& aliases) const;
-    std::string format_table(const mp::AliasDict& aliases) const;
-    std::string format_yaml(const mp::AliasDict& aliases) const;
+    sorted_map sort_dict(const AliasDict& aliases) const;
+    std::string format_csv(const AliasDict& aliases) const;
+    std::string format_json(const AliasDict& aliases) const;
+    std::string format_table(const AliasDict& aliases) const;
+    std::string format_yaml(const AliasDict& aliases) const;
 
     std::string preferred_format;
 };

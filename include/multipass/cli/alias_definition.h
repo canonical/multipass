@@ -19,7 +19,6 @@
 #define MULTIPASS_ALIAS_DEFINITION_H
 
 #include <string>
-#include <vector>
 
 namespace multipass
 {

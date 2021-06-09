@@ -42,7 +42,7 @@ public:
 
     void addPositionalArgument(const QString& name, const QString& description, const QString& syntax = QString());
 
-    ParseCode parse(const multipass::optional<multipass::AliasDict>& aliases = std::nullopt);
+    ParseCode parse(const optional<AliasDict>& aliases = std::nullopt);
     cmd::Command* chosenCommand() const;
     cmd::Command* findCommand(const QString& command) const;
     const std::vector<cmd::Command::UPtr>& getCommands() const;
@@ -70,7 +70,7 @@ public:
 
     bool containsArgument(const QString& argument) const;
 
-    multipass::optional<AliasDefinition> executeAlias()
+    optional<AliasDefinition> executeAlias()
     {
         return execute_alias;
     };
@@ -83,7 +83,7 @@ private:
     const QStringList& arguments;
     const std::vector<cmd::Command::UPtr>& commands;
     cmd::Command* chosen_command;
-    multipass::optional<AliasDefinition> execute_alias;
+    optional<AliasDefinition> execute_alias;
 
     QCommandLineParser parser;
 

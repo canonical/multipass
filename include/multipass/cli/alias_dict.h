@@ -21,11 +21,7 @@
 #include <multipass/cli/alias_definition.h>
 #include <multipass/optional.h>
 
-#include <string>
 #include <unordered_map>
-#include <vector>
-
-namespace mp = multipass;
 
 namespace multipass
 {
@@ -42,7 +38,7 @@ public:
     void add_alias(const std::string& alias, const AliasDefinition& command);
     bool remove_alias(const std::string& alias);
     size_type remove_aliases_for_instance(const std::string& instance);
-    mp::optional<AliasDefinition> get_alias(const std::string& alias) const;
+    optional<AliasDefinition> get_alias(const std::string& alias) const;
     DictType::iterator begin();
     DictType::iterator end();
     DictType::const_iterator cbegin() const;

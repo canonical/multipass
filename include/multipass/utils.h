@@ -21,7 +21,6 @@
 #include <multipass/logging/level.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
-#include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
