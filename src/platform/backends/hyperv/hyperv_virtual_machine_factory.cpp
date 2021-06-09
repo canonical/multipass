@@ -310,7 +310,22 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
 std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
 {
     assert(interface.type == "ethernet" || interface.type == "wifi");
-    return "TODO"; // TODO@ricab
+
+    const auto if_name = QStringLiteral("'%1'").arg(interface.id.c_str());
+    const auto switch_name = QStringLiteral("'ExtSwitch (%1)'").arg(interface.id.c_str());
+    auto ps_args = QStringList{"New-VMSwitch", "-NetAdapterName", if_name,
+                               "-Name",        switch_name,       "-AllowManagementOS",
+                               "$true",        "-Notes",          "'Created by Multipass'"};
+    ps_args << expand_property << "Name";
+
+    QString ps_output;
+    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Creation", ps_output)) // TODO should probably cache a PS process
+        return ps_output.toStdString();                                      // TODO@ricab verify
+
+    // TODO@ricab refactor this with below
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto err = fmt::format("Could not create external switch - error executing powershell command.{}", detail);
+    throw std::runtime_error{err};
 }
 
 auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInterfaceInfo>& adapters)
