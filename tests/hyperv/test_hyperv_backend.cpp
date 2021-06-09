@@ -48,6 +48,10 @@ namespace multipass::test
 {
 struct HyperVNetworkAccessor
 {
+    explicit HyperVNetworkAccessor(HyperVVirtualMachineFactory& backend) : backend{backend}
+    {
+    }
+
     static auto get_switches(const std::vector<mp::NetworkInterfaceInfo>& adapters)
     {
         return mp::HyperVVirtualMachineFactory::get_switches(adapters); // private, but we're friends
@@ -57,6 +61,13 @@ struct HyperVNetworkAccessor
     {
         return mp::HyperVVirtualMachineFactory::get_adapters(); // private, but we're friends
     }
+
+    std::string create_bridge_with(const mp::NetworkInterfaceInfo& interface)
+    {
+        return backend.create_bridge_with(interface); // protected, but we're friends
+    }
+
+    HyperVVirtualMachineFactory& backend;
 };
 } // namespace multipass::test
 
@@ -189,6 +200,21 @@ TEST_F(HyperVBackend, throws_on_failure_to_add_extra_interface)
         Property(&std::runtime_error::what, AllOf(HasSubstr("Could not setup"), HasSubstr(extra_iface.id))));
 }
 
+TEST_F(HyperVBackend, create_bridge_requests_new_switch)
+{
+    const mp::NetworkInterfaceInfo net{"asdf", "ethernet", "The asdf net"};
+
+    ps_helper.setup(
+        [&net](auto* process) {
+            EXPECT_THAT(process->arguments(),
+                        IsSupersetOf({mpt::match_qstring("New-VMSwitch"), mpt::match_qstring(HasSubstr("ExtSwitch")),
+                                      mpt::match_qstring(HasSubstr(net.id))}));
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
+
+    EXPECT_ANY_THROW(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net));
+}
 struct HyperVNetworks : public Test
 {
     void SetUp() override
