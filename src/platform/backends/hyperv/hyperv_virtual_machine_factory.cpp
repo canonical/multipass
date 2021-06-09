@@ -313,9 +313,10 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
 
     const auto switch_name = QStringLiteral("ExtSwitch (%1)").arg(interface.id.c_str());
     auto quote = [](const auto& str) { return QStringLiteral("'%1'").arg(str); };
-    auto ps_args = QStringList{"New-VMSwitch", "-NetAdapterName",  quote(interface.id.c_str()),
-                               "-Name",        quote(switch_name), "-AllowManagementOS",
-                               "$true",        "-Notes",           "'Created by Multipass'"};
+    auto ps_args = QStringList{"New-VMSwitch",  "-NetAdapterName",  quote(interface.id.c_str()),
+                               "-Name",         quote(switch_name), "-AllowManagementOS",
+                               "$true",         "-Notes",           "'Created by Multipass'",
+                               "-ComputerName", "localhost"}; // workaround for names with more than 15 chars
     ps_args << expand_property << "Name";
 
     QString ps_output;
@@ -334,8 +335,9 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
 auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInterfaceInfo>& adapters)
     -> std::vector<NetworkInterfaceInfo>
 {
-    static const auto ps_cmd_base = QStringLiteral("Get-VMSwitch | Select-Object -Property Name,SwitchType,"
-                                                   "NetAdapterInterfaceDescription");
+    static const auto ps_cmd_base =
+        QStringLiteral("Get-VMSwitch -ComputerName localhost " // workaround for names with more than 15 chars
+                       "| Select-Object -Property Name,SwitchType,NetAdapterInterfaceDescription"); // TODO@ricab notes
     static const auto ps_args = ps_cmd_base.split(' ', QString::SkipEmptyParts) + mp::PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
