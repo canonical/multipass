@@ -223,6 +223,36 @@ TEST_F(HyperVBackend, create_bridge_returns_new_switch_name)
     ps_helper.mock_ps_exec(QByteArray::fromStdString(switch_name));
     EXPECT_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), Eq(switch_name));
 }
+
+TEST_F(HyperVBackend, create_bridge_throws_on_name_mismatch)
+{
+    const auto bad = "wrong";
+    ps_helper.mock_ps_exec(bad);
+
+    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"lagwagon", "wifi", "duh"}),
+                         std::runtime_error, mpt::match_what(HasSubstr(bad)));
+}
+
+TEST_F(HyperVBackend, create_bridge_throws_on_process_failure)
+{
+    const mp::NetworkInterfaceInfo net{"rerere", "ethernet", "lilo"};
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("ExtSwitch ({})", net.id)), /* succeed = */ false);
+
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "New-VMSwitch");
+    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), std::runtime_error,
+                         mpt::match_what(HasSubstr("Could not create external switch")));
+}
+
+TEST_F(HyperVBackend, create_bridge_includes_error_msg_in_exception)
+{
+    const auto error = "Bad Astronaut";
+    ps_helper.mock_ps_exec(error, /* succeed = */ false);
+
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "New-VMSwitch");
+    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"Needle", "wifi", "in the hay"}),
+                         std::runtime_error, mpt::match_what(HasSubstr(error)));
+}
+
 struct HyperVNetworks : public Test
 {
     void SetUp() override
