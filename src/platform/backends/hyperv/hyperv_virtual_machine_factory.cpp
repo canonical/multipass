@@ -228,6 +228,12 @@ void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapte
         });
 }
 
+std::string error_msg_helper(const std::string& msg_core, const QString& ps_output)
+{
+    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    return fmt::format("{} - error executing powershell command.{}", msg_core, detail);
+}
+
 } // namespace
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -322,12 +328,7 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
     QString ps_output;
     if (!mp::PowerShell::exec(ps_args, "Hyper-V Switch Creation", ps_output) // TODO should probably cache PS processes
         || ps_output != switch_name)
-    {
-        // TODO@ricab refactor this with below
-        auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
-        auto err = fmt::format("Could not create external switch - error executing powershell command.{}", detail);
-        throw std::runtime_error{err};
-    }
+        throw std::runtime_error{error_msg_helper("Could not create external switch", ps_output)};
 
     return ps_output.toStdString();
 }
@@ -360,9 +361,7 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
         return ret;
     }
 
-    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
-    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
-    throw std::runtime_error{err};
+    throw std::runtime_error{error_msg_helper("Could not determine available networks", ps_output)};
 }
 
 auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInterfaceInfo>
