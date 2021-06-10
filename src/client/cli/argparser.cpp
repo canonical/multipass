@@ -97,7 +97,7 @@ mp::ParseCode mp::ArgParser::prepare_alias_execution()
 {
     if (parser.positionalArguments().size() > 1)
     {
-        cerr << "Aliases admit no arguments\n";
+        cerr << "Too many arguments given\n";
 
         return mp::ParseCode::CommandFail;
     }
