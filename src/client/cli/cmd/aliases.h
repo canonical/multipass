@@ -18,15 +18,15 @@
 #ifndef MULTIPASS_ALIASES_H
 #define MULTIPASS_ALIASES_H
 
-#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
-
-#include "../../common/client_formatter.h"
 
 #include <QString>
 
 namespace multipass
 {
+class AliasDict;
+class Formatter;
+
 namespace cmd
 {
 class Aliases final : public Command
@@ -49,7 +49,7 @@ private:
     ParseCode parse_args(ArgParser* parser) override;
 
     AliasDict aliases;
-    ClientFormatter formatter;
+    Formatter* chosen_formatter;
 };
 } // namespace cmd
 } // namespace multipass

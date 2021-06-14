@@ -212,3 +212,26 @@ std::string mp::JsonFormatter::format(const VersionReply& reply, const std::stri
     }
     return QString(QJsonDocument(version_json).toJson()).toStdString();
 }
+
+std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
+{
+    QJsonObject aliases_json;
+    QJsonArray aliases_array;
+
+    for (const auto& elt : sort_dict(aliases))
+    {
+        const auto& name = elt.first;
+        const auto& def = elt.second;
+
+        QJsonObject alias_obj;
+        alias_obj.insert("name", QString::fromStdString(name));
+        alias_obj.insert("instance", QString::fromStdString(def.instance));
+        alias_obj.insert("command", QString::fromStdString(def.command));
+
+        aliases_array.append(alias_obj);
+    }
+
+    aliases_json.insert("aliases", aliases_array);
+
+    return QString(QJsonDocument(aliases_json).toJson()).toStdString();
+}

@@ -15,10 +15,12 @@
  *
  */
 
+#include <multipass/cli/alias_dict.h>
+#include <multipass/cli/argparser.h>
+#include <multipass/cli/formatter.h>
+
 #include "aliases.h"
 #include "common_cli.h"
-
-#include <multipass/cli/argparser.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -31,7 +33,7 @@ mp::ReturnCode cmd::Aliases::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    cout << formatter.format(aliases);
+    cout << chosen_formatter->format(aliases);
 
     return ReturnCode::Ok;
 }
@@ -49,21 +51,6 @@ QString cmd::Aliases::short_help() const
 QString cmd::Aliases::description() const
 {
     return QStringLiteral("List available aliases");
-}
-
-mp::ParseCode cmd::Aliases::set_formatter(mp::ArgParser* parser)
-{
-    std::string user_arg = parser->value(format_option_name).toStdString();
-
-    if (user_arg != "csv" && user_arg != "json" && user_arg != "table" && user_arg != "yaml")
-    {
-        fmt::print(cerr, "Invalid format type given.\n");
-        return ParseCode::CommandLineError;
-    }
-
-    formatter = ClientFormatter(user_arg);
-
-    return ParseCode::Ok;
 }
 
 mp::ParseCode cmd::Aliases::parse_args(mp::ArgParser* parser)
@@ -87,7 +74,7 @@ mp::ParseCode cmd::Aliases::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    status = set_formatter(parser);
+    status = handle_format_option(parser, &chosen_formatter, cerr);
 
     return status;
 }

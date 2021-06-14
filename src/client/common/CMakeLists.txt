@@ -14,8 +14,7 @@
 
 add_library(client_common STATIC
   alias_dict.cpp
-  client_common.cpp
-  client_formatter.cpp)
+  client_common.cpp)
 
 target_link_libraries(client_common
   cert
