@@ -23,17 +23,17 @@ mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Sin
 {
 }
 
-bool mp::FileOps::isReadable(QDir& dir)
+bool mp::FileOps::isReadable(QDir& dir) const
 {
     return dir.isReadable();
 }
 
-bool mp::FileOps::rmdir(QDir& dir, const QString& dirName)
+bool mp::FileOps::rmdir(QDir& dir, const QString& dirName) const
 {
     return dir.rmdir(dirName);
 }
 
-bool mp::FileOps::open(QFile& file, QIODevice::OpenMode mode)
+bool mp::FileOps::open(QFile& file, QIODevice::OpenMode mode) const
 {
     return file.open(mode);
 }
@@ -43,7 +43,7 @@ bool mp::FileOps::is_open(const QFile& file) const
     return file.isOpen();
 }
 
-qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize)
+qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize) const
 {
     return file.read(data, maxSize);
 }
@@ -53,37 +53,37 @@ QString mp::FileOps::read_line(QTextStream& text_stream) const
     return text_stream.readLine();
 }
 
-bool mp::FileOps::remove(QFile& file)
+bool mp::FileOps::remove(QFile& file) const
 {
     return file.remove();
 }
 
-bool mp::FileOps::rename(QFile& file, const QString& newName)
+bool mp::FileOps::rename(QFile& file, const QString& newName) const
 {
     return file.rename(newName);
 }
 
-bool mp::FileOps::resize(QFile& file, qint64 sz)
+bool mp::FileOps::resize(QFile& file, qint64 sz) const
 {
     return file.resize(sz);
 }
 
-bool mp::FileOps::seek(QFile& file, qint64 pos)
+bool mp::FileOps::seek(QFile& file, qint64 pos) const
 {
     return file.seek(pos);
 }
 
-bool mp::FileOps::setPermissions(QFile& file, QFileDevice::Permissions permissions)
+bool mp::FileOps::setPermissions(QFile& file, QFileDevice::Permissions permissions) const
 {
     return file.setPermissions(permissions);
 }
 
-qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize)
+qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize) const
 {
     return file.write(data, maxSize);
 }
 
-qint64 mp::FileOps::write(QFile& file, const QByteArray& data)
+qint64 mp::FileOps::write(QFile& file, const QByteArray& data) const
 {
     return file.write(data);
 }

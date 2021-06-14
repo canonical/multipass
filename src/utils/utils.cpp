@@ -83,7 +83,7 @@ mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton
 {
 }
 
-qint64 mp::Utils::filesystem_bytes_available(const QString& data_directory)
+qint64 mp::Utils::filesystem_bytes_available(const QString& data_directory) const
 {
     return QStorageInfo(QDir(data_directory)).bytesAvailable();
 }
@@ -94,7 +94,7 @@ void mp::Utils::exit(int code)
 }
 
 void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                                    const mp::SSHKeyProvider& key_provider)
+                                    const mp::SSHKeyProvider& key_provider) const
 {
     auto action = [virtual_machine, &key_provider] {
         virtual_machine->ensure_vm_is_running();
