@@ -17,6 +17,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/constants.h>
+#include <multipass/json_writer.h>
 #include <multipass/standard_paths.h>
 
 #include <QDir>
@@ -26,8 +27,6 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QTemporaryFile>
-
-#include "../../daemon/json_writer.h"
 
 namespace mp = multipass;
 

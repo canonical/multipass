@@ -17,7 +17,7 @@
  *
  */
 
-#include "json_writer.h"
+#include <multipass/json_writer.h>
 
 #include <QFile>
 #include <QJsonDocument>

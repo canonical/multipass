@@ -17,7 +17,6 @@
 
 #include "daemon.h"
 #include "base_cloud_init_config.h"
-#include "json_writer.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -27,6 +26,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/ip_address.h>
+#include <multipass/json_writer.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
