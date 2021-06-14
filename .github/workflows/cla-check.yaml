@@ -1,5 +1,6 @@
 name: cla-check
-on: []
+on:
+  workflow_dispatch:
 
 jobs:
   cla-check:
