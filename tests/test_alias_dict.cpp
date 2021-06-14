@@ -16,6 +16,10 @@
  */
 
 #include <multipass/cli/alias_dict.h>
+#include <multipass/cli/csv_formatter.h>
+#include <multipass/cli/json_formatter.h>
+#include <multipass/cli/table_formatter.h>
+#include <multipass/cli/yaml_formatter.h>
 
 #include <gmock/gmock.h>
 
@@ -25,7 +29,6 @@
 #include "json_utils.h"
 #include "mock_vm_image_vault.h"
 
-#include "src/client/common/client_formatter.h"
 #include "src/daemon/daemon.h"
 
 namespace mp = multipass;
@@ -207,11 +210,10 @@ TEST_P(FormatterTeststuite, table)
     for (const auto& alias : aliases)
         dict.add_alias(alias.first, alias.second);
 
-    ASSERT_EQ(mp::ClientFormatter("csv").format(dict), csv_output);
-    ASSERT_EQ(mp::ClientFormatter("json").format(dict), json_output);
-    ASSERT_EQ(mp::ClientFormatter().format(dict), table_output);
-    ASSERT_EQ(mp::ClientFormatter("table").format(dict), table_output);
-    ASSERT_EQ(mp::ClientFormatter("yaml").format(dict), yaml_output);
+    ASSERT_EQ(mp::CSVFormatter().format(dict), csv_output);
+    ASSERT_EQ(mp::JsonFormatter().format(dict), json_output);
+    ASSERT_EQ(mp::TableFormatter().format(dict), table_output);
+    ASSERT_EQ(mp::YamlFormatter().format(dict), yaml_output);
 }
 
 std::string csv_head{"Alias,Instance,Command\n"};
