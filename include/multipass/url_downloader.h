@@ -40,7 +40,7 @@ class NetworkManagerFactory : public Singleton<NetworkManagerFactory>
 public:
     NetworkManagerFactory(const Singleton<NetworkManagerFactory>::PrivatePass&) noexcept;
 
-    virtual std::unique_ptr<QNetworkAccessManager> make_network_manager(const Path& cache_dir_path);
+    virtual std::unique_ptr<QNetworkAccessManager> make_network_manager(const Path& cache_dir_path) const;
 };
 
 class URLDownloader

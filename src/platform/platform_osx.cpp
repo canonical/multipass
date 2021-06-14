@@ -203,7 +203,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return networks;
 }
 
-bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
+bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
     auto driver = utils::get_driver_str();
 
@@ -241,7 +241,7 @@ bool mp::platform::Platform::is_alias_supported(const std::string& alias, const 
     return false;
 }
 
-bool mp::platform::Platform::is_remote_supported(const std::string& remote)
+bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
     if (remote.empty() || check_unlock_code())
         return true;
@@ -348,7 +348,7 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
-bool mp::platform::Platform::link(const char* target, const char* link)
+bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     QFileInfo file_info{target};
 

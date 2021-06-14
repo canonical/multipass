@@ -22,7 +22,7 @@
 
 namespace mp = multipass;
 
-QString mp::platform::Platform::get_workflows_url_override()
+QString mp::platform::Platform::get_workflows_url_override() const
 {
 
     if (check_unlock_code())

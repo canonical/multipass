@@ -156,7 +156,8 @@ mp::NetworkManagerFactory::NetworkManagerFactory(const Singleton<NetworkManagerF
 {
 }
 
-std::unique_ptr<QNetworkAccessManager> mp::NetworkManagerFactory::make_network_manager(const mp::Path& cache_dir_path)
+std::unique_ptr<QNetworkAccessManager>
+mp::NetworkManagerFactory::make_network_manager(const mp::Path& cache_dir_path) const
 {
     return ::make_network_manager(cache_dir_path);
 }
