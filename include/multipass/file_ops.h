@@ -36,21 +36,21 @@ public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
     // QDir operations
-    virtual bool isReadable(QDir& dir);
-    virtual bool rmdir(QDir& dir, const QString& dirName);
+    virtual bool isReadable(QDir& dir) const;
+    virtual bool rmdir(QDir& dir, const QString& dirName) const;
 
     // QFile operations
-    virtual bool open(QFile& file, QIODevice::OpenMode mode);
+    virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
     virtual bool is_open(const QFile& file) const;
-    virtual qint64 read(QFile& file, char* data, qint64 maxSize);
+    virtual qint64 read(QFile& file, char* data, qint64 maxSize) const;
     virtual QString read_line(QTextStream& text_stream) const;
-    virtual bool remove(QFile& file);
-    virtual bool rename(QFile& file, const QString& newName);
-    virtual bool resize(QFile& file, qint64 sz);
-    virtual bool seek(QFile& file, qint64 pos);
-    virtual bool setPermissions(QFile& file, QFileDevice::Permissions permissions);
-    virtual qint64 write(QFile& file, const char* data, qint64 maxSize);
-    virtual qint64 write(QFile& file, const QByteArray& data);
+    virtual bool remove(QFile& file) const;
+    virtual bool rename(QFile& file, const QString& newName) const;
+    virtual bool resize(QFile& file, qint64 sz) const;
+    virtual bool seek(QFile& file, qint64 pos) const;
+    virtual bool setPermissions(QFile& file, QFileDevice::Permissions permissions) const;
+    virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
+    virtual qint64 write(QFile& file, const QByteArray& data) const;
 };
 } // namespace multipass
 

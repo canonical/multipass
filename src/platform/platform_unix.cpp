@@ -46,17 +46,17 @@ sftp_attributes_struct stat_to_attr(const struct stat* st)
 }
 } // namespace
 
-int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid)
+int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
     return ::lchown(path, uid, gid);
 }
 
-bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir)
+bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
     return ::symlink(target, link) == 0;
 }
 
-int mp::platform::Platform::utime(const char* path, int atime, int mtime)
+int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 {
     struct timeval tv[2];
     tv[0].tv_sec = atime;

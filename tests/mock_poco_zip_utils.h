@@ -31,7 +31,7 @@ class MockPocoZipUtils : public PocoZipUtils
 public:
     using PocoZipUtils::PocoZipUtils;
 
-    MOCK_METHOD1(zip_archive_for, Poco::Zip::ZipArchive(std::ifstream&));
+    MOCK_CONST_METHOD1(zip_archive_for, Poco::Zip::ZipArchive(std::ifstream&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPocoZipUtils, PocoZipUtils);
 };
