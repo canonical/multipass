@@ -2607,7 +2607,7 @@ TEST_F(ClientAlias, refuses_executing_alias_with_arguments)
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"some_alias", "some_argument"}, trash_stream, cerr_stream), mp::ReturnCode::CommandFail);
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("Aliases admit no arguments"));
+    EXPECT_EQ(cerr_stream.str(), "Too many arguments given\n");
 }
 
 TEST_F(ClientAlias, unalias_removes_existing_alias)
