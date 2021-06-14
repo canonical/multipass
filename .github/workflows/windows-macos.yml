@@ -114,7 +114,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     env:
-      BUILD_DIR: build
+      BUILD_DIR: ${{ github.workspace }}/build
       MACOSX_DEPLOYMENT_TARGET: "10.14"
       OPAM_COMP: "4.11.1"
       OPAMVERBOSE: 1
@@ -173,6 +173,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
       with:
+        dir: ${{ env.BUILD_DIR }}
         setup-python: false
       timeout-minutes: 10
 
@@ -206,10 +207,8 @@ jobs:
       with:
         # remove everything in the workspace and the dependencies
         paths: |
-          ${{ env.Qt5_DIR }}
           ~/.opam
           ~/Library/Caches/ccache
-          ${{ env.BUILD_DIR }}
           ${{ github.workspace }}
 
     - name: Cache OPAM
