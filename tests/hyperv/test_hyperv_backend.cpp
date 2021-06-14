@@ -408,18 +408,20 @@ TEST_P(TestSwitchUnsupportedLinks, excludes_switch_links_to_unknown_adapters)
 TEST_P(TestSwitchUnsupportedLinks, omits_unsupported_adapter_from_external_switch_description)
 {
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector(GetParam())));
-    const auto matcher = adapt_to_single_description_matcher(
-        make_required_forbidden_regex_matcher("^(?=.*switch)(?=.*external)", "via|internal|private"));
+    const auto desc_matcher =
+        Field(&mp::NetworkInterfaceInfo::description,
+              make_required_forbidden_regex_matcher("^(?=.*switch)(?=.*external)", "via|internal|private"));
 
     ps_helper.mock_ps_exec("some switch,external,some unknown NIC");
-    EXPECT_THAT(backend.networks(), matcher);
+    EXPECT_THAT(backend.networks(), Contains(desc_matcher));
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    HyperVNetworksPS, TestSwitchUnsupportedLinks,
-    Values(std::vector<mp::NetworkInterfaceInfo>{},
-           std::vector<mp::NetworkInterfaceInfo>{{"nic,wifi,a wifi"}, {"eth,ethernet,an ethernet"}},
-           std::vector<mp::NetworkInterfaceInfo>{{"nic,crazy_type,some unknown NIC"}, {"eth,ethernet,an ethernet"}}));
+INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestSwitchUnsupportedLinks,
+                         Values(std::vector<mp::NetworkInterfaceInfo>{},
+                                std::vector<mp::NetworkInterfaceInfo>{{"nic", "wifi", "a wifi"},
+                                                                      {"eth", "ethernet", "an ethernet"}},
+                                std::vector<mp::NetworkInterfaceInfo>{{"nic", "crazy_type", "some unknown NIC"},
+                                                                      {"eth", "ethernet", "an ethernet"}}));
 
 TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_description)
 {
