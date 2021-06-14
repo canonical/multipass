@@ -102,36 +102,6 @@ mp::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& al
     }
 }
 
-mp::AliasDict::DictType::iterator mp::AliasDict::begin()
-{
-    return aliases.begin();
-}
-
-mp::AliasDict::DictType::iterator mp::AliasDict::end()
-{
-    return aliases.end();
-}
-
-mp::AliasDict::DictType::const_iterator mp::AliasDict::cbegin() const
-{
-    return aliases.cbegin();
-}
-
-mp::AliasDict::DictType::const_iterator mp::AliasDict::cend() const
-{
-    return aliases.cend();
-}
-
-bool mp::AliasDict::empty() const
-{
-    return aliases.empty();
-}
-
-mp::AliasDict::size_type mp::AliasDict::size() const
-{
-    return aliases.size();
-}
-
 void mp::AliasDict::load_dict()
 {
     QFile db_file{QString::fromStdString(aliases_file)};

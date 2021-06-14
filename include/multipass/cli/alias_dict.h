@@ -39,12 +39,30 @@ public:
     bool remove_alias(const std::string& alias);
     size_type remove_aliases_for_instance(const std::string& instance);
     optional<AliasDefinition> get_alias(const std::string& alias) const;
-    DictType::iterator begin();
-    DictType::iterator end();
-    DictType::const_iterator cbegin() const;
-    DictType::const_iterator cend() const;
-    bool empty() const;
-    size_type size() const;
+    DictType::iterator begin()
+    {
+        return aliases.begin();
+    }
+    DictType::iterator end()
+    {
+        return aliases.end();
+    }
+    DictType::const_iterator cbegin() const
+    {
+        return aliases.cbegin();
+    }
+    DictType::const_iterator cend() const
+    {
+        return aliases.cend();
+    }
+    bool empty() const
+    {
+        return aliases.empty();
+    }
+    size_type size() const
+    {
+        return aliases.size();
+    }
 
 private:
     void load_dict();
