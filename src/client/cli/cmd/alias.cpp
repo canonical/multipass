@@ -109,8 +109,8 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    std::string instance = definition.left(colon_pos).toStdString();
-    std::string command = definition.right(definition.size() - colon_pos - 1).toStdString();
+    auto instance = definition.left(colon_pos).toStdString();
+    auto command = definition.right(definition.size() - colon_pos - 1).toStdString();
 
     alias_name = parser->positionalArguments().count() == 1 ? command : cl_definition[1].toStdString();
 
