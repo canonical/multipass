@@ -39,7 +39,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         state = s;
     }
 
-    void stop()
+    void stop(bool force = false)
     {
         state = mp::VirtualMachine::State::off;
     }
@@ -49,7 +49,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         state = mp::VirtualMachine::State::running;
     }
 
-    void shutdown()
+    void shutdown(bool force = false)
     {
         state = mp::VirtualMachine::State::off;
     }

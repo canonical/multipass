@@ -42,8 +42,8 @@ struct MockVirtualMachine : public multipass::VirtualMachine
     }
 
     MOCK_METHOD0(start, void());
-    MOCK_METHOD0(stop, void());
-    MOCK_METHOD0(shutdown, void());
+    MOCK_METHOD1(stop, void(bool));
+    MOCK_METHOD1(shutdown, void(bool));
     MOCK_METHOD0(suspend, void());
     MOCK_METHOD0(current_state, multipass::VirtualMachine::State());
     MOCK_METHOD0(ssh_port, int());

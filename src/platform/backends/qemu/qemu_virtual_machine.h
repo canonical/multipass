@@ -40,8 +40,8 @@ public:
     ~QemuVirtualMachine();
 
     void start() override;
-    void stop() override;
-    void shutdown() override;
+    void stop(bool force = false) override;
+    void shutdown(bool force = false) override;
     void suspend() override;
     State current_state() override;
     int ssh_port() override;

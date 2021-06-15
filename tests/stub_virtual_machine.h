@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void stop() override
+    void stop(bool force = false) override
     {
     }
 
-    void shutdown() override
+    void shutdown(bool force = false) override
     {
     }
 
