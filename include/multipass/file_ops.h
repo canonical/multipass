@@ -36,12 +36,12 @@ public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
     // QDir operations
-    virtual bool isReadable(QDir& dir) const;
+    virtual bool isReadable(const QDir& dir) const;
+    virtual bool mkpath(const QDir& dir, const QString& dirName) const;
     virtual bool rmdir(QDir& dir, const QString& dirName) const;
-    virtual bool mkpath(QDir& dir, const QString& dirName) const;
 
     // QFile operations
-    virtual bool exists(QFile& file) const;
+    virtual bool exists(const QFile& file) const;
     virtual bool is_open(const QFile& file) const;
     virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
     virtual QFileDevice::Permissions permissions(const QFile& file) const;

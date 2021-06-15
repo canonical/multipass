@@ -23,7 +23,7 @@ mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Sin
 {
 }
 
-bool mp::FileOps::isReadable(QDir& dir) const
+bool mp::FileOps::isReadable(const QDir& dir) const
 {
     return dir.isReadable();
 }
@@ -53,7 +53,7 @@ bool mp::FileOps::open(QFile& file, QIODevice::OpenMode mode) const
     return file.open(mode);
 }
 
-QFileDevice::Permissions mp::FileOps::permissions(const QFile& file)
+QFileDevice::Permissions mp::FileOps::permissions(const QFile& file) const
 {
     return file.permissions();
 }
