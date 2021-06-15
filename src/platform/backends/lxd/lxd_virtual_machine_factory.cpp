@@ -219,5 +219,5 @@ void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterfa
 std::string mp::LXDVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
 {
     assert(interface.type == "ethernet");
-    return mp::backend::create_bridge_with(interface.id);
+    return MP_BACKEND.create_bridge_with(interface.id);
 }
