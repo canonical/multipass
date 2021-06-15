@@ -506,6 +506,24 @@ TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_descripti
     EXPECT_THAT(backend.networks(), IsSupersetOf({match(wifi.id), match(eth.id)}));
 }
 
+TEST_F(HyperVNetworksPS, includes_existing_notes_in_switch_description)
+{
+    constexpr auto notes = "custom notes";
+    constexpr auto adapter_id = "Ethernet";
+    constexpr auto output_format = "PrivSwitch,Private,,{0}\n"
+                                   "IntSwitch,Internal,,{0}\n"
+                                   "ExtSwitchA,External,,{0}\n"
+                                   "ExtSwitchB,External,{1},{0}\n";
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, notes, adapter_id)));
+
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(network_map_from_vector({mp::NetworkInterfaceInfo{adapter_id, "ethernet", "eth adapter"}})));
+
+    auto matchers = std::vector{4, Field(&mp::NetworkInterfaceInfo::description, HasSubstr(notes))};
+    matchers.push_back(Field(&mp::NetworkInterfaceInfo::id, Eq(adapter_id)));
+    EXPECT_THAT(backend.networks(), UnorderedElementsAreArray(matchers));
+}
+
 struct TestAdapterAuthorization : public HyperVNetworksPS, public WithParamInterface<mp::NetworkInterfaceInfo>
 {
 };
