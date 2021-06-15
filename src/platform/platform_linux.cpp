@@ -256,7 +256,7 @@ bool mp::platform::Platform::link(const char* target, const char* link) const
     return ::link(target, link) == 0;
 }
 
-QDir mp::platform::Platform::get_alias_scripts_folder()
+QDir mp::platform::Platform::get_alias_scripts_folder() const
 {
     QDir aliases_folder;
 
@@ -273,7 +273,7 @@ QDir mp::platform::Platform::get_alias_scripts_folder()
     return aliases_folder;
 }
 
-void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def)
+void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def) const
 {
     std::string file_path = get_alias_script_path(alias);
 
@@ -299,7 +299,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
         throw std::runtime_error(fmt::format("error setting permissions to alias script '{}'", file_path));
 }
 
-void mp::platform::Platform::remove_alias_script(const std::string& alias)
+void mp::platform::Platform::remove_alias_script(const std::string& alias) const
 {
     auto file_path = get_alias_script_path(alias);
 
