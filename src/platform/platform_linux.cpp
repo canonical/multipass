@@ -160,7 +160,7 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
 
 std::string get_alias_script_path(const std::string& alias)
 {
-    QDir aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
+    auto aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
 
     return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
 }
@@ -301,7 +301,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 
 void mp::platform::Platform::remove_alias_script(const std::string& alias)
 {
-    std::string file_path = get_alias_script_path(alias);
+    auto file_path = get_alias_script_path(alias);
 
     if (::unlink(file_path.c_str()))
         throw std::runtime_error("error removing alias script");

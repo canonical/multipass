@@ -121,13 +121,13 @@ void mp::AliasDict::load_dict()
 
     for (auto it = records.constBegin(); it != records.constEnd(); ++it)
     {
-        std::string alias = it.key().toStdString();
-        QJsonObject record = it.value().toObject();
+        auto alias = it.key().toStdString();
+        auto record = it.value().toObject();
         if (record.isEmpty())
             break;
 
-        std::string instance = record["instance"].toString().toStdString();
-        std::string command = record["command"].toString().toStdString();
+        auto instance = record["instance"].toString().toStdString();
+        auto command = record["command"].toString().toStdString();
 
         aliases.emplace(alias, mp::AliasDefinition{instance, command});
     }
@@ -156,7 +156,7 @@ void mp::AliasDict::save_dict()
 
     auto config_file_name = QString::fromStdString(aliases_file);
 
-    QDir config_path = QFileInfo(config_file_name).absoluteDir();
+    auto config_path = QFileInfo(config_file_name).absoluteDir();
     if (!config_path.exists())
     {
         config_path.mkpath(config_path.absolutePath());
