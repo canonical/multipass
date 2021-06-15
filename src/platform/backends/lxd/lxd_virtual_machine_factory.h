@@ -27,7 +27,7 @@
 
 namespace multipass
 {
-class LXDVirtualMachineFactory final : public BaseVirtualMachineFactory
+class LXDVirtualMachineFactory : public BaseVirtualMachineFactory
 {
 public:
     explicit LXDVirtualMachineFactory(const Path& data_dir, const QUrl& base_url = lxd_socket_url);

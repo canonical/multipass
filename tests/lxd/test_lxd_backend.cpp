@@ -1897,3 +1897,24 @@ TEST_F(LXDBackend, posts_network_data_config_if_available)
     mp::LXDVirtualMachine machine{default_description, stub_monitor, mock_network_access_manager.get(), base_url,
                                   bridge_name};
 }
+
+namespace
+{
+class CustomLXDFactory : public mp::LXDVirtualMachineFactory
+{
+public:
+    using mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory;
+    MOCK_METHOD2(prepare_networking_guts,
+                 void(std::vector<mp::NetworkInterface>& extra_interfaces, const std::string& bridge_type));
+};
+} // namespace
+
+TEST_F(LXDBackend, prepares_networking_via_base_factory)
+{
+    CustomLXDFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    std::vector<mp::NetworkInterface> extra_networks{{"netid", "mac", false}};
+
+    auto address = [](const auto& v) { return &v; }; // replace with Address matcher once available
+    EXPECT_CALL(backend, prepare_networking_guts(ResultOf(address, Eq(&extra_networks)), Eq("bridge")));
+    backend.prepare_networking(extra_networks);
+}
