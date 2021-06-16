@@ -62,15 +62,18 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
 void mp::BaseVirtualMachineFactory::prepare_networking_guts(std::vector<NetworkInterface>& extra_interfaces,
                                                             const std::string& bridge_type)
 {
-    auto host_nets = networks();
-    for (auto& net : extra_interfaces)
+    if (!extra_interfaces.empty())
     {
-        auto net_it = std::find_if(host_nets.cbegin(), host_nets.cend(),
-                                   [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
-        if (net_it != host_nets.end() && net_it->type != bridge_type)
+        auto host_nets = networks(); // expensive
+        for (auto& net : extra_interfaces)
         {
-            auto bridge_it = find_bridge_with(host_nets, net.id, bridge_type);
-            net.id = bridge_it != host_nets.cend() ? bridge_it->id : create_bridge_with(*net_it);
+            auto net_it = std::find_if(host_nets.cbegin(), host_nets.cend(),
+                                       [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
+            if (net_it != host_nets.end() && net_it->type != bridge_type)
+            {
+                auto bridge_it = find_bridge_with(host_nets, net.id, bridge_type);
+                net.id = bridge_it != host_nets.cend() ? bridge_it->id : create_bridge_with(*net_it);
+            }
         }
     }
 }
