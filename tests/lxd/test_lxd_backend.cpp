@@ -23,6 +23,7 @@
 #include "mock_lxd_server_responses.h"
 #include "mock_network_access_manager.h"
 #include "tests/extra_assertions.h"
+#include "tests/mock_backend_utils.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_status_monitor.h"
@@ -1903,7 +1904,9 @@ namespace
 class CustomLXDFactory : public mp::LXDVirtualMachineFactory
 {
 public:
+    using mp::LXDVirtualMachineFactory::create_bridge_with;
     using mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory;
+
     MOCK_METHOD2(prepare_networking_guts,
                  void(std::vector<mp::NetworkInterface>& extra_interfaces, const std::string& bridge_type));
 };
@@ -1917,4 +1920,16 @@ TEST_F(LXDBackend, prepares_networking_via_base_factory)
     auto address = [](const auto& v) { return &v; }; // replace with Address matcher once available
     EXPECT_CALL(backend, prepare_networking_guts(ResultOf(address, Eq(&extra_networks)), Eq("bridge")));
     backend.prepare_networking(extra_networks);
+}
+
+TEST_F(LXDBackend, createsBridgesViaBackendUtils)
+{
+    const auto net = mp::NetworkInterfaceInfo{"bla", "ethernet", "ble"};
+    const auto bridge = "bli";
+    auto [mock_backend, guard] = mpt::MockBackend::inject();
+
+    CustomLXDFactory factory{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_CALL(*mock_backend, create_bridge_with(net.id)).WillOnce(Return(bridge));
+    EXPECT_EQ(factory.create_bridge_with(net), bridge);
 }
