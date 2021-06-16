@@ -92,9 +92,9 @@ TEST_F(BaseFactory, create_image_vault_returns_default_vault)
 
 TEST_F(BaseFactory, networks_throws)
 {
-    MockBaseFactory factory;
+    StrictMock<MockBaseFactory> factory;
 
-    ASSERT_THROW(factory.networks(), mp::NotImplementedOnThisBackendException);
+    ASSERT_THROW(factory.mp::BaseVirtualMachineFactory::networks(), mp::NotImplementedOnThisBackendException);
 }
 
 // Ideally, we'd define some unique YAML for each node and test the contents of the ISO image,
