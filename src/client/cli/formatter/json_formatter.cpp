@@ -220,11 +220,11 @@ std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 
     for (const auto& elt : sort_dict(aliases))
     {
-        const auto& name = elt.first;
+        const auto& alias = elt.first;
         const auto& def = elt.second;
 
         QJsonObject alias_obj;
-        alias_obj.insert("name", QString::fromStdString(name));
+        alias_obj.insert("alias", QString::fromStdString(alias));
         alias_obj.insert("instance", QString::fromStdString(def.instance));
         alias_obj.insert("command", QString::fromStdString(def.command));
 
