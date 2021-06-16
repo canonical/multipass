@@ -44,6 +44,9 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD2(prepare_instance_image, void(const mp::VMImage&, const mp::VirtualMachineDescription&));
     MOCK_METHOD0(hypervisor_health_check, void());
     MOCK_METHOD0(get_backend_version_string, QString());
+    MOCK_METHOD1(prepare_networking, void(std::vector<mp::NetworkInterface>&));
+    MOCK_CONST_METHOD0(networks, std::vector<mp::NetworkInterfaceInfo>());
+    MOCK_METHOD1(create_bridge_with, std::string(const mp::NetworkInterfaceInfo&));
 };
 
 struct BaseFactory : public Test
@@ -120,4 +123,19 @@ TEST_F(BaseFactory, creates_cloud_init_iso_image)
 
     EXPECT_EQ(vm_desc.cloud_init_iso, QString("%1/cloud-init-config.iso").arg(iso_dir.path()));
     EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
+}
+
+TEST_F(BaseFactory, prepareNetworkingHasNoObviousEffectByDefault)
+{
+    StrictMock<MockBaseFactory> factory;
+
+    EXPECT_CALL(factory, prepare_networking).WillOnce(Invoke([&factory](auto& nets) {
+        factory.mp::BaseVirtualMachineFactory::prepare_networking(nets);
+    }));
+
+    std::vector<mp::NetworkInterface> nets{{"asdf", "qwer", true}};
+    const auto nets_copy = nets;
+
+    factory.prepare_networking(nets);
+    EXPECT_EQ(nets, nets_copy);
 }

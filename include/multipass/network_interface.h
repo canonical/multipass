@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,11 @@ struct NetworkInterface
     std::string mac_address;
     bool auto_mode;
 };
+
+inline bool operator==(const NetworkInterface& a, const NetworkInterface& b)
+{
+    return std::tie(a.id, a.auto_mode, a.mac_address) == std::tie(b.id, b.auto_mode, b.mac_address);
+}
 } // namespace multipass
 
 #endif // MULTIPASS_NETWORK_INTERFACE_H
