@@ -218,22 +218,24 @@ TEST_P(FormatterTeststuite, table)
 
 std::string csv_head{"Alias,Instance,Command\n"};
 
-INSTANTIATE_TEST_SUITE_P(
-    AliasDictionary, FormatterTeststuite,
-    Values(
-        std::make_tuple(AliasesVector{}, csv_head, "{\n    \"aliases\": [\n    ]\n}\n", "No aliases defined.\n", "\n"),
-        std::make_tuple(
-            AliasesVector{{"lsp", {"primary", "ls"}}, {"llp", {"primary", "ls"}}},
-            csv_head + "llp,primary,ls\nlsp,primary,ls\n",
-            "{\n    \"aliases\": [\n        {\n"
-            "            \"command\": \"ls\",\n            \"instance\": \"primary\",\n            \"name\": \"llp\"\n"
-            "        },\n"
-            "        {\n"
-            "            \"command\": \"ls\",\n"
-            "            \"instance\": \"primary\",\n            \"name\": \"lsp\"\n        }\n    ]\n}\n",
-            "Alias  Instance  Command\nllp    primary   ls\nlsp    primary   ls\n",
-            "llp:\n  - name: llp\n    instance: primary\n    command: ls\n"
-            "lsp:\n  - name: lsp\n    instance: primary\n    command: ls\n")));
+INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTeststuite,
+                         Values(std::make_tuple(AliasesVector{}, csv_head, "{\n    \"aliases\": [\n    ]\n}\n",
+                                                "No aliases defined.\n", "aliases: ~\n"),
+                                std::make_tuple(AliasesVector{{"lsp", {"primary", "ls"}}, {"llp", {"primary", "ls"}}},
+                                                csv_head + "llp,primary,ls\nlsp,primary,ls\n",
+                                                "{\n    \"aliases\": [\n        {\n"
+                                                "            \"alias\": \"llp\",\n"
+                                                "            \"command\": \"ls\",\n"
+                                                "            \"instance\": \"primary\"\n"
+                                                "        },\n"
+                                                "        {\n"
+                                                "            \"alias\": \"lsp\",\n"
+                                                "            \"command\": \"ls\",\n"
+                                                "            \"instance\": \"primary\"\n"
+                                                "        }\n    ]\n}\n",
+                                                "Alias  Instance  Command\nllp    primary   ls\nlsp    primary   ls\n",
+                                                "aliases:\n  - alias: llp\n    command: ls\n    instance: primary\n"
+                                                "  - alias: lsp\n    command: ls\n    instance: primary\n")));
 
 struct RemoveInstanceTestsuite : public AliasDictionary,
                                  public WithParamInterface<std::pair<AliasesVector, std::vector<std::string>>>
