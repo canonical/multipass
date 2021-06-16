@@ -47,6 +47,12 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD1(prepare_networking, void(std::vector<mp::NetworkInterface>&));
     MOCK_CONST_METHOD0(networks, std::vector<mp::NetworkInterfaceInfo>());
     MOCK_METHOD1(create_bridge_with, std::string(const mp::NetworkInterfaceInfo&));
+
+    void base_prepare_networking_guts(std::vector<mp::NetworkInterface>& extra_interfaces,
+                                      const std::string& bridge_type)
+    {
+        return mp::BaseVirtualMachineFactory::prepare_networking_guts(extra_interfaces, bridge_type); // protected
+    }
 };
 
 struct BaseFactory : public Test
@@ -138,4 +144,13 @@ TEST_F(BaseFactory, prepareNetworkingHasNoObviousEffectByDefault)
 
     factory.prepare_networking(nets);
     EXPECT_EQ(nets, nets_copy);
+}
+
+TEST_F(BaseFactory, prepareNetworkingGutsWithNoExtraNetsHasNoObviousEffect)
+{
+    StrictMock<MockBaseFactory> factory;
+
+    std::vector<mp::NetworkInterface> empty;
+    factory.base_prepare_networking_guts(empty, "asdf");
+    EXPECT_THAT(empty, IsEmpty());
 }
