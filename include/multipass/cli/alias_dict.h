@@ -21,6 +21,7 @@
 #include <multipass/cli/alias_definition.h>
 #include <multipass/optional.h>
 
+#include <string>
 #include <unordered_map>
 
 namespace multipass
