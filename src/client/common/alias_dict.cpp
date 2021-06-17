@@ -19,6 +19,7 @@
 #include <multipass/constants.h>
 #include <multipass/json_writer.h>
 #include <multipass/standard_paths.h>
+#include <multipass/utils.h>
 
 #include <QDir>
 #include <QFile>
@@ -29,6 +30,7 @@
 #include <QTemporaryFile>
 
 namespace mp = multipass;
+namespace mpu = multipass::utils;
 
 mp::AliasDict::AliasDict()
 {
@@ -149,13 +151,7 @@ void mp::AliasDict::save_dict()
 
     auto config_file_name = QString::fromStdString(aliases_file);
 
-    auto config_path = QFileInfo(config_file_name).absoluteDir();
-    if (!config_path.exists())
-    {
-        config_path.mkpath(config_path.absolutePath());
-    }
-
-    QTemporaryFile temp_file(config_file_name);
+    QTemporaryFile temp_file{mpu::create_temp_file_with_path(config_file_name)};
 
     if (temp_file.open())
     {
