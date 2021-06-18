@@ -191,14 +191,14 @@ struct TestBridgeCreation
     std::vector<mp::NetworkInterface> mix_extra_nets() const // mixes bridged and unbridged
     {
         std::vector<mp::NetworkInterface> ret;
-        const auto& [desired_bridged, desired_unbridged] = GetParam();
+        const auto& [requested_bridged, requested_unbridged] = GetParam();
 
-        for (size_t i = 0; i < std::max(desired_bridged.size(), desired_unbridged.size()); ++i)
+        for (size_t i = 0; i < std::max(requested_bridged.size(), requested_unbridged.size()); ++i)
         { // alternate bridged and unbridged to avoid testing only partitioned extra_nets
-            if (i < desired_bridged.size())
-                ret.push_back(desired_bridged[i]);
-            if (i < desired_unbridged.size())
-                ret.push_back(desired_unbridged[i]);
+            if (i < requested_bridged.size())
+                ret.push_back(requested_bridged[i]);
+            if (i < requested_unbridged.size())
+                ret.push_back(requested_unbridged[i]);
         }
 
         return ret;
@@ -212,7 +212,7 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
         {"wlan1", "wifi", "w1"},    {"br0", br_type, "b0", {"eth0"}}, {"br1", br_type, "b1", {"wlan1"}},
         {"br2", br_type, "empty"}};
 
-    const auto& [desired_bridged, desired_unbridged] = GetParam();
+    const auto& [requested_bridged, requested_unbridged] = GetParam();
     auto extra_nets = mix_extra_nets();
     ASSERT_THAT(extra_nets, Not(IsEmpty()));
 
@@ -220,7 +220,7 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
     EXPECT_CALL(factory, networks).WillOnce(Return(host_nets));
 
     auto same_id = [](const auto& a, const auto& b) { return a.id == b.id; };
-    auto was_unbridged = mpt::HasCorrespondentIn(desired_unbridged, same_id);
+    auto was_unbridged = mpt::HasCorrespondentIn(requested_unbridged, same_id);
     EXPECT_CALL(factory, create_bridge_with(was_unbridged)).WillRepeatedly([](const auto& net) {
         return net.id + "br";
     });
@@ -232,42 +232,43 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
     auto is_old_bridge = mpt::HasCorrespondentIn(host_nets, is_same_bridge);
     auto is_unrecognized_network = Not(mpt::HasCorrespondentIn(host_nets, same_id));
     auto is_old_bridge_or_unrecognized = AnyOf(is_old_bridge, is_unrecognized_network);
-    auto is_unchanged = AnyOf(mpt::ContainedIn(desired_unbridged), mpt::ContainedIn(desired_bridged));
+    auto was_requested = AnyOf(mpt::ContainedIn(requested_unbridged), mpt::ContainedIn(requested_bridged));
 
     auto is_new_bridge = Field(&mp::NetworkInterface::id, EndsWith("br"));
     auto starts_with_id = [](const auto& a, const auto& b) { return a.id.rfind(b.id) == 0; };
-    auto links_to_previously_unbridged = mpt::HasCorrespondentIn(desired_unbridged, starts_with_id);
+    auto links_to_previously_unbridged = mpt::HasCorrespondentIn(requested_unbridged, starts_with_id);
     auto is_new_bridge_linking_to_previously_unbridged = AllOf(is_new_bridge, links_to_previously_unbridged);
 
-    auto links_to_previouly_bridged =
-        [bridged_ptr = &desired_bridged](const auto& a) { // ptr works around forbidden structured-binding capture
+    auto links_to_previously_bridged =
+        [bridged_ptr = &requested_bridged](const auto& a) { // ptr works around forbidden structured-binding capture
             auto a_links_to = [&a](const auto& b) { return a.has_link(b.id); };
             return std::any_of(std::cbegin(*bridged_ptr), std::cend(*bridged_ptr), a_links_to);
         };
     auto is_same_bridge_and_links_to_previously_bridged = // use matching element in host_net to check the link
-        [&is_same_bridge, &links_to_previouly_bridged](const auto& a, const auto& b) {
-            return is_same_bridge(a, b) && links_to_previouly_bridged(b);
+        [&is_same_bridge, &links_to_previously_bridged](const auto& a, const auto& b) {
+            return is_same_bridge(a, b) && links_to_previously_bridged(b);
         };
     auto is_old_bridge_linking_to_previously_bridged =
         mpt::HasCorrespondentIn(host_nets, is_same_bridge_and_links_to_previously_bridged);
 
-    EXPECT_EQ(extra_nets.size(), desired_bridged.size() + desired_unbridged.size());
-    EXPECT_THAT(extra_nets, Each(AnyOf(AllOf(is_old_bridge_or_unrecognized, is_unchanged),
+    EXPECT_EQ(extra_nets.size(), requested_bridged.size() + requested_unbridged.size());
+    EXPECT_THAT(extra_nets, Each(AnyOf(AllOf(is_old_bridge_or_unrecognized, was_requested),
                                        is_new_bridge_linking_to_previously_unbridged,
                                        is_old_bridge_linking_to_previously_bridged)));
 }
 
-std::vector<std::vector<mp::NetworkInterface>> desired_bridged_possibilities{
+std::vector<std::vector<mp::NetworkInterface>> requested_bridged_possibilities{
     {{"eth0", "", true}},
     {{"wlan1", "", false}},
     {{"eth0", "", true}, {"wlan1", "", false}},
     {{"eth0", "", true}, {"foo", "ethernet", false}, {"wlan1", "", false}, {"bar", "wifi", true}}};
-std::vector<std::vector<mp::NetworkInterface>> desired_unbridged_possibilities{
+std::vector<std::vector<mp::NetworkInterface>> requested_unbridged_possibilities{
     {{"eth1", "", true}},
     {{"wlan0", "", false}},
     {{"eth1", "", true}, {"wlan0", "", false}},
     {{"eth1", "", true}, {"foo", "ethernet", false}, {"wlan0", "", false}, {"bar", "wifi", true}}};
 
 INSTANTIATE_TEST_SUITE_P(BaseFactory, TestBridgeCreation,
-                         Combine(ValuesIn(desired_bridged_possibilities), ValuesIn(desired_unbridged_possibilities)));
+                         Combine(ValuesIn(requested_bridged_possibilities),
+                                 ValuesIn(requested_unbridged_possibilities)));
 } // namespace
