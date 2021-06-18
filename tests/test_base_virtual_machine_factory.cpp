@@ -227,8 +227,7 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
 
     factory.base_prepare_networking_guts(extra_nets, br_type); // extra_nets updated here
 
-    EXPECT_EQ(extra_nets.size(), desired_bridged.size() + desired_unbridged.size());
-
+    // Now all predicates and matchers that we need to check extra_nets...
     auto is_same_bridge = [&same_id](const auto& a, const auto& b) { return same_id(a, b) && b.type == br_type; };
     auto is_old_bridge = mpt::HasCorrespondentIn(host_nets, is_same_bridge);
     auto is_unrecognized_network = Not(mpt::HasCorrespondentIn(host_nets, same_id));
@@ -241,17 +240,18 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
     auto is_new_bridge_linking_to_previously_unbridged = AllOf(is_new_bridge, links_to_previously_unbridged);
 
     auto links_to_previouly_bridged =
-        [bridged_ptr = &desired_bridged](const auto& a) { // bridged_ptr works around forbidden struct. bind. capture
+        [bridged_ptr = &desired_bridged](const auto& a) { // ptr works around forbidden structured-binding capture
             auto a_links_to = [&a](const auto& b) { return a.has_link(b.id); };
             return std::any_of(std::cbegin(*bridged_ptr), std::cend(*bridged_ptr), a_links_to);
         };
-    auto is_same_bridge_and_links_to_previously_bridged = [&is_same_bridge,
-                                                           &links_to_previouly_bridged](const auto& a, const auto& b) {
-        return is_same_bridge(a, b) && links_to_previouly_bridged(b);
-    };
+    auto is_same_bridge_and_links_to_previously_bridged = // use matching element in host_net to check the link
+        [&is_same_bridge, &links_to_previouly_bridged](const auto& a, const auto& b) {
+            return is_same_bridge(a, b) && links_to_previouly_bridged(b);
+        };
     auto is_old_bridge_linking_to_previously_bridged =
         mpt::HasCorrespondentIn(host_nets, is_same_bridge_and_links_to_previously_bridged);
 
+    EXPECT_EQ(extra_nets.size(), desired_bridged.size() + desired_unbridged.size());
     EXPECT_THAT(extra_nets, Each(AnyOf(AllOf(is_old_bridge_or_unrecognized, is_unchanged),
                                        is_new_bridge_linking_to_previously_unbridged,
                                        is_old_bridge_linking_to_previously_bridged)));
