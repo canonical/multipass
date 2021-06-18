@@ -280,23 +280,16 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
     std::string multipass_exec = mu::in_multipass_snap() ? "exec /usr/bin/snap run multipass"
                                                          : QCoreApplication::applicationFilePath().toStdString();
 
-    try
-    {
-        std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + "\n";
+    std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + "\n";
 
-        MP_UTILS.make_file_with_content(file_path, script);
-    }
-    catch (const std::runtime_error&)
-    {
-        throw std::runtime_error(fmt::format("error creating alias script '{}'", file_path));
-    }
+    MP_UTILS.make_file_with_content(file_path, script);
 
     QFile file(QString::fromStdString(file_path));
     auto permissions =
         MP_FILEOPS.permissions(file) | QFileDevice::ExeOwner | QFileDevice::ExeGroup | QFileDevice::ExeOther;
 
     if (!MP_FILEOPS.setPermissions(file, permissions))
-        throw std::runtime_error(fmt::format("error setting permissions to alias script '{}'", file_path));
+        throw std::runtime_error(fmt::format("cannot set permissions to alias script '{}'", file_path));
 }
 
 void mp::platform::Platform::remove_alias_script(const std::string& alias) const

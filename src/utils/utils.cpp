@@ -132,7 +132,7 @@ void mp::Utils::make_file_with_content(const std::string& file_name, const std::
         throw std::runtime_error(fmt::format("failed to open file '{}' for writing", file_name));
 
     if (MP_FILEOPS.write(file, content.c_str(), content.size()) != (qint64)content.size())
-        throw std::runtime_error(fmt::format("error writing to file '{}'", file_name));
+        throw std::runtime_error(fmt::format("failed to write to file '{}'", file_name));
 
     return;
 }

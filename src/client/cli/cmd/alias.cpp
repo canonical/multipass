@@ -46,9 +46,9 @@ mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
     {
         MP_PLATFORM.create_alias_script(alias_name, alias_definition);
     }
-    catch (std::runtime_error&)
+    catch (std::runtime_error& e)
     {
-        cerr << fmt::format("Cannot create script for alias '{}'\n", alias_name);
+        cerr << fmt::format("Error when creating script for alias: {}\n", e.what());
         return ReturnCode::CommandLineError;
     }
 
