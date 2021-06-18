@@ -17,6 +17,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/constants.h>
+#include <multipass/format.h>
 #include <multipass/json_writer.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -102,7 +103,12 @@ void mp::AliasDict::load_dict()
 
     aliases.clear();
 
-    if (!db_file.open(QIODevice::ReadOnly))
+    if (db_file.exists())
+    {
+        if (!db_file.open(QIODevice::ReadOnly))
+            throw std::runtime_error(fmt::format("Error opening file '{}'", db_file.fileName()));
+    }
+    else
         return;
 
     QJsonParseError parse_error;
