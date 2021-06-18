@@ -189,6 +189,10 @@ struct TestBridgeCreation
                                     std::vector<mp::NetworkInterface>>>
 {
     inline static constexpr auto br_type = "tunnel";
+    inline static const std::vector<mp::NetworkInterfaceInfo> host_nets{
+        {"eth0", "ethernet", "e0"}, {"eth1", "ethernet", "e1"},       {"wlan0", "wifi", "w0"},
+        {"wlan1", "wifi", "w1"},    {"br0", br_type, "b0", {"eth0"}}, {"br1", br_type, "b1", {"wlan1"}},
+        {"br2", br_type, "empty"}};
     std::vector<mp::NetworkInterface> mix_extra_nets() const // mixes all requested
     {
         std::vector<mp::NetworkInterface> ret;
@@ -207,11 +211,6 @@ struct TestBridgeCreation
 
 TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
 {
-    const std::vector<mp::NetworkInterfaceInfo> host_nets{
-        {"eth0", "ethernet", "e0"}, {"eth1", "ethernet", "e1"},       {"wlan0", "wifi", "w0"},
-        {"wlan1", "wifi", "w1"},    {"br0", br_type, "b0", {"eth0"}}, {"br1", br_type, "b1", {"wlan1"}},
-        {"br2", br_type, "empty"}}; // TODO@ricab move out
-
     const auto& [requested_bridged, requested_unbridged, requested_existing_bridges] = GetParam();
     auto extra_nets = mix_extra_nets();
     ASSERT_THAT(extra_nets, Not(IsEmpty()));
