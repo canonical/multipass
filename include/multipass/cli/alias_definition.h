@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,22 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_FORMATTER
-#define MULTIPASS_JSON_FORMATTER
+#ifndef MULTIPASS_ALIAS_DEFINITION_H
+#define MULTIPASS_ALIAS_DEFINITION_H
 
-#include <multipass/cli/formatter.h>
+#include <string>
 
 namespace multipass
 {
-class JsonFormatter final : public Formatter
+struct AliasDefinition
 {
-public:
-    std::string format(const InfoReply& info) const override;
-    std::string format(const ListReply& list) const override;
-    std::string format(const NetworksReply& list) const override;
-    std::string format(const FindReply& list) const override;
-    std::string format(const AliasDict& aliases) const override;
+    std::string instance;
+    std::string command;
 };
+
+inline bool operator==(const AliasDefinition& a, const AliasDefinition& b)
+{
+    return (a.instance == b.instance && a.command == b.command);
 }
-#endif // MULTIPASS_JSON_FORMATTER
+} // namespace multipass
+#endif // MULTIPASS_ALIAS_DEFINITION_H

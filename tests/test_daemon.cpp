@@ -27,6 +27,7 @@
 #include "dummy_ssh_key_provider.h"
 #include "extra_assertions.h"
 #include "file_operations.h"
+#include "json_utils.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
 #include "mock_logger.h"
@@ -953,35 +954,6 @@ plant_instance_json(const std::string& contents)
     mpt::make_file_with_content(filename, contents);
 
     return {std::move(temp_dir), filename};
-}
-
-void check_interfaces_in_json(const QString& file, const std::string& mac,
-                              const std::vector<mp::NetworkInterface>& extra_interfaces)
-{
-    QByteArray json = mpt::load(file);
-
-    QJsonParseError parse_error;
-    const auto doc = QJsonDocument::fromJson(json, &parse_error);
-    EXPECT_FALSE(doc.isNull());
-    EXPECT_TRUE(doc.isObject());
-
-    const auto doc_object = doc.object();
-    const auto instance_object = doc_object["real-zebraphant"].toObject();
-    const auto default_mac = instance_object["mac_addr"].toString().toStdString();
-    ASSERT_EQ(default_mac, mac);
-
-    const auto extra = instance_object["extra_interfaces"].toArray();
-    ASSERT_EQ((unsigned)extra.size(), extra_interfaces.size());
-
-    auto it = extra_interfaces.cbegin();
-    for (const auto& extra_i : extra)
-    {
-        const auto interface = extra_i.toObject();
-        ASSERT_EQ(interface["mac_address"].toString().toStdString(), it->mac_address);
-        ASSERT_EQ(interface["id"].toString().toStdString(), it->id);
-        ASSERT_EQ(interface["auto_mode"].toBool(), it->auto_mode);
-        ++it;
-    }
 }
 
 TEST_F(Daemon, reads_mac_addresses_from_json)

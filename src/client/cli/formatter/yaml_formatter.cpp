@@ -15,8 +15,9 @@
  *
  */
 
-#include <multipass/cli/yaml_formatter.h>
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/yaml_formatter.h>
 #include <multipass/utils.h>
 
 #include <multipass/format.h>
@@ -178,4 +179,26 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
     }
 
     return mpu::emit_yaml(find);
+}
+
+std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
+{
+    YAML::Node aliases_list, aliases_node;
+
+    for (const auto& elt : sort_dict(aliases))
+    {
+        const auto& alias = elt.first;
+        const auto& def = elt.second;
+
+        YAML::Node alias_node;
+        alias_node["alias"] = alias;
+        alias_node["command"] = def.command;
+        alias_node["instance"] = def.instance;
+
+        aliases_node.push_back(alias_node);
+    }
+
+    aliases_list["aliases"] = aliases_node;
+
+    return mpu::emit_yaml(aliases_list);
 }

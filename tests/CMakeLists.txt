@@ -23,6 +23,7 @@ set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletes
 add_executable(multipass_tests
   file_operations.cpp
   image_host_remote_count.cpp
+  json_utils.cpp
   main.cpp
   mischievous_url_downloader.cpp
   mock_logger.cpp
@@ -38,6 +39,7 @@ add_executable(multipass_tests
   stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
+  test_alias_dict.cpp
   test_argparser.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp

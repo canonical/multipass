@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +15,9 @@
  *
  */
 
-#include <multipass/cli/table_formatter.h>
-
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/table_formatter.h>
 
 #include <multipass/format.h>
 
@@ -48,14 +48,6 @@ std::string to_usage(const std::string& usage, const std::string& total)
         return "--";
     return fmt::format("{} out of {}", human_readable_size(usage), human_readable_size(total));
 }
-
-// Computes the column width needed to display all the elements of a range [begin, end). get_width is a function
-// which takes as input the element in the range and returns its width in columns.
-auto column_width = [](const auto begin, const auto end, const auto get_width, int minimum_width = 0) {
-    auto max_width =
-        std::max_element(begin, end, [&get_width](auto& lhs, auto& rhs) { return get_width(lhs) < get_width(rhs); });
-    return std::max(get_width(*max_width) + 2, minimum_width);
-};
 
 } // namespace
 std::string mp::TableFormatter::format(const InfoReply& reply) const
@@ -144,7 +136,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     if (instances.empty())
         return "No instances found.\n";
 
-    const auto name_column_width = column_width(
+    const auto name_column_width = mp::format::column_width(
         instances.begin(), instances.end(), [](const auto& interface) -> int { return interface.name().length(); }, 24);
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
@@ -182,11 +174,11 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
     if (interfaces.empty())
         return "No network interfaces found.\n";
 
-    const auto name_column_width = column_width(
+    const auto name_column_width = mp::format::column_width(
         interfaces.begin(), interfaces.end(), [](const auto& interface) -> int { return interface.name().length(); },
         5);
 
-    const auto type_column_width = column_width(
+    const auto type_column_width = mp::format::column_width(
         interfaces.begin(), interfaces.end(), [](const auto& interface) -> int { return interface.type().length(); },
         5);
 
@@ -220,6 +212,33 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
         fmt::format_to(buf, "{:<28}{:<18}{:<17}{:<}\n", mp::format::image_string_for(aliases[0]),
                        fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
                        fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
+{
+    fmt::memory_buffer buf;
+
+    if (aliases.empty())
+        return "No aliases defined.\n";
+
+    const auto alias_width = mp::format::column_width(
+        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.first.length(); }, 7);
+    const auto instance_width = mp::format::column_width(
+        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.second.instance.length(); }, 10);
+
+    const auto row_format = "{:<{}}{:<{}}{:<}\n";
+
+    fmt::format_to(buf, row_format, "Alias", alias_width, "Instance", instance_width, "Command");
+
+    for (const auto& elt : sort_dict(aliases))
+    {
+        const auto& name = elt.first;
+        const auto& def = elt.second;
+
+        fmt::format_to(buf, row_format, name, alias_width, def.instance, instance_width, def.command);
     }
 
     return fmt::to_string(buf);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,13 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::DeleteReply& reply) { return mp::ReturnCode::Ok; };
+    auto on_success = [this](mp::DeleteReply& reply) {
+        auto size = reply.purged_instances_size();
+        for (auto i = 0; i < size; ++i)
+            aliases.remove_aliases_for_instance(reply.purged_instances(i));
+
+        return mp::ReturnCode::Ok;
+    };
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 

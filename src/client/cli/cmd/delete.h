@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_DELETE_H
 #define MULTIPASS_DELETE_H
 
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
 namespace multipass
@@ -28,6 +29,12 @@ class Delete final : public Command
 {
 public:
     using Command::Command;
+
+    Delete(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, AliasDict& dict)
+        : Command(channel, stub, term), aliases(dict)
+    {
+    }
+
     ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
@@ -35,6 +42,7 @@ public:
     QString description() const override;
 
 private:
+    AliasDict aliases;
     DeleteRequest request;
 
     ParseCode parse_args(ArgParser* parser) override;

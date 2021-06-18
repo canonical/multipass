@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@
  */
 
 #include <multipass/cli/argparser.h>
-
 #include <multipass/format.h>
 
 #include <QFileInfo>
@@ -94,7 +93,23 @@ mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Co
 {
 }
 
-mp::ParseCode mp::ArgParser::parse()
+mp::ParseCode mp::ArgParser::prepare_alias_execution()
+{
+    if (parser.positionalArguments().size() > 1)
+    {
+        cerr << "Too many arguments given\n";
+
+        return mp::ParseCode::CommandFail;
+    }
+    else
+    {
+        chosen_command = findCommand("exec");
+
+        return mp::ParseCode::Ok;
+    }
+}
+
+mp::ParseCode mp::ArgParser::parse(const mp::optional<mp::AliasDict>& aliases)
 {
     QCommandLineOption help_option = parser.addHelpOption();
     QCommandLineOption verbose_option({"v", "verbose"},
@@ -144,8 +159,18 @@ mp::ParseCode mp::ArgParser::parse()
         return ParseCode::HelpRequested;
     }
 
+    // The given argument is not a command name. Before failing, see if it is an alias.
+    if (aliases)
+    {
+        execute_alias = aliases->get_alias(requested_command.toStdString());
+
+        if (execute_alias)
+            return prepare_alias_execution();
+    }
+
     // Fall through
-    cout << "Error: Unknown Command '" << qUtf8Printable(requested_command) << "' (try \"multipass help\")\n";
+    cout << "Error: Unknown command or alias '" << qUtf8Printable(requested_command)
+         << "' (try \"multipass help\" or \"multipass aliases\")\n";
     return ParseCode::CommandLineError;
 }
 
