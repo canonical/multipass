@@ -19,6 +19,7 @@
 #define MULTIPASS_NETWORK_INTERFACE_H
 
 #include <string>
+#include <tuple>
 
 namespace multipass
 {
