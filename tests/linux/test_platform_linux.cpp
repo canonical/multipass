@@ -785,7 +785,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error, mpt::match_what(HasSubstr("error creating alias script '")));
+                         std::runtime_error, mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
@@ -798,7 +798,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
     EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error, mpt::match_what(HasSubstr("error creating alias script '")));
+                         std::runtime_error, mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
@@ -811,7 +811,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
     EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error, mpt::match_what(HasSubstr("error setting permissions to alias script '")));
+                         std::runtime_error, mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
 }
 
 TEST_F(PlatformLinux, remove_alias_script_works)

@@ -319,7 +319,7 @@ TEST(Utils, make_file_with_content_throws_on_write_error)
     EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));
 
     MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents), std::runtime_error,
-                         mpt::match_what(HasSubstr("error writing to file")));
+                         mpt::match_what(HasSubstr("failed to write to file")));
 }
 
 TEST(Utils, to_cmd_output_has_no_quotes)

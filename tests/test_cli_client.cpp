@@ -2494,11 +2494,11 @@ TEST_F(ClientAlias, alias_creates_alias)
 
 TEST_F(ClientAlias, fails_if_cannot_write_script)
 {
-    EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("")));
+    EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("aaa")));
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"alias", "instance:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("Cannot create script for alias 'command'"));
+    EXPECT_EQ(cerr_stream.str(), "Error when creating script for alias: aaa\n");
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
