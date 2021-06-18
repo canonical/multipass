@@ -185,21 +185,21 @@ TEST_F(BaseFactory, prepareNetworkingGutsLeavesBridgeTypeNetworksAlone)
 
 struct TestBridgeCreation
     : public BaseFactory,
-      WithParamInterface<std::tuple<std::vector<mp::NetworkInterface>, std::vector<mp::NetworkInterface>>>
+      WithParamInterface<std::tuple<std::vector<mp::NetworkInterface>, std::vector<mp::NetworkInterface>,
+                                    std::vector<mp::NetworkInterface>>>
 {
     inline static constexpr auto br_type = "tunnel";
-    std::vector<mp::NetworkInterface> mix_extra_nets() const // mixes bridged and unbridged
+    std::vector<mp::NetworkInterface> mix_extra_nets() const // mixes all requested
     {
         std::vector<mp::NetworkInterface> ret;
-        const auto& [requested_bridged, requested_unbridged] = GetParam();
+        const auto& [requested_bridged, requested_unbridged, requested_existing_bridges] = GetParam();
 
-        for (size_t i = 0; i < std::max(requested_bridged.size(), requested_unbridged.size()); ++i)
-        { // alternate bridged and unbridged to avoid testing only partitioned extra_nets
-            if (i < requested_bridged.size())
-                ret.push_back(requested_bridged[i]);
-            if (i < requested_unbridged.size())
-                ret.push_back(requested_unbridged[i]);
-        }
+        auto maxim = std::max(requested_bridged.size(), requested_unbridged.size());
+        maxim = std::max(maxim, requested_existing_bridges.size());
+        for (size_t i = 0; i < maxim; ++i) // alternate to avoid testing only partitioned extra_nets
+            for (const auto& requests : {requested_bridged, requested_unbridged, requested_existing_bridges})
+                if (i < requests.size())
+                    ret.push_back(requests[i]);
 
         return ret;
     }
@@ -210,9 +210,9 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
     const std::vector<mp::NetworkInterfaceInfo> host_nets{
         {"eth0", "ethernet", "e0"}, {"eth1", "ethernet", "e1"},       {"wlan0", "wifi", "w0"},
         {"wlan1", "wifi", "w1"},    {"br0", br_type, "b0", {"eth0"}}, {"br1", br_type, "b1", {"wlan1"}},
-        {"br2", br_type, "empty"}};
+        {"br2", br_type, "empty"}}; // TODO@ricab move out
 
-    const auto& [requested_bridged, requested_unbridged] = GetParam();
+    const auto& [requested_bridged, requested_unbridged, requested_existing_bridges] = GetParam();
     auto extra_nets = mix_extra_nets();
     ASSERT_THAT(extra_nets, Not(IsEmpty()));
 
@@ -232,7 +232,8 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
     auto is_old_bridge = mpt::HasCorrespondentIn(host_nets, is_same_bridge);
     auto is_unrecognized_network = Not(mpt::HasCorrespondentIn(host_nets, same_id));
     auto is_old_bridge_or_unrecognized = AnyOf(is_old_bridge, is_unrecognized_network);
-    auto was_requested = AnyOf(mpt::ContainedIn(requested_unbridged), mpt::ContainedIn(requested_bridged));
+    auto was_requested = AnyOf(mpt::ContainedIn(requested_unbridged), mpt::ContainedIn(requested_bridged),
+                               mpt::ContainedIn(requested_existing_bridges));
 
     auto is_new_bridge = Field(&mp::NetworkInterface::id, EndsWith("br"));
     auto starts_with_id = [](const auto& a, const auto& b) { return a.id.rfind(b.id) == 0; };
@@ -251,7 +252,9 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
     auto is_old_bridge_linking_to_previously_bridged =
         mpt::HasCorrespondentIn(host_nets, is_same_bridge_and_links_to_previously_bridged);
 
-    EXPECT_EQ(extra_nets.size(), requested_bridged.size() + requested_unbridged.size());
+    EXPECT_EQ(extra_nets.size(),
+              requested_bridged.size() + requested_unbridged.size() + requested_existing_bridges.size());
+
     EXPECT_THAT(extra_nets, Each(AnyOf(AllOf(is_old_bridge_or_unrecognized, was_requested),
                                        is_new_bridge_linking_to_previously_unbridged,
                                        is_old_bridge_linking_to_previously_bridged)));
@@ -263,12 +266,21 @@ std::vector<std::vector<mp::NetworkInterface>> requested_bridged_possibilities{
     {{"eth0", "", true}, {"wlan1", "", false}},
     {{"eth0", "", true}, {"foo", "ethernet", false}, {"wlan1", "", false}, {"bar", "wifi", true}}};
 std::vector<std::vector<mp::NetworkInterface>> requested_unbridged_possibilities{
+    // TODO@ricab add empty?
     {{"eth1", "", true}},
     {{"wlan0", "", false}},
     {{"eth1", "", true}, {"wlan0", "", false}},
     {{"eth1", "", true}, {"foo", "ethernet", false}, {"wlan0", "", false}, {"bar", "wifi", true}}};
+std::vector<std::vector<mp::NetworkInterface>> requested_existing_bridges_possibilities{
+    {{"br0", "", true}},
+    {{"br1", "", false}},
+    {{"br2", "", true}},
+    {{"br0", "", false}, {"br1", "", true}},
+    {{"br1", "", true}, {"br2", "", false}},
+    {{"br0", "", false}, {"br2", "", false}},
+    {{"br0", "", false}, {"br1", "", true}, {"br2", "", false}}};
 
 INSTANTIATE_TEST_SUITE_P(BaseFactory, TestBridgeCreation,
-                         Combine(ValuesIn(requested_bridged_possibilities),
-                                 ValuesIn(requested_unbridged_possibilities)));
+                         Combine(ValuesIn(requested_bridged_possibilities), ValuesIn(requested_unbridged_possibilities),
+                                 ValuesIn(requested_existing_bridges_possibilities)));
 } // namespace
