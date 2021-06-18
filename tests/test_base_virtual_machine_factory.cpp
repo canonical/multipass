@@ -213,7 +213,8 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
 {
     const auto& [requested_bridged, requested_unbridged, requested_existing_bridges] = GetParam();
     auto extra_nets = mix_extra_nets();
-    ASSERT_THAT(extra_nets, Not(IsEmpty()));
+    if (extra_nets.empty()) // this case is covered elsewhere
+        return;
 
     StrictMock<MockBaseFactory> factory;
     EXPECT_CALL(factory, networks).WillOnce(Return(host_nets));
@@ -260,17 +261,19 @@ TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
 }
 
 std::vector<std::vector<mp::NetworkInterface>> requested_bridged_possibilities{
+    {},
     {{"eth0", "", true}},
     {{"wlan1", "", false}},
     {{"eth0", "", true}, {"wlan1", "", false}},
     {{"eth0", "", true}, {"foo", "ethernet", false}, {"wlan1", "", false}, {"bar", "wifi", true}}};
 std::vector<std::vector<mp::NetworkInterface>> requested_unbridged_possibilities{
-    // TODO@ricab add empty?
+    {},
     {{"eth1", "", true}},
     {{"wlan0", "", false}},
     {{"eth1", "", true}, {"wlan0", "", false}},
     {{"eth1", "", true}, {"foo", "ethernet", false}, {"wlan0", "", false}, {"bar", "wifi", true}}};
 std::vector<std::vector<mp::NetworkInterface>> requested_existing_bridges_possibilities{
+    {},
     {{"br0", "", true}},
     {{"br1", "", false}},
     {{"br2", "", true}},
