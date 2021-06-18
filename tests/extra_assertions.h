@@ -19,6 +19,8 @@
 #define MULTIPASS_EXTRA_ASSERTIONS_H
 
 #include <multipass/format.h>
+#include <multipass/network_interface.h>
+#include <multipass/network_interface_info.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -26,6 +28,7 @@
 #include <QString>
 
 #include <algorithm>
+#include <ostream>
 
 // Extra macros for testing exceptions.
 //
@@ -60,6 +63,19 @@
             }                                                                                                          \
         },                                                                                                             \
         expected_exception)
+
+namespace multipass
+{
+inline void PrintTo(const NetworkInterface& net, std::ostream* os) // teaching gtest to print NetworkInterface
+{
+    *os << "NetworkInterface(id=\"" << net.id << "\")";
+}
+
+inline void PrintTo(const NetworkInterfaceInfo& net, std::ostream* os) // teaching gtest to print NetworkInterfaceInfo
+{
+    *os << "NetworkInterfaceInfo(id=\"" << net.id << "\")";
+}
+} // namespace multipass
 
 namespace multipass::test
 {
