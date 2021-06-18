@@ -60,7 +60,6 @@ struct BaseFactory : public Test
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
-} // namespace
 
 TEST_F(BaseFactory, returns_image_only_fetch_type)
 {
@@ -183,9 +182,6 @@ TEST_F(BaseFactory, prepareNetworkingGutsLeavesBridgeTypeNetworksAlone)
     factory.base_prepare_networking_guts(extra_nets, bridge_type);
     EXPECT_EQ(extra_nets, extra_copy);
 }
-
-namespace // TODO@ricab grab all
-{
 
 struct TestBridgeCreation
     : public BaseFactory,
