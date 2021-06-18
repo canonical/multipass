@@ -18,10 +18,14 @@
 #ifndef MULTIPASS_EXTRA_ASSERTIONS_H
 #define MULTIPASS_EXTRA_ASSERTIONS_H
 
+#include <multipass/format.h>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <QString>
+
+#include <algorithm>
 
 // Extra macros for testing exceptions.
 //
@@ -59,6 +63,19 @@
 
 namespace multipass::test
 {
+MATCHER_P(ContainedIn, container, "")
+{
+    return std::find(std::cbegin(container), std::cend(container), arg) != std::cend(container);
+}
+
+MATCHER_P2(HasCorrespondentIn, container, binary_pred,
+           fmt::format("{} a corresponding element in {} that pairs with it according to the given binary predicate",
+                       negation ? "has" : "doesn't have", testing::PrintToString(container)))
+{
+    return std::any_of(std::cbegin(container), std::cend(container),
+                       [this, &arg](const auto& elem) { return binary_pred(arg, elem); });
+}
+
 template <typename MsgMatcher>
 auto match_what(MsgMatcher&& matcher)
 {
