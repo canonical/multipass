@@ -1063,6 +1063,32 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
     EXPECT_THAT(send_command({"start", "foo", petenv_name(), "bar", "baz"}), Eq(mp::ReturnCode::Ok));
 }
 
+// version cli tests
+TEST_F(Client, version_without_arg)
+{
+    EXPECT_CALL(mock_daemon, version(_, _, _));
+    EXPECT_THAT(send_command({"version"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, version_with_positional_format_arg)
+{
+    EXPECT_THAT(send_command({"version", "format"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, version_with_option_format_arg)
+{
+    EXPECT_CALL(mock_daemon, version(_, _, _)).Times(4);
+    EXPECT_THAT(send_command({"version", "--format=table"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"version", "--format=yaml"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"version", "--format=json"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"version", "--format=csv"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, version_with_option_format_invalid_arg)
+{
+    EXPECT_THAT(send_command({"version", "--format=default"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 namespace
 {
 grpc::Status aborted_start_status(const std::vector<std::string>& absent_instances = {},

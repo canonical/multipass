@@ -33,15 +33,15 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    bool formatIsSet = parser->isSet("format");
+    bool format_is_set = parser->isSet("format");
 
-    if (!formatIsSet)
+    if (!format_is_set)
     {
         cout << "multipass  " << multipass::version_string << "\n";
     }
 
-    auto on_success = [this, &formatIsSet](mp::VersionReply& reply) {
-        if (formatIsSet)
+    auto on_success = [this, &format_is_set](mp::VersionReply& reply) {
+        if (format_is_set)
         {
             cout << chosen_formatter->format(reply, multipass::version_string);
         }
@@ -55,8 +55,8 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &formatIsSet](grpc::Status& status) {
-        if (formatIsSet)
+    auto on_failure = [this, &format_is_set](grpc::Status& status) {
+        if (format_is_set)
         {
             VersionReply reply;
             cout << chosen_formatter->format(reply, multipass::version_string);
@@ -88,9 +88,10 @@ QString cmd::Version::description() const
 
 mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 {
-    QCommandLineOption formatOption(
-        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
-        "format", "table");
+    QCommandLineOption formatOption("format",
+                                    "Output list in the requested format.\n"
+                                    "Valid formats are: table (default), json, csv and yaml",
+                                    "format", "table");
 
     parser->addOption(formatOption);
 
@@ -103,7 +104,7 @@ mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() > 0)
     {
-        cerr << "Wrong number of arguments\n";
+        cerr << "This command takes no arguments\n";
         return ParseCode::CommandLineError;
     }
 
