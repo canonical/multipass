@@ -88,9 +88,10 @@ QString cmd::Version::description() const
 
 mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 {
-    QCommandLineOption formatOption(
-        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
-        "format", "table");
+    QCommandLineOption formatOption("format",
+                                    "Output list in the requested format.\n"
+                                    "Valid formats are: table (default), json, csv and yaml",
+                                    "format", "table");
 
     parser->addOption(formatOption);
 
@@ -103,7 +104,7 @@ mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() > 0)
     {
-        cerr << "Wrong number of arguments\n";
+        cerr << "This command takes no arguments\n";
         return ParseCode::CommandLineError;
     }
 
