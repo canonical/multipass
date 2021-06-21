@@ -64,6 +64,13 @@
         },                                                                                                             \
         expected_exception)
 
+QT_BEGIN_NAMESPACE
+inline void PrintTo(const QString& qstr, std::ostream* os)
+{
+    *os << "QString(\"" << qUtf8Printable(qstr) << "\")";
+}
+QT_END_NAMESPACE
+
 namespace multipass
 {
 inline void PrintTo(const NetworkInterface& net, std::ostream* os) // teaching gtest to print NetworkInterface
