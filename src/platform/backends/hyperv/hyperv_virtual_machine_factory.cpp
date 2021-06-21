@@ -294,10 +294,10 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
     update_adapter_authorizations(adapters, switches);
 
     if (adapters.size() > switches.size())
-        swap(adapters, switches);                        // we want to move the smallest one
+        std::swap(adapters, switches);                   // we want to move the smallest one
     switches.reserve(adapters.size() + switches.size()); // avoid growing more times than needed
 
-    move(adapters.begin(), adapters.end(), back_inserter(switches));
+    std::move(adapters.begin(), adapters.end(), std::back_inserter(switches));
 
     return switches;
 }
