@@ -15,15 +15,15 @@
  *
  */
 
-#include <src/daemon/daemon.h>
-#include <src/daemon/daemon_rpc.h>
-
+#include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
 #include "mock_vm_image_vault.h"
 #include "mock_vm_workflow_provider.h"
 
 #include <multipass/format.h>
+#include <src/daemon/daemon.h>
+#include <src/daemon/daemon_rpc.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

@@ -15,15 +15,15 @@
  *
  */
 
-#include <multipass/format.h>
-#include <src/platform/backends/qemu/firewall_config.h>
-
-#include "tests/extra_assertions.h"
+#include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_utils.h"
 #include "tests/reset_process_factory.h"
+
+#include <multipass/format.h>
+#include <src/platform/backends/qemu/firewall_config.h>
 
 #include <tuple>
 

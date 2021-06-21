@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
  *
  */
 
-#include "src/petname/petname.h"
+#include "common.h"
 
-#include <gmock/gmock.h>
+#include "src/petname/petname.h"
 
 #include <regex>
 #include <string>

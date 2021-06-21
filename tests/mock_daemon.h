@@ -21,7 +21,7 @@
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_rpc.h>
 
-#include <gmock/gmock.h>
+#include "common.h"
 
 namespace multipass
 {

@@ -15,17 +15,16 @@
  *
  */
 
+#include "tests/common.h"
+#include "tests/mock_environment_helpers.h"
+
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
 
 #include <QFile>
 #include <QTemporaryDir>
 
-#include <gtest/gtest.h>
-
 #include <utility>
-
-#include "tests/mock_environment_helpers.h"
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

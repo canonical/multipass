@@ -15,9 +15,7 @@
  *
  */
 
-#include "src/daemon/ubuntu_image_host.h"
-
-#include "extra_assertions.h"
+#include "common.h"
 #include "image_host_remote_count.h"
 #include "mischievous_url_downloader.h"
 #include "mock_platform.h"
@@ -28,10 +26,9 @@
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/exceptions/unsupported_remote_exception.h>
 #include <multipass/query.h>
+#include <src/daemon/ubuntu_image_host.h>
 
 #include <QUrl>
-
-#include <gmock/gmock.h>
 
 #include <cstddef>
 #include <unordered_set>

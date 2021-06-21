@@ -15,11 +15,7 @@
  *
  */
 
-#include <multipass/format.h>
-#include <multipass/utils.h>
-#include <multipass/vm_image_vault.h>
-
-#include "extra_assertions.h"
+#include "common.h"
 #include "file_operations.h"
 #include "mock_logger.h"
 #include "mock_ssh.h"
@@ -29,12 +25,14 @@
 #include "temp_dir.h"
 #include "temp_file.h"
 
+#include <multipass/format.h>
+#include <multipass/utils.h>
+#include <multipass/vm_image_vault.h>
+
 #include <QDateTime>
 #include <QRegExp>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest-death-test.h>
-#include <gtest/gtest.h>
 
 #include <sstream>
 #include <string>

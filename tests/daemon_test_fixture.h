@@ -29,7 +29,7 @@
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
-#include "extra_assertions.h"
+#include "common.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
 #include "stub_cert_store.h"
@@ -42,8 +42,6 @@
 #include "stub_vm_image_vault.h"
 #include "stub_vm_workflow_provider.h"
 #include "temp_dir.h"
-
-#include <gmock/gmock.h>
 
 #include <memory>
 

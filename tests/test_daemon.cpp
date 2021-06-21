@@ -15,16 +15,9 @@
  *
  */
 
-#include <multipass/constants.h>
-#include <multipass/default_vm_workflow_provider.h>
-#include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
-#include <multipass/version.h>
-#include <multipass/virtual_machine_factory.h>
-
+#include "common.h"
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
-#include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
@@ -40,9 +33,15 @@
 #include "path.h"
 #include "tracking_url_downloader.h"
 
-#include <yaml-cpp/yaml.h>
+#include <multipass/constants.h>
+#include <multipass/default_vm_workflow_provider.h>
+#include <multipass/logging/log.h>
+#include <multipass/name_generator.h>
+#include <multipass/version.h>
+#include <multipass/virtual_machine_factory.h>
+#include <multipass/vm_image_host.h>
 
-#include <gtest/gtest.h>
+#include <yaml-cpp/yaml.h>
 
 #include <QCoreApplication>
 #include <QJsonDocument>

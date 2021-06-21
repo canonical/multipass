@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
  *
  */
 
+#include "common.h"
 #include "mock_settings.h"
 
 #include <multipass/cli/csv_formatter.h>
@@ -26,8 +27,6 @@
 #include <multipass/settings.h>
 
 #include <multipass/format.h>
-
-#include <gmock/gmock.h>
 
 #include <locale>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,14 @@
  *
  */
 
+#include "common.h"
+
 #include "src/platform/update/new_release_monitor.h"
 
 #include <QEventLoop>
 #include <QTemporaryFile>
 #include <QTimer>
 #include <QUrl>
-
-#include <gtest/gtest.h>
 
 #include <chrono>
 

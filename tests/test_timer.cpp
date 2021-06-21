@@ -15,9 +15,9 @@
  *
  */
 
-#include <multipass/timer.h>
+#include "common.h"
 
-#include <gtest/gtest.h>
+#include <multipass/timer.h>
 
 #include <atomic>
 #include <chrono>

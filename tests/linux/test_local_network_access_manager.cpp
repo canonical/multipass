@@ -18,6 +18,7 @@
 #include "local_socket_server_test_fixture.h"
 #include "mock_q_buffer.h"
 #include "mock_q_local_socket.h"
+#include "tests/common.h"
 #include "tests/temp_dir.h"
 
 #include <src/network/local_socket_reply.h>
@@ -33,8 +34,6 @@
 #include <QEventLoop>
 #include <QNetworkReply>
 #include <QTimer>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

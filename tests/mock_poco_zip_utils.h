@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_MOCK_POCO_ZIP_UTILS_H
 #define MULTIPASS_MOCK_POCO_ZIP_UTILS_H
 
+#include "common.h"
 #include "mock_singleton_helpers.h"
 
 #include <multipass/poco_zip_utils.h>
-
-#include <gmock/gmock.h>
 
 namespace multipass::test
 {

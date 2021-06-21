@@ -21,7 +21,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
 
-#include "tests/extra_assertions.h"
+#include "tests/common.h"
 #include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"

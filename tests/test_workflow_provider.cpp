@@ -15,6 +15,13 @@
  *
  */
 
+#include "common.h"
+#include "mock_logger.h"
+#include "mock_poco_zip_utils.h"
+#include "mock_url_downloader.h"
+#include "path.h"
+#include "temp_dir.h"
+
 #include <multipass/default_vm_workflow_provider.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/workflow_exceptions.h>
@@ -22,19 +29,9 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 
-#include "extra_assertions.h"
-#include "mock_logger.h"
-#include "mock_poco_zip_utils.h"
-#include "mock_url_downloader.h"
-#include "path.h"
-#include "temp_dir.h"
-
 #include <QFileInfo>
 
 #include <Poco/Exception.h>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 #include <chrono>
 

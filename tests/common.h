@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_EXTRA_ASSERTIONS_H
-#define MULTIPASS_EXTRA_ASSERTIONS_H
+#ifndef MULTIPASS_COMMON_H
+#define MULTIPASS_COMMON_H
 
 #include <multipass/format.h>
 #include <multipass/network_interface.h>
@@ -105,4 +105,4 @@ auto match_qstring(StrMatcher&& matcher)
 }
 } // namespace multipass::test
 
-#endif // MULTIPASS_EXTRA_ASSERTIONS_H
+#endif // MULTIPASS_COMMON_H

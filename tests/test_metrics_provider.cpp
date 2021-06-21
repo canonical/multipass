@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,12 @@
  *
  */
 
-#include <multipass/metrics_provider.h>
-#include <multipass/utils.h>
-
+#include "common.h"
 #include "temp_dir.h"
 #include "temp_file.h"
+
+#include <multipass/metrics_provider.h>
+#include <multipass/utils.h>
 
 #include <QDateTime>
 #include <QJsonArray>
@@ -27,8 +28,6 @@
 #include <QJsonObject>
 #include <QUrl>
 #include <QUuid>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

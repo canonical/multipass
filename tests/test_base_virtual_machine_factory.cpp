@@ -15,18 +15,15 @@
  *
  */
 
-#include <multipass/network_interface_info.h>
-#include <multipass/virtual_machine_description.h>
-#include <multipass/vm_status_monitor.h>
-#include <shared/base_virtual_machine_factory.h>
-
-#include "extra_assertions.h"
+#include "common.h"
 #include "mock_logger.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <multipass/network_interface_info.h>
+#include <multipass/virtual_machine_description.h>
+#include <multipass/vm_status_monitor.h>
+#include <shared/base_virtual_machine_factory.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

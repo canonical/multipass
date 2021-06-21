@@ -20,7 +20,7 @@
 #include "mock_local_socket_reply.h"
 #include "mock_lxd_server_responses.h"
 #include "mock_network_access_manager.h"
-#include "tests/extra_assertions.h"
+#include "tests/common.h"
 #include "tests/mock_image_host.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
@@ -36,8 +36,6 @@
 #include <QUrl>
 
 #include <vector>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

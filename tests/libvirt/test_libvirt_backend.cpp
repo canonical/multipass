@@ -15,9 +15,7 @@
  *
  */
 
-#include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
-
-#include "tests/extra_assertions.h"
+#include "tests/common.h"
 #include "tests/fake_handle.h"
 #include "tests/mock_ssh.h"
 #include "tests/mock_status_monitor.h"
@@ -33,9 +31,9 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
-#include <cstdlib>
+#include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 
-#include <gmock/gmock.h>
+#include <cstdlib>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

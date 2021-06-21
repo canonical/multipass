@@ -15,25 +15,21 @@
  *
  */
 
-#include <src/platform/backends/shared/linux/backend_utils.h>
-#include <src/platform/backends/shared/linux/dbus_wrappers.h>
-
-#include <multipass/format.h>
-#include <multipass/logging/log.h>
-#include <multipass/memory_size.h>
-
-#include <shared/shared_backend_utils.h>
-
-#include "tests/extra_assertions.h"
+#include "tests/common.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_singleton_helpers.h"
 
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
+#include <multipass/memory_size.h>
+#include <src/platform/backends/shared/linux/backend_utils.h>
+#include <src/platform/backends/shared/linux/dbus_wrappers.h>
+
+#include <shared/shared_backend_utils.h>
+
 #include <QMap>
 #include <QVariant>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
