@@ -183,7 +183,7 @@ TEST_F(BaseFactory, prepareNetworkingGutsLeavesBridgeTypeNetworksAlone)
     EXPECT_EQ(extra_nets, extra_copy);
 }
 
-struct TestBridgeCreation
+struct TestBridgePreparation
     : public BaseFactory,
       WithParamInterface<std::tuple<std::vector<mp::NetworkInterface>, std::vector<mp::NetworkInterface>,
                                     std::vector<mp::NetworkInterface>>>
@@ -209,7 +209,7 @@ struct TestBridgeCreation
     }
 };
 
-TEST_P(TestBridgeCreation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
+TEST_P(TestBridgePreparation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
 {
     const auto& [requested_bridged, requested_unbridged, requested_existing_bridges] = GetParam();
     auto extra_nets = mix_extra_nets();
@@ -282,7 +282,7 @@ std::vector<std::vector<mp::NetworkInterface>> requested_existing_bridges_possib
     {{"br0", "", false}, {"br2", "", false}},
     {{"br0", "", false}, {"br1", "", true}, {"br2", "", false}}};
 
-INSTANTIATE_TEST_SUITE_P(BaseFactory, TestBridgeCreation,
+INSTANTIATE_TEST_SUITE_P(BaseFactory, TestBridgePreparation,
                          Combine(ValuesIn(requested_bridged_possibilities), ValuesIn(requested_unbridged_possibilities),
                                  ValuesIn(requested_existing_bridges_possibilities)));
 } // namespace
