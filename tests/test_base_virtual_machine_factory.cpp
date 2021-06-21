@@ -54,6 +54,11 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     {
         return mp::BaseVirtualMachineFactory::prepare_networking_guts(extra_interfaces, bridge_type); // protected
     }
+
+    std::string base_create_bridge_with(const mp::NetworkInterfaceInfo& interface)
+    {
+        return mp::BaseVirtualMachineFactory::create_bridge_with(interface); // protected
+    }
 };
 
 struct BaseFactory : public Test
@@ -129,6 +134,14 @@ TEST_F(BaseFactory, creates_cloud_init_iso_image)
 
     EXPECT_EQ(vm_desc.cloud_init_iso, QString("%1/cloud-init-config.iso").arg(iso_dir.path()));
     EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
+}
+
+TEST_F(BaseFactory, create_bridge_not_implemented)
+{
+    StrictMock<MockBaseFactory> factory;
+
+    MP_EXPECT_THROW_THAT(factory.base_create_bridge_with({}), mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("bridge creation")));
 }
 
 TEST_F(BaseFactory, prepareNetworkingHasNoObviousEffectByDefault)
