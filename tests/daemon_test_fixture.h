@@ -18,17 +18,6 @@
 #ifndef MULTIPASS_DAEMON_TEST_FIXTURE_H
 #define MULTIPASS_DAEMON_TEST_FIXTURE_H
 
-#include <src/client/cli/client.h>
-#include <src/daemon/daemon_config.h>
-#include <src/daemon/daemon_rpc.h>
-#include <src/platform/update/disabled_update_prompt.h>
-
-#include <multipass/auto_join_thread.h>
-#include <multipass/cli/argparser.h>
-#include <multipass/cli/client_common.h>
-#include <multipass/cli/command.h>
-#include <multipass/rpc/multipass.grpc.pb.h>
-
 #include "common.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
@@ -42,6 +31,17 @@
 #include "stub_vm_image_vault.h"
 #include "stub_vm_workflow_provider.h"
 #include "temp_dir.h"
+
+#include <src/client/cli/client.h>
+#include <src/daemon/daemon_config.h>
+#include <src/daemon/daemon_rpc.h>
+#include <src/platform/update/disabled_update_prompt.h>
+
+#include <multipass/auto_join_thread.h>
+#include <multipass/cli/argparser.h>
+#include <multipass/cli/client_common.h>
+#include <multipass/cli/command.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <memory>
 

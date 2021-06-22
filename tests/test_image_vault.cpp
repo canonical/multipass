@@ -26,7 +26,8 @@
 #include "temp_file.h"
 #include "tracking_url_downloader.h"
 
-#include "src/daemon/default_vm_image_vault.h"
+#include <src/daemon/default_vm_image_vault.h>
+
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/format.h>

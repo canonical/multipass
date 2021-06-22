@@ -25,7 +25,6 @@
 #include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/settings.h>
-
 #include <multipass/format.h>
 
 #include <locale>

@@ -22,7 +22,6 @@
 #include "tests/mock_file_ops.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
-#include "tests/path.h"
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
@@ -35,7 +34,6 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/file_ops.h>
 #include <multipass/platform.h>
 
 #include <scope_guard.hpp>

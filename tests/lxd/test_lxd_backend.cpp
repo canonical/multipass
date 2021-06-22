@@ -15,13 +15,10 @@
  *
  */
 
-#include <src/platform/backends/lxd/lxd_virtual_machine.h>
-#include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
-#include <src/platform/backends/lxd/lxd_vm_image_vault.h>
-
 #include "mock_local_socket_reply.h"
 #include "mock_lxd_server_responses.h"
 #include "mock_network_access_manager.h"
+
 #include "tests/common.h"
 #include "tests/mock_backend_utils.h"
 #include "tests/mock_environment_helpers.h"
@@ -31,6 +28,10 @@
 #include "tests/stub_status_monitor.h"
 #include "tests/stub_url_downloader.h"
 #include "tests/temp_dir.h"
+
+#include <src/platform/backends/lxd/lxd_virtual_machine.h>
+#include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
+#include <src/platform/backends/lxd/lxd_vm_image_vault.h>
 
 #include <multipass/auto_join_thread.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>

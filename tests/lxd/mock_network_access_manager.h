@@ -19,6 +19,7 @@
 #define MULTIPASS_MOCK_NETWORK_ACCESS_MANAGER_H
 
 #include "mock_local_socket_reply.h"
+
 #include "tests/common.h"
 
 #include <multipass/network_access_manager.h>

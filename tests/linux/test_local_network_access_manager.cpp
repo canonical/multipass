@@ -18,6 +18,7 @@
 #include "local_socket_server_test_fixture.h"
 #include "mock_q_buffer.h"
 #include "mock_q_local_socket.h"
+
 #include "tests/common.h"
 #include "tests/temp_dir.h"
 
@@ -26,14 +27,13 @@
 #include <multipass/exceptions/http_local_socket_exception.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/network_access_manager.h>
-#include <multipass/version.h>
-
-#include <random>
 
 #include <QBuffer>
 #include <QEventLoop>
 #include <QNetworkReply>
 #include <QTimer>
+
+#include <random>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

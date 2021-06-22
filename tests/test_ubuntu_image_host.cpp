@@ -22,11 +22,12 @@
 #include "path.h"
 #include "stub_url_downloader.h"
 
+#include <src/daemon/ubuntu_image_host.h>
+
 #include <multipass/exceptions/unsupported_alias_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/exceptions/unsupported_remote_exception.h>
 #include <multipass/query.h>
-#include <src/daemon/ubuntu_image_host.h>
 
 #include <QUrl>
 

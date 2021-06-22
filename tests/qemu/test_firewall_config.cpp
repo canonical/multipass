@@ -22,12 +22,13 @@
 #include "tests/mock_utils.h"
 #include "tests/reset_process_factory.h"
 
-#include <multipass/format.h>
 #include <src/platform/backends/qemu/firewall_config.h>
 
-#include <tuple>
+#include <multipass/format.h>
 
 #include <QString>
+
+#include <tuple>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

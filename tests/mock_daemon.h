@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_MOCK_DAEMON_H
 #define MULTIPASS_MOCK_DAEMON_H
 
+#include "common.h"
+
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_rpc.h>
-
-#include "common.h"
 
 namespace multipass
 {

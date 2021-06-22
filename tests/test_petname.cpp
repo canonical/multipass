@@ -19,7 +19,7 @@
 
 #include "common.h"
 
-#include "src/petname/petname.h"
+#include <src/petname/petname.h>
 
 #include <regex>
 #include <string>

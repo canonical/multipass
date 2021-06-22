@@ -18,8 +18,9 @@
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 
-#include <multipass/ip_address.h>
 #include <src/platform/backends/qemu/dnsmasq_process_spec.h>
+
+#include <multipass/ip_address.h>
 
 #include <QFile>
 #include <QTemporaryDir>

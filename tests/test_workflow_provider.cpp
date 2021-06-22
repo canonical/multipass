@@ -29,9 +29,9 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 
-#include <QFileInfo>
-
 #include <Poco/Exception.h>
+
+#include <QFileInfo>
 
 #include <chrono>
 

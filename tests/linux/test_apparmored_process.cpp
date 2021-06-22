@@ -16,6 +16,7 @@
  */
 
 #include "mock_aa_syscalls.h"
+
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
@@ -23,10 +24,10 @@
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
+#include <src/platform/backends/shared/linux/process_factory.h>
+
 #include <multipass/format.h>
 #include <multipass/process/process.h>
-
-#include <src/platform/backends/shared/linux/process_factory.h>
 
 #include <QFile>
 

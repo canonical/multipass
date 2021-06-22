@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "file_operations.h"
+
 #include <multipass/simple_streams_index.h>
 
 namespace mp = multipass;

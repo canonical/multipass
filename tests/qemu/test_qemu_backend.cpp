@@ -16,6 +16,7 @@
  */
 
 #include "mock_dnsmasq_server.h"
+
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
@@ -27,14 +28,15 @@
 #include "tests/temp_file.h"
 #include "tests/test_with_mocked_bin_path.h"
 
+#include <src/platform/backends/qemu/qemu_virtual_machine.h>
+#include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
+
 #include <multipass/auto_join_thread.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
-#include <src/platform/backends/qemu/qemu_virtual_machine.h>
-#include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>

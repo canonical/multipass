@@ -24,14 +24,13 @@
 #include "tests/temp_dir.h"
 #include "tests/temp_file.h"
 
+#include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
+
 #include <multipass/auto_join_thread.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/memory_size.h>
-#include <multipass/platform.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
-
-#include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 
 #include <cstdlib>
 

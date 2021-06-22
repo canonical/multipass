@@ -17,7 +17,7 @@
 
 #include "common.h"
 
-#include "src/platform/update/new_release_monitor.h"
+#include <src/platform/update/new_release_monitor.h>
 
 #include <QEventLoop>
 #include <QTemporaryFile>

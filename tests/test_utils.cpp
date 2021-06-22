@@ -29,7 +29,6 @@
 #include <multipass/utils.h>
 #include <multipass/vm_image_vault.h>
 
-#include <QDateTime>
 #include <QRegExp>
 
 #include <gtest/gtest-death-test.h>

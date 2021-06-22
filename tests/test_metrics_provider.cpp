@@ -23,10 +23,8 @@
 #include <multipass/utils.h>
 
 #include <QDateTime>
-#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QUrl>
 #include <QUuid>
 
 namespace mp = multipass;
