@@ -192,12 +192,15 @@ jobs:
         brew install \
           cmake \
           coreutils \
+          dylibbundler \
           git \
+          glib \
           gnu-tar \
           libev \
           libffi \
           ninja \
           openssl@1.1 \
+          pixman \
           pkg-config \
           python \
           wget
