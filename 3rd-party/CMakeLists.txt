@@ -86,8 +86,7 @@ target_link_libraries(yaml INTERFACE
 if (APPLE)
   include(ExternalProject)
 
-  # Only build Hyperkit, et. al. on host systems older than 20.x.x (Big Sur)
-  if (CMAKE_HOST_SYSTEM_VERSION VERSION_LESS 20)
+  if ("hyperkit" IN_LIST MULTIPASS_BACKENDS)
     # Hyperkit - MacOS virtualization (via xhyve)
     if(NOT DEFINED ENV{OCAML_TOPLEVEL_PATH})
       message(FATAL_ERROR "The OCaml OPAM environment has not been set. Run 'eval `opam config env`' or check the README")
@@ -137,72 +136,74 @@ if (APPLE)
   endif ()
 
   # QEMU itself
-  ## Ensure build deps are available
-  pkg_check_modules(GLIB REQUIRED glib-2.0)
-  pkg_check_modules(PIXMAN REQUIRED pixman-1)
+  if ("qemu" IN_LIST MULTIPASS_BACKENDS)
+    ## Ensure build deps are available
+    pkg_check_modules(GLIB REQUIRED glib-2.0)
+    pkg_check_modules(PIXMAN REQUIRED pixman-1)
 
-  cmake_policy(SET CMP0097 NEW) # Use new empty GIT_SUBMODULES behavior
+    cmake_policy(SET CMP0097 NEW) # Use new empty GIT_SUBMODULES behavior
 
-  include(FetchContent)
-  set(FETCHCONTENT_QUIET FALSE)
-  set(QEMU_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/qemu")
+    include(FetchContent)
+    set(FETCHCONTENT_QUIET FALSE)
+    set(QEMU_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/qemu")
 
-  FetchContent_Declare(qemu
-    SOURCE_DIR ${QEMU_SOURCE_DIR}
-    GIT_REPOSITORY https://github.com/canonical/qemu-multipass.git
-    GIT_TAG qemu-multipass
-    GIT_SHALLOW TRUE
-    GIT_SUBMODULES ""
-    GIT_PROGRESS TRUE
-  )
-  FetchContent_MakeAvailable(qemu)
+    FetchContent_Declare(qemu
+      SOURCE_DIR ${QEMU_SOURCE_DIR}
+      GIT_REPOSITORY https://github.com/canonical/qemu-multipass.git
+      GIT_TAG qemu-multipass
+      GIT_SHALLOW TRUE
+      GIT_SUBMODULES ""
+      GIT_PROGRESS TRUE
+    )
+    FetchContent_MakeAvailable(qemu)
 
-  ExternalProject_Add(qemu
-    SOURCE_DIR ${QEMU_SOURCE_DIR}
-    CONFIGURE_COMMAND test -f <BINARY_DIR>/config-host.mak ||
-      <SOURCE_DIR>/configure
-        --prefix=${CMAKE_BINARY_DIR}
-        --firmwarepath=../share/qemu/
-        --ninja=ninja
-        --target-list=${HOST_ARCH}-softmmu
-        --disable-bochs
-        --disable-cloop
-        --disable-docs
-        --disable-guest-agent
-        --disable-parallels
-        --disable-vdi
-        --disable-qed
-        --disable-sheepdog
-        --disable-vnc
-        --disable-xen
-        --disable-dmg
-        --disable-replication
-        --disable-hax
-        --disable-snappy
-        --disable-lzo
-        --disable-live-block-migration
-        --disable-vvfat
-        --disable-curl
-        --disable-tests
-        --disable-nettle
-        --disable-libusb
-        --disable-libxml2
-        --disable-bzip2
-        --disable-gcrypt
-        --disable-gnutls
-    BUILD_COMMAND ninja
-    TEST_COMMAND ""
-  )
+    ExternalProject_Add(qemu
+      SOURCE_DIR ${QEMU_SOURCE_DIR}
+      CONFIGURE_COMMAND test -f <BINARY_DIR>/config-host.mak ||
+        <SOURCE_DIR>/configure
+          --prefix=${CMAKE_BINARY_DIR}
+          --firmwarepath=../share/qemu/
+          --ninja=ninja
+          --target-list=${HOST_ARCH}-softmmu
+          --disable-bochs
+          --disable-cloop
+          --disable-docs
+          --disable-guest-agent
+          --disable-parallels
+          --disable-vdi
+          --disable-qed
+          --disable-sheepdog
+          --disable-vnc
+          --disable-xen
+          --disable-dmg
+          --disable-replication
+          --disable-hax
+          --disable-snappy
+          --disable-lzo
+          --disable-live-block-migration
+          --disable-vvfat
+          --disable-curl
+          --disable-tests
+          --disable-nettle
+          --disable-libusb
+          --disable-libxml2
+          --disable-bzip2
+          --disable-gcrypt
+          --disable-gnutls
+      BUILD_COMMAND ninja
+      TEST_COMMAND ""
+    )
 
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/qemu-img ${CMAKE_BINARY_DIR}/bin/qemu-system-${HOST_ARCH}
-          DESTINATION bin
-          COMPONENT multipassd
-  )
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/qemu-img ${CMAKE_BINARY_DIR}/bin/qemu-system-${HOST_ARCH}
+            DESTINATION bin
+            COMPONENT multipassd
+    )
 
-  install(FILES ${CMAKE_BINARY_DIR}/share/qemu/edk2-${HOST_ARCH}-code.fd ${CMAKE_BINARY_DIR}/share/qemu/efi-virtio.rom
-          DESTINATION share/qemu
-          COMPONENT multipassd
-  )
+    install(FILES ${CMAKE_BINARY_DIR}/share/qemu/edk2-${HOST_ARCH}-code.fd ${CMAKE_BINARY_DIR}/share/qemu/efi-virtio.rom
+            DESTINATION share/qemu
+            COMPONENT multipassd
+    )
+  endif ()
 elseif(MSVC)
   set(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF CACHE BOOL "Disable pkgconfig in jsoncpp" FORCE)
   set(JSONCPP_WITH_POST_BUILD_UNITTEST OFF CACHE BOOL "Disable unit tests in jsoncpp" FORCE)
