@@ -175,6 +175,7 @@ jobs:
       with:
         dir: ${{ env.BUILD_DIR }}
         setup-python: false
+        aqtversion: ==1.2.0
       timeout-minutes: 10
 
     - name: Set up caching
