@@ -21,6 +21,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <QString>
+
 // Extra macros for testing exceptions.
 //
 //    * MP_{ASSERT|EXPECT}_THROW_THAT(statement, expected_exception, matcher):
@@ -61,6 +63,12 @@ template <typename MsgMatcher>
 auto match_what(MsgMatcher&& matcher)
 {
     return testing::Property(&std::exception::what, std::forward<MsgMatcher>(matcher));
+}
+
+template <typename StrMatcher>
+auto match_qstring(StrMatcher&& matcher)
+{
+    return testing::Property(&QString::toStdString, std::forward<StrMatcher>(matcher));
 }
 } // namespace multipass::test
 

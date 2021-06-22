@@ -16,6 +16,7 @@
  */
 
 #include "disabling_macros.h"
+#include "extra_assertions.h"
 #include "mock_environment_helpers.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
@@ -108,7 +109,7 @@ struct Client : public Test
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
-                    locate(_, Property(&QString::toStdString, EndsWith("settings.json")), _))
+                    locate(_, mpt::match_qstring(EndsWith("settings.json")), _))
             .Times(AnyNumber())
             .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                                             it gets reset at the end of each test (by VerifyAndClearExpectations) */
