@@ -347,7 +347,7 @@ struct CreateBridgeTest : public Test
     static auto make_object_path_matcher(const char* path)
     {
         return Property(&QVariant::value<QDBusObjectPath>,
-                        Property(&QDBusObjectPath::path, Property(&QString::toStdString, Eq(path))));
+                        Property(&QDBusObjectPath::path, mpt::match_qstring(Eq(path))));
     }
 
     static QString get_bridge_name(const char* child)
