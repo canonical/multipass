@@ -85,11 +85,7 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 {
     const auto petenv_name = MP_SETTINGS.get(petenv_key);
 
-    parser->addPositionalArgument(
-        "name",
-        QString{"Names of instances to restart. If omitted, and without the --all option, '%1' will be assumed."}.arg(
-            petenv_name),
-        "[<name> ...]");
+    parser->addPositionalArgument("name", QString{"Names of instances to restart."}, "<name> [<name> ...]");
 
     QCommandLineOption all_option(all_option_name, "Restart all instances");
     parser->addOption(all_option);
