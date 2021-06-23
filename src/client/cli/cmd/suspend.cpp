@@ -63,8 +63,8 @@ QString cmd::Suspend::description() const
 {
     return QStringLiteral("Suspend the named instances, if running. Exits with\n"
                           "return code 0 if successful.\n"
-                          "If primary instances are disabled and no instance\n"
-                          "name is provided, an error code will be returned.");
+                          "If an instances is unavailable an error code will\n"
+                          "be returned.");
 }
 
 mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)

@@ -152,8 +152,8 @@ QString cmd::Start::description() const
     return QStringLiteral("Start the named instances. Exits with return code 0\n"
                           "when the instances start, or with an error code if\n"
                           "any fail to start.\n"
-                          "If primary instances are disabled and no instance\n"
-                          "name is provided, an error code will be returned.");
+                          "If an instances is unavailable an error code will\n"
+                          "be returned.");
 }
 
 mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
