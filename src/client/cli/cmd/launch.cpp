@@ -163,9 +163,7 @@ QString cmd::Launch::short_help() const
 
 QString cmd::Launch::description() const
 {
-    return QStringLiteral("Create and start a new instance.\n"
-                          "If primary instances are disabled and no instance\n"
-                          "name is provided, an error code will be returned.");
+    return QStringLiteral("Create and start a new instance.");
 }
 
 mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)

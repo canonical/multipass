@@ -125,8 +125,8 @@ QString cmd::Shell::short_help() const
 QString cmd::Shell::description() const
 {
     return QStringLiteral("Open a shell prompt on the instance.\n"
-                          "If primary instances are disabled and no instance\n"
-                          "name is provided, an error code will be returned.");
+                          "If an instances is unavailable an error code will\n"
+                          "be returned.");
 }
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
@@ -171,10 +171,15 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
         cerr << "Too many arguments given\n";
         status = ParseCode::CommandLineError;
     }
-    else
+    else if (auto instance = num_args ? pos_args.first() : petenv_name; !instance.isEmpty())
     {
         auto entry = request.add_instance_name();
-        entry->append(num_args ? pos_args.first().toStdString() : petenv_name.toStdString());
+        entry->append(instance.toStdString());
+    }
+    else
+    {
+        fmt::print(cerr, "The primary instance is disabled, please provide an instance name.\n");
+        return ParseCode::CommandLineError;
     }
 
     return status;

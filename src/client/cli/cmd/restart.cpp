@@ -77,19 +77,15 @@ QString cmd::Restart::description() const
     return QStringLiteral("Restart the named instances. Exits with return\n"
                           "code 0 when the instances restart, or with an\n"
                           "error code if any fail to restart.\n"
-                          "If primary instances are disabled and no instance\n"
-                          "name is provided, an error code will be returned.");
+                          "If an instances is unavailable an error code will\n"
+                          "be returned.");
 }
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 {
     const auto petenv_name = MP_SETTINGS.get(petenv_key);
 
-    parser->addPositionalArgument(
-        "name",
-        QString{"Names of instances to restart. If omitted, and without the --all option, '%1' will be assumed."}.arg(
-            petenv_name),
-        "[<name> ...]");
+    parser->addPositionalArgument("name", QString{"Names of instances to restart."}, "<name> [<name> ...]");
 
     QCommandLineOption all_option(all_option_name, "Restart all instances");
     parser->addOption(all_option);
@@ -114,8 +110,8 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
     {
-        if (petenv_name.isEmpty())
-            fmt::print(cerr, "The primary instance is disabled.\n");
+        if (petenv_name.isEmpty() && parser->positionalArguments().isEmpty())
+            fmt::print(cerr, "Note: the primary instance is disabled.\n");
 
         return parse_code;
     }
