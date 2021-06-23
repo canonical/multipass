@@ -162,7 +162,7 @@ if (APPLE)
       CONFIGURE_COMMAND test -f <BINARY_DIR>/config-host.mak ||
         <SOURCE_DIR>/configure
           --prefix=${CMAKE_BINARY_DIR}
-          --firmwarepath=../share/qemu/
+          --firmwarepath=../Resources/qemu/
           --ninja=ninja
           --target-list=${HOST_ARCH}-softmmu
           --disable-bochs
@@ -200,7 +200,7 @@ if (APPLE)
     )
 
     install(FILES ${CMAKE_BINARY_DIR}/share/qemu/edk2-${HOST_ARCH}-code.fd ${CMAKE_BINARY_DIR}/share/qemu/efi-virtio.rom
-            DESTINATION share/qemu
+            DESTINATION Resources/qemu
             COMPONENT multipassd
     )
   endif ()
