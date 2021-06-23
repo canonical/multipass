@@ -62,20 +62,25 @@ QString cmd::Suspend::short_help() const
 QString cmd::Suspend::description() const
 {
     return QStringLiteral("Suspend the named instances, if running. Exits with\n"
-                          "return code 0 if successful.\n"
-                          "If an instances is unavailable an error code will\n"
-                          "be returned.");
+                          "return code 0 if successful.");
 }
 
 mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)
 {
     const auto petenv_name = MP_SETTINGS.get(petenv_key);
 
-    parser->addPositionalArgument(
-        "name",
-        QString{"Names of instances to suspend. If omitted, and without the --all option, '%1' will be assumed."}.arg(
-            petenv_name),
-        "[<name> ...]");
+    if (petenv_name.isEmpty())
+    {
+        parser->addPositionalArgument("name", QString{"Names of instances to suspend."}, "<name> [<name> ...]");
+    }
+    else
+    {
+        parser->addPositionalArgument(
+            "name",
+            QString{"Names of instances to suspend. If omitted, and without the --all option, '%1' will be assumed."}
+                .arg(petenv_name),
+            "[<name> ...]");
+    }
 
     QCommandLineOption all_option("all", "Suspend all instances");
     parser->addOptions({all_option});
@@ -87,7 +92,7 @@ mp::ParseCode cmd::Suspend::parse_args(mp::ArgParser* parser)
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
     {
-        if (petenv_name.isEmpty())
+        if (petenv_name.isEmpty() && parser->positionalArguments().isEmpty())
             fmt::print(cerr, "Note: the primary instance is disabled.\n");
 
         return parse_code;

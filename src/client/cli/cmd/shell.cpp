@@ -124,20 +124,26 @@ QString cmd::Shell::short_help() const
 
 QString cmd::Shell::description() const
 {
-    return QStringLiteral("Open a shell prompt on the instance.\n"
-                          "If an instances is unavailable an error code will\n"
-                          "be returned.");
+    return QStringLiteral("Open a shell prompt on the instance.");
 }
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument(
-        "name",
-        QString{
-            "Name of the instance to open a shell on. If omitted, '%1' (the configured primary instance name) will be "
-            "assumed. If the instance is not running, an attempt is made to start it (see `start` for more info)."}
-            .arg(petenv_name),
-        "[<name>]");
+    if (petenv_name.isEmpty())
+    {
+        parser->addPositionalArgument("name", QString{"Names of instances to open a shell on."}, "<name> [<name> ...]");
+    }
+    else
+    {
+        parser->addPositionalArgument(
+            "name",
+            QString{
+                "Name of the instance to open a shell on. If omitted, '%1' (the configured primary instance name) will "
+                "be "
+                "assumed. If the instance is not running, an attempt is made to start it (see `start` for more info)."}
+                .arg(petenv_name),
+            "[<name>]");
+    }
 
     mp::cmd::add_timeout(parser);
 
