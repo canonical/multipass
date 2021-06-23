@@ -76,16 +76,25 @@ QString cmd::Restart::description() const
 {
     return QStringLiteral("Restart the named instances. Exits with return\n"
                           "code 0 when the instances restart, or with an\n"
-                          "error code if any fail to restart.\n"
-                          "If an instances is unavailable an error code will\n"
-                          "be returned.");
+                          "error code if any fail to restart.");
 }
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 {
     const auto petenv_name = MP_SETTINGS.get(petenv_key);
 
-    parser->addPositionalArgument("name", QString{"Names of instances to restart."}, "<name> [<name> ...]");
+    if (petenv_name.isEmpty())
+    {
+        parser->addPositionalArgument("name", QString{"Names of instances to restart."}, "<name> [<name> ...]");
+    }
+    else
+    {
+        parser->addPositionalArgument(
+            "name",
+            QString{"Names of instances to restart. If omitted, and without the --all option, '%1' will be assumed."}
+                .arg(petenv_name),
+            "[<name> ...]");
+    }
 
     QCommandLineOption all_option(all_option_name, "Restart all instances");
     parser->addOption(all_option);

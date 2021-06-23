@@ -62,20 +62,25 @@ QString cmd::Stop::short_help() const
 QString cmd::Stop::description() const
 {
     return QStringLiteral("Stop the named instances, if running. Exits with\n"
-                          "return code 0 if successful.\n"
-                          "If an instances is unavailable an error code will\n"
-                          "be returned.");
+                          "return code 0 if successful.");
 }
 
 mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
 {
     const auto petenv_name = MP_SETTINGS.get(petenv_key);
 
-    parser->addPositionalArgument(
-        "name",
-        QString{"Names of instances to stop. If omitted, and without the --all option, '%1' will be assumed"}.arg(
-            petenv_name),
-        "[<name> ...]");
+    if (petenv_name.isEmpty())
+    {
+        parser->addPositionalArgument("name", QString{"Names of instances to stop."}, "<name> [<name> ...]");
+    }
+    else
+    {
+        parser->addPositionalArgument(
+            "name",
+            QString{"Names of instances to stop. If omitted, and without the --all option, '%1' will be assumed"}.arg(
+                petenv_name),
+            "[<name> ...]");
+    }
 
     QCommandLineOption all_option(all_option_name, "Stop all instances");
     QCommandLineOption time_option({"t", "time"}, "Time from now, in minutes, to delay shutdown of the instance",
@@ -90,7 +95,7 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
     {
-        if (petenv_name.isEmpty())
+        if (petenv_name.isEmpty() && parser->positionalArguments().isEmpty())
             fmt::print(cerr, "Note: the primary instance is disabled.\n");
 
         return parse_code;

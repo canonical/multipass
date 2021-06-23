@@ -151,20 +151,26 @@ QString cmd::Start::description() const
 {
     return QStringLiteral("Start the named instances. Exits with return code 0\n"
                           "when the instances start, or with an error code if\n"
-                          "any fail to start.\n"
-                          "If an instances is unavailable an error code will\n"
-                          "be returned.");
+                          "any fail to start.");
 }
 
 mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument(
-        "name",
-        QString{"Names of instances to start. If omitted, and without the --all option, '%1' (the configured primary "
+    if (petenv_name.isEmpty())
+    {
+        parser->addPositionalArgument("name", QString{"Names of instances to start."}, "<name> [<name> ...]");
+    }
+    else
+    {
+        parser->addPositionalArgument(
+            "name",
+            QString{
+                "Names of instances to start. If omitted, and without the --all option, '%1' (the configured primary "
                 "instance name) will be assumed. If '%1' does not exist but is included in a successful start command "
                 "(either implicitly or explicitly), it is launched automatically (see `launch` for more info)."}
-            .arg(petenv_name),
-        "[<name> ...]");
+                .arg(petenv_name),
+            "[<name> ...]");
+    }
 
     QCommandLineOption all_option(all_option_name, "Start all instances");
     parser->addOption(all_option);
@@ -179,7 +185,7 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
     {
-        if (petenv_name.isEmpty())
+        if (petenv_name.isEmpty() && parser->positionalArguments().isEmpty())
             fmt::print(cerr, "Note: the primary instance is disabled.\n");
 
         return parse_code;
