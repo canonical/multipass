@@ -41,7 +41,7 @@ function get_brew_and_extract {
     FILENAME="$1.$DIST.bottle.tar.gz"
     if [ ! -f "$FILENAME" ]; then
         wget -O "$FILENAME" \
-            "https://bintray.com/homebrew/bottles/download_file?file_path=$FILENAME"
+            "https://people.canonical.com/~msawicz/multipass/bottles/$FILENAME"
     fi
 
     tar -xzf $FILENAME
