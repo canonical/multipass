@@ -135,27 +135,6 @@ protected:
         });
     }
 
-    uint32_t request_instance_count(const int& verbosity_level = 0)
-    {
-        ListRequest request;
-        request.set_verbosity_level(verbosity_level);
-        uint32_t retval = 0;
-
-        auto on_success = [&retval](ListReply& reply) {
-            retval = reply.instances_size();
-            return ReturnCode::Ok;
-        };
-
-        auto on_failure = [](grpc::Status& status) { return ReturnCode::CommandFail; };
-
-        auto status = dispatch(&multipass::Rpc::Stub::list, request, on_success, on_failure);
-
-        if (status != ReturnCode::Ok)
-            cerr << "error: instance count request failed.\n";
-
-        return retval;
-    }
-
     Command(const Command&) = delete;
     Command& operator=(const Command&) = delete;
 

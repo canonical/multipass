@@ -53,8 +53,6 @@ Instances multipass::format::sorted(const Instances& instances)
     auto ret = instances;
 
     const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
-    if (petenv_name.empty())
-        return ret;
 
     std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
         if (a.name() == petenv_name)
