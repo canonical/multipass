@@ -145,7 +145,7 @@ if (APPLE)
 
     include(FetchContent)
     set(FETCHCONTENT_QUIET FALSE)
-    set(QEMU_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/qemu")
+    set(QEMU_SOURCE_DIR "${CMAKE_BINARY_DIR}/3rd-party/qemu")
 
     FetchContent_Declare(qemu
       SOURCE_DIR ${QEMU_SOURCE_DIR}
