@@ -115,7 +115,7 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
     {
         if (petenv_name.isEmpty())
-            fmt::print(cerr, "The primary instance is disabled.\n");
+            fmt::print(cerr, "Note: the primary instance is disabled.\n");
 
         return parse_code;
     }
