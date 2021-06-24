@@ -1071,8 +1071,11 @@ std::vector<std::string> old_releases{"10.04",   "lucid",  "11.10",   "oneiric",
                                       "14.10",   "utopic", "15.04",   "vivid",   "15.10", "wily",    "16.04",
                                       "xenial",  "16.10",  "yakkety", "17.04",   "zesty"};
 
+std::vector<std::string> old_remoteless_rels{"core", "core16"};
+
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging, Combine(Values("release", ""), ValuesIn(old_releases)));
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseSnapcraft, RefuseBridging, Values(std::make_tuple("snapcraft", "core")));
+INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless, RefuseBridging, Combine(Values(""), ValuesIn(old_remoteless_rels)));
 
 constexpr auto ghost_template = R"(
 "{}": {{
