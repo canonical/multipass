@@ -129,21 +129,16 @@ QString cmd::Shell::description() const
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 {
-    if (petenv_name.isEmpty())
-    {
-        parser->addPositionalArgument("name", QString{"Names of instances to open a shell on."}, "<name> [<name> ...]");
-    }
-    else
-    {
-        parser->addPositionalArgument(
-            "name",
-            QString{
-                "Name of the instance to open a shell on. If omitted, '%1' (the configured primary instance name) will "
-                "be "
-                "assumed. If the instance is not running, an attempt is made to start it (see `start` for more info)."}
-                .arg(petenv_name),
-            "[<name>]");
-    }
+    const auto& [description, syntax] =
+        petenv_name.isEmpty()
+            ? std::make_pair(QString{"Name of instance to open a shell on."}, QString{"<name>"})
+            : std::make_pair(QString{"Name of the instance to open a shell on. If omitted, '%1' (the configured "
+                                     "primary instance name) will be assumed. If the instance is not running, an "
+                                     "attempt is made to start it (see `start` for more info)."}
+                                 .arg(petenv_name),
+                             QString{"[<name>]"});
+
+    parser->addPositionalArgument("name", description, syntax);
 
     mp::cmd::add_timeout(parser);
 
