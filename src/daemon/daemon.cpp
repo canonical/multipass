@@ -85,12 +85,13 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
                                          "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
+const std::unordered_set<std::string> no_bridging_remoteless_images = {"core", "core16"};
 const std::unordered_set<std::string> no_bridging_images = {
     "release:10.04", "release:lucid",   "release:11.10", "release:oneiric", "release:12.04", "release:precise",
     "release:12.10", "release:quantal", "release:13.04", "release:raring",  "release:13.10", "release:saucy",
     "release:14.04", "release:trusty",  "release:14.10", "release:utopic",  "release:15.04", "release:vivid",
     "release:15.10", "release:wily",    "release:16.04", "release:xenial",  "release:16.10", "release:yakkety",
-    "release:17.04", "release:zesty",   "release:core",  "release:core16",  "snapcraft:core"};
+    "release:17.04", "release:zesty",   "snapcraft:core"};
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -361,10 +362,24 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
     mp::optional<std::vector<mp::NetworkInterfaceInfo>> factory_networks = mp::nullopt;
 
-    std::string full_name =
-        (request->remote_name().empty() ? "release" : request->remote_name()) + ':' + request->image();
+    bool dont_allow_auto = false;
+    std::string specified_image;
 
-    bool dont_allow_auto = no_bridging_images.find(full_name) != no_bridging_images.end();
+    if (request->remote_name().empty())
+    {
+        dont_allow_auto =
+            (no_bridging_remoteless_images.find(request->image()) != no_bridging_remoteless_images.end()) ||
+            (no_bridging_images.find("release:" + request->image()) != no_bridging_images.end());
+
+        specified_image = request->image();
+    }
+    else
+    {
+        dont_allow_auto =
+            no_bridging_images.find(request->remote_name() + ':' + request->image()) != no_bridging_images.end();
+
+        specified_image = request->remote_name() + ":" + request->image();
+    }
 
     for (const auto& net : request->network_options())
     {
@@ -395,7 +410,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         if (dont_allow_auto && net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO)
         {
             throw std::runtime_error(fmt::format(
-                "Automatic network configuration not available for {}. Consider using manual mode.", full_name));
+                "Automatic network configuration not available for {}. Consider using manual mode.", specified_image));
         }
 
         // Check that the id the user specified is valid.
