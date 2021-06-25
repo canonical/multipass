@@ -49,3 +49,5 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/bin/check_kvm_support
 
 install(PROGRAMS check_kvm_support
   DESTINATION bin)
+
+add_subdirectory(linux)
