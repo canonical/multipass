@@ -1073,7 +1073,8 @@ std::vector<std::string> old_releases{"10.04",   "lucid",  "11.10",   "oneiric",
 
 std::vector<std::string> old_remoteless_rels{"core", "core16"};
 
-INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging, Combine(Values("release", ""), ValuesIn(old_releases)));
+INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging,
+                         Combine(Values("release", "daily", ""), ValuesIn(old_releases)));
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseSnapcraft, RefuseBridging, Values(std::make_tuple("snapcraft", "core")));
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless, RefuseBridging, Combine(Values(""), ValuesIn(old_remoteless_rels)));
 
