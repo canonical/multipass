@@ -2102,6 +2102,10 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
+    // Try to get info for the requested image. This will throw out if the requested image is not found. This check
+    // needs to be done before the other checks.
+    config->vault->all_info_for(query_from(request, ""));
+
     auto checked_args = validate_create_arguments(request, *config->factory);
 
     if (!checked_args.option_errors.error_codes().empty())
