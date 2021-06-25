@@ -98,7 +98,8 @@ jobs:
       run: |
         MATRIX='{"include": ['
         [[ '${{ github.event.pull_request.draft }}' != 'true' && '${{ github.event.client_payload.draft }}' != 'true' ]] && MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "multipass-macos-10.15"}'
+        MATRIX+='{"runs-on": "multipass-macos-10.15", "arch": "x86_64"},'
+        MATRIX+='{"runs-on": "multipass-macos-11-arm", "arch": "arm64"}'
         MATRIX+=']}'
         echo "::set-output name=matrix::${MATRIX}"
 
@@ -143,6 +144,10 @@ jobs:
         status: in_progress
         details_url: ${{ env.RUN_URL }}
 
+    - name: Set the arch wrapper
+      if: ${{ matrix.arch }}
+      run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
+
     - name: Retrieve the repository
       uses: actions/download-artifact@v2
       with:
@@ -150,6 +155,7 @@ jobs:
         path: .git
 
     - name: Enable symlinks
+      if: ${{ runner.os == 'Windows' }}
       run: git config --local core.symlinks true
 
     - name: Check out the code
@@ -170,14 +176,6 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v2
-      with:
-        dir: ${{ env.BUILD_DIR }}
-        setup-python: false
-        aqtversion: ==1.2.0
-      timeout-minutes: 10
-
     - name: Set up caching
       if: ${{ runner.os == 'macOS' }}
       id: cache-params
@@ -189,6 +187,7 @@ jobs:
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
       run: |
+        ${{ env.ARCH_WRAPPER }} \
         brew install \
           cmake \
           coreutils \
@@ -203,7 +202,11 @@ jobs:
           pixman \
           pkg-config \
           python \
+          qt@5 \
           wget
+
+          echo Qt5_Dir=$( brew --prefix qt@5 ) >> ${GITHUB_ENV}
+          echo OPENSSL_ROOT_DIR=$( brew --prefix openssl@1.1 ) >> ${GITHUB_ENV}
 
     - name: Cleanup
       if: ${{ always() && runner.os == 'macOS' }}
@@ -216,7 +219,7 @@ jobs:
           ${{ github.workspace }}
 
     - name: Cache OPAM
-      if: ${{ runner.os == 'macOS' }}
+      if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
       uses: actions/cache@v2
       with:
         path: "~/.opam"
@@ -225,13 +228,13 @@ jobs:
         key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.cache-params.outputs.hyperkit-sha }}
 
     - name: Set up OCaml
-      if: ${{ runner.os == 'macOS' }}
+      if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
       uses: avsm/setup-ocaml@v1.1.7
       with:
         ocaml-version: ${{ env.OPAM_COMP }}
 
     - name: Set up OPAM environment
-      if: ${{ runner.os == 'macOS' }}
+      if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
       id: opam-setup
       run: |
         for var in OPAM_SWITCH_PREFIX CAML_LD_LIBRARY_PATH OCAML_TOPLEVEL_PATH; do
@@ -240,7 +243,7 @@ jobs:
         opam exec -- bash -c "echo \${OPAM_SWITCH_PREFIX}/bin" >> ${GITHUB_PATH}
 
     - name: Install OPAM dependencies
-      if: ${{ runner.os == 'macOS' }}
+      if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
       run: |
         opam pin io-page 2.3.0
         opam install 3rd-party/hyperkit --deps-only
@@ -250,7 +253,7 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
       run: |
-        brew install ccache
+        ${{ env.ARCH_WRAPPER }} brew install ccache
         ccache --max-size=400M
 
         # Find common base between full and HEAD to use as cache key.
@@ -261,7 +264,7 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v2
       with:
-        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.setup-ccache.outputs.key }}
+        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
           ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-
         path: "~/Library/Caches/ccache"
@@ -276,20 +279,23 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: ilammy/msvc-dev-cmd@v1
 
+    - name: Configure
+      run: >
+        ${{ env.ARCH_WRAPPER }}
+        cmake
+        -H.
+        -B${{ env.BUILD_DIR }}
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -GNinja
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -DCMAKE_PREFIX_PATH=${{ env.Qt5_Dir }}
+        -DMULTIPASS_UPSTREAM=origin
+        -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+        ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
+        ${{ runner.os == 'macOS' && '-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache' || '' }}
+
     - name: Build
-      uses: lukka/run-cmake@v2
-      with:
-        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-        cmakeBuildType: RelWithDebInfo
-        buildDirectory: ${{ env.BUILD_DIR }}
-        cmakeAppendedArgs:
-          -GNinja
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          -DCMAKE_PREFIX_PATH=${{ env.Qt5_Dir }}
-          -DMULTIPASS_UPSTREAM=origin
-          -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
-          ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
-          ${{ runner.os == 'macOS' && '-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache' || '' }}
+      run: ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }}
 
     - name: Clear CCache stats
       if: ${{ runner.os == 'macOS' }}
@@ -298,13 +304,13 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        bin/multipass_tests
+        ${{ env.ARCH_WRAPPER }} bin/multipass_tests
 
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        cmake --build . --target package
+        ${{ env.ARCH_WRAPPER }} cmake --build . --target package
         echo "::set-output name=name::$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem multipass-*.exe ).Name' }} ) "
         echo "::set-output name=path::$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem multipass-*.exe ).FullName' }} )"
 
