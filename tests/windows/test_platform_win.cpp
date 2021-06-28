@@ -131,6 +131,7 @@ TEST(PlatformWin, test_interpretation_of_unknown_settings_not_supported)
 TEST(PlatformWin, winterm_in_extra_settings)
 {
     EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::winterm_key), _)));
+    EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::mounts_key), "false")));
 }
 
 TEST(PlatformWin, valid_winterm_setting_values)

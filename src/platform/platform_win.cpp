@@ -353,7 +353,7 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
-    return {{mp::winterm_key, {"primary"}}};
+    return {{mp::winterm_key, {"primary"}}, {mp::mounts_key, {"false"}}};
 }
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
