@@ -106,6 +106,8 @@ struct Client : public Test
         EXPECT_CALL(mock_settings, get(_)).Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests.
                                                                   This allows general actions to consult settings
                                                                   (e.g. Windows Terminal profile sync) */
+        EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key)))
+            .WillRepeatedly(Return("true")); // Tests assume this default, but platforms may override.
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
@@ -426,6 +428,19 @@ TEST_F(Client, shell_cmd_automounts_when_launching_petenv)
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_skips_automount_when_disabled)
+{
+    const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
@@ -1141,6 +1156,19 @@ TEST_F(Client, start_cmd_automounts_when_launching_petenv)
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
+    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_skips_automount_when_disabled)
+{
+    const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
