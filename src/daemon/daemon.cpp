@@ -1425,6 +1425,15 @@ try // clang-format on
 {
     mpl::ClientLogger<MountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
+    if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
+    {
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                         "Mounts are disabled on this installation of Multipass.\n\n"
+                         "See https://multipass.run/docs/set-command#local.privileged-mounts for information\n"
+                         "on how to enable them."));
+    }
+
     QFileInfo source_dir(QString::fromStdString(request->source_path()));
     if (!source_dir.exists())
     {
