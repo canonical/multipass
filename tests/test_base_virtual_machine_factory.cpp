@@ -168,15 +168,6 @@ TEST_F(BaseFactory, prepareNetworkingHasNoObviousEffectByDefault)
     EXPECT_EQ(nets, nets_copy);
 }
 
-TEST_F(BaseFactory, prepareNetworkingGutsWithNoExtraNetsHasNoObviousEffect)
-{
-    StrictMock<MockBaseFactory> factory;
-
-    std::vector<mp::NetworkInterface> empty;
-    factory.base_prepare_networking_guts(empty, "asdf");
-    EXPECT_THAT(empty, IsEmpty());
-}
-
 TEST_F(BaseFactory, prepareInterfaceLeavesUnrecognizedNetworkAlone)
 {
     StrictMock<MockBaseFactory> factory;
@@ -242,7 +233,37 @@ TEST_F(BaseFactory, prepareInterfaceCreatesBridgeForUnbridgedNetwork)
     EXPECT_EQ(extra_net, extra_check);
 }
 
-struct TestBridgePreparation
+TEST_F(BaseFactory, prepareNetworkingGutsWithNoExtraNetsHasNoObviousEffect)
+{
+    StrictMock<MockBaseFactory> factory;
+
+    std::vector<mp::NetworkInterface> empty;
+    factory.base_prepare_networking_guts(empty, "asdf");
+    EXPECT_THAT(empty, IsEmpty());
+}
+
+TEST_F(BaseFactory, prepareNetworkingGutsPreparesEachRequestedNetwork)
+{
+    constexpr auto bridge_type = "bridge";
+    const auto host_nets = std::vector<mp::NetworkInterfaceInfo>{{"simple", "bridge", "this and that"}};
+    const auto tag = mp::NetworkInterface{"updated", "tag", false};
+
+    auto extra_nets = std::vector<mp::NetworkInterface>{
+        {"aaa", "alpha", true}, {"bbb", "beta", false}, {"br", "bridge", true}, {"brr", "bridge", false}};
+    const auto num_nets = extra_nets.size();
+
+    StrictMock<MockBaseFactory> factory;
+    EXPECT_CALL(factory, networks).WillOnce(Return(host_nets));
+
+    for (auto& net : extra_nets)
+        EXPECT_CALL(factory, prepare_interface(Ref(net), Eq(host_nets), bridge_type)).WillOnce(SetArgReferee<0>(tag));
+
+    factory.base_prepare_networking_guts(extra_nets, bridge_type);
+    EXPECT_EQ(extra_nets.size(), num_nets);
+    EXPECT_THAT(extra_nets, Each(Eq(tag)));
+}
+
+struct TestBridgePreparation // TODO@ricab drop
     : public BaseFactory,
       WithParamInterface<std::tuple<std::vector<mp::NetworkInterface>, std::vector<mp::NetworkInterface>,
                                     std::vector<mp::NetworkInterface>>>
