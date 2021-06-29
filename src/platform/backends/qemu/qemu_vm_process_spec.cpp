@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,9 +72,10 @@ QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, co
 }
 } // namespace
 
-mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QString& qemu_netdev,
+mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
+                                         const QStringList& qemu_platform_args, const QString& qemu_netdev,
                                          const multipass::optional<ResumeData>& resume_data)
-    : desc(desc), qemu_netdev(qemu_netdev), resume_data{resume_data}
+    : desc{desc}, qemu_platform_args{qemu_platform_args}, qemu_netdev{qemu_netdev}, resume_data{resume_data}
 {
 }
 
@@ -114,7 +115,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
     `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
 
-        args << "--enable-kvm";
+        args << qemu_platform_args;
         // The VM image itself
         args << "-device"
              << "virtio-scsi-pci,id=scsi0"
