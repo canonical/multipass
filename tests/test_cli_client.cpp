@@ -434,6 +434,7 @@ TEST_F(Client, shell_cmd_automounts_when_launching_petenv)
 
 TEST_F(Client, shell_cmd_skips_automount_when_disabled)
 {
+    std::stringstream cout_stream;
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
     EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
 
@@ -442,7 +443,8 @@ TEST_F(Client, shell_cmd_skips_automount_when_disabled)
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
-    EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"shell", petenv_name()}, cout_stream, trash_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
 }
 
 TEST_F(Client, shell_cmd_forwards_verbosity_to_subcommands)
@@ -1162,6 +1164,7 @@ TEST_F(Client, start_cmd_automounts_when_launching_petenv)
 
 TEST_F(Client, start_cmd_skips_automount_when_disabled)
 {
+    std::stringstream cout_stream;
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
     EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
 
@@ -1170,7 +1173,8 @@ TEST_F(Client, start_cmd_skips_automount_when_disabled)
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
-    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", petenv_name()}, cout_stream, trash_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
 }
 
 TEST_F(Client, start_cmd_forwards_verbosity_to_subcommands)

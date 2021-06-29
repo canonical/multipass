@@ -128,8 +128,11 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
 
     auto ret = request_launch(parser);
-    if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString() &&
-        MP_SETTINGS.get_as<bool>(mounts_key))
+    if (!MP_SETTINGS.get_as<bool>(mounts_key))
+    {
+        cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
+    }
+    else if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
         QString mount_source{};
         try
