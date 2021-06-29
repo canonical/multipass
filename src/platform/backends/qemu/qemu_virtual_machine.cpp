@@ -16,35 +16,26 @@
  */
 
 #include "qemu_virtual_machine.h"
-
-#include "dnsmasq_server.h"
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
-#include <shared/linux/backend_utils.h>
+
 #include <shared/linux/process_factory.h>
 #include <shared/shared_backend_utils.h>
 
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/process.h>
-#include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>
 
-#include <multipass/format.h>
-
-#include <QCoreApplication>
 #include <QFile>
-#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
 #include <QString>
 #include <QStringList>
-#include <QSysInfo>
 #include <QTemporaryFile>
-
-#include <thread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -85,7 +76,7 @@ QStringList get_arguments(const QJsonObject& metadata)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::optional<QJsonObject>& resume_metadata,
-                       const std::string& tap_device_name)
+                       const QString& qemu_netdev)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -100,22 +91,13 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::opti
                                                         get_arguments(data)};
     }
 
-    auto process_spec =
-        std::make_unique<mp::QemuVMProcessSpec>(desc, QString::fromStdString(tap_device_name), resume_data);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, qemu_netdev, resume_data);
     auto process = MP_PROCFACTORY.create_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
     mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process program '{}'", process->program()));
     mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process arguments '{}'", process->arguments().join(", ")));
     return process;
-}
-
-void remove_tap_device(const QString& tap_device_name)
-{
-    if (mp::utils::run_cmd_for_status("ip", {"addr", "show", tap_device_name}))
-    {
-        mp::utils::run_cmd_for_status("ip", {"link", "delete", tap_device_name});
-    }
 }
 
 auto qmp_execute_json(const QString& cmd)
@@ -194,15 +176,14 @@ auto generate_metadata(const QStringList& args)
 }
 } // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                                           DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor)
+mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform,
+                                           VMStatusMonitor& monitor)
     : BaseVirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off,
                          desc.vm_name},
-      tap_device_name{tap_device_name},
       desc{desc},
       mac_addr{desc.default_mac_address},
       username{desc.ssh_username},
-      dnsmasq_server{&dnsmasq_server},
+      qemu_platform{qemu_platform},
       monitor{&monitor}
 {
     QObject::connect(this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
@@ -230,7 +211,7 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
         }
     }
 
-    remove_tap_device(QString::fromStdString(tap_device_name));
+    qemu_platform->remove_resources_for(vm_name);
 }
 
 void mp::QemuVirtualMachine::start()
@@ -403,7 +384,7 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> optional<IPAddress> { return dnsmasq_server->get_ip_for(mac_addr); };
+    auto get_ip = [this]() -> optional<IPAddress> { return qemu_platform->get_ip_for(mac_addr); };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
 }
@@ -417,7 +398,7 @@ std::string mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip)
     {
-        auto result = dnsmasq_server->get_ip_for(mac_addr);
+        auto result = qemu_platform->get_ip_for(mac_addr);
         if (result)
             management_ip.emplace(result.value());
         else
@@ -446,7 +427,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 {
     vm_process = make_qemu_process(
         desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
-        tap_device_name);
+        qemu_platform->qemu_netdev(vm_name, mac_addr));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
