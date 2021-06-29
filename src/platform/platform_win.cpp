@@ -353,7 +353,7 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
-    return {{mp::winterm_key, {"primary"}}, {mp::mounts_key, {"false"}}};
+    return {{mp::winterm_key, {"primary"}}};
 }
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
@@ -419,6 +419,11 @@ std::string mp::platform::default_server_address()
 QString mp::platform::default_driver()
 {
     return QStringLiteral("hyperv");
+}
+
+QString mp::platform::default_privileged_mounts()
+{
+    return QStringLiteral("false");
 }
 
 QString mp::platform::daemon_config_home() // temporary
