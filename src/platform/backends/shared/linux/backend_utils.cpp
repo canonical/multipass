@@ -38,7 +38,6 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QString>
-#include <QSysInfo>
 #include <QtDBus/QtDBus>
 
 #include <cassert>
@@ -277,15 +276,6 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     {
         return image_path;
     }
-}
-
-QString mp::backend::cpu_arch()
-{
-    const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
-                                              {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
-                                              {"s390x", "s390x"}};
-
-    return cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
 }
 
 void mp::backend::check_for_kvm_support()
