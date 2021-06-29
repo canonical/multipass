@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,17 +16,17 @@
  */
 
 #include "qemu_base_process_spec.h"
+#include "qemu_platform.h"
 
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
-#include <shared/linux/backend_utils.h>
 
 namespace mp = multipass;
 namespace mu = multipass::utils;
 
 QString mp::QemuBaseProcessSpec::program() const
 {
-    return "qemu-system-" + mp::backend::cpu_arch();
+    return mp::qemu_exec();
 }
 
 QString mp::QemuBaseProcessSpec::working_directory() const
