@@ -401,6 +401,8 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
                      [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
 
     const QString toggle_label = petenv_name.empty() ? QString{"Enable Primary"} : QString{"Disable Primary"};
+    petenv_toggle_action.setText(toggle_label);
+    petenv_toggle_action.setEnabled(true);
 
     // petenv doesn't exist yet
     if (petenv_instance == instances.cend())
@@ -411,8 +413,6 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
             petenv_start_action.setEnabled(false);
             petenv_shell_action.setEnabled(true);
             petenv_stop_action.setEnabled(false);
-            petenv_toggle_action.setText(toggle_label);
-            petenv_toggle_action.setEnabled(true);
 
             current_petenv_name = petenv_name;
         }
@@ -425,7 +425,6 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     if (petenv_state.status() != state.status() || petenv_name != current_petenv_name)
     {
         petenv_start_action.setText(set_title_string_for(fmt::format("Start \"{}\"", petenv_name), state));
-        petenv_toggle_action.setText(toggle_label);
 
         set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action, &petenv_toggle_action},
                             state);
