@@ -50,6 +50,7 @@ auto set_title_string_for(const std::string& text, const mp::InstanceStatus& sta
 // - Start action
 // - Open Shell action
 // - Stop action
+// - Toggle action
 void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& state)
 {
     if (actions.isEmpty())
@@ -59,7 +60,8 @@ void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& stat
     {
         start,
         open_shell,
-        stop
+        stop,
+        toggle
     };
 
     switch (state.status())
@@ -68,29 +70,34 @@ void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& stat
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(false);
         actions[ActionType::stop]->setEnabled(true);
+        actions[ActionType::toggle]->setEnabled(false);
         break;
     case mp::InstanceStatus::RUNNING:
     case mp::InstanceStatus::DELAYED_SHUTDOWN:
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(true);
         actions[ActionType::stop]->setEnabled(true);
+        actions[ActionType::toggle]->setEnabled(false);
         break;
     case mp::InstanceStatus::STOPPED:
     case mp::InstanceStatus::SUSPENDED:
         actions[ActionType::start]->setEnabled(true);
         actions[ActionType::open_shell]->setEnabled(true);
         actions[ActionType::stop]->setEnabled(false);
+        actions[ActionType::toggle]->setEnabled(false);
         break;
     case mp::InstanceStatus::DELETED:
     case mp::InstanceStatus::SUSPENDING:
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(false);
         actions[ActionType::stop]->setEnabled(false);
+        actions[ActionType::toggle]->setEnabled(false);
         break;
     default:
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(true);
         actions[ActionType::stop]->setEnabled(false);
+        actions[ActionType::toggle]->setEnabled(true);
     }
 }
 } // namespace
@@ -154,8 +161,8 @@ void cmd::GuiCmd::create_actions()
     quit_action = tray_icon_menu.addAction("Quit");
 
     petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
-    tray_icon_menu.insertActions(petenv_actions_separator,
-                                 {&petenv_start_action, &petenv_shell_action, &petenv_stop_action});
+    tray_icon_menu.insertActions(petenv_actions_separator, {&petenv_start_action, &petenv_shell_action,
+                                                            &petenv_stop_action, &petenv_toggle_action});
 
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [] { mp::cli::platform::open_multipass_shell(QString()); });
@@ -165,6 +172,12 @@ void cmd::GuiCmd::create_actions()
     QObject::connect(&petenv_start_action, &QAction::triggered, [this] {
         future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
     });
+    QObject::connect(&petenv_toggle_action, &QAction::triggered, [this] {
+                         if (!current_petenv_name.empty())
+                             MP_SETTINGS.set(petenv_key, "");
+                         else
+                             MP_SETTINGS.set(petenv_key, "primary"); // based on src/util/settings.cpp:petenv_name.
+                     });
 }
 
 void cmd::GuiCmd::update_menu()
@@ -387,6 +400,8 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
         std::find_if(instances.cbegin(), instances.cend(),
                      [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
 
+    const QString toggle_label = petenv_name.empty() ? QString{"Enable Primary"} : QString{"Disable Primary"};
+
     // petenv doesn't exist yet
     if (petenv_instance == instances.cend())
     {
@@ -396,6 +411,8 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
             petenv_start_action.setEnabled(false);
             petenv_shell_action.setEnabled(true);
             petenv_stop_action.setEnabled(false);
+            petenv_toggle_action.setText(toggle_label);
+            petenv_toggle_action.setEnabled(true);
 
             current_petenv_name = petenv_name;
         }
@@ -408,8 +425,10 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     if (petenv_state.status() != state.status() || petenv_name != current_petenv_name)
     {
         petenv_start_action.setText(set_title_string_for(fmt::format("Start \"{}\"", petenv_name), state));
+        petenv_toggle_action.setText(toggle_label);
 
-        set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action}, state);
+        set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action, &petenv_toggle_action},
+                            state);
         petenv_state = state;
         current_petenv_name = petenv_name;
     }
