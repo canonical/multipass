@@ -76,7 +76,7 @@ QStringList get_arguments(const QJsonObject& metadata)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::optional<QJsonObject>& resume_metadata,
-                       const QString& qemu_netdev)
+                       const QStringList& qemu_platform_args, const QString& qemu_netdev)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -91,7 +91,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::opti
                                                         get_arguments(data)};
     }
 
-    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, qemu_netdev, resume_data);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, qemu_platform_args, qemu_netdev, resume_data);
     auto process = MP_PROCFACTORY.create_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
@@ -427,7 +427,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 {
     vm_process = make_qemu_process(
         desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
-        qemu_platform->qemu_netdev(vm_name, mac_addr));
+        qemu_platform->qemu_platform_args(), qemu_platform->qemu_netdev(vm_name, mac_addr));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
