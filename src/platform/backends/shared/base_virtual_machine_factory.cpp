@@ -66,14 +66,20 @@ void mp::BaseVirtualMachineFactory::prepare_networking_guts(std::vector<NetworkI
     {
         auto host_nets = networks(); // expensive
         for (auto& net : extra_interfaces)
-        {
-            auto net_it = std::find_if(host_nets.cbegin(), host_nets.cend(),
-                                       [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
-            if (net_it != host_nets.end() && net_it->type != bridge_type)
-            {
-                auto bridge_it = find_bridge_with(host_nets, net.id, bridge_type);
-                net.id = bridge_it != host_nets.cend() ? bridge_it->id : create_bridge_with(*net_it);
-            }
-        }
+            prepare_interface(net, host_nets, bridge_type);
+    }
+}
+
+void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
+                                                      const std::vector<NetworkInterfaceInfo>& host_nets,
+                                                      const std::string& bridge_type)
+{
+    auto net_it = std::find_if(host_nets.cbegin(), host_nets.cend(),
+                               [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
+
+    if (net_it != host_nets.end() && net_it->type != bridge_type)
+    {
+        auto bridge_it = find_bridge_with(host_nets, net.id, bridge_type);
+        net.id = bridge_it != host_nets.cend() ? bridge_it->id : create_bridge_with(*net_it);
     }
 }
