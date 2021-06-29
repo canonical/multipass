@@ -315,6 +315,11 @@ QString mp::platform::default_driver()
     return QStringLiteral("qemu");
 }
 
+QString mp::platform::default_privileged_mounts()
+{
+    return QStringLiteral("true");
+}
+
 QString mp::platform::daemon_config_home() // temporary
 {
     auto ret = QString{qgetenv("DAEMON_CONFIG_HOME")};

@@ -69,6 +69,7 @@ void setup_gui_autostart_prerequisites();
 
 std::string default_server_address();
 QString default_driver();
+QString default_privileged_mounts();
 
 QString daemon_config_home(); // temporary
 

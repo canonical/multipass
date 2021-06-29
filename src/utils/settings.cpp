@@ -55,7 +55,7 @@ std::map<QString, QString> make_defaults()
                                           {mp::autostart_key, autostart_default},
                                           {mp::hotkey_key, default_hotkey()},
                                           {mp::bridged_interface_key, ""},
-                                          {mp::mounts_key, "true"}};
+                                          {mp::mounts_key, mp::platform::default_privileged_mounts()}};
 
     for(const auto& [k, v] : mp::platform::extra_settings_defaults())
         ret.insert_or_assign(k, v);
