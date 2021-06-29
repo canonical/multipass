@@ -32,7 +32,7 @@ namespace
 // This returns the initial two Qemu command line options we used in Multipass. Only of use to resume old suspended
 // images.
 //  === Do not change this! ===
-QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
+QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, const QString& qemu_netdev,
                                    bool use_cdrom)
 {
     auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
@@ -49,7 +49,7 @@ QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, co
         "-device",
         QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1").arg(QString::fromStdString(desc.default_mac_address)),
         "-netdev",
-        QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name),
+        qemu_netdev,
         "-qmp",
         "stdio",
         "-cpu",
@@ -72,9 +72,9 @@ QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, co
 }
 } // namespace
 
-mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
+mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QString& qemu_netdev,
                                          const multipass::optional<ResumeData>& resume_data)
-    : desc(desc), tap_device_name(tap_device_name), resume_data{resume_data}
+    : desc(desc), qemu_netdev(qemu_netdev), resume_data{resume_data}
 {
 }
 
@@ -92,7 +92,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         else
         {
             // fall-back to reconstructing arguments
-            args = initial_qemu_arguments(desc, tap_device_name, resume_data->use_cdrom_flag);
+            args = initial_qemu_arguments(desc, qemu_netdev, resume_data->use_cdrom_flag);
         }
 
         // need to append extra arguments for resume
@@ -131,7 +131,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
                     .arg(QString::fromStdString(desc.default_mac_address));
         // Create tap device to connect to virtual bridge
         args << "-netdev";
-        args << QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name);
+        args << qemu_netdev;
         // Control interface
         args << "-qmp"
              << "stdio";

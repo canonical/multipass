@@ -39,7 +39,7 @@ public:
 
     static QString default_machine_type();
 
-    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QString& tap_device_name,
+    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QString& qemu_netdev,
                                const multipass::optional<ResumeData>& resume_data);
 
     QStringList arguments() const override;
@@ -49,7 +49,7 @@ public:
 
 private:
     const VirtualMachineDescription desc;
-    const QString tap_device_name;
+    const QString qemu_netdev;
     const multipass::optional<ResumeData> resume_data;
 };
 
