@@ -203,6 +203,23 @@ TEST_F(BaseFactory, prepareInterfaceLeavesExistingBridgeAlone)
     EXPECT_EQ(extra_net, extra_copy);
 }
 
+TEST_F(BaseFactory, prepareInterfaceReplacesBridgedNetworkWithCorrespongingBridge)
+{
+    StrictMock<MockBaseFactory> factory;
+    constexpr auto bridge_type = "tunnel";
+    constexpr auto bridge = "br";
+
+    const auto host_nets = std::vector<mp::NetworkInterfaceInfo>{{"eth", "ethernet", "already bridged"},
+                                                                 {"wlan", "wifi", "something else"},
+                                                                 {bridge, bridge_type, "bridge to eth", {"eth"}},
+                                                                 {"different", bridge_type, "uninteresting", {"wlan"}}};
+    auto extra_net = mp::NetworkInterface{"eth", "fake mac", false};
+    auto extra_check = extra_net;
+    extra_check.id = bridge;
+
+    factory.base_prepare_interface(extra_net, host_nets, bridge_type);
+    EXPECT_EQ(extra_net, extra_check);
+}
 struct TestBridgePreparation
     : public BaseFactory,
       WithParamInterface<std::tuple<std::vector<mp::NetworkInterface>, std::vector<mp::NetworkInterface>,
