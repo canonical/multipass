@@ -249,7 +249,7 @@ TEST_P(TestBridgePreparation, prepareNetworkingGutsCreatesBridgesAndReplacesIds)
                                mpt::ContainedIn(requested_existing_bridges));
 
     auto is_new_bridge = Field(&mp::NetworkInterface::id, EndsWith("br"));
-    auto starts_with_id = [](const auto& a, const auto& b) { return a.id.rfind(b.id) == 0; };
+    auto starts_with_id = [](const auto& a, const auto& b) { return a.id.rfind(b.id, 0) == 0; };
     auto links_to_previously_unbridged = mpt::HasCorrespondentIn(requested_unbridged, starts_with_id);
     auto is_new_bridge_linking_to_previously_unbridged = AllOf(is_new_bridge, links_to_previously_unbridged);
 
