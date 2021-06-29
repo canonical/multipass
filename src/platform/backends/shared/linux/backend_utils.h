@@ -40,7 +40,6 @@ std::string generate_random_subnet();
 std::string get_subnet(const Path& network_dir, const QString& bridge_name);
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
 Path convert_to_qcow_if_necessary(const Path& image_path);
-QString cpu_arch();
 void check_for_kvm_support();
 void check_if_kvm_is_in_use();
 
