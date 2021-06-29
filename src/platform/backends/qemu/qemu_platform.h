@@ -22,11 +22,20 @@
 #include <multipass/optional.h>
 #include <multipass/path.h>
 
+#include <QHash>
 #include <QString>
 #include <QStringList>
+#include <QSysInfo>
 
 #include <memory>
 #include <string>
+
+namespace
+{
+const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
+                                          {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
+                                          {"s390x", "s390x"}};
+}
 
 namespace multipass
 {
@@ -53,5 +62,9 @@ protected:
 };
 
 QemuPlatform::UPtr make_qemu_platform(const Path& data_dir);
+inline QString qemu_exec()
+{
+    return "qemu-system-" + cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
+}
 } // namespace multipass
 #endif // MULTIPASS_QEMU_PLATFORM_H
