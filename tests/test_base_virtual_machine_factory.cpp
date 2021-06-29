@@ -211,8 +211,8 @@ struct TestBridgePreparation
         std::vector<mp::NetworkInterface> ret;
         const auto& [requested_bridged, requested_unbridged, requested_existing_bridges] = GetParam();
 
-        auto maxim = std::max(requested_bridged.size(), requested_unbridged.size());
-        maxim = std::max(maxim, requested_existing_bridges.size());
+        auto maxim =
+            std::max({requested_bridged.size(), requested_unbridged.size(), requested_existing_bridges.size()});
         for (size_t i = 0; i < maxim; ++i) // alternate to avoid testing only partitioned extra_nets
             for (const auto& requests : {requested_bridged, requested_unbridged, requested_existing_bridges})
                 if (i < requests.size())
