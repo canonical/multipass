@@ -48,6 +48,14 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD1(prepare_networking, void(std::vector<mp::NetworkInterface>&));
     MOCK_CONST_METHOD0(networks, std::vector<mp::NetworkInterfaceInfo>());
     MOCK_METHOD1(create_bridge_with, std::string(const mp::NetworkInterfaceInfo&));
+    MOCK_METHOD3(prepare_interface,
+                 void(mp::NetworkInterface& net, const std::vector<mp::NetworkInterfaceInfo>& host_nets,
+                      const std::string& bridge_type));
+
+    std::string base_create_bridge_with(const mp::NetworkInterfaceInfo& interface)
+    {
+        return mp::BaseVirtualMachineFactory::create_bridge_with(interface); // protected
+    }
 
     void base_prepare_networking_guts(std::vector<mp::NetworkInterface>& extra_interfaces,
                                       const std::string& bridge_type)
@@ -55,9 +63,10 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
         return mp::BaseVirtualMachineFactory::prepare_networking_guts(extra_interfaces, bridge_type); // protected
     }
 
-    std::string base_create_bridge_with(const mp::NetworkInterfaceInfo& interface)
+    void base_prepare_interface(mp::NetworkInterface& net, const std::vector<mp::NetworkInterfaceInfo>& host_nets,
+                                const std::string& bridge_type)
     {
-        return mp::BaseVirtualMachineFactory::create_bridge_with(interface); // protected
+        return mp::BaseVirtualMachineFactory::prepare_interface(net, host_nets, bridge_type); // protected
     }
 };
 
@@ -168,32 +177,30 @@ TEST_F(BaseFactory, prepareNetworkingGutsWithNoExtraNetsHasNoObviousEffect)
     EXPECT_THAT(empty, IsEmpty());
 }
 
-TEST_F(BaseFactory, prepareNetworkingGutsLeavesUnrecognizedNetworksAlone)
+TEST_F(BaseFactory, prepareInterfaceLeavesUnrecognizedNetworkAlone)
 {
     StrictMock<MockBaseFactory> factory;
-    EXPECT_CALL(factory, networks).WillOnce(Return(std::vector<mp::NetworkInterfaceInfo>{{"eth0", "ethernet", "asd"}}));
 
-    std::vector<mp::NetworkInterface> extra_nets{{"wlan0", "fa:se:ma:c0:12:23", false},
-                                                 {"eth1", "fa:se:ma:c9:45:56", true}};
-    const auto extra_copy = extra_nets;
+    const auto host_nets = std::vector<mp::NetworkInterfaceInfo>{{"eth0", "ethernet", "asd"}, {"wlan0", "wifi", "asd"}};
+    auto extra_net = mp::NetworkInterface{"eth1", "fa:se:ma:c0:12:23", false};
+    const auto extra_copy = extra_net;
 
-    factory.base_prepare_networking_guts(extra_nets, "bridge");
-    EXPECT_EQ(extra_nets, extra_copy);
+    factory.base_prepare_interface(extra_net, host_nets, "bridge");
+    EXPECT_EQ(extra_net, extra_copy);
 }
 
-TEST_F(BaseFactory, prepareNetworkingGutsLeavesBridgeTypeNetworksAlone)
+TEST_F(BaseFactory, prepareInterfaceLeavesExistingBridgeAlone)
 {
     StrictMock<MockBaseFactory> factory;
     constexpr auto bridge_type = "arbitrary";
-    EXPECT_CALL(factory, networks)
-        .WillOnce(
-            Return(std::vector<mp::NetworkInterfaceInfo>{{"br0", bridge_type, "foo"}, {"xyz", bridge_type, "bar"}}));
 
-    std::vector<mp::NetworkInterface> extra_nets{{"br0", "false mac", false}, {"xyz", "fake mac", true}};
-    const auto extra_copy = extra_nets;
+    const auto host_nets =
+        std::vector<mp::NetworkInterfaceInfo>{{"br0", bridge_type, "foo"}, {"xyz", bridge_type, "bar"}};
+    auto extra_net = mp::NetworkInterface{"xyz", "fake mac", true};
+    const auto extra_copy = extra_net;
 
-    factory.base_prepare_networking_guts(extra_nets, bridge_type);
-    EXPECT_EQ(extra_nets, extra_copy);
+    factory.base_prepare_interface(extra_net, host_nets, bridge_type);
+    EXPECT_EQ(extra_net, extra_copy);
 }
 
 struct TestBridgePreparation
