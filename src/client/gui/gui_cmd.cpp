@@ -404,6 +404,16 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     petenv_toggle_action.setText(toggle_label);
     petenv_toggle_action.setEnabled(true);
 
+    // if petenv is disabled you can only re-enable.
+    if (petenv_name.empty())
+    {
+        petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(false);
+        petenv_stop_action.setEnabled(false);
+
+        return;
+    }
+
     // petenv doesn't exist yet
     if (petenv_instance == instances.cend())
     {
