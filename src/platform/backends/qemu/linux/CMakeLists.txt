@@ -13,12 +13,27 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(qemu_platform_detail
+  dnsmasq_process_spec.cpp
+  dnsmasq_server.cpp
+  firewall_config.cpp
   qemu_platform_detail_linux.cpp)
 
 target_include_directories(qemu_platform_detail PRIVATE ../)
 
 target_link_libraries(qemu_platform_detail
-  #shared_linux
   logger
+  semver
+  shared_linux
   utils
   Qt5::Core)
+
+add_custom_target(copy-check-kvm-support ALL DEPENDS
+  ${CMAKE_BINARY_DIR}/bin/check_kvm_support)
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/bin/check_kvm_support
+  COMMAND ${CMAKE_COMMAND} -E copy
+      ${CMAKE_CURRENT_SOURCE_DIR}/check_kvm_support
+      ${CMAKE_BINARY_DIR}/bin/check_kvm_support
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/check_kvm_support)
+
+install(PROGRAMS check_kvm_support
+  DESTINATION bin)
