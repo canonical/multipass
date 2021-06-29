@@ -17,8 +17,7 @@
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
 
-#include "dnsmasq_server.h"
-#include "firewall_config.h"
+#include "qemu_platform.h"
 
 #include <multipass/path.h>
 #include <shared/base_virtual_machine_factory.h>
@@ -26,7 +25,6 @@
 #include <QString>
 
 #include <string>
-#include <unordered_map>
 
 namespace multipass
 {
@@ -34,7 +32,6 @@ class QemuVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
     explicit QemuVirtualMachineFactory(const Path& data_dir);
-    ~QemuVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
@@ -45,12 +42,7 @@ public:
     QString get_backend_version_string() override;
 
 private:
-    const QString bridge_name;
-    const Path network_dir;
-    const std::string subnet;
-    DNSMasqServer dnsmasq_server;
-    FirewallConfig firewall_config;
-    std::unordered_map<std::string, std::string> name_to_mac_map;
+    QemuPlatform::UPtr qemu_platform;
 };
 } // namespace multipass
 
