@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <shared/linux/backend_utils.h>
+#include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <multipass/format.h>
 
