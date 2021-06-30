@@ -85,12 +85,14 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
                                          "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
-const std::unordered_set<std::string> no_bridging_images = {
-    "release:10.04", "release:lucid",   "release:11.10", "release:oneiric", "release:12.04", "release:precise",
-    "release:12.10", "release:quantal", "release:13.04", "release:raring",  "release:13.10", "release:saucy",
-    "release:14.04", "release:trusty",  "release:14.10", "release:utopic",  "release:15.04", "release:vivid",
-    "release:15.10", "release:wily",    "release:16.04", "release:xenial",  "release:16.10", "release:yakkety",
-    "release:17.04", "release:zesty",   "release:core",  "release:core16",  "snapcraft:core"};
+
+// Images which cannot be bridged with --network.
+const std::unordered_set<std::string> no_bridging_release = { // images to check from release and daily remotes
+    "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
+    "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
+    "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
+const std::unordered_set<std::string> no_bridging_remote = {"snapcraft:core"};     // images with other remote specified
+const std::unordered_set<std::string> no_bridging_remoteless = {"core", "core16"}; // images which do not use remote
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -361,10 +363,28 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
     mp::optional<std::vector<mp::NetworkInterfaceInfo>> factory_networks = mp::nullopt;
 
-    std::string full_name =
-        (request->remote_name().empty() ? "release" : request->remote_name()) + ':' + request->image();
+    bool dont_allow_auto = false;
+    std::string specified_image;
 
-    bool dont_allow_auto = no_bridging_images.find(full_name) != no_bridging_images.end();
+    auto remote = request->remote_name();
+    auto image = request->image();
+
+    if (request->remote_name().empty())
+    {
+        specified_image = image;
+
+        dont_allow_auto = (no_bridging_remoteless.find(image) != no_bridging_remoteless.end()) ||
+                          (no_bridging_release.find(image) != no_bridging_release.end());
+    }
+    else
+    {
+        specified_image = remote + ":" + image;
+
+        dont_allow_auto = no_bridging_remote.find(specified_image) != no_bridging_remote.end();
+
+        if (!dont_allow_auto && (remote == "release" || remote == "daily"))
+            dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+    }
 
     for (const auto& net : request->network_options())
     {
@@ -395,7 +415,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         if (dont_allow_auto && net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO)
         {
             throw std::runtime_error(fmt::format(
-                "Automatic network configuration not available for {}. Consider using manual mode.", full_name));
+                "Automatic network configuration not available for {}. Consider using manual mode.", specified_image));
         }
 
         // Check that the id the user specified is valid.
@@ -2082,6 +2102,10 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
+    // Try to get info for the requested image. This will throw out if the requested image is not found. This check
+    // needs to be done before the other checks.
+    config->vault->all_info_for(query_from(request, ""));
+
     auto checked_args = validate_create_arguments(request, *config->factory);
 
     if (!checked_args.option_errors.error_codes().empty())
