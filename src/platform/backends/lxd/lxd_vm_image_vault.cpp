@@ -30,8 +30,8 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 
-#include <shared/linux/backend_utils.h>
 #include <shared/linux/process_factory.h>
+#include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <yaml-cpp/yaml.h>
 
