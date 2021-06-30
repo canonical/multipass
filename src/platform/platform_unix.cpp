@@ -21,6 +21,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <libssh/sftp.h>
+
 namespace mp = multipass;
 
 namespace

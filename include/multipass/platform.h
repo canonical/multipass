@@ -29,8 +29,6 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
 
-#include <libssh/sftp.h>
-
 #include <QString>
 
 #include <functional>
@@ -39,6 +37,8 @@
 #include <vector>
 
 #define MP_PLATFORM multipass::platform::Platform::instance()
+
+struct sftp_attributes_struct;
 
 namespace multipass
 {
