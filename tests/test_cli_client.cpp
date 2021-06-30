@@ -432,7 +432,7 @@ TEST_F(Client, shell_cmd_automounts_when_launching_petenv)
     EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, shell_cmd_skips_automount_when_disabled)
+TEST_F(Client, shellCmdSkipsAutomountWhenDisabled)
 {
     std::stringstream cout_stream;
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
@@ -1170,7 +1170,7 @@ TEST_F(Client, start_cmd_automounts_when_launching_petenv)
     EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_skips_automount_when_disabled)
+TEST_F(Client, startCmdSkipsAutomountWhenDisabled)
 {
     std::stringstream cout_stream;
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
@@ -1183,6 +1183,18 @@ TEST_F(Client, start_cmd_skips_automount_when_disabled)
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", petenv_name()}, cout_stream, trash_stream), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+}
+
+TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
+{
+    const auto invalid_argument = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+    std::stringstream cout_stream;
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(invalid_argument));
+
+    EXPECT_THAT(send_command({"launch", "--name", ".asdf"}, cout_stream, trash_stream),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n")));
 }
 
 TEST_F(Client, start_cmd_forwards_verbosity_to_subcommands)
@@ -1983,12 +1995,12 @@ TEST_F(Client, get_and_set_can_read_and_write_winterm_integration)
 
 #endif // #ifndef MULTIPASS_PLATFORM_WINDOWS
 
-TEST_F(Client, get_returns_acceptable_mounts_value_by_default)
+TEST_F(Client, getReturnsAcceptableMountsValueByDefault)
 {
     EXPECT_THAT(get_setting(mp::mounts_key), AnyOf("true", "false"));
 }
 
-TEST_F(Client, set_cmd_rejects_bad_mounts_values)
+TEST_F(Client, setCmdRejectsBadMountsValues)
 {
     aux_set_cmd_rejects_bad_val(mp::mounts_key, "asdf");
     aux_set_cmd_rejects_bad_val(mp::mounts_key, "trueasdf");
@@ -1996,7 +2008,7 @@ TEST_F(Client, set_cmd_rejects_bad_mounts_values)
     aux_set_cmd_rejects_bad_val(mp::mounts_key, "");
 }
 
-TEST_F(Client, get_and_set_can_read_and_write_mounts_flag)
+TEST_F(Client, getAndSetCanReadAndWriteMountsFlag)
 {
     const auto orig = get_setting((mp::mounts_key));
     const auto novel = negate_flag_string(orig);

@@ -1406,7 +1406,7 @@ TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
                           "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
 }
 
-TEST_F(Daemon, refuses_disabled_mount)
+TEST_F(Daemon, refusesDisabledMount)
 {
     mp::Daemon daemon{config_builder.build()};
 
