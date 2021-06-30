@@ -36,7 +36,6 @@ using RpcMethod = mp::Rpc::Stub;
 mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
-
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {

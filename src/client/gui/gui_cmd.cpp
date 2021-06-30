@@ -84,14 +84,14 @@ void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& stat
         actions[ActionType::start]->setEnabled(true);
         actions[ActionType::open_shell]->setEnabled(true);
         actions[ActionType::stop]->setEnabled(false);
-        actions[ActionType::toggle]->setEnabled(false);
+        actions[ActionType::toggle]->setEnabled(true);
         break;
     case mp::InstanceStatus::DELETED:
     case mp::InstanceStatus::SUSPENDING:
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(false);
         actions[ActionType::stop]->setEnabled(false);
-        actions[ActionType::toggle]->setEnabled(false);
+        actions[ActionType::toggle]->setEnabled(true);
         break;
     default:
         actions[ActionType::start]->setEnabled(false);
@@ -173,10 +173,10 @@ void cmd::GuiCmd::create_actions()
         future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
     });
     QObject::connect(&petenv_toggle_action, &QAction::triggered, [this] {
-        if (!current_petenv_name.empty())
-            MP_SETTINGS.set(petenv_key, "");
-        else
-            MP_SETTINGS.set(petenv_key, "primary"); // based on src/util/settings.cpp:petenv_name.
+        current_petenv_name = current_petenv_name.empty()
+                               ? "primary" // based on src/utils/settings.cpp:petenv_name.
+                               : "";
+        MP_SETTINGS.set(petenv_key, QString::fromStdString(current_petenv_name));
     });
 }
 
