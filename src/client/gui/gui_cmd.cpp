@@ -173,9 +173,8 @@ void cmd::GuiCmd::create_actions()
         future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
     });
     QObject::connect(&petenv_toggle_action, &QAction::triggered, [this] {
-        current_petenv_name = current_petenv_name.empty()
-                               ? "primary" // based on src/utils/settings.cpp:petenv_name.
-                               : "";
+        current_petenv_name = current_petenv_name.empty() ? "primary" // based on src/utils/settings.cpp:petenv_name.
+                                                          : "";
         MP_SETTINGS.set(petenv_key, QString::fromStdString(current_petenv_name));
     });
 }
