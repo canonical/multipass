@@ -15,10 +15,8 @@
  *
  */
 
-#include "src/daemon/default_vm_image_vault.h"
-
+#include "common.h"
 #include "disabling_macros.h"
-#include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_image_host.h"
 #include "mock_process_factory.h"
@@ -35,11 +33,11 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 
+#include <src/daemon/default_vm_image_vault.h>
+
 #include <QDateTime>
 #include <QThread>
 #include <QUrl>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

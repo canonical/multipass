@@ -15,25 +15,28 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_POCO_ZIP_UTILS_H
-#define MULTIPASS_MOCK_POCO_ZIP_UTILS_H
-
 #include "common.h"
-#include "mock_singleton_helpers.h"
 
-#include <multipass/poco_zip_utils.h>
+#include <multipass/network_interface.h>
+#include <multipass/network_interface_info.h>
 
-namespace multipass::test
+#include <QString>
+
+#include <ostream>
+
+QT_BEGIN_NAMESPACE
+void PrintTo(const QString& qstr, std::ostream* os)
 {
-class MockPocoZipUtils : public PocoZipUtils
+    *os << "QString(\"" << qUtf8Printable(qstr) << "\")";
+}
+QT_END_NAMESPACE
+
+void multipass::PrintTo(const NetworkInterface& net, std::ostream* os)
 {
-public:
-    using PocoZipUtils::PocoZipUtils;
+    *os << "NetworkInterface(id=\"" << net.id << "\")";
+}
 
-    MOCK_CONST_METHOD1(zip_archive_for, Poco::Zip::ZipArchive(std::ifstream&));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(MockPocoZipUtils, PocoZipUtils);
-};
-} // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_POCO_ZIP_UTILS_H
+void multipass::PrintTo(const NetworkInterfaceInfo& net, std::ostream* os)
+{
+    *os << "NetworkInterfaceInfo(id=\"" << net.id << "\")";
+}

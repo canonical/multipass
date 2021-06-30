@@ -15,13 +15,20 @@
  *
  */
 
+#include "tests/common.h"
 #include "tests/fake_handle.h"
 #include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_file_ops.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_settings.h"
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
+
+#include <multipass/constants.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/platform.h>
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 #include <src/platform/backends/libvirt/libvirt_wrapper.h>
@@ -29,24 +36,13 @@
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 #include <src/platform/platform_linux_detail.h>
 
-#include <multipass/constants.h>
-#include <multipass/exceptions/autostart_setup_exception.h>
-#include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/platform.h>
+#include <scope_guard.hpp>
 
 #include <QDir>
 #include <QFile>
 #include <QString>
 
-#include <scope_guard.hpp>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-
-#include <multipass/file_ops.h>
 #include <stdexcept>
-#include <tests/mock_file_ops.h>
-#include <tests/path.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

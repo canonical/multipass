@@ -18,13 +18,12 @@
 #ifndef MULTIPASS_MOCK_UTILS_H
 #define MULTIPASS_MOCK_UTILS_H
 
+#include "common.h"
 #include "mock_singleton_helpers.h"
 
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
-
-#include <gmock/gmock.h>
 
 namespace multipass::test
 {

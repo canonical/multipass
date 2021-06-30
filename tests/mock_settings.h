@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_MOCK_SETTINGS_H
 #define MULTIPASS_MOCK_SETTINGS_H
 
+#include "common.h"
 #include "mock_singleton_helpers.h"
 
 #include <multipass/settings.h>
-
-#include <gmock/gmock.h>
 
 namespace multipass
 {

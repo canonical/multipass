@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_MOCK_VM_WORKFLOW_PROVIDER_H
 #define MULTIPASS_MOCK_VM_WORKFLOW_PROVIDER_H
 
-#include <multipass/vm_workflow_provider.h>
+#include "common.h"
 
-#include <gmock/gmock.h>
+#include <multipass/vm_workflow_provider.h>
 
 namespace multipass
 {

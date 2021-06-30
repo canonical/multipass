@@ -18,11 +18,11 @@
 #ifndef MULTIPASS_MOCK_IMAGE_HOST_H
 #define MULTIPASS_MOCK_IMAGE_HOST_H
 
-#include <multipass/vm_image_host.h>
-
+#include "common.h"
 #include "temp_file.h"
 
-#include <gmock/gmock.h>
+#include <multipass/query.h>
+#include <multipass/vm_image_host.h>
 
 using namespace testing;
 

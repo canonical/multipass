@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_MOCK_CONST_FILE_OPS_H
 #define MULTIPASS_MOCK_CONST_FILE_OPS_H
 
+#include "common.h"
 #include "mock_singleton_helpers.h"
 
 #include <multipass/file_ops.h>
-
-#include <gmock/gmock.h>
 
 namespace multipass::test
 {

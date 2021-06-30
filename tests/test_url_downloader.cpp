@@ -15,19 +15,16 @@
  *
  */
 
-#include <multipass/exceptions/aborted_download_exception.h>
-#include <multipass/exceptions/download_exception.h>
-#include <multipass/format.h>
-
-#include "extra_assertions.h"
+#include "common.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_network.h"
 #include "temp_dir.h"
 
-#include <QTimer>
+#include <multipass/exceptions/aborted_download_exception.h>
+#include <multipass/exceptions/download_exception.h>
 
-#include <gtest/gtest.h>
+#include <QTimer>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

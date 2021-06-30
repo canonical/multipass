@@ -18,12 +18,11 @@
 #ifndef MULTIPASS_MOCK_IMAGE_VAULT_H
 #define MULTIPASS_MOCK_IMAGE_VAULT_H
 
-#include <multipass/query.h>
-#include <multipass/vm_image_vault.h>
-
+#include "common.h"
 #include "temp_file.h"
 
-#include <gmock/gmock.h>
+#include <multipass/query.h>
+#include <multipass/vm_image_vault.h>
 
 using namespace testing;
 

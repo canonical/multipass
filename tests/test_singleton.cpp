@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,9 @@
  *
  */
 
-#include <multipass/singleton.h>
+#include "common.h"
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <multipass/singleton.h>
 
 #include <string>
 

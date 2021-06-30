@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
 #ifndef MULTIPASS_MOCK_STATUS_MONITOR_H
 #define MULTIPASS_MOCK_STATUS_MONITOR_H
 
-#include <gmock/gmock.h>
+#include "common.h"
+
 #include <multipass/vm_status_monitor.h>
 
 namespace multipass

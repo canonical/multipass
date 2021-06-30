@@ -15,6 +15,7 @@
  *
  */
 
+#include "common.h"
 #include "file_operations.h"
 #include "mock_sftp.h"
 #include "mock_ssh.h"
@@ -23,8 +24,6 @@
 
 #include <multipass/ssh/sftp_client.h>
 #include <multipass/ssh/ssh_session.h>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

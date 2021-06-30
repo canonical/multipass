@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_MOCK_BACKEND_UTILS_H
 #define MULTIPASS_MOCK_BACKEND_UTILS_H
 
+#include "common.h"
 #include "mock_singleton_helpers.h"
 
 #include <src/platform/backends/shared/linux/backend_utils.h>
-
-#include <gmock/gmock.h>
 
 namespace multipass::test
 {

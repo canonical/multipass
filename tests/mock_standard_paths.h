@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_MOCK_STANDARD_PATHS_H
 #define MULTIPASS_MOCK_STANDARD_PATHS_H
 
+#include "common.h"
 #include "mock_singleton_helpers.h"
 
 #include <multipass/standard_paths.h>
-
-#include <gmock/gmock.h>
 
 namespace multipass::test
 {

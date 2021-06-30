@@ -18,8 +18,9 @@
 #ifndef MULTIPASS_STUB_VM_IMAGE_VAULT_H
 #define MULTIPASS_STUB_VM_IMAGE_VAULT_H
 
-#include <multipass/vm_image_vault.h>
 #include "temp_file.h"
+
+#include <multipass/vm_image_vault.h>
 
 namespace multipass
 {

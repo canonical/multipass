@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,10 @@
  *
  */
 
+#include "common.h"
+
 #include <multipass/cli/format_utils.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 using namespace testing;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
 #define MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
 
-#include <gmock/gmock.h>
+#include "common.h"
 #include "mock_environment_helpers.h"
 
 namespace multipass

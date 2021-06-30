@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,10 @@
  *
  */
 
-#include <src/platform/backends/qemu/qemu_vmstate_process_spec.h>
-
+#include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
-#include <gmock/gmock.h>
+
+#include <src/platform/backends/qemu/qemu_vmstate_process_spec.h>
 
 #include <QStringList>
 

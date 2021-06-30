@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_MOCK_SINGLETON_HELPERS_H
 #define MULTIPASS_MOCK_SINGLETON_HELPERS_H
 
-#include <scope_guard.hpp>
+#include "common.h"
 
-#include <gmock/gmock.h>
+#include <scope_guard.hpp>
 
 #include <cassert>
 #include <utility>

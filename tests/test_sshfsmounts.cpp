@@ -15,18 +15,18 @@
  *
  */
 
-#include <multipass/exceptions/sshfs_missing_error.h>
-#include <multipass/sshfs_mount/sshfs_mounts.h>
-
+#include "common.h"
 #include "mock_environment_helpers.h"
 #include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_virtual_machine.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/sshfs_mount/sshfs_mounts.h>
+
 #include <QCoreApplication>
 #include <QTimer>
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

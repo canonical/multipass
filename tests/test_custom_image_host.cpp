@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2018-2021 Canonical, Ltd.
  *
@@ -15,9 +16,7 @@
  *
  */
 
-#include "src/daemon/custom_image_host.h"
-
-#include "extra_assertions.h"
+#include "common.h"
 #include "image_host_remote_count.h"
 #include "mischievous_url_downloader.h"
 #include "mock_platform.h"
@@ -28,9 +27,9 @@
 #include <multipass/format.h>
 #include <multipass/query.h>
 
-#include <QUrl>
+#include <src/daemon/custom_image_host.h>
 
-#include <gmock/gmock.h>
+#include <QUrl>
 
 #include <cstddef>
 #include <unordered_set>
