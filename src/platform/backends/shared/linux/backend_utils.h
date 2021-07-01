@@ -19,10 +19,13 @@
 #define MULTIPASS_BACKEND_UTILS_H
 
 #include <multipass/path.h>
+#include <multipass/singleton.h>
 
 #include <chrono>
 #include <stdexcept>
 #include <string>
+
+#define MP_BACKEND multipass::Backend::instance()
 
 class QDBusError;
 
@@ -40,7 +43,6 @@ Path convert_to_qcow_if_necessary(const Path& image_path);
 QString cpu_arch();
 void check_for_kvm_support();
 void check_if_kvm_is_in_use();
-std::string create_bridge_with(const std::string& interface);
 
 class CreateBridgeException : public std::runtime_error
 {
@@ -48,5 +50,13 @@ public:
     CreateBridgeException(const std::string& detail, const QDBusError& dbus_error, bool rollback = false);
 };
 } // namespace backend
+
+class Backend : public Singleton<Backend>
+{
+public:
+    using Singleton<Backend>::Singleton;
+
+    virtual std::string create_bridge_with(const std::string& interface);
+};
 } // namespace multipass
 #endif // MULTIPASS_BACKEND_UTILS_H
