@@ -159,7 +159,7 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
                      [&output, &power_shell]() { output += power_shell->read_all_standard_output(); });
 
     power_shell->start();
-    auto wait_result = power_shell->wait_for_finished();
+    auto wait_result = power_shell->wait_for_finished(/* msecs = */ 60000);
     auto pid = power_shell->process_id(); // This is 0 iff the process didn't even start
 
     if (!wait_result)
