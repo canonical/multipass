@@ -421,6 +421,11 @@ QString mp::platform::default_driver()
     return QStringLiteral("hyperv");
 }
 
+QString mp::platform::default_privileged_mounts()
+{
+    return QStringLiteral("false");
+}
+
 QString mp::platform::daemon_config_home() // temporary
 {
     auto ret = QString{qgetenv("SYSTEMROOT")};
