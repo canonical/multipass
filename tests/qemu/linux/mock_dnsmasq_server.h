@@ -20,7 +20,7 @@
 
 #include "tests/mock_platform.h"
 
-#include <src/platform/backends/qemu/dnsmasq_server.h>
+#include <src/platform/backends/qemu/linux/dnsmasq_server.h>
 
 namespace multipass
 {

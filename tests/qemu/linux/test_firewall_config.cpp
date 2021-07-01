@@ -22,7 +22,7 @@
 #include "tests/mock_utils.h"
 #include "tests/reset_process_factory.h"
 
-#include <src/platform/backends/qemu/firewall_config.h>
+#include <src/platform/backends/qemu/linux/firewall_config.h>
 
 #include <multipass/format.h>
 

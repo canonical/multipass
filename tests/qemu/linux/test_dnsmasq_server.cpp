@@ -24,8 +24,8 @@
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
-#include <src/platform/backends/qemu/dnsmasq_process_spec.h>
-#include <src/platform/backends/qemu/dnsmasq_server.h>
+#include <src/platform/backends/qemu/linux/dnsmasq_process_spec.h>
+#include <src/platform/backends/qemu/linux/dnsmasq_server.h>
 
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
