@@ -307,16 +307,16 @@ void mp::HyperVVirtualMachineFactory::prepare_networking(std::vector<NetworkInte
 auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
     auto adapters = get_adapters();
-    auto switches = get_switches(adapters);
-    update_adapter_authorizations(adapters, switches);
+    auto networks = get_switches(adapters);
+    update_adapter_authorizations(adapters, /* switches = */ networks);
 
-    if (adapters.size() > switches.size())
-        std::swap(adapters, switches);                   // we want to move the smallest one
-    switches.reserve(adapters.size() + switches.size()); // avoid growing more times than needed
+    if (adapters.size() > networks.size())
+        std::swap(adapters, networks);                   // we want to move the smallest one
+    networks.reserve(adapters.size() + networks.size()); // avoid growing more times than needed
 
-    std::move(adapters.begin(), adapters.end(), std::back_inserter(switches));
+    std::move(adapters.begin(), adapters.end(), std::back_inserter(networks));
 
-    return switches;
+    return networks;
 }
 
 std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
