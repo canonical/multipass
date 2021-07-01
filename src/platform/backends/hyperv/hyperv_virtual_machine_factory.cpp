@@ -342,10 +342,14 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
 auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInterfaceInfo>& adapters)
     -> std::vector<NetworkInterfaceInfo>
 {
-    static const auto ps_cmd_base =
-        QStringLiteral("Get-VMSwitch -ComputerName localhost " // workaround for names with more than 15 chars
-                       "| Select-Object -Property Name,SwitchType,NetAdapterInterfaceDescription,Notes");
-    static const auto ps_args = ps_cmd_base.split(' ', QString::SkipEmptyParts) + mp::PowerShell::Snippets::to_bare_csv;
+    static const auto ps_args = QStringList{"Get-VMSwitch",
+                                            "-ComputerName",
+                                            "localhost", // workaround for names with more than 15 chars
+                                            "|",
+                                            "Select-Object",
+                                            "-Property",
+                                            "Name,SwitchType,NetAdapterInterfaceDescription,Notes"} +
+                                mp::PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
     if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
