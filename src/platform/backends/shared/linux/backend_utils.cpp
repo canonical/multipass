@@ -322,7 +322,7 @@ void mp::backend::check_if_kvm_is_in_use()
 
 // @precondition no bridge exists for this interface
 // @precondition interface identifies an ethernet device
-std::string mp::backend::create_bridge_with(const std::string& interface)
+std::string mp::Backend::create_bridge_with(const std::string& interface)
 {
     static constexpr auto log_category_create = "create bridge";
     static constexpr auto log_category_rollback = "rollback bridge";
