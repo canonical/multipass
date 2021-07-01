@@ -295,6 +295,11 @@ QString mp::platform::default_driver()
     return QStringLiteral("hyperkit");
 }
 
+QString mp::platform::default_privileged_mounts()
+{
+    return QStringLiteral("true");
+}
+
 QString mp::platform::daemon_config_home() // temporary
 {
     auto ret = QStringLiteral("/var/root/Library/Preferences/");
