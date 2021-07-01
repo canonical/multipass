@@ -19,12 +19,12 @@
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
-#include <shared/linux/process_factory.h>
 #include <shared/shared_backend_utils.h>
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/process/process.h>
+#include <multipass/platform.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -92,7 +92,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::opti
     }
 
     auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, qemu_platform_args, qemu_netdev, resume_data);
-    auto process = MP_PROCFACTORY.create_process(std::move(process_spec));
+    auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
     mpl::log(mpl::Level::info, desc.vm_name, fmt::format("process program '{}'", process->program()));
@@ -121,7 +121,8 @@ auto hmc_to_qmp_json(const QString& command_line)
 
 bool instance_image_has_snapshot(const mp::Path& image_path)
 {
-    auto process = MP_PROCFACTORY.create_process("qemu-img", QStringList{"snapshot", "-l", image_path});
+    auto process =
+        mp::platform::make_process(mp::simple_process_spec("qemu-img", QStringList{"snapshot", "-l", image_path}));
     auto process_state = process->execute();
     if (!process_state.completed_successfully())
     {
@@ -151,7 +152,7 @@ auto get_qemu_machine_type()
     }
 
     auto process_spec = std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName());
-    auto process = MP_PROCFACTORY.create_process(std::move(process_spec));
+    auto process = mp::platform::make_process(std::move(process_spec));
     auto process_state = process->execute();
 
     if (!process_state.completed_successfully())
