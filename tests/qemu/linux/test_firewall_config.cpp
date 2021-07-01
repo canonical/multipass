@@ -16,7 +16,7 @@
  */
 
 #include <multipass/format.h>
-#include <src/platform/backends/qemu/firewall_config.h>
+#include <src/platform/backends/qemu/linux/firewall_config.h>
 
 #include "tests/extra_assertions.h"
 #include "tests/mock_environment_helpers.h"

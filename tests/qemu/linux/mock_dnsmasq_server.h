@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_MOCK_DNSMASQ_SERVER_H
 #define MULTIPASS_MOCK_DNSMASQ_SERVER_H
 
-#include <src/platform/backends/qemu/dnsmasq_server.h>
+#include <src/platform/backends/qemu/linux/dnsmasq_server.h>
 
 #include <gmock/gmock.h>
 
