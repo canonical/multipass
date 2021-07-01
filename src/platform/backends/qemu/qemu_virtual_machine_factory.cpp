@@ -20,9 +20,10 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/virtual_machine_description.h>
 
-#include <shared/linux/process_factory.h>
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <QRegularExpression>
@@ -71,7 +72,7 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string()
 {
-    auto process = MP_PROCFACTORY.create_process(mp::qemu_exec(), {"--version"});
+    auto process = mp::platform::make_process(simple_process_spec(mp::qemu_exec(), {"--version"}));
 
     auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
     auto exit_state = process->execute();
