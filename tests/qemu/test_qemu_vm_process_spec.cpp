@@ -20,6 +20,8 @@
 
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
 
+#include <QString>
+#include <QStringList>
 #include <QTemporaryDir>
 
 namespace mp = multipass;
@@ -41,12 +43,13 @@ struct TestQemuVMProcessSpec : public Test
                                              {},
                                              {},
                                              {}};
-    const QString tap_device_name{"tap_device"};
+    const QString qemu_netdev{"tap,id=hostnet0,ifname=tap_device,script=no,downscript=no"};
+    const QStringList qemu_platform_args{{"--enable-kvm"}};
 };
 
 TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
 {
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, mp::nullopt);
 
     EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
                                              "-device",
@@ -80,7 +83,7 @@ TEST_F(TestQemuVMProcessSpec, legacy_resume_arguments_correct)
 {
     const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag", "machine_type", false, {}};
 
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, resume_data);
     EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
                                              "-hda",
                                              "/path/to/image",
@@ -113,7 +116,7 @@ TEST_F(TestQemuVMProcessSpec, legacy_use_cdrom_resume_arguments_correct)
 {
     const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag", "machine_type", true, {}};
 
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, resume_data);
 
     EXPECT_EQ(spec.arguments(), QStringList({"--enable-kvm",
                                              "-hda",
@@ -147,7 +150,7 @@ TEST_F(TestQemuVMProcessSpec, resume_arguments_taken_from_resumedata)
 {
     const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag", "machine_type", false, {"-one", "-two"}};
 
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, resume_data);
 
     EXPECT_EQ(spec.arguments(), QStringList({"-one", "-two", "-loadvm", "suspend_tag", "-machine", "machine_type"}));
 }
@@ -158,21 +161,21 @@ TEST_F(TestQemuVMProcessSpec, resume_with_missing_machine_type_guesses_correctly
     resume_data_missing_machine_info.suspend_tag = "suspend_tag";
     resume_data_missing_machine_info.arguments = QStringList{"-args"};
 
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, resume_data_missing_machine_info);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, resume_data_missing_machine_info);
 
     EXPECT_EQ(spec.arguments(), QStringList({"-args", "-loadvm", "suspend_tag"}));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_has_correct_name)
 {
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.vm_name.qemu-system-"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_includes_disk_images)
 {
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/image rwk,"));
     EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/cloud_init.iso rk,"));
@@ -180,7 +183,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_includes_disk_images)
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_identifier)
 {
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, mp::nullopt);
 
     EXPECT_EQ(spec.identifier(), "vm_name");
 }
@@ -192,7 +195,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_snap_correct)
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=snap.multipass.multipassd"));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
@@ -209,7 +212,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_symlinked_snap_correct
 
     mpt::SetEnvScope e("SNAP", link_dir.path().toUtf8());
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path())));
@@ -221,7 +224,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)
 
     mpt::UnsetEnvScope e("SNAP");
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
-    mp::QemuVMProcessSpec spec(desc, tap_device_name, mp::nullopt);
+    mp::QemuVMProcessSpec spec(desc, qemu_platform_args, qemu_netdev, mp::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=unconfined"));
     EXPECT_TRUE(spec.apparmor_profile().contains("/usr/share/seabios/* r,"));
