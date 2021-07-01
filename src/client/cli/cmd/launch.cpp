@@ -130,21 +130,28 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     auto ret = request_launch(parser);
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
-        QString mount_source{};
-        try
+        if (!MP_SETTINGS.get_as<bool>(mounts_key))
         {
-            mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+            cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
         }
-        catch (const mp::SnapEnvironmentException&)
+        else
         {
-            mount_source = QDir::toNativeSeparators(QDir::homePath());
+            QString mount_source{};
+            try
+            {
+                mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+            }
+            catch (const mp::SnapEnvironmentException&)
+            {
+                mount_source = QDir::toNativeSeparators(QDir::homePath());
+            }
+
+            const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
+
+            ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+            if (ret == ReturnCode::Ok)
+                cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
         }
-
-        const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
-
-        ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
-        if (ret == ReturnCode::Ok)
-            cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
     }
 
     return ret;

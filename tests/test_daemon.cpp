@@ -1436,4 +1436,15 @@ TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
                           "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
 }
 
+TEST_F(Daemon, refusesDisabledMount)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+
+    std::stringstream err_stream;
+    send_command({"mount", ".", "target"}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
+}
+
 } // namespace
