@@ -200,7 +200,7 @@ TEST_F(HyperVBackend, throws_on_failure_to_add_extra_interface)
         Property(&std::runtime_error::what, AllOf(HasSubstr("Could not setup"), HasSubstr(extra_iface.id))));
 }
 
-TEST_F(HyperVBackend, create_bridge_requests_new_switch)
+TEST_F(HyperVBackend, createBridgeRequestsNewSwitch)
 {
     const mp::NetworkInterfaceInfo net{"asdf", "ethernet", "The asdf net"};
 
@@ -216,7 +216,7 @@ TEST_F(HyperVBackend, create_bridge_requests_new_switch)
     EXPECT_ANY_THROW(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net));
 }
 
-TEST_F(HyperVBackend, create_bridge_returns_new_switch_name)
+TEST_F(HyperVBackend, createBridgeReturnsNewSwitchName)
 {
     const mp::NetworkInterfaceInfo net{"w1", "wifi", "Wireless network"};
     const auto switch_name = fmt::format("ExtSwitch ({})", net.id);
@@ -224,7 +224,7 @@ TEST_F(HyperVBackend, create_bridge_returns_new_switch_name)
     EXPECT_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), Eq(switch_name));
 }
 
-TEST_F(HyperVBackend, create_bridge_throws_on_name_mismatch)
+TEST_F(HyperVBackend, createBridgeThrowsOnNameMismatch)
 {
     const auto bad = "wrong";
     ps_helper.mock_ps_exec(bad);
@@ -233,7 +233,7 @@ TEST_F(HyperVBackend, create_bridge_throws_on_name_mismatch)
                          std::runtime_error, mpt::match_what(HasSubstr(bad)));
 }
 
-TEST_F(HyperVBackend, create_bridge_throws_on_process_failure)
+TEST_F(HyperVBackend, createBridgeThrowsOnProcessFailure)
 {
     const mp::NetworkInterfaceInfo net{"rerere", "ethernet", "lilo"};
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("ExtSwitch ({})", net.id)), /* succeed = */ false);
@@ -243,7 +243,7 @@ TEST_F(HyperVBackend, create_bridge_throws_on_process_failure)
                          mpt::match_what(HasSubstr("Could not create external switch")));
 }
 
-TEST_F(HyperVBackend, create_bridge_includes_error_msg_in_exception)
+TEST_F(HyperVBackend, createBridgeIncludesErrorMsgInException)
 {
     const auto error = "Bad Astronaut";
     ps_helper.mock_ps_exec(error, /* succeed = */ false);
@@ -289,7 +289,7 @@ struct HyperVNetworksPS : public HyperVNetworks
     inline static constexpr auto cmdlet = "Get-VMSwitch";
 };
 
-TEST_F(HyperVNetworksPS, requests_switches)
+TEST_F(HyperVNetworksPS, requestsSwitches)
 {
     ps_helper.setup(
         [](auto* process) {
@@ -301,14 +301,14 @@ TEST_F(HyperVNetworksPS, requests_switches)
     backend.networks();
 }
 
-TEST_F(HyperVNetworksPS, requests_platform_interfaces)
+TEST_F(HyperVNetworksPS, requestsPlatformInterfaces)
 {
     ps_helper.mock_ps_exec("");
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).Times(1);
     backend.networks();
 }
 
-TEST_F(HyperVNetworksPS, joins_switches_and_adapters)
+TEST_F(HyperVNetworksPS, joinsSwitchesAndAdapters)
 {
     ps_helper.mock_ps_exec("switch,External, a switch,\n");
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
@@ -321,7 +321,7 @@ TEST_F(HyperVNetworksPS, joins_switches_and_adapters)
     EXPECT_THAT(got_nets, Contains(Field(&mp::NetworkInterfaceInfo::type, Eq("ethernet"))));
 }
 
-TEST_F(HyperVNetworksPS, throws_on_failure_to_execute_cmdlet)
+TEST_F(HyperVNetworksPS, throwsOnFailureToExecuteCmdlet)
 {
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::warning);
@@ -332,7 +332,7 @@ TEST_F(HyperVNetworksPS, throws_on_failure_to_execute_cmdlet)
     MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error, Property(&std::runtime_error::what, HasSubstr(error)));
 }
 
-TEST_F(HyperVNetworksPS, throws_on_unexpected_cmdlet_output)
+TEST_F(HyperVNetworksPS, throwsOnUnexpectedCmdletOutput)
 {
     constexpr auto output = "g1bb€r1$h";
     ps_helper.mock_ps_exec(output);
@@ -345,7 +345,7 @@ struct TestWrongNumFields : public HyperVNetworksPS, public WithParamInterface<s
     inline static constexpr auto bad_line_in_output_format = "a,few,,\ngood,lines,,\n{}\naround,a,,\nbad,one,,";
 };
 
-TEST_P(TestWrongNumFields, throws_on_output_with_wrong_fields)
+TEST_P(TestWrongNumFields, throwsOnOutputWithWrongFields)
 {
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())));
     ASSERT_THROW(backend.networks(), std::runtime_error);
@@ -359,7 +359,7 @@ struct TestNonExternalSwitchesWithLinks : public HyperVNetworksPS, public WithPa
     inline static constexpr auto bad_line_in_output_format = TestWrongNumFields::bad_line_in_output_format;
 };
 
-TEST_P(TestNonExternalSwitchesWithLinks, throws_on_non_external_switch_with_link)
+TEST_P(TestNonExternalSwitchesWithLinks, throwsOnNonExternalSwitchWithLink)
 {
     constexpr auto link_description = "foo bar net";
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
@@ -413,7 +413,7 @@ TEST_P(TestNonExternalSwitchTypes, recognizes_switch_type)
 
 INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestNonExternalSwitchTypes, Values("Private", "Internal"));
 
-TEST_F(HyperVNetworksPS, recognizes_external_switch)
+TEST_F(HyperVNetworksPS, recognizesExternalSwitch)
 {
     const auto name = "some switch";
 
@@ -427,7 +427,7 @@ TEST_F(HyperVNetworksPS, recognizes_external_switch)
     EXPECT_THAT(backend.networks(), ElementsAre(switch_matcher));
 }
 
-TEST_F(HyperVNetworksPS, handles_unknown_switch_types)
+TEST_F(HyperVNetworksPS, handlesUnknownSwitchTypes)
 {
     constexpr auto type = "Strange";
     const auto matcher = adapt_to_single_description_matcher(
@@ -437,7 +437,7 @@ TEST_F(HyperVNetworksPS, handles_unknown_switch_types)
     EXPECT_THAT(backend.networks(), matcher);
 }
 
-TEST_F(HyperVNetworksPS, includes_switch_links_to_known_adapters)
+TEST_F(HyperVNetworksPS, includesSwitchLinksToKnownAdapters)
 {
     mp::NetworkInterfaceInfo net_a{"a", "ethernet", "an a a aaa"};
     mp::NetworkInterfaceInfo net_b{"b", "wifi", "a bbb b b"};
@@ -460,7 +460,7 @@ struct TestSwitchUnsupportedLinks : public HyperVNetworksPS,
 {
 };
 
-TEST_P(TestSwitchUnsupportedLinks, excludes_switch_links_to_unknown_adapters)
+TEST_P(TestSwitchUnsupportedLinks, excludesSwitchLinksToUnknownAdapters)
 {
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector(GetParam())));
     ps_helper.mock_ps_exec("switchin,external,crazy adapter,\nnope,external,nope,");
@@ -470,7 +470,7 @@ TEST_P(TestSwitchUnsupportedLinks, excludes_switch_links_to_unknown_adapters)
     EXPECT_THAT(backend.networks(), IsSupersetOf({switch_matcher, switch_matcher})); // expect two such switches
 }
 
-TEST_P(TestSwitchUnsupportedLinks, omits_unsupported_adapter_from_external_switch_description)
+TEST_P(TestSwitchUnsupportedLinks, omitsUnsupportedAdapterFromExternalSwitchDescription)
 {
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector(GetParam())));
     const auto desc_matcher =
@@ -488,7 +488,7 @@ INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestSwitchUnsupportedLinks,
                                 std::vector<mp::NetworkInterfaceInfo>{{"nic", "crazy_type", "some unknown NIC"},
                                                                       {"eth", "ethernet", "an ethernet"}}));
 
-TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_description)
+TEST_F(HyperVNetworksPS, includesSupportedAdapterInExternalSwitchDescription)
 {
     mp::NetworkInterfaceInfo wifi{"wlan", "wifi", "A Wifi NIC"};
     mp::NetworkInterfaceInfo eth{"Ethernet", "ethernet", "An Ethernet NIC"};
@@ -506,7 +506,7 @@ TEST_F(HyperVNetworksPS, includes_supported_adapter_in_external_switch_descripti
     EXPECT_THAT(backend.networks(), IsSupersetOf({match(wifi.id), match(eth.id)}));
 }
 
-TEST_F(HyperVNetworksPS, includes_existing_notes_in_switch_description)
+TEST_F(HyperVNetworksPS, includesExistingNotesInSwitchDescription)
 {
     constexpr auto notes = "custom notes";
     constexpr auto adapter_id = "Ethernet";
@@ -528,7 +528,7 @@ struct TestAdapterAuthorization : public HyperVNetworksPS, public WithParamInter
 {
 };
 
-TEST_P(TestAdapterAuthorization, requires_no_authorization_for_known_adapters_in_switches)
+TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForKnownAdaptersInSwitches)
 {
     const auto& net = GetParam();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
@@ -538,7 +538,7 @@ TEST_P(TestAdapterAuthorization, requires_no_authorization_for_known_adapters_in
                                                    Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
 }
 
-TEST_P(TestAdapterAuthorization, requires_authorization_for_known_adapters_in_no_switches)
+TEST_P(TestAdapterAuthorization, requiresAuthorizationForKnownAdaptersInNoSwitches)
 {
     const auto& net = GetParam();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
@@ -548,7 +548,7 @@ TEST_P(TestAdapterAuthorization, requires_authorization_for_known_adapters_in_no
                                                    Field(&mp::NetworkInterfaceInfo::needs_authorization, true))));
 }
 
-TEST_P(TestAdapterAuthorization, requires_no_authorization_for_switches)
+TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForSwitches)
 {
     const auto& net = GetParam();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
@@ -569,19 +569,19 @@ INSTANTIATE_TEST_SUITE_P(HyperVNetworkPS, TestAdapterAuthorization,
                                 mp::NetworkInterfaceInfo{"ghi", "ethernet", "Yet another", {"x", "y", "z"}, false},
                                 mp::NetworkInterfaceInfo{"jkl", "wifi", "And a final one", {"w"}, true}));
 
-TEST_F(HyperVNetworksPS, get_switches_returns_empty_when_no_switches_found)
+TEST_F(HyperVNetworksPS, getSwitchesReturnsEmptyWhenNoSwitchesFound)
 {
     ps_helper.mock_ps_exec("");
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({}), IsEmpty());
 }
 
-TEST_F(HyperVNetworksPS, get_switches_returns_as_many_items_as_lines_in_proper_output)
+TEST_F(HyperVNetworksPS, getSwitchesReturnsAsManyItemsAsLinesInProperOutput)
 {
     ps_helper.mock_ps_exec("a,b,,\nd,e,,\ng,h,,\nj,k,,\n,,,\n,m,,\njj,external,asdf,\n");
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({{}}), SizeIs(7));
 }
 
-TEST_F(HyperVNetworksPS, get_switches_returns_provided_interface_ids)
+TEST_F(HyperVNetworksPS, getSwitchesReturnsProvidedInterfaceIds)
 {
     constexpr auto id1 = "\"toto\"";
     constexpr auto id2 = " te et te";
@@ -596,13 +596,13 @@ TEST_F(HyperVNetworksPS, get_switches_returns_provided_interface_ids)
                 UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
 }
 
-TEST_F(HyperVNetworksPS, get_switches_returns_only_switches)
+TEST_F(HyperVNetworksPS, getSwitchesReturnsOnlySwitches)
 {
     ps_helper.mock_ps_exec("a,b,,\nc,d,,\nasdf,internal,,\nsdfg,external,dfgh,\nfghj,private,,");
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({}), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
-TEST_F(HyperVNetworks, get_adapters_returns_ethernet_and_wifi)
+TEST_F(HyperVNetworks, getAdaptersReturnsEthernetAndWifi)
 {
     mp::NetworkInterfaceInfo strange{"strange", "strangewire", "waka waka"};
     mp::NetworkInterfaceInfo weird{"weird", "future tech", "wika wika"};

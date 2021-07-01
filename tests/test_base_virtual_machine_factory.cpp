@@ -145,7 +145,7 @@ TEST_F(BaseFactory, creates_cloud_init_iso_image)
     EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
 }
 
-TEST_F(BaseFactory, create_bridge_not_implemented)
+TEST_F(BaseFactory, createBridgeNotImplemented)
 {
     StrictMock<MockBaseFactory> factory;
 
