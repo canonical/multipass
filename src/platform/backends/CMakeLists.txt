@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -13,6 +13,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_subdirectory(shared)
-add_subdirectory(libvirt)
-add_subdirectory(lxd)
-add_subdirectory(qemu)
+
+if(UNIX)
+  add_subdirectory(qemu)
+endif()
+
+if(LINUX)
+  add_subdirectory(libvirt)
+  add_subdirectory(lxd)
+endif()

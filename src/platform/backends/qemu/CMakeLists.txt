@@ -31,4 +31,6 @@ target_link_libraries(qemu_backend
   utils
   Qt5::Core)
 
-add_subdirectory(linux)
+if(LINUX)
+  add_subdirectory(linux)
+endif()
