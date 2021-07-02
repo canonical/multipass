@@ -97,17 +97,33 @@ struct MockDaemonRpc : public mp::DaemonRpc
                                        grpc::ServerWriter<mp::VersionReply>* response));
     MOCK_METHOD3(ping,
                  grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
+    MOCK_METHOD3(get, grpc::Status(grpc::ServerContext* context, const mp::GetRequest* request,
+                                   grpc::ServerWriter<mp::GetReply>* response));
 };
 
 struct Client : public Test
 {
+    auto make_get_reply(const std::string& value)
+    {
+        return [&value](Unused, Unused, grpc::ServerWriter<mp::GetReply>* response)
+        {
+            mp::GetReply get_reply;
+
+            get_reply.set_value(value);
+
+            response->Write(get_reply);
+
+            return grpc::Status{};
+        };
+    }
+
     void SetUp() override
     {
         EXPECT_CALL(mock_settings, get(_)).Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests.
                                                                   This allows general actions to consult settings
                                                                   (e.g. Windows Terminal profile sync) */
-        EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key)))
-            .WillRepeatedly(Return("true")); // Tests assume this default, but platforms may override.
+        EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
+            .WillRepeatedly(Invoke(make_get_reply("true"))); // Tests assume this default, but platforms may override.
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
@@ -436,7 +452,8 @@ TEST_F(Client, shellCmdSkipsAutomountWhenDisabled)
 {
     std::stringstream cout_stream;
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
+        .WillOnce(Invoke(make_get_reply("false")));
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
@@ -1166,7 +1183,8 @@ TEST_F(Client, startCmdSkipsAutomountWhenDisabled)
 {
     std::stringstream cout_stream;
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
+        .WillOnce(Invoke(make_get_reply("false")));
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
