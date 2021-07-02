@@ -145,6 +145,9 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
         get_request.set_verbosity_level(parser->verbosityLevel());
         ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
 
+        if (ret == ReturnCode::Ok)
+            return ret;
+
         if (mounts_value != "true")
         {
             cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
