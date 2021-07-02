@@ -35,6 +35,7 @@ service Rpc {
     rpc delet (DeleteRequest) returns (stream DeleteReply);
     rpc umount (UmountRequest) returns (stream UmountReply);
     rpc version (VersionRequest) returns (stream VersionReply);
+    rpc get (GetRequest) returns (stream GetReply);
 }
 
 message OptInStatus {
@@ -390,4 +391,14 @@ message VersionReply {
     string version = 1;
     string log_line = 2;
     UpdateInfo update_info = 3;
+}
+
+message GetRequest {
+    string key = 1;
+    int32 verbosity_level = 2;
+}
+
+message GetReply {
+    string value = 1;
+    string log_line = 2;
 }

@@ -612,6 +612,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
 }
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
@@ -1967,6 +1968,27 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriter<Versi
     config->update_prompt->populate(reply.mutable_update_info());
     server->Write(reply);
     status_promise->set_value(grpc::Status::OK);
+}
+
+void mp::Daemon::get(const GetRequest* request, grpc::ServerWriter<GetReply>* server,
+                     std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<GetReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    GetReply reply;
+
+    reply.set_value(MP_SETTINGS.get(QString::fromStdString(request->key())).toStdString());
+    server->Write(reply);
+    status_promise->set_value(grpc::Status::OK);
+}
+catch (const mp::InvalidSettingsException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::on_shutdown()

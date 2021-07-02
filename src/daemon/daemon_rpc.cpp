@@ -225,3 +225,10 @@ grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest
 {
     return grpc::Status::OK;
 }
+
+grpc::Status mp::DaemonRpc::get(grpc::ServerContext* context, const GetRequest* request,
+                                grpc::ServerWriter<GetReply>* response)
+{
+    return emit_signal_and_wait_for_result(
+        std::bind(&DaemonRpc::on_get, this, request, response, std::placeholders::_1));
+}
