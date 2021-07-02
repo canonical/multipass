@@ -134,8 +134,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
         grpc::string mounts_value = "false";
         mp::GetRequest get_request;
 
-        auto on_success = [&mounts_value](mp::GetReply& reply)
-        {
+        auto on_success = [&mounts_value](mp::GetReply& reply) {
             mounts_value = reply.value();
             return ReturnCode::Ok;
         };
