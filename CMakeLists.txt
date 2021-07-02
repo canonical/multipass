@@ -178,6 +178,7 @@ else()
     endif()
 
     add_definitions(-DMULTIPASS_PLATFORM_LINUX)
+    set(LINUX TRUE)
   endif()
 endif()
 

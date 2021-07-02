@@ -19,4 +19,6 @@ add_dependencies(multipass_tests
   qemu-img
 )
 
-add_subdirectory(linux)
+if(LINUX)
+  add_subdirectory(linux)
+endif()
