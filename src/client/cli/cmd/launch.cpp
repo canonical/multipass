@@ -130,7 +130,23 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     auto ret = request_launch(parser);
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
-        if (!MP_SETTINGS.get_as<bool>(mounts_key))
+        // TODO: This needs wrapping in mp::Settings
+        grpc::string mounts_value = "false";
+        mp::GetRequest get_request;
+
+        auto on_success = [&mounts_value](mp::GetReply& reply)
+        {
+            mounts_value = reply.value();
+            return ReturnCode::Ok;
+        };
+
+        auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+
+        get_request.set_key(mp::mounts_key);
+        get_request.set_verbosity_level(parser->verbosityLevel());
+        ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
+
+        if (mounts_value != "true")
         {
             cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
         }
