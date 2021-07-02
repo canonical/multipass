@@ -525,9 +525,9 @@ auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInS
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
     static constexpr auto plural = "Multipass needs to create {} to connect to {}.\nThis will temporarily disrupt "
-                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)?";
+                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)? ";
     static constexpr auto singular = "Multipass needs to create a {} to connect to {}.\nThis will temporarily disrupt "
-                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)?";
+                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)? ";
     static constexpr auto nodes = on_windows() ? "switches" : "bridges";
     static constexpr auto node = on_windows() ? "switch" : "bridge";
 
