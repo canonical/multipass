@@ -1432,6 +1432,9 @@ try // clang-format on
     NetworksReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
+    if (!instances_running(vm_instances))
+        config->factory->hypervisor_health_check();
+
     const auto& iface_list = config->factory->networks();
 
     for (const auto& iface : iface_list)
