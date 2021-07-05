@@ -1495,4 +1495,13 @@ TEST_F(Daemon, getReportsException)
     EXPECT_THAT(err_stream.str(), HasSubstr("exception"));
 }
 
+TEST_F(Daemon, performs_health_check_on_networks)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, hypervisor_health_check);
+    send_command({"networks"});
+}
+
 } // namespace
