@@ -1495,6 +1495,27 @@ TEST_F(Daemon, getReportsException)
     EXPECT_THAT(err_stream.str(), HasSubstr("exception"));
 }
 
+TEST_F(Daemon, requests_networks)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::vector<mp::NetworkInterfaceInfo> nets{{"net_a", "type_a", "description_a"},
+                                               {"net_b", "type_b", "description_b"}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(nets));
+
+    std::stringstream stream;
+    send_command({"networks"}, stream);
+
+    auto got = stream.str();
+    for (const auto& net : nets)
+    {
+        EXPECT_THAT(got, HasSubstr(net.id));
+        EXPECT_THAT(got, HasSubstr(net.type));
+        EXPECT_THAT(got, HasSubstr(net.description));
+    }
+}
+
 TEST_F(Daemon, performs_health_check_on_networks)
 {
     auto mock_factory = use_a_mock_vm_factory();
