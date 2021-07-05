@@ -100,6 +100,8 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                 emit process->started();
             });
 
+            EXPECT_CALL(*process, wait_for_finished(_)).WillRepeatedly(Return(true));
+
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
                 QJsonParseError parse_error;
                 auto json = QJsonDocument::fromJson(data, &parse_error);
