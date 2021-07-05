@@ -2132,7 +2132,9 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<Crea
 {
     // Try to get info for the requested image. This will throw out if the requested image is not found. This check
     // needs to be done before the other checks.
-    config->vault->all_info_for(query_from(request, ""));
+    auto image_query = query_from(request, "");
+    if (image_query.query_type == Query::Type::Alias)
+        config->vault->all_info_for(image_query);
 
     auto checked_args = validate_create_arguments(request, *config->factory);
 
