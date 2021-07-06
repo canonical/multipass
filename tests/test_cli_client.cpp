@@ -538,8 +538,9 @@ TEST_F(Client, shell_cmd_disabled_petenv)
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(0);
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::CommandLineError));
 
-    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(2);
     EXPECT_THAT(send_command({"shell", "foo"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"shell", "primary"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, shell_cmd_disabled_petenv_help)
