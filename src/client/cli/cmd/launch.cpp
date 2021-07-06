@@ -130,45 +130,32 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     auto ret = request_launch(parser);
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
-        // TODO: This needs wrapping in mp::Settings
-        grpc::string mounts_value = "false";
-        mp::GetRequest get_request;
+        std::string mounts_value;
 
-        auto on_success = [&mounts_value](mp::GetReply& reply) {
-            mounts_value = reply.value();
-            return ReturnCode::Ok;
-        };
-
-        auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
-
-        get_request.set_key(mp::mounts_key);
-        get_request.set_verbosity_level(parser->verbosityLevel());
-        ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
-
-        if (ret != ReturnCode::Ok)
-            return ret;
-
-        if (mounts_value != "true")
+        if (std::tie(ret, mounts_value) = request_mounts_setting_from_daemon(parser); ret == ReturnCode::Ok)
         {
-            cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
-        }
-        else
-        {
-            QString mount_source{};
-            try
+            if (mounts_value != "true")
             {
-                mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+                cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
             }
-            catch (const mp::SnapEnvironmentException&)
+            else
             {
-                mount_source = QDir::toNativeSeparators(QDir::homePath());
+                QString mount_source{};
+                try
+                {
+                    mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+                }
+                catch (const mp::SnapEnvironmentException&)
+                {
+                    mount_source = QDir::toNativeSeparators(QDir::homePath());
+                }
+
+                const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
+
+                ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+                if (ret == ReturnCode::Ok)
+                    cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
             }
-
-            const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
-
-            ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
-            if (ret == ReturnCode::Ok)
-                cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
         }
     }
 
@@ -491,6 +478,26 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     };
 
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
+}
+
+auto cmd::Launch::request_mounts_setting_from_daemon(const ArgParser* parser) -> std::pair<ReturnCode, std::string>
+{
+    // TODO: This needs wrapping in mp::Settings
+    std::string mounts_value = "false";
+    mp::GetRequest get_request;
+
+    auto on_success = [&mounts_value](mp::GetReply& reply) {
+        mounts_value = reply.value();
+        return ReturnCode::Ok;
+    };
+
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+
+    get_request.set_key(mp::mounts_key);
+    get_request.set_verbosity_level(parser->verbosityLevel());
+    auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
+
+    return {ret, mounts_value};
 }
 
 auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInStatus::Status
