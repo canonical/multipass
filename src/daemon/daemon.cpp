@@ -1978,7 +1978,11 @@ try
 
     GetReply reply;
 
-    reply.set_value(MP_SETTINGS.get(QString::fromStdString(request->key())).toStdString());
+    auto key = request->key();
+    auto val = MP_SETTINGS.get(QString::fromStdString(key)).toStdString();
+    mpl::log(mpl::Level::debug, category, fmt::format("Returning setting {}={}", key, val));
+
+    reply.set_value(val);
     server->Write(reply);
     status_promise->set_value(grpc::Status::OK);
 }
