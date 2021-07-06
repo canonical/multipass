@@ -148,12 +148,6 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    if (petenv_name.isEmpty() && parser->positionalArguments().empty())
-    {
-        fmt::print(cerr, "The primary instance is disabled, please provide an instance name.\n");
-        return ParseCode::CommandLineError;
-    }
-
     try
     {
         mp::cmd::parse_timeout(parser);
