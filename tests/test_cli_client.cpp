@@ -1826,21 +1826,6 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
     EXPECT_THAT(send_command({"set", "x=x=x"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, set_cmd_disables_petenv)
-{
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, set_cmd_toggle_petenv)
-{
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
-
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}), Eq(mp::ReturnCode::Ok));
-}
-
 TEST_F(Client, get_cmd_fails_with_unknown_key)
 {
     const auto key = "wrong.key";
@@ -1997,6 +1982,15 @@ TEST_F(Client, set_cmd_succeeds_when_daemon_not_around)
 {
     EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, set_cmd_toggle_petenv)
+{
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
+
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}), Eq(mp::ReturnCode::Ok));
 }
 
 struct TestSetDriverWithInstances
