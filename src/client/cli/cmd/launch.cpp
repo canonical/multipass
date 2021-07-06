@@ -125,8 +125,6 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
-
     auto ret = request_launch(parser);
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
@@ -334,6 +332,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
     request.set_verbosity_level(parser->verbosityLevel());
 
     return status;
