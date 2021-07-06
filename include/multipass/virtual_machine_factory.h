@@ -72,6 +72,8 @@ protected:
     VirtualMachineFactory() = default;
     VirtualMachineFactory(const VirtualMachineFactory&) = delete;
     VirtualMachineFactory& operator=(const VirtualMachineFactory&) = delete;
+
+    virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) = 0;
 };
 }
 #endif // MULTIPASS_VIRTUAL_MACHINE_FACTORY_H

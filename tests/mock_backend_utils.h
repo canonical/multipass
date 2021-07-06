@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_NETWORK_INTERFACE_H
-#define MULTIPASS_NETWORK_INTERFACE_H
+#ifndef MULTIPASS_MOCK_BACKEND_UTILS_H
+#define MULTIPASS_MOCK_BACKEND_UTILS_H
 
-#include <string>
-#include <tuple>
+#include "mock_singleton_helpers.h"
 
-namespace multipass
+#include <src/platform/backends/shared/linux/backend_utils.h>
+
+#include <gmock/gmock.h>
+
+namespace multipass::test
 {
-struct NetworkInterface
+class MockBackend : public Backend
 {
-    std::string id;
-    std::string mac_address;
-    bool auto_mode;
+public:
+    using Backend::Backend;
+    MOCK_METHOD1(create_bridge_with, std::string(const std::string&));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockBackend, Backend);
 };
+} // namespace multipass::test
 
-inline bool operator==(const NetworkInterface& a, const NetworkInterface& b)
-{
-    return std::tie(a.id, a.auto_mode, a.mac_address) == std::tie(b.id, b.auto_mode, b.mac_address);
-}
-} // namespace multipass
-
-#endif // MULTIPASS_NETWORK_INTERFACE_H
+#endif // MULTIPASS_MOCK_BACKEND_UTILS_H

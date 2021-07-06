@@ -28,6 +28,7 @@
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include "extra_assertions.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
 #include "stub_cert_store.h"
@@ -163,8 +164,7 @@ struct DaemonTestFixture : public ::Test
     {
         EXPECT_CALL(MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
-        EXPECT_CALL(MockStandardPaths::mock_instance(),
-                    locate(_, Property(&QString::toStdString, EndsWith("settings.json")), _))
+        EXPECT_CALL(MockStandardPaths::mock_instance(), locate(_, match_qstring(EndsWith("settings.json")), _))
             .Times(AnyNumber())
             .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                                             it gets reset at the end of each test (by VerifyAndClearExpectations) */

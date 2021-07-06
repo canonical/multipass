@@ -85,12 +85,14 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
                                          "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
-const std::unordered_set<std::string> no_bridging_images = {
-    "release:10.04", "release:lucid",   "release:11.10", "release:oneiric", "release:12.04", "release:precise",
-    "release:12.10", "release:quantal", "release:13.04", "release:raring",  "release:13.10", "release:saucy",
-    "release:14.04", "release:trusty",  "release:14.10", "release:utopic",  "release:15.04", "release:vivid",
-    "release:15.10", "release:wily",    "release:16.04", "release:xenial",  "release:16.10", "release:yakkety",
-    "release:17.04", "release:zesty",   "release:core",  "release:core16",  "snapcraft:core"};
+
+// Images which cannot be bridged with --network.
+const std::unordered_set<std::string> no_bridging_release = { // images to check from release and daily remotes
+    "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
+    "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
+    "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
+const std::unordered_set<std::string> no_bridging_remote = {"snapcraft:core"};     // images with other remote specified
+const std::unordered_set<std::string> no_bridging_remoteless = {"core", "core16"}; // images which do not use remote
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -361,10 +363,28 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
     mp::optional<std::vector<mp::NetworkInterfaceInfo>> factory_networks = mp::nullopt;
 
-    std::string full_name =
-        (request->remote_name().empty() ? "release" : request->remote_name()) + ':' + request->image();
+    bool dont_allow_auto = false;
+    std::string specified_image;
 
-    bool dont_allow_auto = no_bridging_images.find(full_name) != no_bridging_images.end();
+    auto remote = request->remote_name();
+    auto image = request->image();
+
+    if (request->remote_name().empty())
+    {
+        specified_image = image;
+
+        dont_allow_auto = (no_bridging_remoteless.find(image) != no_bridging_remoteless.end()) ||
+                          (no_bridging_release.find(image) != no_bridging_release.end());
+    }
+    else
+    {
+        specified_image = remote + ":" + image;
+
+        dont_allow_auto = no_bridging_remote.find(specified_image) != no_bridging_remote.end();
+
+        if (!dont_allow_auto && (remote == "release" || remote == "daily"))
+            dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+    }
 
     for (const auto& net : request->network_options())
     {
@@ -395,7 +415,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         if (dont_allow_auto && net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO)
         {
             throw std::runtime_error(fmt::format(
-                "Automatic network configuration not available for {}. Consider using manual mode.", full_name));
+                "Automatic network configuration not available for {}. Consider using manual mode.", specified_image));
         }
 
         // Check that the id the user specified is valid.
@@ -1197,6 +1217,7 @@ try // clang-format on
     InfoReply response;
 
     fmt::memory_buffer errors;
+    bool have_mounts = false;
     std::vector<decltype(vm_instances)::key_type> instances_for_info;
 
     if (request->instance_names().instance_name().empty())
@@ -1263,24 +1284,30 @@ try // clang-format on
 
         mount_info->set_longest_path_len(0);
 
-        for (const auto& mount : vm_specs.mounts)
+        if (!vm_specs.mounts.empty())
+            have_mounts = true;
+
+        if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
-            if (mount.second.source_path.size() > mount_info->longest_path_len())
+            for (const auto& mount : vm_specs.mounts)
             {
-                mount_info->set_longest_path_len(mount.second.source_path.size());
-            }
+                if (mount.second.source_path.size() > mount_info->longest_path_len())
+                {
+                    mount_info->set_longest_path_len(mount.second.source_path.size());
+                }
 
-            auto entry = mount_info->add_mount_paths();
-            entry->set_source_path(mount.second.source_path);
-            entry->set_target_path(mount.first);
+                auto entry = mount_info->add_mount_paths();
+                entry->set_source_path(mount.second.source_path);
+                entry->set_target_path(mount.first);
 
-            for (const auto& uid_map : mount.second.uid_map)
-            {
-                (*entry->mutable_mount_maps()->mutable_uid_map())[uid_map.first] = uid_map.second;
-            }
-            for (const auto& gid_map : mount.second.gid_map)
-            {
-                (*entry->mutable_mount_maps()->mutable_gid_map())[gid_map.first] = gid_map.second;
+                for (const auto& uid_map : mount.second.uid_map)
+                {
+                    (*entry->mutable_mount_maps()->mutable_uid_map())[uid_map.first] = uid_map.second;
+                }
+                for (const auto& gid_map : mount.second.gid_map)
+                {
+                    (*entry->mutable_mount_maps()->mutable_gid_map())[gid_map.first] = gid_map.second;
+                }
             }
         }
 
@@ -1313,6 +1340,9 @@ try // clang-format on
             info->set_current_release(!current_release.empty() ? current_release : original_release);
         }
     }
+
+    if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
+        mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
 
     auto status = grpc_status_for(errors);
     if (status.ok())
@@ -1424,6 +1454,15 @@ void mp::Daemon::mount(const MountRequest* request, grpc::ServerWriter<MountRepl
 try // clang-format on
 {
     mpl::ClientLogger<MountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
+    {
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                         "Mounts are disabled on this installation of Multipass.\n\n"
+                         "See https://multipass.run/docs/set-command#local.privileged-mounts for information\n"
+                         "on how to enable them."));
+    }
 
     QFileInfo source_dir(QString::fromStdString(request->source_path()));
     if (!source_dir.exists())
@@ -1644,6 +1683,7 @@ try // clang-format on
 
     mp::StartError start_error;
     auto* errors = start_error.mutable_instance_errors();
+    bool have_mounts = false;
 
     std::vector<decltype(vm_instances)::key_type> vms;
     for (const auto& name : request->instance_names().instance_name())
@@ -1653,15 +1693,23 @@ try // clang-format on
             errors->insert({name, deleted_instances.find(name) == deleted_instances.end()
                                       ? mp::StartError::DOES_NOT_EXIST
                                       : mp::StartError::INSTANCE_DELETED});
-        else if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
-            delayed_shutdown_instances.erase(name);
-        else if (it->second->current_state() != VirtualMachine::State::running)
-            vms.push_back(name);
+        else
+        {
+            if (!vm_instance_specs[name].mounts.empty())
+                have_mounts = true;
+            if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
+                delayed_shutdown_instances.erase(name);
+            else if (it->second->current_state() != VirtualMachine::State::running)
+                vms.push_back(name);
+        }
     }
 
     if (start_error.instance_errors_size())
         return status_promise->set_value(
             grpc::Status(grpc::StatusCode::ABORTED, "instance(s) missing", start_error.SerializeAsString()));
+
+    if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
+        mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
 
     if (request->instance_names().instance_name().empty())
     {
@@ -2082,6 +2130,12 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
+    // Try to get info for the requested image. This will throw out if the requested image is not found. This check
+    // needs to be done before the other checks.
+    auto image_query = query_from(request, "");
+    if (image_query.query_type == Query::Type::Alias)
+        config->vault->all_info_for(image_query);
+
     auto checked_args = validate_create_arguments(request, *config->factory);
 
     if (!checked_args.option_errors.error_codes().empty())
@@ -2428,48 +2482,51 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
             MP_UTILS.wait_for_cloud_init(vm.get(), timeout, *config->ssh_key_provider);
         }
 
-        std::vector<std::string> invalid_mounts;
-        auto& mounts = vm_instance_specs[name].mounts;
-        auto& vm_specs = vm_instance_specs[name];
-        for (const auto& mount_entry : mounts)
+        if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
-            auto& target_path = mount_entry.first;
-            auto& source_path = mount_entry.second.source_path;
-            auto& uid_map = mount_entry.second.uid_map;
-            auto& gid_map = mount_entry.second.gid_map;
+            std::vector<std::string> invalid_mounts;
+            auto& mounts = vm_instance_specs[name].mounts;
+            auto& vm_specs = vm_instance_specs[name];
+            for (const auto& mount_entry : mounts)
+            {
+                auto& target_path = mount_entry.first;
+                auto& source_path = mount_entry.second.source_path;
+                auto& uid_map = mount_entry.second.uid_map;
+                auto& gid_map = mount_entry.second.gid_map;
 
-            try
-            {
-                instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
-            }
-            catch (const mp::SSHFSMissingError&)
-            {
                 try
                 {
-                    if (server)
-                    {
-                        Reply reply;
-                        reply.set_reply_message("Enabling support for mounting");
-                        server->Write(reply);
-                    }
-
-                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                           *config->ssh_key_provider};
-                    mp::utils::install_sshfs_for(name, session);
                     instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    fmt::format_to(errors, sshfs_error_template + "\n", name);
-                    break;
+                    try
+                    {
+                        if (server)
+                        {
+                            Reply reply;
+                            reply.set_reply_message("Enabling support for mounting");
+                            server->Write(reply);
+                        }
+
+                        mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                               *config->ssh_key_provider};
+                        mp::utils::install_sshfs_for(name, session);
+                        instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
+                    }
+                    catch (const mp::SSHFSMissingError&)
+                    {
+                        fmt::format_to(errors, sshfs_error_template + "\n", name);
+                        break;
+                    }
                 }
+                catch (const std::exception& e)
+                {
+                    fmt::format_to(errors, "Removing \"{}\": {}\n", target_path, e.what());
+                    invalid_mounts.push_back(target_path);
+                }
+                persist_instances();
             }
-            catch (const std::exception& e)
-            {
-                fmt::format_to(errors, "Removing \"{}\": {}\n", target_path, e.what());
-                invalid_mounts.push_back(target_path);
-            }
-            persist_instances();
         }
     }
     catch (const std::exception& e)

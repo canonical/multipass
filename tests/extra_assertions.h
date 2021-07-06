@@ -18,8 +18,17 @@
 #ifndef MULTIPASS_EXTRA_ASSERTIONS_H
 #define MULTIPASS_EXTRA_ASSERTIONS_H
 
+#include <multipass/format.h>
+#include <multipass/network_interface.h>
+#include <multipass/network_interface_info.h>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <QString>
+
+#include <algorithm>
+#include <ostream>
 
 // Extra macros for testing exceptions.
 //
@@ -55,12 +64,44 @@
         },                                                                                                             \
         expected_exception)
 
+namespace multipass
+{
+inline void PrintTo(const NetworkInterface& net, std::ostream* os) // teaching gtest to print NetworkInterface
+{
+    *os << "NetworkInterface(id=\"" << net.id << "\")";
+}
+
+inline void PrintTo(const NetworkInterfaceInfo& net, std::ostream* os) // teaching gtest to print NetworkInterfaceInfo
+{
+    *os << "NetworkInterfaceInfo(id=\"" << net.id << "\")";
+}
+} // namespace multipass
+
 namespace multipass::test
 {
+MATCHER_P(ContainedIn, container, "")
+{
+    return std::find(std::cbegin(container), std::cend(container), arg) != std::cend(container);
+}
+
+MATCHER_P2(HasCorrespondentIn, container, binary_pred,
+           fmt::format("{} a corresponding element in {} that pairs with it according to the given binary predicate",
+                       negation ? "has" : "doesn't have", testing::PrintToString(container)))
+{
+    return std::any_of(std::cbegin(container), std::cend(container),
+                       [this, &arg](const auto& elem) { return binary_pred(arg, elem); });
+}
+
 template <typename MsgMatcher>
 auto match_what(MsgMatcher&& matcher)
 {
     return testing::Property(&std::exception::what, std::forward<MsgMatcher>(matcher));
+}
+
+template <typename StrMatcher>
+auto match_qstring(StrMatcher&& matcher)
+{
+    return testing::Property(&QString::toStdString, std::forward<StrMatcher>(matcher));
 }
 } // namespace multipass::test
 

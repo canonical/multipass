@@ -21,7 +21,6 @@
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/vm_image_host.h>
 
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
@@ -29,6 +28,7 @@
 #include "file_operations.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
+#include "mock_image_host.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_process_factory.h"
@@ -1071,8 +1071,38 @@ std::vector<std::string> old_releases{"10.04",   "lucid",  "11.10",   "oneiric",
                                       "14.10",   "utopic", "15.04",   "vivid",   "15.10", "wily",    "16.04",
                                       "xenial",  "16.10",  "yakkety", "17.04",   "zesty"};
 
-INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging, Combine(Values("release", ""), ValuesIn(old_releases)));
+std::vector<std::string> old_remoteless_rels{"core", "core16"};
+
+INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging,
+                         Combine(Values("release", "daily", ""), ValuesIn(old_releases)));
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseSnapcraft, RefuseBridging, Values(std::make_tuple("snapcraft", "core")));
+INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless, RefuseBridging, Combine(Values(""), ValuesIn(old_remoteless_rels)));
+
+TEST_F(Daemon, fails_with_image_not_found_also_if_image_is_also_non_bridgeable)
+{
+    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+    auto mock_image_host_ptr = mock_image_host.get();
+
+    std::vector<mp::VMImageHost*> hosts;
+    hosts.push_back(mock_image_host_ptr);
+
+    mp::URLDownloader downloader(std::chrono::milliseconds(1));
+    mp::DefaultVMImageVault default_vault(hosts, &downloader, mp::Path("/"), mp::Path("/"), mp::days(1));
+
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_image_vault_ptr = mock_image_vault.get();
+
+    EXPECT_CALL(*mock_image_vault_ptr, all_info_for(_)).WillOnce([&default_vault](const mp::Query& query) {
+        return default_vault.all_info_for(query);
+    });
+
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream err_stream;
+    send_command({"launch", "release:xenial", "--network", "eth0"}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("Unable to find an image matching \"xenial\""));
+}
 
 constexpr auto ghost_template = R"(
 "{}": {{
@@ -1404,6 +1434,17 @@ TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
     EXPECT_THAT(err_stream.str(),
                 HasSubstr("Invalid network 'invalid' set as bridged interface, use `multipass set "
                           "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
+}
+
+TEST_F(Daemon, refusesDisabledMount)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+
+    std::stringstream err_stream;
+    send_command({"mount", ".", "target"}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
 } // namespace

@@ -228,8 +228,6 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
         {
             shutdown();
         }
-
-        vm_process->wait_for_finished();
     }
 
     remove_tap_device(QString::fromStdString(tap_device_name));
@@ -318,11 +316,11 @@ void mp::QemuVirtualMachine::suspend()
             state = State::suspending;
             update_state();
             update_shutdown_status = false;
-
-            vm_process->write(hmc_to_qmp_json("savevm " + QString::fromStdString(suspend_tag)));
-            vm_process->wait_for_finished();
-            vm_process.reset(nullptr);
         }
+
+        vm_process->write(hmc_to_qmp_json("savevm " + QString::fromStdString(suspend_tag)));
+        vm_process->wait_for_finished();
+        vm_process.reset(nullptr);
     }
     else if (state == State::off || state == State::suspended)
     {

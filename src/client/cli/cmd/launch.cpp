@@ -130,21 +130,28 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     auto ret = request_launch(parser);
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
-        QString mount_source{};
-        try
+        if (!MP_SETTINGS.get_as<bool>(mounts_key))
         {
-            mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+            cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
         }
-        catch (const mp::SnapEnvironmentException&)
+        else
         {
-            mount_source = QDir::toNativeSeparators(QDir::homePath());
+            QString mount_source{};
+            try
+            {
+                mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+            }
+            catch (const mp::SnapEnvironmentException&)
+            {
+                mount_source = QDir::toNativeSeparators(QDir::homePath());
+            }
+
+            const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
+
+            ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+            if (ret == ReturnCode::Ok)
+                cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
         }
-
-        const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
-
-        ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
-        if (ret == ReturnCode::Ok)
-            cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
     }
 
     return ret;
@@ -518,9 +525,9 @@ auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInS
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
     static constexpr auto plural = "Multipass needs to create {} to connect to {}.\nThis will temporarily disrupt "
-                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)?";
+                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)? ";
     static constexpr auto singular = "Multipass needs to create a {} to connect to {}.\nThis will temporarily disrupt "
-                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)?";
+                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)? ";
     static constexpr auto nodes = on_windows() ? "switches" : "bridges";
     static constexpr auto node = on_windows() ? "switch" : "bridge";
 

@@ -41,5 +41,12 @@ struct NetworkInterfaceInfo
     std::vector<std::string> links = {}; // default initializer allows aggregate init of the other 3
     bool needs_authorization = false;    // idem
 };
+
+inline bool operator==(const NetworkInterfaceInfo& a, const NetworkInterfaceInfo& b)
+{
+    return std::tie(a.id, a.type, a.description, a.links, a.needs_authorization) ==
+           std::tie(b.id, b.type, b.description, b.links, b.needs_authorization);
+}
+
 } // namespace multipass
 #endif // MULTIPASS_NETWORK_INTERFACE_INFO_H
