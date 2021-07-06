@@ -194,12 +194,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                            "in bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
                                            min_memory_size, default_memory_size)),
         "mem", QString::fromUtf8(default_memory_size)); // In MB's
-    QCommandLineOption nameOption(
-        {"n", "name"},
-        QString{"Name for the instance. If it is '%1' (the configured primary instance name), the user's home "
-                "directory is mounted inside the newly launched instance, in '%2'."}
-            .arg(petenv_name, mp::home_automount_dir),
-        "name");
+
+    const auto name_option_desc =
+        petenv_name.isEmpty()
+            ? QString{"Name for the instance."}
+            : QString{"Name for the instance. If it is '%1' (the configured primary instance name), the user's home "
+                      "directory is mounted inside the newly launched instance, in '%2'."}
+                  .arg(petenv_name, mp::home_automount_dir);
+
+    QCommandLineOption nameOption({"n", "name"}, name_option_desc, "name");
     QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
                                        "file");
     QCommandLineOption networkOption("network",
