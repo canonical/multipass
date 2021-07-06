@@ -105,7 +105,7 @@ struct Client : public Test
 {
     auto make_get_reply(const std::string& value)
     {
-        return [&value](Unused, Unused, grpc::ServerWriter<mp::GetReply>* response) {
+        return [value](Unused, Unused, grpc::ServerWriter<mp::GetReply>* response) {
             mp::GetReply get_reply;
 
             get_reply.set_value(value);
