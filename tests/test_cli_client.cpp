@@ -533,29 +533,29 @@ TEST_F(Client, shell_cmd_fails_unknown_options)
 
 TEST_F(Client, shell_cmd_disabled_petenv)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(0);
-
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"shell", "--all"}), Eq(mp::ReturnCode::CommandLineError));
-}
 
-TEST_F(Client, shell_cmd_disabled_petenv_with_instance)
-{
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
-    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
-
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(2);
     EXPECT_THAT(send_command({"shell", "foo"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"shell", "--all"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"shell", "primary"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, shell_cmd_all_fail)
+TEST_F(Client, shell_cmd_disabled_petenv_help)
 {
-    EXPECT_THAT(send_command({"shell", "--all"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(0);
+    EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_nosense)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+
+    EXPECT_THAT(send_command({"shell", "--nonsense"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 // launch cli tests
@@ -1097,8 +1097,10 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
     const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::StartRequest, 4>(petenv_name());
 
     InSequence s;
+    EXPECT_CALL(mock_daemon, start(_, _, _));
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher2, _)).Times(2);
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher4, _));
+    EXPECT_THAT(send_command({"start", "primary"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "foo", petenv_name()}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", petenv_name(), "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "foo", petenv_name(), "bar", "baz"}), Eq(mp::ReturnCode::Ok));
@@ -1106,24 +1108,27 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
 
 TEST_F(Client, start_cmd_disabled_petenv)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
     EXPECT_CALL(mock_daemon, start(_, _, _));
 
+    EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"start", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_disabled_petenv_all)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+    EXPECT_CALL(mock_daemon, start(_, _, _));
+
     EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_disabled_petenv_with_instance)
+TEST_F(Client, start_cmd_disabled_petenv_help)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
-    EXPECT_CALL(mock_daemon, start(_, _, _)).Times(2);
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+    EXPECT_CALL(mock_daemon, start(_, _, _)).Times(0);
 
-    EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "-h"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 namespace
@@ -1379,8 +1384,10 @@ TEST_F(Client, stop_cmd_can_target_petenv_among_others)
     const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::StopRequest, 4>(petenv_name());
 
     InSequence s;
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher2, _)).Times(2);
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher4, _));
+    EXPECT_THAT(send_command({"stop", "primary"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", "foo", petenv_name()}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", petenv_name(), "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", "foo", petenv_name(), "bar", "baz"}), Eq(mp::ReturnCode::Ok));
@@ -1462,36 +1469,46 @@ TEST_F(Client, stop_cmd_no_args_fails_with_time_and_cancel)
 
 TEST_F(Client, stop_cmd_disabled_petenv)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
     EXPECT_CALL(mock_daemon, stop(_, _, _));
 
     EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"stop", "--cancel"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"stop", "--time", "10"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"stop", "-h"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"stop", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, stop_cmd_disabled_petenv_with_instance)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
     EXPECT_CALL(mock_daemon, stop(_, _, _)).Times(2);
 
     EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"stop", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", "--cancel"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"stop", "--time", "10"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, stop_cmd_disabled_petenv_help)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+
     EXPECT_THAT(send_command({"stop", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_disabled_petenv_all)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
+
     EXPECT_THAT(send_command({"stop", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 // suspend cli tests
 TEST_F(Client, suspend_cmd_ok_with_one_arg)
 {
-    EXPECT_CALL(mock_daemon, suspend(_, _, _));
+    EXPECT_CALL(mock_daemon, suspend(_, _, _)).Times(2);
     EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"suspend", "primary"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, suspend_cmd_succeeds_with_multiple_args)
@@ -1569,31 +1586,34 @@ TEST_F(Client, suspend_cmd_fails_with_names_and_all)
 
 TEST_F(Client, suspend_cmd_disabled_petenv)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
     EXPECT_CALL(mock_daemon, suspend(_, _, _));
 
     EXPECT_THAT(send_command({"suspend"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"suspend", "-h"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, suspend_cmd_disabled_petenv_with_instance)
+TEST_F(Client, suspend_cmd_disabled_petenv_help)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
-    EXPECT_CALL(mock_daemon, suspend(_, _, _)).Times(2);
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
 
-    EXPECT_THAT(send_command({"suspend", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"suspend", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, suspend_cmd_disabled_petenv_all)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+    EXPECT_CALL(mock_daemon, suspend(_, _, _));
+
     EXPECT_THAT(send_command({"suspend", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 // restart cli tests
 TEST_F(Client, restart_cmd_ok_with_one_arg)
 {
-    EXPECT_CALL(mock_daemon, restart(_, _, _));
+    EXPECT_CALL(mock_daemon, restart(_, _, _)).Times(2);
     EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"restart", "primary"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, restart_cmd_succeeds_with_multiple_args)
@@ -1685,23 +1705,25 @@ TEST_F(Client, restart_cmd_fails_with_unknown_options)
 
 TEST_F(Client, restart_cmd_disabled_petenv)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
     EXPECT_CALL(mock_daemon, restart(_, _, _));
 
     EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"restart", "-h"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, restart_cmd_disabled_petenv_with_instance_passes)
+TEST_F(Client, restart_cmd_disabled_petenv_help)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
-    EXPECT_CALL(mock_daemon, restart(_, _, _)).Times(2);
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
 
-    EXPECT_THAT(send_command({"restart", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"restart", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, restart_cmd_disabled_petenv_all)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+    EXPECT_CALL(mock_daemon, restart(_, _, _));
+
     EXPECT_THAT(send_command({"restart", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -1826,21 +1848,6 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
     EXPECT_THAT(send_command({"set", "x=x=x"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, set_cmd_disables_petenv)
-{
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, set_cmd_toggle_petenv)
-{
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
-
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}), Eq(mp::ReturnCode::Ok));
-}
-
 TEST_F(Client, get_cmd_fails_with_unknown_key)
 {
     const auto key = "wrong.key";
@@ -1961,7 +1968,6 @@ TEST_F(Client, set_cmd_rejects_bad_primary_name)
     const auto default_petenv_matcher = make_ssh_info_instance_matcher(get_setting(key));
 
     aux_set_cmd_rejects_bad_val(key, "123.badname_");
-    aux_set_cmd_rejects_bad_val(key, "");
 
     EXPECT_CALL(mock_daemon, ssh_info(_, default_petenv_matcher, _));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
@@ -1998,6 +2004,15 @@ TEST_F(Client, set_cmd_succeeds_when_daemon_not_around)
 {
     EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, set_cmd_toggle_petenv)
+{
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
+
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}), Eq(mp::ReturnCode::Ok));
 }
 
 struct TestSetDriverWithInstances
