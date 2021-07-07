@@ -161,8 +161,18 @@ public:
 private:
     mp::ParseCode parse_args(mp::ArgParser* parser) override
     {
-        // TODO@ricab
+        parser->addPositionalArgument("key", "key of the setting to get");
+
         auto status = parser->commandParse(this);
+        if (status == multipass::ParseCode::Ok)
+        {
+            const auto args = parser->positionalArguments();
+            if (args.count() == 1)
+                request.set_key(args.at(0).toStdString());
+            else
+                status = mp::ParseCode::CommandLineError;
+        }
+
         return status;
     }
 

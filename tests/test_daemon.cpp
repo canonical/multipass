@@ -1454,10 +1454,11 @@ TEST_F(Daemon, getReportsException)
 {
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillOnce(Throw(std::runtime_error{"exception"}));
+    const auto key = "foo";
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(std::runtime_error{"exception"}));
 
     std::stringstream err_stream;
-    send_command({"mount", ".", "target"}, std::cout, err_stream);
+    send_command({"test_get", key}, std::cout, err_stream);
     EXPECT_THAT(err_stream.str(), HasSubstr("exception"));
 }
 
