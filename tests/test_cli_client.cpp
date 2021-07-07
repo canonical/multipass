@@ -1384,8 +1384,10 @@ TEST_F(Client, stop_cmd_can_target_petenv_among_others)
     const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::StopRequest, 4>(petenv_name());
 
     InSequence s;
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher2, _)).Times(2);
     EXPECT_CALL(mock_daemon, stop(_, petenv_matcher4, _));
+    EXPECT_THAT(send_command({"stop", "primary"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", "foo", petenv_name()}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", petenv_name(), "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"stop", "foo", petenv_name(), "bar", "baz"}), Eq(mp::ReturnCode::Ok));
