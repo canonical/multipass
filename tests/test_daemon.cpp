@@ -801,7 +801,7 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
     const auto& opt_value = std::get<2>(param);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0); // expect *no* call
-    send_command({cmd, opt_name, opt_value}, std::cout, stream);
+    send_command({cmd, opt_name, opt_value}, trash_stream, stream);
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk"))));
 }
 
@@ -1039,7 +1039,7 @@ TEST_F(Daemon, refuses_launch_with_invalid_network_interface)
     EXPECT_CALL(*mock_factory, networks());
 
     std::stringstream err_stream;
-    send_command({"launch", "--network", "eth2"}, std::cout, err_stream);
+    send_command({"launch", "--network", "eth2"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), HasSubstr("Invalid network options supplied"));
 }
 
@@ -1049,7 +1049,7 @@ TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream err_stream;
-    send_command({"launch", "--network", "eth0"}, std::cout, err_stream);
+    send_command({"launch", "--network", "eth0"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), HasSubstr("The bridging feature is not implemented on this backend"));
 }
 
@@ -1065,7 +1065,7 @@ TEST_P(RefuseBridging, old_image)
     EXPECT_CALL(*mock_factory, networks());
 
     std::stringstream err_stream;
-    send_command({"launch", full_image_name, "--network", "eth0"}, std::cout, err_stream);
+    send_command({"launch", full_image_name, "--network", "eth0"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), HasSubstr("Automatic network configuration not available for"));
 }
 
@@ -1103,7 +1103,7 @@ TEST_F(Daemon, fails_with_image_not_found_also_if_image_is_also_non_bridgeable)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream err_stream;
-    send_command({"launch", "release:xenial", "--network", "eth0"}, std::cout, err_stream);
+    send_command({"launch", "release:xenial", "--network", "eth0"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), HasSubstr("Unable to find an image matching \"xenial\""));
 }
 
@@ -1254,7 +1254,7 @@ TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0); // expect *no* call
-    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", repeated_mac)}, std::cout, stream);
+    send_command({"launch", "--network", fmt::format("name=eth0,mac={}", repeated_mac)}, trash_stream, stream);
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("fail"), HasSubstr("Repeated MAC"), HasSubstr(repeated_mac)));
 }
 
@@ -1418,7 +1418,7 @@ TEST_F(Daemon, refuses_launch_bridged_without_setting)
     EXPECT_CALL(*mock_factory, networks()).Times(0);
 
     std::stringstream err_stream;
-    send_command({"launch", "--network", "bridged"}, std::cout, err_stream);
+    send_command({"launch", "--network", "bridged"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(),
                 HasSubstr("You have to `multipass set local.bridged-network=<name>` to use the `--bridged` shortcut."));
 }
@@ -1433,7 +1433,7 @@ TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
     EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillRepeatedly(Return("invalid"));
 
     std::stringstream err_stream;
-    send_command({"launch", "--network", "bridged"}, std::cout, err_stream);
+    send_command({"launch", "--network", "bridged"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(),
                 HasSubstr("Invalid network 'invalid' set as bridged interface, use `multipass set "
                           "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
@@ -1446,7 +1446,7 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
 
     std::stringstream err_stream;
-    send_command({"mount", ".", "target"}, std::cout, err_stream);
+    send_command({"mount", ".", "target"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
@@ -1468,7 +1468,7 @@ TEST_F(Daemon, getHandlesEmptyKey)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream err_stream;
-    send_command({"test_get", ""}, std::cout, err_stream);
+    send_command({"test_get", ""}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
 }
 
@@ -1479,7 +1479,7 @@ TEST_F(Daemon, getHandlesInvalidKey)
     const auto bad_key = "bad";
 
     std::stringstream err_stream;
-    send_command({"test_get", bad_key}, std::cout, err_stream);
+    send_command({"test_get", bad_key}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr(bad_key)));
 }
 
@@ -1491,7 +1491,7 @@ TEST_F(Daemon, getReportsException)
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(std::runtime_error{"exception"}));
 
     std::stringstream err_stream;
-    send_command({"test_get", key}, std::cout, err_stream);
+    send_command({"test_get", key}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), HasSubstr("exception"));
 }
 
