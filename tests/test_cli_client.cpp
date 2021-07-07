@@ -720,6 +720,18 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
 }
 #endif
 
+TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
+{
+    const auto invalid_argument = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+    std::stringstream cout_stream;
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(invalid_argument));
+
+    EXPECT_THAT(send_command({"launch", "--name", ".asdf"}, cout_stream, trash_stream),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n")));
+}
+
 TEST_F(Client, launch_cmd_fails_when_automounting_in_petenv_fails)
 {
     const grpc::Status ok{}, mount_failure{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
@@ -1204,18 +1216,6 @@ TEST_F(Client, startCmdSkipsAutomountWhenDisabled)
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", petenv_name()}, cout_stream, trash_stream), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
-}
-
-TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
-{
-    const auto invalid_argument = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
-    std::stringstream cout_stream;
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
-    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(invalid_argument));
-
-    EXPECT_THAT(send_command({"launch", "--name", ".asdf"}, cout_stream, trash_stream),
-                Eq(mp::ReturnCode::CommandFail));
-    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n")));
 }
 
 TEST_F(Client, start_cmd_forwards_verbosity_to_subcommands)
