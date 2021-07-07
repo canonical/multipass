@@ -97,17 +97,32 @@ struct MockDaemonRpc : public mp::DaemonRpc
                                        grpc::ServerWriter<mp::VersionReply>* response));
     MOCK_METHOD3(ping,
                  grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
+    MOCK_METHOD3(get, grpc::Status(grpc::ServerContext* context, const mp::GetRequest* request,
+                                   grpc::ServerWriter<mp::GetReply>* response));
 };
 
 struct Client : public Test
 {
+    auto make_get_reply(const std::string& value)
+    {
+        return [value](Unused, Unused, grpc::ServerWriter<mp::GetReply>* response) {
+            mp::GetReply get_reply;
+
+            get_reply.set_value(value);
+
+            response->Write(get_reply);
+
+            return grpc::Status{};
+        };
+    }
+
     void SetUp() override
     {
         EXPECT_CALL(mock_settings, get(_)).Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests.
                                                                   This allows general actions to consult settings
                                                                   (e.g. Windows Terminal profile sync) */
-        EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key)))
-            .WillRepeatedly(Return("true")); // Tests assume this default, but platforms may override.
+        EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
+            .WillRepeatedly(Invoke(make_get_reply("true"))); // Tests assume this default, but platforms may override.
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
@@ -436,14 +451,15 @@ TEST_F(Client, shellCmdSkipsAutomountWhenDisabled)
 {
     std::stringstream cout_stream;
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
+        .WillOnce(Invoke(make_get_reply("false")));
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
-    EXPECT_THAT(send_command({"shell", petenv_name()}, cout_stream, trash_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"shell", petenv_name()}, cout_stream), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
 }
 
@@ -476,6 +492,18 @@ TEST_F(Client, shell_cmd_forwards_timeout_to_subcommands)
     EXPECT_CALL(mock_daemon, mount).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, ssh_info).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"shell", "--timeout", std::to_string(timeout)}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shellCmdFailsWhenUnableToRetrieveAutomountSetting)
+{
+    const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"}, error{grpc::StatusCode::INTERNAL, "oops"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce(Return(notfound));
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, get).WillOnce(Return(error));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+    EXPECT_THAT(send_command({"shell", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, shell_cmd_fails_when_automounting_in_petenv_fails)
@@ -691,6 +719,43 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
     EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::Ok));
 }
 #endif
+
+TEST_F(Client, launchCmdSkipsAutomountWhenDisabled)
+{
+    const grpc::Status ok{};
+    std::stringstream cout_stream;
+    EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
+        .WillOnce(Invoke(make_get_reply("false")));
+
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}, cout_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+}
+
+TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
+{
+    const auto invalid_argument = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+    std::stringstream cout_stream;
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(invalid_argument));
+
+    EXPECT_THAT(send_command({"launch", "--name", ".asdf"}, cout_stream), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n")));
+}
+
+TEST_F(Client, launchCmdFailsWhenUnableToRetrieveAutomountSetting)
+{
+    const auto ok = grpc::Status{};
+    const auto error = grpc::Status{grpc::StatusCode::INTERNAL, "oops"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, get).WillOnce(Return(error));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+}
 
 TEST_F(Client, launch_cmd_fails_when_automounting_in_petenv_fails)
 {
@@ -1166,27 +1231,16 @@ TEST_F(Client, startCmdSkipsAutomountWhenDisabled)
 {
     std::stringstream cout_stream;
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name()});
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
+        .WillOnce(Invoke(make_get_reply("false")));
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
-    EXPECT_THAT(send_command({"start", petenv_name()}, cout_stream, trash_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"start", petenv_name()}, cout_stream), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
-}
-
-TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
-{
-    const auto invalid_argument = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
-    std::stringstream cout_stream;
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
-    EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(invalid_argument));
-
-    EXPECT_THAT(send_command({"launch", "--name", ".asdf"}, cout_stream, trash_stream),
-                Eq(mp::ReturnCode::CommandFail));
-    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n")));
 }
 
 TEST_F(Client, start_cmd_forwards_verbosity_to_subcommands)
@@ -1219,6 +1273,20 @@ TEST_F(Client, start_cmd_forwards_timeout_to_subcommands)
     EXPECT_CALL(mock_daemon, mount).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, start(_, make_request_timeout_matcher<mp::StartRequest>(timeout), _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", "--timeout", std::to_string(timeout)}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, startCmdFailsWhenUnableToRetrieveAutomountSetting)
+{
+    const auto ok = grpc::Status{};
+    const auto aborted = aborted_start_status({petenv_name()});
+    const auto error = grpc::Status{grpc::StatusCode::INTERNAL, "oops"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, get).WillOnce(Return(error));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, start_cmd_fails_when_automounting_in_petenv_fails)
