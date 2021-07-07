@@ -127,6 +127,8 @@ TEST_F(Daemon, receives_commands)
 {
     mpt::MockDaemon daemon{config_builder.build()};
 
+    EXPECT_CALL(daemon, get)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::GetRequest, mp::GetReply>));
     EXPECT_CALL(daemon, create(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
     EXPECT_CALL(daemon, launch(_, _, _))
@@ -160,7 +162,8 @@ TEST_F(Daemon, receives_commands)
     EXPECT_CALL(daemon, umount(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
 
-    send_commands({{"test_create", "foo"},
+    send_commands({{"test_get", "foo"},
+                   {"test_create", "foo"},
                    {"launch", "foo"},
                    {"delete", "foo"},
                    {"exec", "foo", "--", "cmd"},

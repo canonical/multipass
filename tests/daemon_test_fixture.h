@@ -25,6 +25,7 @@
 
 #include <multipass/auto_join_thread.h>
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/client_common.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
@@ -47,6 +48,7 @@
 #include <memory>
 
 using namespace testing;
+namespace mp = multipass;
 
 namespace
 {
@@ -125,12 +127,55 @@ private:
     multipass::CreateRequest request;
 };
 
+class TestGet final : public mp::cmd::Command
+{
+public:
+    using Command::Command;
+    mp::ReturnCode run(mp::ArgParser* parser) override
+    {
+        auto on_success = [](mp::GetReply& /*reply*/) { return mp::ReturnCode::Ok; };
+        auto on_failure = [this](grpc::Status& status) {
+            return mp::cmd::standard_failure_handler_for(name(), cerr, status);
+        };
+
+        auto ret = parse_args(parser);
+        return ret == mp::ParseCode::Ok ? dispatch(&mp::Rpc::Stub::get, request, on_success, on_failure)
+                                        : parser->returnCodeFrom(ret);
+    }
+
+    std::string name() const override
+    {
+        return "test_get";
+    }
+
+    QString short_help() const override
+    {
+        return {};
+    }
+
+    QString description() const override
+    {
+        return {};
+    }
+
+private:
+    mp::ParseCode parse_args(mp::ArgParser* parser) override
+    {
+        // TODO@ricab
+        auto status = parser->commandParse(this);
+        return status;
+    }
+
+    mp::GetRequest request;
+};
+
 class TestClient : public multipass::Client
 {
 public:
     explicit TestClient(multipass::ClientConfig& context) : multipass::Client{context}
     {
         add_command<TestCreate>();
+        add_command<TestGet>();
         sort_commands();
     }
 };
