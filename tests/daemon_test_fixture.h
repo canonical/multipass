@@ -133,14 +133,24 @@ public:
     using Command::Command;
     mp::ReturnCode run(mp::ArgParser* parser) override
     {
-        auto on_success = [](mp::GetReply& /*reply*/) { return mp::ReturnCode::Ok; };
+        std::string val;
+        auto on_success = [&val](mp::GetReply& reply) {
+            val = reply.value();
+            return mp::ReturnCode::Ok;
+        };
+
         auto on_failure = [this](grpc::Status& status) {
             return mp::cmd::standard_failure_handler_for(name(), cerr, status);
         };
 
-        auto ret = parse_args(parser);
-        return ret == mp::ParseCode::Ok ? dispatch(&mp::Rpc::Stub::get, request, on_success, on_failure)
-                                        : parser->returnCodeFrom(ret);
+        if (auto parse_result = parse_args(parser); parse_result == mp::ParseCode::Ok)
+        {
+            auto ret = dispatch(&mp::Rpc::Stub::get, request, on_success, on_failure);
+            cout << fmt::format("{}={}", request.key(), val);
+            return ret;
+        }
+        else
+            return parser->returnCodeFrom(parse_result);
     }
 
     std::string name() const override

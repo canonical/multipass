@@ -1450,6 +1450,19 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
+TEST_F(Daemon, getReturnsSetting)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto key = "foo";
+    const auto val = "bar";
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
+
+    std::stringstream stream;
+    send_command({"test_get", key}, stream);
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr(key), HasSubstr(val)));
+}
+
 TEST_F(Daemon, getHandlesEmptyKey)
 {
     mp::Daemon daemon{config_builder.build()};
