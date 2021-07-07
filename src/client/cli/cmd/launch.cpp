@@ -131,31 +131,12 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
         std::string mounts_value;
-
         if (std::tie(ret, mounts_value) = request_mounts_setting_from_daemon(parser); ret == ReturnCode::Ok)
         {
             if (mounts_value != "true")
-            {
                 cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
-            }
             else
-            {
-                QString mount_source{};
-                try
-                {
-                    mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
-                }
-                catch (const mp::SnapEnvironmentException&)
-                {
-                    mount_source = QDir::toNativeSeparators(QDir::homePath());
-                }
-
-                const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
-
-                ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
-                if (ret == ReturnCode::Ok)
-                    cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
-            }
+                ret = mount_home(parser);
         }
     }
 
@@ -478,6 +459,27 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     };
 
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
+}
+
+auto cmd::Launch::mount_home(const mp::ArgParser* parser) -> ReturnCode
+{
+    QString mount_source{};
+    try
+    {
+        mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+    }
+    catch (const SnapEnvironmentException&)
+    {
+        mount_source = QDir::toNativeSeparators(QDir::homePath());
+    }
+
+    const auto mount_target = QString{"%1:%2"}.arg(petenv_name, home_automount_dir);
+
+    auto ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+    if (ret == Ok)
+        cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
+
+    return ret;
 }
 
 auto cmd::Launch::request_mounts_setting_from_daemon(const ArgParser* parser) -> std::pair<ReturnCode, std::string>
