@@ -551,13 +551,6 @@ TEST_F(Client, shell_cmd_disabled_petenv_help)
     EXPECT_THAT(send_command({"shell", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, shell_cmd_nosense)
-{
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
-
-    EXPECT_THAT(send_command({"shell", "--nonsense"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
 // launch cli tests
 TEST_F(Client, launch_cmd_good_arguments)
 {
@@ -1470,7 +1463,6 @@ TEST_F(Client, stop_cmd_no_args_fails_with_time_and_cancel)
 TEST_F(Client, stop_cmd_disabled_petenv)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
-    EXPECT_CALL(mock_daemon, stop(_, _, _));
 
     EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"stop", "--cancel"}), Eq(mp::ReturnCode::CommandLineError));
@@ -1480,7 +1472,7 @@ TEST_F(Client, stop_cmd_disabled_petenv)
 TEST_F(Client, stop_cmd_disabled_petenv_with_instance)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
-    EXPECT_CALL(mock_daemon, stop(_, _, _)).Times(2);
+    EXPECT_CALL(mock_daemon, stop(_, _, _));
 
     EXPECT_THAT(send_command({"stop"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"stop", "foo"}), Eq(mp::ReturnCode::Ok));
