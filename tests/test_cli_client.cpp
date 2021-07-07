@@ -720,6 +720,20 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
 }
 #endif
 
+TEST_F(Client, launchCmdSkipsAutomountWhenDisabled)
+{
+    const grpc::Status ok{};
+    std::stringstream cout_stream;
+    EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
+        .WillOnce(Invoke(make_get_reply("false")));
+
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}, cout_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+}
+
 TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
 {
     const auto invalid_argument = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
