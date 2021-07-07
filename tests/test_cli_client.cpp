@@ -745,6 +745,18 @@ TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
     EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n")));
 }
 
+TEST_F(Client, launchCmdFailsWhenUnableToRetrieveAutomountSetting)
+{
+    const auto ok = grpc::Status{};
+    const auto error = grpc::Status{grpc::StatusCode::INTERNAL, "oops"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, get).WillOnce(Return(error));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, launch_cmd_fails_when_automounting_in_petenv_fails)
 {
     const grpc::Status ok{}, mount_failure{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
