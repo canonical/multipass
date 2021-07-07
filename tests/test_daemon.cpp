@@ -1450,6 +1450,26 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
+TEST_F(Daemon, getHandlesEmptyKey)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream err_stream;
+    send_command({"test_get", ""}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
+}
+
+TEST_F(Daemon, getHandlesInvalidKey)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto bad_key = "bad";
+
+    std::stringstream err_stream;
+    send_command({"test_get", bad_key}, std::cout, err_stream);
+    EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr(bad_key)));
+}
+
 TEST_F(Daemon, getReportsException)
 {
     mp::Daemon daemon{config_builder.build()};
