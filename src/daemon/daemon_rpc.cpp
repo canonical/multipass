@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -224,4 +224,11 @@ grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionR
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response)
 {
     return grpc::Status::OK;
+}
+
+grpc::Status mp::DaemonRpc::get(grpc::ServerContext* context, const GetRequest* request,
+                                grpc::ServerWriter<GetReply>* response)
+{
+    return emit_signal_and_wait_for_result(
+        std::bind(&DaemonRpc::on_get, this, request, response, std::placeholders::_1));
 }
