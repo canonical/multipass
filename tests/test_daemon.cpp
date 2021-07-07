@@ -1450,18 +1450,6 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
-TEST_F(Daemon, getReportsInvalidSetting)
-{
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key)))
-        .WillOnce(Throw(mp::InvalidSettingsException{"invalid setting"}));
-
-    std::stringstream err_stream;
-    send_command({"mount", ".", "target"}, std::cout, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("invalid setting"));
-}
-
 TEST_F(Daemon, getReportsException)
 {
     mp::Daemon daemon{config_builder.build()};
