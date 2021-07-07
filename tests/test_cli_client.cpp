@@ -1097,8 +1097,10 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
     const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::StartRequest, 4>(petenv_name());
 
     InSequence s;
+    EXPECT_CALL(mock_daemon, start(_, _, _));
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher2, _)).Times(2);
     EXPECT_CALL(mock_daemon, start(_, petenv_matcher4, _));
+    EXPECT_THAT(send_command({"start", "primary"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "foo", petenv_name()}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", petenv_name(), "bar"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "foo", petenv_name(), "bar", "baz"}), Eq(mp::ReturnCode::Ok));
@@ -1106,24 +1108,27 @@ TEST_F(Client, start_cmd_can_target_petenv_among_others)
 
 TEST_F(Client, start_cmd_disabled_petenv)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
     EXPECT_CALL(mock_daemon, start(_, _, _));
 
+    EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"start", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, start_cmd_disabled_petenv_all)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+    EXPECT_CALL(mock_daemon, start(_, _, _));
+
     EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_disabled_petenv_with_instance)
+TEST_F(Client, start_cmd_disabled_petenv_help)
 {
-    const auto custom_petenv = "";
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
-    EXPECT_CALL(mock_daemon, start(_, _, _)).Times(2);
+    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
+    EXPECT_CALL(mock_daemon, start(_, _, _)).Times(0);
 
-    EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"start", "-h"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"start", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 namespace
