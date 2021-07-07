@@ -1250,6 +1250,20 @@ TEST_F(Client, start_cmd_forwards_timeout_to_subcommands)
     EXPECT_THAT(send_command({"start", "--timeout", std::to_string(timeout)}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, startCmdFailsWhenUnableToRetrieveAutomountSetting)
+{
+    const auto ok = grpc::Status{};
+    const auto aborted = aborted_start_status({petenv_name()});
+    const auto error = grpc::Status{grpc::StatusCode::INTERNAL, "oops"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, start).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, get).WillOnce(Return(error));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+    EXPECT_THAT(send_command({"start", petenv_name()}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, start_cmd_fails_when_automounting_in_petenv_fails)
 {
     const auto ok = grpc::Status{};
