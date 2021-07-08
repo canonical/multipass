@@ -20,18 +20,12 @@
 
 #include <multipass/path.h>
 
-#include <chrono>
-
 namespace multipass
 {
 class MemorySize;
 
 namespace backend
 {
-using namespace std::chrono_literals;
-
-constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
-
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
 Path convert_to_qcow_if_necessary(const Path& image_path);
 } // namespace backend

@@ -17,6 +17,7 @@
 
 #include "qemu_img_utils.h"
 
+#include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
@@ -36,7 +37,7 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
     auto qemuimg_process =
         mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path));
 
-    auto process_state = qemuimg_process->execute(mp::backend::image_resize_timeout);
+    auto process_state = qemuimg_process->execute(mp::image_resize_timeout);
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output:\n{}",
@@ -71,7 +72,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
         auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path}, image_path, qcow2_path);
         auto qemuimg_convert_process = mp::platform::make_process(std::move(qemuimg_convert_spec));
-        process_state = qemuimg_convert_process->execute(mp::backend::image_resize_timeout);
+        process_state = qemuimg_convert_process->execute(mp::image_resize_timeout);
 
         if (!process_state.completed_successfully())
         {
