@@ -405,18 +405,17 @@ TEST_F(URLDownloader, fileDownloadTimeoutDoesNotWriteFile)
     mpt::MockQNetworkReply* mock_reply_abort2 = new mpt::MockQNetworkReply();
     bool ready_read_fired{false};
 
-    EXPECT_CALL(*mock_reply_abort1, abort()).WillOnce([&mock_reply_abort1] { mock_reply_abort1->abort_operation(); });
+    EXPECT_CALL(*mock_reply_abort1, abort()).WillOnce([&mock_reply_abort1, &ready_read_fired] {
+        mock_reply_abort1->abort_operation();
+
+        // Fake data becoming ready after the network timeout
+        mock_reply_abort1->readyRead();
+        ready_read_fired = true;
+    });
     EXPECT_CALL(*mock_reply_abort2, abort()).WillOnce([&mock_reply_abort2] { mock_reply_abort2->abort_operation(); });
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
-        .WillOnce([&mock_reply_abort1, &ready_read_fired](auto...) {
-            QTimer::singleShot(2, [&mock_reply_abort1, &ready_read_fired] {
-                mock_reply_abort1->readyRead();
-                ready_read_fired = true;
-                mock_reply_abort1->finished();
-            });
-            return mock_reply_abort1;
-        })
+        .WillOnce(Return(mock_reply_abort1))
         .WillOnce(Return(mock_reply_abort2));
 
     auto progress_monitor = [](auto...) { return true; };
