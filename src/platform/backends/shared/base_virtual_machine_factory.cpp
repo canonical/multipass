@@ -71,7 +71,7 @@ void mp::BaseVirtualMachineFactory::prepare_networking_guts(std::vector<NetworkI
 }
 
 void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
-                                                      const std::vector<NetworkInterfaceInfo>& host_nets,
+                                                      std::vector<NetworkInterfaceInfo>& host_nets,
                                                       const std::string& bridge_type)
 {
     auto net_it = std::find_if(host_nets.cbegin(), host_nets.cend(),
@@ -79,7 +79,14 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
 
     if (net_it != host_nets.end() && net_it->type != bridge_type)
     {
-        auto bridge_it = find_bridge_with(host_nets, net.id, bridge_type);
-        net.id = bridge_it != host_nets.cend() ? bridge_it->id : create_bridge_with(*net_it);
+        if (auto bridge_it = find_bridge_with(host_nets, net.id, bridge_type); bridge_it != host_nets.cend())
+        {
+            net.id = bridge_it->id;
+        }
+        else
+        {
+            net.id = create_bridge_with(*net_it);
+            host_nets.push_back({net.id, bridge_type, "new bridge", {net_it->id}});
+        }
     }
 }
