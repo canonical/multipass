@@ -612,6 +612,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet);
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
 }
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
@@ -1431,6 +1432,9 @@ try // clang-format on
     NetworksReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
+    if (!instances_running(vm_instances))
+        config->factory->hypervisor_health_check();
+
     const auto& iface_list = config->factory->networks();
 
     for (const auto& iface : iface_list)
@@ -1967,6 +1971,31 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriter<Versi
     config->update_prompt->populate(reply.mutable_update_info());
     server->Write(reply);
     status_promise->set_value(grpc::Status::OK);
+}
+
+void mp::Daemon::get(const GetRequest* request, grpc::ServerWriter<GetReply>* server,
+                     std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<GetReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    GetReply reply;
+
+    auto key = request->key();
+    auto val = MP_SETTINGS.get(QString::fromStdString(key)).toStdString();
+    mpl::log(mpl::Level::debug, category, fmt::format("Returning setting {}={}", key, val));
+
+    reply.set_value(val);
+    server->Write(reply);
+    status_promise->set_value(grpc::Status::OK);
+}
+catch (const mp::InvalidSettingsException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::on_shutdown()
