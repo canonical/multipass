@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/network_interface_info.h>
+#include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/shared_backend_utils.h>
@@ -30,6 +31,9 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QRegularExpression>
+
+#include <algorithm>
+#include <iterator>
 
 namespace mp = multipass;
 
@@ -182,17 +186,31 @@ void check_hyperv_support()
     }
 }
 
-std::string switch_description(const QString& switch_type, const QString& physical_adapter)
+std::vector<std::string> switch_links(const std::vector<mp::NetworkInterfaceInfo>& adapters,
+                                      const QString& adapter_description)
+{
+    std::vector<std::string> ret;
+    if (!adapter_description.isEmpty())
+    {
+        auto same = [&adapter_description](const auto& net) { return adapter_description == net.description.c_str(); };
+        if (auto it = std::find_if(adapters.cbegin(), adapters.cend(), same); it != adapters.cend())
+            ret.emplace_back(it->id);
+    }
+
+    return ret;
+}
+
+std::string switch_description(const QString& switch_type, const std::vector<std::string>& links)
 {
     if (switch_type.contains("external", Qt::CaseInsensitive))
     {
-        if (physical_adapter.isEmpty())
-            throw std::runtime_error{"Missing adapter for external switch"};
+        if (links.empty())
+            return "Virtual Switch with external networking";
 
-        return fmt::format("Virtual Switch with external networking via \"{}\"", physical_adapter);
+        return fmt::format("Virtual Switch with external networking via \"{}\"", fmt::join(links, ", "));
     }
-    else if (!physical_adapter.isEmpty())
-        throw std::runtime_error{fmt::format("Unexpected adapter for non-external switch: {}", physical_adapter)};
+    else if (!links.empty())
+        throw std::runtime_error{fmt::format("Unexpected link(s) for non-external switch: {}", fmt::join(links, ", "))};
     else if (switch_type.contains("private", Qt::CaseInsensitive))
         return "Private virtual switch";
     else if (switch_type.contains("internal", Qt::CaseInsensitive))
@@ -200,6 +218,16 @@ std::string switch_description(const QString& switch_type, const QString& physic
     else
         return fmt::format("Unknown Virtual Switch type: {}", switch_type);
 }
+
+void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapters,
+                                   const std::vector<mp::NetworkInterfaceInfo>& switches)
+{
+    for (auto& adapter : adapters)
+        adapter.needs_authorization = std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
+            return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) != switch_.links.cend();
+        });
+}
+
 } // namespace
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
@@ -261,14 +289,30 @@ void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
 
 auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
+    auto adapters = get_adapters();
+    auto switches = get_switches(adapters);
+    update_adapter_authorizations(adapters, switches);
+
+    if (adapters.size() > switches.size())
+        std::swap(adapters, switches);                   // we want to move the smallest one
+    switches.reserve(adapters.size() + switches.size()); // avoid growing more times than needed
+
+    std::move(adapters.begin(), adapters.end(), std::back_inserter(switches));
+
+    return switches;
+}
+
+auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInterfaceInfo>& adapters)
+    -> std::vector<NetworkInterfaceInfo>
+{
     static const auto ps_cmd_base = QStringLiteral("Get-VMSwitch | Select-Object -Property Name,SwitchType,"
                                                    "NetAdapterInterfaceDescription");
-    static const auto ps_args = ps_cmd_base.split(' ', QString::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
+    static const auto ps_args = ps_cmd_base.split(' ', QString::SkipEmptyParts) + mp::PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
-    if (PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
+    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
     {
-        std::vector<NetworkInterfaceInfo> ret{};
+        std::vector<mp::NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
         {
             auto terms = line.split(',', QString::KeepEmptyParts);
@@ -278,7 +322,8 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
                     "Could not determine available networks - unexpected powershell output: {}", ps_output)};
             }
 
-            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), terms.at(2))});
+            auto links = switch_links(adapters, terms.at(2));
+            ret.push_back({terms.at(0).toStdString(), "switch", switch_description(terms.at(1), links), links});
         }
 
         return ret;
@@ -287,4 +332,20 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
     auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
     auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
     throw std::runtime_error{err};
+}
+
+auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInterfaceInfo>
+{
+    std::vector<mp::NetworkInterfaceInfo> ret;
+    for (auto& item : MP_PLATFORM.get_network_interfaces_info())
+    {
+        auto& net = item.second;
+        if (const auto& type = net.type; type == "ethernet" || type == "wifi")
+        {
+            net.needs_authorization = true;
+            ret.emplace_back(std::move(net));
+        }
+    }
+
+    return ret;
 }
