@@ -17,6 +17,7 @@
 
 #include <src/platform/backends/shared/qemu_img_utils/qemu_img_utils.h>
 
+#include <multipass/constants.h>
 #include <multipass/memory_size.h>
 
 #include "tests/extra_assertions.h"
@@ -76,7 +77,7 @@ void simulate_qemuimg_resize(mpt::MockProcess* process, const QString& expect_im
     EXPECT_THAT(args.at(2),
                 ResultOf([](const auto& val) { return mp::MemorySize{val.toStdString()}; }, Eq(expect_size)));
 
-    EXPECT_CALL(*process, execute(mp::backend::image_resize_timeout)).Times(1).WillOnce(Return(produce_result));
+    EXPECT_CALL(*process, execute(mp::image_resize_timeout)).Times(1).WillOnce(Return(produce_result));
 }
 
 void simulate_qemuimg_convert(const mpt::MockProcess* process, const QString& img_path,
