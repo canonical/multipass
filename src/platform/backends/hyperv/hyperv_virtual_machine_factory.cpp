@@ -18,12 +18,12 @@
 #include "hyperv_virtual_machine_factory.h"
 #include "hyperv_virtual_machine.h"
 
+#include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
 
-#include <shared/shared_backend_utils.h>
 #include <shared/win/powershell.h>
 
 #include <yaml-cpp/yaml.h>
@@ -266,7 +266,7 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
     convert.setArguments(convert_args);
     convert.start();
 
-    if (!convert.waitForFinished(mp::backend::image_resize_timeout))
+    if (!convert.waitForFinished(mp::image_resize_timeout))
     {
         throw std::runtime_error(
             qPrintable("Conversion of image to vhdx timed out..."));
