@@ -159,12 +159,12 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
                      [&output, &power_shell]() { output += power_shell->read_all_standard_output(); });
 
     power_shell->start();
-    auto wait_result = power_shell->wait_for_finished();
+    auto wait_result = power_shell->wait_for_finished(/* msecs = */ 60000);
     auto pid = power_shell->process_id(); // This is 0 iff the process didn't even start
 
     if (!wait_result)
     {
-        auto msg = pid ? fmt::format("[{}] Cmdlet failed with {}: {}", pid, power_shell->error_string(), args.join(" "))
+        auto msg = pid ? fmt::format("[{}] Process failed; {}", pid, power_shell->error_string())
                        : "Could not start PowerShell";
         mpl::log(mpl::Level::warning, name, msg);
     }

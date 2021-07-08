@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,11 @@
 
 namespace multipass
 {
+namespace test
+{
+struct HyperVNetworkAccessor; // fwd declaration, to befriend below
+}
+
 class HyperVVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
@@ -36,7 +41,16 @@ public:
         return "hyperv";
     };
 
+    void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
     std::vector<NetworkInterfaceInfo> networks() const override;
+
+protected:
+    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
+
+private:
+    friend struct multipass::test::HyperVNetworkAccessor;
+    static std::vector<NetworkInterfaceInfo> get_switches(const std::vector<NetworkInterfaceInfo>& adapters);
+    static std::vector<NetworkInterfaceInfo> get_adapters();
 };
 } // namespace multipass
 
