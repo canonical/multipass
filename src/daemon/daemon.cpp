@@ -1318,8 +1318,8 @@ try // clang-format on
                                    *config->ssh_key_provider};
 
             info->set_load(mpu::run_in_ssh_session(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
-            info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | sed '1d;3d' | awk '{printf $3}'"));
-            info->set_memory_total(mpu::run_in_ssh_session(session, "free -b | sed '1d;3d' | awk '{printf $2}'"));
+            info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
+            info->set_memory_total(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $2}'"));
             info->set_disk_usage(mpu::run_in_ssh_session(
                 session, "df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_disk_total(mpu::run_in_ssh_session(
