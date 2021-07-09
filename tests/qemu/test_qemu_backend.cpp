@@ -341,10 +341,6 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
     auto processes = factory->process_list();
     EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
                              [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command == "dnsmasq";
-                             }) != processes.cend());
-    EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
-                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
                                  return process_info.command == "qemu-img";
                              }) != processes.cend());
 
