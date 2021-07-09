@@ -56,6 +56,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include <libssh/sftp.h>
+
 // Needed for OpenSSL dll compatibility
 extern "C"
 {
