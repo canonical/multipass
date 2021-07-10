@@ -178,10 +178,20 @@ mkdir -p ~/.local/share/multipass/
 cp <multipass>/data/multipass.gui.autostart.desktop ~/.local/share/multipass/
 ```
 
-Optionally, enable auto-complete in bash:
+Optionally, enable auto-complete.
+
+Bash:
 
 ```
 source <multipass>/completions/bash/multipass
+```
+
+fish:
+
+```
+mkdir -p ~/.config/fish/completions
+cp <multipass>/completions/fish/multipass.fish ~/.config/fish/completions/
+exec fish
 ```
 
 Finally, use multipass's clients:
