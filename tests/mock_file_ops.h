@@ -31,6 +31,7 @@ class MockFileOps : public FileOps
 public:
     using FileOps::FileOps;
 
+    MOCK_CONST_METHOD1(exists, bool(QDir&));
     MOCK_CONST_METHOD1(isReadable, bool(QDir&));
     MOCK_CONST_METHOD2(rmdir, bool(QDir&, const QString& dirName));
     MOCK_CONST_METHOD2(open, bool(QFile&, QIODevice::OpenMode));
