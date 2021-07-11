@@ -704,6 +704,15 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, launch_cmd_cloudinittree_option)
+{
+    MockStdCin cin("\n"); // Mocking enter to continue with command.
+
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
+    EXPECT_THAT(send_command({"launch", "--cloud-init-tree", "iso_directory"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"launch", "--cloud-init" ,"--cloud-init-tree", "iso_directory"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 #ifndef WIN32 // TODO make home mocking work for windows
 TEST_F(Client, launch_cmd_automounts_home_in_petenv)
 {
