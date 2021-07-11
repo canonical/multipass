@@ -24,6 +24,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/settings.h>
 #include <multipass/snap_utils.h>
@@ -44,6 +45,7 @@ namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
+using ISOStructure = cmd::Launch::ISOStructure;
 
 namespace
 {
@@ -590,4 +592,17 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
     }
 
     return false;
+}
+
+ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
+{
+    if (!MP_FILEOPS.exists(directory))
+    {
+        throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
+    }
+
+    ISOStructure iso_structure;
+
+
+    return iso_structure;
 }
