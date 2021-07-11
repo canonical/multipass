@@ -45,6 +45,8 @@ public:
     MOCK_CONST_METHOD2(setPermissions, bool(QFile&, QFileDevice::Permissions));
     MOCK_CONST_METHOD3(write, qint64(QFile&, const char*, qint64));
     MOCK_CONST_METHOD2(write, qint64(QFile&, const QByteArray&));
+    MOCK_CONST_METHOD1(QDirIterator_hasNext, bool(QDirIterator&));
+    MOCK_CONST_METHOD1(QDirIterator_next, QString(QDirIterator&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };

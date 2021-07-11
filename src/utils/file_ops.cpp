@@ -92,3 +92,13 @@ qint64 mp::FileOps::write(QFile& file, const QByteArray& data) const
 {
     return file.write(data);
 }
+
+bool mp::FileOps::QDirIterator_hasNext(QDirIterator& iter) const
+{
+    return iter.hasNext();
+}
+
+QString mp::FileOps::QDirIterator_next(QDirIterator& iter) const
+{
+    return iter.next();
+}
