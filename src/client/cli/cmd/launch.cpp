@@ -204,8 +204,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
+    QCommandLineOption cloudInitTreeOption("cloud-init-tree", "Path to file tree containing cloud-init ISO data.",
+                                           "iso_file_tree");
 
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption});
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption,
+                        cloudInitTreeOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -311,6 +314,14 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             cerr << "error loading cloud-init config: " << e.what() << "\n";
             return ParseCode::CommandLineError;
         }
+    }
+
+    if (parser->isSet(cloudInitTreeOption))
+    {
+        const auto& iso_file_tree = parser->value(cloudInitTreeOption);
+        fmt::print(stdout, "You can now edit the cloud-init data under \"{}\". Press [Enter] when ready.\n",
+                   iso_file_tree);
+        std::cin.get(); // Wait to finalize ISO tree.
     }
 
     if (parser->isSet(bridgedOption))
