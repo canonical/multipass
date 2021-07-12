@@ -451,8 +451,28 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
     return interfaces;
 }
 
-auto validate_create_arguments(const mp::LaunchRequest* request, const mp::VirtualMachineFactory& factory)
+void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& vault,
+                    mp::VMWorkflowProvider& workflow_provider)
 {
+    // TODO: Refactor this in such a way that we can use info returned here instead of ignoring it to avoid calls
+    //       later that accomplish the same thing.
+    try
+    {
+        workflow_provider.info_for(request->image());
+    }
+    catch (const std::out_of_range&)
+    {
+        auto image_query = query_from(request, "");
+        if (image_query.query_type == mp::Query::Type::Alias)
+            vault.all_info_for(image_query);
+    }
+}
+
+auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
+{
+    assert(config && config->factory && config->workflow_provider && config->vault && "null ptr somewhere...");
+    validate_image(request, *config->vault, *config->workflow_provider);
+
     static const auto min_mem = try_mem_size(mp::min_memory_size);
     static const auto min_disk = try_mem_size(mp::min_disk_size);
     assert(min_mem && min_disk);
@@ -490,7 +510,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Virtu
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
     std::vector<std::string> nets_need_bridging;
-    auto extra_interfaces = validate_extra_interfaces(request, factory, nets_need_bridging, option_errors);
+    auto extra_interfaces = validate_extra_interfaces(request, *config->factory, nets_need_bridging, option_errors);
 
     struct CheckedArguments
     {
@@ -2159,13 +2179,7 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
-    // Try to get info for the requested image. This will throw out if the requested image is not found. This check
-    // needs to be done before the other checks.
-    auto image_query = query_from(request, "");
-    if (image_query.query_type == Query::Type::Alias)
-        config->vault->all_info_for(image_query);
-
-    auto checked_args = validate_create_arguments(request, *config->factory);
+    auto checked_args = validate_create_arguments(request, config.get());
 
     if (!checked_args.option_errors.error_codes().empty())
     {
