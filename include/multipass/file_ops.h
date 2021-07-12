@@ -22,6 +22,7 @@
 
 #include <QByteArray>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QString>
 #include <QTextStream>
@@ -36,8 +37,13 @@ public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
     // QDir operations
+    virtual bool exists(const QDir& dir) const;
     virtual bool isReadable(QDir& dir) const;
     virtual bool rmdir(QDir& dir, const QString& dirName) const;
+
+    // QDirIterator operations
+    virtual bool QDirIterator_hasNext(QDirIterator& iter) const;
+    virtual QString QDirIterator_next(QDirIterator& iter) const;
 
     // QFile operations
     virtual bool open(QFile& file, QIODevice::OpenMode mode) const;

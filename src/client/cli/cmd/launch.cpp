@@ -24,6 +24,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/settings.h>
 #include <multipass/snap_utils.h>
@@ -44,6 +45,7 @@ namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
+using ISOStructure = cmd::Launch::ISOStructure;
 
 namespace
 {
@@ -204,8 +206,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
+    QCommandLineOption cloudInitTreeOption("cloud-init-tree", "Path to file tree containing cloud-init ISO data.",
+                                           "iso_file_tree");
 
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption});
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption,
+                        cloudInitTreeOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -311,6 +316,14 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             cerr << "error loading cloud-init config: " << e.what() << "\n";
             return ParseCode::CommandLineError;
         }
+    }
+
+    if (parser->isSet(cloudInitTreeOption))
+    {
+        const auto& iso_file_tree = parser->value(cloudInitTreeOption);
+        fmt::print(stdout, "You can now edit the cloud-init data under \"{}\". Press [Enter] when ready.\n",
+                   iso_file_tree);
+        std::cin.get(); // Wait to finalize ISO tree.
     }
 
     if (parser->isSet(bridgedOption))
@@ -579,4 +592,33 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
     }
 
     return false;
+}
+
+ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
+{
+    if (!MP_FILEOPS.exists(directory))
+    {
+        throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
+    }
+
+    const size_t dir_length = directory.size();
+    const auto& extract_dir_filename = [&dir_length](QString& line) { // Extract <dir name, file name> tuples.
+        line = line.mid(dir_length);
+        int file_name_pos = line.lastIndexOf("/");
+
+        QString dir_name = line.left(file_name_pos).mid(1); // remove leading '/'.
+        QString file_name = line.mid(file_name_pos + 1);    // remove trailing '/'.
+
+        return std::make_pair(dir_name, file_name);
+    };
+
+    ISOStructure iso_structure;
+    QDirIterator iter(directory, QDir::Files, QDirIterator::Subdirectories);
+    while (MP_FILEOPS.QDirIterator_hasNext(iter))
+    {
+        QString line = MP_FILEOPS.QDirIterator_next(iter);
+        iso_structure.push_back(extract_dir_filename(line));
+    }
+
+    return iso_structure;
 }
