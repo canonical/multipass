@@ -596,7 +596,7 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 
 ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
 {
-    if (!MP_FILEOPS.exists(directory))
+    if (!MP_FILEOPS.exists_dir(directory))
     {
         throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
     }
