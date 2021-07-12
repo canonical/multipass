@@ -63,6 +63,7 @@ private:
     NetworkAccessManager::UPtr manager;
     const Path data_dir;
     const QUrl base_url;
+    QString storage_pool;
 };
 } // namespace multipass
 
