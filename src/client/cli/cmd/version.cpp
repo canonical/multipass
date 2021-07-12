@@ -18,6 +18,7 @@
 #include "version.h"
 #include "common_cli.h"
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/formatter.h>
 #include <multipass/version.h>
 
 namespace mp = multipass;
@@ -32,16 +33,37 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    cout << "multipass  " << multipass::version_string << "\n";
+    bool format_is_set = parser->isSet("format");
 
-    auto on_success = [this](mp::VersionReply& reply) {
-        cout << "multipassd " << reply.version() << "\n";
-        if (term->is_live() && update_available(reply.update_info()))
-            cout << update_notice(reply.update_info());
+    if (!format_is_set)
+    {
+        cout << "multipass  " << multipass::version_string << "\n";
+    }
+
+    auto on_success = [this, &format_is_set](mp::VersionReply& reply) {
+        if (format_is_set)
+        {
+            cout << chosen_formatter->format(reply, multipass::version_string);
+        }
+        else
+        {
+            cout << "multipassd " << reply.version() << "\n";
+            if (term->is_live() && update_available(reply.update_info()))
+                cout << update_notice(reply.update_info());
+        }
+
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [](grpc::Status& status) { return ReturnCode::Ok; };
+    auto on_failure = [this, &format_is_set](grpc::Status& status) {
+        if (format_is_set)
+        {
+            VersionReply reply;
+            cout << chosen_formatter->format(reply, multipass::version_string);
+        }
+
+        return ReturnCode::Ok;
+    };
 
     mp::VersionRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
@@ -66,5 +88,27 @@ QString cmd::Version::description() const
 
 mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 {
-    return parser->commandParse(this);
+    QCommandLineOption formatOption("format",
+                                    "Output list in the requested format.\n"
+                                    "Valid formats are: table (default), json, csv and yaml",
+                                    "format", "table");
+
+    parser->addOption(formatOption);
+
+    auto status = parser->commandParse(this);
+
+    if (status != ParseCode::Ok)
+    {
+        return status;
+    }
+
+    if (parser->positionalArguments().count() > 0)
+    {
+        cerr << "This command takes no arguments\n";
+        return ParseCode::CommandLineError;
+    }
+
+    status = handle_format_option(parser, &chosen_formatter, cerr);
+
+    return status;
 }

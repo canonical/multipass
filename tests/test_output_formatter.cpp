@@ -318,6 +318,33 @@ auto construct_find_multiple_reply_duplicate_image()
 
     return reply;
 }
+
+auto construct_version_info_multipassd_update_available()
+{
+    auto reply = mp::VersionReply();
+    reply.set_version("Daemon version");
+    reply.set_log_line("Some logline goes here");
+
+    mp::UpdateInfo* updateInfo = new mp::UpdateInfo; // Leak? expecting protobuf to deal with memory dealloc.
+    updateInfo->set_version("update version number");
+    updateInfo->set_title("update title information");
+    updateInfo->set_description("update description information");
+    updateInfo->set_url("http://multipass.web");
+
+    reply.set_allocated_update_info(updateInfo);
+
+    return reply;
+}
+
+auto construct_version_info_multipassd_up_to_date()
+{
+    auto reply = mp::VersionReply();
+    reply.set_version("Daemon version");
+    reply.set_log_line("Some logline goes here");
+
+    return reply;
+}
+
 class LocaleSettingTest : public testing::Test
 {
 public:
@@ -1049,6 +1076,71 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "    version: 20190520\n"
      "    remote: snapcraft\n",
      "yaml_find_multiple_duplicate_image"}};
+
+const auto version_client_reply = mp::VersionReply();
+const auto version_daemon_no_update_reply = construct_version_info_multipassd_up_to_date();
+const auto version_daemon_update_reply = construct_version_info_multipassd_update_available();
+
+const std::vector<FormatterParamType> version_formatter_outputs{
+    {&table_formatter, &version_client_reply, "multipass:      Client version\n", "table_version_client"},
+    {&table_formatter, &version_daemon_no_update_reply,
+     "multipass:      Client version\n"
+     "multipassd:     Daemon version\n",
+     "table_version_daemon_no_updates"},
+    {&table_formatter, &version_daemon_update_reply,
+     "multipass:      Client version\n"
+     "multipassd:     Daemon version\n"
+     "title:          update title information\n"
+     "description:    update description information\n"
+     "url:            http://multipass.web\n",
+     "table_version_daemon_updates"},
+    {&json_formatter, &version_client_reply,
+     "{\n"
+     "    \"multipass\": \"Client version\"\n"
+     "}\n",
+     "json_version_client"},
+    {&json_formatter, &version_daemon_no_update_reply,
+     "{\n"
+     "    \"multipass\": \"Client version\",\n"
+     "    \"multipassd\": \"Daemon version\"\n"
+     "}\n",
+     "json_version_daemon_no_updates"},
+    {&json_formatter, &version_daemon_update_reply,
+     "{\n"
+     "    \"multipass\": \"Client version\",\n"
+     "    \"multipassd\": \"Daemon version\",\n"
+     "    \"update\": {\n"
+     "        \"description\": \"update description information\",\n"
+     "        \"title\": \"update title information\",\n"
+     "        \"url\": \"http://multipass.web\"\n"
+     "    }\n"
+     "}\n",
+     "json_version_daemon_updates"},
+    {&csv_formatter, &version_client_reply,
+     "Multipass,Multipassd,Title,Description,URL\n"
+     "Client version,,,,\n",
+     "csv_version_client"},
+    {&csv_formatter, &version_daemon_no_update_reply,
+     "Multipass,Multipassd,Title,Description,URL\n"
+     "Client version,Daemon version,,,\n",
+     "csv_version_daemon_no_updates"},
+    {&csv_formatter, &version_daemon_update_reply,
+     "Multipass,Multipassd,Title,Description,URL\n"
+     "Client version,Daemon version,update title information,update description information,http://multipass.web\n",
+     "csv_version_daemon_updates"},
+    {&yaml_formatter, &version_client_reply, "multipass: Client version\n", "yaml_version_client"},
+    {&yaml_formatter, &version_daemon_no_update_reply,
+     "multipass: Client version\n"
+     "multipassd: Daemon version\n",
+     "yaml_version_daemon_no_updates"},
+    {&yaml_formatter, &version_daemon_update_reply,
+     "multipass: Client version\n"
+     "multipassd: Daemon version\n"
+     "update:\n  title: update title information\n"
+     "  description: update description information\n"
+     "  url: \"http://multipass.web\"\n",
+     "yaml_version_daemon_updates"}};
+
 } // namespace
 
 TEST_P(FormatterSuite, properly_formats_output)
@@ -1066,6 +1158,8 @@ TEST_P(FormatterSuite, properly_formats_output)
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::FindReply*>(reply))
         output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::VersionReply*>(reply))
+        output = formatter->format(*input, "Client version");
     else
         FAIL() << "Not a supported reply type.";
 
@@ -1079,6 +1173,8 @@ INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter, FormatterSuite,
 INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_formatter_outputs), print_param_name);
 INSTANTIATE_TEST_SUITE_P(NonOrderableNetworksOutputFormatter, FormatterSuite,
                          ValuesIn(non_orderable_networks_formatter_outputs), print_param_name);
+INSTANTIATE_TEST_SUITE_P(VersionInfoOutputFormatter, FormatterSuite, ValuesIn(version_formatter_outputs),
+                         print_param_name);
 
 #if GTEST_HAS_POSIX_RE
 TEST_P(PetenvFormatterSuite, pet_env_first_in_output)

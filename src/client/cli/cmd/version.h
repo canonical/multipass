@@ -24,6 +24,8 @@
 
 namespace multipass
 {
+class Formatter;
+
 namespace cmd
 {
 class Version final : public Command
@@ -38,6 +40,8 @@ public:
 
 private:
     ParseCode parse_args(ArgParser *parser) override;
+
+    Formatter* chosen_formatter;
 };
 }
 }
