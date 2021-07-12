@@ -75,7 +75,7 @@ const QMap<QString, CustomImageInfo> multipass_image_info{{{"ubuntu-core-16-amd6
 const QMap<QString, CustomImageInfo> snapcraft_image_info{
     {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
      {"https://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
-      {"core"},
+      {"core", "16.04"},
       "",
       "snapcraft-core16",
       "Snapcraft builder for Core 16",
@@ -85,24 +85,24 @@ const QMap<QString, CustomImageInfo> snapcraft_image_info{
       "ubuntu-16.04-server-cloudimg-amd64-initrd-generic"}},
     {{"bionic-server-cloudimg-amd64-disk.img"},
      {"https://cloud-images.ubuntu.com/buildd/releases/bionic/release/",
-      {"core18"},
+      {"core18", "18.04"},
       "",
       "snapcraft-core18",
       "Snapcraft builder for Core 18",
-      "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
-      "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
-      "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
-      "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}},
+      "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/unpacked/"
+      "bionic-server-cloudimg-amd64-vmlinuz-generic",
+      "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/unpacked/"
+      "bionic-server-cloudimg-amd64-initrd-generic"}},
     {{"focal-server-cloudimg-amd64-disk.img"},
      {"https://cloud-images.ubuntu.com/buildd/releases/focal/release/",
-      {"core20"},
+      {"core20", "20.04"},
       "",
       "snapcraft-core20",
       "Snapcraft builder for Core 20",
-      "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
-      "ubuntu-20.04-server-cloudimg-amd64-vmlinuz-generic",
-      "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
-      "ubuntu-20.04-server-cloudimg-amd64-initrd-generic"}}};
+      "https://cloud-images.ubuntu.com/buildd/releases/focal/release/unpacked/"
+      "focal-server-cloudimg-amd64-vmlinuz-generic",
+      "https://cloud-images.ubuntu.com/buildd/releases/focal/release/unpacked/"
+      "focal-server-cloudimg-amd64-initrd-generic"}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
