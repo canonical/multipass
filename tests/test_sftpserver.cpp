@@ -51,10 +51,11 @@ struct SftpServer : public mp::test::SftpServerTest
         return make_sftpserver("");
     }
 
-    mp::SftpServer make_sftpserver(const std::string& path)
+    mp::SftpServer make_sftpserver(const std::string& path, const std::unordered_map<int, int>& uid_map = {},
+                                   const std::unordered_map<int, int>& gid_map = {})
     {
         mp::SSHSession session{"a", 42};
-        return {std::move(session), path, path, default_map, default_map, default_id, default_id, "sshfs"};
+        return {std::move(session), path, path, uid_map, gid_map, default_id, default_id, "sshfs"};
     }
 
     auto make_msg(uint8_t type = SFTP_BAD_MESSAGE)
@@ -91,7 +92,6 @@ struct SftpServer : public mp::test::SftpServerTest
 
     mpt::ExitStatusMock exit_status_mock;
     std::queue<sftp_client_message> messages;
-    std::unordered_map<int, int> default_map;
     int default_id{1000};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
@@ -1634,6 +1634,38 @@ TEST_F(SftpServer, setstat_chown_failure_fails)
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
+}
+
+TEST_F(SftpServer, setstat_chown_does_not_modify_host_folder_if_reverse_mapped)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+
+    std::unordered_map<int, int> map{{1000, 0}};
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    auto msg = make_msg(SFTP_SETSTAT);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    const int expected_size = 7777;
+    attr.size = expected_size;
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+    attr.permissions = 0777;
+
+    msg->filename = name.data();
+    msg->attr = &attr;
+    msg->flags = SSH_FXF_WRITE;
+    msg->attr->uid = 0;
+    msg->attr->gid = 0;
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    EXPECT_CALL(*mock_platform, chown(_, _, _)).Times(0);
+
+    sftp.run();
 }
 
 TEST_F(SftpServer, setstat_utime_failure_fails)
