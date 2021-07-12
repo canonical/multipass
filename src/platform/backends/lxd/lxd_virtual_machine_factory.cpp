@@ -27,6 +27,7 @@
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
+#include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 
 #include <QJsonDocument>
@@ -34,6 +35,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mu = multipass::utils;
 
 namespace
 {
@@ -122,11 +124,12 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     }
     catch (const LocalSocketConnectionException& e)
     {
+        std::string snap_msg;
+        if (mu::in_multipass_snap())
+            snap_msg = " Also make sure\n the LXD interface is connected via `snap connect multipass:lxd lxd`.";
 
         throw std::runtime_error(
-            fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
-                        "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
-                        e.what()));
+            fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled.{}", e.what(), snap_msg));
     }
 
     if (reply["metadata"].toObject()["auth"] != QStringLiteral("trusted"))
