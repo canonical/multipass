@@ -917,7 +917,17 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        if (MP_PLATFORM.chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
+        auto compare_uid_map_value = [msg](std::pair<int, int> p) { return msg->attr->uid == (unsigned)p.second; };
+        int new_uid = std::find_if(uid_map.cbegin(), uid_map.cend(), compare_uid_map_value) == uid_map.cend()
+                          ? msg->attr->uid
+                          : -1;
+
+        auto compare_gid_map_value = [msg](std::pair<int, int> p) { return msg->attr->gid == (unsigned)p.second; };
+        int new_gid = std::find_if(gid_map.cbegin(), gid_map.cend(), compare_gid_map_value) == gid_map.cend()
+                          ? msg->attr->gid
+                          : -1;
+
+        if ((new_uid != -1 || new_gid != -1) && MP_PLATFORM.chown(filename.toStdString().c_str(), new_uid, new_gid) < 0)
         {
             mpl::log(mpl::Level::error, category,
                      fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
