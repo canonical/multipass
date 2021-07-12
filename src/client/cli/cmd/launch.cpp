@@ -601,8 +601,24 @@ ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
         throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
     }
 
-    ISOStructure iso_structure;
+    const size_t dir_length = directory.size();
+    const auto& extract_dir_filename = [&dir_length](QString& line) { // Extract <dir name, file name> tuples.
+        line = line.mid(dir_length);
+        int file_name_pos = line.lastIndexOf("/");
 
+        QString dir_name = line.left(file_name_pos).mid(1); // remove leading '/'.
+        QString file_name = line.mid(file_name_pos + 1);    // remove trailing '/'.
+
+        return std::make_pair(dir_name, file_name);
+    };
+
+    ISOStructure iso_structure;
+    QDirIterator iter(directory, QDir::Files, QDirIterator::Subdirectories);
+    while (MP_FILEOPS.QDirIterator_hasNext(iter))
+    {
+        QString line = MP_FILEOPS.QDirIterator_next(iter);
+        iso_structure.push_back(extract_dir_filename(line));
+    }
 
     return iso_structure;
 }
