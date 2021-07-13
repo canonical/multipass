@@ -620,14 +620,14 @@ ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
     }
 
     const size_t dir_length = directory.size();
-    const auto& extract_dir_filename = [&dir_length](QString& line) { // Extract <dir name, file name> tuples.
-        line = line.mid(dir_length);
+    const auto& extract_dir_filename = [&dir_length](QString& path) { // Extract <path, dir name, file name> tuples.
+        QString line = path.mid(dir_length);
         int file_name_pos = line.lastIndexOf("/");
 
         QString dir_name = line.left(file_name_pos).mid(1); // remove leading '/'.
         QString file_name = line.mid(file_name_pos + 1);    // remove trailing '/'.
 
-        return std::make_pair(dir_name, file_name);
+        return std::make_tuple(path, dir_name, file_name);
     };
 
     ISOStructure iso_structure;

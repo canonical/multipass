@@ -37,7 +37,7 @@ class Launch final : public Command
 {
 public:
     using Command::Command;
-    using ISOStructure = std::list<std::pair<QString, QString>>; // <Directory, File Name>.
+    using ISOStructure = std::list<std::tuple<QString, QString, QString>>; // <Path, Directory, File Name>.
     ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
