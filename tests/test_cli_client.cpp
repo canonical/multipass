@@ -18,6 +18,7 @@
 #include "disabling_macros.h"
 #include "extra_assertions.h"
 #include "mock_environment_helpers.h"
+#include "mock_file_ops.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
@@ -706,13 +707,13 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
 
 TEST_F(Client, launch_cmd_cloudinittree_option)
 {
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     MockStdCin cin("\n"); // Mocking enter to continue with command.
 
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, exists_dir).WillOnce(Return(true));
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init-tree", "iso_directory"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"launch", "--cloud-init-tree"}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"launch", "--cloud-init", "--cloud-init-tree", "iso_directory"}),
-                Eq(mp::ReturnCode::CommandLineError));
 }
 
 #ifndef WIN32 // TODO make home mocking work for windows
