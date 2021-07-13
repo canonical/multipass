@@ -14,7 +14,7 @@
 
 add_subdirectory(shared)
 
-if(UNIX)
+if(LINUX OR QEMU_ENABLED)
   add_subdirectory(qemu)
 endif()
 

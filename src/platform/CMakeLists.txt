@@ -25,7 +25,7 @@ if(LINUX)
     journaldlogger)
 endif()
 
-if(UNIX)
+if(LINUX OR QEMU_ENABLED)
   target_link_libraries(platform
     qemu_backend)
 endif()
