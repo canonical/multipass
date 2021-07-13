@@ -324,6 +324,23 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         fmt::print(stdout, "You can now edit the cloud-init data under \"{}\". Press [Enter] when ready.\n",
                    iso_file_tree);
         std::cin.get(); // Wait to finalize ISO tree.
+
+        try
+        {
+            // TODO: extract <directory, filename>.
+
+            // TODO: transport <file_tree> to daemon via gRPC. Used to generate directories and assign file names to
+            // data.
+
+            // TODO: transport all of ISO via streaming gRPC.
+        }
+        catch (const std::exception& e)
+        {
+            fmt::print(stderr, "error: {}", e.what());
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_cloud_init_iso(true);
     }
 
     if (parser->isSet(bridgedOption))
