@@ -26,7 +26,7 @@ target_link_libraries(shared
   utils
   Qt5::Core)
 
-if(UNIX)
+if(LINUX OR QEMU_ENABLED)
   add_subdirectory(qemu_img_utils)
 endif()
 
