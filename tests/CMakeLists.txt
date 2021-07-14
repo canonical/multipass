@@ -155,7 +155,7 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_tests mock_process)
 
-if(UNIX)
+if(LINUX OR ENABLE_QEMU)
   add_subdirectory(qemu)
 endif()
 
