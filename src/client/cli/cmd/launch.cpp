@@ -337,7 +337,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
         catch (const std::exception& e)
         {
-            fmt::print(stderr, "error: {}", e.what());
+            fmt::print(cerr, "error: {}\n", e.what());
             return ParseCode::CommandLineError;
         }
 
