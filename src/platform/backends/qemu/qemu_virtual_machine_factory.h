@@ -40,6 +40,7 @@ public:
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_version_string() override;
+    QString get_backend_directory_name() override;
 
 private:
     QemuPlatform::UPtr qemu_platform;

@@ -54,6 +54,10 @@ public:
     {
         return {};
     };
+    virtual QString get_directory_name()
+    {
+        return {};
+    };
 
 protected:
     explicit QemuPlatform() = default;

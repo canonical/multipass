@@ -107,3 +107,8 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
 
     return QString("qemu-unknown");
 }
+
+QString mp::QemuVirtualMachineFactory::get_backend_directory_name()
+{
+    return qemu_platform->get_directory_name();
+}
