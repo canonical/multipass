@@ -61,6 +61,7 @@ message LaunchRequest {
     string remote_name = 9;
     OptInStatus opt_in_reply = 10;
     int32 verbosity_level = 11;
+    bool cloud_init_iso = 15;
 
     message NetworkOptions {
         enum Mode {
