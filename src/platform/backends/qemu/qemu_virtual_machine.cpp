@@ -67,7 +67,7 @@ QStringList get_arguments(const QJsonObject& metadata)
     if (metadata.contains(arguments_key) && metadata[arguments_key].type() == QJsonValue::Array)
     {
         auto array = metadata[arguments_key].toArray();
-        for (const auto& val : array)
+        for (const QJsonValueRef val : array)
         {
             args.push_back(val.toString());
         }
