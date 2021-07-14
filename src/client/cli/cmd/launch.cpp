@@ -323,7 +323,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         const auto& iso_directory = parser->value(cloudInitTreeOption);
         fmt::print(stdout, "You can now edit the cloud-init data under \"{}\". Press [Enter] when ready.\n",
                    iso_directory);
-        std::cin.get(); // Wait to finalize ISO tree.
+        term->cin().get(); // Wait to finalize ISO tree.
 
         ISOStructure file_tree;
         try
