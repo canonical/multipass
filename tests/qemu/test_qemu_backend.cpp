@@ -15,10 +15,11 @@
  *
  */
 
+#include "mock_qemu_platform.h"
+
 #include <src/platform/backends/qemu/qemu_virtual_machine.h>
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
-#include "mock_dnsmasq_server.h"
 #include "tests/extra_assertions.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
@@ -340,10 +341,6 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
     auto processes = factory->process_list();
     EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
                              [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command == "dnsmasq";
-                             }) != processes.cend());
-    EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
-                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
                                  return process_info.command == "qemu-img";
                              }) != processes.cend());
 
@@ -578,13 +575,13 @@ TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     const std::string expected_ip{"10.10.0.34"};
-    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
+    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
         return mp::optional<mp::IPAddress>{expected_ip};
     });
 
-    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -595,11 +592,11 @@ TEST_F(QemuBackend, gets_management_ip)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     const std::string expected_ip{"10.10.0.35"};
-    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    EXPECT_CALL(mock_dnsmasq_server, get_ip_for(_)).WillOnce(Return(expected_ip));
+    EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(expected_ip));
 
-    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -609,11 +606,11 @@ TEST_F(QemuBackend, gets_management_ip)
 TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    EXPECT_CALL(mock_dnsmasq_server, get_ip_for(_)).WillOnce(Return(mp::nullopt));
+    EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(mp::nullopt));
 
-    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -623,11 +620,11 @@ TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
 TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([](auto...) { return mp::nullopt; });
+    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([](auto...) { return mp::nullopt; });
 
-    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 

@@ -15,8 +15,8 @@
  *
  */
 
-#include <src/platform/backends/qemu/dnsmasq_process_spec.h>
-#include <src/platform/backends/qemu/dnsmasq_server.h>
+#include <src/platform/backends/qemu/linux/dnsmasq_process_spec.h>
+#include <src/platform/backends/qemu/linux/dnsmasq_server.h>
 
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
@@ -33,7 +33,6 @@
 #include <QDir>
 
 #include <memory>
-#include <src/platform/backends/qemu/dnsmasq_process_spec.h>
 #include <stdexcept>
 #include <string>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,10 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_DNSMASQ_SERVER_H
-#define MULTIPASS_MOCK_DNSMASQ_SERVER_H
+#ifndef MULTIPASS_MOCK_QEMU_PLATFORM_H
+#define MULTIPASS_MOCK_QEMU_PLATFORM_H
 
-#include <src/platform/backends/qemu/dnsmasq_server.h>
+#include <src/platform/backends/qemu/qemu_platform.h>
 
 #include <gmock/gmock.h>
 
@@ -26,14 +26,15 @@ namespace multipass
 {
 namespace test
 {
-struct MockDNSMasqServer : public DNSMasqServer
+struct MockQemuPlatform : public QemuPlatform
 {
-    using DNSMasqServer::DNSMasqServer; // ctor
-
-    MockDNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet){};
+    using QemuPlatform::QemuPlatform; // ctor
 
     MOCK_METHOD1(get_ip_for, optional<IPAddress>(const std::string&));
+    MOCK_METHOD0(platform_health_check, void());
+    MOCK_METHOD2(qemu_netdev, QString(const std::string&, const std::string&));
+    MOCK_METHOD0(qemu_platform_args, QStringList());
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_DNSMASQ_SERVER_H
+#endif // MULTIPASS_MOCK_QEMU_PLATFORM

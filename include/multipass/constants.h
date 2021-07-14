@@ -20,6 +20,8 @@
 
 #include <chrono>
 
+using namespace std::chrono_literals;
+
 namespace multipass
 {
 constexpr auto client_name = "multipass";
@@ -33,6 +35,7 @@ constexpr auto default_memory_size = "1G";
 constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
 constexpr auto default_timeout = std::chrono::seconds(300);
+constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
 
 constexpr auto home_automount_dir = "Home";
 
