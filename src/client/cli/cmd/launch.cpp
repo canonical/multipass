@@ -320,10 +320,28 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(cloudInitTreeOption))
     {
-        const auto& iso_file_tree = parser->value(cloudInitTreeOption);
+        const auto& iso_directory = parser->value(cloudInitTreeOption);
         fmt::print(stdout, "You can now edit the cloud-init data under \"{}\". Press [Enter] when ready.\n",
-                   iso_file_tree);
+                   iso_directory);
         std::cin.get(); // Wait to finalize ISO tree.
+
+        ISOStructure file_tree;
+        try
+        {
+            file_tree = extract_iso_structure(iso_directory);
+
+            // TODO: transport <file_tree> to daemon via gRPC. Used to generate directories and assign file names to
+            // data.
+
+            // TODO: transport all of ISO via streaming gRPC.
+        }
+        catch (const std::exception& e)
+        {
+            fmt::print(stderr, "error: {}", e.what());
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_cloud_init_iso(true);
     }
 
     if (parser->isSet(bridgedOption))
@@ -596,20 +614,20 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 
 ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
 {
-    if (!MP_FILEOPS.exists(directory))
+    if (!MP_FILEOPS.exists_dir(directory))
     {
         throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
     }
 
     const size_t dir_length = directory.size();
-    const auto& extract_dir_filename = [&dir_length](QString& line) { // Extract <dir name, file name> tuples.
-        line = line.mid(dir_length);
+    const auto& extract_dir_filename = [&dir_length](QString& path) { // Extract <path, dir name, file name> tuples.
+        QString line = path.mid(dir_length);
         int file_name_pos = line.lastIndexOf("/");
 
         QString dir_name = line.left(file_name_pos).mid(1); // remove leading '/'.
         QString file_name = line.mid(file_name_pos + 1);    // remove trailing '/'.
 
-        return std::make_pair(dir_name, file_name);
+        return std::make_tuple(path, dir_name, file_name);
     };
 
     ISOStructure iso_structure;
