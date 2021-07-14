@@ -707,13 +707,14 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
 }
 
 using ISOStructure = multipass::cmd::Launch::ISOStructure;
-const ISOStructure cloud_init_tree_struct = {{"../ISO/vendor-data", "", "vendor-data"},
-                                             {"../ISO/meta-data", "", "meta-data"},
-                                             {"../ISO/user-data", "", "user-data"},
-                                             {"../ISO/directory2/nested_in_two", "directory2", "nested_in_two"},
-                                             {"../ISO/sub/nested_file", "sub", "nested_file"},
-                                             {"../ISO/sub/directory/another_file", "sub/directory", "another_file"},
-                                             {"../ISO/sub/directory/one/yet_another_deeper_file", "sub/directory/one", "yet_another_deeper_file"}};
+const ISOStructure cloud_init_tree_struct = {
+    {"../ISO/vendor-data", "", "vendor-data"},
+    {"../ISO/meta-data", "", "meta-data"},
+    {"../ISO/user-data", "", "user-data"},
+    {"../ISO/directory2/nested_in_two", "directory2", "nested_in_two"},
+    {"../ISO/sub/nested_file", "sub", "nested_file"},
+    {"../ISO/sub/directory/another_file", "sub/directory", "another_file"},
+    {"../ISO/sub/directory/one/yet_another_deeper_file", "sub/directory/one", "yet_another_deeper_file"}};
 TEST_F(Client, launch_cmd_cloudinittree_option_read_success)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
@@ -731,6 +732,12 @@ TEST_F(Client, launch_cmd_cloudinittree_option_read_success)
 
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init-tree", "iso_directory"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_cloudinittree_option_bad_args)
+{
+    EXPECT_THAT(send_command({"launch", "--cloud-init-tree"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"launch", "--cloud--init", "--cloud-init-tree"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 #ifndef WIN32 // TODO make home mocking work for windows
