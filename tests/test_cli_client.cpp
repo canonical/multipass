@@ -734,6 +734,23 @@ TEST_F(Client, launch_cmd_cloudinittree_option_read_success)
     EXPECT_THAT(send_command({"launch", "--cloud-init-tree", "iso_directory"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, launch_cmd_cloudinittree_option_read_fail)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    const std::string bad_dir = "bad/directory/path/";
+    std::stringstream cerr_stream;
+
+    MockStdCin cin("\n"); // Mocking enter to continue with command.
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, exists_dir).WillOnce(Return(false));
+
+    EXPECT_THAT(send_command({"launch", "--cloud-init-tree", bad_dir}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_NE(std::string::npos, cerr_stream.str().find("not a valid directory.")) << "cerr has: " << cerr_stream.str();
+    EXPECT_NE(std::string::npos, cerr_stream.str().find(bad_dir)) << "cerr has: " << cerr_stream.str();
+}
+
 TEST_F(Client, launch_cmd_cloudinittree_option_bad_args)
 {
     EXPECT_THAT(send_command({"launch", "--cloud-init-tree"}), Eq(mp::ReturnCode::CommandLineError));
