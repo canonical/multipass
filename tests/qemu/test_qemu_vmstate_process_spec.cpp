@@ -28,11 +28,12 @@ using namespace testing;
 struct TestQemuVmStateProcessSpec : public Test
 {
     QString file_name{"foo"};
+    const QString host_arch{"x86_64"};
 };
 
 TEST_F(TestQemuVmStateProcessSpec, default_arguments_correct)
 {
-    mp::QemuVmStateProcessSpec spec{file_name};
+    mp::QemuVmStateProcessSpec spec{file_name, host_arch};
 
     EXPECT_EQ(spec.arguments(), QStringList({"-nographic", "-dump-vmstate", file_name}));
 }

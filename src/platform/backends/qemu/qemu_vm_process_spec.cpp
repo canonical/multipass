@@ -74,8 +74,12 @@ QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, co
 
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
                                          const QStringList& qemu_platform_args, const QString& qemu_netdev,
-                                         const multipass::optional<ResumeData>& resume_data)
-    : desc{desc}, qemu_platform_args{qemu_platform_args}, qemu_netdev{qemu_netdev}, resume_data{resume_data}
+                                         const multipass::optional<ResumeData>& resume_data, const QString& host_arch)
+    : QemuBaseProcessSpec{host_arch},
+      desc{desc},
+      qemu_platform_args{qemu_platform_args},
+      qemu_netdev{qemu_netdev},
+      resume_data{resume_data}
 {
 }
 

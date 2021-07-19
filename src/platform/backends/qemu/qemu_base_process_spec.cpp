@@ -16,7 +16,6 @@
  */
 
 #include "qemu_base_process_spec.h"
-#include "qemu_platform.h"
 
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
@@ -24,9 +23,13 @@
 namespace mp = multipass;
 namespace mu = multipass::utils;
 
+mp::QemuBaseProcessSpec::QemuBaseProcessSpec(const QString& host_arch) : host_arch{host_arch}
+{
+}
+
 QString mp::QemuBaseProcessSpec::program() const
 {
-    return mp::qemu_exec();
+    return "qemu-system-" + host_arch;
 }
 
 QString mp::QemuBaseProcessSpec::working_directory() const

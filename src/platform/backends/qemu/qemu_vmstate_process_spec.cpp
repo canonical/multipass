@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,8 @@
 
 namespace mp = multipass;
 
-mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name) : file_name{file_name}
+mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name, const QString& host_arch)
+    : QemuBaseProcessSpec{host_arch}, file_name{file_name}
 {
 }
 

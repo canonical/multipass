@@ -58,17 +58,20 @@ public:
     {
         return {};
     };
+    virtual QString get_host_arch()
+    {
+        return host_arch;
+    };
 
 protected:
-    explicit QemuPlatform() = default;
+    explicit QemuPlatform() : host_arch{cpu_to_arch.value(QSysInfo::currentCpuArchitecture())} {};
     QemuPlatform(const QemuPlatform&) = delete;
     QemuPlatform& operator=(const QemuPlatform&) = delete;
+
+private:
+    const QString host_arch;
 };
 
 QemuPlatform::UPtr make_qemu_platform(const Path& data_dir);
-inline QString qemu_exec()
-{
-    return "qemu-system-" + cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
-}
 } // namespace multipass
 #endif // MULTIPASS_QEMU_PLATFORM_H

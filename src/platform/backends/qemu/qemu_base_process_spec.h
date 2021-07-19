@@ -26,11 +26,14 @@ namespace multipass
 class QemuBaseProcessSpec : public ProcessSpec
 {
 public:
-    QemuBaseProcessSpec() = default;
+    explicit QemuBaseProcessSpec(const QString& host_arch);
 
     QString program() const override;
     QString working_directory() const override;
     QString apparmor_profile() const override;
+
+protected:
+    const QString host_arch;
 };
 
 } // namespace multipass
