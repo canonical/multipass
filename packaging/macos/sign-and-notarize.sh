@@ -81,7 +81,7 @@ if [ -z "${SIGN_APP+x}" ]; then
     help_and_exit
 fi
 
-if [ -z "${SIGN_PKG+x}" ]; then
+if [ "${SIGN_APP}" != "-" ] && [ -z "${SIGN_PKG+x}" ]; then
     echo "Missing --installer-signer argument"
     help_and_exit
 fi
@@ -177,10 +177,11 @@ popd
 # Compress final result back into package and sign
 pkgutil --flatten "${PKG_ROOT}" "${PKGFILENAME}"
 
-sign_installer "${PKGFILENAME}"
+if [ -n "${SIGN_PKG+x}" ]; then
+  sign_installer "${PKGFILENAME}"
 
-echo "Signed install package: ${PKGFILENAME}"
-
+  echo "Signed install package: ${PKGFILENAME}"
+fi
 
 ####
 #### Notarization ######

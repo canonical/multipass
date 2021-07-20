@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-SSL_PATH="/usr/local/opt/openssl@1.1"
+SSL_PATH="$(brew --prefix openssl@1.1)"
 SSL_LIBS="ssl crypto"
 BINARIES="bin/multipass bin/multipassd bin/multipass.gui.app/Contents/MacOS/multipass.gui bin/sshfs_server lib/libssh.dylib"
 
@@ -20,8 +20,7 @@ if [ $# -ne 1 ]; then
 fi
 
 CMAKE_BINARY_DIR=$1
-TEMP_DIR="${CMAKE_BINARY_DIR}/install-ssh-libs"
-mkdir -p "${TEMP_DIR}"
+LIB_DIR="${CMAKE_BINARY_DIR}/lib"
 
 # Determine all the rpaths
 RPATH_CHANGES=()
@@ -41,7 +40,7 @@ done
 for lib in ${SSL_LIBS}; do
     lib_path="$(perl -MCwd=realpath -e "print realpath '${SSL_PATH}/lib/lib${lib}.dylib'")"
     lib_name="$( basename ${lib_path} )"
-    target_path="${TEMP_DIR}/${lib_name}"
+    target_path="${LIB_DIR}/${lib_name}"
     install -m 644 "${lib_path}" "${target_path}"
     install_name_tool "${RPATH_CHANGES[@]}" "${target_path}"
     chmod 444 "${target_path}"
@@ -49,6 +48,7 @@ done
 
 # Edit the binaries to point to these newly edited libs
 for binary in ${BINARIES}; do
-    install_name_tool -add_rpath "${TEMP_DIR}" "${CMAKE_BINARY_DIR}/${binary}"
-    install_name_tool "${RPATH_CHANGES[@]}" "${CMAKE_BINARY_DIR}/${binary}"
+    if ! otool -l "${CMAKE_BINARY_DIR}/${binary}" | grep -q "${LIB_DIR}"; then
+        install_name_tool "${RPATH_CHANGES[@]}" "${CMAKE_BINARY_DIR}/${binary}"
+    fi
 done
