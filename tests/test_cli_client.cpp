@@ -721,14 +721,14 @@ TEST_F(Client, launch_cmd_cloudinittree_option_read_success)
     MockStdCin cin("\n"); // Mocking enter to continue with command.
 
     InSequence seq;
-    EXPECT_CALL(*mock_file_ops, exists_dir).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, exists).WillOnce(Return(true));
 
     for (const auto& [path, dir, file_name] : cloud_init_tree_struct)
     {
-        EXPECT_CALL(*mock_file_ops, QDirIterator_hasNext).WillOnce(Return(true)).RetiresOnSaturation();
-        EXPECT_CALL(*mock_file_ops, QDirIterator_next).WillOnce(Return(path)).RetiresOnSaturation();
+        EXPECT_CALL(*mock_file_ops, hasNext).WillOnce(Return(true)).RetiresOnSaturation();
+        EXPECT_CALL(*mock_file_ops, next).WillOnce(Return(path)).RetiresOnSaturation();
     }
-    EXPECT_CALL(*mock_file_ops, QDirIterator_hasNext).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, hasNext).WillOnce(Return(false));
 
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init-tree", "iso_directory"}), Eq(mp::ReturnCode::Ok));
@@ -743,7 +743,7 @@ TEST_F(Client, launch_cmd_cloudinittree_option_read_fail)
     MockStdCin cin("\n"); // Mocking enter to continue with command.
 
     InSequence seq;
-    EXPECT_CALL(*mock_file_ops, exists_dir).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, exists).WillOnce(Return(false));
 
     EXPECT_THAT(send_command({"launch", "--cloud-init-tree", bad_dir}, trash_stream, cerr_stream),
                 Eq(mp::ReturnCode::CommandLineError));

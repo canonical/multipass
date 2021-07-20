@@ -614,7 +614,7 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 
 ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
 {
-    if (!MP_FILEOPS.exists_dir(directory))
+    if (!MP_FILEOPS.exists(directory))
     {
         throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
     }
@@ -632,9 +632,9 @@ ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
 
     ISOStructure iso_structure;
     QDirIterator iter(directory, QDir::Files, QDirIterator::Subdirectories);
-    while (MP_FILEOPS.QDirIterator_hasNext(iter))
+    while (MP_FILEOPS.hasNext(iter))
     {
-        QString line = MP_FILEOPS.QDirIterator_next(iter);
+        QString line = MP_FILEOPS.next(iter);
         iso_structure.push_back(extract_dir_filename(line));
     }
 

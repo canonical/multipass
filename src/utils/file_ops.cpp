@@ -23,7 +23,7 @@ mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Sin
 {
 }
 
-bool mp::FileOps::exists_dir(const QDir& dir) const
+bool mp::FileOps::exists(const QDir& dir) const
 {
     return dir.exists();
 }
@@ -93,12 +93,12 @@ qint64 mp::FileOps::write(QFile& file, const QByteArray& data) const
     return file.write(data);
 }
 
-bool mp::FileOps::QDirIterator_hasNext(QDirIterator& iter) const
+bool mp::FileOps::hasNext(QDirIterator& iter) const
 {
     return iter.hasNext();
 }
 
-QString mp::FileOps::QDirIterator_next(QDirIterator& iter) const
+QString mp::FileOps::next(QDirIterator& iter) const
 {
     return iter.next();
 }
