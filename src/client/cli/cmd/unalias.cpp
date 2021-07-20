@@ -38,9 +38,9 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
         {
             MP_PLATFORM.remove_alias_script(alias_to_remove);
         }
-        catch (std::runtime_error&)
+        catch (std::runtime_error& e)
         {
-            cerr << fmt::format("Warning: cannot remove script for '{}'\n", alias_to_remove);
+            cerr << fmt::format("Warning: {} for '{}'\n", e.what(), alias_to_remove);
         }
 
         return ReturnCode::Ok;

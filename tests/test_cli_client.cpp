@@ -2625,14 +2625,14 @@ TEST_F(ClientAlias, unalias_removes_existing_alias)
 
 TEST_F(ClientAlias, unalias_succeeds_even_if_script_cannot_be_removed)
 {
-    EXPECT_CALL(*mock_platform, remove_alias_script(_)).Times(1).WillRepeatedly(Throw(std::runtime_error("")));
+    EXPECT_CALL(*mock_platform, remove_alias_script(_)).Times(1).WillRepeatedly(Throw(std::runtime_error("bbb")));
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
                                    {"another_alias", {"another_instance", "another_command"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "another_alias"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("Warning: cannot remove script for 'another_alias'"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Warning: bbb for 'another_alias'"));
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);

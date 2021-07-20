@@ -838,6 +838,6 @@ TEST_F(PlatformLinux, remove_alias_script_throws_if_cannot_remove_script)
         .WillOnce(Return(tmp_dir.path()));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"), std::runtime_error,
-                         mpt::match_what(StrEq("error removing alias script")));
+                         mpt::match_what(StrEq("No such file or directory")));
 }
 } // namespace

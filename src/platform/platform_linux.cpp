@@ -46,7 +46,9 @@
 #include <QString>
 #include <QTextStream>
 
+#include <errno.h>
 #include <linux/if_arp.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -297,7 +299,7 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
     auto file_path = get_alias_script_path(alias);
 
     if (::unlink(file_path.c_str()))
-        throw std::runtime_error("error removing alias script");
+        throw std::runtime_error(strerror(errno));
 }
 
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
