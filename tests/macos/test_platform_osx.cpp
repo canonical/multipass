@@ -18,18 +18,23 @@
 
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_file_ops.h"
 #include "tests/mock_process_factory.h"
+#include "tests/mock_standard_paths.h"
+#include "tests/temp_dir.h"
 
 #include <src/platform/platform_proprietary.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
 
 #include <QKeySequence>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+namespace mpu = multipass::utils;
 using namespace testing;
 
 namespace
@@ -337,5 +342,79 @@ TEST(PlatformOSX, workflowsURLOverrideSetUnlockiNotSetReturnsEmptyString)
 TEST(PlatformOSX, workflowsURLOverrideNotSetReturnsEmptyString)
 {
     EXPECT_TRUE(MP_PLATFORM.get_workflows_url_override().isEmpty());
+}
+
+TEST(PlatformOSX, create_alias_script_works)
+{
+    const mpt::TempDir tmp_dir;
+
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+        .WillOnce(Return(tmp_dir.path()));
+
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
+
+    QFile checked_script(tmp_dir.path() + "/bin/alias_name");
+    checked_script.open(QFile::ReadOnly);
+
+    EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
+    EXPECT_EQ(checked_script.readLine().toStdString(), "\n");
+    EXPECT_THAT(checked_script.readLine().toStdString(), HasSubstr("alias_name\n"));
+    EXPECT_TRUE(checked_script.atEnd());
+
+    auto script_permissions = checked_script.permissions();
+    EXPECT_TRUE(script_permissions & QFileDevice::ExeOwner);
+    EXPECT_TRUE(script_permissions & QFileDevice::ExeGroup);
+    EXPECT_TRUE(script_permissions & QFileDevice::ExeOther);
+}
+
+TEST(PlatformOSX, create_alias_script_throws_if_cannot_create_path)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+                         std::runtime_error, mpt::match_what(HasSubstr("failed to create dir '")));
+}
+
+TEST(PlatformOSX, create_alias_script_throws_if_cannot_write_script)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));
+
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+                         std::runtime_error, mpt::match_what(HasSubstr("failed to write to file '")));
+}
+
+TEST(PlatformOSX, remove_alias_script_works)
+{
+    const mpt::TempDir tmp_dir;
+    QFile script_file(tmp_dir.path() + "/bin/alias_name");
+
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+        .WillOnce(Return(tmp_dir.path()));
+
+    MP_UTILS.make_file_with_content(script_file.fileName().toStdString(), "script content\n");
+
+    EXPECT_NO_THROW(MP_PLATFORM.remove_alias_script("alias_name"));
+
+    EXPECT_FALSE(script_file.exists());
+}
+
+TEST(PlatformOSX, remove_alias_script_throws_if_cannot_remove_script)
+{
+    const mpt::TempDir tmp_dir;
+    QFile script_file(tmp_dir.path() + "/bin/alias_name");
+
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+        .WillOnce(Return(tmp_dir.path()));
+
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"), std::runtime_error,
+                         mpt::match_what(StrEq("No such file or directory")));
 }
 } // namespace
