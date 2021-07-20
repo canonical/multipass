@@ -57,6 +57,9 @@ public:
     virtual bool setPermissions(QFile& file, QFileDevice::Permissions permissions) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFile& file, const QByteArray& data) const;
+
+    // QByteArray operations
+    virtual QByteArray readAll(QFile& file) const;
 };
 } // namespace multipass
 

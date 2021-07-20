@@ -37,6 +37,7 @@ public:
     MOCK_CONST_METHOD2(open, bool(QFile&, QIODevice::OpenMode));
     MOCK_CONST_METHOD1(is_open, bool(const QFile&));
     MOCK_CONST_METHOD3(read, qint64(QFile&, char*, qint64));
+    MOCK_CONST_METHOD1(readAll, QByteArray(QFile&));
     MOCK_CONST_METHOD1(read_line, QString(QTextStream&));
     MOCK_CONST_METHOD1(remove, bool(QFile&));
     MOCK_CONST_METHOD2(rename, bool(QFile&, const QString& newName));

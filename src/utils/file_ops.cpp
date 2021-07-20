@@ -102,3 +102,8 @@ QString mp::FileOps::next(QDirIterator& iter) const
 {
     return iter.next();
 }
+
+QByteArray mp::FileOps::readAll(QFile& file) const
+{
+    return file.readAll();
+}
