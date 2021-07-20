@@ -170,10 +170,15 @@ void mp::AliasDict::save_dict()
         if (QFile::exists(config_file_name))
         {
             auto backup_file_name = config_file_name + ".bak";
-            QFile::remove(backup_file_name);
-            QFile::rename(config_file_name, backup_file_name);
+
+            if (QFile::exists(backup_file_name) && !QFile::remove(backup_file_name))
+                throw std::runtime_error(fmt::format("cannot remove old aliases backup file {}", backup_file_name));
+
+            if (!QFile::rename(config_file_name, backup_file_name))
+                throw std::runtime_error(fmt::format("cannot rename aliases config to {}", backup_file_name));
         }
 
-        temp_file.rename(config_file_name);
+        if (!temp_file.rename(config_file_name))
+            throw std::runtime_error(fmt::format("cannot create aliases config file {}", config_file_name));
     }
 }
