@@ -17,6 +17,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/constants.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/json_writer.h>
 #include <multipass/standard_paths.h>
@@ -167,18 +168,20 @@ void mp::AliasDict::save_dict()
 
         temp_file.close();
 
-        if (QFile::exists(config_file_name))
+        if (MP_FILEOPS.exists(QFile{config_file_name}))
         {
             auto backup_file_name = config_file_name + ".bak";
+            QFile backup_file(backup_file_name);
 
-            if (QFile::exists(backup_file_name) && !QFile::remove(backup_file_name))
+            if (MP_FILEOPS.exists(backup_file) && !MP_FILEOPS.remove(backup_file))
                 throw std::runtime_error(fmt::format("cannot remove old aliases backup file {}", backup_file_name));
 
-            if (!QFile::rename(config_file_name, backup_file_name))
+            QFile config_file(config_file_name);
+            if (!MP_FILEOPS.rename(config_file, backup_file_name))
                 throw std::runtime_error(fmt::format("cannot rename aliases config to {}", backup_file_name));
         }
 
-        if (!temp_file.rename(config_file_name))
+        if (!MP_FILEOPS.rename(temp_file, config_file_name))
             throw std::runtime_error(fmt::format("cannot create aliases config file {}", config_file_name));
     }
 }
