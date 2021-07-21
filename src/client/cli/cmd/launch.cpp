@@ -661,13 +661,16 @@ void cmd::Launch::send_iso_file(QString full_path, QString dir, QString filename
 
     uint32_t start_idx = 0;
     uint32_t end_idx = 0;
+    uint32_t payload_size = 0;
     FileXferRequest::Data data_payload;
     do  // Tumbling window data block transmission.
     {
         end_idx = std::min(start_idx + block_size, file_size);
+        payload_size = end_idx - start_idx;
 
         // TODO: send FileXferRequest <Data> message using payload:
-        data_payload.set_data_block(file_data.mid(start_idx, end_idx).constData(), end_idx - start_idx);
+        data_payload.set_payload_size(payload_size);
+        data_payload.set_data_block(file_data.mid(start_idx, end_idx).constData(), payload_size);
 
         start_idx = end_idx;
     } while (start_idx < file_size);
