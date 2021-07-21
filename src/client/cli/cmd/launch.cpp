@@ -640,3 +640,29 @@ ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
 
     return iso_structure;
 }
+
+void cmd::Launch::send_iso_file(QString full_path, QString dir, QString filename)
+{
+    QFile file_handle(full_path);
+    if (!MP_FILEOPS.open(file_handle, QIODevice::ReadOnly))
+        throw std::runtime_error(fmt::format("error: unable to open {}", full_path));
+
+    const uint32_t block_size = 1 << 20; // 1Mib block size.
+    const QByteArray file_data = MP_FILEOPS.readAll(file_handle);
+    const uint32_t file_size = file_data.size();
+
+    // TODO: send FileXferRequest <Metadata> message.
+
+    uint32_t start_idx = 0;
+    uint32_t end_idx = 0;
+    do
+    {
+        end_idx = std::min(start_idx + block_size, file_size);
+
+        // TODO: send FileXferRequest <Data> message using payload:
+        __attribute__((unused)) const char* data_block = file_data.mid(start_idx, end_idx).constData();
+        __attribute__((unused)) uint32_t payload_size = end_idx - start_idx;
+
+        start_idx = end_idx;
+    } while (start_idx < file_size);
+}

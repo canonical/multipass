@@ -52,6 +52,7 @@ private:
     std::pair<ReturnCode, std::string> request_mounts_setting_from_daemon(const ArgParser* parser);
     OptInStatus::Status ask_metrics_permission(const LaunchReply& reply);
     bool ask_bridge_permission(multipass::LaunchReply& reply);
+    void send_iso_file(QString full_path, QString dir, QString filename);
 
     LaunchRequest request;
     QString petenv_name;
