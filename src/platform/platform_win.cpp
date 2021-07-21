@@ -277,6 +277,12 @@ std::string interpret_net_type(const QString& media_type, const QString& physica
         return physical_media_type.toLower().toStdString();
 }
 
+QString get_alias_script_path(const std::string& alias)
+{
+    auto aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
+
+    return aliases_folder.absoluteFilePath(QString::fromStdString(alias)) + ".bat";
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -523,6 +529,38 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
     }
 
     return ret;
+}
+
+QDir mp::platform::Platform::get_alias_scripts_folder() const
+{
+    QDir aliases_folder;
+
+    QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::HomeLocation) + "/AppData/local/multipass/bin";
+    aliases_folder = QDir{location};
+
+    if (!aliases_folder.mkpath(aliases_folder.path()))
+        throw std::runtime_error(fmt::format("error creating \"{}\"\n", aliases_folder.path()));
+
+    return aliases_folder;
+}
+
+void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def) const
+{
+    auto file_path = get_alias_script_path(alias);
+
+    std::string multipass_exec = QCoreApplication::applicationFilePath().toStdString();
+
+    std::string script = "@" + multipass_exec + " " + alias + "\n";
+
+    MP_UTILS.make_file_with_content(file_path.toStdString(), script);
+}
+
+void mp::platform::Platform::remove_alias_script(const std::string& alias) const
+{
+    auto file_path = get_alias_script_path(alias);
+
+    if (!QFile::remove(file_path))
+        throw std::runtime_error("error removing alias script");
 }
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
