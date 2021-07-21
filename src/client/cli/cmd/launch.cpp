@@ -641,7 +641,7 @@ ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
     return iso_structure;
 }
 
-void cmd::Launch::send_iso_file(QString full_path, QString dir, QString filename)
+void cmd::Launch::send_iso_file(const QString& full_path, const QString& dir, const QString& filename) const
 {
     QFile file_handle(full_path);
     if (!MP_FILEOPS.open(file_handle, QIODevice::ReadOnly))
@@ -663,7 +663,7 @@ void cmd::Launch::send_iso_file(QString full_path, QString dir, QString filename
     uint32_t end_idx = 0;
     uint32_t payload_size = 0;
     FileXferRequest::Data data_payload;
-    do  // Tumbling window data block transmission.
+    do // Tumbling window data block transmission.
     {
         end_idx = std::min(start_idx + block_size, file_size);
         payload_size = end_idx - start_idx;
