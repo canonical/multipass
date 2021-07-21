@@ -652,6 +652,13 @@ void cmd::Launch::send_iso_file(QString full_path, QString dir, QString filename
     const uint32_t file_size = file_data.size();
 
     // TODO: send FileXferRequest <Metadata> message.
+    {
+        FileXferRequest::Metadata header_payload;
+        header_payload.set_file_name(filename.toStdString());
+        header_payload.set_directory(dir.toStdString());
+        header_payload.set_file_size(file_size);
+        header_payload.set_block_size(block_size);
+    }
 
     uint32_t start_idx = 0;
     uint32_t end_idx = 0;
