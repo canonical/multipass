@@ -657,7 +657,6 @@ void cmd::Launch::send_iso_file(QString full_path, QString dir, QString filename
         header_payload.set_file_name(filename.toStdString());
         header_payload.set_directory(dir.toStdString());
         header_payload.set_file_size(file_size);
-        header_payload.set_block_size(block_size);
     }
 
     uint32_t start_idx = 0;
