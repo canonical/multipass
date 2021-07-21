@@ -32,6 +32,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
 #include <QTimeZone>
@@ -653,10 +654,13 @@ void cmd::Launch::send_iso_file(const QString& full_path, const QString& dir, co
 
     // TODO: send FileXferRequest <Metadata> message.
     {
+        QCryptographicHash hasher(QCryptographicHash::Sha256);
+        hasher.addData(file_data);
+
         FileXferRequest::Metadata header_payload;
         header_payload.set_file_name(filename.toStdString());
         header_payload.set_directory(dir.toStdString());
-        header_payload.set_file_size(file_size);
+        header_payload.set_hash_sha256(hasher.result().toStdString());
     }
 
     uint32_t start_idx = 0;
