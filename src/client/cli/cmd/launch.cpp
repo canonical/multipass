@@ -648,11 +648,11 @@ void cmd::Launch::send_iso_file(const QString& full_path, const QString& dir, co
     if (!MP_FILEOPS.open(file_handle, QIODevice::ReadOnly))
         throw std::runtime_error(fmt::format("error: unable to open {}", full_path));
 
+    FileXferRequest file_xfer_req;
     const uint32_t block_size = 1 << 20; // 1Mib block size.
     const QByteArray file_data = MP_FILEOPS.readAll(file_handle);
     const uint32_t file_size = file_data.size();
 
-    // TODO: send FileXferRequest <Metadata> message.
     {
         QCryptographicHash hasher(QCryptographicHash::Sha256);
         hasher.addData(file_data);
@@ -661,20 +661,26 @@ void cmd::Launch::send_iso_file(const QString& full_path, const QString& dir, co
         header_payload.set_file_name(filename.toStdString());
         header_payload.set_directory(dir.toStdString());
         header_payload.set_hash_sha256(hasher.result().toStdString());
+
+        file_xfer_req.set_allocated_file_info(&header_payload);
+        // TODO: send FileXferRequest <Metadata> message.
+        file_xfer_req.clear_payload();
     }
 
     uint32_t start_idx = 0;
     uint32_t end_idx = 0;
     uint32_t payload_size = 0;
     FileXferRequest::Data data_payload;
+    file_xfer_req.set_allocated_data_block(&data_payload);
     do // Tumbling window data block transmission.
     {
         end_idx = std::min(start_idx + block_size, file_size);
         payload_size = end_idx - start_idx;
 
-        // TODO: send FileXferRequest <Data> message using payload:
         data_payload.set_payload_size(payload_size);
         data_payload.set_data_block(file_data.mid(start_idx, end_idx).constData(), payload_size);
+
+        // TODO: send FileXferRequest <Data> message using payload.
 
         start_idx = end_idx;
     } while (start_idx < file_size);
