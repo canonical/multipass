@@ -616,28 +616,23 @@ void mp::utils::xfer_file(const QString& full_path, const QString& dir, const QS
         QCryptographicHash hasher(QCryptographicHash::Sha256);
         hasher.addData(file_data);
 
-        FileXferRequest::Metadata header_payload;
-        header_payload.set_file_name(filename.toStdString());
-        header_payload.set_directory(dir.toStdString());
-        header_payload.set_hash_sha256(hasher.result().toStdString());
-
-        file_xfer_req.set_allocated_file_info(&header_payload);
+        file_xfer_req.mutable_file_info()->set_file_name(filename.toStdString());
+        file_xfer_req.mutable_file_info()->set_directory(dir.toStdString());
+        file_xfer_req.mutable_file_info()->set_hash_sha256(hasher.result().toStdString());
         // TODO: send FileXferRequest <Metadata> message.
-        file_xfer_req.clear_payload();
+        file_xfer_req.clear_file_info();
     }
 
     uint32_t start_idx = 0;
     uint32_t end_idx = 0;
     uint32_t payload_size = 0;
-    FileXferRequest::Data data_payload;
-    file_xfer_req.set_allocated_data_block(&data_payload);
     do // Tumbling window data block transmission.
     {
         end_idx = std::min(start_idx + block_size, file_size);
         payload_size = end_idx - start_idx;
 
-        data_payload.set_payload_size(payload_size);
-        data_payload.set_data_block(file_data.mid(start_idx, end_idx).constData(), payload_size);
+        file_xfer_req.mutable_data_block()->set_payload_size(payload_size);
+        file_xfer_req.mutable_data_block()->set_data_block(file_data.mid(start_idx, end_idx).constData(), payload_size);
 
         // TODO: send FileXferRequest <Data> message using payload.
 
