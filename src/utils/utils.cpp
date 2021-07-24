@@ -577,16 +577,14 @@ std::string mp::utils::emit_cloud_config(const YAML::Node& node)
 mp::utils::ISOStructure mp::utils::map_iso_structure(const QString& directory)
 {
     if (!MP_FILEOPS.exists(directory))
-    {
         throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
-    }
 
     const size_t dir_length = directory.size();
     const auto& extract_dir_filename = [&dir_length](QString& path) { // Extract <path, dir name, file name> tuples.
         QString line = path.mid(dir_length);
         int file_name_pos = line.lastIndexOf("/");
 
-        QString dir_name = line.left(file_name_pos).mid(1); // remove leading '/'.
+        QString dir_name = line.left(file_name_pos).mid(2); // remove leading '/'.
         QString file_name = line.mid(file_name_pos + 1);    // remove trailing '/'.
 
         return std::make_tuple(path, dir_name, file_name);
