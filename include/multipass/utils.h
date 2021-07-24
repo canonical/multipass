@@ -129,6 +129,7 @@ void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds ti
 // file transfer helpers
 using ISOStructure = std::list<std::tuple<QString, QString, QString>>; // <Path, Directory, File Name>.
 ISOStructure map_iso_structure(const QString& directory);
+void xfer_file(const QString& full_path, const QString& dir, const QString& filename);
 
 } // namespace utils
 
