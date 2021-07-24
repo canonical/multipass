@@ -26,6 +26,7 @@
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
@@ -40,6 +41,8 @@
 #include <cassert>
 #include <cctype>
 #include <fstream>
+#include <multipass/file_ops.h>
+#include <multipass/rpc/multipass.pb.h>
 #include <random>
 #include <regex>
 #include <sstream>
@@ -569,4 +572,75 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
 std::string mp::utils::emit_cloud_config(const YAML::Node& node)
 {
     return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
+}
+
+mp::utils::ISOStructure mp::utils::map_iso_structure(const QString& directory)
+{
+    if (!MP_FILEOPS.exists(directory))
+        throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
+
+    const size_t dir_length = directory.size();
+    const auto& extract_dir_filename = [&dir_length](QString& path) { // Extract <path, dir name, file name> tuples.
+        QString line = path.mid(dir_length);
+        int file_name_pos = line.lastIndexOf("/");
+
+        QString dir_name = line.left(file_name_pos).mid(2); // remove leading '/'.
+        QString file_name = line.mid(file_name_pos + 1);    // remove trailing '/'.
+
+        return std::make_tuple(path, dir_name, file_name);
+    };
+
+    ISOStructure iso_structure;
+    QDirIterator iter(directory, QDir::Files, QDirIterator::Subdirectories);
+    while (MP_FILEOPS.hasNext(iter))
+    {
+        QString line = MP_FILEOPS.next(iter);
+        iso_structure.push_back(extract_dir_filename(line));
+    }
+
+    return iso_structure;
+}
+
+void mp::utils::xfer_file(const QString& full_path, const QString& dir, const QString& filename)
+{
+    QFile file_handle(full_path);
+    if (!MP_FILEOPS.open(file_handle, QIODevice::ReadOnly))
+        throw std::runtime_error(fmt::format("error: unable to open {}", full_path));
+
+    FileXferRequest file_xfer_req;
+    const uint32_t block_size = 1 << 20; // 1Mib block size.
+    const QByteArray file_data = MP_FILEOPS.readAll(file_handle);
+    const uint32_t file_size = file_data.size();
+
+    {
+        QCryptographicHash hasher(QCryptographicHash::Sha256);
+        hasher.addData(file_data);
+
+        FileXferRequest::Metadata header_payload;
+        header_payload.set_file_name(filename.toStdString());
+        header_payload.set_directory(dir.toStdString());
+        header_payload.set_hash_sha256(hasher.result().toStdString());
+
+        file_xfer_req.set_allocated_file_info(&header_payload);
+        // TODO: send FileXferRequest <Metadata> message.
+        file_xfer_req.clear_payload();
+    }
+
+    uint32_t start_idx = 0;
+    uint32_t end_idx = 0;
+    uint32_t payload_size = 0;
+    FileXferRequest::Data data_payload;
+    file_xfer_req.set_allocated_data_block(&data_payload);
+    do // Tumbling window data block transmission.
+    {
+        end_idx = std::min(start_idx + block_size, file_size);
+        payload_size = end_idx - start_idx;
+
+        data_payload.set_payload_size(payload_size);
+        data_payload.set_data_block(file_data.mid(start_idx, end_idx).constData(), payload_size);
+
+        // TODO: send FileXferRequest <Data> message using payload.
+
+        start_idx = end_idx;
+    } while (start_idx < file_size);
 }

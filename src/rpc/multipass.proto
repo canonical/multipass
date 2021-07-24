@@ -36,6 +36,7 @@ service Rpc {
     rpc umount (UmountRequest) returns (stream UmountReply);
     rpc version (VersionRequest) returns (stream VersionReply);
     rpc get (GetRequest) returns (stream GetReply);
+    rpc file_xfer(stream FileXferRequest) returns (FileXferReply);
 }
 
 message OptInStatus {
@@ -402,4 +403,24 @@ message GetRequest {
 message GetReply {
     string value = 1;
     string log_line = 2;
+}
+
+message FileXferRequest {
+    message Metadata {
+        string file_name = 1;
+        string directory = 2;
+        string hash_sha256 = 3; // for secure validation of successful file transfer.
+    }
+    message Data {
+        bytes data_block = 1; // max 1Mib file segment.
+        uint32 payload_size = 2; // byte size of block.
+    }
+    oneof payload {
+        Metadata file_info = 1;
+        Data data_block = 2;
+    };
+}
+
+message FileXferReply {
+    string log_line = 1;
 }

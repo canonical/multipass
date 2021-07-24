@@ -45,7 +45,7 @@ namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
-using ISOStructure = cmd::Launch::ISOStructure;
+using ISOStructure = mp::utils::ISOStructure;
 
 namespace
 {
@@ -323,12 +323,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         const auto& iso_directory = parser->value(cloudInitTreeOption);
         fmt::print(stdout, "You can now edit the cloud-init data under \"{}\". Press [Enter] when ready.\n",
                    iso_directory);
-        std::cin.get(); // Wait to finalize ISO tree.
+        term->cin().get(); // Wait to finalize ISO tree.
 
         ISOStructure file_tree;
         try
         {
-            file_tree = extract_iso_structure(iso_directory);
+            file_tree = mp::utils::map_iso_structure(iso_directory);
 
             // TODO: transport <file_tree> to daemon via gRPC. Used to generate directories and assign file names to
             // data.
@@ -610,33 +610,4 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
     }
 
     return false;
-}
-
-ISOStructure cmd::Launch::extract_iso_structure(const QString& directory) const
-{
-    if (!MP_FILEOPS.exists_dir(directory))
-    {
-        throw std::invalid_argument("\"" + directory.toStdString() + "\" is not a valid directory.");
-    }
-
-    const size_t dir_length = directory.size();
-    const auto& extract_dir_filename = [&dir_length](QString& path) { // Extract <path, dir name, file name> tuples.
-        QString line = path.mid(dir_length);
-        int file_name_pos = line.lastIndexOf("/");
-
-        QString dir_name = line.left(file_name_pos).mid(1); // remove leading '/'.
-        QString file_name = line.mid(file_name_pos + 1);    // remove trailing '/'.
-
-        return std::make_tuple(path, dir_name, file_name);
-    };
-
-    ISOStructure iso_structure;
-    QDirIterator iter(directory, QDir::Files, QDirIterator::Subdirectories);
-    while (MP_FILEOPS.QDirIterator_hasNext(iter))
-    {
-        QString line = MP_FILEOPS.QDirIterator_next(iter);
-        iso_structure.push_back(extract_dir_filename(line));
-    }
-
-    return iso_structure;
 }

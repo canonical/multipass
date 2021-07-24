@@ -37,13 +37,11 @@ class Launch final : public Command
 {
 public:
     using Command::Command;
-    using ISOStructure = std::list<std::tuple<QString, QString, QString>>; // <Path, Directory, File Name>.
     ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
-    ISOStructure extract_iso_structure(const QString& directory) const;
 
 private:
     ParseCode parse_args(ArgParser* parser) override;
