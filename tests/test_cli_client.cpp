@@ -706,7 +706,7 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
 }
 
-using ISOStructure = multipass::cmd::Launch::ISOStructure;
+using ISOStructure = mp::utils::ISOStructure;
 const ISOStructure cloud_init_tree_struct = {
     {"../ISO/vendor-data", "", "vendor-data"},
     {"../ISO/meta-data", "", "meta-data"},

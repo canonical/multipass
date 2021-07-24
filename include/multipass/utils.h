@@ -126,6 +126,10 @@ template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
                     Args&&... args);
 
+// file transfer helpers
+using ISOStructure = std::list<std::tuple<QString, QString, QString>>; // <Path, Directory, File Name>.
+ISOStructure map_iso_structure(const QString& directory);
+
 } // namespace utils
 
 class Utils : public Singleton<Utils>
