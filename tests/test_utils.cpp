@@ -632,3 +632,26 @@ TEST(Utils, map_iso_structure_read_fail)
     EXPECT_CALL(*mock_file_ops, exists).WillOnce(Return(false));
     EXPECT_THROW(mp::utils::map_iso_structure("dummy"), std::invalid_argument);
 }
+
+TEST(Utils, xfer_file_read_fail)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(false));
+    EXPECT_THROW(mp::utils::xfer_file("dummy_path", "dummy_dir", "dummy_filename"), std::runtime_error);
+}
+
+TEST(Utils, xfer_file_read_success)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    QByteArray file_payload(1 << 21, '*');
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, readAll).WillOnce(Return(file_payload));
+
+    // TODO: meaningful test to verify file chunking is correct.
+
+    mp::utils::xfer_file("dummy_path", "dummy_dir", "dummy_filename");
+}
