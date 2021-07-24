@@ -44,7 +44,6 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
-#include <client/cli/cmd/launch.h>
 #include <initializer_list>
 #include <sstream>
 #include <thread>
