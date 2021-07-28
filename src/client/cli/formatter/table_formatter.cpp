@@ -222,10 +222,10 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::TableFormatter::format(const VersionReply& reply, const std::string& multipass_version) const
+std::string mp::TableFormatter::format(const VersionReply& reply, const std::string& client_version) const
 {
     fmt::memory_buffer buf;
-    fmt::format_to(buf, "{:<16}{}\n", "multipass:", multipass_version);
+    fmt::format_to(buf, "{:<16}{}\n", "multipass:", client_version);
 
     if (!reply.version().empty())
     {
