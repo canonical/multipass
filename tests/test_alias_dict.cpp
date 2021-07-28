@@ -280,7 +280,14 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
 {
     auto [commands, expected_output] = GetParam();
 
-    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_image_vault = std::make_unique<NaggyMock<mpt::MockVMImageVault>>();
+
+    EXPECT_CALL(*mock_image_vault, remove(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillRepeatedly(Return(mp::VMImage{}));
+    EXPECT_CALL(*mock_image_vault, prune_expired_images()).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
+
+    config_builder.vault = std::move(mock_image_vault);
 
     std::string json_contents = make_instance_json(mp::nullopt, {}, {"primary"});
 
