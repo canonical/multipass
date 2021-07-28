@@ -44,13 +44,14 @@ void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_Alia
 
 // Computes the column width needed to display all the elements of a range [begin, end). get_width is a function
 // which takes as input the element in the range and returns its width in columns.
-static constexpr auto column_width = [](const auto begin, const auto end, const auto get_width, int minimum_width = 0) {
+static constexpr auto column_width = [](const auto begin, const auto end, const auto get_width, int minimum_width = 0)
+{
     auto max_width =
         std::max_element(begin, end, [&get_width](auto& lhs, auto& rhs) { return get_width(lhs) < get_width(rhs); });
     return std::max(get_width(*max_width) + 2, minimum_width);
 };
 } // namespace format
-}
+} // namespace multipass
 
 template <typename Instances>
 Instances multipass::format::sorted(const Instances& instances)
@@ -60,14 +61,16 @@ Instances multipass::format::sorted(const Instances& instances)
 
     auto ret = instances;
     const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
-    std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
-        if (a.name() == petenv_name)
-            return true;
-        else if (b.name() == petenv_name)
-            return false;
-        else
-            return a.name() < b.name();
-    });
+    std::sort(std::begin(ret), std::end(ret),
+              [&petenv_name](const auto& a, const auto& b)
+              {
+                  if (a.name() == petenv_name)
+                      return true;
+                  else if (b.name() == petenv_name)
+                      return false;
+                  else
+                      return a.name() < b.name();
+              });
 
     return ret;
 }

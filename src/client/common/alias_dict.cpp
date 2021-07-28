@@ -139,7 +139,8 @@ void mp::AliasDict::load_dict()
 
 void mp::AliasDict::save_dict()
 {
-    auto alias_to_json = [](const mp::AliasDefinition& alias) -> QJsonObject {
+    auto alias_to_json = [](const mp::AliasDefinition& alias) -> QJsonObject
+    {
         QJsonObject json;
         json.insert("instance", QString::fromStdString(alias.instance));
         json.insert("command", QString::fromStdString(alias.command));

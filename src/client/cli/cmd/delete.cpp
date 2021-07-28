@@ -32,7 +32,8 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](mp::DeleteReply& reply) {
+    auto on_success = [this](mp::DeleteReply& reply)
+    {
         auto size = reply.purged_instances_size();
         for (auto i = 0; i < size; ++i)
             aliases.remove_aliases_for_instance(reply.purged_instances(i));
