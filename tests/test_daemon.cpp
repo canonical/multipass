@@ -15,23 +15,15 @@
  *
  */
 
-#include <multipass/constants.h>
-#include <multipass/default_vm_workflow_provider.h>
-#include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
-#include <multipass/version.h>
-#include <multipass/virtual_machine_factory.h>
-
+#include "common.h"
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
-#include "extra_assertions.h"
 #include "file_operations.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
 #include "mock_image_host.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
-#include "mock_process_factory.h"
 #include "mock_settings.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
@@ -40,19 +32,23 @@
 #include "path.h"
 #include "tracking_url_downloader.h"
 
+#include <multipass/constants.h>
+#include <multipass/default_vm_workflow_provider.h>
+#include <multipass/logging/log.h>
+#include <multipass/name_generator.h>
+#include <multipass/version.h>
+#include <multipass/virtual_machine_factory.h>
+#include <multipass/vm_image_host.h>
+
 #include <yaml-cpp/yaml.h>
 
-#include <gtest/gtest.h>
+#include <scope_guard.hpp>
 
-#include <QCoreApplication>
 #include <QJsonDocument>
-#include <QJsonObject>
 #include <QNetworkProxyFactory>
 #include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
-
-#include <scope_guard.hpp>
 
 #include <memory>
 #include <ostream>

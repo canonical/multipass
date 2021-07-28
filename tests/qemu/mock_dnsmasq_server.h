@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_MOCK_DNSMASQ_SERVER_H
 #define MULTIPASS_MOCK_DNSMASQ_SERVER_H
 
-#include <src/platform/backends/qemu/dnsmasq_server.h>
+#include "tests/mock_platform.h"
 
-#include <gmock/gmock.h>
+#include <src/platform/backends/qemu/dnsmasq_server.h>
 
 namespace multipass
 {

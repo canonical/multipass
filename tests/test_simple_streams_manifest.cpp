@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,13 @@
  *
  */
 
+#include "common.h"
 #include "file_operations.h"
 #include "mock_settings.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/simple_streams_manifest.h>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

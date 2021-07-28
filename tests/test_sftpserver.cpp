@@ -15,14 +15,14 @@
  *
  */
 
-#include "sftp_server_test_fixture.h"
-
+#include "common.h"
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_ssh_process_exit_status.h"
 #include "path.h"
+#include "sftp_server_test_fixture.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
@@ -30,8 +30,6 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
-
-#include <gmock/gmock.h>
 
 #include <queue>
 

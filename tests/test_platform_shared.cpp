@@ -15,18 +15,15 @@
  *
  */
 
-#include "extra_assertions.h"
-
-#include <multipass/constants.h>
-#include <multipass/platform.h>
+#include "common.h"
 
 #include <src/platform/platform_shared.h>
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <multipass/constants.h>
+#include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/platform.h>
 
 #include <QKeySequence>
-#include <multipass/exceptions/settings_exceptions.h>
 
 namespace mp = multipass;
 namespace mpt = mp::test;

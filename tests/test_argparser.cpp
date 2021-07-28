@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,13 +15,13 @@
  *
  */
 
+#include "common.h"
+
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/command.h>
 
 #include <QString>
 #include <QStringList>
-
-#include <gtest/gtest.h>
 
 #include <sstream>
 #include <vector>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,17 +15,15 @@
  *
  */
 
+#include "common.h"
+#include "file_operations.h"
 #include "mock_scp.h"
 #include "mock_ssh.h"
-
-#include "file_operations.h"
 #include "path.h"
 #include "temp_dir.h"
 
 #include <multipass/ssh/scp_client.h>
 #include <multipass/ssh/ssh_session.h>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
