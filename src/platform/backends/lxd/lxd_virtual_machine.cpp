@@ -115,11 +115,12 @@ QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& 
     return config;
 }
 
-QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& desc, const QString& default_mac_addr)
+QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& desc, const QString& default_mac_addr,
+                                    const QString& storage_pool)
 {
     QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
                         {"root", QJsonObject{{"path", "/"},
-                                             {"pool", "default"},
+                                             {"pool", storage_pool},
                                              {"size", QString::number(desc.disk_space.in_bytes())},
                                              {"type", "disk"}}},
                         {"eth0", QJsonObject{{"name", "eth0"},
@@ -146,7 +147,7 @@ QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& 
 
 mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
                                          NetworkAccessManager* manager, const QUrl& base_url,
-                                         const QString& bridge_name)
+                                         const QString& bridge_name, const QString& storage_pool)
     : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
@@ -168,7 +169,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
         QJsonObject virtual_machine{
             {"name", name},
             {"config", generate_base_vm_config(desc)},
-            {"devices", generate_devices_config(desc, mac_addr)},
+            {"devices", generate_devices_config(desc, mac_addr, storage_pool)},
             {"source", QJsonObject{{"type", "image"}, {"fingerprint", QString::fromStdString(desc.image.id)}}}};
 
         auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/virtual-machines").arg(base_url.toString())),

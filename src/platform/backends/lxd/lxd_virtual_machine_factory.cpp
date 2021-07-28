@@ -98,7 +98,8 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                               VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name);
+    return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name,
+                                                   storage_pool);
 }
 
 void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
@@ -147,15 +148,34 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
         QJsonObject project{{"name", lxd_project_name}, {"description", "Project for Multipass instances"}};
 
         lxd_request(manager.get(), "POST", QUrl(QString("%1/projects").arg(base_url.toString())), project);
+    }
 
-        // TODO: Detect if default storage pool is available and if not, create a directory based pool for
-        //       Multipass
+    const QStringList pools_to_try{{"multipass", "default"}};
+    for (const auto& pool : pools_to_try)
+    {
+        try
+        {
+            lxd_request(manager.get(), "GET", QUrl(QString("%1/storage-pools/%2").arg(base_url.toString()).arg(pool)));
 
-        QJsonObject devices{
-            {"eth0", QJsonObject{{"name", "eth0"}, {"nictype", "bridged"}, {"parent", "mpbr0"}, {"type", "nic"}}}};
-        QJsonObject profile{{"description", "Default profile for Multipass project"}, {"devices", devices}};
+            storage_pool = pool;
+            mpl::log(mpl::Level::debug, category, fmt::format("Using the \'{}\' storage pool.", pool));
 
-        lxd_request(manager.get(), "PUT", QUrl(QString("%1/profiles/default").arg(base_url.toString())), profile);
+            break;
+        }
+        catch (const LXDNotFoundException&)
+        {
+            // Keep going
+        }
+    }
+
+    // No storage pool to use, so create a multipass dir-based pool
+    if (storage_pool.isEmpty())
+    {
+        storage_pool = "multipass";
+        mpl::log(mpl::Level::info, category, "No storage pool found for multpass: creating…");
+        QJsonObject pool_config{
+            {"description", "Storage pool for Multipass"}, {"name", storage_pool}, {"driver", "dir"}};
+        lxd_request(manager.get(), "POST", QUrl(QString("%1/storage-pools").arg(base_url.toString())), pool_config);
     }
 
     try
