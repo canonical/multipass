@@ -15,14 +15,14 @@
  *
  */
 
-#include <multipass/exceptions/ssh_exception.h>
-#include <multipass/ssh/ssh_session.h>
-#include <shared/base_virtual_machine.h>
-
-#include <gmock/gmock.h>
-
+#include "common.h"
 #include "dummy_ssh_key_provider.h"
 #include "mock_ssh.h"
+
+#include <shared/base_virtual_machine.h>
+
+#include <multipass/exceptions/ssh_exception.h>
+#include <multipass/ssh/ssh_session.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

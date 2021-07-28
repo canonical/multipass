@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,10 @@
  *
  */
 
-#include <multipass/cloud_init_iso.h>
-
+#include "common.h"
 #include "temp_dir.h"
 
-#include <gmock/gmock.h>
+#include <multipass/cloud_init_iso.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

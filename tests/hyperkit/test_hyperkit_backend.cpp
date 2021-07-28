@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,20 @@
  *
  */
 
-#include <multipass/memory_size.h>
-#include <multipass/platform.h>
-#include <multipass/virtual_machine.h>
-#include <multipass/virtual_machine_description.h>
-#include <multipass/virtual_machine_factory.h>
-#include <src/platform/backends/hyperkit/hyperkit_virtual_machine.cpp>
-#include <src/platform/backends/hyperkit/hyperkit_virtual_machine_factory.h>
-
+#include "tests/common.h"
 #include "tests/disabling_macros.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_file.h"
 
-#include <gmock/gmock.h>
+#include <src/platform/backends/hyperkit/hyperkit_virtual_machine.cpp>
+#include <src/platform/backends/hyperkit/hyperkit_virtual_machine_factory.h>
+
+#include <multipass/memory_size.h>
+#include <multipass/platform.h>
+#include <multipass/virtual_machine.h>
+#include <multipass/virtual_machine_description.h>
+#include <multipass/virtual_machine_factory.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

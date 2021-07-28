@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_MOCK_PLATFORM_H
 #define MULTIPASS_MOCK_PLATFORM_H
 
+#include "common.h"
 #include "mock_singleton_helpers.h"
 
 #include <multipass/platform.h>
-
-#include <gmock/gmock.h>
 
 namespace multipass::test
 {

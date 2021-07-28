@@ -15,17 +15,17 @@
  *
  */
 
-#include "tests/extra_assertions.h"
+#include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_settings.h"
 #include "tests/mock_standard_paths.h"
 
+#include <src/platform/platform_proprietary.h>
+
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
-
-#include <src/platform/platform_proprietary.h>
 
 #include <QDateTime>
 #include <QDir>
@@ -35,9 +35,6 @@
 #include <json/json.h>
 
 #include <scope_guard.hpp>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 #include <filesystem>
 #include <fstream>

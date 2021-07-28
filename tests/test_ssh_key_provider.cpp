@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,13 +15,12 @@
  *
  */
 
-#include <multipass/ssh/openssh_key_provider.h>
-#include <multipass/utils.h>
-
+#include "common.h"
 #include "file_operations.h"
 #include "temp_dir.h"
 
-#include <gmock/gmock.h>
+#include <multipass/ssh/openssh_key_provider.h>
+#include <multipass/utils.h>
 
 #include <thread>
 

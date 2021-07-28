@@ -15,13 +15,11 @@
  *
  */
 
+#include "common.h"
 #include "mock_logger.h"
 
 #include <multipass/logging/log.h>
 #include <multipass/top_catch_all.h>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 #include <stdexcept>
 #include <string>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_POWERSHELL_TEST_HELPER_H
 #define MULTIPASS_POWERSHELL_TEST_HELPER_H
 
-#include <src/platform/backends/shared/win/powershell.h>
-
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
+
+#include <src/platform/backends/shared/win/powershell.h>
 
 #include <string>
 

@@ -15,12 +15,11 @@
  *
  */
 
-#include <multipass/process/basic_process.h>
-#include <multipass/process/simple_process_spec.h>
-
+#include "common.h"
 #include "test_with_mocked_bin_path.h"
 
-#include <gmock/gmock.h>
+#include <multipass/process/basic_process.h>
+#include <multipass/process/simple_process_spec.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

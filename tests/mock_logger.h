@@ -18,12 +18,11 @@
 #ifndef MULTIPASS_MOCK_LOGGER_H
 #define MULTIPASS_MOCK_LOGGER_H
 
+#include "common.h"
+
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
 #include <multipass/private_pass_provider.h>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 namespace multipass
 {

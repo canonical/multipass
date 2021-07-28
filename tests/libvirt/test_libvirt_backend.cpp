@@ -15,9 +15,7 @@
  *
  */
 
-#include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
-
-#include "tests/extra_assertions.h"
+#include "tests/common.h"
 #include "tests/fake_handle.h"
 #include "tests/mock_ssh.h"
 #include "tests/mock_status_monitor.h"
@@ -26,16 +24,16 @@
 #include "tests/temp_dir.h"
 #include "tests/temp_file.h"
 
+#include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
+
 #include <multipass/auto_join_thread.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/memory_size.h>
-#include <multipass/platform.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <cstdlib>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
