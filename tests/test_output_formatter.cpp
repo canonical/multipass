@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -323,15 +323,11 @@ auto construct_version_info_multipassd_update_available()
 {
     auto reply = mp::VersionReply();
     reply.set_version("Daemon version");
-    reply.set_log_line("Some logline goes here");
 
-    mp::UpdateInfo* updateInfo = new mp::UpdateInfo; // Leak? expecting protobuf to deal with memory dealloc.
-    updateInfo->set_version("update version number");
-    updateInfo->set_title("update title information");
-    updateInfo->set_description("update description information");
-    updateInfo->set_url("http://multipass.web");
-
-    reply.set_allocated_update_info(updateInfo);
+    reply.mutable_update_info()->set_version("update version number");
+    reply.mutable_update_info()->set_title("update title information");
+    reply.mutable_update_info()->set_description("update description information");
+    reply.mutable_update_info()->set_url("http://multipass.web");
 
     return reply;
 }
@@ -340,7 +336,6 @@ auto construct_version_info_multipassd_up_to_date()
 {
     auto reply = mp::VersionReply();
     reply.set_version("Daemon version");
-    reply.set_log_line("Some logline goes here");
 
     return reply;
 }

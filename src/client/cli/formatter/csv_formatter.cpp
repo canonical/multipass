@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,13 +101,13 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::CSVFormatter::format(const VersionReply& reply, const std::string& multipass_version) const
+std::string mp::CSVFormatter::format(const VersionReply& reply, const std::string& client_version) const
 {
     fmt::memory_buffer buf;
 
     fmt::format_to(buf, "Multipass,Multipassd,Title,Description,URL\n");
 
-    fmt::format_to(buf, "{},{},{},{},{}\n", multipass_version, reply.version(), reply.update_info().title(),
+    fmt::format_to(buf, "{},{},{},{},{}\n", client_version, reply.version(), reply.update_info().title(),
                    reply.update_info().description(), reply.update_info().url());
 
     return fmt::to_string(buf);

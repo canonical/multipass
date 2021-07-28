@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ public:
     virtual std::string format(const ListReply& reply) const = 0;
     virtual std::string format(const NetworksReply& reply) const = 0;
     virtual std::string format(const FindReply& reply) const = 0;
-    virtual std::string format(const VersionReply& reply, const std::string& multipass_version) const = 0;
+    virtual std::string format(const VersionReply& reply, const std::string& client_version) const = 0;
 
 protected:
     Formatter() = default;

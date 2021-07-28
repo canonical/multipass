@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -181,10 +181,10 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
     return mpu::emit_yaml(find);
 }
 
-std::string mp::YamlFormatter::format(const VersionReply& reply, const std::string& multipass_version) const
+std::string mp::YamlFormatter::format(const VersionReply& reply, const std::string& client_version) const
 {
     YAML::Node version;
-    version["multipass"] = multipass_version;
+    version["multipass"] = client_version;
 
     if (!reply.version().empty())
     {

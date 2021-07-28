@@ -1087,6 +1087,12 @@ TEST_F(Client, version_with_option_format_arg)
 TEST_F(Client, version_with_option_format_invalid_arg)
 {
     EXPECT_THAT(send_command({"version", "--format=default"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"version", "--format=MumboJumbo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, version_parse_failure)
+{
+    EXPECT_THAT(send_command({"version", "MumboJumbo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 namespace
