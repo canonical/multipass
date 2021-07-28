@@ -43,6 +43,7 @@ public:
     QString description() const override;
 
 private:
+    ListRequest list_request;
     ParseCode parse_args(ArgParser* parser) override;
 
     AliasDict aliases;

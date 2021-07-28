@@ -2479,25 +2479,42 @@ INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
                                 std::vector<std::string>{"mount", "..", "test-vm:test"},
                                 std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
 
+auto list_function = [](grpc::ServerContext*, const mp::ListRequest*, grpc::ServerWriter<mp::ListReply>* response)
+{
+    mp::ListReply list_reply;
+
+    auto list_entry = list_reply.add_instances();
+    list_entry->set_name("primary");
+    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+
+    response->Write(list_reply);
+
+    return grpc::Status{};
+};
+
 TEST_F(ClientAlias, alias_creates_alias)
 {
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
-    EXPECT_EQ(send_command({"alias", "another_instance:another_command", "another_alias"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"alias", "primary:another_command", "another_alias"}), mp::ReturnCode::Ok);
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
-                                   "another_instance,another_command\n");
+                                   "primary,another_command\n");
 }
 
 TEST_F(ClientAlias, fails_if_cannot_write_script)
 {
     EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("aaa")));
 
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+
     std::stringstream cerr_stream;
-    EXPECT_EQ(send_command({"alias", "instance:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"alias", "primary:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
     EXPECT_EQ(cerr_stream.str(), "Error when creating script for alias: aaa\n");
 
     std::stringstream cout_stream;
@@ -2508,10 +2525,12 @@ TEST_F(ClientAlias, fails_if_cannot_write_script)
 
 TEST_F(ClientAlias, alias_does_not_overwrite_alias)
 {
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
     std::stringstream cerr_stream;
-    EXPECT_EQ(send_command({"alias", "another_instance:another_command", "an_alias"}, trash_stream, cerr_stream),
+    EXPECT_EQ(send_command({"alias", "primary:another_command", "an_alias"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
     EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists\n");
 
@@ -2531,6 +2550,8 @@ TEST_P(ArgumentCheckTestsuite, answers_correctly)
 {
     auto [arguments, expected_return_code, expected_cout, expected_cerr] = GetParam();
 
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+
     std::stringstream cout_stream, cerr_stream;
     EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream), expected_return_code);
 
@@ -2546,9 +2567,9 @@ INSTANTIATE_TEST_SUITE_P(Client, ArgumentCheckTestsuite,
                                                 "Wrong number of arguments given\n"),
                                 std::make_tuple(std::vector<std::string>{"alias", "instance", "alias_name"},
                                                 mp::ReturnCode::CommandLineError, "", "No command given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", "instance:command", "alias_name"},
+                                std::make_tuple(std::vector<std::string>{"alias", "primary:command", "alias_name"},
                                                 mp::ReturnCode::Ok, "You'll need to add", ""),
-                                std::make_tuple(std::vector<std::string>{"alias", "instance:command"},
+                                std::make_tuple(std::vector<std::string>{"alias", "primary:command"},
                                                 mp::ReturnCode::Ok, "You'll need to add", ""),
                                 std::make_tuple(std::vector<std::string>{"alias", ":command"},
                                                 mp::ReturnCode::CommandLineError, "", "No instance name given\n"),
@@ -2608,6 +2629,40 @@ TEST_F(ClientAlias, refuses_executing_alias_with_arguments)
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"some_alias", "some_argument"}, trash_stream, cerr_stream), mp::ReturnCode::CommandFail);
     EXPECT_EQ(cerr_stream.str(), "Too many arguments given\n");
+}
+
+TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
+
+    std::stringstream cout_stream, cerr_stream;
+    send_command({"alias", "foo:another_command", "another_alias"}, cout_stream, cerr_stream);
+
+    EXPECT_EQ(cout_stream.str(), "");
+    EXPECT_EQ(cerr_stream.str(), "Instance 'foo' does not exist\n");
+
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+}
+
+TEST_F(ClientAlias, alias_refuses_creation_rpc_error)
+{
+    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
+
+    std::stringstream cout_stream, cerr_stream;
+    send_command({"alias", "foo:another_command", "another_alias"}, cout_stream, cerr_stream);
+
+    EXPECT_EQ(cout_stream.str(), "");
+    EXPECT_EQ(cerr_stream.str(), "Error retrieving list of instances\n");
+
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
 }
 
 TEST_F(ClientAlias, unalias_removes_existing_alias)

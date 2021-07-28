@@ -23,6 +23,7 @@
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
+using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
@@ -110,6 +111,37 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
     }
 
     auto instance = definition.left(colon_pos).toStdString();
+    bool instance_exists{false};
+
+    list_request.set_verbosity_level(0);
+    list_request.set_request_ipv4(false);
+
+    auto on_success = [&instance, &instance_exists](ListReply& reply)
+    {
+        for (const auto& reply_instance : reply.instances())
+            if (instance == reply_instance.name())
+            {
+                instance_exists = true;
+                break;
+            }
+
+        return ReturnCode::Ok;
+    };
+
+    auto on_failure = [this](grpc::Status& status) { return ReturnCode::CommandLineError; };
+
+    if (dispatch(&RpcMethod::list, list_request, on_success, on_failure) == ReturnCode::CommandLineError)
+    {
+        cerr << "Error retrieving list of instances\n";
+        return ParseCode::CommandLineError;
+    }
+
+    if (!instance_exists)
+    {
+        cerr << fmt::format("Instance '{}' does not exist\n", instance);
+        return ParseCode::CommandLineError;
+    }
+
     auto command = definition.right(definition.size() - colon_pos - 1).toStdString();
 
     alias_name = parser->positionalArguments().count() == 1 ? command : cl_definition[1].toStdString();
