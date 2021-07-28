@@ -15,8 +15,8 @@
  *
  */
 
+#include "common.h"
 #include "disabling_macros.h"
-#include "extra_assertions.h"
 #include "mock_environment_helpers.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
@@ -27,24 +27,19 @@
 #include "stub_certprovider.h"
 #include "stub_terminal.h"
 
-#include <multipass/constants.h>
-#include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/logging/log.h>
 #include <src/client/cli/client.h>
 #include <src/daemon/daemon_rpc.h>
 
-#include <QEventLoop>
+#include <multipass/constants.h>
+#include <multipass/exceptions/settings_exceptions.h>
+
 #include <QKeySequence>
 #include <QStringList>
 #include <QTemporaryFile>
 #include <QtCore/QTemporaryDir>
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-
 #include <chrono>
 #include <initializer_list>
-#include <sstream>
 #include <thread>
 #include <utility>
 

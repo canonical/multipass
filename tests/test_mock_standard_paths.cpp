@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,15 +15,13 @@
  *
  */
 
+#include "common.h"
 #include "mock_standard_paths.h"
 
 #include <multipass/standard_paths.h>
 
 #include <QStandardPaths>
 #include <QTemporaryDir>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 namespace mp = multipass;
 namespace mpt = mp::test;

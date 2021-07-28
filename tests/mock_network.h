@@ -18,14 +18,13 @@
 #ifndef MULTIPASS_MOCK_NETWORK_H
 #define MULTIPASS_MOCK_NETWORK_H
 
+#include "common.h"
 #include "mock_singleton_helpers.h"
 
 #include <multipass/url_downloader.h>
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-
-#include <gmock/gmock.h>
 
 namespace multipass::test
 {

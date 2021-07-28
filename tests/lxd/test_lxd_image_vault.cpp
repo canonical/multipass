@@ -15,18 +15,19 @@
  *
  */
 
-#include <src/platform/backends/lxd/lxd_vm_image_vault.h>
-
 #include "mock_local_socket_reply.h"
 #include "mock_lxd_server_responses.h"
 #include "mock_network_access_manager.h"
-#include "tests/extra_assertions.h"
+
+#include "tests/common.h"
 #include "tests/mock_image_host.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/stub_url_downloader.h"
 #include "tests/temp_dir.h"
 #include "tests/tracking_url_downloader.h"
+
+#include <src/platform/backends/lxd/lxd_vm_image_vault.h>
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>
@@ -36,8 +37,6 @@
 #include <QUrl>
 
 #include <vector>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

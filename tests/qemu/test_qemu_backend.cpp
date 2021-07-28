@@ -15,11 +15,9 @@
  *
  */
 
-#include <src/platform/backends/qemu/qemu_virtual_machine.h>
-#include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
-
 #include "mock_dnsmasq_server.h"
-#include "tests/extra_assertions.h"
+
+#include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_status_monitor.h"
@@ -29,6 +27,9 @@
 #include "tests/temp_dir.h"
 #include "tests/temp_file.h"
 #include "tests/test_with_mocked_bin_path.h"
+
+#include <src/platform/backends/qemu/qemu_virtual_machine.h>
+#include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
 #include <multipass/auto_join_thread.h>
 #include <multipass/exceptions/start_exception.h>

@@ -15,6 +15,7 @@
  *
  */
 
+#include "common.h"
 #include "mock_logger.h"
 #include "mock_ssh_process_exit_status.h"
 #include "sftp_server_test_fixture.h"
@@ -27,9 +28,7 @@
 #include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/utils.h>
 
-#include "extra_assertions.h"
 #include <algorithm>
-#include <gmock/gmock.h>
 #include <iterator>
 #include <tuple>
 #include <unordered_set>

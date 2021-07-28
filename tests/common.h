@@ -15,20 +15,15 @@
  *
  */
 
-#ifndef MULTIPASS_EXTRA_ASSERTIONS_H
-#define MULTIPASS_EXTRA_ASSERTIONS_H
+#ifndef MULTIPASS_COMMON_H
+#define MULTIPASS_COMMON_H
 
 #include <multipass/format.h>
-#include <multipass/network_interface.h>
-#include <multipass/network_interface_info.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <QString>
-
 #include <algorithm>
-#include <ostream>
 
 // Extra macros for testing exceptions.
 //
@@ -64,19 +59,23 @@
         },                                                                                                             \
         expected_exception)
 
+// Teach GTest to print Qt stuff
+QT_BEGIN_NAMESPACE
+class QString;
+void PrintTo(const QString& qstr, std::ostream* os);
+QT_END_NAMESPACE
+
+// Teach GTest to print multipass stuff
 namespace multipass
 {
-inline void PrintTo(const NetworkInterface& net, std::ostream* os) // teaching gtest to print NetworkInterface
-{
-    *os << "NetworkInterface(id=\"" << net.id << "\")";
-}
+struct NetworkInterface;
+struct NetworkInterfaceInfo;
 
-inline void PrintTo(const NetworkInterfaceInfo& net, std::ostream* os) // teaching gtest to print NetworkInterfaceInfo
-{
-    *os << "NetworkInterfaceInfo(id=\"" << net.id << "\")";
-}
+void PrintTo(const NetworkInterface& net, std::ostream* os);
+void PrintTo(const NetworkInterfaceInfo& net, std::ostream* os);
 } // namespace multipass
 
+// Matchers
 namespace multipass::test
 {
 MATCHER_P(ContainedIn, container, "")
@@ -105,4 +104,4 @@ auto match_qstring(StrMatcher&& matcher)
 }
 } // namespace multipass::test
 
-#endif // MULTIPASS_EXTRA_ASSERTIONS_H
+#endif // MULTIPASS_COMMON_H

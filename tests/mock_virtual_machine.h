@@ -18,7 +18,8 @@
 #ifndef MULTIPASS_MOCK_VIRTUAL_MACHINE_H
 #define MULTIPASS_MOCK_VIRTUAL_MACHINE_H
 
-#include <gmock/gmock.h>
+#include "common.h"
+
 #include <multipass/virtual_machine.h>
 
 using namespace testing;

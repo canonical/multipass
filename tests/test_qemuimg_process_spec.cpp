@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,12 +15,11 @@
  *
  */
 
+#include "common.h"
 #include "disabling_macros.h"
 #include "mock_environment_helpers.h"
 
 #include <multipass/process/qemuimg_process_spec.h>
-
-#include <gmock/gmock.h>
 
 #include <QFile>
 #include <QTemporaryDir>
