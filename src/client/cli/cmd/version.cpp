@@ -91,7 +91,7 @@ QString cmd::Version::description() const
 mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption formatOption("format",
-                                    "Output list in the requested format.\n"
+                                    "Output version information in the requested format.\n"
                                     "Valid formats are: table (default), json, csv and yaml",
                                     "format", "table");
 
