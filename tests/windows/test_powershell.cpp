@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,15 +15,15 @@
  *
  */
 
-#include <multipass/format.h>
-#include <src/platform/backends/shared/win/powershell.h>
-
 #include "powershell_test_helper.h"
+
+#include "tests/common.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <src/platform/backends/shared/win/powershell.h>
+
+#include <multipass/format.h>
 
 #include <cstring>
 #include <utility>

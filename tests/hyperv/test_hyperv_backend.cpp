@@ -15,15 +15,7 @@
  *
  */
 
-#include <multipass/format.h>
-#include <multipass/memory_size.h>
-#include <multipass/platform.h>
-#include <multipass/virtual_machine.h>
-#include <multipass/virtual_machine_description.h>
-#include <multipass/virtual_machine_factory.h>
-#include <src/platform/backends/hyperv/hyperv_virtual_machine_factory.h>
-
-#include "tests/extra_assertions.h"
+#include "tests/common.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_platform.h"
 #include "tests/mock_process_factory.h"
@@ -32,9 +24,16 @@
 #include "tests/temp_file.h"
 #include "tests/windows/powershell_test_helper.h"
 
-#include <QRegularExpression>
+#include <src/platform/backends/hyperv/hyperv_virtual_machine_factory.h>
 
-#include <gmock/gmock.h>
+#include <multipass/format.h>
+#include <multipass/memory_size.h>
+#include <multipass/platform.h>
+#include <multipass/virtual_machine.h>
+#include <multipass/virtual_machine_description.h>
+#include <multipass/virtual_machine_factory.h>
+
+#include <QRegularExpression>
 
 #include <stdexcept>
 #include <tuple>

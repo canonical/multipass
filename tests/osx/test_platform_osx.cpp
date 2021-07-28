@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2021 Canonical, Ltd.
  *
@@ -15,21 +16,17 @@
  *
  */
 
+#include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
+
+#include <src/platform/platform_proprietary.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
 
-#include <src/platform/platform_proprietary.h>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-
 #include <QKeySequence>
-
-#include <iostream>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
