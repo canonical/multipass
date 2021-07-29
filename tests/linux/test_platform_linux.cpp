@@ -16,7 +16,6 @@
  */
 
 #include "tests/common.h"
-#include "tests/extra_assertions.h"
 #include "tests/fake_handle.h"
 #include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
