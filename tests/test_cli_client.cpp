@@ -1095,6 +1095,14 @@ TEST_F(Client, version_parse_failure)
     EXPECT_THAT(send_command({"version", "MumboJumbo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, version_info_on_failure)
+{
+    const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+
+    EXPECT_CALL(mock_daemon, version(_, _, _)).WillOnce(Return(notfound));
+    EXPECT_THAT(send_command({"version", "--format=yaml"}), Eq(mp::ReturnCode::Ok));
+}
+
 namespace
 {
 grpc::Status aborted_start_status(const std::vector<std::string>& absent_instances = {},

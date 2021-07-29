@@ -33,36 +33,17 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    bool format_is_set = parser->isSet("format");
-
-    if (!format_is_set)
+    auto on_success = [this](mp::VersionReply& reply)
     {
-        cout << "multipass  " << multipass::version_string << "\n";
-    }
-
-    auto on_success = [this, &format_is_set](mp::VersionReply& reply)
-    {
-        if (format_is_set)
-        {
-            cout << chosen_formatter->format(reply, multipass::version_string);
-        }
-        else
-        {
-            cout << "multipassd " << reply.version() << "\n";
-            if (term->is_live() && update_available(reply.update_info()))
-                cout << update_notice(reply.update_info());
-        }
+        cout << chosen_formatter->format(reply, multipass::version_string);
 
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &format_is_set](grpc::Status& status)
+    auto on_failure = [this](grpc::Status& status)
     {
-        if (format_is_set)
-        {
-            VersionReply reply;
-            cout << chosen_formatter->format(reply, multipass::version_string);
-        }
+        VersionReply reply;
+        cout << chosen_formatter->format(reply, multipass::version_string);
 
         return ReturnCode::Ok;
     };
