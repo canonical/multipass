@@ -128,7 +128,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return ReturnCode::CommandLineError; };
+    auto on_failure = [](grpc::Status& status) { return ReturnCode::CommandLineError; };
 
     if (dispatch(&RpcMethod::list, list_request, on_success, on_failure) == ReturnCode::CommandLineError)
     {
