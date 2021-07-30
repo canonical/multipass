@@ -15,9 +15,9 @@
  *
  */
 
-#include <multipass/cli/yaml_formatter.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/yaml_formatter.h>
 #include <multipass/utils.h>
 
 #include <multipass/format.h>

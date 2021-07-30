@@ -15,9 +15,9 @@
  *
  */
 
-#include <multipass/cli/json_formatter.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/json_formatter.h>
 #include <multipass/utils.h>
 
 #include <QJsonArray>
