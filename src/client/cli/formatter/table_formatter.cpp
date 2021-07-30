@@ -15,10 +15,11 @@
  *
  */
 
+#include <multipass/cli/table_formatter.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
-#include <multipass/cli/table_formatter.h>
 
+#include "../cmd/common_cli.h"
 #include <multipass/format.h>
 
 namespace mp = multipass;
@@ -225,17 +226,15 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
 std::string mp::TableFormatter::format(const VersionReply& reply, const std::string& client_version) const
 {
     fmt::memory_buffer buf;
-    fmt::format_to(buf, "{:<16}{}\n", "multipass", client_version);
+    fmt::format_to(buf, "{:<12}{}\n", "multipass", client_version);
 
     if (!reply.version().empty())
     {
-        fmt::format_to(buf, "{:<16}{}\n", "multipassd", reply.version());
+        fmt::format_to(buf, "{:<12}{}\n", "multipassd", reply.version());
 
         if (mp::cmd::update_available(reply.update_info()))
         {
-            fmt::format_to(buf, "{:<16}{}\n", "title", reply.update_info().title());
-            fmt::format_to(buf, "{:<16}{}\n", "description", reply.update_info().description());
-            fmt::format_to(buf, "{:<16}{}\n", "url", reply.update_info().url());
+            fmt::format_to(buf, "{}", mp::cmd::update_notice(reply.update_info()));
         }
     }
     return fmt::to_string(buf);
