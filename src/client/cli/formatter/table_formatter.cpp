@@ -15,10 +15,11 @@
  *
  */
 
-#include <multipass/cli/format_utils.h>
 #include <multipass/cli/table_formatter.h>
 
-#include "../cmd/common_cli.h"
+#include <multipass/cli/client_common.h>
+#include <multipass/cli/format_utils.h>
+
 #include <multipass/format.h>
 
 namespace mp = multipass;

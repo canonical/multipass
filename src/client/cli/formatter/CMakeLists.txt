@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 Canonical Ltd.
+# Copyright © 2018-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -20,6 +20,7 @@ add_library(formatter STATIC
   yaml_formatter.cpp)
 
 target_link_libraries(formatter
+  client_common
   fmt
   rpc
   yaml

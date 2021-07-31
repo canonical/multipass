@@ -50,10 +50,6 @@ ReturnCode run_cmd_and_retry(const QStringList& args, const ArgParser* parser, s
 ReturnCode return_code_from(const SettingsException& e);
 QString describe_settings_keys();
 
-// helpers for update handling
-bool update_available(const multipass::UpdateInfo& update_info);
-std::string update_notice(const multipass::UpdateInfo& update_info);
-
 // parser helpers
 void add_timeout(multipass::ArgParser*);
 int parse_timeout(const multipass::ArgParser* parser);
