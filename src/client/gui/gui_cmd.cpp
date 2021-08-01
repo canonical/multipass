@@ -164,7 +164,7 @@ void cmd::GuiCmd::create_actions()
     {
         petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
         tray_icon_menu.insertActions(petenv_actions_separator, {&petenv_start_action, &petenv_shell_action,
-                                                                &petenv_stop_action, &petenv_toggle_action});
+                                                                &petenv_stop_action, &petenv_disable_action});
     }
 
     QObject::connect(&petenv_shell_action, &QAction::triggered,
@@ -175,11 +175,12 @@ void cmd::GuiCmd::create_actions()
     QObject::connect(&petenv_start_action, &QAction::triggered, [this] {
         future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
     });
-    QObject::connect(&petenv_toggle_action, &QAction::triggered, [this] {
-        current_petenv_name = current_petenv_name.empty() ? "primary" // based on src/utils/settings.cpp:petenv_name.
-                                                          : "";
-        MP_SETTINGS.set(petenv_key, QString::fromStdString(current_petenv_name));
-    });
+    QObject::connect(&petenv_disable_action, &QAction::triggered,
+                     [this]
+                     {
+                         current_petenv_name = "";
+                         MP_SETTINGS.set(petenv_key, QString::fromStdString(current_petenv_name));
+                     });
 }
 
 void cmd::GuiCmd::update_menu()
@@ -402,8 +403,7 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
         std::find_if(instances.cbegin(), instances.cend(),
                      [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
 
-    petenv_toggle_action.setText("Disable Primary Instance");
-    petenv_toggle_action.setEnabled(true);
+    petenv_disable_action.setEnabled(true);
 
     // petenv doesn't exist yet
     if (petenv_instance == instances.cend())
@@ -427,7 +427,7 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     {
         petenv_start_action.setText(set_title_string_for(fmt::format("Start \"{}\"", petenv_name), state));
 
-        set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action, &petenv_toggle_action},
+        set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action, &petenv_disable_action},
                             state);
         petenv_state = state;
         current_petenv_name = petenv_name;
