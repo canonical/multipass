@@ -50,7 +50,6 @@ auto set_title_string_for(const std::string& text, const mp::InstanceStatus& sta
 // - Start action
 // - Open Shell action
 // - Stop action
-// - Toggle action
 void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& state)
 {
     if (actions.isEmpty())
@@ -60,8 +59,7 @@ void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& stat
     {
         start,
         open_shell,
-        stop,
-        toggle
+        stop
     };
 
     switch (state.status())
@@ -70,34 +68,29 @@ void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& stat
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(false);
         actions[ActionType::stop]->setEnabled(true);
-        actions[ActionType::toggle]->setEnabled(false);
         break;
     case mp::InstanceStatus::RUNNING:
     case mp::InstanceStatus::DELAYED_SHUTDOWN:
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(true);
         actions[ActionType::stop]->setEnabled(true);
-        actions[ActionType::toggle]->setEnabled(false);
         break;
     case mp::InstanceStatus::STOPPED:
     case mp::InstanceStatus::SUSPENDED:
         actions[ActionType::start]->setEnabled(true);
         actions[ActionType::open_shell]->setEnabled(true);
         actions[ActionType::stop]->setEnabled(false);
-        actions[ActionType::toggle]->setEnabled(true);
         break;
     case mp::InstanceStatus::DELETED:
     case mp::InstanceStatus::SUSPENDING:
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(false);
         actions[ActionType::stop]->setEnabled(false);
-        actions[ActionType::toggle]->setEnabled(true);
         break;
     default:
         actions[ActionType::start]->setEnabled(false);
         actions[ActionType::open_shell]->setEnabled(true);
         actions[ActionType::stop]->setEnabled(false);
-        actions[ActionType::toggle]->setEnabled(true);
     }
 }
 } // namespace
