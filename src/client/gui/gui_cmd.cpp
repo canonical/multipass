@@ -399,20 +399,8 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
         std::find_if(instances.cbegin(), instances.cend(),
                      [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
 
-    const QString toggle_label = petenv_name.empty() ? QString{"Enable Primary"} : QString{"Disable Primary"};
-    petenv_toggle_action.setText(toggle_label);
+    petenv_toggle_action.setText("Disable Primary Instance");
     petenv_toggle_action.setEnabled(true);
-
-    // if petenv is disabled you can only re-enable.
-    if (petenv_name.empty())
-    {
-        petenv_start_action.setText("Start");
-        petenv_start_action.setEnabled(false);
-        petenv_shell_action.setEnabled(false);
-        petenv_stop_action.setEnabled(false);
-
-        return;
-    }
 
     // petenv doesn't exist yet
     if (petenv_instance == instances.cend())
