@@ -160,9 +160,12 @@ void cmd::GuiCmd::create_actions()
     about_separator = tray_icon_menu.addSeparator();
     quit_action = tray_icon_menu.addAction("Quit");
 
-    petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
-    tray_icon_menu.insertActions(petenv_actions_separator, {&petenv_start_action, &petenv_shell_action,
-                                                            &petenv_stop_action, &petenv_toggle_action});
+    if (!MP_SETTINGS.get(petenv_key).isEmpty())
+    {
+        petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
+        tray_icon_menu.insertActions(petenv_actions_separator, {&petenv_start_action, &petenv_shell_action,
+                                                                &petenv_stop_action, &petenv_toggle_action});
+    }
 
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [] { mp::cli::platform::open_multipass_shell(QString()); });
