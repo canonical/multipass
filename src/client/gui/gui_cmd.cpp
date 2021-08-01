@@ -153,12 +153,9 @@ void cmd::GuiCmd::create_actions()
     about_separator = tray_icon_menu.addSeparator();
     quit_action = tray_icon_menu.addAction("Quit");
 
-    if (!MP_SETTINGS.get(petenv_key).isEmpty())
-    {
-        petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
-        tray_icon_menu.insertActions(petenv_actions_separator, {&petenv_start_action, &petenv_shell_action,
-                                                                &petenv_stop_action, &petenv_disable_action});
-    }
+    petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
+    tray_icon_menu.insertActions(petenv_actions_separator, {&petenv_start_action, &petenv_shell_action,
+                                                            &petenv_stop_action, &petenv_disable_action});
 
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [] { mp::cli::platform::open_multipass_shell(QString()); });
@@ -244,6 +241,13 @@ void cmd::GuiCmd::update_menu()
     {
         about_separator->setVisible(true);
     }
+
+    const bool petenv_visibility = MP_SETTINGS.get(petenv_key).isEmpty() ? false : true;
+    petenv_actions_separator->setVisible(petenv_visibility);
+    petenv_start_action.setVisible(petenv_visibility);
+    petenv_shell_action.setVisible(petenv_visibility);
+    petenv_stop_action.setVisible(petenv_visibility);
+    petenv_disable_action.setVisible(petenv_visibility);
 }
 
 void cmd::GuiCmd::update_about_menu()
