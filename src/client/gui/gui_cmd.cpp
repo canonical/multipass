@@ -242,7 +242,7 @@ void cmd::GuiCmd::update_menu()
         about_separator->setVisible(true);
     }
 
-    const bool petenv_visibility = MP_SETTINGS.get(petenv_key).isEmpty() ? false : true;
+    const bool petenv_visibility = !MP_SETTINGS.get(petenv_key).isEmpty();
     petenv_actions_separator->setVisible(petenv_visibility);
     petenv_start_action.setVisible(petenv_visibility);
     petenv_shell_action.setVisible(petenv_visibility);
