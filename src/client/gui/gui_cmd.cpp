@@ -104,7 +104,12 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     }
 
     update_hotkey();
-    QObject::connect(&hotkey, &QHotkey::activated, qApp, [&]() { mp::cli::platform::open_multipass_shell(QString()); });
+    QObject::connect(&hotkey, &QHotkey::activated, qApp,
+                     [&]()
+                     {
+                         assert(!MP_SETTINGS.get(petenv_key).isEmpty());
+                         mp::cli::platform::open_multipass_shell(QString());
+                     });
 
     create_actions();
     create_menu();
@@ -165,12 +170,6 @@ void cmd::GuiCmd::create_actions()
     QObject::connect(&petenv_start_action, &QAction::triggered, [this] {
         future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
     });
-    QObject::connect(&petenv_disable_action, &QAction::triggered,
-                     [this]
-                     {
-                         current_petenv_name = "";
-                         MP_SETTINGS.set(petenv_key, QString::fromStdString(current_petenv_name));
-                     });
 }
 
 void cmd::GuiCmd::update_menu()
