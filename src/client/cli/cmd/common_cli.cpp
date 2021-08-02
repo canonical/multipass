@@ -36,26 +36,6 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-namespace
-{
-std::string message_box(const std::string& message)
-{
-    std::string::size_type divider_length = 50;
-    {
-        std::istringstream m(message);
-        std::string s;
-        while (getline(m, s, '\n'))
-        {
-            divider_length = std::max(divider_length, s.length());
-        }
-    }
-
-    const auto divider = std::string(divider_length, '#');
-
-    return '\n' + divider + '\n' + message + '\n' + divider + '\n';
-}
-} // namespace
-
 mp::ParseCode cmd::check_for_name_and_all_option_conflict(const mp::ArgParser* parser, std::ostream& cerr,
                                                           bool allow_empty)
 {
@@ -123,12 +103,6 @@ std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_n
         message.append(instance_names.instance_name().Get(0));
 
     return message;
-}
-
-std::string cmd::update_notice(const mp::UpdateInfo& update_info)
-{
-    return ::message_box(fmt::format("{}\n{}\n\nGo here for more information: {}", update_info.title(),
-                                     update_info.description(), update_info.url()));
 }
 
 mp::ReturnCode cmd::run_cmd(const QStringList& args, const mp::ArgParser* parser, std::ostream& cout,

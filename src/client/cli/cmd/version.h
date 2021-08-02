@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,8 @@
 
 namespace multipass
 {
+class Formatter;
+
 namespace cmd
 {
 class Version final : public Command
@@ -38,6 +40,8 @@ public:
 
 private:
     ParseCode parse_args(ArgParser *parser) override;
+
+    Formatter* chosen_formatter;
 };
 }
 }
