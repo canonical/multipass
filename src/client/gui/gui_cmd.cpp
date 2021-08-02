@@ -104,7 +104,12 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     }
 
     update_hotkey();
-    QObject::connect(&hotkey, &QHotkey::activated, qApp, [&]() { mp::cli::platform::open_multipass_shell(QString()); });
+    QObject::connect(&hotkey, &QHotkey::activated, qApp,
+                     [&]()
+                     {
+                         assert(!MP_SETTINGS.get(petenv_key).isEmpty());
+                         mp::cli::platform::open_multipass_shell(QString());
+                     });
 
     create_actions();
     create_menu();
