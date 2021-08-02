@@ -165,12 +165,6 @@ void cmd::GuiCmd::create_actions()
     QObject::connect(&petenv_start_action, &QAction::triggered, [this] {
         future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
     });
-    QObject::connect(&petenv_disable_action, &QAction::triggered,
-                     [this]
-                     {
-                         current_petenv_name = "";
-                         MP_SETTINGS.set(petenv_key, QString::fromStdString(current_petenv_name));
-                     });
 }
 
 void cmd::GuiCmd::update_menu()
