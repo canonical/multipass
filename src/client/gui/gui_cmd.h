@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -89,7 +89,6 @@ private:
     QAction petenv_start_action;
     QAction petenv_shell_action{"Open Shell"};
     QAction petenv_stop_action{"Stop"};
-    QAction petenv_disable_action{"Disable Primary Instance"};
     InstanceStatus petenv_state;
     std::string current_petenv_name;
 

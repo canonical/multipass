@@ -159,8 +159,8 @@ void cmd::GuiCmd::create_actions()
     quit_action = tray_icon_menu.addAction("Quit");
 
     petenv_actions_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
-    tray_icon_menu.insertActions(petenv_actions_separator, {&petenv_start_action, &petenv_shell_action,
-                                                            &petenv_stop_action, &petenv_disable_action});
+    tray_icon_menu.insertActions(petenv_actions_separator,
+                                 {&petenv_start_action, &petenv_shell_action, &petenv_stop_action});
 
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [] { mp::cli::platform::open_multipass_shell(QString()); });
@@ -246,7 +246,6 @@ void cmd::GuiCmd::update_menu()
     petenv_start_action.setVisible(petenv_visibility);
     petenv_shell_action.setVisible(petenv_visibility);
     petenv_stop_action.setVisible(petenv_visibility);
-    petenv_disable_action.setVisible(petenv_visibility);
 }
 
 void cmd::GuiCmd::update_about_menu()
@@ -399,8 +398,6 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
         std::find_if(instances.cbegin(), instances.cend(),
                      [&petenv_name](const ListVMInstance& instance) { return petenv_name == instance.name(); });
 
-    petenv_disable_action.setEnabled(true);
-
     // petenv doesn't exist yet
     if (petenv_instance == instances.cend())
     {
@@ -423,8 +420,7 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     {
         petenv_start_action.setText(set_title_string_for(fmt::format("Start \"{}\"", petenv_name), state));
 
-        set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action, &petenv_disable_action},
-                            state);
+        set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action}, state);
         petenv_state = state;
         current_petenv_name = petenv_name;
     }
