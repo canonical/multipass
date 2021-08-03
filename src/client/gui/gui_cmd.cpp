@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -107,8 +107,8 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     QObject::connect(&hotkey, &QHotkey::activated, qApp,
                      [&]()
                      {
-                         assert(!MP_SETTINGS.get(petenv_key).isEmpty());
-                         mp::cli::platform::open_multipass_shell(QString());
+                         if (!MP_SETTINGS.get(petenv_key).isEmpty())
+                             mp::cli::platform::open_multipass_shell(QString());
                      });
 
     create_actions();

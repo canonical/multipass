@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ namespace platform
 void parse_transfer_entry(const QString& entry, QString& path, QString& instance_name);
 int getuid();
 int getgid();
-void open_multipass_shell(const QString& instance_name);
+void open_multipass_shell(const QString& instance_name); // precondition: requires a valid instance name
 QStringList gui_tray_notification_strings();
 }
 }
