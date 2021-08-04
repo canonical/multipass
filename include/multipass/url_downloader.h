@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,17 +20,29 @@
 
 #include <multipass/path.h>
 #include <multipass/progress_monitor.h>
+#include <multipass/singleton.h>
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QNetworkAccessManager>
 
 #include <atomic>
 #include <chrono>
+
+#define MP_NETMGRFACTORY multipass::NetworkManagerFactory::instance()
 
 class QUrl;
 class QString;
 namespace multipass
 {
+class NetworkManagerFactory : public Singleton<NetworkManagerFactory>
+{
+public:
+    NetworkManagerFactory(const Singleton<NetworkManagerFactory>::PrivatePass&) noexcept;
+
+    virtual std::unique_ptr<QNetworkAccessManager> make_network_manager(const Path& cache_dir_path) const;
+};
+
 class URLDownloader
 {
 public:

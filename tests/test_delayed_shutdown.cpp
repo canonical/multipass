@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
  *
  */
 
+#include "common.h"
 #include "mock_ssh.h"
 #include "signal.h"
 #include "stub_virtual_machine.h"
@@ -24,8 +25,6 @@
 #include <QEventLoop>
 
 #include <chrono>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

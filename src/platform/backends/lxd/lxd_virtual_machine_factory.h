@@ -27,7 +27,7 @@
 
 namespace multipass
 {
-class LXDVirtualMachineFactory final : public BaseVirtualMachineFactory
+class LXDVirtualMachineFactory : public BaseVirtualMachineFactory
 {
 public:
     explicit LXDVirtualMachineFactory(const Path& data_dir, const QUrl& base_url = lxd_socket_url);
@@ -56,10 +56,14 @@ public:
 
     std::vector<NetworkInterfaceInfo> networks() const override;
 
+protected:
+    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
+
 private:
     NetworkAccessManager::UPtr manager;
     const Path data_dir;
     const QUrl base_url;
+    QString storage_pool;
 };
 } // namespace multipass
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,9 @@
  *
  */
 
+#include "common.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
-
-#include <gtest/gtest.h>
 
 #include <QCoreApplication>
 

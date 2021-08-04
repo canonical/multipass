@@ -133,12 +133,15 @@ class Utils : public Singleton<Utils>
 public:
     Utils(const Singleton<Utils>::PrivatePass&) noexcept;
 
-    virtual qint64 filesystem_bytes_available(const QString& data_directory);
+    virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code);
 
     // virtual machine helpers
     virtual void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                                     const SSHKeyProvider& key_provider);
+                                     const SSHKeyProvider& key_provider) const;
+
+    // system info helpers
+    virtual std::string get_kernel_version() const;
 };
 } // namespace multipass
 

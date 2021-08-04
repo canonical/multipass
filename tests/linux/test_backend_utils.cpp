@@ -15,6 +15,12 @@
  *
  */
 
+#include "tests/common.h"
+#include "tests/mock_logger.h"
+#include "tests/mock_process_factory.h"
+#include "tests/mock_singleton_helpers.h"
+
+#include <shared/shared_backend_utils.h>
 #include <src/platform/backends/shared/linux/backend_utils.h>
 #include <src/platform/backends/shared/linux/dbus_wrappers.h>
 
@@ -22,18 +28,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 
-#include <shared/shared_backend_utils.h>
-
-#include "tests/extra_assertions.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_process_factory.h"
-#include "tests/mock_singleton_helpers.h"
-
 #include <QMap>
 #include <QVariant>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -347,7 +343,7 @@ struct CreateBridgeTest : public Test
     static auto make_object_path_matcher(const char* path)
     {
         return Property(&QVariant::value<QDBusObjectPath>,
-                        Property(&QDBusObjectPath::path, Property(&QString::toStdString, Eq(path))));
+                        Property(&QDBusObjectPath::path, mpt::match_qstring(Eq(path))));
     }
 
     static QString get_bridge_name(const char* child)
@@ -389,7 +385,7 @@ TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
     }
 
     inject_dbus_interfaces();
-    EXPECT_EQ(mp::backend::create_bridge_with(network), get_bridge_name(network).toStdString());
+    EXPECT_EQ(MP_BACKEND.create_bridge_with(network), get_bridge_name(network).toStdString());
 }
 
 TEST_F(CreateBridgeTest, throws_if_bus_disconnected)
@@ -399,7 +395,7 @@ TEST_F(CreateBridgeTest, throws_if_bus_disconnected)
     EXPECT_CALL(mock_bus, last_error).WillOnce(Return(QDBusError{QDBusError::BadAddress, msg}));
 
     MP_EXPECT_THROW_THAT(
-        mp::backend::create_bridge_with("asdf"), mp::backend::CreateBridgeException,
+        MP_BACKEND.create_bridge_with("asdf"), mp::backend::CreateBridgeException,
         mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Failed to connect to D-Bus system bus"),
                               HasSubstr(msg.toStdString()))));
 }
@@ -421,7 +417,7 @@ TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
         inject_settings_interface();
 
     MP_ASSERT_THROW_THAT(
-        mp::backend::create_bridge_with("whatever"), mp::backend::CreateBridgeException,
+        MP_BACKEND.create_bridge_with("whatever"), mp::backend::CreateBridgeException,
         mpt::match_what(AllOf(HasSubstr("Could not reach remote D-Bus object"), HasSubstr(msg.toStdString()))));
 }
 
@@ -441,7 +437,7 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
     EXPECT_CALL(*mock_nm_settings, service).WillOnce(Return(svc));
 
     inject_dbus_interfaces();
-    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("umdolita"), mp::backend::CreateBridgeException,
+    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("umdolita"), mp::backend::CreateBridgeException,
                          mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
                                                HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
@@ -469,7 +465,7 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
                                         Eq("org.freedesktop.NetworkManager.Settings.Connection")))
         .WillOnce(Return(ByMove(std::move(mock_nm_connection))));
 
-    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("abc"), mp::backend::CreateBridgeException,
+    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("abc"), mp::backend::CreateBridgeException,
                          mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
                                                HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
@@ -506,7 +502,7 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
                                         Eq("org.freedesktop.NetworkManager.Settings.Connection")))
         .WillOnce(Return(ByMove(std::move(mock_nm_connection2))));
 
-    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("kaka"), mp::backend::CreateBridgeException,
+    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("kaka"), mp::backend::CreateBridgeException,
                          mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
                                                HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
 }
@@ -532,7 +528,7 @@ TEST_F(CreateBridgeTest, logs_on_failure_to_rollback)
         .WillOnce(Return(ByMove(std::move(mock_nm_connection1))));
 
     logger_scope.mock_logger->expect_log(mpl::Level::error, rollback_error);
-    MP_ASSERT_THROW_THAT(mp::backend::create_bridge_with("gigi"), int, Eq(original_error));
+    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("gigi"), int, Eq(original_error));
 }
 
 struct CreateBridgeExceptionTest : public CreateBridgeTest, WithParamInterface<bool>

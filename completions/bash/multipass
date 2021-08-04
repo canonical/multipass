@@ -151,7 +151,7 @@ _multipass_complete()
             opts="${opts} --all --purge"
         ;;
         "launch")
-            opts="${opts} --cpus --disk --mem --name --cloud-init --network"
+            opts="${opts} --cpus --disk --mem --name --cloud-init --network --bridged"
         ;;
         "mount")
             opts="${opts} --gid-map --uid-map"
@@ -180,9 +180,9 @@ _multipass_complete()
             "--network")
                 _multipass_networks
                 if [[ "${opts}" != "" ]]; then
-                    opts="${opts} id= mode= mac="
+                    opts="${opts} bridged id= mode= mac="
                 fi
-                # TODO: Do use spaces after the completion of an interface name.
+                # TODO: Do use spaces after the completion of an interface name or "bridged".
                 compopt -o nospace
         esac
     else

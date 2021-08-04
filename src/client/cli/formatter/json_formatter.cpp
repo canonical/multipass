@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 #include <multipass/cli/json_formatter.h>
 
+#include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/utils.h>
 
@@ -187,4 +188,27 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
     find_json.insert("images", images);
 
     return QString(QJsonDocument(find_json).toJson()).toStdString();
+}
+
+std::string mp::JsonFormatter::format(const VersionReply& reply, const std::string& client_version) const
+{
+    QJsonObject version_json;
+
+    version_json.insert("multipass", QString::fromStdString(client_version));
+
+    if (!reply.version().empty())
+    {
+        version_json.insert("multipassd", QString::fromStdString(reply.version()));
+
+        if (mp::cmd::update_available(reply.update_info()))
+        {
+            QJsonObject update;
+            update.insert("title", QString::fromStdString(reply.update_info().title()));
+            update.insert("description", QString::fromStdString(reply.update_info().description()));
+            update.insert("url", QString::fromStdString(reply.update_info().url()));
+
+            version_json.insert("update", update);
+        }
+    }
+    return QString(QJsonDocument(version_json).toJson()).toStdString();
 }

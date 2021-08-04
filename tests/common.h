@@ -15,11 +15,15 @@
  *
  */
 
-#ifndef MULTIPASS_EXTRA_ASSERTIONS_H
-#define MULTIPASS_EXTRA_ASSERTIONS_H
+#ifndef MULTIPASS_COMMON_H
+#define MULTIPASS_COMMON_H
+
+#include <multipass/format.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <algorithm>
 
 // Extra macros for testing exceptions.
 //
@@ -55,13 +59,49 @@
         },                                                                                                             \
         expected_exception)
 
+// Teach GTest to print Qt stuff
+QT_BEGIN_NAMESPACE
+class QString;
+void PrintTo(const QString& qstr, std::ostream* os);
+QT_END_NAMESPACE
+
+// Teach GTest to print multipass stuff
+namespace multipass
+{
+struct NetworkInterface;
+struct NetworkInterfaceInfo;
+
+void PrintTo(const NetworkInterface& net, std::ostream* os);
+void PrintTo(const NetworkInterfaceInfo& net, std::ostream* os);
+} // namespace multipass
+
+// Matchers
 namespace multipass::test
 {
+MATCHER_P(ContainedIn, container, "")
+{
+    return std::find(std::cbegin(container), std::cend(container), arg) != std::cend(container);
+}
+
+MATCHER_P2(HasCorrespondentIn, container, binary_pred,
+           fmt::format("{} a corresponding element in {} that pairs with it according to the given binary predicate",
+                       negation ? "has" : "doesn't have", testing::PrintToString(container)))
+{
+    return std::any_of(std::cbegin(container), std::cend(container),
+                       [this, &arg](const auto& elem) { return binary_pred(arg, elem); });
+}
+
 template <typename MsgMatcher>
 auto match_what(MsgMatcher&& matcher)
 {
-    return testing::Property(&std::runtime_error::what, std::forward<MsgMatcher>(matcher));
+    return testing::Property(&std::exception::what, std::forward<MsgMatcher>(matcher));
+}
+
+template <typename StrMatcher>
+auto match_qstring(StrMatcher&& matcher)
+{
+    return testing::Property(&QString::toStdString, std::forward<StrMatcher>(matcher));
 }
 } // namespace multipass::test
 
-#endif // MULTIPASS_EXTRA_ASSERTIONS_H
+#endif // MULTIPASS_COMMON_H

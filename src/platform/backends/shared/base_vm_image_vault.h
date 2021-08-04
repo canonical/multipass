@@ -60,7 +60,7 @@ public:
         if (!query.remote_name.empty())
             images_info = image_host_for(query.remote_name)->all_info_for(query);
         else
-            std::find_if(image_hosts.begin(), image_hosts.end(), grab_imgs);
+            static_cast<void>(std::any_of(image_hosts.begin(), image_hosts.end(), grab_imgs)); // intentional discard
 
         if (images_info.empty())
             throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"", query.release));

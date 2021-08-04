@@ -18,12 +18,11 @@
 #ifndef MULTIPASS_MOCK_IMAGE_VAULT_H
 #define MULTIPASS_MOCK_IMAGE_VAULT_H
 
-#include <multipass/query.h>
-#include <multipass/vm_image_vault.h>
-
+#include "common.h"
 #include "temp_file.h"
 
-#include <gmock/gmock.h>
+#include <multipass/query.h>
+#include <multipass/vm_image_vault.h>
 
 using namespace testing;
 
@@ -37,7 +36,7 @@ public:
     MockVMImageVault()
     {
         ON_CALL(*this, fetch_image(_, _, _, _)).WillByDefault([this](auto, auto, const PrepareAction& prepare, auto) {
-            return prepare({dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}, {}, {}, {}});
+            return VMImage{dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}, {}, {}, {}};
         });
         ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
         ON_CALL(*this, minimum_image_size_for(_)).WillByDefault(Return(MemorySize{"1048576"}));

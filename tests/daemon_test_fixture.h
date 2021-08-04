@@ -18,16 +18,7 @@
 #ifndef MULTIPASS_DAEMON_TEST_FIXTURE_H
 #define MULTIPASS_DAEMON_TEST_FIXTURE_H
 
-#include <src/client/cli/client.h>
-#include <src/daemon/daemon_config.h>
-#include <src/daemon/daemon_rpc.h>
-#include <src/platform/update/disabled_update_prompt.h>
-
-#include <multipass/auto_join_thread.h>
-#include <multipass/cli/argparser.h>
-#include <multipass/cli/command.h>
-#include <multipass/rpc/multipass.grpc.pb.h>
-
+#include "common.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
 #include "stub_cert_store.h"
@@ -41,11 +32,21 @@
 #include "stub_vm_workflow_provider.h"
 #include "temp_dir.h"
 
-#include <gmock/gmock.h>
+#include <src/client/cli/client.h>
+#include <src/daemon/daemon_config.h>
+#include <src/daemon/daemon_rpc.h>
+#include <src/platform/update/disabled_update_prompt.h>
+
+#include <multipass/auto_join_thread.h>
+#include <multipass/cli/argparser.h>
+#include <multipass/cli/client_common.h>
+#include <multipass/cli/command.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <memory>
 
 using namespace testing;
+namespace mp = multipass;
 
 namespace
 {
@@ -124,12 +125,75 @@ private:
     multipass::CreateRequest request;
 };
 
+class TestGet final : public mp::cmd::Command
+{
+public:
+    using Command::Command;
+    mp::ReturnCode run(mp::ArgParser* parser) override
+    {
+        std::string val;
+        auto on_success = [&val](mp::GetReply& reply) {
+            val = reply.value();
+            return mp::ReturnCode::Ok;
+        };
+
+        auto on_failure = [this](grpc::Status& status) {
+            return mp::cmd::standard_failure_handler_for(name(), cerr, status);
+        };
+
+        if (auto parse_result = parse_args(parser); parse_result == mp::ParseCode::Ok)
+        {
+            auto ret = dispatch(&mp::Rpc::Stub::get, request, on_success, on_failure);
+            cout << fmt::format("{}={}", request.key(), val);
+            return ret;
+        }
+        else
+            return parser->returnCodeFrom(parse_result);
+    }
+
+    std::string name() const override
+    {
+        return "test_get";
+    }
+
+    QString short_help() const override
+    {
+        return {};
+    }
+
+    QString description() const override
+    {
+        return {};
+    }
+
+private:
+    mp::ParseCode parse_args(mp::ArgParser* parser) override
+    {
+        parser->addPositionalArgument("key", "key of the setting to get");
+
+        auto status = parser->commandParse(this);
+        if (status == multipass::ParseCode::Ok)
+        {
+            const auto args = parser->positionalArguments();
+            if (args.count() == 1)
+                request.set_key(args.at(0).toStdString());
+            else
+                status = mp::ParseCode::CommandLineError;
+        }
+
+        return status;
+    }
+
+    mp::GetRequest request;
+};
+
 class TestClient : public multipass::Client
 {
 public:
     explicit TestClient(multipass::ClientConfig& context) : multipass::Client{context}
     {
         add_command<TestCreate>();
+        add_command<TestGet>();
         sort_commands();
     }
 };
@@ -163,8 +227,7 @@ struct DaemonTestFixture : public ::Test
     {
         EXPECT_CALL(MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
-        EXPECT_CALL(MockStandardPaths::mock_instance(),
-                    locate(_, Property(&QString::toStdString, EndsWith("settings.json")), _))
+        EXPECT_CALL(MockStandardPaths::mock_instance(), locate(_, match_qstring(EndsWith("settings.json")), _))
             .Times(AnyNumber())
             .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                                             it gets reset at the end of each test (by VerifyAndClearExpectations) */

@@ -139,6 +139,9 @@ public slots:
     virtual void version(const VersionRequest* request, grpc::ServerWriter<VersionReply>* response,
                          std::promise<grpc::Status>* status_promise);
 
+    virtual void get(const GetRequest* request, grpc::ServerWriter<GetReply>* response,
+                     std::promise<grpc::Status>* status_promise);
+
 private:
     void persist_instances();
     void release_resources(const std::string& instance);

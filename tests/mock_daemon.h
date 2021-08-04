@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_MOCK_DAEMON_H
 #define MULTIPASS_MOCK_DAEMON_H
 
+#include "common.h"
+
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_rpc.h>
-
-#include <gmock/gmock.h>
 
 namespace multipass
 {
@@ -48,6 +48,7 @@ struct MockDaemon : public Daemon
     MOCK_METHOD3(delet, void(const DeleteRequest*, grpc::ServerWriter<DeleteReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(umount, void(const UmountRequest*, grpc::ServerWriter<UmountReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(version, void(const VersionRequest*, grpc::ServerWriter<VersionReply>*, std::promise<grpc::Status>*));
+    MOCK_METHOD3(get, void(const GetRequest*, grpc::ServerWriter<GetReply>*, std::promise<grpc::Status>*));
 
     template <typename Request, typename Reply>
     void set_promise_value(const Request*, grpc::ServerWriter<Reply>*, std::promise<grpc::Status>* status_promise)

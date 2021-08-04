@@ -31,6 +31,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QStorageInfo>
+#include <QSysInfo>
 #include <QUuid>
 #include <QtGlobal>
 
@@ -45,6 +46,8 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -80,7 +83,7 @@ mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton
 {
 }
 
-qint64 mp::Utils::filesystem_bytes_available(const QString& data_directory)
+qint64 mp::Utils::filesystem_bytes_available(const QString& data_directory) const
 {
     return QStorageInfo(QDir(data_directory)).bytesAvailable();
 }
@@ -91,7 +94,7 @@ void mp::Utils::exit(int code)
 }
 
 void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                                    const mp::SSHKeyProvider& key_provider)
+                                    const mp::SSHKeyProvider& key_provider) const
 {
     auto action = [virtual_machine, &key_provider] {
         virtual_machine->ensure_vm_is_running();
@@ -113,6 +116,11 @@ void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
     };
     auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
     mp::utils::try_action_for(on_timeout, timeout, action);
+}
+
+std::string mp::Utils::get_kernel_version() const
+{
+    return QSysInfo::kernelVersion().toStdString();
 }
 
 QDir mp::utils::base_dir(const QString& path)
@@ -242,13 +250,12 @@ bool mp::utils::valid_mac_address(const std::string& mac)
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                   std::function<void()> const& ensure_vm_is_running)
 {
-    mpl::log(mpl::Level::debug, virtual_machine->vm_name,
-             fmt::format("Trying SSH on {}:{}", virtual_machine->ssh_hostname(), virtual_machine->ssh_port()));
+    mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
     auto action = [virtual_machine, &ensure_vm_is_running] {
         ensure_vm_is_running();
         try
         {
-            mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port()};
+            mp::SSHSession session{virtual_machine->ssh_hostname(1ms), virtual_machine->ssh_port()};
 
             std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             virtual_machine->state = VirtualMachine::State::running;

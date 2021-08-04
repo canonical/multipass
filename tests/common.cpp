@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,28 @@
  *
  */
 
-#ifndef MULTIPASS_NETWORK_INTERFACE_H
-#define MULTIPASS_NETWORK_INTERFACE_H
+#include "common.h"
 
-#include <string>
-#include <tuple>
+#include <multipass/network_interface.h>
+#include <multipass/network_interface_info.h>
 
-namespace multipass
-{
-struct NetworkInterface
-{
-    std::string id;
-    std::string mac_address;
-    bool auto_mode;
-};
+#include <QString>
 
-inline bool operator==(const NetworkInterface& a, const NetworkInterface& b)
+#include <ostream>
+
+QT_BEGIN_NAMESPACE
+void PrintTo(const QString& qstr, std::ostream* os)
 {
-    return std::tie(a.id, a.auto_mode, a.mac_address) == std::tie(b.id, b.auto_mode, b.mac_address);
+    *os << "QString(\"" << qUtf8Printable(qstr) << "\")";
 }
-} // namespace multipass
+QT_END_NAMESPACE
 
-#endif // MULTIPASS_NETWORK_INTERFACE_H
+void multipass::PrintTo(const NetworkInterface& net, std::ostream* os)
+{
+    *os << "NetworkInterface(id=\"" << net.id << "\")";
+}
+
+void multipass::PrintTo(const NetworkInterfaceInfo& net, std::ostream* os)
+{
+    *os << "NetworkInterfaceInfo(id=\"" << net.id << "\")";
+}

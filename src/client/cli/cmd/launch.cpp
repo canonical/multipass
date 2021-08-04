@@ -125,26 +125,17 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
-
     auto ret = request_launch(parser);
     if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
     {
-        QString mount_source{};
-        try
+        std::string mounts_value;
+        if (std::tie(ret, mounts_value) = request_mounts_setting_from_daemon(parser); ret == ReturnCode::Ok)
         {
-            mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+            if (mounts_value != "true")
+                cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
+            else
+                ret = mount_home(parser);
         }
-        catch (const mp::SnapEnvironmentException&)
-        {
-            mount_source = QDir::toNativeSeparators(QDir::homePath());
-        }
-
-        const auto mount_target = QString{"%1:%2"}.arg(petenv_name, mp::home_automount_dir);
-
-        ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
-        if (ret == ReturnCode::Ok)
-            cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
     }
 
     return ret;
@@ -271,7 +262,17 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(cpusOption))
     {
-        request.set_num_cores(parser->value(cpusOption).toInt());
+        bool conversion_pass;
+        const auto& cpu_text = parser->value(cpusOption);
+        const int cpu_count = cpu_text.toInt(&conversion_pass); // Base 10 conversion with check.
+
+        if (!conversion_pass || cpu_count < 1)
+        {
+            fmt::print(cerr, "error: Invalid CPU count '{}', need a positive integer value.\n", cpu_text);
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_num_cores(cpu_count);
     }
 
     if (parser->isSet(memOption))
@@ -334,6 +335,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
     request.set_verbosity_level(parser->verbosityLevel());
 
     return status;
@@ -461,6 +463,47 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
 }
 
+auto cmd::Launch::mount_home(const mp::ArgParser* parser) -> ReturnCode
+{
+    QString mount_source{};
+    try
+    {
+        mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+    }
+    catch (const SnapEnvironmentException&)
+    {
+        mount_source = QDir::toNativeSeparators(QDir::homePath());
+    }
+
+    const auto mount_target = QString{"%1:%2"}.arg(petenv_name, home_automount_dir);
+
+    auto ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+    if (ret == Ok)
+        cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
+
+    return ret;
+}
+
+auto cmd::Launch::request_mounts_setting_from_daemon(const ArgParser* parser) -> std::pair<ReturnCode, std::string>
+{
+    // TODO: This needs wrapping in mp::Settings
+    std::string mounts_value = "false";
+    mp::GetRequest get_request;
+
+    auto on_success = [&mounts_value](mp::GetReply& reply) {
+        mounts_value = reply.value();
+        return ReturnCode::Ok;
+    };
+
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+
+    get_request.set_key(mp::mounts_key);
+    get_request.set_verbosity_level(parser->verbosityLevel());
+    auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
+
+    return {ret, mounts_value};
+}
+
 auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInStatus::Status
 {
     if (term->is_live())
@@ -511,9 +554,9 @@ auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInS
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
     static constexpr auto plural = "Multipass needs to create {} to connect to {}.\nThis will temporarily disrupt "
-                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)?";
+                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)? ";
     static constexpr auto singular = "Multipass needs to create a {} to connect to {}.\nThis will temporarily disrupt "
-                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)?";
+                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)? ";
     static constexpr auto nodes = on_windows() ? "switches" : "bridges";
     static constexpr auto node = on_windows() ? "switch" : "bridge";
 

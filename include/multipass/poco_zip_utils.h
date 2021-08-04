@@ -33,7 +33,7 @@ class PocoZipUtils : public Singleton<PocoZipUtils>
 public:
     PocoZipUtils(const Singleton<PocoZipUtils>::PrivatePass&) noexcept;
 
-    virtual Poco::Zip::ZipArchive zip_archive_for(std::ifstream& zip_stream);
+    virtual Poco::Zip::ZipArchive zip_archive_for(std::ifstream& zip_stream) const;
 };
 } // namespace multipass
 

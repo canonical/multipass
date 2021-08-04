@@ -64,6 +64,17 @@ public:
         throw NotImplementedOnThisBackendException("networks");
     };
 
+protected:
+    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override
+    {
+        throw NotImplementedOnThisBackendException{"bridge creation"};
+    }
+
+    virtual void prepare_networking_guts(std::vector<NetworkInterface>& extra_interfaces,
+                                         const std::string& bridge_type);
+
+    virtual void prepare_interface(NetworkInterface& net, std::vector<NetworkInterfaceInfo>& host_nets,
+                                   const std::string& bridge_type);
 };
 } // namespace multipass
 

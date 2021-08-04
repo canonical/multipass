@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,24 @@ mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 {
     return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
 }
+
+std::string message_box(const std::string& message)
+{
+    std::string::size_type divider_length = 50;
+    {
+        std::istringstream m(message);
+        std::string s;
+        while (getline(m, s, '\n'))
+        {
+            divider_length = std::max(divider_length, s.length());
+        }
+    }
+
+    const auto divider = std::string(divider_length, '#');
+
+    return '\n' + divider + '\n' + message + '\n' + divider + '\n';
+}
+
 } // namespace
 
 mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command, std::ostream& cerr,
@@ -50,6 +68,12 @@ mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command,
 bool mp::cmd::update_available(const mp::UpdateInfo& update_info)
 {
     return update_info.version() != "";
+}
+
+std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
+{
+    return ::message_box(fmt::format("{}\n{}\n\nGo here for more information: {}", update_info.title(),
+                                     update_info.description(), update_info.url()));
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,

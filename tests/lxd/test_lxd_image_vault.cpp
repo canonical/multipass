@@ -15,18 +15,19 @@
  *
  */
 
-#include <src/platform/backends/lxd/lxd_vm_image_vault.h>
-
 #include "mock_local_socket_reply.h"
 #include "mock_lxd_server_responses.h"
 #include "mock_network_access_manager.h"
-#include "tests/extra_assertions.h"
+
+#include "tests/common.h"
 #include "tests/mock_image_host.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/stub_url_downloader.h"
 #include "tests/temp_dir.h"
 #include "tests/tracking_url_downloader.h"
+
+#include <src/platform/backends/lxd/lxd_vm_image_vault.h>
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>
@@ -36,8 +37,6 @@
 #include <QUrl>
 
 #include <vector>
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -398,16 +397,21 @@ TEST_F(LXDImageVault, percent_complete_returns_negative_on_metadata_download)
 
 TEST_F(LXDImageVault, delete_requested_on_instance_remove)
 {
-    bool delete_requested{false};
+    bool delete_requested{false}, wait_requested{false};
 
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
-        .WillByDefault([&delete_requested](auto, auto request, auto) {
+        .WillByDefault([&delete_requested, &wait_requested](auto, auto request, auto) {
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
             if (op == "DELETE" && url.contains("1.0/virtual-machines/pied-piper-valley"))
             {
                 delete_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::delete_vm_data);
+            }
+            else if (op == "GET" && url.contains("1.0/operations/1c6265fc-8194-4790-9ab0-3225b0479155"))
+            {
+                wait_requested = true;
                 return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
             }
 
@@ -419,6 +423,7 @@ TEST_F(LXDImageVault, delete_requested_on_instance_remove)
 
     EXPECT_NO_THROW(image_vault.remove(instance_name));
     EXPECT_TRUE(delete_requested);
+    EXPECT_TRUE(wait_requested);
 }
 
 TEST_F(LXDImageVault, logs_warning_when_removing_nonexistent_instance)

@@ -52,7 +52,7 @@ private:
     void main();
     const std::chrono::seconds timeout;
     const std::function<void()> callback;
-    multipass::utils::TimerState state;
+    TimerState current_state;
     std::thread t;
     std::condition_variable cv;
     std::mutex cv_m;

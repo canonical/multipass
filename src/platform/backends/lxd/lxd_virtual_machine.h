@@ -34,7 +34,7 @@ class LXDVirtualMachine final : public BaseVirtualMachine
 {
 public:
     LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, NetworkAccessManager* manager,
-                      const QUrl& base_url, const QString& bridge_name);
+                      const QUrl& base_url, const QString& bridge_name, const QString& storage_pool);
     ~LXDVirtualMachine() override;
     void stop() override;
     void start() override;

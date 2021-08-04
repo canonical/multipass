@@ -26,7 +26,6 @@
 #include <multipass/singleton.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
-#include <multipass/url_downloader.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
 
@@ -51,13 +50,13 @@ public:
     Platform(const Singleton::PrivatePass&) noexcept;
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
-    virtual QString get_workflows_url_override();
-    virtual bool is_alias_supported(const std::string& alias, const std::string& remote);
-    virtual bool is_remote_supported(const std::string& remote);
-    virtual int chown(const char* path, unsigned int uid, unsigned int gid);
-    virtual bool link(const char* target, const char* link);
-    virtual bool symlink(const char* target, const char* link, bool is_dir);
-    virtual int utime(const char* path, int atime, int mtime);
+    virtual QString get_workflows_url_override() const;
+    virtual bool is_alias_supported(const std::string& alias, const std::string& remote) const;
+    virtual bool is_remote_supported(const std::string& remote) const;
+    virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
+    virtual bool link(const char* target, const char* link) const;
+    virtual bool symlink(const char* target, const char* link, bool is_dir) const;
+    virtual int utime(const char* path, int atime, int mtime) const;
 };
 
 std::map<QString, QString> extra_settings_defaults();
@@ -70,8 +69,9 @@ void setup_gui_autostart_prerequisites();
 
 std::string default_server_address();
 QString default_driver();
+QString default_privileged_mounts();
 
-QString daemon_config_home();                      // temporary
+QString daemon_config_home(); // temporary
 
 bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
@@ -85,6 +85,8 @@ bool is_image_url_supported();
 std::function<int()> make_quit_watchdog(); // call while single-threaded; call result later, in dedicated thread
 
 std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
+
+std::string host_version();
 
 } // namespace platform
 } // namespace multipass

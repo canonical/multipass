@@ -21,6 +21,7 @@ set(MULTIPASS_GMOCK_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletes
 set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googletest)
 
 add_executable(multipass_tests
+  common.cpp
   file_operations.cpp
   image_host_remote_count.cpp
   main.cpp
@@ -79,6 +80,7 @@ add_executable(multipass_tests
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
+  test_url_downloader.cpp
   test_utils.cpp
   test_with_mocked_bin_path.cpp
   test_workflow_provider.cpp

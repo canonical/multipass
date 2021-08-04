@@ -19,6 +19,7 @@
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -154,29 +155,92 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
 }
 } // namespace
 
+std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
+{
+    const std::array<QString, 3> options{QStringLiteral("/var/lib/snapd/hostfs/etc/os-release"),
+                                         QStringLiteral("/var/lib/snapd/hostfs/usr/lib/os-release"),
+                                         QStringLiteral("")};
+
+    auto it = options.cbegin();
+    auto ret = std::make_unique<QFile>(*it);
+    while (++it != options.cend() && !MP_FILEOPS.open(*ret, QIODevice::ReadOnly | QIODevice::Text))
+        ret->setFileName(*it);
+
+    return ret;
+}
+
+std::pair<QString, QString> multipass::platform::detail::parse_os_release(const QStringList& os_data)
+{
+    const QString id_field = "NAME";
+    const QString version_field = "VERSION_ID";
+
+    QString distro_id = "unknown";
+    QString distro_rel = "unknown";
+
+    auto strip_quotes = [](const QString& val) -> QString { return val.mid(1, val.length() - 2); };
+
+    for (const QString& line : os_data)
+    {
+        QStringList split = line.split('=', QString::KeepEmptyParts);
+        if (split.length() == 2 && split[1].length() > 2) // Check for at least 1 char between quotes.
+        {
+            if (split[0] == id_field)
+                distro_id = strip_quotes(split[1]);
+            else if (split[0] == version_field)
+                distro_rel = strip_quotes(split[1]);
+        }
+    }
+
+    return std::pair(distro_id, distro_rel);
+}
+
+std::string multipass::platform::detail::read_os_release()
+{
+    std::unique_ptr<QFile> os_release = find_os_release();
+
+    QStringList os_info;
+    if (MP_FILEOPS.is_open(*os_release))
+    {
+        QTextStream input(os_release.get());
+        QString line = MP_FILEOPS.read_line(input);
+        while (!line.isNull())
+        {
+            os_info.append(line);
+            line = MP_FILEOPS.read_line(input);
+        }
+        os_release->close();
+
+        auto parsed = parse_os_release(os_info);
+
+        return fmt::format("{}-{}", parsed.first, parsed.second);
+    }
+
+    return "unknown-unknown";
+}
+
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
     static const auto sysfs = QDir{QStringLiteral("/sys/class/net")};
     return detail::get_network_interfaces_from(sysfs);
 }
 
-QString mp::platform::Platform::get_workflows_url_override()
+QString mp::platform::Platform::get_workflows_url_override() const
 {
     return QString::fromUtf8(qgetenv("MULTIPASS_WORKFLOWS_URL"));
 }
 
-bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote)
+bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
     return true;
 }
 
-bool mp::platform::Platform::is_remote_supported(const std::string& remote)
+bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
     // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
     return remote != "snapcraft" || utils::get_driver_str() != "lxd";
 }
 
-bool mp::platform::Platform::link(const char* target, const char* link)
+bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     return ::link(target, link) == 0;
 }
@@ -251,6 +315,11 @@ QString mp::platform::default_driver()
     return QStringLiteral("qemu");
 }
 
+QString mp::platform::default_privileged_mounts()
+{
+    return QStringLiteral("true");
+}
+
 QString mp::platform::daemon_config_home() // temporary
 {
     auto ret = QString{qgetenv("DAEMON_CONFIG_HOME")};
@@ -307,4 +376,10 @@ bool mp::platform::is_image_url_supported()
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 {
     return ux_id;
+}
+
+std::string multipass::platform::host_version()
+{
+    return mu::in_multipass_snap() ? multipass::platform::detail::read_os_release()
+                                   : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_DNSMASQ_SERVER_H
-#define MULTIPASS_MOCK_DNSMASQ_SERVER_H
+#ifndef MULTIPASS_MOCK_BACKEND_UTILS_H
+#define MULTIPASS_MOCK_BACKEND_UTILS_H
 
-#include "tests/mock_platform.h"
+#include "common.h"
+#include "mock_singleton_helpers.h"
 
-#include <src/platform/backends/qemu/dnsmasq_server.h>
+#include <src/platform/backends/shared/linux/backend_utils.h>
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
+class MockBackend : public Backend
 {
-struct MockDNSMasqServer : public DNSMasqServer
-{
-    using DNSMasqServer::DNSMasqServer; // ctor
+public:
+    using Backend::Backend;
+    MOCK_METHOD1(create_bridge_with, std::string(const std::string&));
 
-    MockDNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet){};
-
-    MOCK_METHOD1(get_ip_for, optional<IPAddress>(const std::string&));
+    MP_MOCK_SINGLETON_BOILERPLATE(MockBackend, Backend);
 };
-} // namespace test
-} // namespace multipass
-#endif // MULTIPASS_MOCK_DNSMASQ_SERVER_H
+} // namespace multipass::test
+
+#endif // MULTIPASS_MOCK_BACKEND_UTILS_H
