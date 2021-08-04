@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ multipass::ReturnCode standard_failure_handler_for(const std::string& command, s
                                                    const grpc::Status& status,
                                                    const std::string& error_details = std::string());
 bool update_available(const UpdateInfo& update_info);
+std::string update_notice(const multipass::UpdateInfo& update_info);
 }
 
 namespace client
