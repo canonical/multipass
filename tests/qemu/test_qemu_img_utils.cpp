@@ -102,10 +102,12 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
     auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
 
-    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, 1);
-        simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
-    });
+    mock_factory_scope->register_callback(
+        [&](mpt::MockProcess* process)
+        {
+            ASSERT_LE(++process_count, 1);
+            simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
+        });
 
     if (throw_msg_matcher)
         MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(requested_size, img), std::runtime_error,
@@ -125,19 +127,21 @@ void test_image_conversion(const char* img_path, const char* expected_img_path, 
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
     const auto expected_final_process_count = attempt_convert ? 2 : 1;
 
-    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, expected_final_process_count);
-        if (process_count == 1)
+    mock_factory_scope->register_callback(
+        [&](mpt::MockProcess* process)
         {
-            auto msg = QByteArray{qemuimg_info_output};
+            ASSERT_LE(++process_count, expected_final_process_count);
+            if (process_count == 1)
+            {
+                auto msg = QByteArray{qemuimg_info_output};
 
-            simulate_qemuimg_info_with_json(process, img_path, qemuimg_info_result, msg);
-        }
-        else
-        {
-            simulate_qemuimg_convert(process, img_path, expected_img_path, qemuimg_convert_result);
-        }
-    });
+                simulate_qemuimg_info_with_json(process, img_path, qemuimg_info_result, msg);
+            }
+            else
+            {
+                simulate_qemuimg_convert(process, img_path, expected_img_path, qemuimg_convert_result);
+            }
+        });
 
     if (throw_msg_matcher)
         MP_EXPECT_THROW_THAT(mp::backend::convert_to_qcow_if_necessary(img_path), std::runtime_error,

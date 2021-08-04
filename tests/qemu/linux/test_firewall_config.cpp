@@ -62,7 +62,8 @@ struct KernelCheckTestSuite : FirewallConfig, WithParamInterface<std::tuple<std:
 TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
 {
     const QString error_msg{"Cannot find iptables-nft"};
-    mpt::MockProcessFactory::Callback firewall_callback = [&error_msg](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback firewall_callback = [&error_msg](mpt::MockProcess* process)
+    {
         if (process->program() == "iptables-nft")
         {
             mp::ProcessState exit_state{1, mp::ProcessState::Error{QProcess::FailedToStart, error_msg}};
@@ -81,7 +82,8 @@ TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
 
 TEST_F(FirewallConfig, firewallVerifyNoErrorDoesNotThrow)
 {
-    mpt::MockProcessFactory::Callback firewall_callback = [this](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback firewall_callback = [this](mpt::MockProcess* process)
+    {
         if (process->arguments().contains(goodbr0))
         {
             mp::ProcessState exit_state;
@@ -102,7 +104,8 @@ TEST_F(FirewallConfig, firewallErrorThrowsOnVerify)
 {
     const QByteArray msg{"Evil bridge detected!"};
 
-    mpt::MockProcessFactory::Callback firewall_callback = [this, &msg](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback firewall_callback = [this, &msg](mpt::MockProcess* process)
+    {
         if (process->arguments().contains(evilbr0))
         {
             mp::ProcessState exit_state;
@@ -130,8 +133,9 @@ TEST_F(FirewallConfig, dtorDeletesKnownRules)
     const QByteArray full_rule{"-A " + base_rule};
     bool delete_called{false};
 
-    mpt::MockProcessFactory::Callback firewall_callback = [&base_rule, &full_rule,
-                                                           &delete_called](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback firewall_callback =
+        [&base_rule, &full_rule, &delete_called](mpt::MockProcess* process)
+    {
         if (process->arguments().contains("--list-rules"))
         {
             EXPECT_CALL(*process, read_all_standard_output()).WillRepeatedly(Return(full_rule));
@@ -162,7 +166,8 @@ TEST_F(FirewallConfig, dtorDeleteErrorLogsErrorAndContinues)
     const QByteArray full_rule{"-A " + base_rule};
     const QByteArray msg{"Bad stuff happened"};
 
-    mpt::MockProcessFactory::Callback firewall_callback = [&](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback firewall_callback = [&](mpt::MockProcess* process)
+    {
         if (process->arguments().contains("--list-rules"))
         {
             EXPECT_CALL(*process, read_all_standard_output()).WillRepeatedly(Return(full_rule));

@@ -262,13 +262,15 @@ void clear_firewall_rules_for(const QString& firewall, const QString& table, con
 bool is_firewall_in_use(const QString& firewall)
 {
 
-    return std::any_of(firewall_tables.cbegin(), firewall_tables.cend(), [&firewall](const QString& table) {
-        QRegularExpression re{"^-[ARIN]"};
-        auto rule_lines = get_firewall_rules(firewall, table).split('\n');
+    return std::any_of(firewall_tables.cbegin(), firewall_tables.cend(),
+                       [&firewall](const QString& table)
+                       {
+                           QRegularExpression re{"^-[ARIN]"};
+                           auto rule_lines = get_firewall_rules(firewall, table).split('\n');
 
-        return std::any_of(rule_lines.cbegin(), rule_lines.cend(),
-                           [&re](const QString& line) { return re.match(line).hasMatch(); });
-    });
+                           return std::any_of(rule_lines.cbegin(), rule_lines.cend(),
+                                              [&re](const QString& line) { return re.match(line).hasMatch(); });
+                       });
 }
 
 // We require a >= 5.2 kernel to avoid weird conflicts with xtables and support for inet table NAT rules.

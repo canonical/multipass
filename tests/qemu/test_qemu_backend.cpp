@@ -577,9 +577,8 @@ TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
     const std::string expected_ip{"10.10.0.34"};
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
-        return mp::optional<mp::IPAddress>{expected_ip};
-    });
+    ON_CALL(mock_qemu_platform, get_ip_for(_))
+        .WillByDefault([&expected_ip](auto...) { return mp::optional<mp::IPAddress>{expected_ip}; });
 
     mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
