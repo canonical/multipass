@@ -16,6 +16,7 @@
  */
 
 #include <multipass/cli/table_formatter.h>
+
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
