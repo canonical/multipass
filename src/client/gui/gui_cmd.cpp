@@ -104,7 +104,12 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     }
 
     update_hotkey();
-    QObject::connect(&hotkey, &QHotkey::activated, qApp, [&]() { mp::cli::platform::open_multipass_shell(QString()); });
+    QObject::connect(&hotkey, &QHotkey::activated, qApp,
+                     [&]()
+                     {
+                         if (!current_petenv_name.empty())
+                             mp::cli::platform::open_multipass_shell(QString::fromStdString(current_petenv_name));
+                     });
 
     create_actions();
     create_menu();
@@ -158,7 +163,7 @@ void cmd::GuiCmd::create_actions()
                                  {&petenv_start_action, &petenv_shell_action, &petenv_stop_action});
 
     QObject::connect(&petenv_shell_action, &QAction::triggered,
-                     [] { mp::cli::platform::open_multipass_shell(QString()); });
+                     [this] { mp::cli::platform::open_multipass_shell(QString::fromStdString(current_petenv_name)); });
     QObject::connect(&petenv_stop_action, &QAction::triggered, [this] {
         future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, current_petenv_name));
     });
@@ -235,6 +240,12 @@ void cmd::GuiCmd::update_menu()
     {
         about_separator->setVisible(true);
     }
+
+    const bool petenv_visibility = !current_petenv_name.empty();
+    petenv_actions_separator->setVisible(petenv_visibility);
+    petenv_start_action.setVisible(petenv_visibility);
+    petenv_shell_action.setVisible(petenv_visibility);
+    petenv_stop_action.setVisible(petenv_visibility);
 }
 
 void cmd::GuiCmd::update_about_menu()
