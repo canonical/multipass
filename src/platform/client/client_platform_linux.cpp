@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ namespace mcp = multipass::cli::platform;
 
 void mcp::open_multipass_shell(const QString& instance_name)
 {
+    assert(!instance_name.isEmpty() && "Instance name cannot be empty");
     QProcess::startDetached(
         "xterm", {"-title", instance_name, "-j", "-e", QString("multipass shell %1 || read").arg(instance_name)});
 }

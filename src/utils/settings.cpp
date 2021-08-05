@@ -203,7 +203,7 @@ QString mp::Settings::get_client_settings_file_path() // idem
 void multipass::Settings::set_aux(const QString& key, QString val) // work with a copy of val
 {
     // TODO we should have handler callbacks instead
-    if (key == petenv_key && !mp::utils::valid_hostname(val.toStdString()))
+    if (key == petenv_key && !val.isEmpty() && !mp::utils::valid_hostname(val.toStdString()))
         throw InvalidSettingsException{key, val, "Invalid hostname"};
     else if (key == driver_key && !mp::platform::is_backend_supported(val))
         throw InvalidSettingsException(key, val, "Invalid driver");
