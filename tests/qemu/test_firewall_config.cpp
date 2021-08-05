@@ -223,11 +223,17 @@ INSTANTIATE_TEST_SUITE_P(FirewallConfig, FirewallToUseTestSuite,
 TEST_P(KernelCheckTestSuite, usesIptablesAndLogsWithBadKernelInfo)
 {
     auto [kernel, msg] = GetParam();
+    bool nftables_called{false};
 
-    mpt::MockProcessFactory::Callback firewall_callback = [](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback firewall_callback = [&nftables_called](mpt::MockProcess* process)
+    {
         if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
         {
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray()));
+        }
+        else if (process->program() == "iptables-nft")
+        {
+            nftables_called = true;
         }
     };
 
@@ -242,6 +248,8 @@ TEST_P(KernelCheckTestSuite, usesIptablesAndLogsWithBadKernelInfo)
     logger_scope.mock_logger->expect_log(mpl::Level::warning, msg);
 
     mp::FirewallConfig firewall_config{goodbr0, subnet};
+
+    EXPECT_FALSE(nftables_called);
 }
 
 INSTANTIATE_TEST_SUITE_P(FirewallConfig, KernelCheckTestSuite,
