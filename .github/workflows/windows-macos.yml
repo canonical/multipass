@@ -283,7 +283,6 @@ jobs:
       run: >
         ${{ env.ARCH_WRAPPER }}
         cmake
-        -H.
         -B${{ env.BUILD_DIR }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
@@ -293,6 +292,7 @@ jobs:
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
         ${{ runner.os == 'macOS' && '-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache' || '' }}
+        ${{ github.workspace }}
 
     - name: Build
       run: ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }}
