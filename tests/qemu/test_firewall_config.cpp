@@ -192,16 +192,17 @@ TEST_F(FirewallConfig, dtorDeleteErrorLogsErrorAndContinues)
 
 TEST_P(FirewallToUseTestSuite, usesExpectedFirewall)
 {
-    const auto& [expected_firewall, nft_response, legacy_response] = GetParam();
+    const auto& param = GetParam();
 
-    mpt::MockProcessFactory::Callback firewall_callback = [&nft_response, &legacy_response](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback firewall_callback = [&param](mpt::MockProcess* process)
+    {
         if (process->program() == "iptables-nft" && process->arguments().contains("--list-rules"))
         {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(nft_response));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(std::get<1>(param)));
         }
         else if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
         {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(legacy_response));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(std::get<2>(param)));
         }
     };
 
@@ -209,7 +210,7 @@ TEST_P(FirewallToUseTestSuite, usesExpectedFirewall)
     factory->register_callback(firewall_callback);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
-    logger_scope.mock_logger->expect_log(mpl::Level::info, expected_firewall);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, std::get<0>(param));
 
     mp::FirewallConfig firewall_config{goodbr0, subnet};
 }
