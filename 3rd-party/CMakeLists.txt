@@ -165,6 +165,7 @@ if (APPLE)
           --firmwarepath=${CMAKE_BINARY_DIR}/Resources/qemu/
           --ninja=ninja
           --target-list=${HOST_ARCH}-softmmu
+          --enable-hvf
           --disable-bochs
           --disable-cloop
           --disable-docs
@@ -172,7 +173,7 @@ if (APPLE)
           --disable-parallels
           --disable-vdi
           --disable-qed
-          --disable-sheepdog
+          --disable-libiscsi
           --disable-vnc
           --disable-xen
           --disable-dmg
