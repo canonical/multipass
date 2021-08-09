@@ -49,6 +49,16 @@ set(CPACK_PACKAGE_NAME              "multipass")
 set(CPACK_PACKAGE_VENDOR            "canonical")
 set(CPACK_PACKAGE_CONTACT           "contact@canonical.com")
 set(CPACK_PACKAGE_VERSION           "${MULTIPASS_VERSION}")
+
+if (APPLE)
+  execute_process(
+    COMMAND uname -m
+    OUTPUT_VARIABLE MACHINE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}+${MACHINE}")
+endif()
+
 #set(CPACK_PACKAGE_ICON              "${PROJECT_SOURCE_DIR}/cmake/sac_logo.png")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
