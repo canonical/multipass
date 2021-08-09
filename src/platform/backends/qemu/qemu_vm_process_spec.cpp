@@ -140,9 +140,6 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         // Control interface
         args << "-qmp"
              << "stdio";
-        // Pass host CPU flags to VM
-        args << "-cpu"
-             << "host";
         // No console
         args << "-chardev"
              // TODO Read and log machine output when verbose
