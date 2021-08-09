@@ -275,6 +275,13 @@ jobs:
       with:
         args: install --yes qemu-img openssl
 
+    - name: Install Qt
+      if: ${{ runner.os == 'Windows' }}
+      uses: jurplel/install-qt-action@v2
+      with:
+        setup-python: false
+      timeout-minutes: 10
+
     - name: Set up MSVC
       if: ${{ runner.os == 'Windows' }}
       uses: ilammy/msvc-dev-cmd@v1
