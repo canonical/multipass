@@ -69,8 +69,6 @@ TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
                                              "tap,id=hostnet0,ifname=tap_device,script=no,downscript=no",
                                              "-qmp",
                                              "stdio",
-                                             "-cpu",
-                                             "host",
                                              "-chardev",
                                              "null,id=char0",
                                              "-serial",
