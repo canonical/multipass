@@ -158,7 +158,8 @@ function codesign_binaries {
     # sign qemu with the entitlement file
     find "${DIR}" -type f -name qemu-system-* -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
-            $( entitlements com.apple.security.hypervisor ) \
+            $( entitlements com.apple.security.hypervisor \
+                            com.apple.security.cs.disable-executable-page-protection ) \
             --identifier com.canonical.multipass.qemu \
             --sign "${SIGN_APP}"
 
