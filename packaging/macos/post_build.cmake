@@ -14,4 +14,10 @@
 
 cmake_minimum_required(VERSION 3.19)
 
-execute_process(COMMAND "${CPACK_MODULE_PATH}/sign-and-notarize.sh" --app-signer - "${CPACK_TEMPORARY_PACKAGE_FILE_NAME}")
+foreach(PACKAGE IN LISTS CPACK_PACKAGE_FILES)
+    cmake_path(GET PACKAGE PARENT_PATH PACKAGE_DIR)
+    execute_process(
+        COMMAND "${CPACK_MODULE_PATH}/sign-and-notarize.sh" --app-signer - ${PACKAGE}
+        WORKING_DIRECTORY ${PACKAGE_DIR}
+    )
+endforeach()
