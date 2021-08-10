@@ -127,14 +127,8 @@ function sign_installer {
 function codesign_binaries {
     DIR="$1"
     # sign every file in the directory
-    find "${DIR}" -type f -not -name hyperkit -print0 | xargs -0L1 \
+    find "${DIR}" -type f -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
-            --prefix com.canonical.multipass. \
-            --sign "${SIGN_APP}"
-
-    # sign every bundle in the directory
-    find "${DIR}" -type d -name '*.app' -print0 | xargs -0L1 \
-        codesign -v --timestamp --options runtime --force --strict --deep \
             --prefix com.canonical.multipass. \
             --sign "${SIGN_APP}"
 
@@ -143,6 +137,21 @@ function codesign_binaries {
         codesign -v --timestamp --options runtime --force --strict \
             --entitlements "${SCRIPTDIR}/hyperkit.entitlements.plist" \
             --identifier com.canonical.multipass.hyperkit \
+            --sign "${SIGN_APP}"
+
+    if [ "${SIGN_APP}" == "-" ]; then
+        # disable library validation
+        find "${DIR}" -type f -path '*/bin/*' -print0 | xargs -0L1 \
+            codesign -v --timestamp --options runtime --force --strict \
+                --entitlements "${SCRIPTDIR}/adhoc.entitlements.plist" \
+                --prefix com.canonical.multipass. \
+                --sign "${SIGN_APP}"
+    fi
+
+    # sign every bundle in the directory
+    find "${DIR}" -type d -name '*.app' -print0 | xargs -0L1 \
+        codesign -v --timestamp --options runtime --force --strict --deep \
+            --prefix com.canonical.multipass. \
             --sign "${SIGN_APP}"
 }
 
