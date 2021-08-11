@@ -7,6 +7,8 @@ on:
         description: Snap Store channel
       mac-package:
         description: macOS package URL
+      mac-arm-package:
+        description: macOS ARM package URL
       win-package:
         description: Windows package URL
 
@@ -32,7 +34,12 @@ jobs:
         fi
 
         if [ -n '${{ github.event.inputs.mac-package }}' ]; then
-          MATRIX+='{"os": "macOS", "driver": "hyperkit"}'
+          MATRIX+='{"os": "macOS", "driver": "hyperkit", "arch": "x86_64"}'
+          MATRIX+='{"os": "macOS", "driver": "qemu", "arch": "x86_64"}'
+        fi
+
+        if [ -n '${{ github.event.inputs.mac-arm-package }}' ]; then
+          MATRIX+='{"os": "macOS", "driver": "qemu", "arch": "aarch64"}'
         fi
 
         if [ -n '${{ github.event.inputs.win-package }}' ]; then
@@ -62,11 +69,11 @@ jobs:
         path: ${{ env.TESTFLINGER_FILE }}
         write-mode: overwrite
         contents: |
-          job_queue: vmware-fusion
+          job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'aarch64' && 'macos-arm' || 'vmware-fusion' }}
           output_timeout: 2400
           provision_data:
             ${{ matrix.os == 'Linux' && 'vmx: /Users/michal/Virtual Machines.localized/linux.vmwarevm/linux.vmx' || '' }}
-            ${{ matrix.os == 'macOS' && 'vmx: /Users/michal/Virtual Machines.localized/macos-11.vmwarevm/macos-11.vmx' || '' }}
+            ${{ matrix.os == 'macOS' && matrix.arch == 'x86_64' && 'vmx: /Users/michal/Virtual Machines.localized/macos-11.vmwarevm/macos-11.vmx' || '' }}
             ${{ matrix.os == 'Windows' && 'vmx: /Users/michal/Virtual Machines.localized/windows-10.vmwarevm/windows-10.vmx' || '' }}
             snapshot: Testflinger
             ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/groovy/release/ubuntu-20.10-server-cloudimg-amd64.img' || '' }}
@@ -122,6 +129,8 @@ jobs:
                   [ $RC -eq 0 ] || _run sudo journalctl -u snap.multipass*
                 elif [ '${{ matrix.os }}' == 'macOS' ]; then
                   [ $RC -eq 0 ] || _run sudo cat /Library/Logs/Multipass/multipassd.log
+                  ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
+                  _run sudo rm -rf /Library/Logs/Multipass
                 fi
               }}
               trap _exit EXIT
@@ -142,7 +151,7 @@ jobs:
                 _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.snap-channel }}
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
-                _run curl --location --output multipass.pkg ${{ github.event.inputs.mac-package }}
+                _run curl --location --output multipass.pkg ${{ github.event.inputs.mac-package || github.event.inputs.mac-arm-package }}
                 _run sudo installer -dumplog -target / -pkg multipass.pkg
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
