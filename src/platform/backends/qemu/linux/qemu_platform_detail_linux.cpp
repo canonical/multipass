@@ -172,7 +172,7 @@ QStringList mp::QemuPlatformDetail::qemu_platform_args()
                          << "host";
 }
 
-mp::QemuPlatform::UPtr mp::make_qemu_platform(const Path& data_dir)
+mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
 }

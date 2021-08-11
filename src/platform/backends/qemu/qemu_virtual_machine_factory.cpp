@@ -37,7 +37,7 @@ constexpr auto category = "qemu factory";
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : qemu_platform{mp::make_qemu_platform(data_dir)}
+    : qemu_platform{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir)}
 {
 }
 
