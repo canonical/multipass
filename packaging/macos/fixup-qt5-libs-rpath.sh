@@ -49,6 +49,10 @@ for framework in ${QT_FRAMEWORKS}; do
     RPATH_CHANGES+=("${QT5_PATH}/lib/${framework_path}")
     RPATH_CHANGES+=("@rpath/${framework_path}")
 
+    RPATH_CHANGES+=("-change")
+    RPATH_CHANGES+=("${CELLAR_PATH}/${QT_VERSION}/lib/${framework_path}")
+    RPATH_CHANGES+=("@rpath/${framework_path}")
+
     mkdir -p "${LIB_DIR}/${framework_dir}"
     cp -fv "${QT5_PATH}/lib/${framework_path}" \
            "${LIB_DIR}/${framework_dir}"
@@ -59,7 +63,7 @@ for framework in ${QT_FRAMEWORKS}; do
 
     install_name_tool "-id" "@rpath/${framework_path}" "${LIB_DIR}/${framework_path}"
 
-    QT5_DEPS=( $(otool -L ${QT5_PATH}/lib/${framework_path} | grep ${CELLAR_PATH} | awk -F '\t' -F ' ' '{ print $1 }') )
+    QT5_DEPS=$(otool -L ${QT5_PATH}/lib/${framework_path} | grep ${CELLAR_PATH} | awk -F '\t' -F ' ' '{ print $1 }')
     for dep in ${QT5_DEPS:-}; do
         BASE_DEP=$( basename ${dep} )
         install_name_tool "-change" "${dep}" "@rpath/${BASE_DEP}.framework/Versions/5/${BASE_DEP}" "${LIB_DIR}/${framework_path}"
