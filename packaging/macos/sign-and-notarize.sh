@@ -166,6 +166,7 @@ function codesign_binaries {
     # sign every bundle in the directory
     find "${DIR}" -type d -name '*.app' -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict --deep \
+            $( entitlements ) \
             --prefix com.canonical.multipass. \
             --sign "${SIGN_APP}"
 }
