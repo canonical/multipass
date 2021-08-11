@@ -48,7 +48,5 @@ done
 
 # Edit the binaries to point to these newly edited libs
 for binary in ${BINARIES}; do
-    if ! otool -l "${CMAKE_BINARY_DIR}/${binary}" | grep -q "${LIB_DIR}"; then
-        install_name_tool "${RPATH_CHANGES[@]}" "${CMAKE_BINARY_DIR}/${binary}"
-    fi
+    install_name_tool "${RPATH_CHANGES[@]}" "${CMAKE_BINARY_DIR}/${binary}"
 done
