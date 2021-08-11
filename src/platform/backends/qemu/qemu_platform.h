@@ -21,6 +21,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
+#include <multipass/singleton.h>
 
 #include <QHash>
 #include <QString>
@@ -72,6 +73,15 @@ private:
     const QString host_arch;
 };
 
-QemuPlatform::UPtr make_qemu_platform(const Path& data_dir);
+#define MP_QEMU_PLATFORM_FACTORY multipass::QemuPlatformFactory::instance()
+
+class QemuPlatformFactory : public Singleton<QemuPlatformFactory>
+{
+public:
+    QemuPlatformFactory(const Singleton<QemuPlatformFactory>::PrivatePass& pass) noexcept
+        : Singleton<QemuPlatformFactory>::Singleton{pass} {};
+
+    virtual QemuPlatform::UPtr make_qemu_platform(const Path& data_dir) const;
+};
 } // namespace multipass
 #endif // MULTIPASS_QEMU_PLATFORM_H
