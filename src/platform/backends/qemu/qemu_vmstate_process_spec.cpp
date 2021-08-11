@@ -26,5 +26,16 @@ mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name, con
 
 QStringList mp::QemuVmStateProcessSpec::arguments() const
 {
-    return {"-nographic", "-dump-vmstate", file_name};
+    QStringList args;
+
+    if (host_arch == "aarch64")
+    {
+        args << "-machine"
+             << "virt,highmem=off";
+    }
+
+    args << "-nographic"
+         << "-dump-vmstate" << file_name;
+
+    return args;
 }
