@@ -299,7 +299,7 @@ QString detect_firewall()
     QString firewall_exec;
     try
     {
-        firewall_exec = (is_firewall_in_use(nftables) || (!is_firewall_in_use(iptables) && kernel_supports_nftables()))
+        firewall_exec = kernel_supports_nftables() && (is_firewall_in_use(nftables) || !is_firewall_in_use(iptables))
                             ? nftables
                             : iptables;
     }

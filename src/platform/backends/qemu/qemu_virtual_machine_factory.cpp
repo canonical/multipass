@@ -51,8 +51,6 @@ auto generate_tap_device_name(const std::string& vm_name)
 
 void create_virtual_switch(const std::string& subnet, const QString& bridge_name)
 {
-    const QString dummy_name{bridge_name + "-dummy"};
-
     if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
         const auto mac_address = mp::utils::generate_mac_address();
@@ -60,9 +58,7 @@ void create_virtual_switch(const std::string& subnet, const QString& bridge_name
         const auto broadcast = fmt::format("{}.255", subnet);
 
         mp::utils::run_cmd_for_status("ip",
-                                      {"link", "add", dummy_name, "address", mac_address.c_str(), "type", "dummy"});
-        mp::utils::run_cmd_for_status("ip", {"link", "add", bridge_name, "type", "bridge"});
-        mp::utils::run_cmd_for_status("ip", {"link", "set", dummy_name, "master", bridge_name});
+                                      {"link", "add", bridge_name, "address", mac_address.c_str(), "type", "bridge"});
         mp::utils::run_cmd_for_status(
             "ip", {"address", "add", cidr.c_str(), "dev", bridge_name, "broadcast", broadcast.c_str()});
         mp::utils::run_cmd_for_status("ip", {"link", "set", bridge_name, "up"});
@@ -71,12 +67,9 @@ void create_virtual_switch(const std::string& subnet, const QString& bridge_name
 
 void delete_virtual_switch(const QString& bridge_name)
 {
-    const QString dummy_name{bridge_name + "-dummy"};
-
     if (mp::utils::run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
         mp::utils::run_cmd_for_status("ip", {"link", "delete", bridge_name});
-        mp::utils::run_cmd_for_status("ip", {"link", "delete", dummy_name});
     }
 }
 
