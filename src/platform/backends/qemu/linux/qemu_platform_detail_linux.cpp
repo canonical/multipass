@@ -116,7 +116,7 @@ void delete_virtual_switch(const QString& bridge_name)
 mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
     : bridge_name{multipass_bridge_name},
       network_dir{mp::utils::make_dir(QDir(data_dir), "network")},
-      subnet{mp::backend::get_subnet(network_dir, bridge_name)},
+      subnet{MP_BACKEND.get_subnet(network_dir, bridge_name)},
       dnsmasq_server{create_dnsmasq_server(network_dir, bridge_name, subnet)},
       firewall_config{bridge_name, subnet}
 {
