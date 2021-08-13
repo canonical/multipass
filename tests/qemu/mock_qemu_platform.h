@@ -18,9 +18,10 @@
 #ifndef MULTIPASS_MOCK_QEMU_PLATFORM_H
 #define MULTIPASS_MOCK_QEMU_PLATFORM_H
 
-#include <src/platform/backends/qemu/qemu_platform.h>
+#include "tests/common.h"
+#include "tests/mock_singleton_helpers.h"
 
-#include <gmock/gmock.h>
+#include <src/platform/backends/qemu/qemu_platform.h>
 
 namespace multipass
 {
@@ -31,9 +32,29 @@ struct MockQemuPlatform : public QemuPlatform
     using QemuPlatform::QemuPlatform; // ctor
 
     MOCK_METHOD1(get_ip_for, optional<IPAddress>(const std::string&));
+    MOCK_METHOD1(remove_resources_for, void(const std::string&));
     MOCK_METHOD0(platform_health_check, void());
     MOCK_METHOD2(qemu_netdev, QString(const std::string&, const std::string&));
     MOCK_METHOD0(qemu_platform_args, QStringList());
+    MOCK_METHOD0(get_directory_name, QString());
+
+    QStringList base_qemu_platform_args()
+    {
+        return QemuPlatform::qemu_platform_args();
+    };
+    QString base_get_directory_name()
+    {
+        return QemuPlatform::get_directory_name();
+    };
+};
+
+struct MockQemuPlatformFactory : public QemuPlatformFactory
+{
+    using QemuPlatformFactory::QemuPlatformFactory;
+
+    MOCK_CONST_METHOD1(make_qemu_platform, QemuPlatform::UPtr(const Path&));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockQemuPlatformFactory, QemuPlatformFactory);
 };
 } // namespace test
 } // namespace multipass
