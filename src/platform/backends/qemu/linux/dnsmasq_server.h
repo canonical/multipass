@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
+#include <multipass/singleton.h>
 
 #include <QTemporaryFile>
 
@@ -34,6 +35,8 @@ class Process;
 class DNSMasqServer
 {
 public:
+    using UPtr = std::unique_ptr<DNSMasqServer>;
+
     DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
     DNSMasqServer(const DNSMasqServer&) = delete;
     DNSMasqServer& operator=(const DNSMasqServer&) = delete;
@@ -55,6 +58,18 @@ private:
     std::unique_ptr<Process> dnsmasq_cmd;
     QMetaObject::Connection finish_connection;
     QTemporaryFile conf_file;
+};
+
+#define MP_DNSMASQ_SERVER_FACTORY multipass::DNSMasqServerFactory::instance()
+
+class DNSMasqServerFactory : public Singleton<DNSMasqServerFactory>
+{
+public:
+    DNSMasqServerFactory(const Singleton<DNSMasqServerFactory>::PrivatePass& pass) noexcept
+        : Singleton<DNSMasqServerFactory>::Singleton{pass} {};
+
+    virtual DNSMasqServer::UPtr make_dnsmasq_server(const Path& network_dir, const QString& bridge_name,
+                                                    const std::string& subnet) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_DNSMASQ_SERVER_H
