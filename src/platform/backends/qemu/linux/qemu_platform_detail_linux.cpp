@@ -17,6 +17,7 @@
 
 #include "qemu_platform_detail.h"
 
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
@@ -81,14 +82,14 @@ void set_ip_forward()
 {
     // Command line equivalent: "sysctl -w net.ipv4.ip_forward=1"
     QFile ip_forward("/proc/sys/net/ipv4/ip_forward");
-    if (!ip_forward.open(QFile::ReadWrite))
+    if (!MP_FILEOPS.open(ip_forward, QFile::ReadWrite))
     {
         mpl::log(mpl::Level::warning, category,
                  fmt::format("Unable to open {}", qUtf8Printable(ip_forward.fileName())));
         return;
     }
 
-    if (ip_forward.write("1") < 0)
+    if (MP_FILEOPS.write(ip_forward, "1") < 0)
     {
         mpl::log(mpl::Level::warning, category,
                  fmt::format("Failed to write to {}", qUtf8Printable(ip_forward.fileName())));
