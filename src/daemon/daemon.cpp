@@ -506,7 +506,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         }
     }
 
-    if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
+    if (!instance_name.empty() && !mp::utils::valid_hostname(instance_name))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
     std::vector<std::string> nets_need_bridging;
