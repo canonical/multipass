@@ -95,13 +95,13 @@ void set_ip_forward()
     }
 }
 
-mp::DNSMasqServer create_dnsmasq_server(const mp::Path& network_dir, const QString& bridge_name,
-                                        const std::string& subnet)
+mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir, const QString& bridge_name,
+                                         const std::string& subnet)
 {
     create_virtual_switch(subnet, bridge_name);
     set_ip_forward();
 
-    return {network_dir, bridge_name, subnet};
+    return MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(network_dir, bridge_name, subnet);
 }
 
 void delete_virtual_switch(const QString& bridge_name)
@@ -117,7 +117,7 @@ mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
     : bridge_name{multipass_bridge_name},
       network_dir{mp::utils::make_dir(QDir(data_dir), "network")},
       subnet{MP_BACKEND.get_subnet(network_dir, bridge_name)},
-      dnsmasq_server{create_dnsmasq_server(network_dir, bridge_name, subnet)},
+      dnsmasq_server{init_nat_network(network_dir, bridge_name, subnet)},
       firewall_config{bridge_name, subnet}
 {
 }
@@ -129,7 +129,7 @@ mp::QemuPlatformDetail::~QemuPlatformDetail()
 
 mp::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
 {
-    return dnsmasq_server.get_ip_for(hw_addr);
+    return dnsmasq_server->get_ip_for(hw_addr);
 }
 
 void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
@@ -138,7 +138,7 @@ void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
     if (it != name_to_net_device_map.end())
     {
         const auto& [tap_device_name, hw_addr] = it->second;
-        dnsmasq_server.release_mac(hw_addr);
+        dnsmasq_server->release_mac(hw_addr);
         remove_tap_device(tap_device_name);
 
         name_to_net_device_map.erase(name);
@@ -150,7 +150,7 @@ void mp::QemuPlatformDetail::platform_health_check()
     mp::backend::check_for_kvm_support();
     mp::backend::check_if_kvm_is_in_use();
 
-    dnsmasq_server.check_dnsmasq_running();
+    dnsmasq_server->check_dnsmasq_running();
     firewall_config.verify_firewall_rules();
 }
 
