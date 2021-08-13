@@ -66,13 +66,13 @@ constexpr auto max_bridge_name_len = 15; // maximum number of characters in a br
 bool subnet_used_locally(const std::string& subnet)
 {
     // CLI equivalent: ip -4 route show | grep -q ${SUBNET}
-    const auto output = QString::fromStdString(mp::utils::run_cmd_for_output("ip", {"-4", "route", "show"}));
+    const auto output = QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
     return output.contains(QString::fromStdString(subnet));
 }
 
 bool can_reach_gateway(const std::string& ip)
 {
-    return mp::utils::run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
 }
 
 auto virtual_switch_subnet(const QString& bridge_name)
@@ -80,8 +80,7 @@ auto virtual_switch_subnet(const QString& bridge_name)
     // CLI equivalent: ip -4 route show | grep ${BRIDGE_NAME} | cut -d ' ' -f1 | cut -d '.' -f1-3
     QString subnet;
 
-    const auto output =
-        QString::fromStdString(mp::utils::run_cmd_for_output("ip", {"-4", "route", "show"})).split('\n');
+    const auto output = QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"})).split('\n');
     for (const auto& line : output)
     {
         if (line.contains(bridge_name))

@@ -45,35 +45,35 @@ auto generate_tap_device_name(const std::string& vm_name)
 
 void create_tap_device(const QString& tap_name, const QString& bridge_name)
 {
-    if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", tap_name}))
+    if (!MP_UTILS.run_cmd_for_status("ip", {"addr", "show", tap_name}))
     {
-        mp::utils::run_cmd_for_status("ip", {"tuntap", "add", tap_name, "mode", "tap"});
-        mp::utils::run_cmd_for_status("ip", {"link", "set", tap_name, "master", bridge_name});
-        mp::utils::run_cmd_for_status("ip", {"link", "set", tap_name, "up"});
+        MP_UTILS.run_cmd_for_status("ip", {"tuntap", "add", tap_name, "mode", "tap"});
+        MP_UTILS.run_cmd_for_status("ip", {"link", "set", tap_name, "master", bridge_name});
+        MP_UTILS.run_cmd_for_status("ip", {"link", "set", tap_name, "up"});
     }
 }
 
 void remove_tap_device(const QString& tap_device_name)
 {
-    if (mp::utils::run_cmd_for_status("ip", {"addr", "show", tap_device_name}))
+    if (MP_UTILS.run_cmd_for_status("ip", {"addr", "show", tap_device_name}))
     {
-        mp::utils::run_cmd_for_status("ip", {"link", "delete", tap_device_name});
+        MP_UTILS.run_cmd_for_status("ip", {"link", "delete", tap_device_name});
     }
 }
 
 void create_virtual_switch(const std::string& subnet, const QString& bridge_name)
 {
-    if (!mp::utils::run_cmd_for_status("ip", {"addr", "show", bridge_name}))
+    if (!MP_UTILS.run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
         const auto mac_address = mp::utils::generate_mac_address();
         const auto cidr = fmt::format("{}.1/24", subnet);
         const auto broadcast = fmt::format("{}.255", subnet);
 
-        mp::utils::run_cmd_for_status("ip",
-                                      {"link", "add", bridge_name, "address", mac_address.c_str(), "type", "bridge"});
-        mp::utils::run_cmd_for_status(
+        MP_UTILS.run_cmd_for_status("ip",
+                                    {"link", "add", bridge_name, "address", mac_address.c_str(), "type", "bridge"});
+        MP_UTILS.run_cmd_for_status(
             "ip", {"address", "add", cidr.c_str(), "dev", bridge_name, "broadcast", broadcast.c_str()});
-        mp::utils::run_cmd_for_status("ip", {"link", "set", bridge_name, "up"});
+        MP_UTILS.run_cmd_for_status("ip", {"link", "set", bridge_name, "up"});
     }
 }
 
@@ -106,9 +106,9 @@ mp::DNSMasqServer create_dnsmasq_server(const mp::Path& network_dir, const QStri
 
 void delete_virtual_switch(const QString& bridge_name)
 {
-    if (mp::utils::run_cmd_for_status("ip", {"addr", "show", bridge_name}))
+    if (MP_UTILS.run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
-        mp::utils::run_cmd_for_status("ip", {"link", "delete", bridge_name});
+        MP_UTILS.run_cmd_for_status("ip", {"link", "delete", bridge_name});
     }
 }
 } // namespace
