@@ -30,6 +30,7 @@ class MockBackend : public Backend
 public:
     using Backend::Backend;
     MOCK_METHOD1(create_bridge_with, std::string(const std::string&));
+    MOCK_CONST_METHOD2(get_subnet, std::string(const Path&, const QString&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockBackend, Backend);
 };
