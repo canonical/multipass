@@ -118,7 +118,7 @@ mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
       network_dir{mp::utils::make_dir(QDir(data_dir), "network")},
       subnet{MP_BACKEND.get_subnet(network_dir, bridge_name)},
       dnsmasq_server{init_nat_network(network_dir, bridge_name, subnet)},
-      firewall_config{bridge_name, subnet}
+      firewall_config{MP_FIREWALL_CONFIG_FACTORY.make_firewall_config(bridge_name, subnet)}
 {
 }
 
@@ -151,7 +151,7 @@ void mp::QemuPlatformDetail::platform_health_check()
     mp::backend::check_if_kvm_is_in_use();
 
     dnsmasq_server->check_dnsmasq_running();
-    firewall_config.verify_firewall_rules();
+    firewall_config->verify_firewall_rules();
 }
 
 QString mp::QemuPlatformDetail::qemu_netdev(const std::string& name, const std::string& hw_addr)
