@@ -37,7 +37,6 @@ class ProcessFactory;
 namespace backend
 {
 std::string generate_random_subnet();
-std::string get_subnet(const Path& network_dir, const QString& bridge_name);
 void check_for_kvm_support();
 void check_if_kvm_is_in_use();
 
@@ -54,6 +53,7 @@ public:
     using Singleton<Backend>::Singleton;
 
     virtual std::string create_bridge_with(const std::string& interface);
+    virtual std::string get_subnet(const Path& network_dir, const QString& bridge_name) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_BACKEND_UTILS_H

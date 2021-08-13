@@ -194,22 +194,6 @@ std::string mp::backend::generate_random_subnet()
     throw std::runtime_error("Could not determine a subnet for networking.");
 }
 
-std::string mp::backend::get_subnet(const mp::Path& network_dir, const QString& bridge_name)
-{
-    auto subnet = virtual_switch_subnet(bridge_name);
-    if (!subnet.empty())
-        return subnet;
-
-    QFile subnet_file{network_dir + "/multipass_subnet"};
-    subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
-    if (subnet_file.size() > 0)
-        return subnet_file.readAll().trimmed().toStdString();
-
-    auto new_subnet = mp::backend::generate_random_subnet();
-    subnet_file.write(new_subnet.data(), new_subnet.length());
-    return new_subnet;
-}
-
 void mp::backend::check_for_kvm_support()
 {
     QProcess check_kvm;
@@ -286,6 +270,22 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     mpl::log(mpl::Level::info, log_category_create, fmt::format("Created bridge: {}", ret));
 
     return ret;
+}
+
+std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& bridge_name) const
+{
+    auto subnet = virtual_switch_subnet(bridge_name);
+    if (!subnet.empty())
+        return subnet;
+
+    QFile subnet_file{network_dir + "/multipass_subnet"};
+    subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
+    if (subnet_file.size() > 0)
+        return subnet_file.readAll().trimmed().toStdString();
+
+    auto new_subnet = mp::backend::generate_random_subnet();
+    subnet_file.write(new_subnet.data(), new_subnet.length());
+    return new_subnet;
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error,
