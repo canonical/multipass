@@ -637,3 +637,88 @@ TEST_F(QemuBackend, lists_no_networks)
 
     EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
 }
+
+TEST_F(QemuBackend, remove_resources_for_calls_qemu_platform)
+{
+    auto mock_qemu_platform{std::make_unique<mpt::MockQemuPlatform>()};
+    auto [mock_qemu_platform_factory, guard] = mpt::MockQemuPlatformFactory::inject();
+    bool remove_resources_called{false};
+    const std::string test_name{"foo"};
+
+    EXPECT_CALL(*mock_qemu_platform, remove_resources_for(_))
+        .WillOnce(
+            [&remove_resources_called, &test_name](auto& name)
+            {
+                remove_resources_called = true;
+
+                EXPECT_EQ(name, test_name);
+            });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_))
+        .WillOnce([&mock_qemu_platform](auto...) { return std::move(mock_qemu_platform); });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    backend.remove_resources_for(test_name);
+
+    EXPECT_TRUE(remove_resources_called);
+}
+
+TEST_F(QemuBackend, hypervisor_health_check_calls_qemu_platform)
+{
+    auto mock_qemu_platform{std::make_unique<mpt::MockQemuPlatform>()};
+    auto [mock_qemu_platform_factory, guard] = mpt::MockQemuPlatformFactory::inject();
+    bool health_check_called{false};
+
+    EXPECT_CALL(*mock_qemu_platform, platform_health_check())
+        .WillOnce([&health_check_called] { health_check_called = true; });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_))
+        .WillOnce([&mock_qemu_platform](auto...) { return std::move(mock_qemu_platform); });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    backend.hypervisor_health_check();
+
+    EXPECT_TRUE(health_check_called);
+}
+
+TEST_F(QemuBackend, get_backend_directory_name_calls_qemu_platform)
+{
+    auto mock_qemu_platform{std::make_unique<mpt::MockQemuPlatform>()};
+    auto [mock_qemu_platform_factory, guard] = mpt::MockQemuPlatformFactory::inject();
+    bool get_directory_name_called{false};
+    const QString backend_dir_name{"foo"};
+
+    EXPECT_CALL(*mock_qemu_platform, get_directory_name())
+        .WillOnce(
+            [&get_directory_name_called, &backend_dir_name]
+            {
+                get_directory_name_called = true;
+
+                return backend_dir_name;
+            });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_))
+        .WillOnce([&mock_qemu_platform](auto...) { return std::move(mock_qemu_platform); });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    const auto dir_name = backend.get_backend_directory_name();
+
+    EXPECT_EQ(dir_name, backend_dir_name);
+    EXPECT_TRUE(get_directory_name_called);
+}
+
+TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
+{
+    mpt::MockQemuPlatform qemu_platform;
+
+    EXPECT_CALL(qemu_platform, qemu_platform_args())
+        .WillOnce([&qemu_platform] { return qemu_platform.base_qemu_platform_args(); });
+    EXPECT_CALL(qemu_platform, get_directory_name())
+        .WillOnce([&qemu_platform] { return qemu_platform.base_get_directory_name(); });
+
+    EXPECT_TRUE(qemu_platform.qemu_platform_args().isEmpty());
+    EXPECT_TRUE(qemu_platform.get_directory_name().isEmpty());
+}
