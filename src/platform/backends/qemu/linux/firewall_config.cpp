@@ -338,7 +338,10 @@ mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string
 
 mp::FirewallConfig::~FirewallConfig()
 {
-    mp::top_catch_all(category, [this] { clear_all_firewall_rules(); });
+    if (!firewall.isEmpty())
+    {
+        mp::top_catch_all(category, [this] { clear_all_firewall_rules(); });
+    }
 }
 
 void mp::FirewallConfig::verify_firewall_rules()

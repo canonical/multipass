@@ -34,7 +34,10 @@ public:
     FirewallConfig(const QString& bridge_name, const std::string& subnet);
     virtual ~FirewallConfig();
 
-    void verify_firewall_rules();
+    virtual void verify_firewall_rules();
+
+protected:
+    FirewallConfig() = default; // for testing
 
 private:
     void clear_all_firewall_rules();
