@@ -356,3 +356,9 @@ void mp::FirewallConfig::clear_all_firewall_rules()
         clear_firewall_rules_for(firewall, table, bridge_name, cidr, comment);
     }
 }
+
+mp::FirewallConfig::UPtr mp::FirewallConfigFactory::make_firewall_config(const QString& bridge_name,
+                                                                         const std::string& subnet) const
+{
+    return std::make_unique<mp::FirewallConfig>(bridge_name, subnet);
+}

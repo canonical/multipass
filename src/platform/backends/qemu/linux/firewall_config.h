@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_FIREWALL_CONFIG_H
 #define MULTIPASS_FIREWALL_CONFIG_H
 
+#include <multipass/singleton.h>
+
 #include <string>
 
 #include <QString>
@@ -27,6 +29,8 @@ namespace multipass
 class FirewallConfig
 {
 public:
+    using UPtr = std::unique_ptr<FirewallConfig>;
+
     FirewallConfig(const QString& bridge_name, const std::string& subnet);
     virtual ~FirewallConfig();
 
@@ -42,6 +46,17 @@ private:
 
     bool firewall_error{false};
     std::string error_string;
+};
+
+#define MP_FIREWALL_CONFIG_FACTORY multipass::FirewallConfigFactory::instance()
+
+class FirewallConfigFactory : public Singleton<FirewallConfigFactory>
+{
+public:
+    FirewallConfigFactory(const Singleton<FirewallConfigFactory>::PrivatePass& pass) noexcept
+        : Singleton<FirewallConfigFactory>::Singleton{pass} {};
+
+    virtual FirewallConfig::UPtr make_firewall_config(const QString& bridge_name, const std::string& subnet) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_FIREWALL_CONFIG_H
