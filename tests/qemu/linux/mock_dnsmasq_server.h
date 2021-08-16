@@ -18,7 +18,8 @@
 #ifndef MULTIPASS_MOCK_DNSMASQ_SERVER_H
 #define MULTIPASS_MOCK_DNSMASQ_SERVER_H
 
-#include "tests/mock_platform.h"
+#include "tests/common.h"
+#include "tests/mock_singleton_helpers.h"
 
 #include <src/platform/backends/qemu/linux/dnsmasq_server.h>
 
@@ -30,9 +31,18 @@ struct MockDNSMasqServer : public DNSMasqServer
 {
     using DNSMasqServer::DNSMasqServer; // ctor
 
-    MockDNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet){};
-
     MOCK_METHOD1(get_ip_for, optional<IPAddress>(const std::string&));
+    MOCK_METHOD1(release_mac, void(const std::string&));
+    MOCK_METHOD0(check_dnsmasq_running, void());
+};
+
+struct MockDNSMasqServerFactory : public DNSMasqServerFactory
+{
+    using DNSMasqServerFactory::DNSMasqServerFactory;
+
+    MOCK_CONST_METHOD3(make_dnsmasq_server, DNSMasqServer::UPtr(const Path&, const QString&, const std::string&));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockDNSMasqServerFactory, DNSMasqServerFactory);
 };
 } // namespace test
 } // namespace multipass
