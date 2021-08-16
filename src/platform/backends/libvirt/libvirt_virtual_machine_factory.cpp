@@ -163,8 +163,8 @@ void mp::LibVirtVirtualMachineFactory::prepare_instance_image(const VMImage& ins
 
 void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
 {
-    mp::backend::check_for_kvm_support();
-    mp::backend::check_if_kvm_is_in_use();
+    MP_BACKEND.check_for_kvm_support();
+    MP_BACKEND.check_if_kvm_is_in_use();
 
     if (!libvirt_wrapper)
         libvirt_wrapper = make_libvirt_wrapper(libvirt_object_path);

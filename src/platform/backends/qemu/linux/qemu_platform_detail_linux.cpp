@@ -148,8 +148,8 @@ void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
 
 void mp::QemuPlatformDetail::platform_health_check()
 {
-    mp::backend::check_for_kvm_support();
-    mp::backend::check_if_kvm_is_in_use();
+    MP_BACKEND.check_for_kvm_support();
+    MP_BACKEND.check_if_kvm_is_in_use();
 
     dnsmasq_server->check_dnsmasq_running();
     firewall_config->verify_firewall_rules();
