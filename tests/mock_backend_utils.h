@@ -31,6 +31,8 @@ public:
     using Backend::Backend;
     MOCK_METHOD1(create_bridge_with, std::string(const std::string&));
     MOCK_CONST_METHOD2(get_subnet, std::string(const Path&, const QString&));
+    MOCK_METHOD0(check_for_kvm_support, void());
+    MOCK_METHOD0(check_if_kvm_is_in_use, void());
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockBackend, Backend);
 };
