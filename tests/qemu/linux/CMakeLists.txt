@@ -18,7 +18,10 @@ target_sources(multipass_tests
     ${CMAKE_CURRENT_LIST_DIR}/test_dnsmasq_server.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_dnsmasq_process_spec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_firewall_config.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_qemu_platform_detail.cpp
 )
+
+target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu)
 
 add_executable(dnsmasq
   mock_dnsmasq.cpp)
