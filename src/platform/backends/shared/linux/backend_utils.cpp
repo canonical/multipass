@@ -194,38 +194,6 @@ std::string mp::backend::generate_random_subnet()
     throw std::runtime_error("Could not determine a subnet for networking.");
 }
 
-void mp::backend::check_for_kvm_support()
-{
-    QProcess check_kvm;
-    check_kvm.setProcessChannelMode(QProcess::MergedChannels);
-    check_kvm.start(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
-    check_kvm.waitForFinished();
-
-    if (check_kvm.error() == QProcess::FailedToStart)
-    {
-        throw std::runtime_error("The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
-    }
-
-    if (check_kvm.exitCode() == 1)
-    {
-        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
-    }
-}
-
-void mp::backend::check_if_kvm_is_in_use()
-{
-    auto kvm_fd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
-    auto ret = ioctl(kvm_fd, KVM_CREATE_VM, (unsigned long)0);
-
-    close(kvm_fd);
-
-    if (ret == -1 && errno == EBUSY)
-        throw std::runtime_error("Another virtual machine manager is currently running. Please shut it down before "
-                                 "starting a Multipass instance.");
-
-    close(ret);
-}
-
 // @precondition no bridge exists for this interface
 // @precondition interface identifies an ethernet device
 std::string mp::Backend::create_bridge_with(const std::string& interface)
@@ -286,6 +254,38 @@ std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& 
     auto new_subnet = mp::backend::generate_random_subnet();
     subnet_file.write(new_subnet.data(), new_subnet.length());
     return new_subnet;
+}
+
+void mp::Backend::check_for_kvm_support()
+{
+    QProcess check_kvm;
+    check_kvm.setProcessChannelMode(QProcess::MergedChannels);
+    check_kvm.start(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
+    check_kvm.waitForFinished();
+
+    if (check_kvm.error() == QProcess::FailedToStart)
+    {
+        throw std::runtime_error("The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
+    }
+
+    if (check_kvm.exitCode() == 1)
+    {
+        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
+    }
+}
+
+void mp::Backend::check_if_kvm_is_in_use()
+{
+    auto kvm_fd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
+    auto ret = ioctl(kvm_fd, KVM_CREATE_VM, (unsigned long)0);
+
+    close(kvm_fd);
+
+    if (ret == -1 && errno == EBUSY)
+        throw std::runtime_error("Another virtual machine manager is currently running. Please shut it down before "
+                                 "starting a Multipass instance.");
+
+    close(ret);
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error,

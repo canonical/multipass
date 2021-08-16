@@ -37,8 +37,6 @@ class ProcessFactory;
 namespace backend
 {
 std::string generate_random_subnet();
-void check_for_kvm_support();
-void check_if_kvm_is_in_use();
 
 class CreateBridgeException : public std::runtime_error
 {
@@ -54,6 +52,10 @@ public:
 
     virtual std::string create_bridge_with(const std::string& interface);
     virtual std::string get_subnet(const Path& network_dir, const QString& bridge_name) const;
+
+    // For detecting KVM
+    virtual void check_for_kvm_support();
+    virtual void check_if_kvm_is_in_use();
 };
 } // namespace multipass
 #endif // MULTIPASS_BACKEND_UTILS_H
