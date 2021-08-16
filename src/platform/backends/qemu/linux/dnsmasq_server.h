@@ -43,8 +43,8 @@ public:
     virtual ~DNSMasqServer(); // inherited by mock for testing
 
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr);
-    void release_mac(const std::string& hw_addr);
-    void check_dnsmasq_running();
+    virtual void release_mac(const std::string& hw_addr);
+    virtual void check_dnsmasq_running();
 
 protected:
     DNSMasqServer() = default; // For testing
