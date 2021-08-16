@@ -66,9 +66,17 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
         mpl::set_logger(nullptr);
     }
 
+    void make_lease_entry(const std::string& expected_hw_addr)
+    {
+        mpt::make_file_with_content(
+            QDir{data_dir.path()}.filePath("dnsmasq.leases"),
+            fmt::format("0 {} {} dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12", expected_hw_addr,
+                        expected_ip));
+    }
+
     void make_lease_entry()
     {
-        mpt::make_file_with_content(QDir{data_dir.path()}.filePath("dnsmasq.leases"), lease_entry);
+        make_lease_entry(hw_addr);
     }
 
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
@@ -149,6 +157,20 @@ TEST_F(DNSMasqServer, release_mac_logs_failures)
 
     EXPECT_TRUE(QFile::exists(dchp_release_called));
     EXPECT_TRUE(logger->logged_lines.size() > 0);
+}
+
+TEST_F(DNSMasqServer, release_mac_crashes_logs_failure)
+{
+    const QString dchp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
+    const std::string crash_hw_addr{"00:00:00:00:00:00"};
+
+    mp::DNSMasqServer dns{data_dir.path(), dchp_release_called, subnet};
+    make_lease_entry(crash_hw_addr);
+
+    dns.release_mac(crash_hw_addr);
+
+    EXPECT_THAT(logger->logged_lines,
+                Contains(fmt::format("failed to release ip addr {} with mac {}: Crashed", expected_ip, crash_hw_addr)));
 }
 
 TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
