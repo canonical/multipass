@@ -48,7 +48,7 @@ public:
     virtual ~QemuPlatform() = default;
 
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr) = 0;
-    virtual void remove_resources_for(const std::string&){};
+    virtual void remove_resources_for(const std::string&) = 0;
     virtual void platform_health_check() = 0;
     virtual QString qemu_netdev(const std::string& name, const std::string& hw_addr) = 0;
     virtual QStringList qemu_platform_args()
