@@ -19,6 +19,7 @@
 #include "dbus_wrappers.h"
 #include "process_factory.h"
 
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/process/basic_process.h>
@@ -248,12 +249,12 @@ std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& 
         return subnet;
 
     QFile subnet_file{network_dir + "/multipass_subnet"};
-    subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
-    if (subnet_file.size() > 0)
-        return subnet_file.readAll().trimmed().toStdString();
+    MP_FILEOPS.open(subnet_file, QIODevice::ReadWrite | QIODevice::Text);
+    if (MP_FILEOPS.size(subnet_file) > 0)
+        return MP_FILEOPS.read_all(subnet_file).trimmed().toStdString();
 
     auto new_subnet = mp::backend::generate_random_subnet();
-    subnet_file.write(new_subnet.data(), new_subnet.length());
+    MP_FILEOPS.write(subnet_file, new_subnet.data(), new_subnet.length());
     return new_subnet;
 }
 
