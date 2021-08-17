@@ -26,6 +26,7 @@
 #include <string>
 
 #define MP_BACKEND multipass::Backend::instance()
+#define MP_LINUX_SYSCALLS multipass::LinuxSysCalls::instance()
 
 class QDBusError;
 
@@ -56,6 +57,16 @@ public:
     // For detecting KVM
     virtual void check_for_kvm_support();
     virtual void check_if_kvm_is_in_use();
+};
+
+class LinuxSysCalls : public Singleton<LinuxSysCalls>
+{
+public:
+    using Singleton<LinuxSysCalls>::Singleton;
+
+    virtual int close(int fd) const;
+    virtual int ioctl(int fd, unsigned long request, unsigned long parameter) const;
+    virtual int open(const char* path, mode_t mode) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_BACKEND_UTILS_H

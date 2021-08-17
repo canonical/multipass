@@ -17,9 +17,11 @@
 
 #include "backend_utils.h"
 #include "dbus_wrappers.h"
+#include "process_factory.h"
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/process/basic_process.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
@@ -27,7 +29,6 @@
 
 #include <QCoreApplication>
 #include <QDBusMetaType>
-#include <QProcess>
 #include <QString>
 #include <QtDBus/QtDBus>
 
@@ -258,34 +259,39 @@ std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& 
 
 void mp::Backend::check_for_kvm_support()
 {
-    QProcess check_kvm;
-    check_kvm.setProcessChannelMode(QProcess::MergedChannels);
-    check_kvm.start(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
-    check_kvm.waitForFinished();
+    auto check_kvm =
+        MP_PROCFACTORY.create_process(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
+    check_kvm->set_process_channel_mode(QProcess::MergedChannels);
 
-    if (check_kvm.error() == QProcess::FailedToStart)
-    {
-        throw std::runtime_error("The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
-    }
+    auto process_state = check_kvm->execute();
 
-    if (check_kvm.exitCode() == 1)
+    if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
+        if (process_state.error->state == QProcess::FailedToStart)
+        {
+            throw std::runtime_error(
+                "The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
+        }
+
+        if (process_state.exit_code == 1)
+        {
+            throw std::runtime_error(check_kvm->read_all_standard_output().trimmed().toStdString());
+        }
     }
 }
 
 void mp::Backend::check_if_kvm_is_in_use()
 {
-    auto kvm_fd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
-    auto ret = ioctl(kvm_fd, KVM_CREATE_VM, (unsigned long)0);
+    auto kvm_fd = MP_LINUX_SYSCALLS.open("/dev/kvm", O_RDWR | O_CLOEXEC);
+    auto ret = MP_LINUX_SYSCALLS.ioctl(kvm_fd, KVM_CREATE_VM, (unsigned long)0);
 
-    close(kvm_fd);
+    MP_LINUX_SYSCALLS.close(kvm_fd);
 
     if (ret == -1 && errno == EBUSY)
         throw std::runtime_error("Another virtual machine manager is currently running. Please shut it down before "
                                  "starting a Multipass instance.");
 
-    close(ret);
+    MP_LINUX_SYSCALLS.close(ret);
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error,
@@ -293,4 +299,19 @@ mp::backend::CreateBridgeException::CreateBridgeException(const std::string& det
     : std::runtime_error(fmt::format("{}. {}: {}", rollback ? "Could not rollback bridge" : "Could not create bridge",
                                      detail, dbus_error.isValid() ? dbus_error.message() : "unknown cause"))
 {
+}
+
+int mp::LinuxSysCalls::close(int fd) const
+{
+    return ::close(fd);
+}
+
+int mp::LinuxSysCalls::ioctl(int fd, unsigned long request, unsigned long parameter) const
+{
+    return ::ioctl(fd, request, parameter);
+}
+
+int mp::LinuxSysCalls::open(const char* path, mode_t mode) const
+{
+    return ::open(path, mode);
 }
