@@ -48,6 +48,11 @@ qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize) const
     return file.read(data, maxSize);
 }
 
+QByteArray mp::FileOps::read_all(QFile& file) const
+{
+    return file.readAll();
+}
+
 QString mp::FileOps::read_line(QTextStream& text_stream) const
 {
     return text_stream.readLine();
@@ -76,6 +81,11 @@ bool mp::FileOps::seek(QFile& file, qint64 pos) const
 bool mp::FileOps::setPermissions(QFile& file, QFileDevice::Permissions permissions) const
 {
     return file.setPermissions(permissions);
+}
+
+qint64 mp::FileOps::size(QFile& file) const
+{
+    return file.size();
 }
 
 qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize) const
