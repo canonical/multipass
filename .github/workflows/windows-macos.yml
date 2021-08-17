@@ -215,7 +215,6 @@ jobs:
         # remove everything in the workspace and the dependencies
         paths: |
           ~/.opam
-          ~/Library/Caches/ccache
           ${{ github.workspace }}
 
     - name: Cache OPAM
@@ -259,6 +258,7 @@ jobs:
         # Find common base between full and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
         echo "::set-output name=key::$( git merge-base origin/full ${{ github.sha }} )"
+        echo "CCACHE_DIR=${{ env.BUILD_DIR }}/ccache" >> ${GITHUB_ENV}
 
     - name: CCache
       if: ${{ runner.os == 'macOS' }}
@@ -267,7 +267,7 @@ jobs:
         key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
           ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-
-        path: "~/Library/Caches/ccache"
+        path: ${{ env.CCACHE_DIR }}
 
     - name: Install Dependencies from Choco
       if: ${{ runner.os == 'Windows' }}
