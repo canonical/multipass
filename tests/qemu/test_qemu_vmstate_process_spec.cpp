@@ -16,7 +16,6 @@
  */
 
 #include "tests/common.h"
-#include "tests/mock_environment_helpers.h"
 
 #include <src/platform/backends/qemu/qemu_vmstate_process_spec.h>
 
@@ -27,13 +26,22 @@ using namespace testing;
 
 struct TestQemuVmStateProcessSpec : public Test
 {
-    QString file_name{"foo"};
-    const QString host_arch{"x86_64"};
+    const QString file_name{"foo"};
+    const QStringList default_args{{"-nographic", "-dump-vmstate", file_name}};
 };
 
 TEST_F(TestQemuVmStateProcessSpec, default_arguments_correct)
 {
+    const QString host_arch{"x86_64"};
     mp::QemuVmStateProcessSpec spec{file_name, host_arch};
 
-    EXPECT_EQ(spec.arguments(), QStringList({"-nographic", "-dump-vmstate", file_name}));
+    EXPECT_EQ(spec.arguments(), default_args);
+}
+
+TEST_F(TestQemuVmStateProcessSpec, aarch64_arguments_correct)
+{
+    const QString host_arch{"aarch64"};
+    mp::QemuVmStateProcessSpec spec{file_name, host_arch};
+
+    EXPECT_EQ(spec.arguments(), QStringList({"-machine", "virt,highmem=off"}) << default_args);
 }
