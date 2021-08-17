@@ -90,6 +90,30 @@ struct QemuPlatformDetail : public Test
 };
 } // namespace
 
+TEST_F(QemuPlatformDetail, ctor_sets_up_expected_virtual_switch)
+{
+    const QString qstring_subnet{QString::fromStdString(subnet)};
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"),
+                                                ElementsAre(QString("link"), QString("add"), multipass_bridge_name,
+                                                            QString("address"), _, QString("type"), QString("bridge")),
+                                                _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"),
+                                                ElementsAre(QString("address"), QString("add"),
+                                                            QString("%1.1/24").arg(qstring_subnet), QString("dev"),
+                                                            multipass_bridge_name, "broadcast",
+                                                            QString("%1.255").arg(qstring_subnet)),
+                                                _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(
+                                 QString("ip"),
+                                 ElementsAre(QString("link"), QString("set"), multipass_bridge_name, QString("up")), _))
+        .WillOnce(Return(true));
+
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+}
+
 TEST_F(QemuPlatformDetail, get_ip_for_returns_expected_info)
 {
     const mp::IPAddress ip_address{fmt::format("{}.5", subnet)};
