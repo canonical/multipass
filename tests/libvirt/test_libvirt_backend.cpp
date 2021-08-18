@@ -17,6 +17,7 @@
 
 #include "tests/common.h"
 #include "tests/fake_handle.h"
+#include "tests/mock_backend_utils.h"
 #include "tests/mock_ssh.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_ssh_key_provider.h"
@@ -60,6 +61,9 @@ struct LibVirtBackend : public Test
     mpt::TempDir data_dir;
     // This indicates that LibvirtWrapper should open the test executable
     std::string fake_libvirt_path{""};
+
+    mpt::MockBackend::GuardedMock backend_attr{mpt::MockBackend::inject<NiceMock>()};
+    mpt::MockBackend* mock_backend = backend_attr.first;
 };
 
 TEST_F(LibVirtBackend, libvirt_wrapper_missing_libvirt_throws)
@@ -73,12 +77,34 @@ TEST_F(LibVirtBackend, libvirt_wrapper_missing_symbol_throws)
     EXPECT_THROW(mp::LibvirtWrapper{"libbroken_libvirt.so"}, mp::LibvirtSymbolAddressException);
 }
 
+TEST_F(LibVirtBackend, health_check_good_does_not_throw)
+{
+    EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
+    EXPECT_CALL(*mock_backend, check_if_kvm_is_in_use()).WillOnce(Return());
+
+    mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
+
+    EXPECT_NO_THROW(backend.hypervisor_health_check());
+}
+
 TEST_F(LibVirtBackend, health_check_failed_connection_throws)
 {
+    const std::string error_msg{"Not working"};
+
+    EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
+    EXPECT_CALL(*mock_backend, check_if_kvm_is_in_use()).WillOnce(Return());
+
+    auto virGetLastErrorMessage = [&error_msg] { return error_msg.c_str(); };
+    static auto static_virGetLastErrorMessage = virGetLastErrorMessage;
+
     mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
+    backend.libvirt_wrapper->virGetLastErrorMessage = [] { return static_virGetLastErrorMessage(); };
 
-    EXPECT_THROW(backend.hypervisor_health_check(), std::runtime_error);
+    MP_EXPECT_THROW_THAT(
+        backend.hypervisor_health_check(), std::runtime_error,
+        mpt::match_what(StrEq(fmt::format(
+            "Cannot connect to libvirtd: {}\nPlease ensure libvirt is installed and running.", error_msg))));
 }
 
 TEST_F(LibVirtBackend, creates_in_off_state)
