@@ -239,6 +239,7 @@ jobs:
     - name: Install OPAM dependencies
       if: ${{ runner.os == 'macOS' }}
       run: |
+        opam pin io-page 2.3.0
         opam install 3rd-party/hyperkit --deps-only
         opam list
 
