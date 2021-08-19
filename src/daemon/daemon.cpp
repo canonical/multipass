@@ -506,7 +506,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         }
     }
 
-    if (!request->instance_name().empty() && !mp::utils::valid_hostname(request->instance_name()))
+    if (!instance_name.empty() && !mp::utils::valid_hostname(instance_name))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
     std::vector<std::string> nets_need_bridging;
@@ -520,12 +520,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         std::vector<mp::NetworkInterface> extra_interfaces;
         std::vector<std::string> nets_need_bridging;
         mp::LaunchError option_errors;
-    } ret{mem_size,
-          disk_space,
-          std::move(instance_name),
-          std::move(extra_interfaces),
-          std::move(nets_need_bridging),
-          std::move(option_errors)};
+    } ret{std::move(mem_size),         std::move(disk_space),         std::move(instance_name),
+          std::move(extra_interfaces), std::move(nets_need_bridging), std::move(option_errors)};
     return ret;
 }
 

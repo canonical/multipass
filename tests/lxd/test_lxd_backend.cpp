@@ -930,11 +930,9 @@ TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_mes
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    MP_EXPECT_THROW_THAT(
-        backend.hypervisor_health_check(), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
-                                          "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
-                                          exception_message))));
+    MP_EXPECT_THROW_THAT(backend.hypervisor_health_check(), std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled.",
+                                                           exception_message))));
 }
 
 TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message)
@@ -948,11 +946,20 @@ TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    MP_EXPECT_THROW_THAT(
-        backend.hypervisor_health_check(), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled. Also make sure\n"
-                                          "the LXD interface is connected via `snap connect multipass:lxd lxd`.",
-                                          exception_message))));
+    MP_EXPECT_THROW_THAT(backend.hypervisor_health_check(), std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled.",
+                                                           exception_message))));
+}
+
+TEST_F(LXDBackend, healthcheck_error_advises_snap_connections_when_in_snap)
+{
+    EXPECT_CALL(*mock_network_access_manager, createRequest).WillOnce(Throw(mp::LocalSocketConnectionException("")));
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
+    MP_EXPECT_THROW_THAT(backend.hypervisor_health_check(), std::runtime_error,
+                         mpt::match_what(HasSubstr("snap connect multipass:lxd lxd")));
 }
 
 TEST_F(LXDBackend, returns_expected_network_info)
