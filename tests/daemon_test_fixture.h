@@ -284,6 +284,13 @@ struct DaemonTestFixture : public ::Test
                 }
                 client.run(args);
             }
+
+            // Commands not using RPC do not block in the "t" thread. This means that there will be a deadlock if
+            // loop.exec() is called after loop.quit(). The following check avoids this scenario, by making the
+            // thread sleep until the loop is running.
+            while (!loop.isRunning())
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
             loop.quit();
         });
         loop.exec();
