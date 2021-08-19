@@ -3,4 +3,14 @@
 . client-common.sh
 link_autostart
 
+mkdir -p "$XDG_RUNTIME_DIR" -m 700
+
+real_xdg_runtime_dir=$(dirname "${XDG_RUNTIME_DIR}")
+real_wayland=${real_xdg_runtime_dir}/${WAYLAND_DISPLAY:-wayland-0}
+
+if [ -O "${real_wayland}" ]; then
+  ln -sf "${real_wayland}" "$XDG_RUNTIME_DIR"
+  ln -sf "${real_wayland}.lock" "$XDG_RUNTIME_DIR"
+fi
+
 exec "$SNAP/bin/multipass.gui" "$@"

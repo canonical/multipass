@@ -1,7 +1,5 @@
 #!/bin/bash -e
 
-rm -f $SNAP_COMMON/snap_refresh
-
 # GDK pixbuf setup
 export LD_LIBRARY_PATH=/var/lib/snapd/lib/gl:/var/lib/snapd/lib/gl32:/var/lib/snapd/void:${SNAP}/graphics/lib:${SNAP}/lib:${SNAP}/usr/lib:${SNAP}/lib/${ARCH_TRIPLET}:${SNAP}/usr/lib/${ARCH_TRIPLET}
 $SNAP/usr/lib/${ARCH_TRIPLET}/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders > "$GDK_PIXBUF_MODULE_FILE"

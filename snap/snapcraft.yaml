@@ -16,6 +16,22 @@ base: core20
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
+  /usr/share/X11:
+    bind: $SNAP/usr/share/X11
+  /etc/fonts:
+    bind: $SNAP/etc/fonts
+  /usr/share/fonts:
+    bind: $SNAP/usr/share/fonts
+  /usr/bin/xkbcomp:
+    symlink: $SNAP/usr/bin/xkbcomp
+  /usr/share/icons:
+    bind: $SNAP/usr/share/icons
+
+environment:
+  # GDK pixbuf
+  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gdk-pixbuf-2.0/2.10.0/loaders
+  GDK_PIXBUF_MODULE_FILE: $SNAP_COMMON/loaders.cache
+  ARCH_TRIPLET: ${SNAPCRAFT_ARCH_TRIPLET}
 
 plugs:
   all-home:
@@ -59,6 +75,7 @@ apps:
         XDG_DATA_DIRS: $SNAP/usr/share
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
         XDG_CONFIG_HOME: $SNAP_USER_DATA/config
+        QT_QPA_PLATFORM: xcb
       DAEMON_CONFIG_HOME: *daemon-config # temporary
     command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
@@ -113,6 +130,7 @@ parts:
     - libvirt0
     - dnsmasq-base
     - dnsmasq-utils
+    - qtwayland5
     source: .
     cmake-parameters:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -154,17 +172,22 @@ parts:
     stage-packages:
     - try: [msr-tools]
 
-  xterm:
+  terminal:
     plugin: nil
-    override-pull: ""
     stage-packages:
-    - xterm
+      - xfce4-terminal
+      - dmz-cursor-theme
+      - libgdk-pixbuf2.0-bin # GDK pixbuf
+      - fonts-freefont-ttf
+    override-build: |
+      snapcraftctl build
+      update-mime-database $SNAPCRAFT_PART_INSTALL/usr/share/mime
+      rm -f $SNAPCRAFT_PART_INSTALL/usr/share/applications/exo-*
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/
+      echo "[Icon Theme]" > $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/index.theme
+      echo "Inherits=DMZ-White" >> $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/index.theme
     stage:
-    - -usr/lib/*/libfreetype.so.6
-    - -usr/share/doc/libfreetype6/FTL.TXT.gz
-    - -usr/share/doc/libfreetype6/TODO
-    - -usr/share/doc/libfreetype6/changelog.Debian.gz
-    - -usr/share/doc/libfreetype6/pcf/README
+      - -usr/share/doc
 
   glue:
     plugin: dump

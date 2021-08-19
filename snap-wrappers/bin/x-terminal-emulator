@@ -1,0 +1,67 @@
+#! /usr/bin/perl -w
+#
+# Terminal.wrapper - Debian terminal wrapper script
+#
+# Copyright (c) 2004-2005 os-cillation
+#
+
+while ($opt = shift(@ARGV))
+{
+    if ($opt eq '-display')
+    {
+	$arg = shift(@ARGV);
+	push(@args, '--default-display', $arg);
+    }
+    elsif ($opt eq '-name')
+    {
+	$arg = shift(@ARGV);
+    }
+    elsif ($opt eq '-n')
+    {
+	$arg = shift(@ARGV);
+    }
+    elsif ($opt eq '-T' || $opt eq '-title')
+    {
+	push(@args, '--title', shift(@ARGV));
+    }
+    elsif ($opt eq '-geometry')
+    {
+	$arg = shift(@ARGV);
+	push(@args, "--geometry=$arg");
+    }
+    elsif ($opt eq '-fn')
+    {
+	$arg = shift(@ARGV);
+    }
+    elsif ($opt eq '-fg')
+    {
+	$arg = shift(@ARGV);
+    }
+    elsif ($opt eq '-bg')
+    {
+	$arg = shift(@ARGV);
+    }
+    elsif ($opt eq '-tn')
+    {
+	$arg = shift(@ARGV);
+    }
+    elsif ($opt eq '-e')
+    {
+	$arg = shift(@ARGV);
+    if (@ARGV)
+    {
+        push(@args, '-x', $arg, @ARGV);
+        last;
+    }
+    else
+    {
+        push(@args, '-e', $arg);
+    }
+    last;
+    }
+    elsif ($opt eq '-h' || $opt eq '--help')
+    {
+	push(@args, '--help');
+    }
+}
+exec('xfce4-terminal',@args);
