@@ -1451,6 +1451,37 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
+template <typename W>
+class MockServerWriter : public grpc::ServerWriterInterface<W>
+{
+public:
+    MOCK_METHOD0(SendInitialMetadata, void());
+    MOCK_METHOD2_T(Write, bool(const W& msg, grpc::WriteOptions options));
+};
+
+TEST_F(Daemon, getReturnsSettingBetter)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto key = "foo";
+    const auto val = "bar";
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
+
+    MockServerWriter<mp::GetReply> mock_server;
+    EXPECT_CALL(mock_server, Write(Property(&mp::GetReply::value, Eq(val)), _)).WillOnce(Return(true));
+
+    mp::GetRequest request;
+    request.set_key(key);
+
+    std::promise<grpc::Status> status_promise;
+    auto status_future = status_promise.get_future();
+
+    daemon.get(&request, &mock_server, &status_promise);
+
+    ASSERT_EQ(status_future.wait_until(std::chrono::system_clock::now()), std::future_status::ready);
+    EXPECT_TRUE(status_future.get().ok());
+}
+
 TEST_F(Daemon, getReturnsSetting)
 {
     mp::Daemon daemon{config_builder.build()};

@@ -33,7 +33,7 @@ template <typename T>
 class ClientLogger : public Logger
 {
 public:
-    ClientLogger(Level level, MultiplexingLogger& mpx, grpc::ServerWriter<T>* server)
+    ClientLogger(Level level, MultiplexingLogger& mpx, grpc::ServerWriterInterface<T>* server)
         : logging_level{level}, server{server}, mpx_logger{mpx}
     {
         mpx_logger.add_logger(this);
@@ -57,7 +57,7 @@ public:
 
 private:
     Level logging_level;
-    grpc::ServerWriter<T>* server;
+    grpc::ServerWriterInterface<T>* server;
     MultiplexingLogger& mpx_logger;
 };
 } // namespace logging

@@ -1993,7 +1993,7 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriter<Versi
     status_promise->set_value(grpc::Status::OK);
 }
 
-void mp::Daemon::get(const GetRequest* request, grpc::ServerWriter<GetReply>* server,
+void mp::Daemon::get(const GetRequest* request, grpc::ServerWriterInterface<GetReply>* server,
                      std::promise<grpc::Status>* status_promise)
 try
 {
