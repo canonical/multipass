@@ -1043,7 +1043,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     const auto submessage = sftp_client_message_get_submessage(msg);
     if (submessage == nullptr)
     {
-        mpl::log(mpl::Level::error, category, fmt::format("{}: invalid submesage requested", __FUNCTION__));
+        mpl::log(mpl::Level::trace, category, fmt::format("{}: invalid submesage requested", __FUNCTION__));
         return reply_failure(msg);
     }
 
