@@ -111,32 +111,27 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
     }
 
     auto instance = definition.left(colon_pos).toStdString();
-    bool instance_exists{false};
 
-    list_request.set_verbosity_level(0);
-    list_request.set_request_ipv4(false);
+    info_request.mutable_instance_names()->add_instance_name(instance);
+    info_request.set_verbosity_level(0);
 
-    auto on_success = [&instance, &instance_exists](ListReply& reply)
+    auto on_success = [](InfoReply&) { return ReturnCode::Ok; };
+
+    auto on_failure = [](grpc::Status& status)
     {
-        for (const auto& reply_instance : reply.instances())
-            if (instance == reply_instance.name())
-            {
-                instance_exists = true;
-                break;
-            }
-
-        return ReturnCode::Ok;
+        return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT ? ReturnCode::CommandLineError
+                                                                         : ReturnCode::DaemonFail;
     };
 
-    auto on_failure = [](grpc::Status& status) { return ReturnCode::CommandLineError; };
+    auto ret = dispatch(&RpcMethod::info, info_request, on_success, on_failure);
 
-    if (dispatch(&RpcMethod::list, list_request, on_success, on_failure) == ReturnCode::CommandLineError)
+    if (ret == ReturnCode::DaemonFail)
     {
         cerr << "Error retrieving list of instances\n";
         return ParseCode::CommandLineError;
     }
 
-    if (!instance_exists)
+    if (ret == ReturnCode::CommandLineError)
     {
         cerr << fmt::format("Instance '{}' does not exist\n", instance);
         return ParseCode::CommandLineError;
