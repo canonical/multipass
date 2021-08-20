@@ -20,7 +20,7 @@
 
 namespace mpu = multipass::utils;
 
-mpu::Timer::Timer(std::chrono::seconds timeout, std::function<void()> callback)
+mpu::Timer::Timer(std::chrono::milliseconds timeout, std::function<void()> callback)
     : timeout(timeout), callback(callback), current_state(TimerState::Stopped)
 {
 }
@@ -52,7 +52,7 @@ void mpu::Timer::main()
         }
         else if (current_state == TimerState::Paused)
         {
-            remaining_time = std::chrono::duration_cast<std::chrono::seconds>(
+            remaining_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                 remaining_time - (std::chrono::system_clock::now() - start_time));
             cv.wait(lk);
         }

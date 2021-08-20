@@ -37,7 +37,7 @@ enum class TimerState : int
 class Timer
 {
 public:
-    Timer(std::chrono::seconds, std::function<void()>); /* NB: callback runs on the timeout thread. */
+    Timer(std::chrono::milliseconds, std::function<void()>); /* NB: callback runs on the timeout thread. */
     ~Timer();
     Timer(const Timer&) = delete;
     const Timer& operator=(const Timer&) = delete;
@@ -50,7 +50,7 @@ public:
 
 private:
     void main();
-    const std::chrono::seconds timeout;
+    const std::chrono::milliseconds timeout;
     const std::function<void()> callback;
     TimerState current_state;
     std::thread t;
