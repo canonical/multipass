@@ -255,6 +255,9 @@ void cmd::GuiCmd::update_about_menu()
     about_client_version.setText("multipass version: " + QString::fromStdString(multipass::version_string));
     about_daemon_version.setText("multipassd version: " + QString::fromStdString(reply.version()));
 
+    QObject::disconnect(&tray_icon, &QSystemTrayIcon::messageClicked, 0, 0);
+    tray_icon_menu.removeAction(&update_action);
+
     if (update_available(reply.update_info()))
     {
         update_action.setIcon(QApplication::style()->standardIcon(QStyle::SP_MessageBoxInformation));
@@ -266,12 +269,7 @@ void cmd::GuiCmd::update_about_menu()
         tray_icon_menu.insertAction(about_menu.menuAction(), &update_action);
         tray_icon.showMessage(QString::fromStdString(reply.update_info().title()),
                               QString("%1\n\nClick here for more information.")
-                                  .arg(QString::fromStdString(reply.update_info().description())));
-    }
-    else
-    {
-        QObject::disconnect(&tray_icon, &QSystemTrayIcon::messageClicked, 0, 0);
-        tray_icon_menu.removeAction(&update_action);
+                              .arg(QString::fromStdString(reply.update_info().description())));
     }
 }
 
