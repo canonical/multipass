@@ -22,8 +22,6 @@ layout:
     bind: $SNAP/etc/fonts
   /usr/share/fonts:
     bind: $SNAP/usr/share/fonts
-  /usr/bin/xkbcomp:
-    symlink: $SNAP/usr/bin/xkbcomp
   /usr/share/icons:
     bind: $SNAP/usr/share/icons
 
@@ -130,7 +128,6 @@ parts:
     - libvirt0
     - dnsmasq-base
     - dnsmasq-utils
-    - qtwayland5
     source: .
     cmake-parameters:
     - -DCMAKE_BUILD_TYPE=RelWithDebInfo
