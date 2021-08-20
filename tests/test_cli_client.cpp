@@ -2478,22 +2478,28 @@ INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
                                 std::vector<std::string>{"mount", "..", "test-vm:test"},
                                 std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
 
-auto list_function = [](grpc::ServerContext*, const mp::ListRequest*, grpc::ServerWriter<mp::ListReply>* response)
+auto info_function =
+    [](grpc::ServerContext*, const mp::InfoRequest* request, grpc::ServerWriter<mp::InfoReply>* response)
 {
-    mp::ListReply list_reply;
+    mp::InfoReply info_reply;
 
-    auto list_entry = list_reply.add_instances();
-    list_entry->set_name("primary");
-    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+    if (request->instance_names().instance_name(0) == "primary")
+    {
+        auto vm_info = info_reply.add_info();
+        vm_info->set_name("primary");
+        vm_info->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
 
-    response->Write(list_reply);
+        response->Write(info_reply);
 
-    return grpc::Status{};
+        return grpc::Status{};
+    }
+    else
+        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
 };
 
 TEST_F(ClientAlias, alias_creates_alias)
 {
-    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
@@ -2510,7 +2516,7 @@ TEST_F(ClientAlias, fails_if_cannot_write_script)
 {
     EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("aaa")));
 
-    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"alias", "primary:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
@@ -2524,7 +2530,7 @@ TEST_F(ClientAlias, fails_if_cannot_write_script)
 
 TEST_F(ClientAlias, alias_does_not_overwrite_alias)
 {
-    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
@@ -2549,7 +2555,7 @@ TEST_P(ArgumentCheckTestsuite, answers_correctly)
 {
     auto [arguments, expected_return_code, expected_cout, expected_cerr] = GetParam();
 
-    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
 
     std::stringstream cout_stream, cerr_stream;
     EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream), expected_return_code);
@@ -2632,7 +2638,7 @@ TEST_F(ClientAlias, refuses_executing_alias_with_arguments)
 
 TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)
 {
-    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(AtMost(1)).WillRepeatedly(list_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
@@ -2649,7 +2655,7 @@ TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)
 
 TEST_F(ClientAlias, alias_refuses_creation_rpc_error)
 {
-    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
