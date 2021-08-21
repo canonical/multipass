@@ -26,7 +26,8 @@ void mcp::open_multipass_shell(const QString& instance_name)
 {
     assert(!instance_name.isEmpty() && "Instance name cannot be empty");
     QProcess::startDetached(
-        "x-terminal-emulator", {"--initial-title", instance_name, "-e", QString("bash -c 'multipass shell %1 || read'").arg(instance_name)});
+        "x-terminal-emulator",
+        {"--initial-title", instance_name, "-e", QString("bash -c 'multipass shell %1 || read'").arg(instance_name)});
 }
 
 QStringList mcp::gui_tray_notification_strings()
