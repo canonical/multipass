@@ -82,6 +82,19 @@ bool is_ready(std::future<R> const& f)
     return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
 
+template <typename DaemonSlotPtr, typename Request, typename Reply>
+grpc::Status call_daemon_slot(mp::Daemon& daemon, DaemonSlotPtr slot, const Request& request,
+                              grpc::ServerWriterInterface<Reply>& server)
+{
+    std::promise<grpc::Status> status_promise;
+    auto status_future = status_promise.get_future();
+
+    daemon.get(&request, &server, &status_promise);
+
+    EXPECT_TRUE(is_ready(status_future));
+    return status_future.get();
+}
+
 template <typename W>
 class MockServerWriter : public grpc::ServerWriterInterface<W>
 {
@@ -1475,13 +1488,8 @@ TEST_F(Daemon, getReturnsSetting)
     mp::GetRequest request;
     request.set_key(key);
 
-    std::promise<grpc::Status> status_promise;
-    auto status_future = status_promise.get_future();
-
-    daemon.get(&request, &mock_server, &status_promise);
-
-    EXPECT_TRUE(is_ready(status_future));
-    EXPECT_TRUE(status_future.get().ok());
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, mock_server);
+    EXPECT_TRUE(status.ok());
 }
 
 TEST_F(Daemon, getHandlesEmptyKey)
@@ -1493,14 +1501,8 @@ TEST_F(Daemon, getHandlesEmptyKey)
     mp::GetRequest request;
     request.set_key("");
 
-    std::promise<grpc::Status> status_promise;
-    auto status_future = status_promise.get_future();
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, mock_server);
 
-    daemon.get(&request, &mock_server, &status_promise);
-
-    EXPECT_TRUE(is_ready(status_future));
-
-    auto status = status_future.get();
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
 }
