@@ -336,7 +336,7 @@ int mp::SftpServer::mapped_gid_for(const int gid)
 
 int mp::SftpServer::reverse_uid_for(const int uid)
 {
-    auto compare_uid_map_value = [](std::pair<int, int> p) { return uid == (unsigned)p.second; };
+    auto compare_uid_map_value = [uid](std::pair<int, int> p) { return uid == p.second; };
 
     auto found = std::find_if(uid_map.cbegin(), uid_map.cend(), compare_uid_map_value);
 
@@ -345,9 +345,9 @@ int mp::SftpServer::reverse_uid_for(const int uid)
 
 int mp::SftpServer::reverse_gid_for(const int gid)
 {
-    auto compare_gid_map_value = [](std::pair<int, int> p) { return gid == (unsigned)p.second; };
+    auto compare_gid_map_value = [gid](std::pair<int, int> p) { return gid == p.second; };
 
-    auto found std::find_if(gid_map.cbegin(), gid_map.cend(), compare_gid_map_val);
+    auto found = std::find_if(gid_map.cbegin(), gid_map.cend(), compare_gid_map_value);
 
     return found == gid_map.cend() ? gid : found->first;
 }
@@ -538,8 +538,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 
     QFileInfo current_dir(filename);
     QFileInfo parent_dir(current_dir.path());
-    auto ret = MP_PLATFORM.chown(filename, parent_dir.ownerId(), parent_dir.groupId());
-    if (ret < 0)
+
+    if (MP_PLATFORM.chown(filename, reverse_uid_for(parent_dir.ownerId()), reverse_gid_for(parent_dir.groupId())) < 0)
     {
         mpl::log(mpl::Level::trace, category,
                  fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, parent_dir.ownerId(),
@@ -627,8 +627,9 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
         QFileInfo current_file(filename);
         QFileInfo current_dir(current_file.path());
-        auto ret = MP_PLATFORM.chown(filename, current_dir.ownerId(), current_dir.groupId());
-        if (ret < 0)
+
+        if (MP_PLATFORM.chown(filename, reverse_uid_for(current_dir.ownerId()),
+                              reverse_gid_for(current_dir.groupId())) < 0)
         {
             mpl::log(mpl::Level::trace, category,
                      fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, current_dir.ownerId(),
@@ -933,7 +934,9 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
+    if ((msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID) &&
+        (MP_PLATFORM.chown(filename.toStdString().c_str(), reverse_uid_for(msg->attr->uid),
+                           reverse_gid_for(msg->attr->gid)) < 0))
     {
         auto compare_uid_map_value = [msg](std::pair<int, int> p) { return msg->attr->uid == (unsigned)p.second; };
         int new_uid = std::find_if(uid_map.cbegin(), uid_map.cend(), compare_uid_map_value) == uid_map.cend()
@@ -947,9 +950,9 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
         if ((new_uid != -1 || new_gid != -1) && MP_PLATFORM.chown(filename.toStdString().c_str(), new_uid, new_gid) < 0)
         {
-            mpl::log(mpl::Level::trace, category,
-                     fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
-            return reply_failure(msg);
+        mpl::log(mpl::Level::error, category,
+                 fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
+        return reply_failure(msg);
         }
     }
 
@@ -1016,8 +1019,8 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 
     QFileInfo current_file(new_name);
     QFileInfo current_dir(current_file.path());
-    auto ret = MP_PLATFORM.chown(new_name, current_dir.ownerId(), current_dir.groupId());
-    if (ret < 0)
+
+    if (MP_PLATFORM.chown(new_name, reverse_uid_for(current_dir.ownerId()), reverse_gid_for(current_dir.groupId())) < 0)
     {
         mpl::log(mpl::Level::trace, category,
                  fmt::format("failed to chown '{}' to owner:{} and group:{}", new_name, current_dir.ownerId(),
