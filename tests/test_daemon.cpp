@@ -76,9 +76,19 @@ namespace
 {
 const qint64 default_total_bytes{16'106'127'360}; // 15G
 
-template<typename R>
-  bool is_ready(std::future<R> const& f)
-  { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }
+template <typename R>
+bool is_ready(std::future<R> const& f)
+{
+    return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+}
+
+template <typename W>
+class MockServerWriter : public grpc::ServerWriterInterface<W>
+{
+public:
+    MOCK_METHOD0(SendInitialMetadata, void());
+    MOCK_METHOD2_T(Write, bool(const W& msg, grpc::WriteOptions options));
+};
 
 struct StubNameGenerator : public mp::NameGenerator
 {
