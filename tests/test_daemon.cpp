@@ -1469,18 +1469,40 @@ TEST_F(Daemon, getReturnsSetting)
     const auto val = "bar";
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
 
-    std::stringstream stream;
-    send_command({"test_get", key}, stream);
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr(key), HasSubstr(val)));
+    StrictMock<MockServerWriter<mp::GetReply>> mock_server;
+    EXPECT_CALL(mock_server, Write(Property(&mp::GetReply::value, Eq(val)), _)).WillOnce(Return(true));
+
+    mp::GetRequest request;
+    request.set_key(key);
+
+    std::promise<grpc::Status> status_promise;
+    auto status_future = status_promise.get_future();
+
+    daemon.get(&request, &mock_server, &status_promise);
+
+    EXPECT_TRUE(is_ready(status_future));
+    EXPECT_TRUE(status_future.get().ok());
 }
 
 TEST_F(Daemon, getHandlesEmptyKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream err_stream;
-    send_command({"test_get", ""}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
+    StrictMock<MockServerWriter<mp::GetReply>> mock_server;
+
+    mp::GetRequest request;
+    request.set_key("");
+
+    std::promise<grpc::Status> status_promise;
+    auto status_future = status_promise.get_future();
+
+    daemon.get(&request, &mock_server, &status_promise);
+
+    EXPECT_TRUE(is_ready(status_future));
+
+    auto status = status_future.get();
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
 }
 
 TEST_F(Daemon, getHandlesInvalidKey)
