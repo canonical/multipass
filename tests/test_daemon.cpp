@@ -82,9 +82,8 @@ bool is_ready(std::future<R> const& f)
     return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
 
-template <typename DaemonSlotPtr, typename Request, typename Reply>
-grpc::Status call_daemon_slot(mp::Daemon& daemon, DaemonSlotPtr slot, const Request& request,
-                              grpc::ServerWriterInterface<Reply>& server)
+template <typename DaemonSlotPtr, typename Request, typename Server>
+grpc::Status call_daemon_slot(mp::Daemon& daemon, DaemonSlotPtr slot, const Request& request, Server&& server)
 {
     std::promise<grpc::Status> status_promise;
     auto status_future = status_promise.get_future();
@@ -1496,12 +1495,10 @@ TEST_F(Daemon, getHandlesEmptyKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
-    StrictMock<MockServerWriter<mp::GetReply>> mock_server;
-
     mp::GetRequest request;
     request.set_key("");
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, mock_server);
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<MockServerWriter<mp::GetReply>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
