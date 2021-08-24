@@ -1508,11 +1508,13 @@ TEST_F(Daemon, getHandlesInvalidKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
-    const auto bad_key = "bad";
+    mp::GetRequest request;
+    request.set_key("bad");
 
-    std::stringstream err_stream;
-    send_command({"test_get", bad_key}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr(bad_key)));
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<MockServerWriter<mp::GetReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr(request.key())));
 }
 
 TEST_F(Daemon, getReportsException)
@@ -1520,11 +1522,15 @@ TEST_F(Daemon, getReportsException)
     mp::Daemon daemon{config_builder.build()};
 
     const auto key = "foo";
+    mp::GetRequest request;
+    request.set_key(key);
+
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(std::runtime_error{"exception"}));
 
-    std::stringstream err_stream;
-    send_command({"test_get", key}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("exception"));
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<MockServerWriter<mp::GetReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
+    EXPECT_THAT(status.error_message(), HasSubstr("exception"));
 }
 
 TEST_F(Daemon, requests_networks)
