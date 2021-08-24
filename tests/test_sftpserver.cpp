@@ -1636,38 +1636,6 @@ TEST_F(SftpServer, setstat_chown_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, setstat_chown_does_not_modify_host_folder_if_reverse_mapped)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    mpt::make_file_with_content(file_name);
-
-    std::unordered_map<int, int> map{{1000, 0}};
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
-    auto msg = make_msg(SFTP_SETSTAT);
-    auto name = name_as_char_array(file_name.toStdString());
-    sftp_attributes_struct attr{};
-    const int expected_size = 7777;
-    attr.size = expected_size;
-    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
-    attr.permissions = 0777;
-
-    msg->filename = name.data();
-    msg->attr = &attr;
-    msg->flags = SSH_FXF_WRITE;
-    msg->attr->uid = 0;
-    msg->attr->gid = 0;
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-
-    EXPECT_CALL(*mock_platform, chown(_, _, _)).Times(0);
-
-    sftp.run();
-}
-
 TEST_F(SftpServer, setstat_utime_failure_fails)
 {
     mpt::TempDir temp_dir;
@@ -2324,5 +2292,114 @@ INSTANTIATE_TEST_SUITE_P(
         MessageAndReply{SFTP_RENAME, SSH_FX_NO_SUCH_FILE}, MessageAndReply{SFTP_SETSTAT, SSH_FX_NO_SUCH_FILE},
         MessageAndReply{SFTP_EXTENDED, SSH_FX_FAILURE}),
     string_for_param);
+
+TEST_F(SftpServer, mkdir_chown_honors_maps_in_the_host)
+{
+    mpt::TempDir temp_dir;
+    auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
+    auto new_dir_name = name_as_char_array(new_dir);
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    std::unordered_map<int, int> map{{1000, 0}};
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    auto msg = make_msg(SFTP_MKDIR);
+    msg->filename = new_dir_name.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    EXPECT_CALL(*mock_platform, chown(_, 1000, 1000)).Times(1);
+    EXPECT_CALL(*mock_platform, chown(_, 0, 0)).Times(0);
+
+    sftp.run();
+}
+
+TEST_F(SftpServer, symlink_chown_honors_maps_in_the_host)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+
+    std::unordered_map<int, int> map{{1000, 0}};
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    auto msg = make_msg(SFTP_SYMLINK);
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_platform, chown(_, 1000, 1000)).Times(1);
+    EXPECT_CALL(*mock_platform, chown(_, 0, 0)).Times(0);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    sftp.run();
+}
+
+TEST_F(SftpServer, open_chown_honors_maps_in_the_host)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    std::unordered_map<int, int> map{{1000, 0}};
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    auto msg = make_msg(SFTP_OPEN);
+    msg->flags |= SSH_FXF_WRITE;
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    EXPECT_CALL(*mock_platform, chown(_, 1000, 1000)).WillOnce(Return(-1));
+    EXPECT_CALL(*mock_platform, chown(_, 0, 0)).Times(0);
+
+    sftp.run();
+}
+
+TEST_F(SftpServer, setstat_chown_honors_maps_in_the_host)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+
+    std::unordered_map<int, int> map{{1000, 0}};
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    auto msg = make_msg(SFTP_SETSTAT);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    const int expected_size = 7777;
+    attr.size = expected_size;
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+    attr.permissions = 0777;
+
+    msg->filename = name.data();
+    msg->attr = &attr;
+    msg->flags = SSH_FXF_WRITE;
+    msg->attr->uid = 0;
+    msg->attr->gid = 0;
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    EXPECT_CALL(*mock_platform, chown(_, 1000, 1000)).Times(1);
+    EXPECT_CALL(*mock_platform, chown(_, 0, 0)).Times(0);
+
+    sftp.run();
+}
 
 } // namespace
