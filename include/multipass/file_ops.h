@@ -22,6 +22,7 @@
 
 #include <QByteArray>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QString>
 #include <QTextStream>
@@ -36,8 +37,13 @@ public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
     // QDir operations
+    virtual bool exists(const QDir& dir) const;
     virtual bool isReadable(QDir& dir) const;
     virtual bool rmdir(QDir& dir, const QString& dirName) const;
+
+    // QDirIterator operations
+    virtual bool hasNext(QDirIterator& iter) const;
+    virtual QString next(QDirIterator& iter) const;
 
     // QFile operations
     virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
@@ -51,6 +57,9 @@ public:
     virtual bool setPermissions(QFile& file, QFileDevice::Permissions permissions) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFile& file, const QByteArray& data) const;
+
+    // QByteArray operations
+    virtual QByteArray readAll(QFile& file) const;
 };
 } // namespace multipass
 

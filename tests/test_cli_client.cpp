@@ -18,6 +18,7 @@
 #include "common.h"
 #include "disabling_macros.h"
 #include "mock_environment_helpers.h"
+#include "mock_file_ops.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
@@ -717,6 +718,57 @@ TEST_F(Client, launch_cmd_cloudinit_option_reads_stdin_ok)
     std::stringstream ss;
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss), Eq(mp::ReturnCode::Ok));
+}
+
+using ISOStructure = mp::utils::ISOStructure;
+const ISOStructure cloud_init_tree_struct = {
+    {"../ISO/vendor-data", "", "vendor-data"},
+    {"../ISO/meta-data", "", "meta-data"},
+    {"../ISO/user-data", "", "user-data"},
+    {"../ISO/directory2/nested_in_two", "directory2", "nested_in_two"},
+    {"../ISO/sub/nested_file", "sub", "nested_file"},
+    {"../ISO/sub/directory/another_file", "sub/directory", "another_file"},
+    {"../ISO/sub/directory/one/yet_another_deeper_file", "sub/directory/one", "yet_another_deeper_file"}};
+TEST_F(Client, launch_cmd_cloudinittree_option_read_success)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    MockStdCin cin("\n"); // Mocking enter to continue with command.
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, exists).WillOnce(Return(true));
+
+    for (const auto& [path, dir, file_name] : cloud_init_tree_struct)
+    {
+        EXPECT_CALL(*mock_file_ops, hasNext).WillOnce(Return(true)).RetiresOnSaturation();
+        EXPECT_CALL(*mock_file_ops, next).WillOnce(Return(path)).RetiresOnSaturation();
+    }
+    EXPECT_CALL(*mock_file_ops, hasNext).WillOnce(Return(false));
+
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
+    EXPECT_THAT(send_command({"launch", "--cloud-init-tree", "iso_directory"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_cloudinittree_option_read_fail)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    const std::string bad_dir = "bad/directory/path/";
+    std::stringstream cerr_stream;
+
+    MockStdCin cin("\n"); // Mocking enter to continue with command.
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, exists).WillOnce(Return(false));
+
+    EXPECT_THAT(send_command({"launch", "--cloud-init-tree", bad_dir}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_NE(std::string::npos, cerr_stream.str().find("not a valid directory.")) << "cerr has: " << cerr_stream.str();
+    EXPECT_NE(std::string::npos, cerr_stream.str().find(bad_dir)) << "cerr has: " << cerr_stream.str();
+}
+
+TEST_F(Client, launch_cmd_cloudinittree_option_bad_args)
+{
+    EXPECT_THAT(send_command({"launch", "--cloud-init-tree"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"launch", "--cloud--init", "--cloud-init-tree"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 #ifndef WIN32 // TODO make home mocking work for windows

@@ -24,6 +24,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/settings.h>
 #include <multipass/snap_utils.h>
@@ -44,6 +45,7 @@ namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
 using RpcMethod = mp::Rpc::Stub;
+using ISOStructure = mp::utils::ISOStructure;
 
 namespace
 {
@@ -207,8 +209,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
+    QCommandLineOption cloudInitTreeOption("cloud-init-tree", "Path to file tree containing cloud-init ISO data.",
+                                           "iso_file_tree");
 
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption});
+    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption,
+                        cloudInitTreeOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -314,6 +319,32 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             cerr << "error loading cloud-init config: " << e.what() << "\n";
             return ParseCode::CommandLineError;
         }
+    }
+
+    if (parser->isSet(cloudInitTreeOption))
+    {
+        const auto& iso_directory = parser->value(cloudInitTreeOption);
+        fmt::print(stdout, "You can now edit the cloud-init data under \"{}\". Press [Enter] when ready.\n",
+                   iso_directory);
+        term->cin().get(); // Wait to finalize ISO tree.
+
+        ISOStructure file_tree;
+        try
+        {
+            file_tree = mp::utils::map_iso_structure(iso_directory);
+
+            // TODO: transport <file_tree> to daemon via gRPC. Used to generate directories and assign file names to
+            // data.
+
+            // TODO: transport all of ISO via streaming gRPC.
+        }
+        catch (const std::exception& e)
+        {
+            fmt::print(cerr, "error: {}\n", e.what());
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_cloud_init_iso(true);
     }
 
     if (parser->isSet(bridgedOption))

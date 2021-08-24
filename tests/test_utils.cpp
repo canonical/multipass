@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "file_operations.h"
+#include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_ssh.h"
 #include "mock_ssh_process_exit_status.h"
@@ -580,4 +581,74 @@ TEST(VaultUtils, copy_throws_when_file_does_not_exist)
 
     MP_EXPECT_THROW_THAT(mp::vault::copy(file_name, temp_dir.path()), std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("{} missing", file_name))));
+}
+
+using ISOStructure = mp::utils::ISOStructure;
+const ISOStructure cloud_init_tree_struct = {
+    {"../ISO/vendor-data", "", "vendor-data"},
+    {"../ISO/meta-data", "", "meta-data"},
+    {"../ISO/user-data", "", "user-data"},
+    {"../ISO/directory2/nested_in_two", "directory2", "nested_in_two"},
+    {"../ISO/sub/nested_file", "sub", "nested_file"},
+    {"../ISO/sub/directory/another_file", "sub/directory", "another_file"},
+    {"../ISO/sub/directory/one/yet_another_deeper_file", "sub/directory/one", "yet_another_deeper_file"}};
+TEST(Utils, map_iso_structure_read_success)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, exists).WillOnce(Return(true));
+
+    for (const auto& [path, dir, file_name] : cloud_init_tree_struct)
+    {
+        EXPECT_CALL(*mock_file_ops, hasNext).WillOnce(Return(true)).RetiresOnSaturation();
+        EXPECT_CALL(*mock_file_ops, next).WillOnce(Return(path)).RetiresOnSaturation();
+    }
+    EXPECT_CALL(*mock_file_ops, hasNext).WillOnce(Return(false));
+
+    const auto& output = mp::utils::map_iso_structure("dummy");
+
+    EXPECT_EQ(output.size(), cloud_init_tree_struct.size());
+    for (auto output_iter = output.cbegin(), expected_iter = cloud_init_tree_struct.cbegin();
+         output_iter != output.cend(); ++output_iter, ++expected_iter)
+    {
+        const auto& [path_out, dir_out, filename_out] = *output_iter;
+        const auto& [path_expected, dir_expected, filename_expected] = *expected_iter;
+
+        ASSERT_TRUE(path_out == path_expected);
+        ASSERT_TRUE(dir_out == dir_expected);
+        ASSERT_TRUE(filename_out == filename_expected);
+    }
+}
+
+TEST(Utils, map_iso_structure_read_fail)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, exists).WillOnce(Return(false));
+    EXPECT_THROW(mp::utils::map_iso_structure("dummy"), std::invalid_argument);
+}
+
+TEST(Utils, xfer_file_read_fail)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(false));
+    EXPECT_THROW(mp::utils::xfer_file("dummy_path", "dummy_dir", "dummy_filename"), std::runtime_error);
+}
+
+TEST(Utils, xfer_file_read_success)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    QByteArray file_payload(1 << 21, '*');
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, readAll).WillOnce(Return(file_payload));
+
+    // TODO: meaningful test to verify file chunking is correct.
+
+    mp::utils::xfer_file("dummy_path", "dummy_dir", "dummy_filename");
 }
