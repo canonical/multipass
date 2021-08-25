@@ -161,7 +161,7 @@ struct Daemon : public mpt::DaemonTestFixture
                                                                               reset at the end of each test */
 };
 
-TEST_F(Daemon, receives_commands)
+TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
 {
     mpt::MockDaemon daemon{config_builder.build()};
 
