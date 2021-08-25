@@ -222,11 +222,11 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
 TEST_F(Daemon, provides_version)
 {
     mp::Daemon daemon{config_builder.build()};
+    StrictMock<MockServerWriter<mp::VersionReply>> mock_server;
+    EXPECT_CALL(mock_server, Write(Property(&mp::VersionReply::version, StrEq(mp::version_string)), _))
+        .WillOnce(Return(true));
 
-    std::stringstream stream;
-    send_command({"version"}, stream);
-
-    EXPECT_THAT(stream.str(), HasSubstr(mp::version_string));
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::version, mp::VersionRequest{}, mock_server).ok());
 }
 
 TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
