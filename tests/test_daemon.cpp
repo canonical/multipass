@@ -88,7 +88,7 @@ grpc::Status call_daemon_slot(mp::Daemon& daemon, DaemonSlotPtr slot, const Requ
     std::promise<grpc::Status> status_promise;
     auto status_future = status_promise.get_future();
 
-    daemon.get(&request, &server, &status_promise);
+    (daemon.*slot)(&request, &server, &status_promise);
 
     EXPECT_TRUE(is_ready(status_future));
     return status_future.get();
