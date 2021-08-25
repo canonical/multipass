@@ -1563,15 +1563,16 @@ TEST_F(Daemon, requests_networks)
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_infos));
 
     StrictMock<MockServerWriter<mp::NetworksReply>> mock_server;
-    auto same_net = Truly(
-        [](const std::tuple<mp::NetInterface, mp::NetworkInterfaceInfo>& arg)
-        {
-            const auto& [proto_net, net_info] = arg;
-            return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
-                   std::tie(net_info.id, net_info.type, net_info.description);
-        });
+
+    auto are_same_net = [](const mp::NetInterface& proto_net, const mp::NetworkInterfaceInfo& net_info)
+    {
+        return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
+               std::tie(net_info.id, net_info.type, net_info.description);
+    };
+    auto same_net_matcher = Truly(mpt::with_arg_tuple(are_same_net)); // matches pairs (2-tuples) of equivalent nets
+
     EXPECT_CALL(mock_server,
-                Write(Property(&mp::NetworksReply::interfaces, UnorderedPointwise(same_net, net_infos)), _))
+                Write(Property(&mp::NetworksReply::interfaces, UnorderedPointwise(same_net_matcher, net_infos)), _))
         .WillOnce(Return(true));
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{}, mock_server).ok());

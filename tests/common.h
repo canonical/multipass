@@ -78,6 +78,21 @@ void PrintTo(const NetworkInterfaceInfo& net, std::ostream* os);
 // Matchers
 namespace multipass::test
 {
+
+/**
+ * Adapt an n-ary callable to a unary callable receiving an n-tuple.
+ * @details This is useful to create matchers with Truly (which expects a unary predicate).
+ * @tparam F The type of the callable.
+ * @param f The n-ary callable we want to adapt. Note that this argument may be copied.
+ * @return A unary callable that receives an n-tuple, calls \c f with that tuple unpacked, and returns what @c f returns
+ */
+template <typename F>
+auto with_arg_tuple(F f)
+{
+    return [f](auto&& arg_tuple) // may copy f, but avoiding forwarding-capture mess (see https://v.gd/2IbEdv)
+    { return std::apply(f, std::forward<decltype(arg_tuple)>(arg_tuple)); };
+}
+
 template <typename MsgMatcher>
 auto match_what(MsgMatcher&& matcher)
 {
