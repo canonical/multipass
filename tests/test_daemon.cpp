@@ -82,6 +82,25 @@ bool is_ready(std::future<R> const& f)
     return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
 
+/**
+ * Helper function to call one of the <em>daemon slots</em> that ultimately handle RPC requests
+ *  (e.g. @c mp::Daemon::get). It takes care of promise/future boilerplate.
+ * @tparam DaemonSlotPtr The method pointer type for the provided slot. Example:
+ *  @code
+ *  void (mp::Daemon::*)(const mp::GetRequest *, grpc::ServerWriterInterface<mp::GetReply> *,
+ *                       std::promise<grpc::Status> *)>
+ *  @endcode
+ * @tparam Request The request type that the provided slot expects. Example: @c mp::GetRequest
+ * @tparam Server The concrete @c grpc::ServerWriterInterface type that the provided slot expects. The template needs to
+ *  be instantiated with the correct reply type. Example: <tt> grpc::ServerWriterInterface\<mp\::GetReply\> </tt>
+ * @param daemon The daemon object to call the slot on.
+ * @param slot A pointer to the daemon slot method that should be called.
+ * @param request The request to call the slot with.
+ * @param server The concrete @c grpc::ServerWriterInterface to call the slot with (see doc on Server typename). This
+ *  will generally be an @c mpt::MockServerWriter. Notice that this is a <em>universal reference</em>, so it will bind
+ *  to both lvalue and rvalue references.
+ * @return The @c grpc::Status that is produced by the slot
+ */
 template <typename DaemonSlotPtr, typename Request, typename Server>
 grpc::Status call_daemon_slot(mp::Daemon& daemon, DaemonSlotPtr slot, const Request& request, Server&& server)
 {
