@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_TIMER_H
 #define MULTIPASS_TIMER_H
 
+#include "singleton.h"
+
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -58,6 +60,18 @@ private:
     std::mutex cv_m;
 };
 
+#define MP_TIMER_SYNC_FUNCS multipass::utils::TimerSyncFuncs::instance()
+
+class TimerSyncFuncs : public Singleton<TimerSyncFuncs>
+{
+public:
+    TimerSyncFuncs(const Singleton<TimerSyncFuncs>::PrivatePass&) noexcept;
+
+    virtual void notify_all(std::condition_variable& cv);
+    virtual void wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock);
+    virtual std::cv_status wait_for(std::condition_variable& cv, std::unique_lock<std::mutex>& lock,
+                                    const std::chrono::duration<int, std::milli>& rel_time);
+};
 } // namespace multipass::utils
 
 #endif // MULTIPASS_TIMER_H
