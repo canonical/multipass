@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "disabling_macros.h"
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
@@ -2293,7 +2294,7 @@ INSTANTIATE_TEST_SUITE_P(
         MessageAndReply{SFTP_EXTENDED, SSH_FX_FAILURE}),
     string_for_param);
 
-TEST_F(SftpServer, mkdir_chown_honors_maps_in_the_host)
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdir_chown_honors_maps_in_the_host))
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -2317,7 +2318,7 @@ TEST_F(SftpServer, mkdir_chown_honors_maps_in_the_host)
     sftp.run();
 }
 
-TEST_F(SftpServer, symlink_chown_honors_maps_in_the_host)
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(symlink_chown_honors_maps_in_the_host))
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -2344,7 +2345,7 @@ TEST_F(SftpServer, symlink_chown_honors_maps_in_the_host)
     sftp.run();
 }
 
-TEST_F(SftpServer, open_chown_honors_maps_in_the_host)
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(open_chown_honors_maps_in_the_host))
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -2369,7 +2370,7 @@ TEST_F(SftpServer, open_chown_honors_maps_in_the_host)
     sftp.run();
 }
 
-TEST_F(SftpServer, setstat_chown_honors_maps_in_the_host)
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_honors_maps_in_the_host))
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
