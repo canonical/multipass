@@ -1553,24 +1553,25 @@ TEST_F(Daemon, getReportsException)
     EXPECT_THAT(status.error_message(), HasSubstr("exception"));
 }
 
-MATCHER(SameNets, "")
-{
-    const auto& [proto_net, net_info] = arg;
-    return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
-           std::tie(net_info.id, net_info.type, net_info.description);
-}
-
 TEST_F(Daemon, requests_networks)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    std::vector<mp::NetworkInterfaceInfo> nets{{"net_a", "type_a", "description_a"},
-                                               {"net_b", "type_b", "description_b"}};
-    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(nets));
+    std::vector<mp::NetworkInterfaceInfo> net_infos{{"net_a", "type_a", "description_a"},
+                                                    {"net_b", "type_b", "description_b"}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_infos));
 
     StrictMock<MockServerWriter<mp::NetworksReply>> mock_server;
-    EXPECT_CALL(mock_server, Write(Property(&mp::NetworksReply::interfaces, UnorderedPointwise(SameNets(), nets)), _))
+    auto same_net = Truly(
+        [](const std::tuple<mp::NetInterface, mp::NetworkInterfaceInfo>& arg)
+        {
+            const auto& [proto_net, net_info] = arg;
+            return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
+                   std::tie(net_info.id, net_info.type, net_info.description);
+        });
+    EXPECT_CALL(mock_server,
+                Write(Property(&mp::NetworksReply::interfaces, UnorderedPointwise(same_net, net_infos)), _))
         .WillOnce(Return(true));
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{}, mock_server).ok());
