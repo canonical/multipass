@@ -85,7 +85,7 @@ MATCHER_P(ContainedIn, container, "")
 
 MATCHER_P2(HasCorrespondentIn, container, binary_pred,
            fmt::format("{} a corresponding element in {} that pairs with it according to the given binary predicate",
-                       negation ? "has" : "doesn't have", testing::PrintToString(container)))
+                       negation ? "doesn't have" : "has", testing::PrintToString(container)))
 {
     return std::any_of(std::cbegin(container), std::cend(container),
                        [this, &arg](const auto& elem) { return binary_pred(arg, elem); });
