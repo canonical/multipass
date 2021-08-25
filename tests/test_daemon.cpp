@@ -1552,6 +1552,13 @@ TEST_F(Daemon, getReportsException)
     EXPECT_THAT(status.error_message(), HasSubstr("exception"));
 }
 
+MATCHER(SameNets, "")
+{
+    const auto& [proto_net, net_info] = arg;
+    return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
+           std::tie(net_info.id, net_info.type, net_info.description);
+}
+
 TEST_F(Daemon, requests_networks)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -1561,16 +1568,11 @@ TEST_F(Daemon, requests_networks)
                                                {"net_b", "type_b", "description_b"}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(nets));
 
-    std::stringstream stream;
-    send_command({"networks"}, stream);
+    StrictMock<MockServerWriter<mp::NetworksReply>> mock_server;
+    EXPECT_CALL(mock_server, Write(Property(&mp::NetworksReply::interfaces, UnorderedPointwise(SameNets(), nets)), _))
+        .WillOnce(Return(true));
 
-    auto got = stream.str();
-    for (const auto& net : nets)
-    {
-        EXPECT_THAT(got, HasSubstr(net.id));
-        EXPECT_THAT(got, HasSubstr(net.type));
-        EXPECT_THAT(got, HasSubstr(net.description));
-    }
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{}, mock_server).ok());
 }
 
 TEST_F(Daemon, performs_health_check_on_networks)
