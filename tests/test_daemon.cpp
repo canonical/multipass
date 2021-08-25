@@ -1584,7 +1584,8 @@ TEST_F(Daemon, performs_health_check_on_networks)
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, hypervisor_health_check);
-    send_command({"networks"});
+    call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{},
+                     NiceMock<MockServerWriter<mp::NetworksReply>>{});
 }
 
 } // namespace
