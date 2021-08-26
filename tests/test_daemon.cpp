@@ -1040,10 +1040,16 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
 
-    // By issuing the `list` command, we check at least that the instance was indeed read and there were no errors.
-    std::stringstream stream;
-    send_command({"list"}, stream);
-    EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
+    // Check that the instance was indeed read and there were no errors.
+    {
+        StrictMock<MockServerWriter<mp::ListReply>> mock_server;
+
+        auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
+        EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
+            .WillOnce(Return(true));
+
+        EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    }
 
     // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
     // make sure that the file was indeed rewritten after the next step.
