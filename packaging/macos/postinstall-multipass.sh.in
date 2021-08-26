@@ -34,4 +34,7 @@ else
     echo "MacPorts is not installed"
 fi
 
+# `chown` the whole tree to 0:0
+chown -R 0:0 "${3}@CPACK_PACKAGING_INSTALL_PREFIX@"
+
 echo 0
