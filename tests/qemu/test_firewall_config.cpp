@@ -226,8 +226,7 @@ TEST_P(KernelCheckTestSuite, usesIptablesAndLogsWithBadKernelInfo)
     auto [kernel, msg] = GetParam();
     bool nftables_called{false};
 
-    mpt::MockProcessFactory::Callback firewall_callback = [&nftables_called](mpt::MockProcess* process)
-    {
+    mpt::MockProcessFactory::Callback firewall_callback = [&nftables_called](mpt::MockProcess* process) {
         if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
         {
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray()));
