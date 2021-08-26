@@ -184,6 +184,8 @@ parts:
       echo "Inherits=DMZ-White" >> $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/index.theme
     stage:
       - -usr/share/doc
+    organize:
+      usr/bin/xfce4-terminal.wrapper: bin/x-terminal-emulator
 
   glue:
     plugin: dump
