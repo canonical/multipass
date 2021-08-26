@@ -199,6 +199,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::MountRequest, mp::MountReply>));
     EXPECT_CALL(daemon, umount(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
+    EXPECT_CALL(daemon, networks(_, _, _))
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::NetworksRequest, mp::NetworksReply>));
 
     send_commands({{"test_get", "foo"},
                    {"test_create", "foo"},
@@ -216,7 +218,9 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
                    {"version"},
                    {"find", "something"},
                    {"mount", ".", "target"},
-                   {"umount", "instance"}});
+                   {"umount", "instance"},
+                   {"get", "foo"},
+                   {"networks"}});
 }
 
 TEST_F(Daemon, provides_version)
