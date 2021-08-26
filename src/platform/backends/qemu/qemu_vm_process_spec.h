@@ -40,8 +40,7 @@ public:
     static QString default_machine_type();
 
     explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QStringList& qemu_platform_args,
-                               const QString& qemu_netdev, const multipass::optional<ResumeData>& resume_data,
-                               const QString& host_arch);
+                               const QString& qemu_netdev, const multipass::optional<ResumeData>& resume_data);
 
     QStringList arguments() const override;
 

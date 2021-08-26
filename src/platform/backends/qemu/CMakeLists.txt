@@ -14,6 +14,14 @@
 
 set (CMAKE_AUTOMOC ON)
 
+set(HOST_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
+
+if (${HOST_ARCH} STREQUAL "arm64")
+  set(HOST_ARCH "aarch64")
+endif ()
+
+add_definitions(-DHOST_ARCH="${HOST_ARCH}")
+
 add_library(qemu_backend STATIC
   qemu_base_process_spec.cpp
   qemu_vm_process_spec.cpp

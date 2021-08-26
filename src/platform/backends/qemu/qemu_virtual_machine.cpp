@@ -76,7 +76,7 @@ QStringList get_arguments(const QJsonObject& metadata)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::optional<QJsonObject>& resume_metadata,
-                       const QStringList& qemu_platform_args, const QString& qemu_netdev, const QString& host_arch)
+                       const QStringList& qemu_platform_args, const QString& qemu_netdev)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -91,8 +91,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::opti
                                                         get_arguments(data)};
     }
 
-    auto process_spec =
-        std::make_unique<mp::QemuVMProcessSpec>(desc, qemu_platform_args, qemu_netdev, resume_data, host_arch);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, qemu_platform_args, qemu_netdev, resume_data);
     auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
@@ -144,7 +143,7 @@ bool instance_image_has_snapshot(const mp::Path& image_path)
     return false;
 }
 
-auto get_qemu_machine_type(const QString& host_arch)
+auto get_qemu_machine_type()
 {
     QTemporaryFile dump_file;
     if (!dump_file.open())
@@ -152,7 +151,7 @@ auto get_qemu_machine_type(const QString& host_arch)
         return QString();
     }
 
-    auto process_spec = std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName(), host_arch);
+    auto process_spec = std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName());
     auto process = mp::platform::make_process(std::move(process_spec));
     auto process_state = process->execute();
 
@@ -169,10 +168,10 @@ auto get_qemu_machine_type(const QString& host_arch)
     return machine_type;
 }
 
-auto generate_metadata(const QStringList& args, const QString& host_arch)
+auto generate_metadata(const QStringList& args)
 {
     QJsonObject metadata;
-    metadata[machine_type_key] = get_qemu_machine_type(host_arch);
+    metadata[machine_type_key] = get_qemu_machine_type();
     metadata[arguments_key] = QJsonArray::fromStringList(args);
     return metadata;
 }
@@ -235,8 +234,7 @@ void mp::QemuVirtualMachine::start()
     }
     else
     {
-        monitor->update_metadata_for(vm_name,
-                                     generate_metadata(vm_process->arguments(), qemu_platform->get_host_arch()));
+        monitor->update_metadata_for(vm_name, generate_metadata(vm_process->arguments()));
     }
 
     vm_process->start();
@@ -430,8 +428,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 {
     vm_process = make_qemu_process(
         desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
-        qemu_platform->qemu_platform_args(), qemu_platform->qemu_netdev(vm_name, mac_addr),
-        qemu_platform->get_host_arch());
+        qemu_platform->qemu_platform_args(), qemu_platform->qemu_netdev(vm_name, mac_addr));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");

@@ -23,13 +23,9 @@
 namespace mp = multipass;
 namespace mu = multipass::utils;
 
-mp::QemuBaseProcessSpec::QemuBaseProcessSpec(const QString& host_arch) : host_arch{host_arch}
-{
-}
-
 QString mp::QemuBaseProcessSpec::program() const
 {
-    return "qemu-system-" + host_arch;
+    return QString("qemu-system-%1").arg(HOST_ARCH);
 }
 
 QString mp::QemuBaseProcessSpec::working_directory() const
