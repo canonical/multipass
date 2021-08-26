@@ -3,50 +3,13 @@
 . client-common.sh
 link_autostart
 
-mkdir -p "$XDG_RUNTIME_DIR" -m 700
-
-real_xdg_runtime_dir=$(dirname "${XDG_RUNTIME_DIR}")
-real_wayland=${real_xdg_runtime_dir}/${WAYLAND_DISPLAY:-wayland-0}
-
-if [ -O "${real_wayland}" ]; then
-  ln -sf "${real_wayland}" "$XDG_RUNTIME_DIR"
-  ln -sf "${real_wayland}.lock" "$XDG_RUNTIME_DIR"
-fi
-
 if [ ! -e "${XDG_CONFIG_HOME}/xfce4/terminal/terminalrc" ]; then
   mkdir -p "${XDG_CONFIG_HOME}/xfce4/terminal/"
   cat <<EOT > "${XDG_CONFIG_HOME}/xfce4/terminal/terminalrc"
-arw-file=
-console-provider=vt
 [Configuration]
 Encoding=UTF-8
-MiscAlwaysShowTabs=FALSE
-MiscBell=FALSE
-MiscBellUrgent=FALSE
-MiscBordersDefault=TRUE
-MiscCursorBlinks=FALSE
-MiscCursorShape=TERMINAL_CURSOR_SHAPE_BLOCK
-MiscDefaultGeometry=80x24
-MiscInheritGeometry=FALSE
-MiscMenubarDefault=TRUE
-MiscMouseAutohide=FALSE
-MiscMouseWheelZoom=TRUE
-MiscToolbarDefault=FALSE
-MiscConfirmClose=TRUE
-MiscCycleTabs=TRUE
-MiscTabCloseButtons=TRUE
-MiscTabCloseMiddleClick=TRUE
-MiscTabPosition=GTK_POS_TOP
-MiscHighlightUrls=TRUE
-MiscMiddleClickOpensUri=FALSE
-MiscCopyOnSelect=FALSE
-MiscShowRelaunchDialog=TRUE
-MiscRewrapOnResize=TRUE
-MiscUseShiftArrowsToScroll=FALSE
-MiscSlimTabs=FALSE
-MiscNewTabAdjacent=FALSE
-MiscSearchDialogOpacity=100
-MiscShowUnsafePasteDialog=TRUE
+MiscMenubarDefault=FALSE
+ShortcutsNoMenukey=TRUE
 EOT
 fi
 
