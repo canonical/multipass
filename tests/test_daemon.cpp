@@ -1600,4 +1600,24 @@ TEST_F(Daemon, performs_health_check_on_networks)
                      NiceMock<MockServerWriter<mp::NetworksReply>>{});
 }
 
+TEST_F(Daemon, purgePersistsInstances)
+{
+    const std::string name1{"world-of-goo"}, name2{"small-beauty-goo"};
+    auto instance_json1 = fmt::format(valid_template, name1, "10");
+    auto instance_json2 = fmt::format(valid_template, name2, "11");
+    auto json_contents = fmt::format("{{{}, {}}}", instance_json1, instance_json2);
+
+    const auto [temp_dir, filename] = plant_instance_json(json_contents);
+    config_builder.data_directory = temp_dir->path();
+
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    mp::Daemon daemon{config_builder.build()};
+
+    QFile::remove(filename);
+    call_daemon_slot(daemon, &mp::Daemon::purge, mp::PurgeRequest{}, NiceMock<MockServerWriter<mp::PurgeReply>>{});
+
+    auto updated_json = mpt::load(filename);
+    EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
+}
+
 } // namespace
