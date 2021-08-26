@@ -26,12 +26,13 @@ namespace multipass
 class QemuVmStateProcessSpec : public QemuBaseProcessSpec
 {
 public:
-    explicit QemuVmStateProcessSpec(const QString& file_name);
+    explicit QemuVmStateProcessSpec(const QString& file_name, const QStringList& extra_platform_args = QStringList());
 
     QStringList arguments() const override;
 
 private:
     QString file_name;
+    QStringList extra_platform_args;
 };
 
 } // namespace multipass
