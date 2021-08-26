@@ -1048,10 +1048,7 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
     // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
     // make sure that the file was indeed rewritten after the next step.
     QFile::remove(filename);
-
-    // The purge command will be apparently no-op, because there are no deleted instances. However, it will trigger
-    // a rewriting of the JSON, which will be useful for us to check if the data was correctly read.
-    send_command({"purge"});
+    daemon.persist_instances();
 
     // Finally, check the contents of the file. If they match with what we read, we are done.
     check_interfaces_in_json(filename, mac_addr, extra_interfaces);

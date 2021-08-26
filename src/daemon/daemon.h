@@ -77,6 +77,8 @@ public:
     Daemon(const Daemon&) = delete;
     Daemon& operator=(const Daemon&) = delete;
 
+    void persist_instances();
+
 protected:
     void on_resume() override;
     void on_stop() override;
@@ -143,7 +145,6 @@ public slots:
                      std::promise<grpc::Status>* status_promise);
 
 private:
-    void persist_instances();
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;
     std::string check_instance_exists(const std::string& instance_name) const;
