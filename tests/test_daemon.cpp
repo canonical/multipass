@@ -1493,8 +1493,12 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
 
     std::stringstream err_stream;
-    send_command({"mount", ".", "target"}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, mp::MountRequest{},
+                                   StrictMock<MockServerWriter<mp::MountReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
 TEST_F(Daemon, getReturnsSetting)
