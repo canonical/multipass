@@ -1240,14 +1240,15 @@ TEST_F(Daemon, ctor_drops_removed_instances)
 
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream stream;
-    send_command({"list"}, stream);
+    StrictMock<MockServerWriter<mp::ListReply>> mock_server;
+    auto stayed_matcher = Property(&mp::ListVMInstance::name, stayed);
+    EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(stayed_matcher)), _))
+        .WillOnce(Return(true));
 
-    auto instance_matchers = AllOf(HasSubstr(stayed), Not(HasSubstr(gone)));
-    EXPECT_THAT(stream.str(), instance_matchers);
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
 
     auto updated_json = mpt::load(filename);
-    EXPECT_THAT(updated_json.toStdString(), instance_matchers);
+    EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
 }
 
 TEST_P(ListIP, lists_with_ip)
