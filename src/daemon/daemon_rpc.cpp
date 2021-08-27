@@ -38,7 +38,7 @@ void throw_if_server_exists(const std::string& address)
     auto stub = mp::Rpc::NewStub(channel);
 
     grpc::ClientContext context;
-    auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(1);
+    auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(100); // should be enough...
     context.set_deadline(deadline);
 
     mp::PingRequest request;
