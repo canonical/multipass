@@ -577,8 +577,9 @@ TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
     const std::string expected_ip{"10.10.0.34"};
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    ON_CALL(mock_qemu_platform, get_ip_for(_))
-        .WillByDefault([&expected_ip](auto...) { return mp::optional<mp::IPAddress>{expected_ip}; });
+    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
+        return mp::optional<mp::IPAddress>{expected_ip};
+    });
 
     mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
@@ -646,16 +647,15 @@ TEST_F(QemuBackend, remove_resources_for_calls_qemu_platform)
     const std::string test_name{"foo"};
 
     EXPECT_CALL(*mock_qemu_platform, remove_resources_for(_))
-        .WillOnce(
-            [&remove_resources_called, &test_name](auto& name)
-            {
-                remove_resources_called = true;
+        .WillOnce([&remove_resources_called, &test_name](auto& name) {
+            remove_resources_called = true;
 
-                EXPECT_EQ(name, test_name);
-            });
+            EXPECT_EQ(name, test_name);
+        });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_))
-        .WillOnce([&mock_qemu_platform](auto...) { return std::move(mock_qemu_platform); });
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([&mock_qemu_platform](auto...) {
+        return std::move(mock_qemu_platform);
+    });
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -670,11 +670,13 @@ TEST_F(QemuBackend, hypervisor_health_check_calls_qemu_platform)
     auto [mock_qemu_platform_factory, guard] = mpt::MockQemuPlatformFactory::inject();
     bool health_check_called{false};
 
-    EXPECT_CALL(*mock_qemu_platform, platform_health_check())
-        .WillOnce([&health_check_called] { health_check_called = true; });
+    EXPECT_CALL(*mock_qemu_platform, platform_health_check()).WillOnce([&health_check_called] {
+        health_check_called = true;
+    });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_))
-        .WillOnce([&mock_qemu_platform](auto...) { return std::move(mock_qemu_platform); });
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([&mock_qemu_platform](auto...) {
+        return std::move(mock_qemu_platform);
+    });
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -690,17 +692,15 @@ TEST_F(QemuBackend, get_backend_directory_name_calls_qemu_platform)
     bool get_directory_name_called{false};
     const QString backend_dir_name{"foo"};
 
-    EXPECT_CALL(*mock_qemu_platform, get_directory_name())
-        .WillOnce(
-            [&get_directory_name_called, &backend_dir_name]
-            {
-                get_directory_name_called = true;
+    EXPECT_CALL(*mock_qemu_platform, get_directory_name()).WillOnce([&get_directory_name_called, &backend_dir_name] {
+        get_directory_name_called = true;
 
-                return backend_dir_name;
-            });
+        return backend_dir_name;
+    });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_))
-        .WillOnce([&mock_qemu_platform](auto...) { return std::move(mock_qemu_platform); });
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([&mock_qemu_platform](auto...) {
+        return std::move(mock_qemu_platform);
+    });
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -714,10 +714,12 @@ TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
 {
     mpt::MockQemuPlatform qemu_platform;
 
-    EXPECT_CALL(qemu_platform, qemu_platform_args())
-        .WillOnce([&qemu_platform] { return qemu_platform.base_qemu_platform_args(); });
-    EXPECT_CALL(qemu_platform, get_directory_name())
-        .WillOnce([&qemu_platform] { return qemu_platform.base_get_directory_name(); });
+    EXPECT_CALL(qemu_platform, qemu_platform_args()).WillOnce([&qemu_platform] {
+        return qemu_platform.base_qemu_platform_args();
+    });
+    EXPECT_CALL(qemu_platform, get_directory_name()).WillOnce([&qemu_platform] {
+        return qemu_platform.base_get_directory_name();
+    });
 
     EXPECT_TRUE(qemu_platform.qemu_platform_args().isEmpty());
     EXPECT_TRUE(qemu_platform.get_directory_name().isEmpty());

@@ -387,16 +387,14 @@ TEST(LinuxBackendUtils, check_kvm_support_no_error_does_not_throw)
 {
     auto process_factory = mpt::MockProcessFactory::Inject();
 
-    mpt::MockProcessFactory::Callback handle_callback(
-        [](mpt::MockProcess* process)
-        {
-            EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
+    mpt::MockProcessFactory::Callback handle_callback([](mpt::MockProcess* process) {
+        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
 
-            mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
+        mp::ProcessState exit_state;
+        exit_state.exit_code = 0;
 
-            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-        });
+        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+    });
 
     process_factory->register_callback(handle_callback);
 
@@ -407,16 +405,14 @@ TEST(LinuxBackendUtils, check_kvm_support_fails_to_start_throws_expected_message
 {
     auto process_factory = mpt::MockProcessFactory::Inject();
 
-    mpt::MockProcessFactory::Callback handle_callback(
-        [](mpt::MockProcess* process)
-        {
-            EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
+    mpt::MockProcessFactory::Callback handle_callback([](mpt::MockProcess* process) {
+        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
 
-            mp::ProcessState exit_state;
-            exit_state.error = mp::ProcessState::Error{QProcess::FailedToStart, "Failure"};
+        mp::ProcessState exit_state;
+        exit_state.error = mp::ProcessState::Error{QProcess::FailedToStart, "Failure"};
 
-            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-        });
+        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+    });
 
     process_factory->register_callback(handle_callback);
 
@@ -431,17 +427,15 @@ TEST(LinuxBackendUtils, check_kvm_support_error_throws_expected_message)
 
     auto process_factory = mpt::MockProcessFactory::Inject();
 
-    mpt::MockProcessFactory::Callback handle_callback(
-        [&error_message](mpt::MockProcess* process)
-        {
-            EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
+    mpt::MockProcessFactory::Callback handle_callback([&error_message](mpt::MockProcess* process) {
+        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
 
-            mp::ProcessState exit_state;
-            exit_state.exit_code = 1;
+        mp::ProcessState exit_state;
+        exit_state.exit_code = 1;
 
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(error_message));
-            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-        });
+        EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(error_message));
+        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+    });
 
     process_factory->register_callback(handle_callback);
 
@@ -466,13 +460,10 @@ TEST(LinuxBackendUtils, check_kvm_in_use_fails_throws_expected_message)
 
     EXPECT_CALL(*mock_linux_syscalls, close(_)).WillRepeatedly(Return(0));
     EXPECT_CALL(*mock_linux_syscalls, open(_, _)).WillOnce(Return(1));
-    EXPECT_CALL(*mock_linux_syscalls, ioctl(_, _, _))
-        .WillOnce(
-            [](auto...)
-            {
-                errno = EBUSY;
-                return -1;
-            });
+    EXPECT_CALL(*mock_linux_syscalls, ioctl(_, _, _)).WillOnce([](auto...) {
+        errno = EBUSY;
+        return -1;
+    });
 
     MP_EXPECT_THROW_THAT(
         MP_BACKEND.check_if_kvm_is_in_use(), std::runtime_error,
@@ -537,14 +528,11 @@ TEST(LinuxBackendUtils, get_subnet_not_in_file_writes_new_subnet_returns_expecte
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(0));
-    EXPECT_CALL(*mock_file_ops, write(_, _, _))
-        .WillOnce(
-            [&generated_subnet](auto&, auto data, auto)
-            {
-                generated_subnet = std::string(data);
+    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce([&generated_subnet](auto&, auto data, auto) {
+        generated_subnet = std::string(data);
 
-                return generated_subnet.length();
-            });
+        return generated_subnet.length();
+    });
 
     EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), generated_subnet);
 }

@@ -44,11 +44,13 @@ struct QemuPlatformDetail : public Test
     {
         EXPECT_CALL(*mock_backend, get_subnet(_, _)).WillOnce([this](auto...) { return subnet; });
 
-        EXPECT_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server(_, _, _))
-            .WillOnce([this](auto...) { return std::move(mock_dnsmasq_server); });
+        EXPECT_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server(_, _, _)).WillOnce([this](auto...) {
+            return std::move(mock_dnsmasq_server);
+        });
 
-        EXPECT_CALL(*mock_firewall_config_factory, make_firewall_config(_, _))
-            .WillOnce([this](auto...) { return std::move(mock_firewall_config); });
+        EXPECT_CALL(*mock_firewall_config_factory, make_firewall_config(_, _)).WillOnce([this](auto...) {
+            return std::move(mock_firewall_config);
+        });
 
         EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), _, _)).WillRepeatedly(Return(true));
         EXPECT_CALL(*mock_utils,
@@ -137,12 +139,10 @@ TEST_F(QemuPlatformDetail, generating_and_removing_net_resources_works_as_expect
         *mock_utils,
         run_cmd_for_status(QString("ip"),
                            ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))), _))
-        .WillOnce(
-            [&tap_name](auto& cmd, auto& opts, auto...)
-            {
-                tap_name = opts.last();
-                return false;
-            });
+        .WillOnce([&tap_name](auto& cmd, auto& opts, auto...) {
+            tap_name = opts.last();
+            return false;
+        });
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
