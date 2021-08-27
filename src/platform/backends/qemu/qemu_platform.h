@@ -23,20 +23,11 @@
 #include <multipass/path.h>
 #include <multipass/singleton.h>
 
-#include <QHash>
 #include <QString>
 #include <QStringList>
-#include <QSysInfo>
 
 #include <memory>
 #include <string>
-
-namespace
-{
-const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
-                                          {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
-                                          {"s390x", "s390x"}};
-}
 
 namespace multipass
 {
@@ -59,18 +50,11 @@ public:
     {
         return {};
     };
-    virtual QString get_host_arch()
-    {
-        return host_arch;
-    };
 
 protected:
-    explicit QemuPlatform() : host_arch{cpu_to_arch.value(QSysInfo::currentCpuArchitecture())} {};
+    explicit QemuPlatform() = default;
     QemuPlatform(const QemuPlatform&) = delete;
     QemuPlatform& operator=(const QemuPlatform&) = delete;
-
-private:
-    const QString host_arch;
 };
 
 #define MP_QEMU_PLATFORM_FACTORY multipass::QemuPlatformFactory::instance()
