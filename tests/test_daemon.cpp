@@ -1576,8 +1576,7 @@ TEST_F(Daemon, requests_networks)
 
     StrictMock<MockServerWriter<mp::NetworksReply>> mock_server;
 
-    auto are_same_net = [](const mp::NetInterface& proto_net, const mp::NetworkInterfaceInfo& net_info)
-    {
+    auto are_same_net = [](const mp::NetInterface& proto_net, const mp::NetworkInterfaceInfo& net_info) {
         return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
                std::tie(net_info.id, net_info.type, net_info.description);
     };
