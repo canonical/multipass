@@ -4,7 +4,20 @@ BasedOnStyle: LLVM
 ---
 Language: Cpp
 IndentWidth: 4
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
 AccessModifierOffset: -4
 Cpp11BracedListStyle: true
 Standard: Cpp11
