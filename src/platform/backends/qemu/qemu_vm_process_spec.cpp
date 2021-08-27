@@ -27,51 +27,6 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
-namespace
-{
-// This returns the initial two Qemu command line options we used in Multipass. Only of use to resume old suspended
-// images.
-//  === Do not change this! ===
-QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, const QString& qemu_netdev,
-                                   bool use_cdrom)
-{
-    auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
-    `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
-
-    QStringList args{
-        "--enable-kvm",
-        "-hda",
-        desc.image.image_path,
-        "-smp",
-        QString::number(desc.num_cores),
-        "-m",
-        mem_size,
-        "-device",
-        QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1").arg(QString::fromStdString(desc.default_mac_address)),
-        "-netdev",
-        qemu_netdev,
-        "-qmp",
-        "stdio",
-        "-cpu",
-        "host",
-        "-chardev",
-        "null,id=char0",
-        "-serial",
-        "chardev:char0",
-        "-nographic"};
-
-    if (use_cdrom)
-    {
-        args << "-cdrom" << desc.cloud_init_iso;
-    }
-    else
-    {
-        args << "-drive" << QString("file=%1,if=virtio,format=raw,snapshot=off,read-only").arg(desc.cloud_init_iso);
-    }
-    return args;
-}
-} // namespace
-
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
                                          const QStringList& qemu_platform_args, const QString& qemu_netdev,
                                          const multipass::optional<ResumeData>& resume_data)
@@ -85,16 +40,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
     if (resume_data)
     {
-        if (resume_data->arguments.length() > 0)
-        {
-            // arguments used were saved externally, import them
-            args = resume_data->arguments;
-        }
-        else
-        {
-            // fall-back to reconstructing arguments
-            args = initial_qemu_arguments(desc, qemu_netdev, resume_data->use_cdrom_flag);
-        }
+        // arguments used were saved externally, import them
+        args = resume_data->arguments;
 
         // need to append extra arguments for resume
         args << "-loadvm" << resume_data->suspend_tag;
