@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,9 +16,11 @@
  */
 
 #include <multipass/cli/client_platform.h>
+#include <multipass/format.h>
 
 #include <QFileInfo>
 
+#include <cassert>
 #include <unistd.h>
 
 namespace mcp = multipass::cli::platform;
@@ -26,6 +28,7 @@ namespace mcp = multipass::cli::platform;
 void mcp::parse_transfer_entry(const QString& entry, QString& path, QString& instance_name)
 {
     auto colon_count = entry.count(":");
+    assert(colon_count >= 0);
 
     switch (colon_count)
     {
@@ -43,6 +46,8 @@ void mcp::parse_transfer_entry(const QString& entry, QString& path, QString& ins
             path = entry;
         }
         break;
+    default:
+        throw std::runtime_error{fmt::format("Too many colons in \"{}\"", entry)};
     }
 }
 
