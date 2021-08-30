@@ -155,22 +155,23 @@ void mp::QemuPlatformDetail::platform_health_check()
     firewall_config->verify_firewall_rules();
 }
 
-QString mp::QemuPlatformDetail::qemu_netdev(const std::string& name, const std::string& hw_addr)
+QStringList mp::QemuPlatformDetail::qemu_platform_args(const VirtualMachineDescription& vm_desc)
 {
-    auto tap_device_name = generate_tap_device_name(name);
+    // Configure and generate the args for the default network interface
+    auto tap_device_name = generate_tap_device_name(vm_desc.vm_name);
     create_tap_device(tap_device_name, bridge_name);
 
-    name_to_net_device_map.emplace(name, std::make_pair(tap_device_name, hw_addr));
+    name_to_net_device_map.emplace(vm_desc.vm_name, std::make_pair(tap_device_name, vm_desc.default_mac_address));
 
-    return QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name);
-}
-
-QStringList mp::QemuPlatformDetail::qemu_platform_args()
-{
     return QStringList() << "--enable-kvm"
                          // Pass host CPU flags to VM
                          << "-cpu"
-                         << "host";
+                         << "host"
+                         // Set up the network related args
+                         << "-nic"
+                         << QString::fromStdString(
+                                fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
+                                            tap_device_name, vm_desc.default_mac_address));
 }
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const

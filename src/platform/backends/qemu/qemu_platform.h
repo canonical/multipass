@@ -22,6 +22,7 @@
 #include <multipass/optional.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <QString>
 #include <QStringList>
@@ -41,8 +42,7 @@ public:
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr) = 0;
     virtual void remove_resources_for(const std::string&) = 0;
     virtual void platform_health_check() = 0;
-    virtual QString qemu_netdev(const std::string& name, const std::string& hw_addr) = 0;
-    virtual QStringList qemu_platform_args()
+    virtual QStringList qemu_platform_args(const VirtualMachineDescription& vm_desc)
     {
         return {};
     };
