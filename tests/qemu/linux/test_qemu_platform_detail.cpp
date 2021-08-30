@@ -129,8 +129,12 @@ TEST_F(QemuPlatformDetail, get_ip_for_returns_expected_info)
     EXPECT_EQ(*addr, ip_address);
 }
 
-TEST_F(QemuPlatformDetail, generating_and_removing_net_resources_works_as_expected)
+TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as_expected)
 {
+    mp::VirtualMachineDescription vm_desc;
+    vm_desc.vm_name = "foo";
+    vm_desc.default_mac_address = hw_addr;
+
     QString tap_name;
 
     EXPECT_CALL(*mock_dnsmasq_server, release_mac(hw_addr)).WillOnce(Return());
@@ -146,8 +150,14 @@ TEST_F(QemuPlatformDetail, generating_and_removing_net_resources_works_as_expect
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    auto net_opts_str = qemu_platform_detail.qemu_netdev(name, hw_addr);
-    EXPECT_EQ(net_opts_str, QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_name));
+    const auto qemu_args = qemu_platform_detail.qemu_platform_args(vm_desc);
+
+    EXPECT_TRUE(qemu_args.contains("--enable-kvm"));
+    EXPECT_TRUE(qemu_args.contains("-cpu"));
+    EXPECT_TRUE(qemu_args.contains("host"));
+    EXPECT_TRUE(qemu_args.contains("-nic"));
+    EXPECT_TRUE(qemu_args.contains(QString::fromStdString(fmt::format(
+        "tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}", tap_name, vm_desc.default_mac_address))));
 
     EXPECT_CALL(*mock_utils,
                 run_cmd_for_status(QString("ip"), ElementsAre(QString("addr"), QString("show"), tap_name), _))
