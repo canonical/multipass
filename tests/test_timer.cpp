@@ -60,29 +60,25 @@ struct TestTimer : public testing::Test
 
 TEST_F(TestTimer, times_out)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock, auto&)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _)).WillOnce([this](auto&, auto& timer_lock, auto&) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                // Wait for notification from main test thread
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        // Wait for notification from main test thread
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
 
-                return std::cv_status::timeout;
-            });
+        return std::cv_status::timeout;
+    });
 
     // notify_all is called twice via the stop() in start() and the stop() in the dtor
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_)).Times(2).WillRepeatedly(Return());
 
-    mpu::Timer t{default_timeout, [this]()
-                 {
+    mpu::Timer t{default_timeout, [this]() {
                      {
                          std::lock_guard<std::mutex> test_lock{cv_m};
                          timedout.store(true);
@@ -104,33 +100,29 @@ TEST_F(TestTimer, times_out)
 
 TEST_F(TestTimer, stops)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock, auto&)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _)).WillOnce([this](auto&, auto& timer_lock, auto&) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                // Notify the test thread that the timer is running
-                timer_running.store(true);
-                cv.notify_all();
+        // Notify the test thread that the timer is running
+        timer_running.store(true);
+        cv.notify_all();
 
-                // Wait to be notified by the mock notify_all()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        // Wait to be notified by the mock notify_all()
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
 
-                return std::cv_status::no_timeout;
-            });
+        return std::cv_status::no_timeout;
+    });
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
         .WillOnce(Return()) // Handles the stop() in start()
         .WillOnce(          // Handles the stop() called in the test
-            [this](auto&)
-            {
+            [this](auto&) {
                 {
                     std::unique_lock<std::mutex> test_lock(cv_m);
                     test_notify_called.store(true);
@@ -158,35 +150,31 @@ TEST_F(TestTimer, stops)
 
 TEST_F(TestTimer, pauses)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock, auto&)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _)).WillOnce([this](auto&, auto& timer_lock, auto&) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                // Notify the test thread that the timer is running
-                timer_running.store(true);
-                cv.notify_all();
+        // Notify the test thread that the timer is running
+        timer_running.store(true);
+        cv.notify_all();
 
-                // Wait to be notified by the mock notify_all()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
-                test_notify_called.store(false);
+        // Wait to be notified by the mock notify_all()
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        test_notify_called.store(false);
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
 
-                return std::cv_status::no_timeout;
-            });
+        return std::cv_status::no_timeout;
+    });
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
         .Times(3)
         .WillOnce(Return()) // Handles the stop() in start()
         .WillRepeatedly(    // Handles the other 2 notify_all() calls
-            [this](auto&)
-            {
+            [this](auto&) {
                 {
                     std::unique_lock<std::mutex> test_lock(cv_m);
                     test_notify_called.store(true);
@@ -195,25 +183,22 @@ TEST_F(TestTimer, pauses)
                 cv.notify_all();
             });
 
-    EXPECT_CALL(*mock_timer_sync_funcs, wait(_, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait(_, _)).WillOnce([this](auto&, auto& timer_lock) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                timer_paused.store(true);
-                cv.notify_all();
+        timer_paused.store(true);
+        cv.notify_all();
 
-                // Waits until the Timer dtor calls stop()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
-                test_notify_called.store(false);
+        // Waits until the Timer dtor calls stop()
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        test_notify_called.store(false);
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
-            });
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
+    });
 
     mpu::Timer t{default_timeout, [this]() { timedout.store(true); }};
 
@@ -239,27 +224,25 @@ TEST_F(TestTimer, pauses)
 TEST_F(TestTimer, resumes)
 {
     EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock, auto&)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+        .WillOnce([this](auto&, auto& timer_lock, auto&) {
+            std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+            // Unlock the Timer's internal lock
+            timer_lock.unlock();
 
-                // Notify the test thread that the timer is running
-                timer_running.store(true);
-                cv.notify_all();
+            // Notify the test thread that the timer is running
+            timer_running.store(true);
+            cv.notify_all();
 
-                // Wait to be notified by the mock notify_all()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
-                test_notify_called.store(false);
+            // Wait to be notified by the mock notify_all()
+            cv.wait(test_lock, [this] { return test_notify_called.load(); });
+            test_notify_called.store(false);
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
+            // Re-lock the Timer's internal lock before returning
+            timer_lock.lock();
 
-                return std::cv_status::no_timeout;
-            })
+            return std::cv_status::no_timeout;
+        })
         .WillOnce([](auto&...) { return std::cv_status::timeout; });
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
@@ -274,28 +257,24 @@ TEST_F(TestTimer, resumes)
             cv.notify_all();
         });
 
-    EXPECT_CALL(*mock_timer_sync_funcs, wait(_, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait(_, _)).WillOnce([this](auto&, auto& timer_lock) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                timer_paused.store(true);
-                cv.notify_all();
+        timer_paused.store(true);
+        cv.notify_all();
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                // Waits until resume is called()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
-                test_notify_called.store(false);
+        // Waits until resume is called()
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        test_notify_called.store(false);
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
-            });
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
+    });
 
-    mpu::Timer t{default_timeout, [this]()
-                 {
+    mpu::Timer t{default_timeout, [this]() {
                      {
                          std::lock_guard<std::mutex> test_lock{cv_m};
                          timedout.store(true);
@@ -329,62 +308,54 @@ TEST_F(TestTimer, resumes)
 
 TEST_F(TestTimer, stops_paused)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock, auto&)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _)).WillOnce([this](auto&, auto& timer_lock, auto&) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Notify the test thread that the timer is running
-                timer_running.store(true);
-                cv.notify_all();
+        // Notify the test thread that the timer is running
+        timer_running.store(true);
+        cv.notify_all();
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                // Wait to be notified by the mock notify_all()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
-                test_notify_called.store(false);
+        // Wait to be notified by the mock notify_all()
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        test_notify_called.store(false);
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
 
-                return std::cv_status::no_timeout;
-            });
+        return std::cv_status::no_timeout;
+    });
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
         .Times(4)
         .WillOnce(Return()) // For the stop() in start()
-        .WillRepeatedly(
-            [this](auto&)
-            {
-                {
-                    std::unique_lock<std::mutex> test_lock(cv_m);
-                    test_notify_called.store(true);
-                }
-                // Notify the mocked wait() and wait_for()
-                cv.notify_all();
-            });
-
-    EXPECT_CALL(*mock_timer_sync_funcs, wait(_, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock)
+        .WillRepeatedly([this](auto&) {
             {
                 std::unique_lock<std::mutex> test_lock(cv_m);
+                test_notify_called.store(true);
+            }
+            // Notify the mocked wait() and wait_for()
+            cv.notify_all();
+        });
 
-                timer_paused.store(true);
-                cv.notify_all();
+    EXPECT_CALL(*mock_timer_sync_funcs, wait(_, _)).WillOnce([this](auto&, auto& timer_lock) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        timer_paused.store(true);
+        cv.notify_all();
 
-                // Waits until stop() is called
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
-                test_notify_called.store(false);
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
-            });
+        // Waits until stop() is called
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        test_notify_called.store(false);
+
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
+    });
 
     mpu::Timer t{default_timeout, [this]() { timedout.store(true); }};
 
@@ -411,40 +382,35 @@ TEST_F(TestTimer, stops_paused)
 
 TEST_F(TestTimer, cancels)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock, auto&)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _)).WillOnce([this](auto&, auto& timer_lock, auto&) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Notify the test thread that the timer is running
-                timer_running.store(true);
-                cv.notify_all();
+        // Notify the test thread that the timer is running
+        timer_running.store(true);
+        cv.notify_all();
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                // Wait to be notified by the mock notify_all()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        // Wait to be notified by the mock notify_all()
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
 
-                return std::cv_status::no_timeout;
-            });
+        return std::cv_status::no_timeout;
+    });
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
         .WillOnce(Return()) // For the stop() in start()
-        .WillOnce(
-            [this](auto&)
+        .WillOnce([this](auto&) {
             {
-                {
-                    std::unique_lock<std::mutex> test_lock(cv_m);
-                    test_notify_called.store(true);
-                }
-                // Notify the mocked wait_for()
-                cv.notify_all();
-            });
+                std::unique_lock<std::mutex> test_lock(cv_m);
+                test_notify_called.store(true);
+            }
+            // Notify the mocked wait_for()
+            cv.notify_all();
+        });
 
     {
         mpu::Timer t{default_timeout, [this]() { timedout.store(true); }};
@@ -467,44 +433,39 @@ TEST_F(TestTimer, restarts)
 
     EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
         .Times(2)
-        .WillRepeatedly(
-            [this, &timeout_status](auto&, auto& timer_lock, auto&)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+        .WillRepeatedly([this, &timeout_status](auto&, auto& timer_lock, auto&) {
+            std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Notify the test thread that the timer is running
-                timer_running.store(true);
-                cv.notify_all();
+            // Notify the test thread that the timer is running
+            timer_running.store(true);
+            cv.notify_all();
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+            // Unlock the Timer's internal lock
+            timer_lock.unlock();
 
-                // Wait to be notified by the mock notify_all()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
-                test_notify_called.store(false);
+            // Wait to be notified by the mock notify_all()
+            cv.wait(test_lock, [this] { return test_notify_called.load(); });
+            test_notify_called.store(false);
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
+            // Re-lock the Timer's internal lock before returning
+            timer_lock.lock();
 
-                return timeout_status;
-            });
+            return timeout_status;
+        });
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
         .Times(3)
         .WillOnce(Return()) // For the stop() in start()
-        .WillRepeatedly(
-            [this](auto&)
+        .WillRepeatedly([this](auto&) {
             {
-                {
-                    std::unique_lock<std::mutex> test_lock(cv_m);
-                    test_notify_called.store(true);
-                }
-                // Notify the mocked wait() and wait_for()
-                cv.notify_all();
-            });
+                std::unique_lock<std::mutex> test_lock(cv_m);
+                test_notify_called.store(true);
+            }
+            // Notify the mocked wait() and wait_for()
+            cv.notify_all();
+        });
 
-    mpu::Timer t{default_timeout, [this, &count]()
-                 {
+    mpu::Timer t{default_timeout, [this, &count]() {
                      {
                          std::lock_guard<std::mutex> test_lock{cv_m};
                          ++count;
@@ -576,28 +537,25 @@ TEST_F(TestTimer, stopped_ignores_resume)
 
 TEST_F(TestTimer, running_ignores_resume)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
-        .WillOnce(
-            [this](auto&, auto& timer_lock, auto&)
-            {
-                std::unique_lock<std::mutex> test_lock(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _)).WillOnce([this](auto&, auto& timer_lock, auto&) {
+        std::unique_lock<std::mutex> test_lock(cv_m);
 
-                // Unlock the Timer's internal lock
-                timer_lock.unlock();
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
 
-                // Notify the test thread that the timer is running
-                timer_running.store(true);
-                cv.notify_all();
+        // Notify the test thread that the timer is running
+        timer_running.store(true);
+        cv.notify_all();
 
-                // Wait to be notified by the mock notify_all()
-                cv.wait(test_lock, [this] { return test_notify_called.load(); });
-                test_notify_called.store(false);
+        // Wait to be notified by the mock notify_all()
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        test_notify_called.store(false);
 
-                // Re-lock the Timer's internal lock before returning
-                timer_lock.lock();
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
 
-                return std::cv_status::no_timeout;
-            });
+        return std::cv_status::no_timeout;
+    });
 
     // notify_all() should only be called in the stop() that start() calls and in the Timer dtor
     // but not in resume()
@@ -605,8 +563,7 @@ TEST_F(TestTimer, running_ignores_resume)
         .Times(2)
         .WillOnce(Return()) // Handles the stop() in start()
         .WillOnce(          // Handles the notify_all() call in the dtor
-            [this](auto&)
-            {
+            [this](auto&) {
                 {
                     std::unique_lock<std::mutex> test_lock(cv_m);
                     test_notify_called.store(true);
