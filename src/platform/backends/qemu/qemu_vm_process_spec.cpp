@@ -28,9 +28,9 @@ namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
-                                         const QStringList& qemu_platform_args, const QString& qemu_netdev,
+                                         const QStringList& qemu_platform_args,
                                          const multipass::optional<ResumeData>& resume_data)
-    : desc{desc}, qemu_platform_args{qemu_platform_args}, qemu_netdev{qemu_netdev}, resume_data{resume_data}
+    : desc{desc}, qemu_platform_args{qemu_platform_args}, resume_data{resume_data}
 {
 }
 
@@ -73,13 +73,6 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         args << "-smp" << QString::number(desc.num_cores);
         // Memory to use for VM
         args << "-m" << mem_size;
-        // Create a virtual NIC in the VM
-        args << "-device"
-             << QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1")
-                    .arg(QString::fromStdString(desc.default_mac_address));
-        // Create tap device to connect to virtual bridge
-        args << "-netdev";
-        args << qemu_netdev;
         // Control interface
         args << "-qmp"
              << "stdio";
