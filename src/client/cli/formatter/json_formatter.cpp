@@ -81,19 +81,29 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
             QJsonArray mount_uids;
             QJsonArray mount_gids;
 
-            for (const auto& uid_map : mount.mount_maps().uid_map())
+            auto mount_maps = mount.mount_maps();
+
+            for (auto i = 0; i < mount_maps.uid_map_size(); ++i)
             {
+                auto uid_map_pair = mount_maps.uid_map(i);
+                auto host_uid = uid_map_pair.host_id();
+                auto instance_uid = uid_map_pair.instance_id();
+
                 mount_uids.append(
                     QString("%1:%2")
-                        .arg(QString::number(uid_map.first))
-                        .arg((uid_map.second == mp::default_id) ? "default" : QString::number(uid_map.second)));
+                        .arg(QString::number(host_uid))
+                        .arg((instance_uid == mp::default_id) ? "default" : QString::number(instance_uid)));
             }
-            for (const auto& gid_map : mount.mount_maps().gid_map())
+            for (auto i = 0; i < mount_maps.gid_map_size(); ++i)
             {
+                auto gid_map_pair = mount_maps.gid_map(i);
+                auto host_gid = gid_map_pair.host_id();
+                auto instance_gid = gid_map_pair.instance_id();
+
                 mount_gids.append(
                     QString("%1:%2")
-                        .arg(QString::number(gid_map.first))
-                        .arg((gid_map.second == mp::default_id) ? "default" : QString::number(gid_map.second)));
+                        .arg(QString::number(host_gid))
+                        .arg((instance_gid == mp::default_id) ? "default" : QString::number(instance_gid)));
             }
             entry.insert("uid_mappings", mount_uids);
             entry.insert("gid_mappings", mount_gids);

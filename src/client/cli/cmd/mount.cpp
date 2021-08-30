@@ -173,6 +173,8 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
     QRegExp map_matcher("^([0-9]+[:][0-9]+)$");
 
+    auto mount_maps = request.mutable_mount_maps();
+
     if (parser->isSet(uid_map))
     {
         auto uid_maps = parser->values(uid_map);
@@ -192,7 +194,9 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                 auto host_uid = convert_id_for(parsed_map.at(0));
                 auto instance_uid = convert_id_for(parsed_map.at(1));
 
-                (*request.mutable_mount_maps()->mutable_uid_map())[host_uid] = instance_uid;
+                auto uid_pair = mount_maps->add_uid_map();
+                uid_pair->set_host_id(host_uid);
+                uid_pair->set_instance_id(instance_uid);
             }
             catch (const std::exception& e)
             {
@@ -221,7 +225,9 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                 auto host_gid = convert_id_for(parsed_map.at(0));
                 auto instance_gid = convert_id_for(parsed_map.at(1));
 
-                (*request.mutable_mount_maps()->mutable_gid_map())[host_gid] = instance_gid;
+                auto gid_pair = mount_maps->add_gid_map();
+                gid_pair->set_host_id(host_gid);
+                gid_pair->set_instance_id(instance_gid);
             }
             catch (const std::exception& e)
             {
@@ -235,8 +241,14 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     {
         mpl::log(mpl::Level::debug, category,
                  fmt::format("{}:{} {}(): adding default uid/gid mapping", __FILE__, __LINE__, __FUNCTION__));
-        (*request.mutable_mount_maps()->mutable_uid_map())[mcp::getuid()] = mp::default_id;
-        (*request.mutable_mount_maps()->mutable_gid_map())[mcp::getgid()] = mp::default_id;
+
+        auto uid_pair = mount_maps->add_uid_map();
+        uid_pair->set_host_id(mcp::getuid());
+        uid_pair->set_instance_id(mp::default_id);
+
+        auto gid_pair = mount_maps->add_gid_map();
+        gid_pair->set_host_id(mcp::getgid());
+        gid_pair->set_instance_id(mp::default_id);
     }
 
     return ParseCode::Ok;

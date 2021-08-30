@@ -1334,11 +1334,15 @@ try // clang-format on
 
                 for (const auto& uid_map : mount.second.uid_map)
                 {
-                    (*entry->mutable_mount_maps()->mutable_uid_map())[uid_map.first] = uid_map.second;
+                    auto uid_pair = entry->mutable_mount_maps()->add_uid_map();
+                    uid_pair->set_host_id(uid_map.first);
+                    uid_pair->set_instance_id(uid_map.second);
                 }
                 for (const auto& gid_map : mount.second.gid_map)
                 {
-                    (*entry->mutable_mount_maps()->mutable_gid_map())[gid_map.first] = gid_map.second;
+                    auto gid_pair = entry->mutable_mount_maps()->add_gid_map();
+                    gid_pair->set_host_id(gid_map.first);
+                    gid_pair->set_instance_id(gid_map.second);
                 }
             }
         }
@@ -1521,10 +1525,21 @@ try // clang-format on
                          fmt::format("source \"{}\" is not readable", request->source_path()), ""));
     }
 
-    std::unordered_map<int, int> uid_map{request->mount_maps().uid_map().begin(),
-                                         request->mount_maps().uid_map().end()};
-    std::unordered_map<int, int> gid_map{request->mount_maps().gid_map().begin(),
-                                         request->mount_maps().gid_map().end()};
+    std::unordered_map<int, int> uid_map, gid_map;
+
+    auto mount_maps = request->mount_maps();
+
+    for (auto i = 0; i < mount_maps.uid_map_size(); ++i)
+    {
+        auto map_pair = mount_maps.uid_map(i);
+        uid_map.insert(std::make_pair(map_pair.host_id(), map_pair.instance_id()));
+    }
+
+    for (auto i = 0; i < mount_maps.gid_map_size(); ++i)
+    {
+        auto map_pair = mount_maps.gid_map(i);
+        gid_map.insert(std::make_pair(map_pair.host_id(), map_pair.instance_id()));
+    }
 
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
