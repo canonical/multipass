@@ -18,11 +18,13 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <unordered_set>
 
 #include <QStringList>
 
 #include "../ssh/ssh_client_key_provider.h" // FIXME
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/id_map.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/multiplexing_logger.h>
 #include <multipass/logging/standard_logger.h>
@@ -37,9 +39,10 @@ using namespace std;
 
 namespace
 {
-unordered_map<int, int> deserialise_id_map(const char* in)
+mp::id_map convert_id_map(const char* in)
 {
-    unordered_map<int, int> id_map;
+    mp::id_map ret_map;
+    std::unordered_set<int> keys;
     QString input(in);
 
     auto maps = input.split(',', QString::SkipEmptyParts);
@@ -59,9 +62,20 @@ unordered_map<int, int> deserialise_id_map(const char* in)
             cerr << "Incorrect ID mapping ids found, ignored" << endl;
             continue;
         }
-        id_map.insert({from, to});
+
+        if (keys.count(from))
+        {
+            cerr << "Repeated ID mapping ids found, ignored" << endl;
+            continue;
+        }
+        else
+        {
+            keys.insert(from);
+            ret_map.push_back({from, to});
+        }
     }
-    return id_map;
+
+    return ret_map;
 }
 } // namespace
 
@@ -85,8 +99,8 @@ int main(int argc, char* argv[])
     const auto username = string(argv[3]);
     const auto source_path = string(argv[4]);
     const auto target_path = string(argv[5]);
-    const unordered_map<int, int> uid_map = deserialise_id_map(argv[6]);
-    const unordered_map<int, int> gid_map = deserialise_id_map(argv[7]);
+    const mp::id_map uid_map = convert_id_map(argv[6]);
+    const mp::id_map gid_map = convert_id_map(argv[7]);
     const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
     auto logger = mpp::make_logger(log_level);

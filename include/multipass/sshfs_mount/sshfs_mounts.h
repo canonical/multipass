@@ -22,6 +22,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <multipass/id_map.h>
 #include <multipass/process/process.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
 #include <multipass/ssh/ssh_key_provider.h>
@@ -37,7 +38,7 @@ public:
     explicit SSHFSMounts(const SSHKeyProvider& ssh_key_provider);
 
     void start_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
-                     const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map);
+                     const id_map& gid_map, const id_map& uid_map);
 
     bool stop_mount(const std::string& instance, const std::string& path);
     void stop_all_mounts_for_instance(const std::string& instance);

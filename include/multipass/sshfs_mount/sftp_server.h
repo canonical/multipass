@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_SFTP_SERVER_H
 #define MULTIPASS_SFTP_SERVER_H
 
+#include <multipass/id_map.h>
 #include <multipass/ssh/ssh_session.h>
 
 #include <libssh/sftp.h>
@@ -36,9 +37,8 @@ class SSHProcess;
 class SftpServer
 {
 public:
-    SftpServer(SSHSession&& ssh_session, const std::string& source, const std::string& target,
-               const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-               int default_uid, int default_gid, const std::string& sshfs_exec_line);
+    SftpServer(SSHSession&& ssh_session, const std::string& source, const std::string& target, const id_map& gid_map,
+               const id_map& uid_map, int default_uid, int default_gid, const std::string& sshfs_exec_line);
     SftpServer(SftpServer&& other);
     ~SftpServer();
 
@@ -82,8 +82,8 @@ private:
     const std::string target_path;
     std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
     std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
-    const std::unordered_map<int, int> gid_map;
-    const std::unordered_map<int, int> uid_map;
+    const id_map gid_map;
+    const id_map uid_map;
     const int default_uid;
     const int default_gid;
     const std::string sshfs_exec_line;

@@ -17,6 +17,7 @@
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
+#include <multipass/id_map.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
@@ -168,7 +169,7 @@ void set_owner_for(mp::SSHSession& session, const std::string& root, const std::
 }
 
 auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const std::string& target,
-                      const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
+                      const mp::id_map& gid_map, const mp::id_map& uid_map)
 {
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(source = {}, target = {}, …): ", __FILE__, __LINE__, __FUNCTION__, source, target));
@@ -203,7 +204,7 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
 } // namespace
 
 mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
-                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
+                           const mp::id_map& gid_map, const mp::id_map& uid_map)
     : sftp_server{make_sftp_server(std::move(session), source, target, gid_map, uid_map)}, sftp_thread{[this] {
           std::cout << "Connected" << std::endl;
           sftp_server->run();

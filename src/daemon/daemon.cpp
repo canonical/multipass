@@ -298,8 +298,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         std::unordered_map<std::string, mp::VMMount> mounts;
-        std::unordered_map<int, int> uid_map;
-        std::unordered_map<int, int> gid_map;
+        mp::id_map uid_map;
+        mp::id_map gid_map;
 
         for (QJsonValueRef entry : record["mounts"].toArray())
         {
@@ -308,12 +308,14 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
             for (QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
             {
-                uid_map[uid_entry.toObject()["host_uid"].toInt()] = uid_entry.toObject()["instance_uid"].toInt();
+                uid_map.push_back(
+                    {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
             }
 
             for (QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
             {
-                gid_map[gid_entry.toObject()["host_gid"].toInt()] = gid_entry.toObject()["instance_gid"].toInt();
+                gid_map.push_back(
+                    {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
             }
 
             mp::VMMount mount{source_path, gid_map, uid_map};
@@ -1525,20 +1527,20 @@ try // clang-format on
                          fmt::format("source \"{}\" is not readable", request->source_path()), ""));
     }
 
-    std::unordered_map<int, int> uid_map, gid_map;
+    mp::id_map uid_map, gid_map;
 
     auto mount_maps = request->mount_maps();
 
     for (auto i = 0; i < mount_maps.uid_map_size(); ++i)
     {
         auto map_pair = mount_maps.uid_map(i);
-        uid_map.insert(std::make_pair(map_pair.host_id(), map_pair.instance_id()));
+        uid_map.push_back({map_pair.host_id(), map_pair.instance_id()});
     }
 
     for (auto i = 0; i < mount_maps.gid_map_size(); ++i)
     {
         auto map_pair = mount_maps.gid_map(i);
-        gid_map.insert(std::make_pair(map_pair.host_id(), map_pair.instance_id()));
+        gid_map.push_back({map_pair.host_id(), map_pair.instance_id()});
     }
 
     fmt::memory_buffer errors;

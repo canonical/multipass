@@ -254,8 +254,8 @@ auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec
 } // namespace
 
 mp::SftpServer::SftpServer(SSHSession&& session, const std::string& source, const std::string& target,
-                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-                           int default_uid, int default_gid, const std::string& sshfs_exec_line)
+                           const id_map& gid_map, const id_map& uid_map, int default_uid, int default_gid,
+                           const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, mp::utils::escape_char(source, '"'),
                                          mp::utils::escape_char(target, '"'))},
@@ -305,7 +305,8 @@ int mp::SftpServer::mapped_uid_for(const int uid)
     if (uid == mp::no_id_info_available)
         return default_uid;
 
-    auto map = uid_map.find(uid);
+    auto map = std::find_if(uid_map.cbegin(), uid_map.cend(), [uid](std::pair<int, int> p) { return uid == p.first; });
+
     if (map != uid_map.end())
     {
         if (map->second == mp::default_id)
@@ -322,7 +323,8 @@ int mp::SftpServer::mapped_gid_for(const int gid)
     if (gid == mp::no_id_info_available)
         return default_gid;
 
-    auto map = gid_map.find(gid);
+    auto map = std::find_if(gid_map.cbegin(), gid_map.cend(), [gid](std::pair<int, int> p) { return gid == p.first; });
+
     if (map != gid_map.end())
     {
         if (map->second == mp::default_id)
@@ -950,9 +952,9 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
         if ((new_uid != -1 || new_gid != -1) && MP_PLATFORM.chown(filename.toStdString().c_str(), new_uid, new_gid) < 0)
         {
-        mpl::log(mpl::Level::error, category,
-                 fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
-        return reply_failure(msg);
+            mpl::log(mpl::Level::error, category,
+                     fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
+            return reply_failure(msg);
         }
     }
 
