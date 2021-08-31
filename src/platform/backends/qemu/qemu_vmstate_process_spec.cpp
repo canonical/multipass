@@ -19,8 +19,8 @@
 
 namespace mp = multipass;
 
-mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name, const QStringList& extra_platform_args)
-    : file_name{file_name}, extra_platform_args{extra_platform_args}
+mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name, const QStringList& platform_args)
+    : file_name{file_name}, platform_args{platform_args}
 {
 }
 
@@ -28,7 +28,7 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
 {
     QStringList args;
 
-    args << extra_platform_args;
+    args << platform_args;
 
     args << "-nographic"
          << "-dump-vmstate" << file_name;

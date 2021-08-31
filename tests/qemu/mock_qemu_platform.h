@@ -34,12 +34,12 @@ struct MockQemuPlatform : public QemuPlatform
     MOCK_METHOD1(get_ip_for, optional<IPAddress>(const std::string&));
     MOCK_METHOD1(remove_resources_for, void(const std::string&));
     MOCK_METHOD0(platform_health_check, void());
-    MOCK_METHOD1(qemu_platform_args, QStringList(const VirtualMachineDescription&));
+    MOCK_METHOD1(platform_args, QStringList(const VirtualMachineDescription&));
     MOCK_METHOD0(get_directory_name, QString());
 
-    QStringList base_qemu_platform_args(const VirtualMachineDescription& vm_desc)
+    QStringList base_platform_args(const VirtualMachineDescription& vm_desc)
     {
-        return QemuPlatform::qemu_platform_args(vm_desc);
+        return QemuPlatform::platform_args(vm_desc);
     };
     QString base_get_directory_name()
     {

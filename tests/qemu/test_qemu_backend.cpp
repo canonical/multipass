@@ -58,7 +58,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
     QemuBackend()
     {
         EXPECT_CALL(*mock_qemu_platform, remove_resources_for(_)).WillRepeatedly(Return());
-        EXPECT_CALL(*mock_qemu_platform, qemu_platform_args(_)).WillRepeatedly(Return(QStringList()));
+        EXPECT_CALL(*mock_qemu_platform, platform_args(_)).WillRepeatedly(Return(QStringList()));
     };
 
     mpt::TempFile dummy_image;
@@ -769,13 +769,13 @@ TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
     mpt::MockQemuPlatform qemu_platform;
     mp::VirtualMachineDescription vm_desc;
 
-    EXPECT_CALL(qemu_platform, qemu_platform_args(_)).WillOnce([&qemu_platform](auto& vm_desc) {
-        return qemu_platform.base_qemu_platform_args(vm_desc);
+    EXPECT_CALL(qemu_platform, platform_args(_)).WillOnce([&qemu_platform](auto& vm_desc) {
+        return qemu_platform.base_platform_args(vm_desc);
     });
     EXPECT_CALL(qemu_platform, get_directory_name()).WillOnce([&qemu_platform] {
         return qemu_platform.base_get_directory_name();
     });
 
-    EXPECT_TRUE(qemu_platform.qemu_platform_args(vm_desc).isEmpty());
+    EXPECT_TRUE(qemu_platform.platform_args(vm_desc).isEmpty());
     EXPECT_TRUE(qemu_platform.get_directory_name().isEmpty());
 }

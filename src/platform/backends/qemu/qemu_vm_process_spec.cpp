@@ -27,10 +27,9 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
-mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
-                                         const QStringList& qemu_platform_args,
+mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QStringList& platform_args,
                                          const multipass::optional<ResumeData>& resume_data)
-    : desc{desc}, qemu_platform_args{qemu_platform_args}, resume_data{resume_data}
+    : desc{desc}, platform_args{platform_args}, resume_data{resume_data}
 {
 }
 
@@ -40,7 +39,6 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
     if (resume_data)
     {
-        // arguments used were saved externally, import them
         args = resume_data->arguments;
 
         // need to append extra arguments for resume
@@ -62,7 +60,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
     `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
 
-        args << qemu_platform_args;
+        args << platform_args;
         // The VM image itself
         args << "-device"
              << "virtio-scsi-pci,id=scsi0"

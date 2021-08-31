@@ -150,7 +150,7 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    const auto qemu_args = qemu_platform_detail.qemu_platform_args(vm_desc);
+    const auto qemu_args = qemu_platform_detail.platform_args(vm_desc);
 
     EXPECT_TRUE(qemu_args.contains("--enable-kvm"));
     EXPECT_TRUE(qemu_args.contains("-cpu"));

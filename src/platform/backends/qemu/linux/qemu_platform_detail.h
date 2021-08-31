@@ -40,7 +40,7 @@ public:
     optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;
     void platform_health_check() override;
-    QStringList qemu_platform_args(const VirtualMachineDescription& vm_desc) override;
+    QStringList platform_args(const VirtualMachineDescription& vm_desc) override;
 
 private:
     const QString bridge_name;
