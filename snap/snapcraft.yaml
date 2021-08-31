@@ -70,7 +70,7 @@ apps:
         PATH: *path
         QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
         XDG_DATA_HOME: $SNAP_USER_DATA/data
-        XDG_DATA_DIRS: $SNAP/usr/share
+        XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
         XDG_CONFIG_HOME: $SNAP_USER_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
@@ -175,6 +175,7 @@ parts:
       - dmz-cursor-theme
       - libgdk-pixbuf2.0-bin # GDK pixbuf
       - fonts-freefont-ttf
+      - libglib2.0-0
     override-build: |
       snapcraftctl build
       update-mime-database $SNAPCRAFT_PART_INSTALL/usr/share/mime
