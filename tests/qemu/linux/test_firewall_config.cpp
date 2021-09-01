@@ -22,7 +22,7 @@
 #include "tests/mock_utils.h"
 #include "tests/reset_process_factory.h"
 
-#include <src/platform/backends/qemu/firewall_config.h>
+#include <src/platform/backends/qemu/linux/firewall_config.h>
 
 #include <multipass/format.h>
 
@@ -194,8 +194,7 @@ TEST_P(FirewallToUseTestSuite, usesExpectedFirewall)
 {
     const auto& param = GetParam();
 
-    mpt::MockProcessFactory::Callback firewall_callback = [&param](mpt::MockProcess* process)
-    {
+    mpt::MockProcessFactory::Callback firewall_callback = [&param](mpt::MockProcess* process) {
         if (process->program() == "iptables-nft" && process->arguments().contains("--list-rules"))
         {
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(std::get<1>(param)));

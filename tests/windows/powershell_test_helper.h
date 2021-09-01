@@ -21,7 +21,7 @@
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 
-#include <src/platform/backends/shared/win/powershell.h>
+#include <src/platform/backends/shared/windows/powershell.h>
 
 #include <string>
 

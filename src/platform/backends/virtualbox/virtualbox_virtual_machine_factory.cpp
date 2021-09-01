@@ -18,6 +18,7 @@
 #include "virtualbox_virtual_machine_factory.h"
 #include "virtualbox_virtual_machine.h"
 
+#include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_interface_info.h>
@@ -25,8 +26,6 @@
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
-
-#include <shared/shared_backend_utils.h>
 
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -154,7 +153,7 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
         std::make_unique<mp::QemuImgProcessSpec>(convert_args, source_image.image_path, vdi_file);
     auto qemuimg_convert_process = mp::platform::make_process(std::move(qemuimg_convert_spec));
 
-    auto process_state = qemuimg_convert_process->execute(mp::backend::image_resize_timeout);
+    auto process_state = qemuimg_convert_process->execute(mp::image_resize_timeout);
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Conversion of image to VDI failed ({}) with the following output:\n{}",
@@ -196,7 +195,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
     std::vector<NetworkInterfaceInfo> networks;
 
     // Get the list of all the interfaces which can be bridged by VirtualBox.
-    QString ifs_info = QString::fromStdString(mpu::run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
+    QString ifs_info = QString::fromStdString(MP_UTILS.run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
 
     // List to store the output of the query command; each element corresponds to one interface.
     QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), QString::SkipEmptyParts));

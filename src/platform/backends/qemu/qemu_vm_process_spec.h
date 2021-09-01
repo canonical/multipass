@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ public:
 
     static QString default_machine_type();
 
-    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QString& tap_device_name,
+    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QStringList& platform_args,
                                const multipass::optional<ResumeData>& resume_data);
 
     QStringList arguments() const override;
@@ -49,7 +49,7 @@ public:
 
 private:
     const VirtualMachineDescription desc;
-    const QString tap_device_name;
+    const QStringList platform_args;
     const multipass::optional<ResumeData> resume_data;
 };
 

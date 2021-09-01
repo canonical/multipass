@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,9 @@
 #include "hyperkit_virtual_machine_factory.h"
 #include "hyperkit_virtual_machine.h"
 
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/virtual_machine_description.h>
-
-#include <shared/shared_backend_utils.h>
 
 #include <fmt/format.h>
 
@@ -79,7 +78,7 @@ mp::VMImage mp::HyperkitVirtualMachineFactory::prepare_source_image(const VMImag
 
     QProcess uncompress;
     uncompress.start(QCoreApplication::applicationDirPath() + "/qemu-img", uncompress_args);
-    if (!uncompress.waitForFinished(mp::backend::image_resize_timeout))
+    if (!uncompress.waitForFinished(mp::image_resize_timeout))
     {
         if (uncompress.state() == QProcess::Running)
         {

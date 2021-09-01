@@ -78,8 +78,6 @@ void check_and_create_config_file(const QString& config_file_path);
 
 // command and process helpers
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
-bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout = 30000);
-std::string run_cmd_for_output(const QString& cmd, const QStringList& args, const int timeout = 30000);
 void process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
                             const QString& category = "utils", const int timeout = 30000);
 bool process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
@@ -135,6 +133,11 @@ public:
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code);
+
+    // command and process helpers
+    virtual std::string run_cmd_for_output(const QString& cmd, const QStringList& args,
+                                           const int timeout = 30000) const;
+    virtual bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout = 30000) const;
 
     // virtual machine helpers
     virtual void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,

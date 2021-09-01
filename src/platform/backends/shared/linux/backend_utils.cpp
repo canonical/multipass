@@ -18,27 +18,19 @@
 #include "backend_utils.h"
 #include "dbus_wrappers.h"
 #include "process_factory.h"
+
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/memory_size.h>
-#include <multipass/platform.h>
-#include <multipass/process/process.h>
-#include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/process/basic_process.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
-
-#include <shared/shared_backend_utils.h>
 
 #include <scope_guard.hpp>
 
 #include <QCoreApplication>
 #include <QDBusMetaType>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QProcess>
-#include <QRegularExpression>
 #include <QString>
-#include <QSysInfo>
 #include <QtDBus/QtDBus>
 
 #include <cassert>
@@ -76,13 +68,13 @@ constexpr auto max_bridge_name_len = 15; // maximum number of characters in a br
 bool subnet_used_locally(const std::string& subnet)
 {
     // CLI equivalent: ip -4 route show | grep -q ${SUBNET}
-    const auto output = QString::fromStdString(mp::utils::run_cmd_for_output("ip", {"-4", "route", "show"}));
+    const auto output = QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
     return output.contains(QString::fromStdString(subnet));
 }
 
 bool can_reach_gateway(const std::string& ip)
 {
-    return mp::utils::run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
 }
 
 auto virtual_switch_subnet(const QString& bridge_name)
@@ -90,8 +82,7 @@ auto virtual_switch_subnet(const QString& bridge_name)
     // CLI equivalent: ip -4 route show | grep ${BRIDGE_NAME} | cut -d ' ' -f1 | cut -d '.' -f1-3
     QString subnet;
 
-    const auto output =
-        QString::fromStdString(mp::utils::run_cmd_for_output("ip", {"-4", "route", "show"})).split('\n');
+    const auto output = QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"})).split('\n');
     for (const auto& line : output)
     {
         if (line.contains(bridge_name))
@@ -205,121 +196,6 @@ std::string mp::backend::generate_random_subnet()
     throw std::runtime_error("Could not determine a subnet for networking.");
 }
 
-std::string mp::backend::get_subnet(const mp::Path& network_dir, const QString& bridge_name)
-{
-    auto subnet = virtual_switch_subnet(bridge_name);
-    if (!subnet.empty())
-        return subnet;
-
-    QFile subnet_file{network_dir + "/multipass_subnet"};
-    subnet_file.open(QIODevice::ReadWrite | QIODevice::Text);
-    if (subnet_file.size() > 0)
-        return subnet_file.readAll().trimmed().toStdString();
-
-    auto new_subnet = mp::backend::generate_random_subnet();
-    subnet_file.write(new_subnet.data(), new_subnet.length());
-    return new_subnet;
-}
-
-void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
-{
-    auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
-    QStringList qemuimg_parameters{{"resize", image_path, disk_size}};
-    auto qemuimg_process =
-        mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path));
-
-    auto process_state = qemuimg_process->execute(mp::backend::image_resize_timeout);
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_process->read_all_standard_error()));
-    }
-}
-
-mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
-{
-    // Check if raw image file, and if so, convert to qcow2 format.
-    // TODO: we could support converting from other the image formats that qemu-img can deal with
-    const auto qcow2_path{image_path + ".qcow2"};
-
-    auto qemuimg_info_spec =
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path}, image_path);
-    auto qemuimg_info_process = MP_PROCFACTORY.create_process(std::move(qemuimg_info_spec));
-
-    auto process_state = qemuimg_info_process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Cannot read image format: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_info_process->read_all_standard_error()));
-    }
-
-    auto image_info = qemuimg_info_process->read_all_standard_output();
-    auto image_record = QJsonDocument::fromJson(QString(image_info).toUtf8(), nullptr).object();
-
-    if (image_record["format"].toString() == "raw")
-    {
-        auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
-            QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path}, image_path, qcow2_path);
-        auto qemuimg_convert_process = MP_PROCFACTORY.create_process(std::move(qemuimg_convert_spec));
-        process_state = qemuimg_convert_process->execute(mp::backend::image_resize_timeout);
-
-        if (!process_state.completed_successfully())
-        {
-            throw std::runtime_error(
-                fmt::format("Failed to convert image format: qemu-img failed ({}) with output:\n{}",
-                            process_state.failure_message(), qemuimg_convert_process->read_all_standard_error()));
-        }
-        return qcow2_path;
-    }
-    else
-    {
-        return image_path;
-    }
-}
-
-QString mp::backend::cpu_arch()
-{
-    const QHash<QString, QString> cpu_to_arch{{"x86_64", "x86_64"}, {"arm", "arm"},   {"arm64", "aarch64"},
-                                              {"i386", "i386"},     {"power", "ppc"}, {"power64", "ppc64le"},
-                                              {"s390x", "s390x"}};
-
-    return cpu_to_arch.value(QSysInfo::currentCpuArchitecture());
-}
-
-void mp::backend::check_for_kvm_support()
-{
-    QProcess check_kvm;
-    check_kvm.setProcessChannelMode(QProcess::MergedChannels);
-    check_kvm.start(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
-    check_kvm.waitForFinished();
-
-    if (check_kvm.error() == QProcess::FailedToStart)
-    {
-        throw std::runtime_error("The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
-    }
-
-    if (check_kvm.exitCode() == 1)
-    {
-        throw std::runtime_error(check_kvm.readAll().trimmed().toStdString());
-    }
-}
-
-void mp::backend::check_if_kvm_is_in_use()
-{
-    auto kvm_fd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
-    auto ret = ioctl(kvm_fd, KVM_CREATE_VM, (unsigned long)0);
-
-    close(kvm_fd);
-
-    if (ret == -1 && errno == EBUSY)
-        throw std::runtime_error("Another virtual machine manager is currently running. Please shut it down before "
-                                 "starting a Multipass instance.");
-
-    close(ret);
-}
-
 // @precondition no bridge exists for this interface
 // @precondition interface identifies an ethernet device
 std::string mp::Backend::create_bridge_with(const std::string& interface)
@@ -366,9 +242,77 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     return ret;
 }
 
+std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& bridge_name) const
+{
+    auto subnet = virtual_switch_subnet(bridge_name);
+    if (!subnet.empty())
+        return subnet;
+
+    QFile subnet_file{network_dir + "/multipass_subnet"};
+    MP_FILEOPS.open(subnet_file, QIODevice::ReadWrite | QIODevice::Text);
+    if (MP_FILEOPS.size(subnet_file) > 0)
+        return MP_FILEOPS.read_all(subnet_file).trimmed().toStdString();
+
+    auto new_subnet = mp::backend::generate_random_subnet();
+    MP_FILEOPS.write(subnet_file, new_subnet.data(), new_subnet.length());
+    return new_subnet;
+}
+
+void mp::Backend::check_for_kvm_support()
+{
+    auto check_kvm =
+        MP_PROCFACTORY.create_process(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
+    check_kvm->set_process_channel_mode(QProcess::MergedChannels);
+
+    auto process_state = check_kvm->execute();
+
+    if (!process_state.completed_successfully())
+    {
+        if (process_state.error->state == QProcess::FailedToStart)
+        {
+            throw std::runtime_error(
+                "The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
+        }
+
+        if (process_state.exit_code == 1)
+        {
+            throw std::runtime_error(check_kvm->read_all_standard_output().trimmed().toStdString());
+        }
+    }
+}
+
+void mp::Backend::check_if_kvm_is_in_use()
+{
+    auto kvm_fd = MP_LINUX_SYSCALLS.open("/dev/kvm", O_RDWR | O_CLOEXEC);
+    auto ret = MP_LINUX_SYSCALLS.ioctl(kvm_fd, KVM_CREATE_VM, (unsigned long)0);
+
+    MP_LINUX_SYSCALLS.close(kvm_fd);
+
+    if (ret == -1 && errno == EBUSY)
+        throw std::runtime_error("Another virtual machine manager is currently running. Please shut it down before "
+                                 "starting a Multipass instance.");
+
+    MP_LINUX_SYSCALLS.close(ret);
+}
+
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error,
                                                           bool rollback)
     : std::runtime_error(fmt::format("{}. {}: {}", rollback ? "Could not rollback bridge" : "Could not create bridge",
                                      detail, dbus_error.isValid() ? dbus_error.message() : "unknown cause"))
 {
+}
+
+int mp::LinuxSysCalls::close(int fd) const
+{
+    return ::close(fd);
+}
+
+int mp::LinuxSysCalls::ioctl(int fd, unsigned long request, unsigned long parameter) const
+{
+    return ::ioctl(fd, request, parameter);
+}
+
+int mp::LinuxSysCalls::open(const char* path, mode_t mode) const
+{
+    return ::open(path, mode);
 }

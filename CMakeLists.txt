@@ -160,11 +160,15 @@ if(MSVC)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
+  set(MULTIPASS_BACKENDS hyperv virtualbox)
+  set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC -Wno-error=deprecated-declarations)
 
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
+    set(MULTIPASS_BACKENDS hyperkit virtualbox)
+    set(MULTIPASS_PLATFORM macos)
   else()
     add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wnon-virtual-dtor)
 
@@ -178,6 +182,9 @@ else()
     endif()
 
     add_definitions(-DMULTIPASS_PLATFORM_LINUX)
+    set(MULTIPASS_BACKENDS libvirt lxd qemu)
+    set(MULTIPASS_PLATFORM linux)
+    set(LINUX TRUE)
   endif()
 
   add_compile_options(-Wno-error=deprecated-declarations)
