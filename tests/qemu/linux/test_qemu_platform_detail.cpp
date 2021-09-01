@@ -150,14 +150,15 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    const auto qemu_args = qemu_platform_detail.platform_args(vm_desc);
+    const auto platform_args = qemu_platform_detail.platform_args(vm_desc);
 
-    EXPECT_TRUE(qemu_args.contains("--enable-kvm"));
-    EXPECT_TRUE(qemu_args.contains("-cpu"));
-    EXPECT_TRUE(qemu_args.contains("host"));
-    EXPECT_TRUE(qemu_args.contains("-nic"));
-    EXPECT_TRUE(qemu_args.contains(QString::fromStdString(fmt::format(
-        "tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}", tap_name, vm_desc.default_mac_address))));
+    // Tests the order and correctness of the arguments returned
+    std::vector<QString> expected_platform_args{
+        "--enable-kvm", "-cpu", "host", "-nic",
+        QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
+                                           tap_name, vm_desc.default_mac_address))};
+
+    EXPECT_THAT(platform_args, ElementsAreArray(expected_platform_args));
 
     EXPECT_CALL(*mock_utils,
                 run_cmd_for_status(QString("ip"), ElementsAre(QString("addr"), QString("show"), tap_name), _))
