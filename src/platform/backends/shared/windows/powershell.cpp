@@ -20,7 +20,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
-#include <shared/win/process_factory.h>
+#include <shared/windows/process_factory.h>
 
 #include <QProcess>
 

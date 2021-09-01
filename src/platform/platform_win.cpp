@@ -31,8 +31,8 @@
 #include "platform_proprietary.h"
 #include "platform_shared.h"
 #include "shared/sshfs_server_process_spec.h"
-#include "shared/win/powershell.h"
-#include "shared/win/process_factory.h"
+#include "shared/windows/powershell.h"
+#include "shared/windows/process_factory.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
 

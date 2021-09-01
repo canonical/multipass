@@ -24,7 +24,7 @@
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
 
-#include <shared/win/powershell.h>
+#include <shared/windows/powershell.h>
 
 #include <yaml-cpp/yaml.h>
 

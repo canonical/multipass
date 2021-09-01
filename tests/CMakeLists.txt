@@ -165,7 +165,7 @@ elseif(MSVC)
   target_compile_options(multipass_tests PRIVATE /bigobj)
   target_include_directories(multipass_tests
     BEFORE
-      PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/win
+      PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/windows
   )
 elseif(APPLE)
   set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
