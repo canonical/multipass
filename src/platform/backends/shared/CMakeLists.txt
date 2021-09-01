@@ -27,12 +27,6 @@ target_link_libraries(shared
   utils
   Qt5::Core)
 
-if(MSVC)
-  add_subdirectory(win)
-elseif(APPLE)
-  add_subdirectory(macos)
-endif()
-
 if("qemu" IN_LIST MULTIPASS_BACKENDS)
   add_subdirectory(qemu_img_utils)
 endif()
