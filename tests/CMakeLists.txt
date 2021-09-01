@@ -160,9 +160,9 @@ if(LINUX)
     BEFORE
       PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux
   )
-
-  add_subdirectory(linux)
 endif()
+
+add_subdirectory(${MULTIPASS_PLATFORM})
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})

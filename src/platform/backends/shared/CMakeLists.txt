@@ -30,6 +30,4 @@ if("qemu" IN_LIST MULTIPASS_BACKENDS)
   add_subdirectory(qemu_img_utils)
 endif()
 
-if(LINUX)
-  add_subdirectory(linux)
-endif()
+add_subdirectory(${MULTIPASS_PLATFORM})

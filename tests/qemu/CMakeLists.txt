@@ -19,6 +19,4 @@ add_dependencies(multipass_tests
   qemu-img
 )
 
-if(LINUX)
-  add_subdirectory(linux)
-endif()
+add_subdirectory(${MULTIPASS_PLATFORM})

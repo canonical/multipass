@@ -39,6 +39,4 @@ target_link_libraries(qemu_backend
   utils
   Qt5::Core)
 
-if(LINUX)
-  add_subdirectory(linux)
-endif()
+add_subdirectory(${MULTIPASS_PLATFORM})
