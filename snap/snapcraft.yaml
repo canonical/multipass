@@ -16,6 +16,20 @@ base: core20
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
+  /usr/share/X11:
+    bind: $SNAP/usr/share/X11
+  /etc/fonts:
+    bind: $SNAP/etc/fonts
+  /usr/share/fonts:
+    bind: $SNAP/usr/share/fonts
+  /usr/share/icons:
+    bind: $SNAP/usr/share/icons
+
+environment:
+  # GDK pixbuf
+  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gdk-pixbuf-2.0/2.10.0/loaders
+  GDK_PIXBUF_MODULE_FILE: $SNAP_COMMON/loaders.cache
+  ARCH_TRIPLET: ${SNAPCRAFT_ARCH_TRIPLET}
 
 plugs:
   all-home:
@@ -56,7 +70,7 @@ apps:
         PATH: *path
         QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
         XDG_DATA_HOME: $SNAP_USER_DATA/data
-        XDG_DATA_DIRS: $SNAP/usr/share
+        XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
         XDG_CONFIG_HOME: $SNAP_USER_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
@@ -154,17 +168,25 @@ parts:
     stage-packages:
     - try: [msr-tools]
 
-  xterm:
+  terminal:
     plugin: nil
-    override-pull: ""
     stage-packages:
-    - xterm
+      - xfce4-terminal
+      - dmz-cursor-theme
+      - libgdk-pixbuf2.0-bin # GDK pixbuf
+      - fonts-freefont-ttf
+      - libglib2.0-0
+    override-build: |
+      snapcraftctl build
+      update-mime-database $SNAPCRAFT_PART_INSTALL/usr/share/mime
+      rm -f $SNAPCRAFT_PART_INSTALL/usr/share/applications/exo-*
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/
+      echo "[Icon Theme]" > $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/index.theme
+      echo "Inherits=DMZ-White" >> $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/index.theme
     stage:
-    - -usr/lib/*/libfreetype.so.6
-    - -usr/share/doc/libfreetype6/FTL.TXT.gz
-    - -usr/share/doc/libfreetype6/TODO
-    - -usr/share/doc/libfreetype6/changelog.Debian.gz
-    - -usr/share/doc/libfreetype6/pcf/README
+      - -usr/share/doc
+    organize:
+      usr/bin/xfce4-terminal.wrapper: bin/x-terminal-emulator
 
   glue:
     plugin: dump
