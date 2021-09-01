@@ -14,11 +14,6 @@
 
 add_subdirectory(shared)
 
-if(LINUX OR ENABLE_QEMU)
-  add_subdirectory(qemu)
-endif()
-
-if(LINUX)
-  add_subdirectory(libvirt)
-  add_subdirectory(lxd)
-endif()
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+  add_subdirectory(${BACKEND})
+endforeach()

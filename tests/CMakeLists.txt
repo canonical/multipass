@@ -155,17 +155,15 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_tests mock_process)
 
-if(LINUX OR ENABLE_QEMU)
-  add_subdirectory(qemu)
-endif()
-
 if(LINUX)
   target_include_directories(multipass_tests
     BEFORE
       PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux
   )
 
-  add_subdirectory(libvirt)
   add_subdirectory(linux)
-  add_subdirectory(lxd)
 endif()
+
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+  add_subdirectory(${BACKEND})
+endforeach()

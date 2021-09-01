@@ -20,15 +20,13 @@ if(LINUX)
     platform_unix.cpp)
 
   target_link_libraries(platform
-    libvirt_backend
-    lxd_backend
     journaldlogger)
 endif()
 
-if(LINUX OR ENABLE_QEMU)
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   target_link_libraries(platform
-    qemu_backend)
-endif()
+    ${BACKEND}_backend)
+endforeach()
 
 include_directories(platform
   backends
