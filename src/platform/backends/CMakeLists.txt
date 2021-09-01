@@ -12,14 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-if(MSVC)
-  add_subdirectory(hyperv)
-elseif(APPLE)
-  add_subdirectory(hyperkit)
-endif()
-
 add_subdirectory(shared)
-add_subdirectory(virtualbox)
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})

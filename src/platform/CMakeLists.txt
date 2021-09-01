@@ -28,9 +28,7 @@ elseif(MSVC)
   target_link_libraries(platform
     jsoncpp_static
     shared_win
-    hyperv_backend
     scope_guard
-    virtualbox_backend
     wineventlogger)
 elseif(APPLE)
   add_library(platform STATIC
@@ -40,8 +38,6 @@ elseif(APPLE)
     platform_unix.cpp)
   target_link_libraries(platform
     shared_macos
-    hyperkit_backend
-    virtualbox_backend
     Qt5::Core)
 endif()
 

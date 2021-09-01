@@ -167,14 +167,12 @@ elseif(MSVC)
     BEFORE
       PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/win
   )
-  add_subdirectory(hyperv)
 elseif(APPLE)
   set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
   target_include_directories(multipass_tests
     BEFORE
       PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/macos
   )
-  add_subdirectory(hyperkit)
 endif()
 
 add_subdirectory(${MULTIPASS_PLATFORM})
