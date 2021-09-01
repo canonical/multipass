@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,12 +26,13 @@ namespace multipass
 class QemuVmStateProcessSpec : public QemuBaseProcessSpec
 {
 public:
-    explicit QemuVmStateProcessSpec(const QString& file_name);
+    explicit QemuVmStateProcessSpec(const QString& file_name, const QStringList& platform_args = QStringList());
 
     QStringList arguments() const override;
 
 private:
     QString file_name;
+    QStringList platform_args;
 };
 
 } // namespace multipass

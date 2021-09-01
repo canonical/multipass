@@ -43,12 +43,14 @@ public:
     virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
     virtual bool is_open(const QFile& file) const;
     virtual qint64 read(QFile& file, char* data, qint64 maxSize) const;
+    virtual QByteArray read_all(QFile& file) const;
     virtual QString read_line(QTextStream& text_stream) const;
     virtual bool remove(QFile& file) const;
     virtual bool rename(QFile& file, const QString& newName) const;
     virtual bool resize(QFile& file, qint64 sz) const;
     virtual bool seek(QFile& file, qint64 pos) const;
     virtual bool setPermissions(QFile& file, QFileDevice::Permissions permissions) const;
+    virtual qint64 size(QFile& file) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFile& file, const QByteArray& data) const;
 };

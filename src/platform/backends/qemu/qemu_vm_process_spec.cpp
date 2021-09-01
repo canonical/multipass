@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,54 +27,9 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
-namespace
-{
-// This returns the initial two Qemu command line options we used in Multipass. Only of use to resume old suspended
-// images.
-//  === Do not change this! ===
-QStringList initial_qemu_arguments(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
-                                   bool use_cdrom)
-{
-    auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
-    `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
-
-    QStringList args{
-        "--enable-kvm",
-        "-hda",
-        desc.image.image_path,
-        "-smp",
-        QString::number(desc.num_cores),
-        "-m",
-        mem_size,
-        "-device",
-        QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1").arg(QString::fromStdString(desc.default_mac_address)),
-        "-netdev",
-        QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name),
-        "-qmp",
-        "stdio",
-        "-cpu",
-        "host",
-        "-chardev",
-        "null,id=char0",
-        "-serial",
-        "chardev:char0",
-        "-nographic"};
-
-    if (use_cdrom)
-    {
-        args << "-cdrom" << desc.cloud_init_iso;
-    }
-    else
-    {
-        args << "-drive" << QString("file=%1,if=virtio,format=raw,snapshot=off,read-only").arg(desc.cloud_init_iso);
-    }
-    return args;
-}
-} // namespace
-
-mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QString& tap_device_name,
+mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QStringList& platform_args,
                                          const multipass::optional<ResumeData>& resume_data)
-    : desc(desc), tap_device_name(tap_device_name), resume_data{resume_data}
+    : desc{desc}, platform_args{platform_args}, resume_data{resume_data}
 {
 }
 
@@ -84,16 +39,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 
     if (resume_data)
     {
-        if (resume_data->arguments.length() > 0)
-        {
-            // arguments used were saved externally, import them
-            args = resume_data->arguments;
-        }
-        else
-        {
-            // fall-back to reconstructing arguments
-            args = initial_qemu_arguments(desc, tap_device_name, resume_data->use_cdrom_flag);
-        }
+        args = resume_data->arguments;
 
         // need to append extra arguments for resume
         args << "-loadvm" << resume_data->suspend_tag;
@@ -114,7 +60,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
     `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
 
-        args << "--enable-kvm";
+        args << platform_args;
         // The VM image itself
         args << "-device"
              << "virtio-scsi-pci,id=scsi0"
@@ -125,19 +71,9 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         args << "-smp" << QString::number(desc.num_cores);
         // Memory to use for VM
         args << "-m" << mem_size;
-        // Create a virtual NIC in the VM
-        args << "-device"
-             << QString("virtio-net-pci,netdev=hostnet0,id=net0,mac=%1")
-                    .arg(QString::fromStdString(desc.default_mac_address));
-        // Create tap device to connect to virtual bridge
-        args << "-netdev";
-        args << QString("tap,id=hostnet0,ifname=%1,script=no,downscript=no").arg(tap_device_name);
         // Control interface
         args << "-qmp"
              << "stdio";
-        // Pass host CPU flags to VM
-        args << "-cpu"
-             << "host";
         // No console
         args << "-chardev"
              // TODO Read and log machine output when verbose

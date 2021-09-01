@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,12 @@ int main(int argc, char* argv[])
 {
     if (argc != 4)
         return EXIT_FAILURE;
+
+    const std::string hw_addr{argv[3]};
+    if (hw_addr == "00:00:00:00:00:00")
+    {
+        abort();
+    }
 
     // The first argument describes a file path which serves as a signal
     // to the test using this mocked binary

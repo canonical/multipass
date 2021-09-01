@@ -15,7 +15,7 @@
  *
  */
 
-#include "mock_dnsmasq_server.h"
+#include "mock_qemu_platform.h"
 
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
@@ -55,6 +55,12 @@ constexpr auto suspend_tag = "suspend";
 
 struct QemuBackend : public mpt::TestWithMockedBinPath
 {
+    QemuBackend()
+    {
+        EXPECT_CALL(*mock_qemu_platform, remove_resources_for(_)).WillRepeatedly(Return());
+        EXPECT_CALL(*mock_qemu_platform, platform_args(_)).WillRepeatedly(Return(QStringList()));
+    };
+
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mp::VirtualMachineDescription default_description{2,
@@ -155,10 +161,20 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     std::unique_ptr<mpt::MockProcessFactory::Scope> process_factory{mpt::MockProcessFactory::Inject()};
+
+    std::unique_ptr<mpt::MockQemuPlatform> mock_qemu_platform{std::make_unique<mpt::MockQemuPlatform>()};
+
+    mpt::MockQemuPlatformFactory::GuardedMock qemu_platform_factory_attr{
+        mpt::MockQemuPlatformFactory::inject<NiceMock>()};
+    mpt::MockQemuPlatformFactory* mock_qemu_platform_factory{qemu_platform_factory_attr.first};
 };
 
 TEST_F(QemuBackend, creates_in_off_state)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -168,6 +184,10 @@ TEST_F(QemuBackend, creates_in_off_state)
 
 TEST_F(QemuBackend, machine_in_off_state_handles_shutdown)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -180,6 +200,10 @@ TEST_F(QemuBackend, machine_in_off_state_handles_shutdown)
 
 TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -200,6 +224,10 @@ TEST_F(QemuBackend, machine_start_shutdown_sends_monitoring_events)
 
 TEST_F(QemuBackend, machine_start_suspend_sends_monitoring_event)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -220,6 +248,10 @@ TEST_F(QemuBackend, machine_start_suspend_sends_monitoring_event)
 
 TEST_F(QemuBackend, throws_when_starting_while_suspending)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -239,6 +271,10 @@ TEST_F(QemuBackend, throws_when_shutdown_while_starting)
         {
             vmproc = process; // save this to control later
         }
+    });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
     });
 
     mpt::StubVMStatusMonitor stub_monitor;
@@ -276,6 +312,10 @@ TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
         }
     });
 
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -308,6 +348,10 @@ TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
 
 TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -330,6 +374,10 @@ TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
 
 TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto factory = mpt::StubProcessFactory::Inject();
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
@@ -339,10 +387,6 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = factory->process_list();
-    EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
-                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command == "dnsmasq";
-                             }) != processes.cend());
     EXPECT_TRUE(std::find_if(processes.cbegin(), processes.cend(),
                              [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
                                  return process_info.command == "qemu-img";
@@ -356,35 +400,43 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
 
 TEST_F(QemuBackend, verify_some_common_qemu_arguments)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::MockProcess* qemu = nullptr;
+    process_factory->register_callback([&qemu](mpt::MockProcess* process) {
+        if (process->program().startsWith("qemu-system-") &&
+            !process->arguments().contains("-dump-vmstate")) // we only care about the actual vm process
+        {
+            qemu = process;
+        }
+    });
+
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    process_factory->register_callback(handle_external_process_calls);
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, mock_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
-    auto processes = process_factory->process_list();
-    auto qemu = std::find_if(processes.cbegin(), processes.cend(),
-                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
-                             });
+    ASSERT_TRUE(qemu != nullptr);
 
-    ASSERT_TRUE(qemu != processes.cend());
-    EXPECT_TRUE(qemu->arguments.contains("--enable-kvm"));
-    EXPECT_TRUE(qemu->arguments.contains("virtio-net-pci,netdev=hostnet0,id=net0,mac="));
-    EXPECT_TRUE(qemu->arguments.contains("-nographic"));
-    EXPECT_TRUE(qemu->arguments.contains("-serial"));
-    EXPECT_TRUE(qemu->arguments.contains("-qmp"));
-    EXPECT_TRUE(qemu->arguments.contains("stdio"));
-    EXPECT_TRUE(qemu->arguments.contains("-cpu"));
-    EXPECT_TRUE(qemu->arguments.contains("host"));
-    EXPECT_TRUE(qemu->arguments.contains("-chardev"));
-    EXPECT_TRUE(qemu->arguments.contains("null,id=char0"));
+    const auto qemu_args = qemu->arguments();
+    EXPECT_TRUE(qemu_args.contains("-nographic"));
+    EXPECT_TRUE(qemu_args.contains("-serial"));
+    EXPECT_TRUE(qemu_args.contains("-qmp"));
+    EXPECT_TRUE(qemu_args.contains("stdio"));
+    EXPECT_TRUE(qemu_args.contains("-chardev"));
+    EXPECT_TRUE(qemu_args.contains("null,id=char0"));
 }
 
 TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     process_factory->register_callback(handle_external_process_calls);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
@@ -409,6 +461,10 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
 {
     constexpr auto machine_type = "k0mPuT0R";
 
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     process_factory->register_callback(handle_external_process_calls);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
@@ -432,33 +488,13 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
     EXPECT_TRUE(qemu->arguments.contains(machine_type));
 }
 
-TEST_F(QemuBackend, verify_qemu_command_version_when_resuming_suspend_image_using_cdrom_key)
-{
-    process_factory->register_callback(handle_external_process_calls);
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-
-    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{"use_cdrom", true}})));
-
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
-
-    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
-    machine->start();
-    machine->state = mp::VirtualMachine::State::running;
-
-    auto processes = process_factory->process_list();
-    auto qemu = std::find_if(processes.cbegin(), processes.cend(),
-                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
-                             });
-
-    ASSERT_TRUE(qemu != processes.cend());
-    ASSERT_TRUE(qemu->command.startsWith("qemu-system-"));
-    EXPECT_TRUE(qemu->arguments.contains("-cdrom"));
-}
-
 TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
 {
     constexpr auto suspend_tag = "suspend";
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
 
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
@@ -495,6 +531,10 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
 
 TEST_F(QemuBackend, returns_version_string)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     constexpr auto qemu_version_output = "QEMU emulator version 2.11.1(Debian 1:2.11+dfsg-1ubuntu7.15)\n"
                                          "Copyright (c) 2003-2017 Fabrice Bellard and the QEMU Project developers\n";
 
@@ -517,6 +557,10 @@ TEST_F(QemuBackend, returns_version_string)
 
 TEST_F(QemuBackend, returns_version_string_when_failed_parsing)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     constexpr auto qemu_version_output = "Unparsable version string";
 
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
@@ -538,6 +582,10 @@ TEST_F(QemuBackend, returns_version_string_when_failed_parsing)
 
 TEST_F(QemuBackend, returns_version_string_when_errored)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
@@ -558,6 +606,10 @@ TEST_F(QemuBackend, returns_version_string_when_errored)
 
 TEST_F(QemuBackend, returns_version_string_when_exec_failed)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-system-") && process->arguments().contains("--version"))
         {
@@ -579,13 +631,13 @@ TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     const std::string expected_ip{"10.10.0.34"};
-    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
+    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
         return mp::optional<mp::IPAddress>{expected_ip};
     });
 
-    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -596,11 +648,11 @@ TEST_F(QemuBackend, gets_management_ip)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     const std::string expected_ip{"10.10.0.35"};
-    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    EXPECT_CALL(mock_dnsmasq_server, get_ip_for(_)).WillOnce(Return(expected_ip));
+    EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(expected_ip));
 
-    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -610,11 +662,11 @@ TEST_F(QemuBackend, gets_management_ip)
 TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    EXPECT_CALL(mock_dnsmasq_server, get_ip_for(_)).WillOnce(Return(mp::nullopt));
+    EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(mp::nullopt));
 
-    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -624,11 +676,11 @@ TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
 TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    NiceMock<mpt::MockDNSMasqServer> mock_dnsmasq_server{data_dir.path(), bridge_name, subnet};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    ON_CALL(mock_dnsmasq_server, get_ip_for(_)).WillByDefault([](auto...) { return mp::nullopt; });
+    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([](auto...) { return mp::nullopt; });
 
-    mp::QemuVirtualMachine machine{default_description, tap_device, mock_dnsmasq_server, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -638,7 +690,92 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 
 TEST_F(QemuBackend, lists_no_networks)
 {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
+}
+
+TEST_F(QemuBackend, remove_resources_for_calls_qemu_platform)
+{
+    bool remove_resources_called{false};
+    const std::string test_name{"foo"};
+
+    EXPECT_CALL(*mock_qemu_platform, remove_resources_for(_))
+        .WillOnce([&remove_resources_called, &test_name](auto& name) {
+            remove_resources_called = true;
+
+            EXPECT_EQ(name, test_name);
+        });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    backend.remove_resources_for(test_name);
+
+    EXPECT_TRUE(remove_resources_called);
+}
+
+TEST_F(QemuBackend, hypervisor_health_check_calls_qemu_platform)
+{
+    bool health_check_called{false};
+
+    EXPECT_CALL(*mock_qemu_platform, platform_health_check()).WillOnce([&health_check_called] {
+        health_check_called = true;
+    });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    backend.hypervisor_health_check();
+
+    EXPECT_TRUE(health_check_called);
+}
+
+TEST_F(QemuBackend, get_backend_directory_name_calls_qemu_platform)
+{
+    bool get_directory_name_called{false};
+    const QString backend_dir_name{"foo"};
+
+    EXPECT_CALL(*mock_qemu_platform, get_directory_name()).WillOnce([&get_directory_name_called, &backend_dir_name] {
+        get_directory_name_called = true;
+
+        return backend_dir_name;
+    });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    const auto dir_name = backend.get_backend_directory_name();
+
+    EXPECT_EQ(dir_name, backend_dir_name);
+    EXPECT_TRUE(get_directory_name_called);
+}
+
+TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
+{
+    mpt::MockQemuPlatform qemu_platform;
+    mp::VirtualMachineDescription vm_desc;
+
+    EXPECT_CALL(qemu_platform, platform_args(_)).WillOnce([&qemu_platform](auto& vm_desc) {
+        return qemu_platform.base_platform_args(vm_desc);
+    });
+    EXPECT_CALL(qemu_platform, get_directory_name()).WillOnce([&qemu_platform] {
+        return qemu_platform.base_get_directory_name();
+    });
+
+    EXPECT_TRUE(qemu_platform.platform_args(vm_desc).isEmpty());
+    EXPECT_TRUE(qemu_platform.get_directory_name().isEmpty());
 }
