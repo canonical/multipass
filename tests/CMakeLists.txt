@@ -155,7 +155,12 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_tests mock_process)
 
-if(MSVC)
+if(LINUX)
+  target_include_directories(multipass_tests
+    BEFORE
+      PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux
+  )
+elseif(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
   target_compile_options(multipass_tests PRIVATE /bigobj)
   target_include_directories(multipass_tests
@@ -172,14 +177,10 @@ elseif(APPLE)
   )
   add_subdirectory(osx)
   add_subdirectory(hyperkit)
-else()
-  target_include_directories(multipass_tests
-    BEFORE
-      PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux
-  )
-
-  add_subdirectory(libvirt)
-  add_subdirectory(linux)
-  add_subdirectory(qemu)
-  add_subdirectory(lxd)
 endif()
+
+add_subdirectory(${MULTIPASS_PLATFORM})
+
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+  add_subdirectory(${BACKEND})
+endforeach()

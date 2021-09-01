@@ -26,6 +26,7 @@
 #include <string>
 
 #define MP_BACKEND multipass::Backend::instance()
+#define MP_LINUX_SYSCALLS multipass::LinuxSysCalls::instance()
 
 class QDBusError;
 
@@ -37,12 +38,6 @@ class ProcessFactory;
 namespace backend
 {
 std::string generate_random_subnet();
-std::string get_subnet(const Path& network_dir, const QString& bridge_name);
-void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
-Path convert_to_qcow_if_necessary(const Path& image_path);
-QString cpu_arch();
-void check_for_kvm_support();
-void check_if_kvm_is_in_use();
 
 class CreateBridgeException : public std::runtime_error
 {
@@ -57,6 +52,21 @@ public:
     using Singleton<Backend>::Singleton;
 
     virtual std::string create_bridge_with(const std::string& interface);
+    virtual std::string get_subnet(const Path& network_dir, const QString& bridge_name) const;
+
+    // For detecting KVM
+    virtual void check_for_kvm_support();
+    virtual void check_if_kvm_is_in_use();
+};
+
+class LinuxSysCalls : public Singleton<LinuxSysCalls>
+{
+public:
+    using Singleton<LinuxSysCalls>::Singleton;
+
+    virtual int close(int fd) const;
+    virtual int ioctl(int fd, unsigned long request, unsigned long parameter) const;
+    virtual int open(const char* path, mode_t mode) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_BACKEND_UTILS_H

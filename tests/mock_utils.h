@@ -33,6 +33,8 @@ public:
     using Utils::Utils;
     MOCK_CONST_METHOD1(filesystem_bytes_available, qint64(const QString&));
     MOCK_METHOD1(exit, void(int));
+    MOCK_CONST_METHOD3(run_cmd_for_output, std::string(const QString&, const QStringList&, const int));
+    MOCK_CONST_METHOD3(run_cmd_for_status, bool(const QString&, const QStringList&, const int));
     MOCK_CONST_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
     MOCK_CONST_METHOD0(get_kernel_version, std::string());
 

@@ -31,6 +31,10 @@ if(MSVC)
   add_subdirectory(win)
 elseif(APPLE)
   add_subdirectory(macos)
-else()
-  add_subdirectory(linux)
 endif()
+
+if("qemu" IN_LIST MULTIPASS_BACKENDS)
+  add_subdirectory(qemu_img_utils)
+endif()
+
+add_subdirectory(${MULTIPASS_PLATFORM})

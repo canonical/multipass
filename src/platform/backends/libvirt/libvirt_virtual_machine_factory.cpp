@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <shared/linux/backend_utils.h>
+#include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <multipass/format.h>
 
@@ -36,7 +37,7 @@ constexpr auto logging_category = "libvirt factory";
 auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::string& bridge_name)
 {
     auto network_dir = mp::utils::make_dir(QDir(data_dir), "network");
-    auto subnet = mp::backend::get_subnet(network_dir, QString::fromStdString(bridge_name));
+    auto subnet = MP_BACKEND.get_subnet(network_dir, QString::fromStdString(bridge_name));
 
     return fmt::format("<network>\n"
                        "  <name>default</name>\n"
@@ -162,8 +163,8 @@ void mp::LibVirtVirtualMachineFactory::prepare_instance_image(const VMImage& ins
 
 void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
 {
-    mp::backend::check_for_kvm_support();
-    mp::backend::check_if_kvm_is_in_use();
+    MP_BACKEND.check_for_kvm_support();
+    MP_BACKEND.check_if_kvm_is_in_use();
 
     if (!libvirt_wrapper)
         libvirt_wrapper = make_libvirt_wrapper(libvirt_object_path);

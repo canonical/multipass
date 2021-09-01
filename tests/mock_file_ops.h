@@ -35,12 +35,14 @@ public:
     MOCK_CONST_METHOD2(open, bool(QFile&, QIODevice::OpenMode));
     MOCK_CONST_METHOD1(is_open, bool(const QFile&));
     MOCK_CONST_METHOD3(read, qint64(QFile&, char*, qint64));
+    MOCK_CONST_METHOD1(read_all, QByteArray(QFile&));
     MOCK_CONST_METHOD1(read_line, QString(QTextStream&));
     MOCK_CONST_METHOD1(remove, bool(QFile&));
     MOCK_CONST_METHOD2(rename, bool(QFile&, const QString& newName));
     MOCK_CONST_METHOD2(resize, bool(QFile&, qint64 sz));
     MOCK_CONST_METHOD2(seek, bool(QFile&, qint64 pos));
     MOCK_CONST_METHOD2(setPermissions, bool(QFile&, QFileDevice::Permissions));
+    MOCK_CONST_METHOD1(size, qint64(QFile&));
     MOCK_CONST_METHOD3(write, qint64(QFile&, const char*, qint64));
     MOCK_CONST_METHOD2(write, qint64(QFile&, const QByteArray&));
 

@@ -1,4 +1,4 @@
-# Copyright © 2019-2020 Canonical Ltd.
+# Copyright © 2019-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -26,6 +26,7 @@ target_link_libraries(lxd_backend
   ip_address
   logger
   network
+  qemu_img_utils
   rpc
   ssh
   utils

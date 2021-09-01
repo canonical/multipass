@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
+ * Copyright (C) 2020-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,19 @@
 
 namespace mp = multipass;
 
-mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name) : file_name{file_name}
+mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name, const QStringList& platform_args)
+    : file_name{file_name}, platform_args{platform_args}
 {
 }
 
 QStringList mp::QemuVmStateProcessSpec::arguments() const
 {
-    return {"-nographic", "-dump-vmstate", file_name};
+    QStringList args;
+
+    args << platform_args;
+
+    args << "-nographic"
+         << "-dump-vmstate" << file_name;
+
+    return args;
 }

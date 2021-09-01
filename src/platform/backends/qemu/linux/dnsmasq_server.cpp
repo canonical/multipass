@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -182,4 +182,11 @@ void mp::DNSMasqServer::start_dnsmasq()
 
     if (dnsmasq_cmd->wait_for_finished(immediate_wait)) // detect immediate failures (in the first few milliseconds)
         throw std::runtime_error{dnsmasq_failure_msg(dnsmasq_cmd->process_state())};
+}
+
+mp::DNSMasqServer::UPtr mp::DNSMasqServerFactory::make_dnsmasq_server(const mp::Path& network_dir,
+                                                                      const QString& bridge_name,
+                                                                      const std::string& subnet) const
+{
+    return std::make_unique<mp::DNSMasqServer>(network_dir, bridge_name, subnet);
 }

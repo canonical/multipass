@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 #define MULTIPASS_QEMU_VIRTUAL_MACHINE_H
 
+#include "qemu_platform.h"
+
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/process/process.h>
@@ -28,15 +30,14 @@
 
 namespace multipass
 {
-class DNSMasqServer;
+class QemuPlatform;
 class VMStatusMonitor;
 
 class QemuVirtualMachine final : public QObject, public BaseVirtualMachine
 {
     Q_OBJECT
 public:
-    QemuVirtualMachine(const VirtualMachineDescription& desc, const std::string& tap_device_name,
-                       DNSMasqServer& dnsmasq_server, VMStatusMonitor& monitor);
+    QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -64,12 +65,11 @@ private:
     void on_restart();
     void initialize_vm_process();
 
-    const std::string tap_device_name;
     const VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
     const std::string mac_addr;
     const std::string username;
-    DNSMasqServer* dnsmasq_server;
+    QemuPlatform* qemu_platform;
     VMStatusMonitor* monitor;
     std::string saved_error_msg;
     bool update_shutdown_status{true};

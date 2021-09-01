@@ -16,9 +16,12 @@
  */
 
 #include "tests/common.h"
+#include "tests/mock_backend_utils.h"
+#include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_singleton_helpers.h"
+#include "tests/mock_utils.h"
 
 #include <shared/shared_backend_utils.h>
 #include <src/platform/backends/shared/linux/backend_utils.h>
@@ -31,6 +34,9 @@
 #include <QMap>
 #include <QVariant>
 
+#include <fcntl.h>
+#include <sys/ioctl.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -39,193 +45,6 @@ using namespace testing;
 
 namespace
 {
-const auto success = mp::ProcessState{0, mp::nullopt};
-const auto failure = mp::ProcessState{1, mp::nullopt};
-const auto crash = mp::ProcessState{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
-const auto null_string_matcher = static_cast<mp::optional<decltype(_)>>(mp::nullopt);
-
-using ImageConversionParamType =
-    std::tuple<const char*, const char*, mp::ProcessState, bool, mp::ProcessState, mp::optional<Matcher<std::string>>>;
-
-void simulate_qemuimg_info_with_json(const mpt::MockProcess* process, const QString& expect_img,
-                                     const mp::ProcessState& produce_result, const QByteArray& produce_output = {})
-{
-    ASSERT_EQ(process->program().toStdString(), "qemu-img");
-
-    const auto args = process->arguments();
-    ASSERT_EQ(args.size(), 3);
-
-    EXPECT_EQ(args.at(0), "info");
-    EXPECT_EQ(args.at(1), "--output=json");
-    EXPECT_EQ(args.at(2), expect_img);
-
-    InSequence s;
-
-    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
-    if (produce_result.completed_successfully())
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(produce_output));
-    else if (produce_result.exit_code)
-        EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(produce_output));
-    else
-        ON_CALL(*process, read_all_standard_error).WillByDefault(Return(produce_output));
-}
-
-void simulate_qemuimg_resize(mpt::MockProcess* process, const QString& expect_img, const mp::MemorySize& expect_size,
-                             const mp::ProcessState& produce_result)
-{
-    ASSERT_EQ(process->program().toStdString(), "qemu-img");
-
-    const auto args = process->arguments();
-    ASSERT_EQ(args.size(), 3);
-
-    EXPECT_EQ(args.at(0).toStdString(), "resize");
-    EXPECT_EQ(args.at(1), expect_img);
-    EXPECT_THAT(args.at(2),
-                ResultOf([](const auto& val) { return mp::MemorySize{val.toStdString()}; }, Eq(expect_size)));
-
-    EXPECT_CALL(*process, execute(mp::backend::image_resize_timeout)).Times(1).WillOnce(Return(produce_result));
-}
-
-void simulate_qemuimg_convert(const mpt::MockProcess* process, const QString& img_path,
-                              const QString& expected_img_path, const mp::ProcessState& produce_result)
-{
-    ASSERT_EQ(process->program().toStdString(), "qemu-img");
-
-    const auto args = process->arguments();
-    ASSERT_EQ(args.size(), 6);
-
-    EXPECT_EQ(args.at(0), "convert");
-    EXPECT_EQ(args.at(1), "-p");
-    EXPECT_EQ(args.at(2), "-O");
-    EXPECT_EQ(args.at(3), "qcow2");
-    EXPECT_EQ(args.at(4), img_path);
-    EXPECT_EQ(args.at(5), expected_img_path);
-
-    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
-}
-
-template <class Matcher>
-void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size, const mp::MemorySize& requested_size,
-                         const mp::ProcessState& qemuimg_resize_result, mp::optional<Matcher> throw_msg_matcher)
-{
-    auto process_count = 0;
-    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
-
-    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, 1);
-        simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
-    });
-
-    if (throw_msg_matcher)
-        MP_EXPECT_THROW_THAT(mp::backend::resize_instance_image(requested_size, img), std::runtime_error,
-                             mpt::match_what(*throw_msg_matcher));
-    else
-        mp::backend::resize_instance_image(requested_size, img);
-
-    EXPECT_EQ(process_count, 1);
-}
-
-template <class Matcher>
-void test_image_conversion(const char* img_path, const char* expected_img_path, const char* qemuimg_info_output,
-                           const mp::ProcessState& qemuimg_info_result, bool attempt_convert,
-                           const mp::ProcessState& qemuimg_convert_result, mp::optional<Matcher> throw_msg_matcher)
-{
-    auto process_count = 0;
-    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
-    const auto expected_final_process_count = attempt_convert ? 2 : 1;
-
-    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, expected_final_process_count);
-        if (process_count == 1)
-        {
-            auto msg = QByteArray{qemuimg_info_output};
-
-            simulate_qemuimg_info_with_json(process, img_path, qemuimg_info_result, msg);
-        }
-        else
-        {
-            simulate_qemuimg_convert(process, img_path, expected_img_path, qemuimg_convert_result);
-        }
-    });
-
-    if (throw_msg_matcher)
-        MP_EXPECT_THROW_THAT(mp::backend::convert_to_qcow_if_necessary(img_path), std::runtime_error,
-                             mpt::match_what(*throw_msg_matcher));
-    else
-        EXPECT_THAT(mp::backend::convert_to_qcow_if_necessary(img_path), Eq(expected_img_path));
-
-    EXPECT_EQ(process_count, expected_final_process_count);
-}
-
-struct ImageConversionTestSuite : public TestWithParam<ImageConversionParamType>
-{
-};
-
-const std::vector<ImageConversionParamType> image_conversion_inputs{
-    {"/fake/img/path", "{\n    \"format\": \"qcow2\"\n}", success, false, mp::ProcessState{}, null_string_matcher},
-    {"/fake/img/path.qcow2", "{\n    \"format\": \"raw\"\n}", success, true, success, null_string_matcher},
-    {"/fake/img/path.qcow2", "not found", failure, false, mp::ProcessState{},
-     mp::make_optional(HasSubstr("not found"))},
-    {"/fake/img/path.qcow2", "{\n    \"format\": \"raw\"\n}", success, true, failure,
-     mp::make_optional(HasSubstr("qemu-img failed"))}};
-
-TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
-{
-    const auto img = "/fake/img/path";
-    const auto min_size = mp::MemorySize{"1G"};
-    const auto request_size = mp::MemorySize{"3G"};
-    const auto qemuimg_resize_result = success;
-    const auto throw_msg_matcher = null_string_matcher;
-
-    test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
-}
-
-TEST(BackendUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
-{
-    const auto img = "/fake/img/path";
-    const auto min_size = mp::MemorySize{"1234554321"};
-    const auto request_size = min_size;
-    const auto qemuimg_resize_result = success;
-    const auto throw_msg_matcher = null_string_matcher;
-
-    test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
-}
-
-TEST(BackendUtils, image_resize_detects_resizing_exit_failure_and_throws)
-{
-    const auto img = "imagine";
-    const auto min_size = mp::MemorySize{"100M"};
-    const auto request_size = mp::MemorySize{"400M"};
-    const auto qemuimg_resize_result = failure;
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
-
-    test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
-}
-
-TEST(BackendUtils, image_resize_detects_resizing_crash_failure_and_throws)
-{
-    const auto img = "ubuntu";
-    const auto min_size = mp::MemorySize{"100M"};
-    const auto request_size = mp::MemorySize{"400M"};
-    const auto qemuimg_resize_result = crash;
-    const auto throw_msg_matcher =
-        mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
-
-    test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
-}
-
-TEST_P(ImageConversionTestSuite, properly_handles_image_conversion)
-{
-    const auto img_path = "/fake/img/path";
-    const auto& [expected_img_path, qemuimg_info_output, qemuimg_info_result, attempt_convert, qemuimg_convert_result,
-                 throw_msg_matcher] = GetParam();
-
-    test_image_conversion(img_path, expected_img_path, qemuimg_info_output, qemuimg_info_result, attempt_convert,
-                          qemuimg_convert_result, throw_msg_matcher);
-}
-
-INSTANTIATE_TEST_SUITE_P(BackendUtils, ImageConversionTestSuite, ValuesIn(image_conversion_inputs));
-
 namespace mp_dbus = mp::backend::dbus;
 class MockDBusProvider : public mp_dbus::DBusProvider
 {
@@ -563,3 +382,157 @@ TEST_P(CreateBridgeExceptionTest, create_bridge_exception_mentions_unknown_cause
 
 INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeExceptionTest, Values(true, false));
 } // namespace
+
+TEST(LinuxBackendUtils, check_kvm_support_no_error_does_not_throw)
+{
+    auto process_factory = mpt::MockProcessFactory::Inject();
+
+    mpt::MockProcessFactory::Callback handle_callback([](mpt::MockProcess* process) {
+        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
+
+        mp::ProcessState exit_state;
+        exit_state.exit_code = 0;
+
+        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+    });
+
+    process_factory->register_callback(handle_callback);
+
+    EXPECT_NO_THROW(MP_BACKEND.check_for_kvm_support());
+}
+
+TEST(LinuxBackendUtils, check_kvm_support_fails_to_start_throws_expected_message)
+{
+    auto process_factory = mpt::MockProcessFactory::Inject();
+
+    mpt::MockProcessFactory::Callback handle_callback([](mpt::MockProcess* process) {
+        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
+
+        mp::ProcessState exit_state;
+        exit_state.error = mp::ProcessState::Error{QProcess::FailedToStart, "Failure"};
+
+        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+    });
+
+    process_factory->register_callback(handle_callback);
+
+    MP_EXPECT_THROW_THAT(
+        MP_BACKEND.check_for_kvm_support(), std::runtime_error,
+        mpt::match_what(StrEq("The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.")));
+}
+
+TEST(LinuxBackendUtils, check_kvm_support_error_throws_expected_message)
+{
+    const QByteArray error_message{"This is a big failure!"};
+
+    auto process_factory = mpt::MockProcessFactory::Inject();
+
+    mpt::MockProcessFactory::Callback handle_callback([&error_message](mpt::MockProcess* process) {
+        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
+
+        mp::ProcessState exit_state;
+        exit_state.exit_code = 1;
+
+        EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(error_message));
+        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+    });
+
+    process_factory->register_callback(handle_callback);
+
+    MP_EXPECT_THROW_THAT(MP_BACKEND.check_for_kvm_support(), std::runtime_error,
+                         mpt::match_what(StrEq(error_message.toStdString())));
+}
+
+TEST(LinuxBackendUtils, check_kvm_in_use_no_failure_does_not_throw)
+{
+    auto [mock_linux_syscalls, guard] = mpt::MockLinuxSysCalls::inject();
+
+    EXPECT_CALL(*mock_linux_syscalls, close(_)).WillRepeatedly(Return(0));
+    EXPECT_CALL(*mock_linux_syscalls, ioctl(_, _, _)).WillOnce(Return(1));
+    EXPECT_CALL(*mock_linux_syscalls, open(_, _)).WillOnce(Return(1));
+
+    EXPECT_NO_THROW(MP_BACKEND.check_if_kvm_is_in_use());
+}
+
+TEST(LinuxBackendUtils, check_kvm_in_use_fails_throws_expected_message)
+{
+    auto [mock_linux_syscalls, guard] = mpt::MockLinuxSysCalls::inject();
+
+    EXPECT_CALL(*mock_linux_syscalls, close(_)).WillRepeatedly(Return(0));
+    EXPECT_CALL(*mock_linux_syscalls, open(_, _)).WillOnce(Return(1));
+    EXPECT_CALL(*mock_linux_syscalls, ioctl(_, _, _)).WillOnce([](auto...) {
+        errno = EBUSY;
+        return -1;
+    });
+
+    MP_EXPECT_THROW_THAT(
+        MP_BACKEND.check_if_kvm_is_in_use(), std::runtime_error,
+        mpt::match_what(StrEq("Another virtual machine manager is currently running. Please shut it down before "
+                              "starting a Multipass instance.")));
+}
+
+TEST(LinuxBackendUtils, linux_syscalls_return_expected_values)
+{
+    const std::string null_path{"/dev/null"};
+
+    auto null_fd = MP_LINUX_SYSCALLS.open(null_path.c_str(), O_RDONLY);
+
+    EXPECT_NE(null_fd, -1);
+
+    // /dev/null does not accept ioctl calls, so it will fail
+    EXPECT_EQ(MP_LINUX_SYSCALLS.ioctl(null_fd, FIONREAD, 0), -1);
+
+    EXPECT_EQ(MP_LINUX_SYSCALLS.close(null_fd), 0);
+}
+
+TEST(LinuxBackendUtils, get_subnet_bridge_exists_returns_expected_data)
+{
+    const std::string test_subnet{"10.102.12"};
+    const QString bridge_name{"test-bridge"};
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
+        .WillOnce(Return(fmt::format("{}.0 dev {} proto kernel scope link", test_subnet, bridge_name)));
+
+    EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), test_subnet);
+}
+
+TEST(LinuxBackendUtils, get_subnet_in_file_returns_expected_data)
+{
+    const std::string test_subnet{"10.102.12"};
+    const QString bridge_name{"test-bridge"};
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
+        .WillOnce(Return(""));
+
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(1));
+    EXPECT_CALL(*mock_file_ops, read_all(_)).WillOnce(Return(QByteArray::fromStdString(test_subnet)));
+
+    EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), test_subnet);
+}
+
+TEST(LinuxBackendUtils, get_subnet_not_in_file_writes_new_subnet_returns_expected_data)
+{
+    const QString bridge_name{"test-bridge"};
+    std::string generated_subnet;
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
+        .WillOnce(Return(""))
+        .WillOnce(Return("0.0.0.0"));
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), _, _)).WillRepeatedly(Return(false));
+
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(0));
+    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce([&generated_subnet](auto&, auto data, auto) {
+        generated_subnet = std::string(data);
+
+        return generated_subnet.length();
+    });
+
+    EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), generated_subnet);
+}

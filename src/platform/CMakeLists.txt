@@ -12,7 +12,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-if(MSVC)
+if(LINUX)
+  add_library(platform STATIC
+    platform_linux.cpp
+    platform_shared.cpp
+    platform_unix.cpp)
+
+  target_link_libraries(platform
+    journaldlogger)
+elseif(MSVC)
   add_library(platform STATIC
     platform_proprietary.cpp
     platform_shared.cpp
@@ -35,18 +43,12 @@ elseif(APPLE)
     hyperkit_backend
     virtualbox_backend
     Qt5::Core)
-else()
-  add_library(platform STATIC
-    platform_linux.cpp
-    platform_shared.cpp
-    platform_unix.cpp)
-  target_link_libraries(platform
-    qemu_backend
-    libvirt_backend
-    lxd_backend
-    virtualbox_backend
-    journaldlogger)
 endif()
+
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+  target_link_libraries(platform
+    ${BACKEND}_backend)
+endforeach()
 
 include_directories(platform
   backends
@@ -55,9 +57,7 @@ include_directories(platform
 target_link_libraries(platform
   daemon
   shared
-  update
-  utils
-  Qt5::Gui)
+  update)
 
 add_subdirectory(backends)
 add_subdirectory(client)

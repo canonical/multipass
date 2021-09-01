@@ -93,6 +93,30 @@ void mp::Utils::exit(int code)
     std::exit(code);
 }
 
+std::string mp::Utils::run_cmd_for_output(const QString& cmd, const QStringList& args, const int timeout) const
+{
+    QProcess proc;
+    proc.setProgram(cmd);
+    proc.setArguments(args);
+
+    proc.start();
+    proc.waitForFinished(timeout);
+
+    return proc.readAllStandardOutput().trimmed().toStdString();
+}
+
+bool mp::Utils::run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout) const
+{
+    QProcess proc;
+    proc.setProgram(cmd);
+    proc.setArguments(args);
+
+    proc.start();
+    proc.waitForFinished(timeout);
+
+    return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
+}
+
 void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                     const mp::SSHKeyProvider& key_provider) const
 {
@@ -156,30 +180,6 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
     auto cmd = fmt::to_string(buf);
     cmd.pop_back();
     return cmd;
-}
-
-bool mp::utils::run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout)
-{
-    QProcess proc;
-    proc.setProgram(cmd);
-    proc.setArguments(args);
-
-    proc.start();
-    proc.waitForFinished(timeout);
-
-    return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
-}
-
-std::string mp::utils::run_cmd_for_output(const QString& cmd, const QStringList& args, const int timeout)
-{
-    QProcess proc;
-    proc.setProgram(cmd);
-    proc.setArguments(args);
-
-    proc.start();
-    proc.waitForFinished(timeout);
-
-    return proc.readAllStandardOutput().trimmed().toStdString();
 }
 
 std::string& mp::utils::trim_end(std::string& s)
