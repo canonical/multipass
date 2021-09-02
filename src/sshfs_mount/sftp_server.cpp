@@ -336,22 +336,22 @@ int mp::SftpServer::mapped_gid_for(const int gid)
     return gid;
 }
 
-int mp::SftpServer::reverse_uid_for(const int uid)
+int mp::SftpServer::reverse_uid_for(const int uid, const int rev_uid_if_not_found)
 {
     auto compare_uid_map_value = [uid](std::pair<int, int> p) { return uid == p.second; };
 
     auto found = std::find_if(uid_map.cbegin(), uid_map.cend(), compare_uid_map_value);
 
-    return found == uid_map.cend() ? uid : found->first;
+    return found == uid_map.cend() ? rev_uid_if_not_found : found->first;
 }
 
-int mp::SftpServer::reverse_gid_for(const int gid)
+int mp::SftpServer::reverse_gid_for(const int gid, const int rev_gid_if_not_found)
 {
     auto compare_gid_map_value = [gid](std::pair<int, int> p) { return gid == p.second; };
 
     auto found = std::find_if(gid_map.cbegin(), gid_map.cend(), compare_gid_map_value);
 
-    return found == gid_map.cend() ? gid : found->first;
+    return found == gid_map.cend() ? rev_gid_if_not_found : found->first;
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
@@ -541,11 +541,13 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     QFileInfo current_dir(filename);
     QFileInfo parent_dir(current_dir.path());
 
-    if (MP_PLATFORM.chown(filename, reverse_uid_for(parent_dir.ownerId()), reverse_gid_for(parent_dir.groupId())) < 0)
+    int rev_uid = reverse_uid_for(msg->attr->uid);
+    int rev_gid = reverse_gid_for(msg->attr->gid);
+
+    if (MP_PLATFORM.chown(filename, rev_uid, rev_gid) < 0)
     {
         mpl::log(mpl::Level::trace, category,
-                 fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, parent_dir.ownerId(),
-                             parent_dir.groupId()));
+                 fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, rev_uid, rev_gid));
         return reply_failure(msg);
     }
     return reply_ok(msg);
@@ -630,12 +632,13 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         QFileInfo current_file(filename);
         QFileInfo current_dir(current_file.path());
 
-        if (MP_PLATFORM.chown(filename, reverse_uid_for(current_dir.ownerId()),
-                              reverse_gid_for(current_dir.groupId())) < 0)
+        auto new_uid = reverse_uid_for(msg->attr->uid, current_dir.ownerId());
+        auto new_gid = reverse_gid_for(msg->attr->gid, current_dir.groupId());
+
+        if (MP_PLATFORM.chown(filename, new_uid, new_gid) < 0)
         {
             mpl::log(mpl::Level::trace, category,
-                     fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, current_dir.ownerId(),
-                                 current_dir.groupId()));
+                     fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, new_uid, new_gid));
             return reply_failure(msg);
         }
     }
@@ -1009,11 +1012,13 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
     QFileInfo current_file(new_name);
     QFileInfo current_dir(current_file.path());
 
-    if (MP_PLATFORM.chown(new_name, reverse_uid_for(current_dir.ownerId()), reverse_gid_for(current_dir.groupId())) < 0)
+    auto new_uid = reverse_uid_for(msg->attr->uid, current_dir.ownerId());
+    auto new_gid = reverse_gid_for(msg->attr->gid, current_dir.groupId());
+
+    if (MP_PLATFORM.chown(new_name, new_uid, new_gid) < 0)
     {
         mpl::log(mpl::Level::trace, category,
-                 fmt::format("failed to chown '{}' to owner:{} and group:{}", new_name, current_dir.ownerId(),
-                             current_dir.groupId()));
+                 fmt::format("failed to chown '{}' to owner:{} and group:{}", new_name, new_uid, new_gid));
         return reply_failure(msg);
     }
 
