@@ -33,11 +33,6 @@ target_link_libraries(qemu_backend
   fmt
   ip_address
   logger
-  Qt5::Core
-  Qt5::Network
-  ip_address
-  shared_linux
-  ssh
   qemu_img_utils
   qemu_platform_detail
   utils
