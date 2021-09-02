@@ -52,11 +52,11 @@ struct SftpServer : public mp::test::SftpServerTest
         return make_sftpserver("");
     }
 
-    mp::SftpServer make_sftpserver(const std::string& path, const mp::id_map& uid_map = {},
-                                   const mp::id_map& gid_map = {})
+    mp::SftpServer make_sftpserver(const std::string& path, const mp::id_map& gid_map = {},
+                                   const mp::id_map& uid_map = {})
     {
         mp::SSHSession session{"a", 42};
-        return {std::move(session), path, path, uid_map, gid_map, default_id, default_id, "sshfs"};
+        return {std::move(session), path, path, gid_map, uid_map, default_id, default_id, "sshfs"};
     }
 
     auto make_msg(uint8_t type = SFTP_BAD_MESSAGE)
@@ -689,6 +689,11 @@ TEST_F(SftpServer, handles_symlink)
     auto msg = make_msg(SFTP_SYMLINK);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+    msg->attr->uid = 1000;
+    msg->attr->gid = 1000;
 
     auto target_name = name_as_char_array(link_name.toStdString());
     REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
@@ -741,6 +746,11 @@ TEST_F(SftpServer, broken_symlink_does_not_fail)
     auto msg = make_msg(SFTP_SYMLINK);
     auto broken_target = name_as_char_array(missing_file_name.toStdString());
     msg->filename = broken_target.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+    msg->attr->uid = 1000;
+    msg->attr->gid = 1000;
 
     auto broken_link = name_as_char_array(broken_link_name.toStdString());
     REPLACE(sftp_client_message_get_data, [&broken_link](auto...) { return broken_link.data(); });
@@ -808,6 +818,11 @@ TEST_F(SftpServer, symlink_chown_failure_fails)
     auto msg = make_msg(SFTP_SYMLINK);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+    msg->attr->uid = 1000;
+    msg->attr->gid = 1000;
 
     auto target_name = name_as_char_array(link_name.toStdString());
     REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
@@ -2302,18 +2317,50 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdir_chown_honors_maps_in_the_host))
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-    mp::id_map map{{1000, 0}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    int host_uid = QFileInfo(temp_dir.path()).ownerId();
+    int host_gid = QFileInfo(temp_dir.path()).groupId();
+    int sftp_uid = 1008;
+    int sftp_gid = 1009;
+
+    mp::id_map uid_map{{host_uid, sftp_uid}};
+    mp::id_map gid_map{{host_gid, sftp_gid}};
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_map, uid_map);
+
     auto msg = make_msg(SFTP_MKDIR);
     msg->filename = new_dir_name.data();
     sftp_attributes_struct attr{};
-    attr.permissions = 0777;
     msg->attr = &attr;
+    msg->attr->uid = sftp_uid;
+    msg->attr->gid = sftp_gid;
 
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    EXPECT_CALL(*mock_platform, chown(_, 1000, 1000)).Times(1);
-    EXPECT_CALL(*mock_platform, chown(_, 0, 0)).Times(0);
+    EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
+    EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
+
+    sftp.run();
+}
+
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdir_chown_works_when_ids_are_not_mapped))
+{
+    mpt::TempDir temp_dir;
+    auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
+    auto new_dir_name = name_as_char_array(new_dir);
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
+    auto msg = make_msg(SFTP_MKDIR);
+    msg->filename = new_dir_name.data();
+    sftp_attributes_struct attr{};
+    msg->attr = &attr;
+    msg->attr->uid = 1003;
+    msg->attr->gid = 1004;
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    EXPECT_CALL(*mock_platform, chown(_, -1, -1)).Times(1);
 
     sftp.run();
 }
@@ -2325,11 +2372,21 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(symlink_chown_honors_maps_in_the_host))
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
 
-    mp::id_map map{{1000, 0}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    int host_uid = QFileInfo(temp_dir.path()).ownerId();
+    int host_gid = QFileInfo(temp_dir.path()).groupId();
+    int sftp_uid = 1011;
+    int sftp_gid = 1012;
+
+    mp::id_map uid_map{{host_uid, sftp_uid}};
+    mp::id_map gid_map{{host_gid, sftp_gid}};
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_map, uid_map);
     auto msg = make_msg(SFTP_SYMLINK);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
+    sftp_attributes_struct attr{};
+    msg->attr = &attr;
+    msg->attr->uid = sftp_uid;
+    msg->attr->gid = sftp_gid;
 
     auto target_name = name_as_char_array(link_name.toStdString());
     REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
@@ -2337,8 +2394,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(symlink_chown_honors_maps_in_the_host))
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_platform, chown(_, 1000, 1000)).Times(1);
-    EXPECT_CALL(*mock_platform, chown(_, 0, 0)).Times(0);
+    EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -2352,8 +2408,14 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(open_chown_honors_maps_in_the_host))
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-    mp::id_map map{{1000, 0}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    int host_uid = QFileInfo(temp_dir.path()).ownerId();
+    int host_gid = QFileInfo(temp_dir.path()).groupId();
+    int sftp_uid = 1008;
+    int sftp_gid = 1009;
+
+    mp::id_map uid_map{{host_uid, sftp_uid}};
+    mp::id_map gid_map{{host_gid, sftp_gid}};
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_map, uid_map);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_WRITE;
     sftp_attributes_struct attr{};
@@ -2361,11 +2423,13 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(open_chown_honors_maps_in_the_host))
     msg->attr = &attr;
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
+    msg->attr->uid = sftp_uid;
+    msg->attr->gid = sftp_gid;
 
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    EXPECT_CALL(*mock_platform, chown(_, 1000, 1000)).WillOnce(Return(-1));
-    EXPECT_CALL(*mock_platform, chown(_, 0, 0)).Times(0);
+    EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).WillOnce(Return(-1));
+    EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
 
     sftp.run();
 }
@@ -2376,9 +2440,14 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_honors_maps_in_the_host))
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    mp::id_map map{{1000, 0}};
+    int host_uid = QFileInfo(temp_dir.path()).ownerId();
+    int host_gid = QFileInfo(temp_dir.path()).groupId();
+    int sftp_uid = 1024;
+    int sftp_gid = 1025;
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), map, map);
+    mp::id_map uid_map{{host_uid, sftp_uid}};
+    mp::id_map gid_map{{host_gid, sftp_gid}};
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_map, uid_map);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -2390,15 +2459,15 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_honors_maps_in_the_host))
     msg->filename = name.data();
     msg->attr = &attr;
     msg->flags = SSH_FXF_WRITE;
-    msg->attr->uid = 0;
-    msg->attr->gid = 0;
+    msg->attr->uid = sftp_uid;
+    msg->attr->gid = sftp_gid;
 
     REPLACE(sftp_get_client_message, make_msg_handler());
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-    EXPECT_CALL(*mock_platform, chown(_, 1000, 1000)).Times(1);
-    EXPECT_CALL(*mock_platform, chown(_, 0, 0)).Times(0);
+    EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
+    EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
 
     sftp.run();
 }
