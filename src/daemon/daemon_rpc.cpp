@@ -32,7 +32,7 @@ namespace
 {
 constexpr auto category = "rpc";
 
-bool see_if_im_in_the_kitchen(const std::string& address)
+bool check_is_server_running(const std::string& address)
 {
     auto channel = grpc::CreateChannel(address, grpc::InsecureChannelCredentials());
     auto stub = mp::Rpc::NewStub(channel);
@@ -75,7 +75,7 @@ auto make_server(const std::string& server_address, mp::RpcConnectionType conn_t
     std::unique_ptr<grpc::Server> server{builder.BuildAndStart()};
     if (server == nullptr)
     {
-        auto detail = see_if_im_in_the_kitchen(server_address) ? " A multipass daemon is already running there." : "";
+        auto detail = check_is_server_running(server_address) ? " A multipass daemon is already running there." : "";
         throw std::runtime_error(
             fmt::format("Failed to start multipass gRPC service at {}.{}", server_address, detail));
     }
