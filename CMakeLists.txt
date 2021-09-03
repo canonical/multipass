@@ -167,7 +167,10 @@ else()
 
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
-    set(MULTIPASS_BACKENDS virtualbox)
+
+    if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+        list(APPEND MULTIPASS_BACKENDS virtualbox)
+    endif()
 
     # Only build QEMU for macOS 10.15+
     if (CMAKE_HOST_SYSTEM_VERSION VERSION_GREATER_EQUAL 19)
