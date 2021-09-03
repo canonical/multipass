@@ -27,8 +27,24 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
+#ifdef HYPERKIT_ENABLED
 #include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
+#else
+#define HYPERKIT_ENABLED 0
+#endif
+
+#ifdef QEMU_ENABLED
+#include "backends/qemu/qemu_virtual_machine_factory.h"
+#else
+#define QEMU_ENABLED 0
+#endif
+
+#ifdef VIRTUALBOX_ENABLED
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
+#else
+#define VIRTUALBOX_ENABLED 0
+#endif
+
 #include "platform_proprietary.h"
 #include "platform_shared.h"
 #include "shared/macos/process_factory.h"
@@ -44,6 +60,7 @@
 #include <QString>
 #include <QtGlobal>
 
+#include <cassert>
 #include <utility>
 #include <vector>
 
@@ -186,6 +203,30 @@ std::string get_alias_script_path(const std::string& alias)
 
     return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
 }
+
+bool is_hyperkit_enabled()
+{
+    if constexpr (HYPERKIT_ENABLED)
+        return true;
+    else
+        return false;
+}
+
+bool is_qemu_enabled()
+{
+    if constexpr (QEMU_ENABLED)
+        return true;
+    else
+        return false;
+}
+
+bool is_virtualbox_enabled()
+{
+    if constexpr (VIRTUALBOX_ENABLED)
+        return true;
+    else
+        return false;
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -306,7 +347,12 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::default_driver()
 {
-    return QStringLiteral("hyperkit");
+    assert(is_hyperkit_enabled() || is_qemu_enabled());
+
+    if (is_hyperkit_enabled())
+        return QStringLiteral("hyperkit");
+    else
+        return QStringLiteral("qemu");
 }
 
 QString mp::platform::default_privileged_mounts()
@@ -324,7 +370,8 @@ QString mp::platform::daemon_config_home() // temporary
 
 bool mp::platform::is_backend_supported(const QString& backend)
 {
-    return backend == "hyperkit" || backend == "virtualbox";
+    return (backend == "hyperkit" && is_hyperkit_enabled()) || (backend == "qemu" && is_qemu_enabled()) ||
+           (backend == "virtualbox" && is_virtualbox_enabled());
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
@@ -332,9 +379,14 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     auto driver = utils::get_driver_str();
 
     if (driver == QStringLiteral("hyperkit"))
+    {
+#if HYPERKIT_ENABLED
         return std::make_unique<HyperkitVirtualMachineFactory>();
+#endif
+    }
     else if (driver == QStringLiteral("virtualbox"))
     {
+#if VIRTUALBOX_ENABLED
         qputenv("PATH", qgetenv("PATH") + ":/usr/local/bin"); /*
           This is where the Virtualbox installer puts things, and relying on PATH
           allows the user to do something about it, if the binaries are not found
@@ -342,6 +394,13 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         */
 
         return std::make_unique<VirtualBoxVirtualMachineFactory>();
+#endif
+    }
+    else if (driver == QStringLiteral("qemu"))
+    {
+#if QEMU_ENABLED
+        return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+#endif
     }
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
