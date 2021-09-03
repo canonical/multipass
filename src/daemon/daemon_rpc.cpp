@@ -32,28 +32,24 @@ namespace
 {
 constexpr auto category = "rpc";
 
-void throw_if_server_exists(const std::string& address)
+bool check_is_server_running(const std::string& address)
 {
     auto channel = grpc::CreateChannel(address, grpc::InsecureChannelCredentials());
     auto stub = mp::Rpc::NewStub(channel);
 
     grpc::ClientContext context;
-    auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(1);
+    auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(100); // should be enough...
     context.set_deadline(deadline);
 
     mp::PingRequest request;
     mp::PingReply reply;
-    auto status = stub->ping(&context, request, &reply);
-
-    if (status.error_code() == grpc::StatusCode::OK)
-        throw std::runtime_error(fmt::format("a multipass daemon already exists at {}", address));
+    return stub->ping(&context, request, &reply).ok();
 }
 
 auto make_server(const std::string& server_address, mp::RpcConnectionType conn_type,
                  const mp::CertProvider& cert_provider, const mp::CertStore& client_cert_store,
                  mp::Rpc::Service* service)
 {
-    throw_if_server_exists(server_address);
     grpc::ServerBuilder builder;
 
     std::shared_ptr<grpc::ServerCredentials> creds;
@@ -78,7 +74,11 @@ auto make_server(const std::string& server_address, mp::RpcConnectionType conn_t
 
     std::unique_ptr<grpc::Server> server{builder.BuildAndStart()};
     if (server == nullptr)
-        throw std::runtime_error(fmt::format("Failed to start multipass gRPC service at {}", server_address));
+    {
+        auto detail = check_is_server_running(server_address) ? " A multipass daemon is already running there." : "";
+        throw std::runtime_error(
+            fmt::format("Failed to start multipass gRPC service at {}.{}", server_address, detail));
+    }
 
     return server;
 }
