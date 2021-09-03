@@ -1043,7 +1043,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(config->image_refresh_timer);
 }
 
-void mp::Daemon::create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
+void mp::Daemon::create(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* server,
                         std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1055,7 +1055,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* server,
+void mp::Daemon::launch(const LaunchRequest* request, grpc::ServerWriterInterface<LaunchReply>* server,
                         std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1108,7 +1108,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::purge(const PurgeRequest* request, grpc::ServerWriter<PurgeReply>* server,
+void mp::Daemon::purge(const PurgeRequest* request, grpc::ServerWriterInterface<PurgeReply>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1125,7 +1125,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::find(const FindRequest* request, grpc::ServerWriter<FindReply>* server,
+void mp::Daemon::find(const FindRequest* request, grpc::ServerWriterInterface<FindReply>* server,
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1226,7 +1226,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::info(const InfoRequest* request, grpc::ServerWriter<InfoReply>* server,
+void mp::Daemon::info(const InfoRequest* request, grpc::ServerWriterInterface<InfoReply>* server,
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1372,7 +1372,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::list(const ListRequest* request, grpc::ServerWriter<ListReply>* server,
+void mp::Daemon::list(const ListRequest* request, grpc::ServerWriterInterface<ListReply>* server,
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1440,7 +1440,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::networks(const NetworksRequest* request, grpc::ServerWriter<NetworksReply>* server,
+void mp::Daemon::networks(const NetworksRequest* request, grpc::ServerWriterInterface<NetworksReply>* server,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1469,7 +1469,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::mount(const MountRequest* request, grpc::ServerWriter<MountReply>* server,
+void mp::Daemon::mount(const MountRequest* request, grpc::ServerWriterInterface<MountReply>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1592,7 +1592,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::recover(const RecoverRequest* request, grpc::ServerWriter<RecoverReply>* server,
+void mp::Daemon::recover(const RecoverRequest* request, grpc::ServerWriterInterface<RecoverReply>* server,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1631,7 +1631,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::ssh_info(const SSHInfoRequest* request, grpc::ServerWriter<SSHInfoReply>* server,
+void mp::Daemon::ssh_info(const SSHInfoRequest* request, grpc::ServerWriterInterface<SSHInfoReply>* server,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1690,7 +1690,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::start(const StartRequest* request, grpc::ServerWriter<StartReply>* server,
+void mp::Daemon::start(const StartRequest* request, grpc::ServerWriterInterface<StartReply>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1758,7 +1758,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::stop(const StopRequest* request, grpc::ServerWriter<StopReply>* server,
+void mp::Daemon::stop(const StopRequest* request, grpc::ServerWriterInterface<StopReply>* server,
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1787,7 +1787,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::suspend(const SuspendRequest* request, grpc::ServerWriter<SuspendReply>* server,
+void mp::Daemon::suspend(const SuspendRequest* request, grpc::ServerWriterInterface<SuspendReply>* server,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1833,7 +1833,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::restart(const RestartRequest* request, grpc::ServerWriter<RestartReply>* server,
+void mp::Daemon::restart(const RestartRequest* request, grpc::ServerWriterInterface<RestartReply>* server,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1867,7 +1867,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::delet(const DeleteRequest* request, grpc::ServerWriter<DeleteReply>* server,
+void mp::Daemon::delet(const DeleteRequest* request, grpc::ServerWriterInterface<DeleteReply>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1923,7 +1923,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::umount(const UmountRequest* request, grpc::ServerWriter<UmountReply>* server,
+void mp::Daemon::umount(const UmountRequest* request, grpc::ServerWriterInterface<UmountReply>* server,
                         std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1977,7 +1977,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriter<VersionReply>* server,
+void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterface<VersionReply>* server,
                          std::promise<grpc::Status>* status_promise)
 {
     mpl::ClientLogger<VersionReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
@@ -1989,7 +1989,7 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriter<Versi
     status_promise->set_value(grpc::Status::OK);
 }
 
-void mp::Daemon::get(const GetRequest* request, grpc::ServerWriter<GetReply>* server,
+void mp::Daemon::get(const GetRequest* request, grpc::ServerWriterInterface<GetReply>* server,
                      std::promise<grpc::Status>* status_promise)
 try
 {
@@ -2172,7 +2172,7 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
     return {};
 }
 
-void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriter<CreateReply>* server,
+void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
     auto checked_args = validate_create_arguments(request, config.get());
@@ -2500,7 +2500,7 @@ mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 template <typename Reply>
 error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
                                                                  const std::chrono::seconds& timeout,
-                                                                 grpc::ServerWriter<Reply>* server)
+                                                                 grpc::ServerWriterInterface<Reply>* server)
 {
     fmt::memory_buffer errors;
     try
@@ -2578,7 +2578,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
 template <typename Reply>
 mp::Daemon::AsyncOperationStatus
-mp::Daemon::async_wait_for_ready_all(grpc::ServerWriter<Reply>* server, const std::vector<std::string>& vms,
+mp::Daemon::async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server, const std::vector<std::string>& vms,
                                      const std::chrono::seconds& timeout, std::promise<grpc::Status>* status_promise)
 {
     QFutureSynchronizer<std::string> start_synchronizer;
