@@ -22,6 +22,7 @@
 #include <multipass/constants.h>
 
 #include "mock_standard_paths.h"
+#include "stub_terminal.h"
 #include "temp_dir.h"
 
 #include <gmock/gmock.h>
@@ -50,7 +51,9 @@ struct FakeAliasConfig
 
     void populate_db_file(const std::vector<std::pair<std::string, mp::AliasDefinition>>& aliases)
     {
-        mp::AliasDict writer;
+        static std::stringstream trash_stream;
+        mpt::StubTerminal term(trash_stream, trash_stream, trash_stream);
+        mp::AliasDict writer(&term);
 
         for (const auto& alias : aliases)
             writer.add_alias(alias.first, alias.second);
