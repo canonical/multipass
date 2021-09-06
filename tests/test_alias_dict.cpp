@@ -23,11 +23,14 @@
 
 #include <gmock/gmock.h>
 
+#include "common.h"
 #include "daemon_test_fixture.h"
 #include "fake_alias_config.h"
 #include "file_operations.h"
 #include "json_utils.h"
+#include "mock_file_ops.h"
 #include "mock_vm_image_vault.h"
+#include "stub_terminal.h"
 
 #include "src/daemon/daemon.h"
 
@@ -193,6 +196,16 @@ TEST_F(AliasDictionary, creates_backup_db)
 
     populate_db_file(AliasesVector{{"another_alias", {"an_instance", "a_command"}}});
     ASSERT_TRUE(QFile::exists(bak_filename));
+}
+
+TEST_F(AliasDictionary, throws_when_open_alias_file_fails)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
+
+    MP_ASSERT_THROW_THAT(mp::AliasDict dict, std::runtime_error, mpt::match_what(HasSubstr("Error opening file '")));
 }
 
 struct FormatterTeststuite
