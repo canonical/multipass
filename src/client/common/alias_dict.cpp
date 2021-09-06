@@ -23,6 +23,8 @@
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
+#include <iostream>
+
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -49,7 +51,14 @@ mp::AliasDict::~AliasDict()
 {
     if (modified)
     {
-        save_dict();
+        try
+        {
+            save_dict();
+        }
+        catch (std::runtime_error& e)
+        {
+            std::cerr << fmt::format("Error saving aliases dictionary: {}\n", e.what());
+        }
     }
 }
 
@@ -104,9 +113,9 @@ void mp::AliasDict::load_dict()
 
     aliases.clear();
 
-    if (db_file.exists())
+    if (MP_FILEOPS.exists(db_file))
     {
-        if (!db_file.open(QIODevice::ReadOnly))
+        if (!MP_FILEOPS.open(db_file, QIODevice::ReadOnly))
             throw std::runtime_error(fmt::format("Error opening file '{}'", db_file.fileName()));
     }
     else
@@ -161,7 +170,7 @@ void mp::AliasDict::save_dict()
 
     QTemporaryFile temp_file{mpu::create_temp_file_with_path(config_file_name)};
 
-    if (temp_file.open())
+    if (MP_FILEOPS.open(temp_file, QIODevice::ReadWrite))
     {
         temp_file.setAutoRemove(false);
 
