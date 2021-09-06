@@ -20,6 +20,7 @@
 
 #include <multipass/cli/alias_definition.h>
 #include <multipass/optional.h>
+#include <multipass/terminal.h>
 
 #include <string>
 #include <unordered_map>
@@ -34,7 +35,7 @@ public:
     typedef typename DictType::mapped_type mapped_type;
     typedef typename DictType::size_type size_type;
 
-    AliasDict();
+    AliasDict(Terminal* term);
     ~AliasDict();
     void add_alias(const std::string& alias, const AliasDefinition& command);
     bool remove_alias(const std::string& alias);
@@ -72,6 +73,8 @@ private:
     bool modified = false;
     DictType aliases;
     std::string aliases_file;
+    std::ostream& cout;
+    std::ostream& cerr;
 }; // class AliasDict
 } // namespace multipass
 #endif // MULTIPASS_ALIAS_DICT_H

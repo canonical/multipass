@@ -23,8 +23,6 @@
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
-#include <iostream>
-
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -36,7 +34,7 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-mp::AliasDict::AliasDict()
+mp::AliasDict::AliasDict(mp::Terminal* term) : cout(term->cout()), cerr(term->cerr())
 {
     const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
     const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
@@ -57,7 +55,7 @@ mp::AliasDict::~AliasDict()
         }
         catch (std::runtime_error& e)
         {
-            std::cerr << fmt::format("Error saving aliases dictionary: {}\n", e.what());
+            cerr << fmt::format("Error saving aliases dictionary: {}\n", e.what());
         }
     }
 }
