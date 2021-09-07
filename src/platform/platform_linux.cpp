@@ -279,8 +279,9 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 {
     std::string file_path = get_alias_script_path(alias);
 
-    std::string multipass_exec = mu::in_multipass_snap() ? "exec /usr/bin/snap run multipass"
-                                                         : QCoreApplication::applicationFilePath().toStdString();
+    std::string multipass_exec = mu::in_multipass_snap()
+                                     ? "exec /usr/bin/snap run multipass"
+                                     : fmt::format("\"{}\"", QCoreApplication::applicationFilePath());
 
     std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + "\n";
 
