@@ -74,7 +74,7 @@ const QMap<QString, CustomImageInfo> multipass_image_info{{{"ubuntu-core-16-amd6
 
 const QMap<QString, CustomImageInfo> snapcraft_image_info{
     {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
-     {"https://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
+     {"https://people.canonical.com/~msawicz/",
       {"core"},
       "",
       "snapcraft-core16",

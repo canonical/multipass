@@ -354,7 +354,7 @@ TEST_F(PlatformLinux, test_is_remote_supported_lxd)
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported("daily"));
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported(""));
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported("appliance"));
-    EXPECT_FALSE(MP_PLATFORM.is_remote_supported("snapcraft"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("snapcraft"));
 }
 
 TEST_F(PlatformLinux, test_snap_returns_expected_default_address)

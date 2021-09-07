@@ -236,8 +236,7 @@ bool mp::platform::Platform::is_alias_supported(const std::string& alias, const 
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
-    // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
-    return remote != "snapcraft" || utils::get_driver_str() != "lxd";
+    return true;
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
