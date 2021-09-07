@@ -158,7 +158,7 @@ auto get_qemu_machine_type(const QStringList& platform_args)
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(
-            fmt::format("Internal error: qemu-system-x86_64 failed getting vmstate ({}) with output:\n{}",
+            fmt::format("Internal error: qemu-system-{} failed getting vmstate ({}) with output:\n{}", HOST_ARCH,
                         process_state.failure_message(), process->read_all_standard_error()));
     }
 
