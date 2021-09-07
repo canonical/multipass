@@ -2479,9 +2479,8 @@ INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
                                 std::vector<std::string>{"mount", "..", "test-vm:test"},
                                 std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
 
-auto info_function =
-    [](grpc::ServerContext*, const mp::InfoRequest* request, grpc::ServerWriter<mp::InfoReply>* response)
-{
+auto info_function = [](grpc::ServerContext*, const mp::InfoRequest* request,
+                        grpc::ServerWriter<mp::InfoReply>* response) {
     mp::InfoReply info_reply;
 
     if (request->instance_names().instance_name(0) == "primary")

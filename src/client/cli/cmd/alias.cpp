@@ -117,8 +117,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
 
     auto on_success = [](InfoReply&) { return ReturnCode::Ok; };
 
-    auto on_failure = [](grpc::Status& status)
-    {
+    auto on_failure = [](grpc::Status& status) {
         return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT ? ReturnCode::CommandLineError
                                                                          : ReturnCode::DaemonFail;
     };
