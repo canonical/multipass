@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
 
@@ -67,6 +68,13 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
     tv[1].tv_usec = 0;
 
     return ::lutimes(path, tv);
+}
+
+std::string mp::platform::Platform::alias_path_message() const
+{
+    return fmt::format("You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for\n"
+                       "aliases to work without prefixing with `multipass`:\n\nPATH={}:$PATH\n",
+                       get_alias_scripts_folder().absolutePath());
 }
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)

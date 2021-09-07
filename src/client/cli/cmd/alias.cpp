@@ -25,16 +25,6 @@ namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
 
-namespace
-{
-void show_path_message(std::ostream& os)
-{
-    os << fmt::format("You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for\n"
-                      "aliases to work without prefixing with `multipass`:\n\nPATH={}:$PATH\n",
-                      MP_PLATFORM.get_alias_scripts_folder().absolutePath());
-}
-} // namespace
-
 mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -58,7 +48,7 @@ mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
     aliases.add_alias(alias_name, alias_definition);
 
     if (empty_before_add && aliases.size() == 1)
-        show_path_message(cout);
+        cout << MP_PLATFORM.alias_path_message();
 
     return ReturnCode::Ok;
 }

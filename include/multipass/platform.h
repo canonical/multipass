@@ -62,6 +62,7 @@ public:
     virtual QDir get_alias_scripts_folder() const;
     virtual void create_alias_script(const std::string& alias, const AliasDefinition& def) const;
     virtual void remove_alias_script(const std::string& alias) const;
+    virtual std::string alias_path_message() const;
 };
 
 std::map<QString, QString> extra_settings_defaults();
