@@ -563,6 +563,13 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
         throw std::runtime_error("error removing alias script");
 }
 
+std::string mp::platform::Platform::alias_path_message() const
+{
+    return fmt::format("You'll need to add the script alias folder to your path for aliases to work\n"
+                       "without prefixing with `multipass`. For now, you can just do:\n\n$ENV:PATH=\"$ENV:PATH;{}\"\n",
+                       get_alias_scripts_folder().absolutePath());
+}
+
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
 {
     WIN32_FILE_ATTRIBUTE_DATA data;
