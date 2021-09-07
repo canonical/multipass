@@ -30,8 +30,6 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
 
-#include <libssh/sftp.h>
-
 #include <QDir>
 #include <QString>
 
