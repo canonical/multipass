@@ -76,9 +76,51 @@ namespace
 {
 const qint64 default_total_bytes{16'106'127'360}; // 15G
 
-template<typename R>
-  bool is_ready(std::future<R> const& f)
-  { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }
+template <typename R>
+bool is_ready(std::future<R> const& f)
+{
+    return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+}
+
+template <typename W>
+class MockServerWriter : public grpc::ServerWriterInterface<W>
+{
+public:
+    MOCK_METHOD0(SendInitialMetadata, void());
+    MOCK_METHOD2_T(Write, bool(const W& msg, grpc::WriteOptions options));
+};
+
+/**
+ * Helper function to call one of the <em>daemon slots</em> that ultimately handle RPC requests
+ *  (e.g. @c mp::Daemon::get). It takes care of promise/future boilerplate. This will generally be given a
+ *  @c mpt::MockServerWriter, which can be used to verify replies.
+ * @tparam DaemonSlotPtr The method pointer type for the provided slot. Example:
+ *  @code
+ *  void (mp::Daemon::*)(const mp::GetRequest *, grpc::ServerWriterInterface<mp::GetReply> *,
+ *                       std::promise<grpc::Status> *)>
+ *  @endcode
+ * @tparam Request The request type that the provided slot expects. Example: @c mp::GetRequest
+ * @tparam Server The concrete @c grpc::ServerWriterInterface type that the provided slot expects. The template needs to
+ *  be instantiated with the correct reply type. Example: <tt> grpc::ServerWriterInterface\<mp\::GetReply\> </tt>
+ * @param daemon The daemon object to call the slot on.
+ * @param slot A pointer to the daemon slot method that should be called.
+ * @param request The request to call the slot with.
+ * @param server The concrete @c grpc::ServerWriterInterface to call the slot with (see doc on Server typename). This
+ *  will generally be a @c mpt::MockServerWriter. Notice that this is a <em>universal reference</em>, so it will bind
+ *  to both lvalue and rvalue references.
+ * @return The @c grpc::Status that is produced by the slot
+ */
+template <typename DaemonSlotPtr, typename Request, typename Server>
+grpc::Status call_daemon_slot(mp::Daemon& daemon, DaemonSlotPtr slot, const Request& request, Server&& server)
+{
+    std::promise<grpc::Status> status_promise;
+    auto status_future = status_promise.get_future();
+
+    (daemon.*slot)(&request, &server, &status_promise);
+
+    EXPECT_TRUE(is_ready(status_future));
+    return status_future.get();
+}
 
 struct StubNameGenerator : public mp::NameGenerator
 {
@@ -119,7 +161,7 @@ struct Daemon : public mpt::DaemonTestFixture
                                                                               reset at the end of each test */
 };
 
-TEST_F(Daemon, receives_commands)
+TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
 {
     mpt::MockDaemon daemon{config_builder.build()};
 
@@ -157,6 +199,8 @@ TEST_F(Daemon, receives_commands)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::MountRequest, mp::MountReply>));
     EXPECT_CALL(daemon, umount(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
+    EXPECT_CALL(daemon, networks(_, _, _))
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::NetworksRequest, mp::NetworksReply>));
 
     send_commands({{"test_get", "foo"},
                    {"test_create", "foo"},
@@ -174,17 +218,19 @@ TEST_F(Daemon, receives_commands)
                    {"version"},
                    {"find", "something"},
                    {"mount", ".", "target"},
-                   {"umount", "instance"}});
+                   {"umount", "instance"},
+                   {"get", "foo"},
+                   {"networks"}});
 }
 
 TEST_F(Daemon, provides_version)
 {
     mp::Daemon daemon{config_builder.build()};
+    StrictMock<MockServerWriter<mp::VersionReply>> mock_server;
+    EXPECT_CALL(mock_server, Write(Property(&mp::VersionReply::version, StrEq(mp::version_string)), _))
+        .WillOnce(Return(true));
 
-    std::stringstream stream;
-    send_command({"version"}, stream);
-
-    EXPECT_THAT(stream.str(), HasSubstr(mp::version_string));
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::version, mp::VersionRequest{}, mock_server).ok());
 }
 
 TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
@@ -998,18 +1044,21 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
 
-    // By issuing the `list` command, we check at least that the instance was indeed read and there were no errors.
-    std::stringstream stream;
-    send_command({"list"}, stream);
-    EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
+    // Check that the instance was indeed read and there were no errors.
+    {
+        StrictMock<MockServerWriter<mp::ListReply>> mock_server;
+
+        auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
+        EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
+            .WillOnce(Return(true));
+
+        EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    }
 
     // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
     // make sure that the file was indeed rewritten after the next step.
     QFile::remove(filename);
-
-    // The purge command will be apparently no-op, because there are no deleted instances. However, it will trigger
-    // a rewriting of the JSON, which will be useful for us to check if the data was correctly read.
-    send_command({"purge"});
+    daemon.persist_instances();
 
     // Finally, check the contents of the file. If they match with what we read, we are done.
     check_interfaces_in_json(filename, mac_addr, extra_interfaces);
@@ -1195,14 +1244,15 @@ TEST_F(Daemon, ctor_drops_removed_instances)
 
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream stream;
-    send_command({"list"}, stream);
+    StrictMock<MockServerWriter<mp::ListReply>> mock_server;
+    auto stayed_matcher = Property(&mp::ListVMInstance::name, stayed);
+    EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(stayed_matcher)), _))
+        .WillOnce(Return(true));
 
-    auto instance_matchers = AllOf(HasSubstr(stayed), Not(HasSubstr(gone)));
-    EXPECT_THAT(stream.str(), instance_matchers);
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
 
     auto updated_json = mpt::load(filename);
-    EXPECT_THAT(updated_json.toStdString(), instance_matchers);
+    EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
 }
 
 TEST_P(ListIP, lists_with_ip)
@@ -1447,8 +1497,12 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
 
     std::stringstream err_stream;
-    send_command({"mount", ".", "target"}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("Mounts are disabled on this installation of Multipass."));
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, mp::MountRequest{},
+                                   StrictMock<MockServerWriter<mp::MountReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
 TEST_F(Daemon, getReturnsSetting)
@@ -1459,29 +1513,40 @@ TEST_F(Daemon, getReturnsSetting)
     const auto val = "bar";
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
 
-    std::stringstream stream;
-    send_command({"test_get", key}, stream);
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr(key), HasSubstr(val)));
+    StrictMock<MockServerWriter<mp::GetReply>> mock_server;
+    EXPECT_CALL(mock_server, Write(Property(&mp::GetReply::value, Eq(val)), _)).WillOnce(Return(true));
+
+    mp::GetRequest request;
+    request.set_key(key);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, mock_server);
+    EXPECT_TRUE(status.ok());
 }
 
 TEST_F(Daemon, getHandlesEmptyKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream err_stream;
-    send_command({"test_get", ""}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
+    mp::GetRequest request;
+    request.set_key("");
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<MockServerWriter<mp::GetReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
 }
 
 TEST_F(Daemon, getHandlesInvalidKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
-    const auto bad_key = "bad";
+    mp::GetRequest request;
+    request.set_key("bad");
 
-    std::stringstream err_stream;
-    send_command({"test_get", bad_key}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr(bad_key)));
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<MockServerWriter<mp::GetReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr(request.key())));
 }
 
 TEST_F(Daemon, getReportsException)
@@ -1489,11 +1554,15 @@ TEST_F(Daemon, getReportsException)
     mp::Daemon daemon{config_builder.build()};
 
     const auto key = "foo";
+    mp::GetRequest request;
+    request.set_key(key);
+
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(std::runtime_error{"exception"}));
 
-    std::stringstream err_stream;
-    send_command({"test_get", key}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("exception"));
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<MockServerWriter<mp::GetReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
+    EXPECT_THAT(status.error_message(), HasSubstr("exception"));
 }
 
 TEST_F(Daemon, requests_networks)
@@ -1501,20 +1570,23 @@ TEST_F(Daemon, requests_networks)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    std::vector<mp::NetworkInterfaceInfo> nets{{"net_a", "type_a", "description_a"},
-                                               {"net_b", "type_b", "description_b"}};
-    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(nets));
+    std::vector<mp::NetworkInterfaceInfo> net_infos{{"net_a", "type_a", "description_a"},
+                                                    {"net_b", "type_b", "description_b"}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_infos));
 
-    std::stringstream stream;
-    send_command({"networks"}, stream);
+    StrictMock<MockServerWriter<mp::NetworksReply>> mock_server;
 
-    auto got = stream.str();
-    for (const auto& net : nets)
-    {
-        EXPECT_THAT(got, HasSubstr(net.id));
-        EXPECT_THAT(got, HasSubstr(net.type));
-        EXPECT_THAT(got, HasSubstr(net.description));
-    }
+    auto are_same_net = [](const mp::NetInterface& proto_net, const mp::NetworkInterfaceInfo& net_info) {
+        return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
+               std::tie(net_info.id, net_info.type, net_info.description);
+    };
+    auto same_net_matcher = Truly(mpt::with_arg_tuple(are_same_net)); // matches pairs (2-tuples) of equivalent nets
+
+    EXPECT_CALL(mock_server,
+                Write(Property(&mp::NetworksReply::interfaces, UnorderedPointwise(same_net_matcher, net_infos)), _))
+        .WillOnce(Return(true));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{}, mock_server).ok());
 }
 
 TEST_F(Daemon, performs_health_check_on_networks)
@@ -1523,7 +1595,28 @@ TEST_F(Daemon, performs_health_check_on_networks)
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, hypervisor_health_check);
-    send_command({"networks"});
+    call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{},
+                     NiceMock<MockServerWriter<mp::NetworksReply>>{});
+}
+
+TEST_F(Daemon, purgePersistsInstances)
+{
+    const std::string name1{"world-of-goo"}, name2{"small-beauty-goo"};
+    auto instance_json1 = fmt::format(valid_template, name1, "10");
+    auto instance_json2 = fmt::format(valid_template, name2, "11");
+    auto json_contents = fmt::format("{{{}, {}}}", instance_json1, instance_json2);
+
+    const auto [temp_dir, filename] = plant_instance_json(json_contents);
+    config_builder.data_directory = temp_dir->path();
+
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    mp::Daemon daemon{config_builder.build()};
+
+    QFile::remove(filename);
+    call_daemon_slot(daemon, &mp::Daemon::purge, mp::PurgeRequest{}, NiceMock<MockServerWriter<mp::PurgeReply>>{});
+
+    auto updated_json = mpt::load(filename);
+    EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
 }
 
 } // namespace
