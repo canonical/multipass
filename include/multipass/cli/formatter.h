@@ -20,6 +20,7 @@
 
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/client_platform.h>
 
 #include <string>
@@ -37,11 +38,18 @@ public:
     virtual std::string format(const NetworksReply& reply) const = 0;
     virtual std::string format(const FindReply& reply) const = 0;
     virtual std::string format(const VersionReply& reply, const std::string& client_version) const = 0;
+    virtual std::string format(const AliasDict& aliases) const = 0;
 
 protected:
     Formatter() = default;
     Formatter(const Formatter&) = delete;
     Formatter& operator=(const Formatter&) = delete;
+
+    template <class D>
+    std::map<typename D::key_type, typename D::mapped_type> sort_dict(const D& unsorted_dict) const
+    {
+        return std::map<typename D::key_type, typename D::mapped_type>(unsorted_dict.cbegin(), unsorted_dict.cend());
+    }
 };
 }
 #endif // MULTIPASS_FORMATTER_H
