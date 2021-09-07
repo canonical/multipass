@@ -29,6 +29,26 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+namespace
+{
+auto set_common_args(const QString& host_arch)
+{
+    QStringList qemu_args;
+
+    if (host_arch == "aarch64")
+    {
+        qemu_args << "-machine"
+                  << "virt,highmem=off";
+    }
+
+    return qemu_args;
+}
+} // namespace
+
+mp::QemuPlatformDetail::QemuPlatformDetail() : common_args{set_common_args(host_arch)}
+{
+}
+
 mp::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
 {
     std::ifstream leases_file{"/var/db/dhcpd_leases"};
@@ -87,16 +107,28 @@ void mp::QemuPlatformDetail::platform_health_check()
 {
 }
 
-QStringList mp::QemuPlatformDetail::full_platform_args(const VirtualMachineDescription& vm_desc)
+QStringList mp::QemuPlatformDetail::vmstate_platform_args()
 {
-    return QStringList() << "-accel"
-                         << "hvf"
-                         << "-drive"
-                         << QString("file=%1/../Resources/qemu/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on")
-                                .arg(QCoreApplication::applicationDirPath())
-                         // Set up the network related args
-                         << "-nic"
-                         << QString::fromStdString(fmt::format("vmnet-macos,mode=shared,model=virtio-net-pci,mac={}", vm_desc.default_mac_address));
+    return common_args;
+}
+
+QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescription& vm_desc)
+{
+    QStringList qemu_args;
+
+    qemu_args << common_args << "-accel"
+              << "hvf"
+              << "-drive"
+              << QString("file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
+                     .arg(QCoreApplication::applicationDirPath())
+                     .arg(host_arch)
+              // Set up the network related args
+              << "-nic"
+              << QString::fromStdString(
+                     fmt::format("vmnet-macos,mode=shared,model=virtio-net-pci,mac={}", vm_desc.default_mac_address))
+              << "-cpu" << (host_arch == "aarch64" ? "cortex-a72" : "host");
+
+    return qemu_args;
 }
 
 QString mp::QemuPlatformDetail::get_directory_name()

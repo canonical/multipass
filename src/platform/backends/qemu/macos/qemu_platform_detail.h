@@ -28,11 +28,18 @@ namespace multipass
 class QemuPlatformDetail : public QemuPlatform
 {
 public:
+    explicit QemuPlatformDetail();
+
     optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;
     void platform_health_check() override;
-    QStringList full_platform_args(const VirtualMachineDescription& vm_desc) override;
+    QStringList vmstate_platform_args() override;
+    QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
     QString get_directory_name() override;
+
+private:
+    const QString host_arch{HOST_ARCH};
+    const QStringList common_args;
 };
 } // namespace multipass
 #endif // MULTIPASS_QEMU_PLATFORM_DETAIL_H
