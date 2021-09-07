@@ -23,8 +23,10 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
+#include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
+#include <multipass/memory_size.h>
 #include <multipass/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
@@ -277,12 +279,36 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(memOption))
     {
-        request.set_mem_size(parser->value(memOption).toStdString());
+        auto arg_mem_size = parser->value(memOption).toStdString();
+
+        try
+        {
+            mp::MemorySize{arg_mem_size};
+        }
+        catch (mp::InvalidMemorySizeException&)
+        {
+            fmt::print(cerr, "Invalid memory size value supplied: {}.\n", arg_mem_size);
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_mem_size(arg_mem_size);
     }
 
     if (parser->isSet(diskOption))
     {
-        request.set_disk_space(parser->value(diskOption).toStdString());
+        auto arg_disk_size = parser->value(diskOption).toStdString();
+
+        try
+        {
+            mp::MemorySize{arg_disk_size};
+        }
+        catch (mp::InvalidMemorySizeException&)
+        {
+            fmt::print(cerr, "Invalid disk size value supplied: {}.\n", arg_disk_size);
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_disk_space(arg_disk_size);
     }
 
     if (parser->isSet(cloudInitOption))
