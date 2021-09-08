@@ -6,6 +6,6 @@ contact_links:
   - name: Forums
     url: https://discourse.ubuntu.com/c/multipass
     about: Please ask and answer questions here.
-  - name: "#multipass on Freenode"
-    url: https://webchat.freenode.net/?channels=#multipass
+  - name: "#multipass on Libera.Chat"
+    url: https://web.libera.chat/?channels=#multipass
     about: Chat to us!
