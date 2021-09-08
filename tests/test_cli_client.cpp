@@ -619,6 +619,18 @@ TEST_F(Client, launch_cmd_good_arguments)
     EXPECT_THAT(send_command({"launch", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, launch_cmd_wrong_mem_arguments)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).Times(0);
+    EXPECT_THAT(send_command({"launch", "-mem", "2048M"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_wrong_disk_arguments)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).Times(0);
+    EXPECT_THAT(send_command({"launch", "-disk", "8192M"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 TEST_F(Client, launch_cmd_help_ok)
 {
     EXPECT_THAT(send_command({"launch", "-h"}), Eq(mp::ReturnCode::Ok));
