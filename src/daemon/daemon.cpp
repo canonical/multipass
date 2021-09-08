@@ -470,9 +470,6 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
 {
-    assert(config && config->factory && config->workflow_provider && config->vault && "null ptr somewhere...");
-    validate_image(request, *config->vault, *config->workflow_provider);
-
     static const auto min_mem = try_mem_size(mp::min_memory_size);
     static const auto min_disk = try_mem_size(mp::min_disk_size);
     assert(min_mem && min_disk);
@@ -2175,6 +2172,8 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
 void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
+    assert(config && config->factory && config->workflow_provider && config->vault && "null ptr somewhere...");
+
     auto checked_args = validate_create_arguments(request, config.get());
 
     if (!checked_args.option_errors.error_codes().empty())
@@ -2182,19 +2181,25 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
         return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
                                                       checked_args.option_errors.SerializeAsString()));
     }
-    else if (auto& nets = checked_args.nets_need_bridging; !nets.empty() && !request->permission_to_bridge())
+    else
     {
-        CreateError create_error;
-        create_error.add_error_codes(CreateError::INVALID_NETWORK);
+        validate_image(request, *config->vault, *config->workflow_provider);
 
-        CreateReply reply;
-        *reply.mutable_nets_need_bridging() = {std::make_move_iterator(nets.begin()),
-                                               std::make_move_iterator(nets.end())}; /* this constructs a temporary
-                                               RepeatedPtrField from the range, then move-assigns that temporary in */
-        server->Write(reply);
+        if (auto& nets = checked_args.nets_need_bridging; !nets.empty() && !request->permission_to_bridge())
+        {
+            CreateError create_error;
+            create_error.add_error_codes(CreateError::INVALID_NETWORK);
 
-        return status_promise->set_value(
-            grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Missing bridges", create_error.SerializeAsString()});
+            CreateReply reply;
+            *reply.mutable_nets_need_bridging() = {
+                std::make_move_iterator(nets.begin()),
+                std::make_move_iterator(nets.end())}; /* this constructs a temporary
+                RepeatedPtrField from the range, then move-assigns that temporary in */
+            server->Write(reply);
+
+            return status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Missing bridges",
+                                                          create_error.SerializeAsString()});
+        }
     }
 
     // TODO: We should only need to query the Workflow Provider once for all info, so this (and timeout below) will
