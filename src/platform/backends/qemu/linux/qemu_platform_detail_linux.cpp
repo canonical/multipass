@@ -155,7 +155,7 @@ void mp::QemuPlatformDetail::platform_health_check()
     firewall_config->verify_firewall_rules();
 }
 
-QStringList mp::QemuPlatformDetail::platform_args(const VirtualMachineDescription& vm_desc)
+QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescription& vm_desc)
 {
     // Configure and generate the args for the default network interface
     auto tap_device_name = generate_tap_device_name(vm_desc.vm_name);

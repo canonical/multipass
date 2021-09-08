@@ -42,10 +42,11 @@ public:
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr) = 0;
     virtual void remove_resources_for(const std::string&) = 0;
     virtual void platform_health_check() = 0;
-    virtual QStringList platform_args(const VirtualMachineDescription& vm_desc)
+    virtual QStringList vmstate_platform_args()
     {
         return {};
     };
+    virtual QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) = 0;
     virtual QString get_directory_name()
     {
         return {};
