@@ -155,25 +155,17 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_tests mock_process)
 
-if(LINUX)
-  target_include_directories(multipass_tests
-    BEFORE
-      PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux
-  )
-elseif(MSVC)
+if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
   target_compile_options(multipass_tests PRIVATE /bigobj)
-  target_include_directories(multipass_tests
-    BEFORE
-      PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/windows
-  )
 elseif(APPLE)
   set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
-  target_include_directories(multipass_tests
-    BEFORE
-      PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/macos
-  )
 endif()
+
+target_include_directories(multipass_tests
+  BEFORE
+    PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
+)
 
 add_subdirectory(${MULTIPASS_PLATFORM})
 

@@ -143,7 +143,7 @@ bool instance_image_has_snapshot(const mp::Path& image_path)
     return false;
 }
 
-auto get_qemu_machine_type()
+auto get_qemu_machine_type(const QStringList& platform_args)
 {
     QTemporaryFile dump_file;
     if (!dump_file.open())
@@ -151,14 +151,14 @@ auto get_qemu_machine_type()
         return QString();
     }
 
-    auto process_spec = std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName());
+    auto process_spec = std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName(), platform_args);
     auto process = mp::platform::make_process(std::move(process_spec));
     auto process_state = process->execute();
 
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(
-            fmt::format("Internal error: qemu-system-x86_64 failed getting vmstate ({}) with output:\n{}",
+            fmt::format("Internal error: qemu-system-{} failed getting vmstate ({}) with output:\n{}", HOST_ARCH,
                         process_state.failure_message(), process->read_all_standard_error()));
     }
 
@@ -168,11 +168,11 @@ auto get_qemu_machine_type()
     return machine_type;
 }
 
-auto generate_metadata(const QStringList& args)
+auto generate_metadata(const QStringList& platform_args, const QStringList& proc_args)
 {
     QJsonObject metadata;
-    metadata[machine_type_key] = get_qemu_machine_type();
-    metadata[arguments_key] = QJsonArray::fromStringList(args);
+    metadata[machine_type_key] = get_qemu_machine_type(platform_args);
+    metadata[arguments_key] = QJsonArray::fromStringList(proc_args);
     return metadata;
 }
 } // namespace
@@ -234,7 +234,8 @@ void mp::QemuVirtualMachine::start()
     }
     else
     {
-        monitor->update_metadata_for(vm_name, generate_metadata(vm_process->arguments()));
+        monitor->update_metadata_for(
+            vm_name, generate_metadata(qemu_platform->vmstate_platform_args(), vm_process->arguments()));
     }
 
     vm_process->start();
@@ -428,7 +429,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 {
     vm_process = make_qemu_process(
         desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
-        qemu_platform->platform_args(desc));
+        qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
