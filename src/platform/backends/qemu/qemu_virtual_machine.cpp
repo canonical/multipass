@@ -234,8 +234,8 @@ void mp::QemuVirtualMachine::start()
     }
     else
     {
-        monitor->update_metadata_for(vm_name,
-                                     generate_metadata(qemu_platform->base_platform_args(), vm_process->arguments()));
+        monitor->update_metadata_for(
+            vm_name, generate_metadata(qemu_platform->vmstate_platform_args(), vm_process->arguments()));
     }
 
     vm_process->start();
@@ -429,7 +429,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 {
     vm_process = make_qemu_process(
         desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
-        qemu_platform->full_platform_args(desc));
+        qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
