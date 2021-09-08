@@ -86,6 +86,28 @@ target_link_libraries(yaml INTERFACE
 if (APPLE)
   include(ExternalProject)
 
+  set(HOST_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR} CACHE INTERNAL "")
+
+  if (${HOST_ARCH} STREQUAL "arm64")
+    set(HOST_ARCH "aarch64" CACHE INTERNAL "")
+  endif ()
+
+  if (${HOST_ARCH} MATCHES "x86_64")
+      list(APPEND MULTIPASS_BACKENDS virtualbox)
+  endif()
+
+  # Only build QEMU for macOS 10.15+
+  if (CMAKE_HOST_SYSTEM_VERSION VERSION_GREATER_EQUAL 19)
+      list(APPEND MULTIPASS_BACKENDS qemu)
+  endif()
+
+  # Only build Hyperkit, et. al. on host systems older than macOS 20.x.x (Big Sur)
+  if (CMAKE_HOST_SYSTEM_VERSION VERSION_LESS 20)
+      list(APPEND MULTIPASS_BACKENDS hyperkit)
+  endif()
+
+  set(MULTIPASS_BACKENDS ${MULTIPASS_BACKENDS} PARENT_SCOPE)
+
   if ("hyperkit" IN_LIST MULTIPASS_BACKENDS)
     # Hyperkit - MacOS virtualization (via xhyve)
     if(NOT DEFINED ENV{OCAML_TOPLEVEL_PATH})

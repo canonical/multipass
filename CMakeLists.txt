@@ -167,21 +167,6 @@ else()
 
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
-
-    if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
-        list(APPEND MULTIPASS_BACKENDS virtualbox)
-    endif()
-
-    # Only build QEMU for macOS 10.15+
-    if (CMAKE_HOST_SYSTEM_VERSION VERSION_GREATER_EQUAL 19)
-        list(APPEND MULTIPASS_BACKENDS qemu)
-    endif()
-
-    # Only build Hyperkit, et. al. on host systems older than macOS 20.x.x (Big Sur)
-    if (CMAKE_HOST_SYSTEM_VERSION VERSION_LESS 20)
-        list(APPEND MULTIPASS_BACKENDS hyperkit)
-    endif()
-
     set(MULTIPASS_PLATFORM macos)
   else()
     add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wnon-virtual-dtor)
