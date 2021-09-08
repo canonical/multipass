@@ -291,7 +291,11 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
                                                              const VirtualMachineDescription& desc)
 {
     auto disk_size = QString::number(desc.disk_space.in_bytes()); // format documented in `Help(Resize-VHD)`
-    PowerShell::exec({"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_size}, desc.vm_name);
+
+    QString ps_output;
+    QStringList resize_cmd = {"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_size};
+    if (!PowerShell::exec(resize_cmd, desc.vm_name, ps_output))
+        throw std::runtime_error{error_msg_helper("Failed to resize instance image", ps_output)};
 }
 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
