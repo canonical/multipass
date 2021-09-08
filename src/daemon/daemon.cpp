@@ -35,6 +35,7 @@
 #include <multipass/query.h>
 #include <multipass/settings.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
@@ -982,8 +983,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
             QTimer::singleShot(0, [this, &name] {
-                vm_instances[name]->start();
-                on_restart(name);
+                multipass::top_catch_all(name, [this, &name]() {
+                    vm_instances[name]->start();
+                    on_restart(name);
+                });
             });
         }
     }
