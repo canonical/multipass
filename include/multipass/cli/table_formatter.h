@@ -30,6 +30,7 @@ public:
     std::string format(const NetworksReply& list) const override;
     std::string format(const FindReply& list) const override;
     std::string format(const VersionReply& list, const std::string& client_version) const override;
+    std::string format(const AliasDict& aliases) const override;
 };
 }
 #endif // MULTIPASS_TABLE_FORMATTER

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +19,11 @@
 #define MULTIPASS_CLIENT_H
 
 #include <multipass/cert_provider.h>
-#include <multipass/terminal.h>
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
+#include <multipass/terminal.h>
 
 #include <map>
 #include <memory>
@@ -46,8 +47,8 @@ public:
     int run(const QStringList& arguments);
 
 protected:
-    template <typename T>
-    void add_command();
+    template <typename T, typename... Ts>
+    void add_command(Ts&&... params);
     void sort_commands();
 
 private:
@@ -58,13 +59,14 @@ private:
     std::vector<cmd::Command::UPtr> commands;
 
     Terminal* term;
+    AliasDict aliases;
 };
 } // namespace multipass
 
-template <typename T>
-void multipass::Client::add_command()
+template <typename T, typename... Ts>
+void multipass::Client::add_command(Ts&&... params)
 {
-    auto cmd = std::make_unique<T>(*rpc_channel, *stub, term);
+    auto cmd = std::make_unique<T>(*rpc_channel, *stub, term, std::forward<Ts>(params)...);
     commands.push_back(std::move(cmd));
 }
 

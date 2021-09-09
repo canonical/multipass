@@ -112,3 +112,19 @@ std::string mp::CSVFormatter::format(const VersionReply& reply, const std::strin
 
     return fmt::to_string(buf);
 }
+
+std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
+{
+    fmt::memory_buffer buf;
+    fmt::format_to(buf, "Alias,Instance,Command\n");
+
+    for (const auto& elt : sort_dict(aliases))
+    {
+        const auto& name = elt.first;
+        const auto& def = elt.second;
+
+        fmt::format_to(buf, "{},{},{}\n", name, def.instance, def.command);
+    }
+
+    return fmt::to_string(buf);
+}

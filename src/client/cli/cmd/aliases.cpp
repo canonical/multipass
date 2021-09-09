@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,16 +15,17 @@
  *
  */
 
-#include "purge.h"
-#include "common_cli.h"
-
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/formatter.h>
+
+#include "aliases.h"
+#include "common_cli.h"
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
-using RpcMethod = mp::Rpc::Stub;
 
-mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::Aliases::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -32,38 +33,34 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](mp::PurgeReply& reply) {
-        auto size = reply.purged_instances_size();
-        for (auto i = 0; i < size; ++i)
-            aliases.remove_aliases_for_instance(reply.purged_instances(i));
+    cout << chosen_formatter->format(aliases);
 
-        return mp::ReturnCode::Ok;
-    };
-
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
-
-    mp::PurgeRequest request;
-    request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::purge, request, on_success, on_failure);
+    return ReturnCode::Ok;
 }
 
-std::string cmd::Purge::name() const
+std::string cmd::Aliases::name() const
 {
-    return "purge";
+    return "aliases";
 }
 
-QString cmd::Purge::short_help() const
+QString cmd::Aliases::short_help() const
 {
-    return QStringLiteral("Purge all deleted instances permanently");
+    return QStringLiteral("List available aliases");
 }
 
-QString cmd::Purge::description() const
+QString cmd::Aliases::description() const
 {
-    return QStringLiteral("Purge all deleted instances permanently, including all their data.");
+    return QStringLiteral("List available aliases");
 }
 
-mp::ParseCode cmd::Purge::parse_args(mp::ArgParser* parser)
+mp::ParseCode cmd::Aliases::parse_args(mp::ArgParser* parser)
 {
+    QCommandLineOption formatOption(
+        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
+        "format", "table");
+
+    parser->addOption(formatOption);
+
     auto status = parser->commandParse(this);
 
     if (status != ParseCode::Ok)
@@ -76,6 +73,8 @@ mp::ParseCode cmd::Purge::parse_args(mp::ArgParser* parser)
         cerr << "This command takes no arguments\n";
         return ParseCode::CommandLineError;
     }
+
+    status = handle_format_option(parser, &chosen_formatter, cerr);
 
     return status;
 }
