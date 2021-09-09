@@ -151,6 +151,7 @@ jobs:
                 _retry 5 30 _run sudo snap install multipass --channel ${{ github.event.inputs.snap-channel }}
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
+                ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
                 _run curl --location --output multipass.pkg ${{ github.event.inputs.mac-package || github.event.inputs.mac-arm-package }}
                 _run sudo installer -dumplog -target / -pkg multipass.pkg
 
