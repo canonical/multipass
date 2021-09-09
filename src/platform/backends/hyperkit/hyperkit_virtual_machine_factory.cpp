@@ -36,6 +36,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "hyperkit factory";
+constexpr auto qemu_img = "qemu-img-hyperkit";
 }
 
 mp::VirtualMachine::UPtr
@@ -74,10 +75,10 @@ mp::VMImage mp::HyperkitVirtualMachineFactory::prepare_source_image(const VMImag
 
     mpl::log(mpl::Level::debug, category,
              fmt::format("app path '{}'", QCoreApplication::applicationDirPath().toStdString()));
-    mpl::log(mpl::Level::debug, category, fmt::format("qemu-img {}", uncompress_args.join(", ").toStdString()));
+    mpl::log(mpl::Level::debug, category, fmt::format("{} {}", qemu_img, uncompress_args.join(", ").toStdString()));
 
     QProcess uncompress;
-    uncompress.start(QCoreApplication::applicationDirPath() + "/qemu-img", uncompress_args);
+    uncompress.start(QCoreApplication::applicationDirPath() + "/" + qemu_img, uncompress_args);
     if (!uncompress.waitForFinished(mp::image_resize_timeout))
     {
         if (uncompress.state() == QProcess::Running)
@@ -114,6 +115,6 @@ void mp::HyperkitVirtualMachineFactory::prepare_instance_image(const mp::VMImage
 
     QStringList resize_image_args({QStringLiteral("resize"), instance_image.image_path, disk_size});
 
-    resize_image.start(QCoreApplication::applicationDirPath() + "/qemu-img", resize_image_args);
+    resize_image.start(QCoreApplication::applicationDirPath() + "/" + qemu_img, resize_image_args);
     resize_image.waitForFinished();
 }

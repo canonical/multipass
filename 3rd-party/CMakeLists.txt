@@ -142,14 +142,15 @@ if (APPLE)
     )
 
     # Qemu-img - Fetch binary and libraries needed
-    set(QEMU_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/qemu-img-hyperkit)
-    set(QEMU_BINARY_DIR ${CMAKE_BINARY_DIR}/3rd-party/qemu-img-hyperkit)
+    set(QEMU_IMG_NAME "qemu-img-hyperkit")
+    set(QEMU_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${QEMU_IMG_NAME})
+    set(QEMU_BINARY_DIR ${CMAKE_BINARY_DIR}/3rd-party/${QEMU_IMG_NAME})
     add_custom_command(
-      OUTPUT ${QEMU_BINARY_DIR}/bin/qemu-img
+      OUTPUT ${QEMU_BINARY_DIR}/bin/${QEMU_IMG_NAME}
       COMMAND bash ${QEMU_SOURCE_DIR}/qemu-img-fetcher.sh ${QEMU_SOURCE_DIR} ${QEMU_BINARY_DIR}
-      COMMAND ${CMAKE_COMMAND} -E create_symlink ${QEMU_BINARY_DIR}/bin/qemu-img ${CMAKE_BINARY_DIR}/bin/qemu-img # convenience for testing only
+      COMMAND ${CMAKE_COMMAND} -E create_symlink ${QEMU_BINARY_DIR}/bin/${QEMU_IMG_NAME} ${CMAKE_BINARY_DIR}/bin/${QEMU_IMG_NAME} # convenience for testing only
     )
-    add_custom_target(qemu-img-hyperkit ALL DEPENDS ${QEMU_BINARY_DIR}/bin/qemu-img)
+    add_custom_target(qemu-img-hyperkit ALL DEPENDS ${QEMU_BINARY_DIR}/bin/${QEMU_IMG_NAME})
     install(DIRECTORY ${QEMU_BINARY_DIR}/
       DESTINATION .
       USE_SOURCE_PERMISSIONS
