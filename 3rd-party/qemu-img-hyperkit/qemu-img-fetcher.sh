@@ -57,7 +57,7 @@ mkdir -p "$DOWNLOAD_DIR"
 # Get qemu-img binary (with shared lib requirements)
 get_brew_and_extract qemu-4.2.0
 
-cp "$DOWNLOAD_DIR/qemu/4.2.0/bin/qemu-img" "$BINDIR/"
+cp -f "$DOWNLOAD_DIR/qemu/4.2.0/bin/qemu-img" "$BINDIR/"
 
 
 
@@ -67,59 +67,59 @@ cp "$DOWNLOAD_DIR/qemu/4.2.0/bin/qemu-img" "$BINDIR/"
 # glib - requres pcre
 get_brew_and_extract glib-2.66.7
 
-cp "$DOWNLOAD_DIR/glib/2.66.7/lib/libgthread-2.0.0.dylib" "$LIBDIR/"
-cp "$DOWNLOAD_DIR/glib/2.66.7/lib/libglib-2.0.0.dylib"    "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/glib/2.66.7/lib/libgthread-2.0.0.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/glib/2.66.7/lib/libglib-2.0.0.dylib"    "$LIBDIR/"
 
 # pcre - required by glib (no other deps)
 get_brew_and_extract pcre-8.44
 
-cp "$DOWNLOAD_DIR/pcre/8.44/lib/libpcre.1.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/pcre/8.44/lib/libpcre.1.dylib" "$LIBDIR/"
 
 # gettext (no other deps)
 get_brew_and_extract gettext-0.21
 
-cp "$DOWNLOAD_DIR/gettext/0.21/lib/libintl.8.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/gettext/0.21/lib/libintl.8.dylib" "$LIBDIR/"
 
 # nettle (no other deps)
 get_brew_and_extract nettle-3.4.1
 
-cp "$DOWNLOAD_DIR/nettle/3.4.1/lib/libnettle.6.dylib"  "$LIBDIR/"
-cp "$DOWNLOAD_DIR/nettle/3.4.1/lib/libhogweed.4.dylib" "$LIBDIR/"  # needed by gnutls
+cp -f "$DOWNLOAD_DIR/nettle/3.4.1/lib/libnettle.6.dylib"  "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/nettle/3.4.1/lib/libhogweed.4.dylib" "$LIBDIR/"  # needed by gnutls
 
 # gnutls - requires p11-kit, libunistring, libtasn1, nettle (above), gmp, libintl (above), libidn2
 get_brew_and_extract gnutls-3.6.13
 
-cp "$DOWNLOAD_DIR/gnutls/3.6.13/lib/libgnutls.30.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/gnutls/3.6.13/lib/libgnutls.30.dylib" "$LIBDIR/"
 
 # p11-kit - requires libffi
 get_brew_and_extract p11-kit-0.23.22
 
-cp "$DOWNLOAD_DIR/p11-kit/0.23.22/lib/libp11-kit.0.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/p11-kit/0.23.22/lib/libp11-kit.0.dylib" "$LIBDIR/"
 
 # libffi (no other deps)
 get_brew_and_extract libffi-3.3
 
-cp "$DOWNLOAD_DIR/libffi/3.3/lib/libffi.7.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/libffi/3.3/lib/libffi.7.dylib" "$LIBDIR/"
 
 # libunistring (no other deps)
 get_brew_and_extract libunistring-0.9.10
 
-cp "$DOWNLOAD_DIR/libunistring/0.9.10/lib/libunistring.2.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/libunistring/0.9.10/lib/libunistring.2.dylib" "$LIBDIR/"
 
 # libtasn1 (no other deps)
 get_brew_and_extract libtasn1-4.16.0
 
-cp "$DOWNLOAD_DIR/libtasn1/4.16.0/lib/libtasn1.6.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/libtasn1/4.16.0/lib/libtasn1.6.dylib" "$LIBDIR/"
 
 # gmp (no other deps)
 get_brew_and_extract gmp-6.2.1
 
-cp "$DOWNLOAD_DIR/gmp/6.2.1/lib/libgmp.10.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/gmp/6.2.1/lib/libgmp.10.dylib" "$LIBDIR/"
 
 # libidn2 - requires libintl (above), libunistring (above)
 get_brew_and_extract libidn2-2.3.0
 
-cp "$DOWNLOAD_DIR/libidn2/2.3.0/lib/libidn2.0.dylib" "$LIBDIR/"
+cp -f "$DOWNLOAD_DIR/libidn2/2.3.0/lib/libidn2.0.dylib" "$LIBDIR/"
 
 # add writable permission to allow library path rewriting
 chmod +w "$LIBDIR"/*.dylib
