@@ -67,10 +67,10 @@ class TimerSyncFuncs : public Singleton<TimerSyncFuncs>
 public:
     TimerSyncFuncs(const Singleton<TimerSyncFuncs>::PrivatePass&) noexcept;
 
-    virtual void notify_all(std::condition_variable& cv);
-    virtual void wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock);
+    virtual void notify_all(std::condition_variable& cv) const;
+    virtual void wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock) const;
     virtual std::cv_status wait_for(std::condition_variable& cv, std::unique_lock<std::mutex>& lock,
-                                    const std::chrono::duration<int, std::milli>& rel_time);
+                                    const std::chrono::duration<int, std::milli>& rel_time) const;
 };
 } // namespace multipass::utils
 

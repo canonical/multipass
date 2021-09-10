@@ -99,18 +99,18 @@ mpu::TimerSyncFuncs::TimerSyncFuncs(const Singleton<TimerSyncFuncs>::PrivatePass
 {
 }
 
-void mpu::TimerSyncFuncs::notify_all(std::condition_variable& cv)
+void mpu::TimerSyncFuncs::notify_all(std::condition_variable& cv) const
 {
     cv.notify_all();
 }
 
-void mpu::TimerSyncFuncs::wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock)
+void mpu::TimerSyncFuncs::wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock) const
 {
     cv.wait(lock);
 }
 
 std::cv_status mpu::TimerSyncFuncs::wait_for(std::condition_variable& cv, std::unique_lock<std::mutex>& lock,
-                                             const std::chrono::duration<int, std::milli>& rel_time)
+                                             const std::chrono::duration<int, std::milli>& rel_time) const
 {
     return cv.wait_for(lock, rel_time);
 }

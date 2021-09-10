@@ -37,10 +37,10 @@ struct MockTimerSyncFuncs : public mpu::TimerSyncFuncs
 {
     using TimerSyncFuncs::TimerSyncFuncs;
 
-    MOCK_METHOD1(notify_all, void(std::condition_variable&));
-    MOCK_METHOD2(wait, void(std::condition_variable&, std::unique_lock<std::mutex>&));
-    MOCK_METHOD3(wait_for, std::cv_status(std::condition_variable&, std::unique_lock<std::mutex>&,
-                                          const std::chrono::duration<int, std::milli>&));
+    MOCK_CONST_METHOD1(notify_all, void(std::condition_variable&));
+    MOCK_CONST_METHOD2(wait, void(std::condition_variable&, std::unique_lock<std::mutex>&));
+    MOCK_CONST_METHOD3(wait_for, std::cv_status(std::condition_variable&, std::unique_lock<std::mutex>&,
+                                                const std::chrono::duration<int, std::milli>&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockTimerSyncFuncs, TimerSyncFuncs);
 };
