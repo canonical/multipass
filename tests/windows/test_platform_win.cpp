@@ -17,15 +17,18 @@
 
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_settings.h"
 #include "tests/mock_standard_paths.h"
+#include "tests/temp_dir.h"
 
 #include <src/platform/platform_proprietary.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
 
 #include <QDateTime>
 #include <QDir>
@@ -570,4 +573,72 @@ TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
                          Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
 
+TEST(PlatformWin, create_alias_script_works)
+{
+    const mpt::TempDir tmp_dir;
+
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::HomeLocation))
+        .WillOnce(Return(tmp_dir.path()));
+
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
+
+    QFile checked_script(tmp_dir.path() + "/AppData/local/multipass/bin/alias_name.bat");
+    checked_script.open(QFile::ReadOnly);
+
+    std::string script_line = checked_script.readLine().toStdString();
+    EXPECT_THAT(script_line, HasSubstr("@"));
+    EXPECT_THAT(script_line, HasSubstr(" alias_name\n"));
+    EXPECT_TRUE(checked_script.atEnd());
+}
+
+TEST(PlatformWin, create_alias_script_throws_if_cannot_create_path)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+                         std::runtime_error, mpt::match_what(HasSubstr("failed to create dir '")));
+}
+
+TEST(PlatformWin, create_alias_script_throws_if_cannot_write_script)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));
+
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+                         std::runtime_error, mpt::match_what(HasSubstr("failed to write to file '")));
+}
+
+TEST(PlatformWin, remove_alias_script_works)
+{
+    const mpt::TempDir tmp_dir;
+    QFile script_file(tmp_dir.path() + "/AppData/local/multipass/bin/alias_name.bat");
+
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::HomeLocation))
+        .WillOnce(Return(tmp_dir.path()));
+
+    MP_UTILS.make_file_with_content(script_file.fileName().toStdString(), "script content\n");
+
+    EXPECT_NO_THROW(MP_PLATFORM.remove_alias_script("alias_name"));
+
+    EXPECT_FALSE(script_file.exists());
+}
+
+TEST(PlatformWin, remove_alias_script_throws_if_cannot_remove_script)
+{
+    const mpt::TempDir tmp_dir;
+    QFile script_file(tmp_dir.path() + "/AppData/local/multipass/bin/alias_name.bat");
+
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::HomeLocation))
+        .WillOnce(Return(tmp_dir.path()));
+
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"), std::runtime_error,
+                         mpt::match_what(StrEq("error removing alias script")));
+}
 } // namespace

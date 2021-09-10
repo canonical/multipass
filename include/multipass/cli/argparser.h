@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,9 @@
  */
 #ifndef ARGPARSER_H
 #define ARGPARSER_H
+
+#include <multipass/cli/alias_dict.h>
+#include <multipass/optional.h>
 
 #include <QtCore/QCommandLineOption>
 #include <QtCore/QCommandLineParser>
@@ -39,7 +42,7 @@ public:
 
     void addPositionalArgument(const QString& name, const QString& description, const QString& syntax = QString());
 
-    ParseCode parse();
+    ParseCode parse(const optional<AliasDict>& aliases = std::nullopt);
     cmd::Command* chosenCommand() const;
     cmd::Command* findCommand(const QString& command) const;
     const std::vector<cmd::Command::UPtr>& getCommands() const;
@@ -67,13 +70,20 @@ public:
 
     bool containsArgument(const QString& argument) const;
 
+    optional<AliasDefinition> executeAlias()
+    {
+        return execute_alias;
+    };
+
 private:
     QString generalHelpText();
     QString helpText(cmd::Command* command);
+    ParseCode prepare_alias_execution();
 
     const QStringList& arguments;
     const std::vector<cmd::Command::UPtr>& commands;
     cmd::Command* chosen_command;
+    optional<AliasDefinition> execute_alias;
 
     QCommandLineParser parser;
 

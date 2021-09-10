@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,35 +15,22 @@
  *
  */
 
-#ifndef MULTIPASS_TEMP_DIR_H
-#define MULTIPASS_TEMP_DIR_H
+#ifndef MULTIPASS_ALIAS_DEFINITION_H
+#define MULTIPASS_ALIAS_DEFINITION_H
 
-#include <QString>
-#include <QTemporaryDir>
+#include <string>
 
 namespace multipass
 {
-namespace test
+struct AliasDefinition
 {
-class TempDir
-{
-public:
-    TempDir();
-    QString path() const
-    {
-        return the_path;
-    }
-
-    QString filePath(const QString& fileName)
-    {
-        return dir.filePath(fileName);
-    }
-
-private:
-    QTemporaryDir dir;
-    QString the_path;
+    std::string instance;
+    std::string command;
 };
-} // namespace test
-} // namespace multipass
 
-#endif // MULTIPASS_TEMP_DIR_H
+inline bool operator==(const AliasDefinition& a, const AliasDefinition& b)
+{
+    return (a.instance == b.instance && a.command == b.command);
+}
+} // namespace multipass
+#endif // MULTIPASS_ALIAS_DEFINITION_H

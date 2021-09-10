@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,26 +13,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Chris Townsend <christopher.townsend@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_EXEC_H
-#define MULTIPASS_EXEC_H
+#ifndef MULTIPASS_UNALIAS_H
+#define MULTIPASS_UNALIAS_H
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
+
+#include <QString>
 
 namespace multipass
 {
 namespace cmd
 {
-class Exec final : public Command
+class Unalias final : public Command
 {
 public:
     using Command::Command;
 
-    Exec(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, AliasDict& dict)
+    Unalias(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, AliasDict& dict)
         : Command(channel, stub, term), aliases(dict)
     {
     }
@@ -42,14 +42,12 @@ public:
     QString short_help() const override;
     QString description() const override;
 
-    static ReturnCode exec_success(const SSHInfoReply& reply, const std::vector<std::string>& args, Terminal* term);
-
 private:
-    SSHInfoRequest request;
-    AliasDict aliases;
-
     ParseCode parse_args(ArgParser* parser) override;
+
+    AliasDict aliases;
+    std::string alias_to_remove;
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_EXEC_H
+#endif // MULTIPASS_UNALIAS_H

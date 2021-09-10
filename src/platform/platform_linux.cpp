@@ -40,13 +40,19 @@
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QRegularExpression>
 #include <QString>
 #include <QTextStream>
 
+#include <errno.h>
 #include <linux/if_arp.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -154,6 +160,13 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         }
     }
 }
+
+std::string get_alias_script_path(const std::string& alias)
+{
+    auto aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
+
+    return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
+}
 } // namespace
 
 std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
@@ -244,6 +257,51 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     return ::link(target, link) == 0;
+}
+
+QDir mp::platform::Platform::get_alias_scripts_folder() const
+{
+    QDir aliases_folder;
+
+    if (mu::in_multipass_snap())
+    {
+        aliases_folder = QDir(QString(mu::snap_user_common_dir()) + "/bin");
+    }
+    else
+    {
+        QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
+        aliases_folder = QDir{location};
+    }
+
+    return aliases_folder;
+}
+
+void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def) const
+{
+    std::string file_path = get_alias_script_path(alias);
+
+    std::string multipass_exec = mu::in_multipass_snap()
+                                     ? "exec /usr/bin/snap run multipass"
+                                     : fmt::format("\"{}\"", QCoreApplication::applicationFilePath());
+
+    std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + "\n";
+
+    MP_UTILS.make_file_with_content(file_path, script);
+
+    QFile file(QString::fromStdString(file_path));
+    auto permissions =
+        MP_FILEOPS.permissions(file) | QFileDevice::ExeOwner | QFileDevice::ExeGroup | QFileDevice::ExeOther;
+
+    if (!MP_FILEOPS.setPermissions(file, permissions))
+        throw std::runtime_error(fmt::format("cannot set permissions to alias script '{}'", file_path));
+}
+
+void mp::platform::Platform::remove_alias_script(const std::string& alias) const
+{
+    auto file_path = get_alias_script_path(alias);
+
+    if (::unlink(file_path.c_str()))
+        throw std::runtime_error(strerror(errno));
 }
 
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)

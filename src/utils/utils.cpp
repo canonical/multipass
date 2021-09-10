@@ -19,6 +19,7 @@
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/settings.h>
@@ -117,6 +118,25 @@ bool mp::Utils::run_cmd_for_status(const QString& cmd, const QStringList& args, 
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }
 
+void mp::Utils::make_file_with_content(const std::string& file_name, const std::string& content)
+{
+    QFile file(QString::fromStdString(file_name));
+    if (MP_FILEOPS.exists(file))
+        throw std::runtime_error(fmt::format("file '{}' already exists", file_name));
+
+    QDir parent_dir{QFileInfo{file}.absoluteDir()};
+    if (!MP_FILEOPS.mkpath(parent_dir, "."))
+        throw std::runtime_error(fmt::format("failed to create dir '{}'", parent_dir.path()));
+
+    if (!MP_FILEOPS.open(file, QFile::WriteOnly))
+        throw std::runtime_error(fmt::format("failed to open file '{}' for writing", file_name));
+
+    if (MP_FILEOPS.write(file, content.c_str(), content.size()) != (qint64)content.size())
+        throw std::runtime_error(fmt::format("failed to write to file '{}'", file_name));
+
+    return;
+}
+
 void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                     const mp::SSHKeyProvider& key_provider) const
 {
@@ -166,6 +186,18 @@ bool mp::utils::invalid_target_path(const QString& target_path)
     QRegExp matcher("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*");
 
     return matcher.exactMatch(sanitized_path);
+}
+
+QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_template)
+{
+    auto temp_folder = QFileInfo(filename_template).absoluteDir();
+
+    if (!MP_FILEOPS.mkpath(temp_folder, temp_folder.absolutePath()))
+    {
+        throw std::runtime_error(fmt::format("Could not create path '{}'", temp_folder.absolutePath()));
+    }
+
+    return QTemporaryFile(filename_template);
 }
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)

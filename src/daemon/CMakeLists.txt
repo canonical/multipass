@@ -23,7 +23,6 @@ add_library(daemon STATIC
   daemon_monitor_settings.cpp
   daemon_rpc.cpp
   default_vm_image_vault.cpp
-  json_writer.cpp
   ubuntu_image_host.cpp)
 
 include_directories(daemon

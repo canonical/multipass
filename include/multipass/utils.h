@@ -36,6 +36,7 @@
 #include <QDir>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryFile>
 #include <QVariant>
 
 #define MP_UTILS multipass::Utils::instance()
@@ -71,6 +72,7 @@ QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string filename_for(const std::string& path);
 std::string contents_of(const multipass::Path& file_path);
 bool invalid_target_path(const QString& target_path);
+QTemporaryFile create_temp_file_with_path(const QString& filename_template);
 
 // special-file helpers
 void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
@@ -133,6 +135,7 @@ public:
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code);
+    virtual void make_file_with_content(const std::string& file_name, const std::string& content);
 
     // command and process helpers
     virtual std::string run_cmd_for_output(const QString& cmd, const QStringList& args,
