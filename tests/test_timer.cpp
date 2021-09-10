@@ -95,7 +95,7 @@ struct TestTimer : public testing::Test
 
 TEST_F(TestTimer, times_out)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
         .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::timeout)));
 
     // notify_all is called twice via the stop() in start() and the stop() in the dtor
@@ -123,7 +123,7 @@ TEST_F(TestTimer, times_out)
 
 TEST_F(TestTimer, stops)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
         .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
@@ -157,7 +157,7 @@ TEST_F(TestTimer, stops)
 
 TEST_F(TestTimer, pauses)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
         .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
@@ -198,9 +198,11 @@ TEST_F(TestTimer, pauses)
 
 TEST_F(TestTimer, resumes)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)))
-        .WillOnce(Return(std::cv_status::timeout));
+    // The initial start
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    // After resume() is called, there should be less time left than the default timeout
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Lt(default_timeout))).WillOnce(Return(std::cv_status::timeout));
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
         .Times(4)
@@ -250,7 +252,7 @@ TEST_F(TestTimer, resumes)
 
 TEST_F(TestTimer, stops_paused)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
         .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
@@ -292,7 +294,7 @@ TEST_F(TestTimer, stops_paused)
 
 TEST_F(TestTimer, cancels)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
         .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
 
     EXPECT_CALL(*mock_timer_sync_funcs, notify_all(_))
@@ -324,7 +326,7 @@ TEST_F(TestTimer, restarts)
 {
     std::atomic_int count = 0;
 
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
         .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)))
         .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::timeout)));
 
@@ -411,7 +413,7 @@ TEST_F(TestTimer, stopped_ignores_resume)
 
 TEST_F(TestTimer, running_ignores_resume)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, _))
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
         .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
 
     // notify_all() should only be called in the stop() that start() calls and in the Timer dtor
