@@ -324,6 +324,7 @@ _multipass_complete()
             ;;
             "alias")
                 _unspecified_alias_vars
+                # TODO: Do use spaces after the completion of an option starting with "--".
                 compopt -o nospace
             ;;
             "help")
