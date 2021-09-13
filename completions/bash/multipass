@@ -297,7 +297,9 @@ _multipass_complete()
                 fi
             ;;
             "alias")
-                _multipass_instances_with_colon
+                if [[ "${cur}" != ':' ]]; then
+                    _multipass_instances_with_colon
+                fi
                 compopt -o nospace
             ;;
             "help")
