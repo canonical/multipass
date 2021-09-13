@@ -65,7 +65,7 @@ _multipass_complete()
     # Set $multipass_aliases to the list of available aliases.
     _multipass_aliases()
     {
-        local cmd="bin/multipass aliases --format=csv 2>/dev/null"
+        local cmd="multipass aliases --format=csv 2>/dev/null"
 
         multipass_aliases=$( \eval $cmd | \grep -Ev '(\+--|Alias)' | \cut -d',' -f 1 )
     }
