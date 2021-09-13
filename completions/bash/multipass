@@ -65,6 +65,7 @@ _multipass_complete()
     # When we are completing the `alias` command, this function makes sure that each argument was specified at most
     # once. It fills $opts with the variables which were not yet specified.
     # Precondition: the command must be "alias".
+    # Parameters: none.
     _unspecified_alias_vars()
     {
         opts=""
@@ -73,7 +74,7 @@ _multipass_complete()
         local definition_found=0
         local verbose_found=0
 
-        for ((i=$1+1; i<COMP_CWORD; ++i)); do
+        for ((i=2; i<COMP_CWORD; ++i)); do
             if [[ "${COMP_WORDS[$i]}" == '--help' ]]; then help_found=1; fi
             if [[ "${COMP_WORDS[$i]}" == '--verbose' ]]; then verbose_found=1; fi
             if [[ "${COMP_WORDS[$i]}" =~ ':' ]]; then definition_found=1; fi
