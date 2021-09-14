@@ -350,4 +350,7 @@ _multipass_complete()
 
     return 0
 }
-complete -F _multipass_complete multipass
+
+if [[ $(echo ${BASH_VERSION} | sed s/\\..*//g) -gt 3 ]]; then
+    complete -F _multipass_complete multipass
+fi
