@@ -19,6 +19,7 @@ if [ $( sw_vers -productVersion | cut -d. -f1 ) -eq 10 -a $( sw_vers -productVer
 fi
 
 # Clear the target directories to avoid any leftovers
-rm -rf "${3}@CPACK_PACKAGING_INSTALL_PREFIX@" "${3}/Applications/Multipass.app"
+# Hardcoding the path to avoid the potential for `rm -rf /`
+rm -rf "${3}/Library/Application Support/com.canonical.multipass" "${3}/Applications/Multipass.app"
 
 exit 0
