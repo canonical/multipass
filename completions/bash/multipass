@@ -178,7 +178,9 @@ _multipass_complete()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    prev2="${COMP_WORDS[COMP_CWORD-2]}"
+    if [[ ${COMP_CWORD} -gt 1 ]]; then
+        prev2="${COMP_WORDS[COMP_CWORD-2]}"
+    fi
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="transfer delete exec find help info launch list mount networks \
