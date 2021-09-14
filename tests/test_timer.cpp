@@ -91,10 +91,13 @@ struct TestTimer : public testing::Test
         cv.wait(test_lock, [&target_state] { return target_state.load(); });
     }
 
-    void notify_test_wait()
+    std::unique_lock<std::mutex> notify_test_wait()
     {
+        std::unique_lock<std::mutex> test_lock(cv_m);
         test_notify_called.store(true);
         cv.notify_all();
+
+        return test_lock;
     }
 
     void SetUp() override
@@ -106,8 +109,7 @@ struct TestTimer : public testing::Test
         EXPECT_CALL(*mock_timer_sync_funcs, notify_all)
             .WillOnce(Return())                // Handles the Timer::stop() in Timer::start()
             .WillRepeatedly([this](auto&...) { // Handles all other notify_all calls in Timer
-                std::unique_lock<std::mutex> test_lock(cv_m);
-                notify_test_wait();
+                notify_test_wait();            // discard returned lock
             });
     }
 
@@ -134,8 +136,7 @@ TEST_F(TestTimer, times_out)
     ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out yet";
 
     // Notify the mocked wait_for()
-    std::unique_lock<std::mutex> test_lock(cv_m);
-    notify_test_wait();
+    auto test_lock = notify_test_wait();
 
     ASSERT_TRUE(cv.wait_for(test_lock, default_wait, [this] { return timeout_count.load() == 1; }))
         << "Did not time out in reasonable timeframe";
@@ -266,8 +267,7 @@ TEST_F(TestTimer, restarts)
     ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out yet";
 
     // Notify the mocked wait_for()
-    std::unique_lock<std::mutex> test_lock(cv_m);
-    notify_test_wait();
+    auto test_lock = notify_test_wait();
 
     // Wait on the Timer callback
     ASSERT_TRUE(cv.wait_for(test_lock, default_wait, [this] { return timeout_count.load() > 0; }))
