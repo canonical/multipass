@@ -221,6 +221,10 @@ _multipass_complete()
         "aliases")
             opts="${opts} --format"
         ;;
+        "unalias")
+            _multipass_aliases
+            opts="${opts} ${multipass_aliases}"
+        ;;
     esac
 
     if [[ ${prev} == -* ]]; then
