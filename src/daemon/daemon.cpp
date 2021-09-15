@@ -2001,6 +2001,64 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterf
     reply.set_version(multipass::version_string);
     config->update_prompt->populate(reply.mutable_update_info());
     server->Write(reply);
+
+    auto name = "asdf";
+    try
+    {
+        auto& instance = vm_instances.at(name);
+        auto& spec = vm_instance_specs.at(name);
+
+        if (auto st = instance->current_state();
+            st != VirtualMachine::State::stopped && st != VirtualMachine::State::off)
+        {
+            mpl::log(logging::Level::warning, "INSTANCE MOD", fmt::format("state is {}", st));
+            status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                                   "Instance 'asdf' must be stopped for instance mod", ""});
+            return;
+        }
+
+        if (preparing_instances.find(name) != preparing_instances.end())
+        {
+            status_promise->set_value(
+                grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Instance 'asdf' being prepared", ""});
+            return;
+        }
+
+        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        if (!vm_image.image_path.isEmpty() && !QFile::exists(vm_image.image_path))
+        {
+            throw std::runtime_error{
+                fmt::format("Could not find image for '{}'. Expected location: {}", name, vm_image.image_path)};
+        }
+
+        const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
+        const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
+
+        spec.num_cores = 3;
+        mp::VirtualMachineDescription vm_desc{spec.num_cores,
+                                              spec.mem_size,
+                                              spec.disk_space,
+                                              name,
+                                              spec.default_mac_address,
+                                              spec.extra_interfaces,
+                                              spec.ssh_username,
+                                              vm_image,
+                                              cloud_init_iso,
+                                              {},
+                                              {},
+                                              {},
+                                              {}};
+        instance = config->factory->create_virtual_machine(vm_desc, *this);
+        mpl::log(mpl::Level::warning, "INSTANCE MOD", "Instance updated");
+    }
+    catch (std::out_of_range&)
+    {
+        auto msg = deleted_instances.find(name) != deleted_instances.end() ? "Instance 'asdf' is deleted"
+                                                                           : "No instance named 'asdf'";
+        status_promise->set_value(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, msg, ""});
+        return;
+    }
+
     status_promise->set_value(grpc::Status::OK);
 }
 

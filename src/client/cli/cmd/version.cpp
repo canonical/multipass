@@ -40,13 +40,7 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status)
-    {
-        VersionReply reply;
-        cout << chosen_formatter->format(reply, multipass::version_string);
-
-        return ReturnCode::Ok;
-    };
+    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
     mp::VersionRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
