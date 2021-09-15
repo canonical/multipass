@@ -20,7 +20,7 @@
 
 namespace mpu = multipass::utils;
 
-mpu::Timer::Timer(std::chrono::seconds timeout, std::function<void()> callback)
+mpu::Timer::Timer(std::chrono::milliseconds timeout, std::function<void()> callback)
     : timeout(timeout), callback(callback), current_state(TimerState::Stopped)
 {
 }
@@ -45,16 +45,17 @@ void mpu::Timer::main()
     while (current_state != TimerState::Stopped)
     {
         auto start_time = std::chrono::system_clock::now();
-        if (current_state == TimerState::Running && cv.wait_for(lk, remaining_time) == std::cv_status::timeout)
+        if (current_state == TimerState::Running &&
+            MP_TIMER_SYNC_FUNCS.wait_for(cv, lk, remaining_time) == std::cv_status::timeout)
         {
             current_state = TimerState::Stopped;
             callback();
         }
         else if (current_state == TimerState::Paused)
         {
-            remaining_time = std::chrono::duration_cast<std::chrono::seconds>(
+            remaining_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                 remaining_time - (std::chrono::system_clock::now() - start_time));
-            cv.wait(lk);
+            MP_TIMER_SYNC_FUNCS.wait(cv, lk);
         }
     }
 }
@@ -67,7 +68,7 @@ void mpu::Timer::pause()
             return;
         current_state = TimerState::Paused;
     }
-    cv.notify_all();
+    MP_TIMER_SYNC_FUNCS.notify_all(cv);
 }
 
 void mpu::Timer::resume()
@@ -78,7 +79,7 @@ void mpu::Timer::resume()
             return;
         current_state = TimerState::Running;
     }
-    cv.notify_all();
+    MP_TIMER_SYNC_FUNCS.notify_all(cv);
 }
 
 void mpu::Timer::stop()
@@ -87,8 +88,29 @@ void mpu::Timer::stop()
         std::lock_guard<std::mutex> lk(cv_m);
         current_state = TimerState::Stopped;
     }
-    cv.notify_all();
+    MP_TIMER_SYNC_FUNCS.notify_all(cv);
 
     if (t.joinable())
         t.join();
+}
+
+mpu::TimerSyncFuncs::TimerSyncFuncs(const Singleton<TimerSyncFuncs>::PrivatePass& pass) noexcept
+    : Singleton<TimerSyncFuncs>::Singleton{pass}
+{
+}
+
+void mpu::TimerSyncFuncs::notify_all(std::condition_variable& cv) const
+{
+    cv.notify_all();
+}
+
+void mpu::TimerSyncFuncs::wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock) const
+{
+    cv.wait(lock);
+}
+
+std::cv_status mpu::TimerSyncFuncs::wait_for(std::condition_variable& cv, std::unique_lock<std::mutex>& lock,
+                                             const std::chrono::duration<int, std::milli>& rel_time) const
+{
+    return cv.wait_for(lock, rel_time);
 }

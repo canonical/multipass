@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_TIMER_H
 #define MULTIPASS_TIMER_H
 
+#include "singleton.h"
+
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -37,7 +39,7 @@ enum class TimerState : int
 class Timer
 {
 public:
-    Timer(std::chrono::seconds, std::function<void()>); /* NB: callback runs on the timeout thread. */
+    Timer(std::chrono::milliseconds, std::function<void()>); /* NB: callback runs on the timeout thread. */
     ~Timer();
     Timer(const Timer&) = delete;
     const Timer& operator=(const Timer&) = delete;
@@ -50,7 +52,7 @@ public:
 
 private:
     void main();
-    const std::chrono::seconds timeout;
+    const std::chrono::milliseconds timeout;
     const std::function<void()> callback;
     TimerState current_state;
     std::thread t;
@@ -58,6 +60,18 @@ private:
     std::mutex cv_m;
 };
 
+#define MP_TIMER_SYNC_FUNCS multipass::utils::TimerSyncFuncs::instance()
+
+class TimerSyncFuncs : public Singleton<TimerSyncFuncs>
+{
+public:
+    TimerSyncFuncs(const Singleton<TimerSyncFuncs>::PrivatePass&) noexcept;
+
+    virtual void notify_all(std::condition_variable& cv) const;
+    virtual void wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock) const;
+    virtual std::cv_status wait_for(std::condition_variable& cv, std::unique_lock<std::mutex>& lock,
+                                    const std::chrono::duration<int, std::milli>& rel_time) const;
+};
 } // namespace multipass::utils
 
 #endif // MULTIPASS_TIMER_H

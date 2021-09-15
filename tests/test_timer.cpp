@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_singleton_helpers.h"
 
 #include <multipass/timer.h>
 
@@ -32,165 +33,280 @@ using namespace testing;
 
 namespace
 {
-struct Timer : public testing::Test
+struct MockTimerSyncFuncs : public mpu::TimerSyncFuncs
 {
-    std::atomic_bool timedout = false;
+    using TimerSyncFuncs::TimerSyncFuncs;
+
+    MOCK_CONST_METHOD1(notify_all, void(std::condition_variable&));
+    MOCK_CONST_METHOD2(wait, void(std::condition_variable&, std::unique_lock<std::mutex>&));
+    MOCK_CONST_METHOD3(wait_for, std::cv_status(std::condition_variable&, std::unique_lock<std::mutex>&,
+                                                const std::chrono::duration<int, std::milli>&));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockTimerSyncFuncs, TimerSyncFuncs);
+};
+
+struct TestTimer : public testing::Test
+{
+    TestTimer()
+        : t{default_timeout, [this] {
+                {
+                    std::lock_guard<std::mutex> test_lock{cv_m};
+                    ++timeout_count;
+                }
+                cv.notify_all();
+            }}
+    {
+    }
+
+    auto mock_wait(std::unique_lock<std::mutex>& timer_lock, std::atomic_bool& target_state)
+    {
+        std::unique_lock<std::mutex> test_lock(cv_m);
+
+        // Unlock the Timer's internal lock
+        timer_lock.unlock();
+
+        // Notify the test thread that the timer is running
+        target_state.store(true);
+        cv.notify_all();
+
+        // Wait for notification from main test thread
+        cv.wait(test_lock, [this] { return test_notify_called.load(); });
+        test_notify_called.store(false);
+
+        // Re-lock the Timer's internal lock before returning
+        timer_lock.lock();
+    }
+
+    auto make_mock_wait_for(std::cv_status timeout_status)
+    {
+        return [this, timeout_status](std::unique_lock<std::mutex>& timer_lock) {
+            mock_wait(timer_lock, timer_running);
+            return timeout_status;
+        };
+    }
+
+    void wait_for(const std::atomic_bool& target_state)
+    {
+        std::unique_lock<std::mutex> test_lock(cv_m);
+        cv.wait(test_lock, [&target_state] { return target_state.load(); });
+    }
+
+    std::unique_lock<std::mutex> notify_test_wait()
+    {
+        std::unique_lock<std::mutex> test_lock(cv_m);
+        test_notify_called.store(true);
+        cv.notify_all();
+
+        return test_lock;
+    }
+
+    void SetUp() override
+    {
+        ON_CALL(*mock_timer_sync_funcs, wait).WillByDefault(WithArg<1>([this](auto& timer_lock) {
+            mock_wait(timer_lock, timer_paused);
+        }));
+
+        EXPECT_CALL(*mock_timer_sync_funcs, notify_all)
+            .WillOnce(Return())                // Handles the Timer::stop() in Timer::start()
+            .WillRepeatedly([this](auto&...) { // Handles all other notify_all calls in Timer
+                notify_test_wait();            // discard returned lock
+            });
+    }
+
+    std::atomic_int timeout_count{0};
+    std::atomic_bool test_notify_called{false}, timer_running{false}, timer_paused{false};
     std::condition_variable cv;
     std::mutex cv_m;
+    const std::chrono::milliseconds default_timeout{10};
+    const std::chrono::seconds default_wait{1};
+
+    MockTimerSyncFuncs::GuardedMock attr{MockTimerSyncFuncs::inject()};
+    MockTimerSyncFuncs* mock_timer_sync_funcs = attr.first;
+    mpu::Timer t;
 };
+
 } // namespace
 
-TEST_F(Timer, times_out)
+TEST_F(TestTimer, times_out)
 {
-    mpu::Timer t{duration_cast<seconds>(1ms), [this]() {
-                     {
-                         std::lock_guard<std::mutex> lk{cv_m};
-                         timedout.store(true);
-                     }
-                     cv.notify_all();
-                 }};
-    std::unique_lock<std::mutex> lk(cv_m);
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::timeout)));
 
     t.start();
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out yet";
 
-    cv.wait_for(lk, 10ms); // Windows CI needs longer...
+    // Notify the mocked wait_for()
+    auto test_lock = notify_test_wait();
 
-    ASSERT_TRUE(timedout.load()) << "Should have timed out";
+    ASSERT_TRUE(cv.wait_for(test_lock, default_wait, [this] { return timeout_count.load() == 1; }))
+        << "Did not time out in reasonable timeframe";
+
+    ASSERT_EQ(timeout_count.load(), 1) << "Should have timed out";
 }
 
-TEST_F(Timer, stops)
+TEST_F(TestTimer, stops)
 {
-    mpu::Timer t{duration_cast<seconds>(10s), [this]() { timedout.store(true); }};
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
 
     t.start();
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
 
+    // Wait for the the timer to be "running" in the mocked wait_for()
+    wait_for(timer_running);
+
+    // stop() blocks until the Timer thread has joined, ie, it is finished
     t.stop();
-    std::this_thread::sleep_for(5ms);
 
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out";
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
 }
 
-TEST_F(Timer, pauses)
+TEST_F(TestTimer, pauses)
 {
-    mpu::Timer t{duration_cast<seconds>(10s), [this]() { timedout.store(true); }};
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait);
 
     t.start();
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
 
-    t.pause();
-    std::this_thread::sleep_for(5ms);
-
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out";
-}
-
-TEST_F(Timer, resumes)
-{
-    const std::chrono::milliseconds timeout(10);
-
-    mpu::Timer t{duration_cast<seconds>(timeout), [this]() {
-                     {
-                         std::lock_guard<std::mutex> lk{cv_m};
-                         timedout.store(true);
-                     }
-                     cv.notify_all();
-                 }};
-    std::unique_lock<std::mutex> lk(cv_m);
-
-    t.start();
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
-
-    lk.unlock();
+    // Wait for the the timer to be "running" in the mocked wait_for()
+    wait_for(timer_running);
 
     t.pause();
 
-    std::this_thread::sleep_for(timeout + 5ms);
-    lk.lock();
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
+    // Wait for the the timer to be "paused" in the mocked wait()
+    wait_for(timer_paused);
+
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
+}
+
+TEST_F(TestTimer, resumes)
+{
+    // The initial start
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+
+    // After resume() is called, there should be less time left than the default timeout
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Lt(default_timeout))).WillOnce(Return(std::cv_status::timeout));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait);
+
+    t.start();
+
+    // Wait for the the timer to be "running" in the mocked wait_for()
+    wait_for(timer_running);
+
+    t.pause();
+
+    // Wait for the the timer to be "paused" in the mocked wait()
+    wait_for(timer_paused);
 
     t.resume();
 
-    cv.wait_for(lk, timeout); // Windows CI needs longer...
-    ASSERT_TRUE(timedout.load()) << "Should have timed out now";
+    std::unique_lock<std::mutex> test_lock(cv_m);
+    // Wait on the actual Timer timeout
+    ASSERT_TRUE(cv.wait_for(test_lock, default_wait, [this] { return timeout_count.load() == 1; }))
+        << "Did not time out in reasonable timeframe";
+
+    ASSERT_EQ(timeout_count.load(), 1) << "Should have timed out";
 }
 
-TEST_F(Timer, stops_paused)
+TEST_F(TestTimer, stops_paused)
 {
-    mpu::Timer t{duration_cast<seconds>(10s), [this]() { timedout.store(true); }};
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait);
 
     t.start();
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out yet";
+
+    // Wait for the the timer to be "running" in the mocked wait_for()
+    wait_for(timer_running);
 
     t.pause();
 
-    t.stop();
-    std::this_thread::sleep_for(5ms);
+    // Wait for the the timer to be "paused" in the mocked wait()
+    wait_for(timer_paused);
 
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out";
+    t.stop();
+
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
 }
 
-TEST_F(Timer, cancels)
+TEST_F(TestTimer, cancels)
 {
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+
+    // Don't use the TestTimer mpu::Timer since we are testing it going out of scope
     {
-        mpu::Timer t{duration_cast<seconds>(10s), [this]() { timedout.store(true); }};
-        t.start();
+        mpu::Timer scoped_timer{default_timeout, [this] { ++timeout_count; }};
+        scoped_timer.start();
+
+        // Wait for the the timer to be "running" in the mocked wait_for()
+        wait_for(timer_running);
     }
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out";
 
-    std::this_thread::sleep_for(5ms);
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out still";
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
 }
 
-TEST_F(Timer, restarts)
+TEST_F(TestTimer, restarts)
 {
-    int count = 0;
-
-    mpu::Timer t{1s, [this, &count]() {
-                     {
-                         std::lock_guard<std::mutex> lk{cv_m};
-                         ++count;
-                     }
-                     cv.notify_all();
-                 }};
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::timeout)));
 
     t.start();
-    std::this_thread::sleep_for(500ms);
 
-    t.start();
-    std::this_thread::sleep_for(500ms);
+    // Wait for the the timer to be "running" in the mocked wait_for()
+    wait_for(timer_running);
 
-    std::unique_lock<std::mutex> lk(cv_m);
-    ASSERT_EQ(count, 0) << "Should not have timed out yet";
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out yet";
+    t.start(); // start() will stop the timer if it's running
 
-    cv.wait_for(lk, 2000ms); // Windows CI needs longer...
-    ASSERT_EQ(count, 1) << "Should have timed out once now";
+    // Wait for the the timer to be "running" again in the mocked wait_for()
+    wait_for(timer_running);
+
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out yet";
+
+    // Notify the mocked wait_for()
+    auto test_lock = notify_test_wait();
+
+    // Wait on the Timer callback
+    ASSERT_TRUE(cv.wait_for(test_lock, default_wait, [this] { return timeout_count.load() > 0; }))
+        << "Did not time out in reasonable timeframe";
+
+    ASSERT_EQ(timeout_count.load(), 1) << "Should have timed out once now";
 }
 
-TEST_F(Timer, stopped_ignores_pause)
+TEST_F(TestTimer, stopped_ignores_pause)
 {
-    mpu::Timer t{0s, [this]() { timedout.store(true); }};
+    // Indicates the Timer was never running
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for).Times(0);
 
     t.pause();
 
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out";
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
 }
 
-TEST_F(Timer, stopped_ignores_resume)
+TEST_F(TestTimer, stopped_ignores_resume)
 {
-    mpu::Timer t{0s, [this]() { timedout.store(true); }};
+    // Indicates the Timer was never running
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for).Times(0);
 
     t.resume();
 
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out";
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
 }
 
-TEST_F(Timer, running_ignores_resume)
+TEST_F(TestTimer, running_ignores_resume)
 {
-    mpu::Timer t{0s, [this]() { timedout.store(true); }};
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
 
     t.start();
+
+    // Wait for the the timer to be "running" in the mocked wait_for()
+    wait_for(timer_running);
+
     t.resume();
 
-    ASSERT_FALSE(timedout.load()) << "Should not have timed out";
+    ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
 }
