@@ -186,8 +186,6 @@ else()
     set(MULTIPASS_PLATFORM linux)
     set(LINUX TRUE)
   endif()
-
-  add_compile_options(-Wno-error=deprecated-declarations)
 endif()
 
 if(cmake_build_type_lower MATCHES "coverage")
