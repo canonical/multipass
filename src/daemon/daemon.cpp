@@ -2001,6 +2001,40 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterf
     reply.set_version(multipass::version_string);
     config->update_prompt->populate(reply.mutable_update_info());
     server->Write(reply);
+
+    auto name = "asdf";
+    try
+    {
+        auto& instance = vm_instances.at(name);
+
+        if (auto st = instance->current_state();
+            st != VirtualMachine::State::stopped && st != VirtualMachine::State::off)
+        {
+            mpl::log(logging::Level::warning, "INSTANCE MOD", fmt::format("state is {}", st));
+            status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                                   "Instance 'asdf' must be stopped for instance mod", ""});
+            return;
+        }
+
+        if (preparing_instances.find(name) != preparing_instances.end())
+        {
+            status_promise->set_value(
+                grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Instance 'asdf' being prepared", ""});
+            return;
+        }
+
+        vm_instance_specs.at(name).num_cores = 3;
+        // TODO@ricab instance->mod_cpu(3);
+        mpl::log(mpl::Level::warning, "INSTANCE MOD", "Instance updated");
+    }
+    catch (std::out_of_range&)
+    {
+        auto msg = deleted_instances.find(name) != deleted_instances.end() ? "Instance 'asdf' is deleted"
+                                                                           : "No instance named 'asdf'";
+        status_promise->set_value(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, msg, ""});
+        return;
+    }
+
     status_promise->set_value(grpc::Status::OK);
 }
 
