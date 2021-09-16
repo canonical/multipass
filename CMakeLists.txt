@@ -64,6 +64,28 @@ endif()
 # OpenSSL config
 find_package(OpenSSL REQUIRED)
 
+if(APPLE)
+  set(HOST_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
+
+  if (${HOST_ARCH} STREQUAL "arm64")
+    set(HOST_ARCH "aarch64")
+  endif ()
+
+  if (${HOST_ARCH} MATCHES "x86_64")
+      list(APPEND MULTIPASS_BACKENDS virtualbox)
+  endif()
+
+  # Only build QEMU for macOS 10.15+
+  if (CMAKE_HOST_SYSTEM_VERSION VERSION_GREATER_EQUAL 19)
+      list(APPEND MULTIPASS_BACKENDS qemu)
+  endif()
+
+  # Only build Hyperkit, et. al. on host systems older than macOS 20.x.x (Big Sur)
+  if (CMAKE_HOST_SYSTEM_VERSION VERSION_LESS 20)
+      list(APPEND MULTIPASS_BACKENDS hyperkit)
+  endif()
+endif()
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
