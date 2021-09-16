@@ -281,15 +281,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         auto arg_mem_size = parser->value(memOption).toStdString();
 
-        try
-        {
-            mp::MemorySize{arg_mem_size};
-        }
-        catch (mp::InvalidMemorySizeException&)
-        {
-            fmt::print(cerr, "Invalid memory size value supplied: {}.\n", arg_mem_size);
-            return ParseCode::CommandLineError;
-        }
+        mp::MemorySize{arg_mem_size}; // throw if bad
 
         request.set_mem_size(arg_mem_size);
     }
