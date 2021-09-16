@@ -70,6 +70,7 @@ public:
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void ensure_vm_is_running() = 0;
     virtual void update_state() = 0;
+    virtual void update_num_cores(int num_cores) = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;

@@ -521,3 +521,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
         }
     });
 }
+void multipass::QemuVirtualMachine::update_num_cores(int num_cores)
+{
+    assert(num_cores > 0);
+    desc.num_cores = num_cores;
+}

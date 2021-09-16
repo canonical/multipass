@@ -35,6 +35,7 @@
 #include <shared/shared_backend_utils.h>
 
 #include <chrono>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <thread>
 
 namespace mp = multipass;
@@ -390,4 +391,8 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
     {
         // Implies the task doesn't exist, move on...
     }
+}
+void multipass::LXDVirtualMachine::update_num_cores(int /*num_cores*/)
+{
+    throw NotImplementedOnThisBackendException{"instance mod"};
 }

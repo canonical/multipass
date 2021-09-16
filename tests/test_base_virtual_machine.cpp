@@ -100,6 +100,10 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     void update_state()
     {
     }
+
+    void update_num_cores(int /*num_cores*/) override
+    {
+    }
 };
 
 struct BaseVM : public Test

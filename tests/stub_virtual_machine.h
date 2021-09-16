@@ -93,6 +93,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     void update_state() override
     {
     }
+
+    void update_num_cores(int /*num_cores*/) override
+    {
+    }
 };
 } // namespace test
 } // namespace multipass

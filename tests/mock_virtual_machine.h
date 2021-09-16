@@ -57,6 +57,7 @@ struct MockVirtualMachine : public multipass::VirtualMachine
     MOCK_METHOD0(ensure_vm_is_running, void());
     MOCK_METHOD1(wait_until_ssh_up, void(std::chrono::milliseconds));
     MOCK_METHOD0(update_state, void());
+    MOCK_METHOD1(update_num_cores, void(int));
 };
 } // namespace test
 } // namespace multipass

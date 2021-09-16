@@ -28,7 +28,7 @@
 #include <shared/shared_backend_utils.h>
 
 #include <QXmlStreamReader>
-
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -487,4 +487,8 @@ mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPt
     }
 
     return connection;
+}
+void multipass::LibVirtVirtualMachine::update_num_cores(int /*num_cores*/)
+{
+    throw NotImplementedOnThisBackendException{"instance mod"};
 }

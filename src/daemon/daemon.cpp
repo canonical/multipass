@@ -2003,6 +2003,7 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterf
     server->Write(reply);
 
     auto name = "asdf";
+    auto num_cores = 3;
     try
     {
         auto& instance = vm_instances.at(name);
@@ -2023,9 +2024,13 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterf
             return;
         }
 
-        vm_instance_specs.at(name).num_cores = 3;
-        // TODO@ricab instance->mod_cpu(3);
-        mpl::log(mpl::Level::warning, "INSTANCE MOD", "Instance updated");
+        if (auto& spec = vm_instance_specs.at(name); num_cores < spec.num_cores)
+            throw std::runtime_error{"Cannot decrease number of cores"};
+        else
+        {
+            instance->update_num_cores(spec.num_cores = num_cores);
+            mpl::log(mpl::Level::warning, "INSTANCE MOD", "Instance updated");
+        }
     }
     catch (std::out_of_range&)
     {
