@@ -224,7 +224,7 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
                    {"networks"}});
 }
 
-TEST_F(Daemon, provides_version)
+TEST_F(Daemon, DISABLED_provides_version)
 {
     mp::Daemon daemon{config_builder.build()};
     StrictMock<MockServerWriter<mp::VersionReply>> mock_server;

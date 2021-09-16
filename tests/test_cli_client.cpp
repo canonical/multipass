@@ -1279,7 +1279,7 @@ TEST_F(Client, version_parse_failure)
     EXPECT_THAT(send_command({"version", "--format"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, version_info_on_failure)
+TEST_F(Client, DISABLED_version_info_on_failure)
 {
     const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
 
