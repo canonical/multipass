@@ -633,7 +633,12 @@ TEST_F(Client, launch_cmd_wrong_mem_arguments)
 TEST_F(Client, launch_cmd_wrong_disk_arguments)
 {
     EXPECT_CALL(mock_daemon, launch(_, _, _)).Times(0);
-    EXPECT_THAT(send_command({"launch", "-disk", "8192M"}), Eq(mp::ReturnCode::CommandLineError));
+    MP_EXPECT_THROW_THAT(send_command({"launch", "-d", "wrong"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("wrong is not a valid memory size")));
+    MP_EXPECT_THROW_THAT(send_command({"launch", "--disk", "4.56f"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("4.56f is not a valid memory size")));
+    MP_EXPECT_THROW_THAT(send_command({"launch", "-disk", "8192M"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("isk is not a valid memory size"))); // note single dash
 }
 
 TEST_F(Client, launch_cmd_help_ok)
