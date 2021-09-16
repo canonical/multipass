@@ -290,15 +290,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         auto arg_disk_size = parser->value(diskOption).toStdString();
 
-        try
-        {
-            mp::MemorySize{arg_disk_size};
-        }
-        catch (mp::InvalidMemorySizeException&)
-        {
-            fmt::print(cerr, "Invalid disk size value supplied: {}.\n", arg_disk_size);
-            return ParseCode::CommandLineError;
-        }
+        mp::MemorySize{arg_disk_size}; // throw if bad
 
         request.set_disk_space(arg_disk_size);
     }
