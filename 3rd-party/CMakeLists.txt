@@ -172,7 +172,7 @@ if (APPLE)
 
     FetchContent_Declare(qemu
       SOURCE_DIR ${QEMU_SOURCE_DIR}
-      GIT_REPOSITORY https://github.com/canonical/qemu-multipass.git
+      GIT_REPOSITORY https://github.com/canonical/qemu.git
       GIT_TAG qemu-multipass
       GIT_SHALLOW TRUE
       GIT_SUBMODULES ""
