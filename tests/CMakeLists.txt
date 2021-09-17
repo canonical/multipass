@@ -143,7 +143,24 @@ add_test(NAME multipass_tests
   COMMAND multipass_tests
 )
 
-file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} MANIFEST_ARCH)
+if (${MANIFEST_ARCH} STREQUAL "x86_64")
+  string(TOLOWER "amd64" MANIFEST_ARCH)
+endif()
+
+target_compile_definitions(multipass_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
+
+file(GLOB_RECURSE MANIFEST_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "test_data/*.in")
+
+foreach (MANIFEST_IN IN LISTS MANIFEST_FILES)
+  string(REGEX REPLACE "\.in$" "" MANIFEST_OUT ${MANIFEST_IN})
+  configure_file(
+    ${MANIFEST_IN}
+    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${MANIFEST_OUT}
+    @ONLY)
+endforeach()
+
+file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} PATTERN "*\.in" EXCLUDE)
 
 # Mock binaries for testing BasicProcess (cross-platform compatible)
 add_executable(mock_process
