@@ -310,7 +310,7 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        ${{ env.ARCH_WRAPPER }} bin/multipass_tests ${{ matrix.arch == 'arm64' && '--gtest_filter=-SimpleStreamsManifest.*:UbuntuImageHost.*' || '' }}
+        ${{ env.ARCH_WRAPPER }} bin/multipass_tests
 
     - name: Package
       id: cmake-package
