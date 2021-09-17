@@ -28,7 +28,6 @@
 #include <shared/shared_backend_utils.h>
 
 #include <QXmlStreamReader>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -488,7 +487,22 @@ mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPt
 
     return connection;
 }
-void multipass::LibVirtVirtualMachine::update_num_cores(int /*num_cores*/)
+void multipass::LibVirtVirtualMachine::update_num_cores(int num_cores)
 {
-    throw NotImplementedOnThisBackendException{"instance mod"};
+    assert(num_cores > 0); // TODO check less than generic max
+
+    auto connection = open_libvirt_connection(libvirt_wrapper);
+    assert(connection);
+
+    auto domain = domain_by_name_for(vm_name, connection.get(), libvirt_wrapper);
+    assert(domain);
+
+    int count = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_VCPU_MAXIMUM;
+    do
+    {
+        if (libvirt_wrapper->virDomainSetVcpusFlags(domain.get(), num_cores, flags) < 0)
+            throw std::runtime_error("Could not update cores");
+        flags &= ~VIR_DOMAIN_VCPU_MAXIMUM;
+    } while (!count++); // first set the maximum, then actual
 }

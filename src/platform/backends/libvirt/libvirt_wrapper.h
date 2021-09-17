@@ -82,6 +82,7 @@ private:
     typedef int (*virDomainShutdown_t)(virDomainPtr domain);
     typedef int (*virDomainManagedSave_t)(virDomainPtr domain, unsigned int flags);
     typedef int (*virDomainHasManagedSaveImage_t)(virDomainPtr domain, unsigned int flags);
+    typedef int (*virDomainSetVcpusFlags_t)(virDomainPtr domain, unsigned int nvcpus, unsigned int flags);
     typedef const char* (*virGetLastErrorMessage_t)();
 
     void* handle{nullptr};
@@ -116,6 +117,7 @@ public:
     virDomainShutdown_t virDomainShutdown;
     virDomainManagedSave_t virDomainManagedSave;
     virDomainHasManagedSaveImage_t virDomainHasManagedSaveImage;
+    virDomainSetVcpusFlags_t virDomainSetVcpusFlags;
     virGetLastErrorMessage_t virGetLastErrorMessage;
 };
 } // namespace multipass
