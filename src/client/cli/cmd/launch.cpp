@@ -25,6 +25,7 @@
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
+#include <multipass/memory_size.h>
 #include <multipass/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
@@ -277,12 +278,20 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(memOption))
     {
-        request.set_mem_size(parser->value(memOption).toStdString());
+        auto arg_mem_size = parser->value(memOption).toStdString();
+
+        mp::MemorySize{arg_mem_size}; // throw if bad
+
+        request.set_mem_size(arg_mem_size);
     }
 
     if (parser->isSet(diskOption))
     {
-        request.set_disk_space(parser->value(diskOption).toStdString());
+        auto arg_disk_size = parser->value(diskOption).toStdString();
+
+        mp::MemorySize{arg_disk_size}; // throw if bad
+
+        request.set_disk_space(arg_disk_size);
     }
 
     if (parser->isSet(cloudInitOption))
