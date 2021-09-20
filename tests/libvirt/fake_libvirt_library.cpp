@@ -156,6 +156,11 @@ virNetworkPtr virNetworkLookupByName(virConnectPtr /*conn*/, const char* /*name*
     return mpt::fake_handle<virNetworkPtr>();
 }
 
+int virDomainSetVcpusFlags(virDomainPtr /*domain*/, unsigned int /*nvcpus*/, unsigned int /*flags*/)
+{
+    return 0;
+}
+
 const char* virGetLastErrorMessage()
 {
     static char fake_error[64] = "";
