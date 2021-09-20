@@ -17,17 +17,13 @@
 
 #include "qemu_platform_detail.h"
 
-#include <multipass/file_ops.h>
 #include <multipass/format.h>
-#include <multipass/logging/log.h>
-#include <multipass/utils.h>
+
+#include <shared/macos/backend_utils.h>
 
 #include <QCoreApplication>
 
-#include <regex>
-
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 
 namespace
 {
@@ -51,63 +47,7 @@ mp::QemuPlatformDetail::QemuPlatformDetail() : common_args{set_common_args(host_
 
 mp::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
 {
-    QFile leases_file{"/var/db/dhcpd_leases"};
-
-    const std::regex hw_addr_re{"\\s*hw_address=\\d+,(.+)"};
-    const std::regex ipv4_re{"\\s*ip_address=(.+)"};
-    const std::regex known_lines{"^\\s*($|\\}$|name=|hw_address=|identifier=|lease=)"};
-
-    const auto orig_hw_addr_tokens{mp::utils::split(hw_addr, ":")};
-    std::smatch match;
-    bool hw_addr_matched = false;
-    mp::optional<mp::IPAddress> ip_address;
-
-    if (!MP_FILEOPS.open(leases_file, QIODevice::ReadOnly | QIODevice::Text))
-        throw std::runtime_error(fmt::format("Cannot open dhcpd_leases file: {}", leases_file.errorString()));
-
-    QTextStream input{&leases_file};
-    auto input_line = MP_FILEOPS.read_line(input);
-    while (!input_line.isNull())
-    {
-        auto line{input_line.toStdString()};
-        if (line == "{")
-        {
-            hw_addr_matched = false;
-            ip_address = mp::nullopt;
-        }
-        else if (std::regex_match(line, match, hw_addr_re))
-        {
-            const auto found_hw_addr_tokens{mp::utils::split(match[1], ":")};
-            auto found_it = found_hw_addr_tokens.cbegin();
-
-            if (std::all_of(orig_hw_addr_tokens.cbegin(), orig_hw_addr_tokens.cend(),
-                            [&found_it](const auto& orig_token) {
-                                return stoi(orig_token, 0, 16) == stoi(*found_it++, 0, 16);
-                            }))
-            {
-                hw_addr_matched = true;
-            }
-        }
-        else if (std::regex_match(line, match, ipv4_re))
-        {
-            ip_address.emplace(match[1]);
-        }
-        else if (line == "}" && hw_addr_matched && !ip_address)
-        {
-            throw std::runtime_error("Failed to parse IP address out of the leases file.");
-        }
-        else if (!std::regex_search(line, known_lines))
-        {
-            mpl::log(mpl::Level::warning, "qemu",
-                     fmt::format("Got unexpected line when parsing the leases file: {}", line));
-        }
-
-        if (hw_addr_matched && ip_address)
-            return ip_address;
-
-        input_line = MP_FILEOPS.read_line(input);
-    }
-    return mp::nullopt;
+    return mp::backend::get_vmnet_dhcp_ip_for(hw_addr);
 }
 
 void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
