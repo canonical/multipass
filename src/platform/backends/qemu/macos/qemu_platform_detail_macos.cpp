@@ -56,6 +56,7 @@ void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
 
 void mp::QemuPlatformDetail::platform_health_check()
 {
+    // TODO: Add appropriate health checks to ensure the QEMU backend will work as expected
 }
 
 QStringList mp::QemuPlatformDetail::vmstate_platform_args()
