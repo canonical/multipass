@@ -1994,6 +1994,7 @@ catch (const std::exception& e)
 
 void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterface<VersionReply>* server,
                          std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<VersionReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
@@ -2041,6 +2042,10 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterf
     }
 
     status_promise->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::get(const GetRequest* request, grpc::ServerWriterInterface<GetReply>* server,
