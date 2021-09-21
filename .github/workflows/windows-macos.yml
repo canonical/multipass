@@ -116,6 +116,7 @@ jobs:
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
+      CCACHE_DIR: ${{ github.workspace }}/build/ccache
       MACOSX_DEPLOYMENT_TARGET: "10.15"
       OPAM_COMP: "4.11.1"
       OPAMVERBOSE: 1
@@ -258,7 +259,6 @@ jobs:
         # Find common base between full and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
         echo "::set-output name=key::$( git merge-base origin/full ${{ github.sha }} )"
-        echo "CCACHE_DIR=${{ env.BUILD_DIR }}/ccache" >> ${GITHUB_ENV}
 
     - name: CCache
       if: ${{ runner.os == 'macOS' }}
