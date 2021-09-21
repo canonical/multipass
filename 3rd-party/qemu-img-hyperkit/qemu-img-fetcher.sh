@@ -26,6 +26,7 @@ fi;
 
 DIST="mojave"
 
+QEMU_IMG_BIN_NAME="qemu-img-hyperkit"
 BINDIR="${OUT_DIR}/bin"
 LIBDIR="${OUT_DIR}/lib"
 
@@ -57,7 +58,7 @@ mkdir -p "$DOWNLOAD_DIR"
 # Get qemu-img binary (with shared lib requirements)
 get_brew_and_extract qemu-4.2.0
 
-cp -f "$DOWNLOAD_DIR/qemu/4.2.0/bin/qemu-img" "$BINDIR/"
+cp -f "$DOWNLOAD_DIR/qemu/4.2.0/bin/qemu-img" "$BINDIR/$QEMU_IMG_BIN_NAME"
 
 
 
@@ -123,19 +124,19 @@ cp -f "$DOWNLOAD_DIR/libidn2/2.3.0/lib/libidn2.0.dylib" "$LIBDIR/"
 
 # add writable permission to allow library path rewriting
 chmod +w "$LIBDIR"/*.dylib
-chmod +w "$BINDIR/qemu-img"
+chmod +w "$BINDIR/$QEMU_IMG_BIN_NAME"
 
 
 # Update a minimal set of library paths for "qemu-img convert" to work
-install_name_tool -add_rpath "@executable_path/../lib/" "$BINDIR/qemu-img"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libgthread-2.0.0.dylib" "@rpath/libgthread-2.0.0.dylib"   "$BINDIR/qemu-img"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gnutls/lib/libgnutls.30.dylib"   "@rpath/libgnutls.30.dylib"       "$BINDIR/qemu-img"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libnettle.6.dylib"    "@rpath/libnettle.6.dylib"        "$BINDIR/qemu-img"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$BINDIR/qemu-img"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libglib-2.0.0.dylib"    "@rpath/libglib-2.0.0.dylib"      "$BINDIR/qemu-img"
+install_name_tool -add_rpath "@executable_path/../lib/" "$BINDIR/$QEMU_IMG_BIN_NAME"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libgthread-2.0.0.dylib" "@rpath/libgthread-2.0.0.dylib"   "$BINDIR/$QEMU_IMG_BIN_NAME"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gnutls/lib/libgnutls.30.dylib"   "@rpath/libgnutls.30.dylib"       "$BINDIR/$QEMU_IMG_BIN_NAME"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/nettle/lib/libnettle.6.dylib"    "@rpath/libnettle.6.dylib"        "$BINDIR/$QEMU_IMG_BIN_NAME"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$BINDIR/$QEMU_IMG_BIN_NAME"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libglib-2.0.0.dylib"    "@rpath/libglib-2.0.0.dylib"      "$BINDIR/$QEMU_IMG_BIN_NAME"
 
 # We build our own libssh
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libssh/lib/libssh.4.dylib"       "@rpath/libssh.4.dylib"           "$BINDIR/qemu-img"
+install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/libssh/lib/libssh.4.dylib"       "@rpath/libssh.4.dylib"           "$BINDIR/$QEMU_IMG_BIN_NAME"
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$LIBDIR/libgthread-2.0.0.dylib"
@@ -177,10 +178,10 @@ popd
 
 # remove writable permissions
 chmod -w "$LIBDIR"/*.dylib
-chmod -w "$BINDIR/qemu-img"
+chmod -w "$BINDIR/$QEMU_IMG_BIN_NAME"
 
 # error out if any HOMEBREW reference remains
 echo "Checking for HOMEBREW references..."
-if otool -L "$LIBDIR"/*.dylib "$BINDIR/qemu-img" | grep HOMEBREW; then
+if otool -L "$LIBDIR"/*.dylib "$BINDIR/$QEMU_IMG_BIN_NAME" | grep HOMEBREW; then
   exit 1
 fi
