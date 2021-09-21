@@ -505,4 +505,6 @@ void multipass::LibVirtVirtualMachine::update_num_cores(int num_cores)
             throw std::runtime_error("Could not update cores");
         flags &= ~VIR_DOMAIN_VCPU_MAXIMUM;
     } while (!count++); // first set the maximum, then actual
+
+    desc.num_cores = num_cores;
 }
