@@ -72,8 +72,8 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
         return mp::VirtualMachine::State::unknown;
     default:
         mpl::log(mpl::Level::error, name.toStdString(),
-                 fmt::format("Got unexpected LXD state: {} ({})", metadata["status_code"].toString(),
-                             metadata["status"].toInt()));
+                 fmt::format("Got unexpected LXD state: {} ({})", metadata["status_code"].toInt(),
+                             metadata["status"].toString()));
         return mp::VirtualMachine::State::unknown;
     }
 }
