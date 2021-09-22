@@ -9,6 +9,10 @@ on:
         description: macOS package URL
       win-package:
         description: Windows package URL
+      images:
+        description: Space-separated list of images to test
+        required: true
+        default: primary
 
 jobs:
   GetMatrix:
@@ -26,18 +30,21 @@ jobs:
 
         MATRIX=""
 
-        if [ -n '${{ github.event.inputs.snap-channel }}' ]; then
-          MATRIX+='{"os": "Linux", "driver": "qemu"}'
-          MATRIX+='{"os": "Linux", "driver": "lxd"}'
-        fi
+        for image in ${{ github.event.inputs.images }}; do
 
-        if [ -n '${{ github.event.inputs.mac-package }}' ]; then
-          MATRIX+='{"os": "macOS", "driver": "hyperkit"}'
-        fi
+          if [ -n '${{ github.event.inputs.snap-channel }}' ]; then
+            MATRIX+='{"os": "Linux", "driver": "qemu", "image": "'${image}'"}'
+            MATRIX+='{"os": "Linux", "driver": "lxd", "image": "'${image}'"}'
+          fi
 
-        if [ -n '${{ github.event.inputs.win-package }}' ]; then
-          MATRIX+='{"os": "Windows", "driver": "hyperv"}'
-        fi
+          if [ -n '${{ github.event.inputs.mac-package }}' ]; then
+            MATRIX+='{"os": "macOS", "driver": "hyperkit", "image": "'${image}'"}'
+          fi
+
+          if [ -n '${{ github.event.inputs.win-package }}' ]; then
+            MATRIX+='{"os": "Windows", "driver": "hyperv", "image": "'${image}'"}'
+          fi
+        done
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
 
@@ -164,11 +171,11 @@ jobs:
               _retry_grep 12 5 "\w,lts\W" _run $MP find
               sleep 10
 
-              _run $MP start --timeout 1200
+              _run $MP launch ${{ matrix.image }} --timeout 1200 --name foobar
 
               _run $MP list
 
-              _run $MP exec primary -- uname -a
+              _run $MP exec foobar -- uname -a
 
     - name: Submit the job
       id: submit
