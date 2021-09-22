@@ -42,6 +42,9 @@ elseif(APPLE)
 endif()
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+  string(TOUPPER ${BACKEND}_ENABLED DEF)
+  target_compile_definitions(platform PRIVATE -D${DEF})
+
   target_link_libraries(platform
     ${BACKEND}_backend)
 endforeach()

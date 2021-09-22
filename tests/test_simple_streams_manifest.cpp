@@ -48,8 +48,8 @@ TEST(SimpleStreamsManifest, can_find_info_by_alias)
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, host_url);
 
     const QString expected_id{"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
-    const QString expected_location{
-        "server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-amd64-disk1.img"};
+    const QString expected_location =
+        QString("server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-%1-disk1.img").arg(MANIFEST_ARCH);
 
     const auto info = manifest->image_records[expected_id];
     ASSERT_THAT(info, NotNull());
