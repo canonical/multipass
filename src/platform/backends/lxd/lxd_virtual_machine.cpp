@@ -69,6 +69,7 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
         return mp::VirtualMachine::State::suspended;
     case 104: // Cancelling
     case 108: // Aborting
+    case 112: // Error
         return mp::VirtualMachine::State::unknown;
     default:
         mpl::log(mpl::Level::error, name.toStdString(),
