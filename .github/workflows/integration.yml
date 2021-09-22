@@ -29,13 +29,16 @@ jobs:
         MATRIX=""
 
         if [ -n '${{ github.event.inputs.snap-channel }}' ]; then
-          MATRIX+='{"os": "Linux", "driver": "qemu"}'
-          MATRIX+='{"os": "Linux", "driver": "lxd"}'
+          MATRIX+='{"os": "Linux", "vm": "linux", "driver": "qemu"}'
+          MATRIX+='{"os": "Linux", "vm": "linux", "driver": "lxd"}'
         fi
 
         if [ -n '${{ github.event.inputs.mac-package }}' ]; then
-          MATRIX+='{"os": "macOS", "driver": "hyperkit", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
-          MATRIX+='{"os": "macOS", "driver": "qemu", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
+          MATRIX+='{"os": "macOS", "vm": "macos-10.14", "driver": "hyperkit", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
+          MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "hyperkit", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
+          MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "qemu", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
+          MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "hyperkit", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
+          MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "qemu", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
         fi
 
         if [ -n '${{ github.event.inputs.mac-arm-package }}' ]; then
@@ -43,7 +46,7 @@ jobs:
         fi
 
         if [ -n '${{ github.event.inputs.win-package }}' ]; then
-          MATRIX+='{"os": "Windows", "driver": "hyperv"}'
+          MATRIX+='{"os": "Windows",  "vm": "windows-10", "driver": "hyperv"}'
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
@@ -72,9 +75,7 @@ jobs:
           job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || 'vmware-fusion' }}
           output_timeout: 2400
           provision_data:
-            ${{ matrix.os == 'Linux' && 'vmx: /Users/michal/Virtual Machines.localized/linux.vmwarevm/linux.vmx' || '' }}
-            ${{ matrix.os == 'macOS' && matrix.arch == 'x86_64' && 'vmx: /Users/michal/Virtual Machines.localized/macos-11.vmwarevm/macos-11.vmx' || '' }}
-            ${{ matrix.os == 'Windows' && 'vmx: /Users/michal/Virtual Machines.localized/windows-10.vmwarevm/windows-10.vmx' || '' }}
+            ${{ matrix.vm && format('vmx: /Users/michal/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
             snapshot: Testflinger
             ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/groovy/release/ubuntu-20.10-server-cloudimg-amd64.img' || '' }}
             vmx_config:
