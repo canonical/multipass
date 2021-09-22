@@ -205,7 +205,7 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
     fmt::memory_buffer buf;
     for (auto const& arg : args)
     {
-        fmt::format_to(buf, "{0}{1}{0} ", quote_for(arg, quote_type), arg);
+        fmt::format_to(std::back_inserter(buf), "{0}{1}{0} ", quote_for(arg, quote_type), arg);
     }
 
     // Remove the last space inserted

@@ -638,7 +638,7 @@ grpc::Status validate_requested_instances(const Instances& instances, const Inst
 {
     fmt::memory_buffer errors;
     for (const auto& name : instances)
-        fmt::format_to(errors, check_instance(name));
+        fmt::format_to(std::back_inserter(errors), check_instance(name));
 
     return grpc_status_for(errors);
 }
@@ -677,7 +677,7 @@ auto find_instances_to_delete(const Instances& instances, const InstanceMap& ope
         else if (trashed_vms.find(name) != trashed_vms.end())
             trashed_instances_to_delete.push_back(name);
         else
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
 
     auto status = grpc_status_for(errors);
 
@@ -1266,7 +1266,7 @@ try // clang-format on
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
             {
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
                 continue;
             }
             deleted = true;
@@ -1527,20 +1527,20 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             continue;
         }
 
         auto target_path = path_entry.target_path();
         if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
-            fmt::format_to(errors, "Unable to mount to \"{}\"\n", target_path);
+            fmt::format_to(std::back_inserter(errors), "Unable to mount to \"{}\"\n", target_path);
             continue;
         }
 
         if (instance_mounts.has_instance_already_mounted(name, target_path))
         {
-            fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
+            fmt::format_to(std::back_inserter(errors), "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
         }
 
@@ -1577,14 +1577,15 @@ try // clang-format on
             }
             catch (const std::exception& e)
             {
-                fmt::format_to(errors, "error mounting \"{}\": {}", target_path, e.what());
+                fmt::format_to(std::back_inserter(errors), "error mounting \"{}\": {}", target_path, e.what());
                 continue;
             }
         }
 
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
-            fmt::format_to(errors, "There is already a mount defined for \"{}:{}\"\n", name, target_path);
+            fmt::format_to(std::back_inserter(errors), "There is already a mount defined for \"{}:{}\"\n", name,
+                           target_path);
             continue;
         }
 
@@ -1811,9 +1812,9 @@ try // clang-format on
         {
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             else
-                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" is deleted\n", name);
             continue;
         }
         instances_to_suspend.push_back(name);
@@ -1951,7 +1952,7 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             continue;
         }
 
@@ -1971,14 +1972,14 @@ try // clang-format on
             {
                 if (!instance_mounts.stop_mount(name, target_path))
                 {
-                    fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
+                    fmt::format_to(std::back_inserter(errors), "\"{}\" is not mounted\n", target_path);
                 }
             }
 
             auto erased = mounts.erase(target_path);
             if (!erased)
             {
-                fmt::format_to(errors, "\"{}\" not found in database\n", target_path);
+                fmt::format_to(std::back_inserter(errors), "\"{}\" not found in database\n", target_path);
             }
         }
     }
@@ -2570,13 +2571,13 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                     }
                     catch (const mp::SSHFSMissingError&)
                     {
-                        fmt::format_to(errors, sshfs_error_template + "\n", name);
+                        fmt::format_to(std::back_inserter(errors), sshfs_error_template + "\n", name);
                         break;
                     }
                 }
                 catch (const std::exception& e)
                 {
-                    fmt::format_to(errors, "Removing \"{}\": {}\n", target_path, e.what());
+                    fmt::format_to(std::back_inserter(errors), "Removing \"{}\": {}\n", target_path, e.what());
                     invalid_mounts.push_back(target_path);
                 }
                 persist_instances();
@@ -2585,7 +2586,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
     }
     catch (const std::exception& e)
     {
-        fmt::format_to(errors, e.what());
+        fmt::format_to(std::back_inserter(errors), e.what());
     }
 
     return fmt::to_string(errors);
@@ -2631,7 +2632,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server,
         auto error = future.result();
         if (!error.empty())
         {
-            fmt::format_to(errors, "{}\n", error);
+            fmt::format_to(std::back_inserter(errors), "{}\n", error);
         }
     }
 
