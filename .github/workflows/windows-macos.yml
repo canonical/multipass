@@ -98,8 +98,8 @@ jobs:
       run: |
         MATRIX='{"include": ['
         [[ '${{ github.event.pull_request.draft }}' != 'true' && '${{ github.event.client_payload.draft }}' != 'true' ]] && MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "multipass-macos-10.15", "arch": "x86_64"},'
-        MATRIX+='{"runs-on": "multipass-macos-11-arm", "arch": "arm64"}'
+        MATRIX+='{"runs-on": "multipass-macos-10.15", "arch": "x86_64", "target": "10.14"},'
+        MATRIX+='{"runs-on": "multipass-macos-11-arm", "arch": "arm64", "target": "11"}'
         MATRIX+=']}'
         echo "::set-output name=matrix::${MATRIX}"
 
@@ -117,7 +117,7 @@ jobs:
     env:
       BUILD_DIR: ${{ github.workspace }}/build
       CCACHE_DIR: ${{ github.workspace }}/build/ccache
-      MACOSX_DEPLOYMENT_TARGET: "10.15"
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
       OPAM_COMP: "4.11.1"
       OPAMVERBOSE: 1
       OPAMYES: 1
