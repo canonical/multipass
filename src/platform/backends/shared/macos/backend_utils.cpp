@@ -22,7 +22,9 @@
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
+#include <algorithm>
 #include <regex>
+#include <stdexcept>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

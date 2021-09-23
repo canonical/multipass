@@ -27,7 +27,7 @@ namespace mp = multipass;
 
 namespace
 {
-auto set_common_args(const QString& host_arch)
+auto get_common_args(const QString& host_arch)
 {
     QStringList qemu_args;
 
@@ -41,7 +41,7 @@ auto set_common_args(const QString& host_arch)
 }
 } // namespace
 
-mp::QemuPlatformDetail::QemuPlatformDetail() : common_args{set_common_args(host_arch)}
+mp::QemuPlatformDetail::QemuPlatformDetail() : common_args{get_common_args(host_arch)}
 {
 }
 
