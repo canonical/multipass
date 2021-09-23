@@ -95,6 +95,7 @@ const std::vector<LXDInstanceStatusParamType> lxd_instance_status_suite_inputs{
     {mpt::vm_state_freezing_data, mp::VirtualMachine::State::suspending},
     {mpt::vm_state_frozen_data, mp::VirtualMachine::State::suspended},
     {mpt::vm_state_cancelling_data, mp::VirtualMachine::State::unknown},
+    {mpt::vm_state_error_data, mp::VirtualMachine::State::unknown},
     {mpt::vm_state_other_data, mp::VirtualMachine::State::unknown},
     {mpt::vm_state_fully_running_data, mp::VirtualMachine::State::running}};
 } // namespace
