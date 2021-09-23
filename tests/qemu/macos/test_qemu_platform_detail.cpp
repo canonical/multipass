@@ -23,6 +23,7 @@
 #include <src/platform/backends/qemu/macos/qemu_platform_detail.h>
 
 #include <algorithm>
+#include <vector>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -34,6 +35,23 @@ namespace
 {
 struct TestQemuPlatformDetail : public Test
 {
+    void check_expected_args(const std::vector<QStringList>& expected_args, const QStringList& platform_args)
+    {
+        if (expected_args.empty())
+        {
+            EXPECT_TRUE(platform_args.isEmpty());
+        }
+        else
+        {
+            for (const auto& args : expected_args)
+            {
+                auto it = std::search(platform_args.cbegin(), platform_args.cend(), args.cbegin(), args.cend());
+
+                EXPECT_NE(it, platform_args.cend());
+            }
+        }
+    };
+
     const std::string hw_addr{"52:54:00:6f:29:7e"};
     const QString host_arch{HOST_ARCH};
     mp::QemuPlatformDetail qemu_platform_detail;
@@ -107,59 +125,32 @@ TEST_F(TestQemuPlatformDetail, get_ip_logs_when_unknown_key)
 
 TEST_F(TestQemuPlatformDetail, vm_platform_args_returns_expected_arguments)
 {
-    const QStringList accel_args{"-accel", "hvf"},
-        nic_args{"-nic",
-                 QString("vmnet-macos,mode=shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
-        cpu_args{"-cpu", (host_arch == "aarch64" ? "cortex-a72" : "host")}, common_args{"-machine", "virt,highmem=off"};
+    std::vector<QStringList> expected_args{
+        {"-accel", "hvf"},
+        {"-nic", QString("vmnet-macos,mode=shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
+        {"-cpu", (host_arch == "aarch64" ? "cortex-a72" : "host")}};
     mp::VirtualMachineDescription vm_desc;
     vm_desc.vm_name = "foo";
     vm_desc.default_mac_address = hw_addr;
 
-    auto platform_args = qemu_platform_detail.vm_platform_args(vm_desc);
-
-    auto accel_args_it =
-        std::search(platform_args.cbegin(), platform_args.cend(), accel_args.cbegin(), accel_args.cend());
-
-    EXPECT_TRUE(accel_args_it != platform_args.cend());
-
-    auto nic_args_it = std::search(platform_args.cbegin(), platform_args.cend(), nic_args.cbegin(), nic_args.cend());
-
-    EXPECT_TRUE(nic_args_it != platform_args.cend());
-
-    auto cpu_args_it = std::search(platform_args.cbegin(), platform_args.cend(), cpu_args.cbegin(), cpu_args.cend());
-
-    EXPECT_TRUE(cpu_args_it != platform_args.cend());
-
-    auto common_args_it =
-        std::search(platform_args.cbegin(), platform_args.cend(), common_args.cbegin(), common_args.cend());
-
     if (host_arch == "aarch64")
     {
-        EXPECT_TRUE(common_args_it != platform_args.cend());
+        expected_args.push_back(QStringList({"-machine", "virt,highmem=off"}));
     }
-    else
-    {
-        EXPECT_TRUE(common_args_it == platform_args.cend());
-    }
+
+    check_expected_args(expected_args, qemu_platform_detail.vm_platform_args(vm_desc));
 }
 
 TEST_F(TestQemuPlatformDetail, vmstate_platform_args_returns_expected_arguments)
 {
-    auto vmstate_args = qemu_platform_detail.vmstate_platform_args();
+    std::vector<QStringList> expected_args;
 
     if (host_arch == "aarch64")
     {
-        const QStringList common_args{"-machine", "virt,highmem=off"};
-
-        auto common_args_it =
-            std::search(vmstate_args.cbegin(), vmstate_args.cend(), common_args.cbegin(), common_args.cend());
-
-        EXPECT_TRUE(common_args_it != vmstate_args.cend());
+        expected_args.push_back(QStringList({"-machine", "virt,highmem=off"}));
     }
-    else
-    {
-        EXPECT_TRUE(vmstate_args.isEmpty());
-    }
+
+    check_expected_args(expected_args, qemu_platform_detail.vmstate_platform_args());
 }
 
 TEST_F(TestQemuPlatformDetail, get_directory_name_returns_expected_string)
