@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +20,27 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+
+#include <QByteArray>
 #include <QString>
 
 namespace fmt
 {
+template <>
+struct formatter<QByteArray>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const QByteArray& a, FormatContext& ctx)
+    {
+        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
+    }
+};
 
 template <>
 struct formatter<QString>
