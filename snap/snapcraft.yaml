@@ -90,6 +90,7 @@ apps:
       - unity7
       - wayland
       - x11
+      - desktop
 
 parts:
   multipass:
