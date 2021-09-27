@@ -35,7 +35,6 @@
 #include <shared/shared_backend_utils.h>
 
 #include <chrono>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <thread>
 
 namespace mp = multipass;
@@ -392,7 +391,14 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
         // Implies the task doesn't exist, move on...
     }
 }
-void multipass::LXDVirtualMachine::update_num_cores(int /*num_cores*/)
+
+void multipass::LXDVirtualMachine::update_num_cores(int num_cores)
 {
-    throw NotImplementedOnThisBackendException{"instance mod"};
+    assert(num_cores > 0);
+    assert(manager);
+
+    /* curl -s -w "%{http_code}" -X PATCH -H "Content-Type: application/json" -d '{"config": {"limits.cpu": "3"}}'
+        --unix-socket /var/snap/lxd/common/lxd/unix.socket lxd/1.0/virtual-machines/asdf?project=multipass */
+    QJsonObject patch_json{{"config", QJsonObject{{"limits.cpu", QString::number(num_cores)}}}};
+    auto reply = lxd_request(manager, "PATCH", url(), patch_json);
 }
