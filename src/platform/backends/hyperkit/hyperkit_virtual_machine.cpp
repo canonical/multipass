@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,65 +29,14 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <shared/macos/backend_utils.h>
 #include <shared/shared_backend_utils.h>
 
-#include <QEventLoop>
 #include <QMetaObject>
 #include <QString>
-#include <QTimer>
-
-#include <fstream>
-#include <regex>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-
-namespace
-{
-const mp::Path leases_path{"/var/db/dhcpd_leases"};
-
-mp::optional<mp::IPAddress> get_ip_for(const std::string& hw_addr, std::istream& data)
-{
-    // bootpd leases entries consist of:
-    // {
-    //        name=<name>
-    //        ip_address=<ipv4>
-    //        hw_address=1,<mac addr>
-    //        identifier=1,<mac addr>
-    //        lease=<lease expiration timestamp in hex>
-    // }
-    const std::regex name_re{fmt::format("\\s*name={}", hw_addr)};
-    const std::regex ipv4_re{"\\s*ip_address=(.+)"};
-    const std::regex known_lines{"^\\s*($|\\}$|name=|hw_address=|identifier=|lease=)"};
-
-    std::string line;
-    std::smatch match;
-    bool name_matched = false;
-    mp::optional<mp::IPAddress> ip_address;
-
-    while (getline(data, line))
-    {
-        if (line == "{")
-        {
-            name_matched = false;
-            ip_address = mp::nullopt;
-        }
-        else if (regex_match(line, name_re))
-            name_matched = true;
-        else if (regex_match(line, match, ipv4_re))
-            ip_address.emplace(match[1]);
-        else if (line == "}" && name_matched && !ip_address)
-            throw std::runtime_error("Failed to parse IP address out of the leases file.");
-        else if (!regex_search(line, known_lines))
-            mpl::log(mpl::Level::warning, "hyperkit",
-                     fmt::format("Got unexpected line when parsing the leases file: {}", line));
-
-        if (name_matched && ip_address)
-            return ip_address;
-    }
-    return mp::nullopt;
-}
-} // namespace
 
 mp::HyperkitVirtualMachine::HyperkitVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
     : BaseVirtualMachine{State::off, desc.vm_name},
@@ -199,13 +148,9 @@ int mp::HyperkitVirtualMachine::ssh_port()
 
 std::string mp::HyperkitVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> optional<IPAddress> {
-        std::ifstream leases_file(leases_path.toStdString());
-        return get_ip_for(vm_name, leases_file);
-    };
+    auto get_ip = [this]() -> optional<IPAddress> { return mp::backend::get_vmnet_dhcp_ip_for(vm_name); };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
-    ;
 }
 
 std::string mp::HyperkitVirtualMachine::ssh_username()
@@ -218,8 +163,7 @@ std::string mp::HyperkitVirtualMachine::management_ipv4()
     if (ip)
         return ip->as_string();
 
-    std::ifstream leases_file(leases_path.toStdString());
-    auto result = get_ip_for(vm_name, leases_file);
+    auto result = mp::backend::get_vmnet_dhcp_ip_for(vm_name);
     if (result)
     {
         ip.emplace(*result);

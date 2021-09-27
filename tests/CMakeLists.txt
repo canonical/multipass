@@ -179,6 +179,7 @@ if(MSVC)
   target_compile_options(multipass_tests PRIVATE /bigobj)
 elseif(APPLE)
   set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
+  add_definitions(-DHOST_ARCH="${HOST_ARCH}")
 endif()
 
 target_include_directories(multipass_tests

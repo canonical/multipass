@@ -1,4 +1,4 @@
-# Copyright © 2017-2021 Canonical Ltd.
+# Copyright © 2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,25 +11,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-set (CMAKE_AUTOMOC ON)
+target_sources(multipass_tests
+  PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/test_qemu_platform_detail.cpp
+)   
 
-add_definitions(-DHOST_ARCH="${HOST_ARCH}")
-
-add_library(qemu_backend STATIC
-  qemu_base_process_spec.cpp
-  qemu_vm_process_spec.cpp
-  qemu_vmstate_process_spec.cpp
-  qemu_virtual_machine_factory.cpp
-  qemu_virtual_machine.cpp)
-
-target_link_libraries(qemu_backend
-  fmt
-  ip_address
-  logger
-  qemu_img_utils
-  qemu_platform_detail
-  utils
-  Qt5::Core)
-
-add_subdirectory(${MULTIPASS_PLATFORM})
+target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu)

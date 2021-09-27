@@ -83,8 +83,10 @@ target_include_directories(yaml INTERFACE
 target_link_libraries(yaml INTERFACE
   yaml-cpp)
 
-if (APPLE)
-  # Hyperkit - MacOS virtualization (via xhyve)
+include(ExternalProject)
+
+# Hyperkit - MacOS virtualization (via xhyve)
+if ("hyperkit" IN_LIST MULTIPASS_BACKENDS)
   if(NOT DEFINED ENV{OCAML_TOPLEVEL_PATH})
     message(FATAL_ERROR "The OCaml OPAM environment has not been set. Run 'eval `opam config env`' or check the README")
   endif()
@@ -95,14 +97,13 @@ if (APPLE)
     OUTPUT_VARIABLE QCOW_SUPPORT_OUT
     RESULT_VARIABLE QCOW_SUPPORT_FOUND
     OUTPUT_QUIET
-    )
+  )
 
   if (NOT QCOW_SUPPORT_FOUND EQUAL 0)
     message(FATAL_ERROR "The 'qcow' package of the OPAM OCaml system is required. Check the README\nThe command 'ocamlfind query qcow' returned: ${QCOW_SUPPORT_OUT}")
   endif ()
 
   # Need to patch hyperkit Makefile, see moby/hyperkit#274
-  include(ExternalProject)
   ExternalProject_Add(hyperkit
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/hyperkit"
     CONFIGURE_COMMAND sed -i .bup s/cstruct\\.lwt/cstruct-lwt/ <SOURCE_DIR>/Makefile
@@ -110,29 +111,36 @@ if (APPLE)
     BUILD_IN_SOURCE 1
     INSTALL_COMMAND cp "${CMAKE_CURRENT_SOURCE_DIR}/hyperkit/build/hyperkit" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
     TEST_COMMAND "" # make test is available, but quite heavy-weight (download a VM & needs root)
-    )
+  )
 
   install(PROGRAMS "${CMAKE_BINARY_DIR}/bin/hyperkit"
     DESTINATION bin
     COMPONENT multipassd
-    )
-
+  )
 
   # Qemu-img - Fetch binary and libraries needed
-  set(QEMU_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/qemu-img-osx)
-  set(QEMU_BINARY_DIR ${CMAKE_BINARY_DIR}/3rd-party/qemu-img-osx)
+  set(QEMU_IMG_NAME "qemu-img-hyperkit")
+  set(QEMU_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${QEMU_IMG_NAME})
+  set(QEMU_BINARY_DIR ${CMAKE_BINARY_DIR}/3rd-party/${QEMU_IMG_NAME})
   add_custom_command(
-    OUTPUT ${QEMU_BINARY_DIR}/bin/qemu-img
+    OUTPUT ${QEMU_BINARY_DIR}/bin/${QEMU_IMG_NAME}
     COMMAND bash ${QEMU_SOURCE_DIR}/qemu-img-fetcher.sh ${QEMU_SOURCE_DIR} ${QEMU_BINARY_DIR}
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${QEMU_BINARY_DIR}/bin/qemu-img ${CMAKE_BINARY_DIR}/bin/qemu-img # convenience for testing only
-    )
-  add_custom_target(qemu-img ALL DEPENDS ${QEMU_BINARY_DIR}/bin/qemu-img)
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${QEMU_BINARY_DIR}/bin/${QEMU_IMG_NAME} ${CMAKE_BINARY_DIR}/bin/${QEMU_IMG_NAME} # convenience for testing only
+  )
+  add_custom_target(qemu-img-hyperkit ALL DEPENDS ${QEMU_BINARY_DIR}/bin/${QEMU_IMG_NAME})
   install(DIRECTORY ${QEMU_BINARY_DIR}/
     DESTINATION .
     USE_SOURCE_PERMISSIONS
     COMPONENT multipassd
-    )
-elseif(MSVC)
+  )
+endif ()
+
+# QEMU itself
+if (APPLE AND "qemu" IN_LIST MULTIPASS_BACKENDS)
+    add_subdirectory(qemu)
+endif ()
+
+if(MSVC)
   set(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF CACHE BOOL "Disable pkgconfig in jsoncpp" FORCE)
   set(JSONCPP_WITH_POST_BUILD_UNITTEST OFF CACHE BOOL "Disable unit tests in jsoncpp" FORCE)
   set(JSONCPP_WITH_TESTS OFF CACHE BOOL "Disable test executables in jsoncpp lib" FORCE)

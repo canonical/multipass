@@ -1,4 +1,4 @@
-# Copyright © 2017-2020 Canonical Ltd.
+# Copyright © 2017-2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -49,6 +49,11 @@ set(CPACK_PACKAGE_NAME              "multipass")
 set(CPACK_PACKAGE_VENDOR            "canonical")
 set(CPACK_PACKAGE_CONTACT           "contact@canonical.com")
 set(CPACK_PACKAGE_VERSION           "${MULTIPASS_VERSION}")
+
+if (APPLE)
+  set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}.${HOST_ARCH}")
+endif()
+
 #set(CPACK_PACKAGE_ICON              "${PROJECT_SOURCE_DIR}/cmake/sac_logo.png")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -191,6 +196,7 @@ if(APPLE)
   set(CPACK_PACKAGING_INSTALL_PREFIX   "/Library/Application Support/com.canonical.multipass")
   list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qt5-libs-rpath.sh ${CMAKE_BINARY_DIR}")
   list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/install-ssl-libs.sh ${CMAKE_BINARY_DIR}")
+  list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qemu-and-deps.sh ${CMAKE_BINARY_DIR}")
 
   set(MULTIPASSD_PLIST "com.canonical.multipassd.plist")
   set(MULTIPASSGUI_PLIST "com.canonical.multipass.gui.autostart.plist")
@@ -208,11 +214,15 @@ if(APPLE)
   install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/Info.plist" DESTINATION Resources COMPONENT multipass_gui)
   install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/icon.icns" DESTINATION Resources COMPONENT multipass_gui)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/completions" DESTINATION Resources COMPONENT multipass)
+  install(DIRECTORY "${CMAKE_BINARY_DIR}/lib/" DESTINATION lib COMPONENT multipassd)
 
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh")
+
+  # Signs the binaries using ad-hoc signing
+  set(CPACK_POST_BUILD_SCRIPTS "${CMAKE_SOURCE_DIR}/packaging/macos/post_build.cmake")
 
   # CPack doesn't support a direct way to customise the Distribution.dist file, but the template
   # CPack.distribution.dist.in is searched for in the CMAKE_MODULE_PATH before CMAKE_ROOT, so as a hack,

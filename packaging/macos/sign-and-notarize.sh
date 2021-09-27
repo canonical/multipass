@@ -81,7 +81,7 @@ if [ -z "${SIGN_APP+x}" ]; then
     help_and_exit
 fi
 
-if [ -z "${SIGN_PKG+x}" ]; then
+if [ "${SIGN_APP}" != "-" ] && [ -z "${SIGN_PKG+x}" ]; then
     echo "Missing --installer-signer argument"
     help_and_exit
 fi
@@ -124,25 +124,50 @@ function sign_installer {
     rm "tmp.${PKG}"
 }
 
+function entitlements {
+    FILE="$( mktemp -u ).plist"
+    ENTITLEMENTS=( "$@" )
+    [ "${SIGN_APP}" == "-" ] && ENTITLEMENTS+=( "com.apple.security.cs.disable-library-validation" )
+    [ ${#ENTITLEMENTS[@]} -eq 0 ] && return
+
+    ARGS=()
+    for entitlement in "${ENTITLEMENTS[@]}"; do
+        ARGS+=( "-c" "Add :${entitlement} bool true" )
+    done;
+
+    /usr/libexec/PlistBuddy "${ARGS[@]}" ${FILE} > /dev/null
+    echo --entitlements ${FILE}
+}
+
 function codesign_binaries {
     DIR="$1"
     # sign every file in the directory
-    find "${DIR}" -type f -not -name hyperkit -print0 | xargs -0L1 \
+    find "${DIR}" -type f -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
+            $( entitlements ) \
             --prefix com.canonical.multipass. \
+            --sign "${SIGN_APP}"
+
+    # sign hyperkit with the right entitlements
+    find "${DIR}" -type f -name hyperkit -print0 | xargs -0L1 \
+        codesign -v --timestamp --options runtime --force --strict \
+            $( entitlements com.apple.security.cs.disable-executable-page-protection ) \
+            --identifier com.canonical.multipass.hyperkit \
+            --sign "${SIGN_APP}"
+
+    # sign qemu with the right entitlements
+    find "${DIR}" -type f -name qemu-system-* -print0 | xargs -0L1 \
+        codesign -v --timestamp --options runtime --force --strict \
+            $( entitlements com.apple.security.hypervisor \
+                            com.apple.security.cs.disable-executable-page-protection ) \
+            --identifier com.canonical.multipass.qemu \
             --sign "${SIGN_APP}"
 
     # sign every bundle in the directory
     find "${DIR}" -type d -name '*.app' -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict --deep \
+            $( entitlements ) \
             --prefix com.canonical.multipass. \
-            --sign "${SIGN_APP}"
-
-    # sign hyperkit with the entitlement file
-    find "${DIR}" -type f -name hyperkit -print0 | xargs -0L1 \
-        codesign -v --timestamp --options runtime --force --strict \
-            --entitlements "${SCRIPTDIR}/hyperkit.entitlements.plist" \
-            --identifier com.canonical.multipass.hyperkit \
             --sign "${SIGN_APP}"
 }
 
@@ -177,10 +202,11 @@ popd
 # Compress final result back into package and sign
 pkgutil --flatten "${PKG_ROOT}" "${PKGFILENAME}"
 
-sign_installer "${PKGFILENAME}"
+if [ -n "${SIGN_PKG+x}" ]; then
+  sign_installer "${PKGFILENAME}"
 
-echo "Signed install package: ${PKGFILENAME}"
-
+  echo "Signed install package: ${PKGFILENAME}"
+fi
 
 ####
 #### Notarization ######

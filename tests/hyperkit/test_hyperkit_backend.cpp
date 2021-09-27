@@ -17,11 +17,11 @@
 
 #include "tests/common.h"
 #include "tests/disabling_macros.h"
+#include "tests/mock_file_ops.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_file.h"
 
-#include <src/platform/backends/hyperkit/hyperkit_virtual_machine.cpp>
 #include <src/platform/backends/hyperkit/hyperkit_virtual_machine_factory.h>
 
 #include <multipass/memory_size.h>
@@ -29,6 +29,8 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
+
+#include <shared/macos/backend_utils.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -124,9 +126,13 @@ TEST_P(GetIPSuite, returns_expected)
     const auto& [lookup, input, ip_addr, test_name] = GetParam();
     Q_UNUSED(test_name); // gcc 7.4 can't do [[maybe_unused]] for structured bindings
 
-    std::istringstream data{input};
+    QTextStream data{QByteArray::fromStdString(input)};
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    auto ip = get_ip_for(lookup, data);
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, read_line(_)).WillRepeatedly([&data](auto&) { return data.readLine(); });
+
+    auto ip = mp::backend::get_vmnet_dhcp_ip_for(lookup);
 
     if (ip_addr.empty())
         EXPECT_FALSE(ip);
@@ -157,9 +163,13 @@ TEST_P(GetIPThrowingSuite, throws_on_bad_format)
     Q_UNUSED(ip_addr);
     Q_UNUSED(test_name); // gcc 7.4 can't do [[maybe_unused]] for structured bindings
 
-    std::istringstream data{input};
+    QTextStream data{QByteArray::fromStdString(input)};
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_THROW(get_ip_for(lookup, data), std::runtime_error);
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, read_line(_)).WillRepeatedly([&data](auto&) { return data.readLine(); });
+
+    EXPECT_THROW(mp::backend::get_vmnet_dhcp_ip_for(lookup), std::runtime_error);
 }
 
 INSTANTIATE_TEST_SUITE_P(Hyperkit, GetIPThrowingSuite, ValuesIn(throwing_hw_addr_inputs), print_param_name);
