@@ -179,7 +179,7 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
     if (!local_socket_write(http_data))
         return;
 
-    if (op == "POST" || op == "PUT")
+    if (op == "POST" || op == "PUT" || op == "PATCH")
     {
         http_data = "Content-Type: " + request.header(QNetworkRequest::ContentTypeHeader).toByteArray() + "\r\n";
 
