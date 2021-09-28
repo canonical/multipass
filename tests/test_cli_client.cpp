@@ -993,6 +993,21 @@ TEST_F(Client, exec_cmd_no_double_dash_no_unknown_option_fails_does_not_print_su
                       "<command> <arguments>\n")));
 }
 
+TEST_F(Client, exec_cmd_starts_instance_if_stopped_or_suspended)
+{
+    const auto instance = "ordinary";
+    const auto ssh_info_matcher = make_ssh_info_instance_matcher(instance);
+    const auto start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(instance);
+    const grpc::Status ok{}, aborted{grpc::StatusCode::ABORTED, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, start(_, start_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(ok));
+
+    EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::Ok));
+}
+
 // help cli tests
 TEST_F(Client, help_cmd_ok_with_valid_single_arg)
 {
