@@ -1008,6 +1008,16 @@ TEST_F(Client, exec_cmd_starts_instance_if_stopped_or_suspended)
     EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, exec_cmd_fails_on_other_absent_instance)
+{
+    const auto instance = "ordinary";
+    const auto instance_matcher = make_ssh_info_instance_matcher(instance);
+    const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, instance_matcher, _)).WillOnce(Return(notfound));
+    EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::CommandFail));
+}
+
 // help cli tests
 TEST_F(Client, help_cmd_ok_with_valid_single_arg)
 {
