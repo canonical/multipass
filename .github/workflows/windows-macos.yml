@@ -389,7 +389,7 @@ jobs:
         conclusion: ${{ job.status }}
 
     - name: Dispatch integration tests
-      if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
+      if: ${{ github.event.client_payload.dispatch_ci == 'true' && matrix.arch != 'arm64' }}
       uses: Saviq/workflow-dispatch@dist
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
