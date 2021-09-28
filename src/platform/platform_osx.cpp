@@ -203,30 +203,6 @@ std::string get_alias_script_path(const std::string& alias)
 
     return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
 }
-
-bool is_hyperkit_enabled()
-{
-    if constexpr (HYPERKIT_ENABLED)
-        return true;
-    else
-        return false;
-}
-
-bool is_qemu_enabled()
-{
-    if constexpr (QEMU_ENABLED)
-        return true;
-    else
-        return false;
-}
-
-bool is_virtualbox_enabled()
-{
-    if constexpr (VIRTUALBOX_ENABLED)
-        return true;
-    else
-        return false;
-}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -347,9 +323,9 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::default_driver()
 {
-    assert(is_hyperkit_enabled() || is_qemu_enabled());
+    assert(HYPERKIT_ENABLED || QEMU_ENABLED);
 
-    if (is_hyperkit_enabled())
+    if (HYPERKIT_ENABLED)
         return QStringLiteral("hyperkit");
     else
         return QStringLiteral("qemu");
@@ -370,8 +346,8 @@ QString mp::platform::daemon_config_home() // temporary
 
 bool mp::platform::is_backend_supported(const QString& backend)
 {
-    return (backend == "hyperkit" && is_hyperkit_enabled()) || (backend == "qemu" && is_qemu_enabled()) ||
-           (backend == "virtualbox" && is_virtualbox_enabled());
+    return (backend == "hyperkit" && HYPERKIT_ENABLED) || (backend == "qemu" && QEMU_ENABLED) ||
+           (backend == "virtualbox" && VIRTUALBOX_ENABLED);
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
