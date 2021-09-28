@@ -95,6 +95,7 @@ const std::vector<LXDInstanceStatusParamType> lxd_instance_status_suite_inputs{
     {mpt::vm_state_freezing_data, mp::VirtualMachine::State::suspending},
     {mpt::vm_state_frozen_data, mp::VirtualMachine::State::suspended},
     {mpt::vm_state_cancelling_data, mp::VirtualMachine::State::unknown},
+    {mpt::vm_state_error_data, mp::VirtualMachine::State::unknown},
     {mpt::vm_state_other_data, mp::VirtualMachine::State::unknown},
     {mpt::vm_state_fully_running_data, mp::VirtualMachine::State::running}};
 } // namespace
@@ -1846,7 +1847,22 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "unexpected LXD state", AnyNumber());
+    if (expected_state == multipass::VirtualMachine::State::unknown)
+    {
+        QJsonParseError json_error;
+        const auto json_reply = QJsonDocument::fromJson(status_data, &json_error);
+        ASSERT_EQ(json_error.error, QJsonParseError::NoError);
+
+        const auto metadata = json_reply["metadata"].toObject();
+        const auto code = metadata["status_code"].toInt();
+        if (code > 112)
+        {
+            QString error_msg{"unexpected LXD state: "};
+            error_msg += metadata["status"].toString() + " (" + QString::number(code) + ")";
+            logger_scope.mock_logger->expect_log(mpl::Level::error, error_msg.toStdString(), AtLeast(1));
+        }
+    }
+
     mp::LXDVirtualMachine machine{default_description, stub_monitor,        mock_network_access_manager.get(), base_url,
                                   bridge_name,         default_storage_pool};
 
