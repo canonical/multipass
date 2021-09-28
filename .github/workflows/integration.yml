@@ -34,15 +34,15 @@ jobs:
         fi
 
         if [ -n '${{ github.event.inputs.mac-package }}' ]; then
-          MATRIX+='{"os": "macOS", "vm": "macos-10.14", "driver": "hyperkit", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
-          MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "hyperkit", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
-          MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "qemu", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
-          MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "hyperkit", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
-          MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "qemu", "arch": "x86_64", "package": "${{ github.event.inputs.mac-package  }}"}'
+          MATRIX+='{"os": "macOS", "vm": "macos-10.14", "driver": "hyperkit", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "hyperkit", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "qemu", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "hyperkit", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "qemu", "arch": "x86_64" }'
         fi
 
         if [ -n '${{ github.event.inputs.mac-arm-package }}' ]; then
-          MATRIX+='{"os": "macOS", "driver": "qemu", "arch": "aarch64", "package": "${{ github.event.inputs.mac-arm-package  }}"}'
+          MATRIX+='{"os": "macOS", "driver": "qemu", "arch": "aarch64" }'
         fi
 
         if [ -n '${{ github.event.inputs.win-package }}' ]; then
@@ -153,7 +153,7 @@ jobs:
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
-                _run curl --location --output multipass.pkg ${{ matrix.package }}
+                _run curl --location --output multipass.pkg ${{ matrix.arch == 'aarch64' && github.event.inputs.mac-arm-package || github.event.inputs.mac-package }}
                 _run sudo installer -dumplog -target / -pkg multipass.pkg
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
