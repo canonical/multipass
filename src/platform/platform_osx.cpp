@@ -56,6 +56,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QKeySequence>
+#include <QOperatingSystemVersion>
 #include <QRegularExpression>
 #include <QString>
 #include <QtGlobal>
@@ -346,7 +347,9 @@ QString mp::platform::daemon_config_home() // temporary
 
 bool mp::platform::is_backend_supported(const QString& backend)
 {
-    return (backend == "hyperkit" && HYPERKIT_ENABLED) || (backend == "qemu" && QEMU_ENABLED) ||
+    return (backend == "hyperkit" && HYPERKIT_ENABLED) ||
+           (backend == "qemu" && QEMU_ENABLED &&
+            QOperatingSystemVersion::current() > QOperatingSystemVersion::MacOSMojave) ||
            (backend == "virtualbox" && VIRTUALBOX_ENABLED);
 }
 
