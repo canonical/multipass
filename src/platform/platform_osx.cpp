@@ -349,7 +349,7 @@ bool mp::platform::is_backend_supported(const QString& backend)
 {
     return (backend == "hyperkit" && HYPERKIT_ENABLED) ||
            (backend == "qemu" && QEMU_ENABLED &&
-            QOperatingSystemVersion::current() > QOperatingSystemVersion::MacOSMojave) ||
+            QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSCatalina) ||
            (backend == "virtualbox" && VIRTUALBOX_ENABLED);
 }
 
