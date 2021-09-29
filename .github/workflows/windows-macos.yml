@@ -124,21 +124,14 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
-    - name: Create an App token
-      id: app-token
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: tibdex/github-app-token@v1
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repository: ${{ github.event.client_payload.repository }}
 
     - name: Create a check on public
       id: public-check
       if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
+      uses: canonical/actions/check@release
       with:
-        token: ${{ steps.app-token.outputs.token }}
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
         repo: ${{ github.event.client_payload.repository }}
         sha: ${{ github.event.client_payload.head_sha }}
         name: ${{ runner.os }}
@@ -349,25 +342,13 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
-    - name: Create an App token
-      # The token in app-token expires after an hour, and a full macOS build
-      # (including bors and ocaml setup) may take more than that, so need to
-      # get a new one. This would probably be better integrated into the check
-      # action itself.
-      id: app-token-update
-      if: ${{ always() && github.event_name == 'repository_dispatch' }}
-      uses: tibdex/github-app-token@v1
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repository: ${{ github.event.client_payload.repository }}
-
     # On success, link to the package on the public side
     - name: Update the check on public
       if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
+      uses: canonical/actions/check@release
       with:
-        token: ${{ steps.app-token-update.outputs.token }}
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
         repo: ${{ github.event.client_payload.repository }}
         sha: ${{ github.event.client_payload.head_sha }}
         check_id: ${{ steps.public-check.outputs.check_id }}
@@ -381,9 +362,10 @@ jobs:
     # On failure, just report the failure
     - name: Update the check on public
       if: ${{ !success() && github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
+      uses: canonical/actions/check@release
       with:
-        token: ${{ steps.app-token-update.outputs.token }}
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
         repo: ${{ github.event.client_payload.repository }}
         sha: ${{ github.event.client_payload.head_sha }}
         check_id: ${{ steps.public-check.outputs.check_id }}
