@@ -178,7 +178,9 @@ _multipass_complete()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    prev2="${COMP_WORDS[COMP_CWORD-2]}"
+    if [[ ${COMP_CWORD} -gt 1 ]]; then
+        prev2="${COMP_WORDS[COMP_CWORD-2]}"
+    fi
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="transfer delete exec find help info launch list mount networks \
@@ -239,18 +241,24 @@ _multipass_complete()
             ;;
             "--network")
                 _multipass_networks
-                if [[ "${opts}" != "" ]]; then
-                    opts="${opts} bridged id= mode= mac="
+                if [ "${OLD_BASH}" = true ]; then
+                    if [[ "${opts}" != "" ]]; then
+                        opts="${opts} bridged"
+                    fi
+                else
+                    if [[ "${opts}" != "" ]]; then
+                        opts="${opts} bridged id= mode= mac="
+                    fi
+                    # TODO: Do use spaces after the completion of an interface name or "bridged".
+                    compopt -o nospace
                 fi
-                # TODO: Do use spaces after the completion of an interface name or "bridged".
-                compopt -o nospace
         esac
     else
         local last_match
         _find_last_match ^-.*
         local last_match_pos=$?
 
-        if [[ ${last_match} == "--network" ]]; then
+        if [ "${OLD_BASH}" = false ] && [[ ${last_match} == "--network" ]]; then
             # We need to complete the option pairs in two steps. One, when the last input char was an equals sign. Two,
             # when the user starts to input something, because prev changes when she starts to type a value.
             if [[ "${cur}" == '=' ]] && [[ "${prev2}" == ',' || "${prev2}" == '--network' ]] ; then
@@ -348,4 +356,13 @@ _multipass_complete()
 
     return 0
 }
+
+# Check the Bash version. Bash < 4 does not have `compopt`, which we use for completing `launch --network`. We
+# disable some completions on that command based on this test.
+if [[ $(echo ${BASH_VERSION} | sed s/\\..*//g) -gt 3 ]]; then
+    OLD_BASH=false
+else
+    OLD_BASH=true
+fi
+
 complete -F _multipass_complete multipass
