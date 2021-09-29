@@ -7,7 +7,7 @@ info on where to find release information about the submodule.
 **This file needs updating when a submodule is updated!**
 
 ### gRPC
-Version: 1.36.4 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.36.4..cb8af401)) |
+Version: 1.40.0 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.40.0..310f4367)) |
 <https://github.com/CanonicalLtd/grpc.git> |
 <https://github.com/grpc/grpc/releases>
 
