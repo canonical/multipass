@@ -38,10 +38,7 @@ public:
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     void remove_resources_for(const std::string& name) override;
-    VMImage prepare_source_image(const VMImage& source_image) override
-    {
-        return source_image;
-    };
+    VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_directory_name() override
@@ -52,7 +49,7 @@ public:
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                           const Path& cache_dir_path, const Path& data_dir_path,
                                           const days& days_to_expire) override;
-    void configure(VirtualMachineDescription& vm_desc) override{};
+    void configure(VirtualMachineDescription& vm_desc) override;
 
     std::vector<NetworkInterfaceInfo> networks() const override;
 
