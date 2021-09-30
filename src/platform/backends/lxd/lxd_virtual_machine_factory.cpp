@@ -109,10 +109,21 @@ void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
     mpl::log(mpl::Level::trace, category, fmt::format("No resources to remove for \"{}\"", name));
 }
 
+auto mp::LXDVirtualMachineFactory::prepare_source_image(const VMImage& source_image) -> VMImage
+{
+    mpl::log(mpl::Level::trace, category, "No driver preparation required for source image");
+    return source_image;
+}
+
 void mp::LXDVirtualMachineFactory::prepare_instance_image(const mp::VMImage& /* instance_image */,
                                                           const VirtualMachineDescription& /* desc */)
 {
     mpl::log(mpl::Level::trace, category, "No driver preparation for instance image");
+}
+
+void mp::LXDVirtualMachineFactory::configure(VirtualMachineDescription& /*vm_desc*/)
+{
+    mpl::log(mpl::Level::trace, category, "No preliminary configure step in LXD driver");
 }
 
 void mp::LXDVirtualMachineFactory::hypervisor_health_check()
