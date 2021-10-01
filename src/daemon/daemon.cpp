@@ -2005,6 +2005,7 @@ try
 
     auto name = "asdf";
     auto num_cores = 3;
+    auto new_disk = mp::MemorySize{"15G"};
     try
     {
         auto& instance = vm_instances.at(name);
@@ -2030,6 +2031,7 @@ try
         else
         {
             instance->update_num_cores(spec.num_cores = num_cores);
+            instance->resize_disk(spec.disk_space = new_disk);
             mpl::log(mpl::Level::warning, "INSTANCE MOD", "Instance updated");
         }
     }
