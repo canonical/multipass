@@ -406,5 +406,16 @@ void multipass::LXDVirtualMachine::update_num_cores(int num_cores)
 
 void multipass::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Resize disk"};
+    assert(new_size.in_bytes() > 0);
+    assert(manager);
+
+    /* curl -s -w "%{http_code}\n" -X PATCH -H "Content-Type: application/json" \
+         -d '{"devices": {"root": {"size": "10737418245B"}}}' \
+         --unix-socket /var/snap/lxd/common/lxd/unix.socket lxd/1.0/virtual-machines/asdf?project=multipass */
+    QJsonObject root_json{{"path", "/"},
+                          {"pool", "default"}, // FIXME! This needs to get the pool from the factory
+                          {"size", QString::number(new_size.in_bytes())},
+                          {"type", "disk"}};
+    QJsonObject patch_json{{"devices", QJsonObject{{"root", root_json}}}};
+    lxd_request(manager, "PATCH", url(), patch_json);
 }
