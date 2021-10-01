@@ -17,7 +17,6 @@
 
 #include "libvirt_virtual_machine.h"
 
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -29,6 +28,7 @@
 #include <shared/shared_backend_utils.h>
 
 #include <QXmlStreamReader>
+#include <shared/qemu_img_utils/qemu_img_utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -512,5 +512,5 @@ void multipass::LibVirtVirtualMachine::update_num_cores(int num_cores)
 
 void multipass::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Resize disk"};
+    mp::backend::resize_instance_image(new_size, desc.image.image_path);
 }
