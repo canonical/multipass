@@ -54,6 +54,8 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
     void update_num_cores(int num_cores) override;
+    void resize_disk(const MemorySize& new_size) override;
+
 signals:
     void on_delete_memory_snapshot();
 

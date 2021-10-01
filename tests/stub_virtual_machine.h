@@ -97,6 +97,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     void update_num_cores(int /*num_cores*/) override
     {
     }
+
+    void resize_disk(const MemorySize& /*new_size*/) override
+    {
+    }
 };
 } // namespace test
 } // namespace multipass

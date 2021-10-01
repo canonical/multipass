@@ -22,6 +22,7 @@
 #include <QJsonDocument>
 
 #include <multipass/exceptions/local_socket_connection_exception.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
@@ -401,4 +402,9 @@ void multipass::LXDVirtualMachine::update_num_cores(int num_cores)
         --unix-socket /var/snap/lxd/common/lxd/unix.socket lxd/1.0/virtual-machines/asdf?project=multipass */
     QJsonObject patch_json{{"config", QJsonObject{{"limits.cpu", QString::number(num_cores)}}}};
     auto reply = lxd_request(manager, "PATCH", url(), patch_json);
+}
+
+void multipass::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Resize disk"};
 }

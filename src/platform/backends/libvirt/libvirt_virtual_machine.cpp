@@ -17,6 +17,7 @@
 
 #include "libvirt_virtual_machine.h"
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -507,4 +508,9 @@ void multipass::LibVirtVirtualMachine::update_num_cores(int num_cores)
     } while (!count++); // first set the maximum, then actual
 
     desc.num_cores = num_cores;
+}
+
+void multipass::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Resize disk"};
 }

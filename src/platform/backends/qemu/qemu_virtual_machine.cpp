@@ -21,6 +21,7 @@
 
 #include <shared/shared_backend_utils.h>
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -525,4 +526,9 @@ void multipass::QemuVirtualMachine::update_num_cores(int num_cores)
 {
     assert(num_cores > 0);
     desc.num_cores = num_cores;
+}
+
+void multipass::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Resize disk"};
 }
