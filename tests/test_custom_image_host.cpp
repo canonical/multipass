@@ -20,6 +20,7 @@
 #include "image_host_remote_count.h"
 #include "mischievous_url_downloader.h"
 #include "mock_platform.h"
+#include "mock_url_downloader.h"
 #include "path.h"
 
 #include <src/daemon/custom_image_host.h>
@@ -66,7 +67,7 @@ struct CustomImageHost : public Test
 };
 } // namespace
 
-typedef std::tuple<std::string /* alias */, std::string /* remote */, QString /* filename */, QString /* id */,
+typedef std::tuple<std::string /* alias */, std::string /* remote */, QUrl /* url */, QString /* id */,
                    QString /* release */, QString /* release_title */>
     CustomData;
 
@@ -74,40 +75,56 @@ struct ExpectedDataSuite : CustomImageHost, WithParamInterface<CustomData>
 {
 };
 
-TEST_P(ExpectedDataSuite, returns_expected_data_for_core)
+TEST_P(ExpectedDataSuite, returns_expected_data)
 {
-    const auto [alias, remote, filename, id, release, release_title] = GetParam();
+    const auto [alias, remote, url, id, release, release_title] = GetParam();
 
-    mp::CustomVMImageHost host{&url_downloader, default_ttl, test_path};
+    mpt::MockURLDownloader mock_url_downloader;
+    EXPECT_CALL(mock_url_downloader, last_modified(_)).Times(5).WillRepeatedly([](auto...) {
+        return QDateTime::currentDateTime();
+    });
+
+    EXPECT_CALL(mock_url_downloader, download(_)).Times(5).WillRepeatedly([id = id, url = url](auto...) {
+        auto filename = QUrl(url).fileName();
+        return QString("%1 %2").arg(id, filename).toUtf8();
+    });
+
+    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
 
     auto info = host.info_for(make_query(alias, remote));
 
     ASSERT_TRUE(info);
-    EXPECT_EQ(info->image_location, QUrl::fromLocalFile(test_path + filename).toString());
+    EXPECT_EQ(info->image_location, url.toDisplayString());
     EXPECT_EQ(info->id, id);
     EXPECT_EQ(info->release, release);
     EXPECT_EQ(info->release_title, release_title);
     EXPECT_TRUE(info->supported);
-    EXPECT_FALSE(info->version.isEmpty());
+    EXPECT_EQ(info->version, QDateTime::currentDateTime().toString("yyyyMMdd"));
 }
 
 INSTANTIATE_TEST_SUITE_P(
     CustomImageHost, ExpectedDataSuite,
-    Values(CustomData{"core", "", "ubuntu-core-16-amd64.img.xz",
-                      "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7", "core-16", "Core 16"},
-           CustomData{"core16", "", "ubuntu-core-16-amd64.img.xz",
-                      "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7", "core-16", "Core 16"},
-           CustomData{"core18", "", "ubuntu-core-18-amd64.img.xz",
-                      "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f", "core-18", "Core 18"},
-           CustomData{"core", "snapcraft", "ubuntu-16.04-minimal-cloudimg-amd64-disk1.img",
-                      "a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48", "snapcraft-core16",
-                      "Snapcraft builder for Core 16"},
-           CustomData{"core18", "snapcraft", "bionic-server-cloudimg-amd64-disk.img",
-                      "96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c", "snapcraft-core18",
-                      "Snapcraft builder for Core 18"},
-           CustomData{"core20", "snapcraft", "focal-server-cloudimg-amd64-disk.img",
-                      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "snapcraft-core20",
-                      "Snapcraft builder for Core 20"}));
+    Values(
+        CustomData{"core", "", "https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/ubuntu-core-16-amd64.img.xz",
+                   "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7", "core-16", "Core 16"},
+        CustomData{"core16", "", "https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/ubuntu-core-16-amd64.img.xz",
+                   "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7", "core-16", "Core 16"},
+        CustomData{"core18", "", "https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/ubuntu-core-18-amd64.img.xz",
+                   "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f", "core-18", "Core 18"},
+        CustomData{"core", "snapcraft",
+                   "https://cloud-images.ubuntu.com/minimal/releases/xenial/release/"
+                   "ubuntu-16.04-minimal-cloudimg-amd64-disk1.img",
+                   "a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48", "snapcraft-core16",
+                   "Snapcraft builder for Core 16"},
+        CustomData{
+            "core18", "snapcraft",
+            "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/bionic-server-cloudimg-amd64-disk.img",
+            "96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c", "snapcraft-core18",
+            "Snapcraft builder for Core 18"},
+        CustomData{"core20", "snapcraft",
+                   "https://cloud-images.ubuntu.com/buildd/releases/focal/release/focal-server-cloudimg-amd64-disk.img",
+                   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "snapcraft-core20",
+                   "Snapcraft builder for Core 20"}));
 
 TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
 {
