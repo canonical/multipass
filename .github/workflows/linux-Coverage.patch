@@ -12,7 +12,7 @@
      - dnsmasq-utils
      source: .
      cmake-parameters:
--    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+-    - -DCMAKE_BUILD_TYPE=Release
 +    - -DCMAKE_BUILD_TYPE=Coverage
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
