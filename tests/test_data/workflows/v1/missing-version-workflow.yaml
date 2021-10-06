@@ -1,9 +1,0 @@
-description: Missing version
-
-instances:
-  missing-version-workflow:
-    image: "default"
-    limits:
-      min-cpu: 2
-      min-mem: 2G
-      min-disk: 25G
