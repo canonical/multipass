@@ -88,7 +88,7 @@ TEST_P(ExpectedDataSuite, returns_expected_data)
 {
     const auto [alias, remote, url, id, release, release_title] = GetParam();
 
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     auto info = host.info_for(make_query(alias, remote));
 
@@ -127,7 +127,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     auto info = host.info_for(make_query("core16", "snapcraft"));
 
@@ -136,7 +136,7 @@ TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
 
 TEST_F(CustomImageHost, iterates_over_all_entries)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
@@ -154,7 +154,7 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
 
 TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
@@ -169,7 +169,7 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 
 TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
@@ -185,7 +185,7 @@ TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
 
 TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     auto images = host.all_images_for("snapcraft", false);
 
@@ -195,7 +195,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
 
 TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_matches)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
     const std::string unsupported_alias{"core18"};
 
     EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
@@ -208,7 +208,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_m
 
 TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     auto images_info = host.all_info_for(make_query("core", "snapcraft"));
 
@@ -218,7 +218,7 @@ TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 
 TEST_F(CustomImageHost, all_info_for_unsupported_alias_throws)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     const std::string unsupported_alias{"core"};
     EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
@@ -230,7 +230,7 @@ TEST_F(CustomImageHost, all_info_for_unsupported_alias_throws)
 
 TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     auto supported_remotes = host.supported_remotes();
 
@@ -243,14 +243,14 @@ TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
 
 TEST_F(CustomImageHost, invalid_image_returns_false)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     EXPECT_FALSE(host.info_for(make_query("foo", "")));
 }
 
 TEST_F(CustomImageHost, invalid_remote_throws_error)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     EXPECT_THROW(host.info_for(make_query("core", "foo")), std::runtime_error);
 }
@@ -265,7 +265,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
         .WillRepeatedly(DoDefault());
 
     const auto ttl = 1h; // so that updates are only retried when unsuccessful
-    mp::CustomVMImageHost host{&mock_url_downloader, ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, ttl};
 
     const auto query = make_query("core", "snapcraft");
     EXPECT_THROW(host.info_for(query), std::runtime_error);
@@ -276,7 +276,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
 TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
 {
     const auto ttl = 0s; // to ensure updates are always retried
-    mp::CustomVMImageHost host{&mock_url_downloader, ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, ttl};
 
     const auto query = make_query("core", "snapcraft");
     EXPECT_TRUE(host.info_for(query));
@@ -296,7 +296,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
 TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
 {
     const auto ttl = 0h;
-    mp::CustomVMImageHost host{&mock_url_downloader, ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, ttl};
 
     const auto num_remotes = mpt::count_remotes(host);
     EXPECT_GT(num_remotes, 0u);
@@ -320,7 +320,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
 
 TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
 {
-    mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     const std::string unsupported_remote{"snapcraft"};
     EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
@@ -329,3 +329,25 @@ TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
                          mpt::match_what(HasSubstr(fmt::format(
                              "Remote \'{}\' is not a supported remote for this platform.", unsupported_remote))));
 }
+
+struct EmptyArchSuite : CustomImageHost, WithParamInterface<QString>
+{
+};
+
+TEST_P(EmptyArchSuite, empty_for_other_arches)
+{
+    auto arch = GetParam();
+    mp::CustomVMImageHost host{arch, &mock_url_downloader, default_ttl};
+
+    EXPECT_CALL(mock_url_downloader, last_modified(_)).Times(0);
+    EXPECT_CALL(mock_url_downloader, download(_)).Times(0);
+
+    std::unordered_set<std::string> ids;
+    host.for_each_entry_do(
+        [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); });
+
+    const size_t expected_entries{0};
+    EXPECT_THAT(ids.size(), Eq(expected_entries));
+}
+
+INSTANTIATE_TEST_SUITE_P(CustomImageHost, EmptyArchSuite, Values("arm", "arm64", "i386", "power", "power64", "s390x"));
