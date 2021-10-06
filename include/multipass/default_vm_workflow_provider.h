@@ -25,6 +25,7 @@
 
 #include <QDir>
 #include <QString>
+#include <QSysInfo>
 #include <QUrl>
 
 #include <chrono>
@@ -40,9 +41,11 @@ class DefaultVMWorkflowProvider final : public VMWorkflowProvider
 {
 public:
     DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader, const QDir& cache_dir_path,
-                              const std::chrono::milliseconds& workflows_ttl);
+                              const std::chrono::milliseconds& workflows_ttl,
+                              const QString& arch = QSysInfo::currentCpuArchitecture());
     DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& cache_dir_path,
-                              const std::chrono::milliseconds& workflows_ttl);
+                              const std::chrono::milliseconds& workflows_ttl,
+                              const QString& arch = QSysInfo::currentCpuArchitecture());
 
     Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) override;
     VMImageInfo info_for(const std::string& workflow_name) override;
@@ -61,6 +64,7 @@ private:
     std::chrono::steady_clock::time_point last_update;
     std::map<std::string, YAML::Node> workflow_map;
     bool needs_update{true};
+    const QString arch;
 };
 } // namespace multipass
 #endif // MULTIPASS_DEFAULT_VM_WORKFLOW_PROVIDER_H
