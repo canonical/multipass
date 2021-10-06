@@ -61,8 +61,6 @@ struct CustomImageHost : public Test
 
         ON_CALL(mock_url_downloader, last_modified(_)).WillByDefault(Return(QDateTime::currentDateTime()));
         ON_CALL(mock_url_downloader, download(_)).WillByDefault(Return(sha256_sums));
-        EXPECT_CALL(mock_url_downloader, last_modified(_)).Times(AnyNumber());
-        EXPECT_CALL(mock_url_downloader, download(_)).Times(AnyNumber());
     }
 
     mp::Query make_query(std::string release, std::string remote)
@@ -70,7 +68,7 @@ struct CustomImageHost : public Test
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
     }
 
-    mpt::MockURLDownloader mock_url_downloader;
+    NiceMock<mpt::MockURLDownloader> mock_url_downloader;
     std::chrono::seconds default_ttl{1};
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
@@ -89,9 +87,6 @@ struct ExpectedDataSuite : CustomImageHost, WithParamInterface<CustomData>
 TEST_P(ExpectedDataSuite, returns_expected_data)
 {
     const auto [alias, remote, url, id, release, release_title] = GetParam();
-
-    EXPECT_CALL(mock_url_downloader, last_modified(_)).Times(5);
-    EXPECT_CALL(mock_url_downloader, download(_)).Times(5);
 
     mp::CustomVMImageHost host{&mock_url_downloader, default_ttl};
 
@@ -262,17 +257,18 @@ TEST_F(CustomImageHost, invalid_remote_throws_error)
 
 TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
 {
-    ON_CALL(mock_url_downloader, last_modified(_)).WillByDefault(Throw(mp::DownloadException{"", ""}));
-    ON_CALL(mock_url_downloader, download(_)).WillByDefault(Throw(mp::DownloadException{"", ""}));
+    EXPECT_CALL(mock_url_downloader, last_modified(_))
+        .WillOnce(Throw(mp::DownloadException{"", ""}))
+        .WillRepeatedly(DoDefault());
+    EXPECT_CALL(mock_url_downloader, download(_))
+        .WillOnce(Throw(mp::DownloadException{"", ""}))
+        .WillRepeatedly(DoDefault());
 
     const auto ttl = 1h; // so that updates are only retried when unsuccessful
     mp::CustomVMImageHost host{&mock_url_downloader, ttl};
 
     const auto query = make_query("core", "snapcraft");
     EXPECT_THROW(host.info_for(query), std::runtime_error);
-
-    ON_CALL(mock_url_downloader, last_modified(_)).WillByDefault(Return(QDateTime::currentDateTime()));
-    ON_CALL(mock_url_downloader, download(_)).WillByDefault(Return(sha256_sums));
 
     EXPECT_TRUE(host.info_for(query));
 }
@@ -285,13 +281,14 @@ TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
     const auto query = make_query("core", "snapcraft");
     EXPECT_TRUE(host.info_for(query));
 
-    ON_CALL(mock_url_downloader, last_modified(_)).WillByDefault(Throw(mp::DownloadException{"", ""}));
-    ON_CALL(mock_url_downloader, download(_)).WillByDefault(Throw(mp::DownloadException{"", ""}));
+    EXPECT_CALL(mock_url_downloader, last_modified(_))
+        .WillOnce(Throw(mp::DownloadException{"", ""}))
+        .WillRepeatedly(DoDefault());
+    EXPECT_CALL(mock_url_downloader, download(_))
+        .WillOnce(Throw(mp::DownloadException{"", ""}))
+        .WillRepeatedly(DoDefault());
 
     EXPECT_THROW(host.info_for(query), std::runtime_error);
-
-    ON_CALL(mock_url_downloader, last_modified(_)).WillByDefault(Return(QDateTime::currentDateTime()));
-    ON_CALL(mock_url_downloader, download(_)).WillByDefault(Return(sha256_sums));
 
     EXPECT_TRUE(host.info_for(query));
 }
