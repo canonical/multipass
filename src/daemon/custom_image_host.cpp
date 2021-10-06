@@ -138,18 +138,15 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
-                         const QString& path_prefix)
+auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader)
 {
     std::vector<mp::VMImageInfo> default_images;
 
     for (const auto& image_info : custom_image_info.toStdMap())
     {
         auto image_file = image_info.first;
-        auto prefix =
-            path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString();
-        QString image_url{prefix + image_info.first};
-        QString hash_url{prefix + QStringLiteral("SHA256SUMS")};
+        QString image_url{image_info.second.url_prefix + image_info.first};
+        QString hash_url{image_info.second.url_prefix + QStringLiteral("SHA256SUMS")};
 
         auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
         mp::VMImageInfo full_image_info{image_info.second.aliases,
@@ -177,15 +174,8 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
 } // namespace
 
 mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
-    : CustomVMImageHost{downloader, manifest_time_to_live, ""}
-{
-}
-
-mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live,
-                                         const QString& path_prefix)
     : CommonVMImageHost{manifest_time_to_live},
       url_downloader{downloader},
-      path_prefix{path_prefix},
       custom_image_info{},
       remotes{no_remote, snapcraft_remote}
 {
@@ -262,7 +252,7 @@ void mp::CustomVMImageHost::fetch_manifests()
         {
             check_remote_is_supported(spec.first);
 
-            custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader, path_prefix));
+            custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader));
         }
         catch (mp::DownloadException& e)
         {
