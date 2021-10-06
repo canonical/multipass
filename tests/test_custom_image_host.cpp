@@ -312,7 +312,6 @@ TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
                 .WillRepeatedly(Throw(mp::DownloadException{"", ""}));
         }
         EXPECT_CALL(mock_url_downloader, last_modified(_)).Times(AnyNumber()).InSequence(seq);
-        EXPECT_CALL(mock_url_downloader, download(_)).Times(AnyNumber());
 
         EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
         EXPECT_TRUE(Mock::VerifyAndClearExpectations(&mock_url_downloader));
