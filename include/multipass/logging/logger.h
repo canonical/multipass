@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_LOGGER_H
 #define MULTIPASS_LOGGER_H
 
+#include <multipass/disabled_copy_move.h>
 #include <multipass/logging/cstring.h>
 #include <multipass/logging/level.h>
 
@@ -31,7 +32,7 @@ namespace multipass
 namespace logging
 {
 
-class Logger
+class Logger : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<Logger>;
@@ -50,8 +51,6 @@ public:
 protected:
     Logger(Level logging_level) : logging_level{logging_level} {};
     Logger() = default;
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
 
     const Level logging_level{Level::error};
 };
