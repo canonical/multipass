@@ -42,7 +42,7 @@ jobs:
 
     strategy:
       matrix:
-        build-type: [Debug, Clang, RelWithDebInfo, Coverage]
+        build-type: [Debug, Clang, Release, Coverage]
 
     runs-on: ubuntu-latest
 
@@ -150,7 +150,7 @@ jobs:
 
     - name: Build and verify the snap
       id: build-snap
-      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
+      if: ${{ matrix.build-type == 'Release' }}
       env:
         SNAP_ENFORCE_RESQUASHFS: 0
       run: |
@@ -164,7 +164,7 @@ jobs:
 
     - name: Upload the snap
       uses: actions/upload-artifact@v2
-      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
+      if: ${{ matrix.build-type == 'Release' }}
       with:
         name: ${{ steps.build-snap.outputs.snap-file }}
         path: ${{ steps.build-snap.outputs.snap-file }}
