@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "daemon_config.h"
 
 #include <multipass/cert_provider.h>
+#include <multipass/disabled_copy_move.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/rpc_connection_type.h>
 
@@ -39,14 +40,12 @@ using CreateError = LaunchError;
 using CreateProgress = LaunchProgress;
 
 struct DaemonConfig;
-class DaemonRpc : public QObject, public multipass::Rpc::Service
+class DaemonRpc : public QObject, public multipass::Rpc::Service, private DisabledCopyMove
 {
     Q_OBJECT
 public:
     DaemonRpc(const std::string& server_address, multipass::RpcConnectionType type, const CertProvider& cert_provider,
               const CertStore& client_cert_store);
-    DaemonRpc(const DaemonRpc&) = delete;
-    DaemonRpc& operator=(const DaemonRpc&) = delete;
 
 signals:
     void on_create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,

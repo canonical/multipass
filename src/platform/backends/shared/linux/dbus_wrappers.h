@@ -20,6 +20,7 @@
 
 #include "multipass/optional.h"
 #include "multipass/singleton.h"
+#include <multipass/disabled_copy_move.h>
 
 #include <QString>
 #include <QVariant>
@@ -31,13 +32,10 @@
 namespace multipass::backend::dbus
 {
 
-class DBusInterface
+class DBusInterface : private DisabledCopyMove
 {
 public:
     virtual ~DBusInterface() = default;
-
-    DBusInterface(const DBusInterface&) = delete;
-    DBusInterface& operator=(const DBusInterface&) = delete;
 
     virtual bool is_valid() const
     {
@@ -96,12 +94,10 @@ private:
     std::unique_ptr<QDBusInterface> iface;
 };
 
-class DBusConnection
+class DBusConnection : private DisabledCopyMove
 {
 public:
     virtual ~DBusConnection() = default;
-    DBusConnection(const DBusConnection&) = delete;
-    DBusConnection& operator=(const DBusConnection&) = delete;
 
     virtual bool is_connected() const
     {

@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_DNSMASQ_SERVER_H
 #define MULTIPASS_DNSMASQ_SERVER_H
 
+#include <multipass/disabled_copy_move.h>
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
@@ -32,14 +33,12 @@ namespace multipass
 {
 class Process;
 
-class DNSMasqServer
+class DNSMasqServer : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<DNSMasqServer>;
 
     DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
-    DNSMasqServer(const DNSMasqServer&) = delete;
-    DNSMasqServer& operator=(const DNSMasqServer&) = delete;
     virtual ~DNSMasqServer(); // inherited by mock for testing
 
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr);

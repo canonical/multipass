@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_FORMATTER_H
 #define MULTIPASS_FORMATTER_H
 
+#include <multipass/disabled_copy_move.h>
+
 #include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <multipass/cli/alias_dict.h>
@@ -29,7 +31,7 @@ namespace multipass
 {
 constexpr auto default_id_str = "default";
 
-class Formatter
+class Formatter : private DisabledCopyMove
 {
 public:
     virtual ~Formatter() = default;
@@ -42,8 +44,6 @@ public:
 
 protected:
     Formatter() = default;
-    Formatter(const Formatter&) = delete;
-    Formatter& operator=(const Formatter&) = delete;
 
     template <class D>
     std::map<typename D::key_type, typename D::mapped_type> sort_dict(const D& unsorted_dict) const

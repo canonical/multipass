@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
 #ifndef MULTIPASS_VM_STATUS_MONITOR_H
 #define MULTIPASS_VM_STATUS_MONITOR_H
 
-#include <multipass/virtual_machine.h>
+#include "disabled_copy_move.h"
+#include "virtual_machine.h"
 
 #include <string>
 
@@ -26,7 +27,7 @@
 
 namespace multipass
 {
-class VMStatusMonitor
+class VMStatusMonitor : private DisabledCopyMove
 {
 public:
     virtual ~VMStatusMonitor() = default;
@@ -41,8 +42,6 @@ public:
 
 protected:
     VMStatusMonitor() = default;
-    VMStatusMonitor(const VMStatusMonitor&) = delete;
-    VMStatusMonitor& operator=(const VMStatusMonitor&) = delete;
 };
 }
 #endif // MULTIPASS_VM_STATUS_MONITOR_H
