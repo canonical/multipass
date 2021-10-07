@@ -28,6 +28,8 @@ struct MockURLDownloader : public multipass::URLDownloader
 {
     MockURLDownloader() : URLDownloader{std::chrono::seconds(10)} {};
 
+    MOCK_METHOD1(download, QByteArray(const QUrl&));
+    MOCK_METHOD1(last_modified, QDateTime(const QUrl&));
     MOCK_METHOD5(download_to, void(const QUrl&, const QString&, int64_t, const int, const ProgressMonitor&));
 };
 } // namespace test
