@@ -370,7 +370,7 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: multipass-macos-11-arm
+    runs-on: macos
 
     steps:
     - name: Update the Windows check on public
@@ -421,16 +421,19 @@ jobs:
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
 
+    - name: Set the arch wrapper
+      run: echo "ARCH_WRAPPER=arch -arch $( sysctl machdep.cpu.brand_string | grep -q Apple && echo arm64 || echo x86_64 )" >> ${GITHUB_ENV}
+
     - name: Combine the macOS package
       id: combine-package
       if: ${{ steps.retrieve-x86.outputs.download-path && steps.retrieve-arm.outputs.download-path }}
       run: |
-        arch -arm64 brew install python
-        arch -arm64 python3 -m pip install --user --upgrade lxml
+        ${ARCH_WRAPPER} brew install python
+        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade lxml
 
         PKG=${{ needs.BuildAndTest.outputs.mac-x86-package }}
         PKG=${PKG/.x86_64/}
-        packaging/macos/merge_pkgs.py \
+        ${ARCH_WRAPPER} packaging/macos/merge_pkgs.py \
           ${{ needs.BuildAndTest.outputs.mac-x86-package }} \
           ${{ needs.BuildAndTest.outputs.mac-arm-package }} \
           ${PKG}
