@@ -33,7 +33,6 @@ class MockLogger : public multipass::logging::Logger, public PrivatePassProvider
 {
 public:
     MockLogger(const PrivatePass&, const multipass::logging::Level logging_level);
-    MockLogger() = delete; // TODO@ricab drop this
 
     MOCK_CONST_METHOD3(log, void(multipass::logging::Level level, multipass::logging::CString category,
                                  multipass::logging::CString message));
