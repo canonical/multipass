@@ -259,6 +259,7 @@ jobs:
         # Find common base between full and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
         echo "::set-output name=key::$( git merge-base origin/full ${{ github.sha }} )"
+        echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
 
     - name: CCache
       if: ${{ runner.os == 'macOS' }}
