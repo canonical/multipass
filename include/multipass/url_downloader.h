@@ -18,9 +18,10 @@
 #ifndef MULTIPASS_URL_DOWNLOADER_H
 #define MULTIPASS_URL_DOWNLOADER_H
 
-#include <multipass/path.h>
-#include <multipass/progress_monitor.h>
-#include <multipass/singleton.h>
+#include "disabled_copy_move.h"
+#include "path.h"
+#include "progress_monitor.h"
+#include "singleton.h"
 
 #include <QByteArray>
 #include <QDateTime>
@@ -43,7 +44,7 @@ public:
     virtual std::unique_ptr<QNetworkAccessManager> make_network_manager(const Path& cache_dir_path) const;
 };
 
-class URLDownloader
+class URLDownloader : private DisabledCopyMove
 {
 public:
     URLDownloader(std::chrono::milliseconds timeout);
@@ -59,9 +60,6 @@ protected:
     std::atomic_bool abort_download{false};
 
 private:
-    URLDownloader(const URLDownloader&) = delete;
-    URLDownloader& operator=(const URLDownloader&) = delete;
-
     const Path cache_dir_path;
     std::chrono::milliseconds timeout;
 };
