@@ -20,6 +20,7 @@
 
 #include "common.h"
 
+#include <multipass/disabled_copy_move.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/logger.h>
 #include <multipass/private_pass_provider.h>
@@ -28,14 +29,11 @@ namespace multipass
 {
 namespace test
 {
-class MockLogger : public multipass::logging::Logger, public PrivatePassProvider<MockLogger>
+class MockLogger : public multipass::logging::Logger, public PrivatePassProvider<MockLogger>, private DisabledCopyMove
 {
 public:
     MockLogger(const PrivatePass&, const multipass::logging::Level logging_level);
-
-    MockLogger() = delete;
-    MockLogger(const MockLogger&) = delete;
-    MockLogger& operator=(const MockLogger&) = delete;
+    MockLogger() = delete; // TODO@ricab drop this
 
     MOCK_CONST_METHOD3(log, void(multipass::logging::Level level, multipass::logging::CString category,
                                  multipass::logging::CString message));

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,12 @@
 #ifndef MULTIPASS_CERT_STORE_H
 #define MULTIPASS_CERT_STORE_H
 
+#include "disabled_copy_move.h"
 #include <string>
 
 namespace multipass
 {
-class CertStore
+class CertStore : private DisabledCopyMove
 {
 public:
     virtual ~CertStore() = default;
@@ -31,8 +32,6 @@ public:
 
 protected:
     CertStore() = default;
-    CertStore(const CertStore&) = delete;
-    CertStore& operator=(const CertStore&) = delete;
 };
 } // namespace multipass
 #endif // MULTIPASS_CERT_STORE_H
