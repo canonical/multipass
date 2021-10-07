@@ -36,8 +36,8 @@ public:
     DisabledCopyMove& operator=(const DisabledCopyMove&) = delete;
 
 protected:
-    DisabledCopyMove() noexcept = default;
-    ~DisabledCopyMove() noexcept = default; // non-virtual, but needs protected - see Core Guidelines C.35
+    DisabledCopyMove() = default;
+    ~DisabledCopyMove() = default; // non-virtual, but needs protected - see Core Guidelines C.35
 };
 } // namespace multipass
 
