@@ -53,6 +53,7 @@ add_executable(multipass_tests
   test_daemon.cpp
   test_daemon_find.cpp
   test_delayed_shutdown.cpp
+  test_disabled_copy_move.cpp
   test_format_utils.cpp
   test_output_formatter.cpp
   test_image_vault.cpp
