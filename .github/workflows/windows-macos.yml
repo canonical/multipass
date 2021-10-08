@@ -254,9 +254,10 @@ jobs:
       id: setup-ccache
       run: |
         ${{ env.ARCH_WRAPPER }} brew install ccache
-        ccache --max-size=400M
+        ccache --max-size=700M
 
         # Find common base between full and HEAD to use as cache key.
+        # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
         echo "::set-output name=key::$( git merge-base origin/full ${{ github.sha }} )"
         echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
@@ -265,9 +266,9 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v2
       with:
-        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.key }}
+        key: ccache${{ secrets.CCACHE_VERSION  }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
-          ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-
+          ccache${{ secrets.CCACHE_VERSION }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
         path: ${{ env.CCACHE_DIR }}
 
     - name: Install Dependencies from Choco
@@ -298,7 +299,6 @@ jobs:
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
-        ${{ runner.os == 'macOS' && '-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache' || '' }}
         ${{ github.workspace }}
 
     - name: Build
