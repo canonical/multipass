@@ -374,7 +374,7 @@ jobs:
 
     steps:
     - name: Update the Windows check on public
-      if: ${{ always() && github.event_name == 'repository_dispatch' }}
+      if: ${{ always() && needs.BuildAndTest.outputs.windows-check }}
       uses: canonical/actions/check@release
       with:
         app_id: ${{ secrets.APP_ID }}
@@ -466,7 +466,7 @@ jobs:
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
     - name: Update the macOS x86 check on public
-      if: ${{ always() && github.event_name == 'repository_dispatch' }}
+      if: ${{ always() && needs.BuildAndTest.outputs.mac-x86-check }}
       uses: canonical/actions/check@release
       with:
         app_id: ${{ secrets.APP_ID }}
@@ -484,7 +484,7 @@ jobs:
           }}
 
     - name: Update the macOS ARM check on public
-      if: ${{ always() && github.event_name == 'repository_dispatch' }}
+      if: ${{ always() && needs.BuildAndTest.outputs.mac-arm-check }}
       uses: canonical/actions/check@release
       with:
         app_id: ${{ secrets.APP_ID }}
