@@ -2,7 +2,7 @@
 <installer-gui-script minSpecVersion="1.0">
     <title>@CPACK_PACKAGE_NAME@</title>
     <allowed-os-versions>
-        <os-version min="@CMAKE_OSX_DEPLOYMENT_TARGET@"/>
+        <os-version min="@CPACK_OSX_DEPLOYMENT_TARGET@"/>
     </allowed-os-versions>
     <welcome file="@CPACK_RESOURCE_FILE_WELCOME_NOPATH@"/>
     <readme file="@CPACK_RESOURCE_FILE_README_NOPATH@"/>
