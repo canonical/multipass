@@ -91,7 +91,8 @@ public:
     {
     }
 
-    virtual std::unique_ptr<QSettingsWrapper> make_qsettings_wrapper(const QString& file_path, QSettings::Format format)
+    virtual std::unique_ptr<QSettingsWrapper> make_qsettings_wrapper(const QString& file_path,
+                                                                     QSettings::Format format) const
     {
         auto qsettings = std::make_unique<QSettings>(file_path, format);
         return std::unique_ptr<QSettingsWrapper>(new QSettingsWrapper(std::move(qsettings))); /* std::make_unique can't
