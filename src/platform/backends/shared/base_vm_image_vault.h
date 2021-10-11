@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_BASE_VM_IMAGE_VAULT_H
 #define MULTIPASS_BASE_VM_IMAGE_VAULT_H
 
+#include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
@@ -63,9 +64,7 @@ public:
             static_cast<void>(std::any_of(image_hosts.begin(), image_hosts.end(), grab_imgs)); // intentional discard
 
         if (images_info.empty())
-            throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"."
-                                                 " Please use `multipass find` for supported remotes and images.",
-                                                 query.release));
+            throw ImageNotFoundException(query.release);
 
         return images_info;
     };
@@ -94,9 +93,7 @@ protected:
             }
         }
 
-        throw std::runtime_error(fmt::format("Unable to find an image matching \"{}\"."
-                                             " Please use `multipass find` for supported remotes and images.",
-                                             query.release));
+        throw ImageNotFoundException(query.release);
     };
 
 private:
