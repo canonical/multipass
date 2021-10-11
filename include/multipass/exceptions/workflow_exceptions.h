@@ -39,5 +39,11 @@ class InvalidWorkflowException : public std::runtime_error
 public:
     using std::runtime_error::runtime_error;
 };
+
+class IncompatibleWorkflowException : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
 } // namespace multipass
 #endif // MULTIPASS_WORKFLOW_EXCEPTIONS_H

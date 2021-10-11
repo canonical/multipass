@@ -84,18 +84,21 @@ auto workflows_map_for(const std::string& archive_file_path, bool& needs_update)
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader,
                                                          const QDir& archive_dir,
-                                                         const std::chrono::milliseconds& workflows_ttl)
+                                                         const std::chrono::milliseconds& workflows_ttl,
+                                                         const QString& arch)
     : workflows_url{workflows_url},
       url_downloader{downloader},
       archive_file_path{archive_dir.filePath(github_workflows_archive_name)},
-      workflows_ttl{workflows_ttl}
+      workflows_ttl{workflows_ttl},
+      arch{arch}
 {
     update_workflows();
 }
 
 mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir,
-                                                         const std::chrono::milliseconds& workflows_ttl)
-    : DefaultVMWorkflowProvider(default_workflow_url, downloader, archive_dir, workflows_ttl)
+                                                         const std::chrono::milliseconds& workflows_ttl,
+                                                         const QString& arch)
+    : DefaultVMWorkflowProvider(default_workflow_url, downloader, archive_dir, workflows_ttl, arch)
 {
 }
 
@@ -241,6 +244,23 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
 
     const auto description_key{"description"};
     const auto version_key{"version"};
+    const auto runs_on_key{"runs-on"};
+
+    if (workflow_config[runs_on_key])
+    {
+        try
+        {
+            auto runs_on = workflow_config[runs_on_key].as<std::vector<std::string>>();
+            if (std::find(runs_on.cbegin(), runs_on.cend(), arch.toStdString()) == runs_on.cend())
+            {
+                throw IncompatibleWorkflowException(workflow_name);
+            }
+        }
+        catch (const YAML::BadConversion&)
+        {
+            throw InvalidWorkflowException(fmt::format(bad_conversion_template, runs_on_key, workflow_name));
+        }
+    }
 
     if (!workflow_config[description_key])
     {
@@ -297,6 +317,10 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
             needs_update = false;
             will_need_update = true;
             mpl::log(mpl::Level::error, category, fmt::format("Invalid workflow: {}", e.what()));
+        }
+        catch (const IncompatibleWorkflowException& e)
+        {
+            mpl::log(mpl::Level::trace, category, fmt::format("Skipping incompatible workflow: {}", e.what()));
         }
     }
 

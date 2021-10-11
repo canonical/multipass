@@ -35,6 +35,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/default_vm_workflow_provider.h>
+#include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
@@ -1591,4 +1592,17 @@ TEST_F(Daemon, purgePersistsInstances)
     EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
 }
 
+TEST_F(Daemon, launch_fails_with_incompatible_workflow)
+{
+    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+    EXPECT_CALL(*mock_workflow_provider, info_for(_)).WillOnce(Throw(mp::IncompatibleWorkflowException("")));
+
+    config_builder.workflow_provider = std::move(mock_workflow_provider);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream err_stream;
+    send_command({"launch", "foo"}, trash_stream, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("The \"foo\" workflow is not compatible with this host."));
+}
 } // namespace
