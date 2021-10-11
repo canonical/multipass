@@ -284,6 +284,8 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
         mpl::Level::error, "Invalid workflow: The 'version' key is required for the missing-version-workflow workflow");
     logger_scope.mock_logger->expect_log(
         mpl::Level::error, "Invalid workflow name \'42-invalid-hostname-workflow\': must be a valid host name");
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error, "Invalid workflow: Cannot convert 'runs-on' key for the invalid-arch workflow");
 
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
@@ -482,4 +484,60 @@ TEST_F(VMWorkflowProvider, noImageDefinedReturnsDefault)
     auto query = workflow_provider.fetch_workflow_for("no-image-workflow", vm_desc);
 
     EXPECT_EQ(query.release, "default");
+}
+
+TEST_F(VMWorkflowProvider, invalidRunsOnThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    const std::string workflow{"invalid-description-workflow"};
+    MP_EXPECT_THROW_THAT(
+        workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
+        mpt::match_what(StrEq(fmt::format("Cannot convert \'description\' key for the {} workflow", workflow))));
+}
+
+TEST_F(VMWorkflowProvider, fetchInvalidRunsOnThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    const std::string workflow{"invalid-arch"};
+    MP_EXPECT_THROW_THAT(
+        workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
+        mpt::match_what(StrEq(fmt::format("Cannot convert \'runs-on\' key for the {} workflow", workflow))));
+}
+
+TEST_F(VMWorkflowProvider, infoForIncompatibleThrows)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
+
+    const std::string workflow{"arch-only"};
+    MP_EXPECT_THROW_THAT(workflow_provider.info_for(workflow), mp::IncompatibleWorkflowException,
+                         mpt::match_what(StrEq(workflow)));
+}
+
+TEST_F(VMWorkflowProvider, infoForCompatibleReturnsExpectedInfo)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl,
+                                                    "arch"};
+
+    auto workflow = workflow_provider.info_for("arch-only");
+
+    ASSERT_EQ(workflow.aliases.size(), 1);
+    EXPECT_EQ(workflow.aliases[0], "arch-only");
+    EXPECT_EQ(workflow.release_title, "An arch-only workflow");
+}
+
+TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfoForArch)
+{
+    mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl,
+                                                    "arch"};
+
+    auto workflows = workflow_provider.all_workflows();
+
+    EXPECT_EQ(workflows.size(), 11ul);
+    EXPECT_TRUE(std::find_if(workflows.cbegin(), workflows.cend(), [](const mp::VMImageInfo& workflow_info) {
+                    return ((workflow_info.aliases.size() == 1) && (workflow_info.aliases[0] == "arch-only") &&
+                            (workflow_info.release_title == "An arch-only workflow"));
+                }) != workflows.cend());
+    ASSERT_EQ(workflows[0].aliases.size(), 1);
 }

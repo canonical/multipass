@@ -25,6 +25,7 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_writer.h>
 #include <multipass/logging/client_logger.h>
@@ -460,6 +461,11 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     try
     {
         workflow_provider.info_for(request->image());
+    }
+    catch (const mp::IncompatibleWorkflowException&)
+    {
+        throw std::runtime_error(
+            fmt::format("The \"{}\" workflow is not compatible with this host.", request->image()));
     }
     catch (const std::out_of_range&)
     {
