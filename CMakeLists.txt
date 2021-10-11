@@ -16,7 +16,6 @@ cmake_minimum_required(VERSION 3.13)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 if (APPLE)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14") # needs to be set before "project"
   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
 endif()
 
