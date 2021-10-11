@@ -18,6 +18,8 @@
 #include "common.h"
 #include "mock_settings.h"
 
+#include <src/utils/qsettings_wrapper.h>
+
 #include <multipass/constants.h>
 #include <multipass/settings.h>
 
@@ -29,6 +31,21 @@ using namespace testing;
 
 namespace
 {
+class MockQSettingsProvider : public mp::QSettingsProvider
+{
+public:
+    using QSettingsProvider::QSettingsProvider;
+    MOCK_CONST_METHOD2(make_qsettings_wrapper,
+                       std::unique_ptr<mp::QSettingsWrapper>(const QString&, QSettings::Format));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, QSettingsProvider);
+};
+
+struct SettingsTest : public Test
+{
+    MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject();
+    MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
+};
 
 TEST(Settings, provides_get_default_as_get_by_default)
 {
