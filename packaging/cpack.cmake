@@ -221,6 +221,9 @@ if(APPLE)
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh")
 
+  # Cleans up the installed package
+  set(CPACK_PRE_BUILD_SCRIPTS "${CMAKE_SOURCE_DIR}/packaging/cleanup.cmake")
+
   # Signs the binaries using ad-hoc signing
   set(CPACK_POST_BUILD_SCRIPTS "${CMAKE_SOURCE_DIR}/packaging/macos/post_build.cmake")
 
