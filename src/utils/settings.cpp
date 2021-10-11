@@ -15,6 +15,8 @@
  *
  */
 
+#include "qsettings_wrapper.h"
+
 #include <multipass/constants.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
@@ -23,7 +25,6 @@
 
 #include <QDir>
 #include <QKeySequence>
-#include <QSettings>
 
 #include <algorithm>
 #include <cassert>
@@ -85,9 +86,9 @@ QString file_for(const QString& key) // the key should have passed checks at thi
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
 }
 
-std::unique_ptr<QSettings> persistent_settings(const QString& key)
+std::unique_ptr<mp::QSettingsWrapper> persistent_settings(const QString& key)
 {
-    auto ret = std::make_unique<QSettings>(file_for(key), QSettings::IniFormat);
+    auto ret = mp::QSettingsProvider::instance().make_qsettings_wrapper(file_for(key), QSettings::IniFormat);
     ret->setIniCodec("UTF-8");
 
     return ret;
@@ -104,7 +105,7 @@ bool exists_but_unreadable(const QString& filename)
             zero errno on the remaining platforms */
 }
 
-void check_status(const QSettings& settings, const QString& attempted_operation)
+void check_status(const mp::QSettingsWrapper& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
     if (status || exists_but_unreadable(settings.fileName()))
@@ -114,7 +115,8 @@ void check_status(const QSettings& settings, const QString& attempted_operation)
                                      : QStringLiteral("access error (consider running with an administrative role)")};
 }
 
-QString checked_get(const QSettings& settings, const QString& key, const QString& fallback, std::mutex& mutex)
+QString checked_get(const mp::QSettingsWrapper& settings, const QString& key, const QString& fallback,
+                    std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 
@@ -124,7 +126,7 @@ QString checked_get(const QSettings& settings, const QString& key, const QString
     return ret;
 }
 
-void checked_set(QSettings& settings, const QString& key, const QString& val, std::mutex& mutex)
+void checked_set(mp::QSettingsWrapper& settings, const QString& key, const QString& val, std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 
