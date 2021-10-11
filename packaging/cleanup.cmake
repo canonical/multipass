@@ -12,6 +12,4 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.19)
-
 file(REMOVE_RECURSE "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/multipassd${CPACK_PACKAGING_INSTALL_PREFIX}/lib/pkgconfig")
