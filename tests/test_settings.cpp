@@ -57,7 +57,7 @@ struct SettingsTest : public Test
 {
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
-        EXPECT_CALL(*mock_qsettings_provider, make_qsettings_wrapper)
+        EXPECT_CALL(*mock_qsettings_provider, make_qsettings_wrapper(_, Eq(QSettings::IniFormat)))
             .WillOnce(Return(ByMove(std::move(mock_qsettings))));
     }
 
@@ -70,6 +70,17 @@ struct SettingsTest : public Test
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
     std::unique_ptr<MockQSettingsWrapper> mock_qsettings = std::make_unique<MockQSettingsWrapper>();
 };
+
+TEST_F(SettingsTest, get_reads_utf8)
+{
+    auto key = mp::petenv_key;
+    EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
+
+    MP_SETTINGS.get(key);
+}
 
 TEST_F(SettingsTest, get_returns_recorded_setting)
 {
