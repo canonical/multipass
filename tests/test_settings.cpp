@@ -55,9 +55,31 @@ public:
 
 struct SettingsTest : public Test
 {
+    void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
+    {
+        EXPECT_CALL(*mock_qsettings_provider, make_qsettings_wrapper)
+            .WillOnce(Return(ByMove(std::move(mock_qsettings))));
+    }
+
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject();
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
+    std::unique_ptr<MockQSettingsWrapper> mock_qsettings = std::make_unique<MockQSettingsWrapper>();
 };
+
+TEST_F(SettingsTest, get_returns_recorded_setting)
+{
+    auto key = mp::petenv_key;
+    auto val = "asdf";
+    EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), _)).WillOnce(Return(val));
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(InvokeWithoutArgs([&key] {
+        return MP_SETTINGS.Settings::get(key); // invoke the base
+    }));
+
+    ASSERT_NE(val, mpt::MockSettings::mock_instance().get_default(key));
+    EXPECT_EQ(MP_SETTINGS.get(key), QString{val});
+}
 
 TEST(Settings, provides_get_default_as_get_by_default)
 {
