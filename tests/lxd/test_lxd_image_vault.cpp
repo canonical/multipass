@@ -181,9 +181,11 @@ TEST_F(LXDImageVault, throws_with_invalid_alias)
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
 
-    MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor),
-                         std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("Unable to find an image matching \"{}\"", alias))));
+    MP_EXPECT_THROW_THAT(
+        image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error,
+        mpt::match_what(StrEq(fmt::format("Unable to find an image matching \"{}\"."
+                                          " Please use `multipass find` for supported remotes and images.",
+                                          alias))));
 }
 
 TEST_F(LXDImageVault, throws_with_invalid_remote)
