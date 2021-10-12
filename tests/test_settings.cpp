@@ -96,12 +96,13 @@ TEST_F(SettingsTest, get_returns_recorded_setting)
 }
 
 TEST(Settings, provides_get_default_as_get_by_default)
+TEST(MockSettings, provides_get_default_as_get_by_default)
 {
     const auto& key = mp::driver_key;
     ASSERT_EQ(MP_SETTINGS.get(key), mpt::MockSettings::mock_instance().get_default(key));
 }
 
-TEST(Settings, can_have_get_mocked)
+TEST(MockSettings, can_have_get_mocked)
 {
     const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
     auto& mock = mpt::MockSettings::mock_instance();
