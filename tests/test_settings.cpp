@@ -21,6 +21,7 @@
 #include <src/utils/qsettings_wrapper.h>
 
 #include <multipass/constants.h>
+#include <multipass/platform.h>
 #include <multipass/settings.h>
 
 #include <QString>
@@ -95,9 +96,19 @@ TEST_P(SettingsTest, get_returns_recorded_setting)
     EXPECT_EQ(MP_SETTINGS.get(key), QString{val});
 }
 
-INSTANTIATE_TEST_SUITE_P(SettingsTestAllKeys, SettingsTest,
-                         Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key,
-                                mp::bridged_interface_key, mp::mounts_key));
+std::vector<QString> get_regular_keys()
+{
+    std::vector<QString> ret{
+        mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key, mp::bridged_interface_key, mp::mounts_key};
+
+    for (const auto& item : mp::platform::extra_settings_defaults())
+        ret.push_back(item.first);
+
+    return ret;
+}
+
+INSTANTIATE_TEST_SUITE_P(SettingsTestAllKeys, SettingsTest, ValuesIn(get_regular_keys()));
+
 TEST(MockSettings, provides_get_default_as_get_by_default)
 {
     const auto& key = mp::driver_key;
