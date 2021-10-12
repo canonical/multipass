@@ -41,9 +41,7 @@ struct CustomManifest
 class CustomVMImageHost final : public CommonVMImageHost
 {
 public:
-    CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live);
-    // For testing
-    CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live, const QString& path_prefix);
+    CustomVMImageHost(const QString& arch, URLDownloader* downloader, std::chrono::seconds manifest_time_to_live);
 
     optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;
@@ -59,8 +57,8 @@ protected:
 private:
     CustomManifest* manifest_from(const std::string& remote_name);
 
+    const QString arch;
     URLDownloader* const url_downloader;
-    const QString path_prefix;
     std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
     std::vector<std::string> remotes;
 };

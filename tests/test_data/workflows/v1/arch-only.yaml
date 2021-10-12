@@ -1,0 +1,9 @@
+description: An arch-only workflow
+version: 0.1
+
+runs-on:
+- arch
+
+instances:
+  arch-only:
+    image: "daily:bionic"

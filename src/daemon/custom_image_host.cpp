@@ -55,54 +55,57 @@ struct CustomImageInfo
     QString initrd_location;
 };
 
-const QMap<QString, CustomImageInfo> multipass_image_info{{{"ubuntu-core-16-amd64.img.xz"},
-                                                           {"https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/",
-                                                            {"core", "core16"},
-                                                            "Ubuntu",
-                                                            "core-16",
-                                                            "Core 16",
-                                                            "",
-                                                            ""}},
-                                                          {{"ubuntu-core-18-amd64.img.xz"},
-                                                           {"https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/",
-                                                            {"core18"},
-                                                            "Ubuntu",
-                                                            "core-18",
-                                                            "Core 18",
-                                                            "",
-                                                            ""}}};
+const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
+    {{"x86_64"},
+     {{{"ubuntu-core-16-amd64.img.xz"},
+       {"https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/",
+        {"core", "core16"},
+        "Ubuntu",
+        "core-16",
+        "Core 16",
+        "",
+        ""}},
+      {{"ubuntu-core-18-amd64.img.xz"},
+       {"https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/",
+        {"core18"},
+        "Ubuntu",
+        "core-18",
+        "Core 18",
+        "",
+        ""}}}}};
 
-const QMap<QString, CustomImageInfo> snapcraft_image_info{
-    {{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
-     {"https://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
-      {"core"},
-      "",
-      "snapcraft-core16",
-      "Snapcraft builder for Core 16",
-      "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
-      "ubuntu-16.04-server-cloudimg-amd64-vmlinuz-generic",
-      "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
-      "ubuntu-16.04-server-cloudimg-amd64-initrd-generic"}},
-    {{"bionic-server-cloudimg-amd64-disk.img"},
-     {"https://cloud-images.ubuntu.com/buildd/releases/bionic/release/",
-      {"core18"},
-      "",
-      "snapcraft-core18",
-      "Snapcraft builder for Core 18",
-      "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
-      "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
-      "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
-      "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}},
-    {{"focal-server-cloudimg-amd64-disk.img"},
-     {"https://cloud-images.ubuntu.com/buildd/releases/focal/release/",
-      {"core20"},
-      "",
-      "snapcraft-core20",
-      "Snapcraft builder for Core 20",
-      "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
-      "ubuntu-20.04-server-cloudimg-amd64-vmlinuz-generic",
-      "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
-      "ubuntu-20.04-server-cloudimg-amd64-initrd-generic"}}};
+const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
+    {{"x86_64"},
+     {{{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
+       {"https://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
+        {"core"},
+        "",
+        "snapcraft-core16",
+        "Snapcraft builder for Core 16",
+        "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
+        "ubuntu-16.04-server-cloudimg-amd64-vmlinuz-generic",
+        "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
+        "ubuntu-16.04-server-cloudimg-amd64-initrd-generic"}},
+      {{"bionic-server-cloudimg-amd64-disk.img"},
+       {"https://cloud-images.ubuntu.com/buildd/releases/bionic/release/",
+        {"core18"},
+        "",
+        "snapcraft-core18",
+        "Snapcraft builder for Core 18",
+        "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
+        "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
+        "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
+        "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}},
+      {{"focal-server-cloudimg-amd64-disk.img"},
+       {"https://cloud-images.ubuntu.com/buildd/releases/focal/release/",
+        {"core20"},
+        "",
+        "snapcraft-core20",
+        "Snapcraft builder for Core 20",
+        "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
+        "ubuntu-20.04-server-cloudimg-amd64-vmlinuz-generic",
+        "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
+        "ubuntu-20.04-server-cloudimg-amd64-initrd-generic"}}}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
@@ -138,18 +141,15 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
-                         const QString& path_prefix)
+auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader)
 {
     std::vector<mp::VMImageInfo> default_images;
 
     for (const auto& image_info : custom_image_info.toStdMap())
     {
         auto image_file = image_info.first;
-        auto prefix =
-            path_prefix.isEmpty() ? image_info.second.url_prefix : QUrl::fromLocalFile(path_prefix).toString();
-        QString image_url{prefix + image_info.first};
-        QString hash_url{prefix + QStringLiteral("SHA256SUMS")};
+        QString image_url{image_info.second.url_prefix + image_info.first};
+        QString hash_url{image_info.second.url_prefix + QStringLiteral("SHA256SUMS")};
 
         auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
         mp::VMImageInfo full_image_info{image_info.second.aliases,
@@ -176,16 +176,11 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
 
 } // namespace
 
-mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
-    : CustomVMImageHost{downloader, manifest_time_to_live, ""}
-{
-}
-
-mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader, std::chrono::seconds manifest_time_to_live,
-                                         const QString& path_prefix)
+mp::CustomVMImageHost::CustomVMImageHost(const QString& arch, URLDownloader* downloader,
+                                         std::chrono::seconds manifest_time_to_live)
     : CommonVMImageHost{manifest_time_to_live},
+      arch{arch},
       url_downloader{downloader},
-      path_prefix{path_prefix},
       custom_image_info{},
       remotes{no_remote, snapcraft_remote}
 {
@@ -255,14 +250,14 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 
 void mp::CustomVMImageHost::fetch_manifests()
 {
-    for (const auto& spec :
-         {std::make_pair(no_remote, multipass_image_info), std::make_pair(snapcraft_remote, snapcraft_image_info)})
+    for (const auto& spec : {std::make_pair(no_remote, multipass_image_info[arch]),
+                             std::make_pair(snapcraft_remote, snapcraft_image_info[arch])})
     {
         try
         {
             check_remote_is_supported(spec.first);
 
-            custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader, path_prefix));
+            custom_image_info.emplace(spec.first, full_image_info_for(spec.second, url_downloader));
         }
         catch (mp::DownloadException& e)
         {

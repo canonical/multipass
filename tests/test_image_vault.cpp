@@ -661,5 +661,5 @@ TEST_F(ImageVault, all_info_for_no_images_returned_throws)
     EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{}));
 
     MP_EXPECT_THROW_THAT(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("Unable to find an image matching \"{}\"", name))));
+                         mpt::match_what(HasSubstr(fmt::format("Unable to find an image matching \"{}\"", name))));
 }

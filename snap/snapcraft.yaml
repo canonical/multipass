@@ -90,6 +90,7 @@ apps:
       - unity7
       - wayland
       - x11
+      - system-observe
 
 parts:
   multipass:
@@ -129,7 +130,7 @@ parts:
     - dnsmasq-utils
     source: .
     cmake-parameters:
-    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    - -DCMAKE_BUILD_TYPE=Release
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
     - -DMULTIPASS_UPSTREAM=origin

@@ -15,35 +15,24 @@
  *
  */
 
-#ifndef MULTIPASS_WORKFLOW_EXCEPTIONS_H
-#define MULTIPASS_WORKFLOW_EXCEPTIONS_H
+#ifndef MULTIPASS_IMAGE_VAULT_EXCEPTIONS_H
+#define MULTIPASS_IMAGE_VAULT_EXCEPTIONS_H
+
+#include <stdexcept>
 
 #include <multipass/format.h>
 
-#include <stdexcept>
-#include <string>
-
 namespace multipass
 {
-class WorkflowMinimumException : public std::runtime_error
+class ImageNotFoundException : public std::runtime_error
 {
 public:
-    WorkflowMinimumException(const std::string& type, const std::string& min_val)
-        : runtime_error(fmt::format("Requested {} is less than workflow minimum of {}", type, min_val))
+    ImageNotFoundException(const std::string& image)
+        : runtime_error(fmt::format("Unable to find an image matching \"{}\"."
+                                    " Please use `multipass find` for supported remotes and images.",
+                                    image))
     {
     }
 };
-
-class InvalidWorkflowException : public std::runtime_error
-{
-public:
-    using std::runtime_error::runtime_error;
-};
-
-class IncompatibleWorkflowException : public std::runtime_error
-{
-public:
-    using std::runtime_error::runtime_error;
-};
 } // namespace multipass
-#endif // MULTIPASS_WORKFLOW_EXCEPTIONS_H
+#endif // MULTIPASS_IMAGE_VAULT_EXCEPTIONS_H
