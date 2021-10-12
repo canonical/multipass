@@ -53,7 +53,7 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, QSettingsProvider);
 };
 
-struct SettingsTest : public Test
+struct SettingsTest : public TestWithParam<QString>
 {
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
@@ -71,9 +71,9 @@ struct SettingsTest : public Test
     std::unique_ptr<MockQSettingsWrapper> mock_qsettings = std::make_unique<MockQSettingsWrapper>();
 };
 
-TEST_F(SettingsTest, get_reads_utf8)
+TEST_P(SettingsTest, get_reads_utf8)
 {
-    auto key = mp::petenv_key;
+    auto key = GetParam();
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
@@ -82,9 +82,9 @@ TEST_F(SettingsTest, get_reads_utf8)
     MP_SETTINGS.get(key);
 }
 
-TEST_F(SettingsTest, get_returns_recorded_setting)
+TEST_P(SettingsTest, get_returns_recorded_setting)
 {
-    auto key = mp::petenv_key;
+    auto key = GetParam();
     auto val = "asdf";
     EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), _)).WillOnce(Return(val));
 
@@ -95,7 +95,9 @@ TEST_F(SettingsTest, get_returns_recorded_setting)
     EXPECT_EQ(MP_SETTINGS.get(key), QString{val});
 }
 
-TEST(Settings, provides_get_default_as_get_by_default)
+INSTANTIATE_TEST_SUITE_P(SettingsTestAllKeys, SettingsTest,
+                         Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key,
+                                mp::bridged_interface_key, mp::mounts_key));
 TEST(MockSettings, provides_get_default_as_get_by_default)
 {
     const auto& key = mp::driver_key;
