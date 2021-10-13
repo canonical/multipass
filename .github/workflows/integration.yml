@@ -5,8 +5,8 @@ on:
     inputs:
       snap-channel:
         description: Snap Store channel
-      mac-package:
-        description: macOS package URL
+      mac-x86-package:
+        description: macOS x86 package URL
       mac-arm-package:
         description: macOS ARM package URL
       win-package:
@@ -33,7 +33,7 @@ jobs:
           MATRIX+='{"os": "Linux", "vm": "linux", "driver": "lxd"}'
         fi
 
-        if [ -n '${{ github.event.inputs.mac-package }}' ]; then
+        if [ -n '${{ github.event.inputs.mac-x86-package }}' ]; then
           MATRIX+='{"os": "macOS", "vm": "macos-10.14", "driver": "hyperkit", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "hyperkit", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "qemu", "arch": "x86_64" }'
@@ -153,7 +153,7 @@ jobs:
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
-                _run curl --location --output multipass.pkg ${{ matrix.arch == 'arm64' && github.event.inputs.mac-arm-package || github.event.inputs.mac-package }}
+                _run curl --location --output multipass.pkg ${{ matrix.arch == 'arm64' && github.event.inputs.mac-arm-package || github.event.inputs.mac-x86-package }}
                 _run sudo installer -dumplog -target / -pkg multipass.pkg
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
