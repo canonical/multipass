@@ -56,7 +56,7 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, WrappedQSettingsFactory);
 };
 
-struct SettingsTest : public Test
+struct TestSettings : public Test
 {
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
@@ -74,7 +74,7 @@ struct SettingsTest : public Test
     std::unique_ptr<MockQSettings> mock_qsettings = std::make_unique<MockQSettings>(); // TODO@ricab nice?
 };
 
-TEST_F(SettingsTest, getReadsUtf8)
+TEST_F(TestSettings, getReadsUtf8)
 {
     auto key = mp::petenv_key;
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
@@ -85,7 +85,7 @@ TEST_F(SettingsTest, getReadsUtf8)
     MP_SETTINGS.get(key);
 }
 
-TEST_F(SettingsTest, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
+TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
 {
     auto key = multipass::hotkey_key;
     EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/asdf"));
@@ -105,11 +105,11 @@ struct DescribedQSettingsStatus
     std::string description;
 };
 
-struct SettingsTestReadError : public SettingsTest, public WithParamInterface<DescribedQSettingsStatus>
+struct TestSettingsReadError : public TestSettings, public WithParamInterface<DescribedQSettingsStatus>
 {
 };
 
-TEST_P(SettingsTestReadError, getThrowsOnFileReadError)
+TEST_P(TestSettingsReadError, getThrowsOnFileReadError)
 {
     const auto& [status, desc] = GetParam();
     auto key = multipass::driver_key;
@@ -122,15 +122,15 @@ TEST_P(SettingsTestReadError, getThrowsOnFileReadError)
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr(desc))));
 }
 
-INSTANTIATE_TEST_SUITE_P(SettingsTestAllReadErrors, SettingsTestReadError,
+INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestSettingsReadError,
                          Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
                                 DescribedQSettingsStatus{QSettings::AccessError, "access"}));
 
-struct SettingsTestKeyParam : public SettingsTest, public WithParamInterface<QString>
+struct TestSettingsKeyParam : public TestSettings, public WithParamInterface<QString>
 {
 };
 
-TEST_P(SettingsTestKeyParam, getReturnsRecordedSetting)
+TEST_P(TestSettingsKeyParam, getReturnsRecordedSetting)
 {
     auto key = GetParam();
     auto val = "asdf";
@@ -154,7 +154,7 @@ std::vector<QString> get_regular_keys()
     return ret;
 }
 
-INSTANTIATE_TEST_SUITE_P(SettingsTestRegularKeys, SettingsTestKeyParam, ValuesIn(get_regular_keys()));
+INSTANTIATE_TEST_SUITE_P(TestSettingsRegularKeys, TestSettingsKeyParam, ValuesIn(get_regular_keys()));
 
 template <typename T>
 struct SettingValueRepresentation
@@ -187,7 +187,7 @@ std::vector<SettingValueRepresentation<QKeySequence>> setting_val_reprs()
 }
 
 template <typename T>
-struct TestSettingsGetAs : public SettingsTest
+struct TestSettingsGetAs : public TestSettings
 {
 };
 
