@@ -14,6 +14,7 @@ on:
   workflow_dispatch:
 
 env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
   HEAD_REF: ci${{ github.run_id }}
   RUN_URL: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -109,6 +110,19 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
 
+    outputs:
+      build-label:     ${{ steps.build-params.outputs.label }}
+      mac-x86-status:  ${{ steps.publish-data.outputs.macOS-x86_64-status }}
+      mac-x86-package: ${{ steps.publish-data.outputs.macOS-x86_64-package }}
+      mac-x86-check:   ${{ steps.publish-data.outputs.macOS-x86_64-check_id }}
+      mac-arm-status:  ${{ steps.publish-data.outputs.macOS-arm64-status }}
+      mac-arm-package: ${{ steps.publish-data.outputs.macOS-arm64-package }}
+      mac-arm-check:   ${{ steps.publish-data.outputs.macOS-arm64-check_id }}
+      windows-status:  ${{ steps.publish-data.outputs.Windows--status }}
+      windows-package: ${{ steps.publish-data.outputs.Windows--package }}
+      windows-url:     ${{ steps.publish-data.outputs.Windows--url }}
+      windows-check:   ${{ steps.publish-data.outputs.Windows--check_id }}
+
     # Need to explicitly continue on Lint getting skipped.
     if: ${{ !failure() && !cancelled() && needs.Checkout.result == 'success' }}
 
@@ -121,27 +135,19 @@ jobs:
       OPAM_COMP: "4.11.1"
       OPAMVERBOSE: 1
       OPAMYES: 1
-      HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
-    - name: Create an App token
-      id: app-token
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: tibdex/github-app-token@v1
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repository: ${{ github.event.client_payload.repository }}
 
     - name: Create a check on public
       id: public-check
       if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
+      uses: canonical/actions/check@release
       with:
-        token: ${{ steps.app-token.outputs.token }}
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
         repo: ${{ github.event.client_payload.repository }}
         sha: ${{ github.event.client_payload.head_sha }}
-        name: ${{ runner.os }}
+        name: ${{ matrix.arch && format('{0}-{1}', runner.os, matrix.arch) || runner.os }}
         status: in_progress
         details_url: ${{ env.RUN_URL }}
 
@@ -349,48 +355,173 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
-    - name: Create an App token
-      # The token in app-token expires after an hour, and a full macOS build
-      # (including bors and ocaml setup) may take more than that, so need to
-      # get a new one. This would probably be better integrated into the check
-      # action itself.
-      id: app-token-update
-      if: ${{ always() && github.event_name == 'repository_dispatch' }}
-      uses: tibdex/github-app-token@v1
+    - name: Store publishing outputs
+      if: always()
+      id: publish-data
+      run: |
+        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-check_id::${{ steps.public-check.outputs.check_id }}"
+        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-package::${{ steps.cmake-package.outputs.name }}"
+        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-url::${{ steps.s3-upload.outputs.url }}"
+        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-status::${{ job.status }}"
+
+  PublishAndDispatch:
+    # Want to run even if one of the builds above failed
+    if: always()
+
+    needs: [BuildAndTest]
+
+    runs-on: macos
+
+    steps:
+    - name: Update the Windows check on public
+      if: ${{ always() && needs.BuildAndTest.outputs.windows-check }}
+      uses: canonical/actions/check@release
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repository: ${{ github.event.client_payload.repository }}
-
-    # On success, link to the package on the public side
-    - name: Update the check on public
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
-      with:
-        token: ${{ steps.app-token-update.outputs.token }}
         repo: ${{ github.event.client_payload.repository }}
         sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ steps.public-check.outputs.check_id }}
-        conclusion: ${{ job.status }}
+        check_id: ${{ needs.BuildAndTest.outputs.windows-check }}
+        conclusion: ${{ needs.BuildAndTest.outputs.windows-status }}
         output: |
-          {
-             "summary": "${{ runner.os }} build successful",
-             "text_description": "[${{ steps.cmake-package.outputs.name }}](${{ steps.s3-upload.outputs.url }})"
-          }
+          ${{
+            needs.BuildAndTest.outputs.windows-url
+              && format('{{ "summary": "Windows build complete", "text_description": "[{0}]({1})" }}',
+                        needs.BuildAndTest.outputs.windows-package, needs.BuildAndTest.outputs.windows-url)
+              || ''
+          }}
 
-    # On failure, just report the failure
-    - name: Update the check on public
-      if: ${{ !success() && github.event_name == 'repository_dispatch' }}
-      uses: LouisBrunner/checks-action@v1.1.1
+    - name: Cleanup
+      if: ${{ always() }}
+      uses: canonical/actions/cleanup@release
       with:
-        token: ${{ steps.app-token-update.outputs.token }}
+        paths: |
+          ${{ github.workspace }}
+
+    - name: Retrieve the repository
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ env.HEAD_REF }}.git
+        path: .git
+
+    - name: Check out the code
+      run: git checkout --progress --force ${{ env.HEAD_REF }}
+
+    - name: Retrieve the macOS x86 package
+      id: retrieve-x86
+      if: ${{ needs.BuildAndTest.outputs.mac-x86-package }}
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ needs.BuildAndTest.outputs.mac-x86-package }}
+
+    - name: Retrieve the macOS ARM package
+      id: retrieve-arm
+      if: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
+
+    - name: Set the arch wrapper
+      run: echo "ARCH_WRAPPER=arch -arch $( sysctl machdep.cpu.brand_string | grep -q Apple && echo arm64 || echo x86_64 )" >> ${GITHUB_ENV}
+
+    - name: Combine the macOS package
+      id: combine-package
+      if: ${{ steps.retrieve-x86.outputs.download-path && steps.retrieve-arm.outputs.download-path }}
+      run: |
+        ${ARCH_WRAPPER} brew install python
+        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade lxml
+
+        PKG=${{ needs.BuildAndTest.outputs.mac-x86-package }}
+        PKG=${PKG/.x86_64/}
+        ${ARCH_WRAPPER} packaging/macos/merge_pkgs.py \
+          ${{ needs.BuildAndTest.outputs.mac-x86-package }} \
+          ${{ needs.BuildAndTest.outputs.mac-arm-package }} \
+          ${PKG}
+
+        echo "::set-output name=name::${PKG}"
+        echo "::set-output name=path::$( greadlink -f ${PKG} )"
+
+    - name: Upload package
+      if: ${{ steps.combine-package.outputs.path }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ steps.combine-package.outputs.name }}
+        path: ${{ steps.combine-package.outputs.path }}
+        if-no-files-found: error
+
+    - name: Publish package on S3
+      if: ${{ steps.combine-package.outputs.path }}
+      id: s3-upload
+      uses: canonical/actions/s3-upload@release
+      with:
+        path: ${{ steps.combine-package.outputs.path }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ needs.BuildAndTest.outputs.build-label }}
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+
+    - name: Update the macOS x86 check on public
+      if: ${{ always() && needs.BuildAndTest.outputs.mac-x86-check }}
+      uses: canonical/actions/check@release
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
         repo: ${{ github.event.client_payload.repository }}
         sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ steps.public-check.outputs.check_id }}
-        conclusion: ${{ job.status }}
+        check_id: ${{ needs.BuildAndTest.outputs.mac-x86-check }}
+        conclusion: ${{ needs.BuildAndTest.outputs.mac-x86-status != 'success' && needs.BuildAndTest.outputs.mac-x86-status || job.status }}
+        output: |
+          ${{
+            steps.s3-upload.outputs.url
+              && format('{{ "summary": "macOS (x86_64) build complete", "text_description": "[{0}]({1})" }}',
+                        steps.combine-package.outputs.name, steps.s3-upload.outputs.url)
+              || ''
+          }}
+
+    - name: Update the macOS ARM check on public
+      if: ${{ always() && needs.BuildAndTest.outputs.mac-arm-check }}
+      uses: canonical/actions/check@release
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
+        repo: ${{ github.event.client_payload.repository }}
+        sha: ${{ github.event.client_payload.head_sha }}
+        check_id: ${{ needs.BuildAndTest.outputs.mac-arm-check }}
+        conclusion: ${{ needs.BuildAndTest.outputs.mac-arm-status != 'success' && needs.BuildAndTest.outputs.mac-arm-status || job.status }}
+        output: |
+          ${{
+            steps.s3-upload.outputs.url
+            && format ('{{ "summary": "macOS (arm64) build complete", "text_description": "[{0}]({1})" }}',
+                       steps.combine-package.outputs.name, steps.s3-upload.outputs.url)
+            || ''
+          }}
+
+    - name: Prepare dispatch inputs
+      id: prepare-dispatch
+      if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
+      run: |
+        ${ARCH_WRAPPER} brew install jq
+
+        INPUTS=""
+
+        if [ -n "${{ steps.s3-upload.outputs.url }}" ]; then
+          INPUTS+="{ \"mac-x86-package\": \"${{ steps.s3-upload.outputs.url }}\" }"
+          INPUTS+="{ \"mac-arm-package\": \"${{ steps.s3-upload.outputs.url }}\" }"
+        fi
+
+        if [ -n "${{ needs.BuildAndTest.outputs.windows-url }}" ]; then
+          INPUTS+="{ \"windows-package\": \"${{ needs.BuildAndTest.outputs.windows-url }}\" }"
+        fi
+
+        echo "${INPUTS}" | jq -cs '. | add' | awk '{ print "::set-output name=inputs::" $0 }'
 
     - name: Dispatch integration tests
-      if: ${{ github.event.client_payload.dispatch_ci == 'true' && matrix.arch != 'arm64' }}
+      if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
       uses: Saviq/workflow-dispatch@dist
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
@@ -398,9 +529,6 @@ jobs:
         ref: ${{ github.event.client_payload.ref }}
         sha: ${{ github.event.client_payload.sha }}
         workflow: Integration
-        inputs: |
-          {
-            "${{ runner.os == 'macOS' && 'mac-' || 'win-' }}package": "${{ steps.s3-upload.outputs.url }}"
-          }
+        inputs: ${{ steps.prepare-dispatch.outputs.inputs }}
       # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
       continue-on-error: true
