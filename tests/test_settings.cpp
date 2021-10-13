@@ -169,7 +169,7 @@ std::vector<SettingValueRepresentation<T>> setting_val_reprs();
 template <>
 std::vector<SettingValueRepresentation<bool>> setting_val_reprs()
 {
-    return {{false, {"False", "false", "0"}}, {true, {"True", "true", "1"}}};
+    return {{false, {"False", "false", "0", ""}}, {true, {"True", "true", "1", "no", "anything else"}}};
 }
 
 template <>
