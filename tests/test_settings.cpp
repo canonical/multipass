@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "disabling_macros.h"
 #include "mock_settings.h"
 
 #include <src/utils/qsettings_wrapper.h>
@@ -81,6 +82,20 @@ TEST_F(SettingsTest, get_reads_utf8)
     EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
 
     MP_SETTINGS.get(key);
+}
+
+TEST_F(SettingsTest, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
+{
+    auto key = multipass::hotkey_key;
+    EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/asdf"));
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
+                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
+
+    EXPECT_EQ(errno, EACCES) << "errno is " << errno;
 }
 
 struct DescribedQSettingsStatus
