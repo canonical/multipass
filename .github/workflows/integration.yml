@@ -35,10 +35,13 @@ jobs:
 
         if [ -n '${{ github.event.inputs.mac-x86-package }}' ]; then
           MATRIX+='{"os": "macOS", "vm": "macos-10.14", "driver": "hyperkit", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-10.14", "driver": "virtualbox", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "hyperkit", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "qemu", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "virtualbox", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "hyperkit", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "qemu", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "virtualbox", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-12", "driver": "hyperkit", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-12", "driver": "qemu", "arch": "x86_64" }'
         fi
@@ -50,6 +53,7 @@ jobs:
         if [ -n '${{ github.event.inputs.win-package }}' ]; then
           MATRIX+='{"os": "Windows",  "vm": "windows-10", "driver": "hyperv"}'
           MATRIX+='{"os": "Windows",  "vm": "windows-11", "driver": "hyperv"}'
+          MATRIX+='{"os": "Windows",  "vm": "windows-10", "driver": "virtualbox"}'
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
@@ -79,8 +83,8 @@ jobs:
           output_timeout: 2400
           provision_data:
             ${{ matrix.vm && format('vmx: /Users/michal/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
-            snapshot: Testflinger
             ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/groovy/release/ubuntu-20.10-server-cloudimg-amd64.img' || '' }}
+            snapshot: ${{ matrix.driver == 'virtualbox' && 'Testflinger-VBox' || 'Testflinger' }}
             vmx_config:
               ${{ matrix.os == 'Linux' && 'memsize: 2048' || '' }}
               memsize: 2048
