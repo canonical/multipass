@@ -83,7 +83,31 @@ TEST_P(SettingsTest, get_reads_utf8)
     MP_SETTINGS.get(key);
 }
 
-TEST_P(SettingsTest, get_returns_recorded_setting)
+TEST_P(SettingsTest, get_throws_on_bad_file_format)
+{
+    auto key = GetParam();
+    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(QSettings::FormatError));
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
+                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("format"))));
+}
+
+TEST_P(SettingsTest, get_throws_on_file_access_error)
+{
+    auto key = GetParam();
+    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(QSettings::AccessError));
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
+                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
+}
+
+TEST_P(SettingsTest, get_returns_recorded_setting) // TODO@ricab probably only one which should have param
 {
     auto key = GetParam();
     auto val = "asdf";
