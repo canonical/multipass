@@ -186,9 +186,11 @@ jobs:
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
                 _install "https://multipass.run/download/windows"
 
-                _ps "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"
-                _ps "Restart-Computer -Force"
-                sleep 60
+                if [ '${{ matrix.driver }}' == 'hyperv' ]; then
+                  _ps "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"
+                  _ps "Restart-Computer -Force"
+                  sleep 60
+                fi
               fi
 
               if [ '${{ matrix.driver }}' == 'lxd' ]; then
