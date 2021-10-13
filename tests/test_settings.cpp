@@ -217,6 +217,14 @@ TEST_F(TestSettings, getAsThrowsOnUnsupportedTypeConversion)
                          mpt::match_what(HasSubstr(key)));
 }
 
+TEST_F(TestSettings, getAsReturnsDefaultOnBadValue)
+{
+    auto key = "a.key";
+    auto bad_int = "ceci n'est pas une int";
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(bad_int));
+    EXPECT_EQ(MP_SETTINGS.get_as<int>(key), 0);
+}
+
 TEST(MockSettings, providesGetDefaultAsGetByDefault)
 {
     const auto& key = mp::driver_key;
