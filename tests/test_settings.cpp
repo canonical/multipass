@@ -83,29 +83,32 @@ TEST_F(SettingsTest, get_reads_utf8)
     MP_SETTINGS.get(key);
 }
 
-TEST_F(SettingsTest, get_throws_on_bad_file_format)
+struct DescribedQSettingsStatus
 {
+    QSettings::Status status;
+    std::string description;
+};
+
+struct SettingsTestReadError : public SettingsTest, public WithParamInterface<DescribedQSettingsStatus>
+{
+};
+
+TEST_P(SettingsTestReadError, get_throws_on_file_read_error)
+{
+    const auto& [status, desc] = GetParam();
     auto key = multipass::driver_key;
-    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(QSettings::FormatError));
+    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
 
     inject_mock_qsettings();
     EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("format"))));
+                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr(desc))));
 }
 
-TEST_F(SettingsTest, get_throws_on_file_access_error)
-{
-    auto key = multipass::autostart_key;
-    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(QSettings::AccessError));
-
-    inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
-
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
-}
+INSTANTIATE_TEST_SUITE_P(SettingsTestAllReadErrors, SettingsTestReadError,
+                         Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
+                                DescribedQSettingsStatus{QSettings::AccessError, "access"}));
 
 struct SettingsTestKeyParam : public SettingsTest, public WithParamInterface<QString>
 {
