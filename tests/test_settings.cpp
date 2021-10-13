@@ -54,7 +54,7 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, QSettingsProvider);
 };
 
-struct SettingsTest : public TestWithParam<QString>
+struct SettingsTest : public Test
 {
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
@@ -72,9 +72,9 @@ struct SettingsTest : public TestWithParam<QString>
     std::unique_ptr<MockQSettingsWrapper> mock_qsettings = std::make_unique<MockQSettingsWrapper>();
 };
 
-TEST_P(SettingsTest, get_reads_utf8)
+TEST_F(SettingsTest, get_reads_utf8)
 {
-    auto key = GetParam();
+    auto key = mp::petenv_key;
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
@@ -83,9 +83,9 @@ TEST_P(SettingsTest, get_reads_utf8)
     MP_SETTINGS.get(key);
 }
 
-TEST_P(SettingsTest, get_throws_on_bad_file_format)
+TEST_F(SettingsTest, get_throws_on_bad_file_format)
 {
-    auto key = GetParam();
+    auto key = multipass::driver_key;
     EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(QSettings::FormatError));
 
     inject_mock_qsettings();
@@ -95,9 +95,9 @@ TEST_P(SettingsTest, get_throws_on_bad_file_format)
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("format"))));
 }
 
-TEST_P(SettingsTest, get_throws_on_file_access_error)
+TEST_F(SettingsTest, get_throws_on_file_access_error)
 {
-    auto key = GetParam();
+    auto key = multipass::autostart_key;
     EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(QSettings::AccessError));
 
     inject_mock_qsettings();
@@ -107,7 +107,11 @@ TEST_P(SettingsTest, get_throws_on_file_access_error)
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
 }
 
-TEST_P(SettingsTest, get_returns_recorded_setting) // TODO@ricab probably only one which should have param
+struct SettingsTestKeyParam : public SettingsTest, public WithParamInterface<QString>
+{
+};
+
+TEST_P(SettingsTestKeyParam, get_returns_recorded_setting)
 {
     auto key = GetParam();
     auto val = "asdf";
@@ -131,7 +135,7 @@ std::vector<QString> get_regular_keys()
     return ret;
 }
 
-INSTANTIATE_TEST_SUITE_P(SettingsTestAllKeys, SettingsTest, ValuesIn(get_regular_keys()));
+INSTANTIATE_TEST_SUITE_P(SettingsTestRegularKeys, SettingsTestKeyParam, ValuesIn(get_regular_keys()));
 
 TEST(MockSettings, provides_get_default_as_get_by_default)
 {
