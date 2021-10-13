@@ -25,6 +25,7 @@
 #include <multipass/platform.h>
 #include <multipass/settings.h>
 
+#include <QKeySequence>
 #include <QString>
 
 namespace mp = multipass;
@@ -154,6 +155,58 @@ std::vector<QString> get_regular_keys()
 }
 
 INSTANTIATE_TEST_SUITE_P(SettingsTestRegularKeys, SettingsTestKeyParam, ValuesIn(get_regular_keys()));
+
+template <typename T>
+struct SettingValueRepresentation
+{
+    T val;
+    QStringList reprs;
+};
+
+template <typename T>
+std::vector<SettingValueRepresentation<T>> setting_val_reprs();
+
+template <>
+std::vector<SettingValueRepresentation<bool>> setting_val_reprs()
+{
+    return {{false, {"False", "false", "0"}}, {true, {"True", "true", "1"}}};
+}
+
+template <>
+std::vector<SettingValueRepresentation<int>> setting_val_reprs()
+{
+    return {{0, {"0", "+0", "-0000"}}, {42, {"42", "+42"}}, {-2, {"-2"}}, {23, {"023"}}}; // no hex or octal
+}
+
+template <>
+std::vector<SettingValueRepresentation<QKeySequence>> setting_val_reprs()
+{
+    return {{QKeySequence{"Ctrl+Alt+O", QKeySequence::NativeText}, {"Ctrl+Alt+O", "ctrl+alt+o"}},
+            {QKeySequence{"shift+e", QKeySequence::NativeText}, {"Shift+E", "shift+e"}}}; /*
+                                  only a couple here, don't wanna go into platform details */
+}
+
+template <typename T>
+struct TestSettingsGetAs : public SettingsTest
+{
+};
+
+using GetAsTestTypes = ::testing::Types<bool, int, QKeySequence>; // to add more, specialize setting_val_reprs above
+MP_TYPED_TEST_SUITE(TestSettingsGetAs, GetAsTestTypes);
+
+TYPED_TEST(TestSettingsGetAs, getAsConvertsValues)
+{
+    InSequence seq;
+    auto key = "whatever";
+    for (const auto& [val, reprs] : setting_val_reprs<TypeParam>())
+    {
+        for (const auto& repr : reprs)
+        {
+            EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(repr));
+            EXPECT_EQ(MP_SETTINGS.get_as<TypeParam>(key), val);
+        }
+    }
+}
 
 TEST(MockSettings, providesGetDefaultAsGetByDefault)
 {
