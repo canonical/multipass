@@ -41,7 +41,7 @@ public:
     MOCK_CONST_METHOD0(fileName, QString());
     MOCK_CONST_METHOD2(value_impl, QVariant(const QString& key, const QVariant& default_value)); // promote visibility
     MOCK_METHOD1(setIniCodec, void(const char* codec_name));
-    MOCK_METHOD0(sync, void());
+    MOCK_METHOD0(sync, void()); // TODO@ricab verify all these
     MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
 };
 
@@ -70,10 +70,10 @@ struct SettingsTest : public Test
 
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject();
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
-    std::unique_ptr<MockQSettingsWrapper> mock_qsettings = std::make_unique<MockQSettingsWrapper>();
+    std::unique_ptr<MockQSettingsWrapper> mock_qsettings = std::make_unique<MockQSettingsWrapper>(); // TODO@ricab nice?
 };
 
-TEST_F(SettingsTest, get_reads_utf8)
+TEST_F(SettingsTest, getReadsUtf8)
 {
     auto key = mp::petenv_key;
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
@@ -108,7 +108,7 @@ struct SettingsTestReadError : public SettingsTest, public WithParamInterface<De
 {
 };
 
-TEST_P(SettingsTestReadError, get_throws_on_file_read_error)
+TEST_P(SettingsTestReadError, getThrowsOnFileReadError)
 {
     const auto& [status, desc] = GetParam();
     auto key = multipass::driver_key;
@@ -129,7 +129,7 @@ struct SettingsTestKeyParam : public SettingsTest, public WithParamInterface<QSt
 {
 };
 
-TEST_P(SettingsTestKeyParam, get_returns_recorded_setting)
+TEST_P(SettingsTestKeyParam, getReturnsRecordedSetting)
 {
     auto key = GetParam();
     auto val = "asdf";
@@ -155,13 +155,13 @@ std::vector<QString> get_regular_keys()
 
 INSTANTIATE_TEST_SUITE_P(SettingsTestRegularKeys, SettingsTestKeyParam, ValuesIn(get_regular_keys()));
 
-TEST(MockSettings, provides_get_default_as_get_by_default)
+TEST(MockSettings, providesGetDefaultAsGetByDefault)
 {
     const auto& key = mp::driver_key;
     ASSERT_EQ(MP_SETTINGS.get(key), mpt::MockSettings::mock_instance().get_default(key));
 }
 
-TEST(MockSettings, can_have_get_mocked)
+TEST(MockSettings, canHaveGetMocked)
 {
     const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
     auto& mock = mpt::MockSettings::mock_instance();
