@@ -182,7 +182,12 @@ jobs:
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
-                _install "https://multipass.run/download/macos"
+                if [ '${{ matrix.driver }}' == 'qemu' ]; then
+                  # Nothing to upgrade from, so let's fake it
+                  _install ${{ matrix.arch == 'arm64' && github.event.inputs.mac-arm-package || github.event.inputs.mac-x86-package }}
+                else
+                  _install "https://multipass.run/download/macos"
+                fi
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
                 _install "https://multipass.run/download/windows"
