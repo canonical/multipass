@@ -34,10 +34,10 @@ using namespace testing;
 
 namespace
 {
-class MockQSettingsWrapper : public mp::QSettingsWrapper
+class MockQSettings : public mp::WrappedQSettings
 {
 public:
-    using QSettingsWrapper::QSettingsWrapper; // promote visibility
+    using WrappedQSettings::WrappedQSettings; // promote visibility
     MOCK_CONST_METHOD0(status, QSettings::Status());
     MOCK_CONST_METHOD0(fileName, QString());
     MOCK_CONST_METHOD2(value_impl, QVariant(const QString& key, const QVariant& default_value)); // promote visibility
@@ -46,21 +46,21 @@ public:
     MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
 };
 
-class MockQSettingsProvider : public mp::QSettingsProvider
+class MockQSettingsProvider : public mp::WrappedQSettingsFactory
 {
 public:
-    using QSettingsProvider::QSettingsProvider;
-    MOCK_CONST_METHOD2(make_qsettings_wrapper,
-                       std::unique_ptr<mp::QSettingsWrapper>(const QString&, QSettings::Format));
+    using WrappedQSettingsFactory::WrappedQSettingsFactory;
+    MOCK_CONST_METHOD2(make_wrapped_qsettings,
+                       std::unique_ptr<mp::WrappedQSettings>(const QString&, QSettings::Format));
 
-    MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, QSettingsProvider);
+    MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, WrappedQSettingsFactory);
 };
 
 struct SettingsTest : public Test
 {
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
-        EXPECT_CALL(*mock_qsettings_provider, make_qsettings_wrapper(_, Eq(QSettings::IniFormat)))
+        EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
             .WillOnce(Return(ByMove(std::move(mock_qsettings))));
     }
 
@@ -71,7 +71,7 @@ struct SettingsTest : public Test
 
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject();
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
-    std::unique_ptr<MockQSettingsWrapper> mock_qsettings = std::make_unique<MockQSettingsWrapper>(); // TODO@ricab nice?
+    std::unique_ptr<MockQSettings> mock_qsettings = std::make_unique<MockQSettings>(); // TODO@ricab nice?
 };
 
 TEST_F(SettingsTest, getReadsUtf8)

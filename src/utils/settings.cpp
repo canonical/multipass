@@ -86,9 +86,9 @@ QString file_for(const QString& key) // the key should have passed checks at thi
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
 }
 
-std::unique_ptr<mp::QSettingsWrapper> persistent_settings(const QString& key)
+std::unique_ptr<mp::WrappedQSettings> persistent_settings(const QString& key)
 {
-    auto ret = mp::QSettingsProvider::instance().make_qsettings_wrapper(file_for(key), QSettings::IniFormat);
+    auto ret = mp::WrappedQSettingsFactory::instance().make_wrapped_qsettings(file_for(key), QSettings::IniFormat);
     ret->setIniCodec("UTF-8");
 
     return ret;
@@ -105,7 +105,7 @@ bool exists_but_unreadable(const QString& filename)
             zero errno on the remaining platforms */
 }
 
-void check_status(const mp::QSettingsWrapper& settings, const QString& attempted_operation)
+void check_status(const mp::WrappedQSettings& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
     if (status || exists_but_unreadable(settings.fileName()))
@@ -115,7 +115,7 @@ void check_status(const mp::QSettingsWrapper& settings, const QString& attempted
                                      : QStringLiteral("access error (consider running with an administrative role)")};
 }
 
-QString checked_get(const mp::QSettingsWrapper& settings, const QString& key, const QString& fallback,
+QString checked_get(const mp::WrappedQSettings& settings, const QString& key, const QString& fallback,
                     std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
@@ -126,7 +126,7 @@ QString checked_get(const mp::QSettingsWrapper& settings, const QString& key, co
     return ret;
 }
 
-void checked_set(mp::QSettingsWrapper& settings, const QString& key, const QString& val, std::mutex& mutex)
+void checked_set(mp::WrappedQSettings& settings, const QString& key, const QString& val, std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 

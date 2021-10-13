@@ -25,11 +25,11 @@
 
 namespace multipass
 {
-class QSettingsProvider;
-class QSettingsWrapper : private DisabledCopyMove
+class WrappedQSettingsFactory;
+class WrappedQSettings : private DisabledCopyMove
 {
 public:
-    virtual ~QSettingsWrapper() = default;
+    virtual ~WrappedQSettings() = default;
 
     virtual QSettings::Status status() const
     {
@@ -67,7 +67,7 @@ public:
     }
 
 protected:
-    QSettingsWrapper() = default; // for mocks
+    WrappedQSettings() = default; // for mocks
 
     virtual QVariant value_impl(const QString& key, const QVariant& default_value) const
     {
@@ -76,26 +76,26 @@ protected:
     }
 
 private:
-    friend class QSettingsProvider;
-    explicit QSettingsWrapper(std::unique_ptr<QSettings>&& qsettings) noexcept : qsettings{std::move(qsettings)}
+    friend class WrappedQSettingsFactory;
+    explicit WrappedQSettings(std::unique_ptr<QSettings>&& qsettings) noexcept : qsettings{std::move(qsettings)}
     {
     }
 
     std::unique_ptr<QSettings> qsettings;
 };
 
-class QSettingsProvider : public Singleton<QSettingsProvider>
+class WrappedQSettingsFactory : public Singleton<WrappedQSettingsFactory>
 {
 public:
-    explicit QSettingsProvider(const Singleton::PrivatePass& pass) : Singleton{pass}
+    explicit WrappedQSettingsFactory(const Singleton::PrivatePass& pass) : Singleton{pass}
     {
     }
 
-    virtual std::unique_ptr<QSettingsWrapper> make_qsettings_wrapper(const QString& file_path,
+    virtual std::unique_ptr<WrappedQSettings> make_wrapped_qsettings(const QString& file_path,
                                                                      QSettings::Format format) const
     {
         auto qsettings = std::make_unique<QSettings>(file_path, format);
-        return std::unique_ptr<QSettingsWrapper>(new QSettingsWrapper(std::move(qsettings))); /* std::make_unique can't
+        return std::unique_ptr<WrappedQSettings>(new WrappedQSettings(std::move(qsettings))); /* std::make_unique can't
                                    call private ctors, so we call it ourselves; but the ctor is noexcept, so no leaks */
     }
 };
