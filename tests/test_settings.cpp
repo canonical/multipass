@@ -187,14 +187,14 @@ std::vector<SettingValueRepresentation<QKeySequence>> setting_val_reprs()
 }
 
 template <typename T>
-struct TestSettingsGetAs : public TestSettings
+struct TestSuccessfulSettingsGetAs : public TestSettings
 {
 };
 
 using GetAsTestTypes = ::testing::Types<bool, int, QKeySequence>; // to add more, specialize setting_val_reprs above
-MP_TYPED_TEST_SUITE(TestSettingsGetAs, GetAsTestTypes);
+MP_TYPED_TEST_SUITE(TestSuccessfulSettingsGetAs, GetAsTestTypes);
 
-TYPED_TEST(TestSettingsGetAs, getAsConvertsValues)
+TYPED_TEST(TestSuccessfulSettingsGetAs, getAsConvertsValues)
 {
     InSequence seq;
     auto key = "whatever";
@@ -206,6 +206,15 @@ TYPED_TEST(TestSettingsGetAs, getAsConvertsValues)
             EXPECT_EQ(MP_SETTINGS.get_as<TypeParam>(key), val);
         }
     }
+}
+
+TEST_F(TestSettings, getAsThrowsOnUnsupportedTypeConversion)
+{
+    auto key = "the.key";
+    auto bad_repr = "#$%!@";
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(bad_repr));
+    MP_ASSERT_THROW_THAT(MP_SETTINGS.get_as<QVariant>(key), mp::UnsupportedSettingValueType<QVariant>,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST(MockSettings, providesGetDefaultAsGetByDefault)
