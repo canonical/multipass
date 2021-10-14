@@ -115,6 +115,18 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
     EXPECT_EQ(errno, EACCES) << "errno is " << errno;
 }
 
+TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnwritableFile))
+{
+    auto key = mp::mounts_key, val = "yes";
+    EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/fdsa"));
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
+                         mpt::match_what(AllOf(HasSubstr("write"), HasSubstr("access"))));
+}
+
 struct DescribedQSettingsStatus
 {
     QSettings::Status status;
