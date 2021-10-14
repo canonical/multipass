@@ -92,20 +92,20 @@ const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
         "",
         "snapcraft-core18",
         "Snapcraft builder for Core 18",
-        "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
-        "ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic",
-        "https://cloud-images.ubuntu.com/releases/bionic/release/unpacked/"
-        "ubuntu-18.04-server-cloudimg-amd64-initrd-generic"}},
+        "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/unpacked/"
+        "bionic-server-cloudimg-amd64-vmlinuz-generic",
+        "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/unpacked/"
+        "bionic-server-cloudimg-amd64-initrd-generic"}},
       {{"focal-server-cloudimg-amd64-disk.img"},
        {"https://cloud-images.ubuntu.com/buildd/releases/focal/release/",
         {"core20"},
         "",
         "snapcraft-core20",
         "Snapcraft builder for Core 20",
-        "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
-        "ubuntu-20.04-server-cloudimg-amd64-vmlinuz-generic",
-        "https://cloud-images.ubuntu.com/releases/focal/release/unpacked/"
-        "ubuntu-20.04-server-cloudimg-amd64-initrd-generic"}}}}};
+        "https://cloud-images.ubuntu.com/buildd/releases/focal/release/unpacked/"
+        "focal-server-cloudimg-amd64-vmlinuz-generic",
+        "https://cloud-images.ubuntu.com/buildd/releases/focal/release/unpacked/"
+        "focal-server-cloudimg-amd64-initrd-generic"}}}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
