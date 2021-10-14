@@ -103,7 +103,7 @@ TEST_F(TestSettings, setWritesUtf8)
 
 TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
 {
-    auto key = multipass::hotkey_key;
+    auto key = mp::hotkey_key;
     EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/asdf"));
 
     inject_mock_qsettings();
@@ -197,7 +197,7 @@ std::vector<SettingValueRepresentation<T>> setting_val_reprs();
 template <>
 std::vector<SettingValueRepresentation<bool>> setting_val_reprs()
 {
-    return {{false, {"False", "false", "0", ""}}, {true, {"True", "true", "1", "no", "anything else"}}};
+    return {{false, {"False", "false", "0", ""}}, {true, {"True", "true", "1", "no", "off", "anything else"}}};
 }
 
 template <>
