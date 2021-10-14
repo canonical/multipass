@@ -133,11 +133,11 @@ struct DescribedQSettingsStatus
     std::string description;
 };
 
-struct TestSettingsReadError : public TestSettings, public WithParamInterface<DescribedQSettingsStatus>
+struct TestSettingsReadWriteError : public TestSettings, public WithParamInterface<DescribedQSettingsStatus>
 {
 };
 
-TEST_P(TestSettingsReadError, getThrowsOnFileReadError)
+TEST_P(TestSettingsReadWriteError, getThrowsOnFileReadError)
 {
     const auto& [status, desc] = GetParam();
     auto key = multipass::driver_key;
@@ -150,7 +150,20 @@ TEST_P(TestSettingsReadError, getThrowsOnFileReadError)
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr(desc))));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestSettingsReadError,
+TEST_P(TestSettingsReadWriteError, setThrowsOnFileWriteError)
+{
+    const auto& [status, desc] = GetParam();
+    auto key = mp::hotkey_key, val = "Esc";
+    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
+                         mpt::match_what(AllOf(HasSubstr("write"), HasSubstr(desc))));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestSettingsReadWriteError,
                          Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
                                 DescribedQSettingsStatus{QSettings::AccessError, "access"}));
 
