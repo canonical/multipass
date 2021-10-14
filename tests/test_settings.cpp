@@ -69,6 +69,11 @@ struct TestSettings : public Test
         return MP_SETTINGS.Settings::get(key); // invoke the base
     }
 
+    static void call_real_settings_set(const QString& key, const QString& val)
+    {
+        MP_SETTINGS.Settings::set(key, val); // invoke the base
+    }
+
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject();
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
     std::unique_ptr<MockQSettings> mock_qsettings = std::make_unique<MockQSettings>(); // TODO@ricab nice?
@@ -83,6 +88,17 @@ TEST_F(TestSettings, getReadsUtf8)
     EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
 
     MP_SETTINGS.get(key);
+}
+
+TEST_F(TestSettings, setWritesUtf8)
+{
+    auto key = mp::bridged_interface_key, val = "foo";
+    EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+
+    MP_SETTINGS.set(key, val);
 }
 
 TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
@@ -225,6 +241,7 @@ TEST_F(TestSettings, getAsReturnsDefaultOnBadValue)
     EXPECT_EQ(MP_SETTINGS.get_as<int>(key), 0);
 }
 
+// Tests for mock settings
 TEST(MockSettings, providesGetDefaultAsGetByDefault)
 {
     const auto& key = mp::driver_key;
