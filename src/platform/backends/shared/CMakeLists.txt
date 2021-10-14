@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set (CMAKE_AUTOMOC ON)
-
 add_library(shared STATIC
   base_virtual_machine.cpp
   base_virtual_machine_factory.cpp
