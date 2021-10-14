@@ -26,8 +26,5 @@ target_link_libraries(shared
   utils
   Qt5::Core)
 
-if("qemu" IN_LIST MULTIPASS_BACKENDS)
-  add_subdirectory(qemu_img_utils)
-endif()
-
+add_subdirectory(qemu_img_utils)
 add_subdirectory(${MULTIPASS_PLATFORM})
