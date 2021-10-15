@@ -31,14 +31,49 @@ class QSettingsWrapper : private DisabledCopyMove
 public:
     virtual ~QSettingsWrapper() = default;
 
-    virtual void setIniCodec(const char* codecName)
+    virtual QSettings::Status status() const
     {
         assert(qsettings);
-        qsettings->setIniCodec(codecName);
+        return qsettings->status();
+    }
+
+    virtual QString fileName() const
+    {
+        assert(qsettings);
+        return qsettings->fileName();
+    }
+
+    virtual void setIniCodec(const char* codec_name)
+    {
+        assert(qsettings);
+        qsettings->setIniCodec(codec_name);
+    }
+
+    virtual void sync()
+    {
+        assert(qsettings);
+        qsettings->sync();
+    }
+
+    virtual void setValue(const QString& key, const QVariant& value)
+    {
+        assert(qsettings);
+        qsettings->setValue(key, value);
+    }
+
+    QVariant value(const QString& key, const QVariant& default_value = QVariant()) const
+    {
+        return value_impl(key, default_value); // indirection avoids default args in virtual method
     }
 
 protected:
-    QSettingsWrapper() = default;
+    QSettingsWrapper() = default; // for mocks
+
+    virtual QVariant value_impl(const QString& key, const QVariant& default_value) const
+    {
+        assert(qsettings);
+        return qsettings->value(key, default_value);
+    }
 
 private:
     friend class QSettingsProvider;
