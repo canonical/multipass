@@ -143,6 +143,11 @@ add_test(NAME multipass_tests
   COMMAND multipass_tests
 )
 
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+  string(TOUPPER ${BACKEND}_ENABLED DEF)
+  target_compile_definitions(multipass_tests PRIVATE ${DEF})
+endforeach()
+
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} MANIFEST_ARCH)
 if (${MANIFEST_ARCH} STREQUAL "x86_64")
   string(TOLOWER "amd64" MANIFEST_ARCH)
