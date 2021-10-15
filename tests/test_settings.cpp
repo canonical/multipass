@@ -115,7 +115,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
     EXPECT_EQ(errno, EACCES) << "errno is " << errno;
 }
 
-TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnwritableFile))
+TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnreadableFile))
 {
     const auto key = mp::mounts_key, val = "yes";
     EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/fdsa"));
@@ -124,7 +124,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnwritableFile))
     EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("write"), HasSubstr("access"))));
+                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
 }
 
 struct DescribedQSettingsStatus
@@ -154,7 +154,12 @@ TEST_P(TestSettingsReadWriteError, setThrowsOnFileWriteError)
 {
     const auto& [status, desc] = GetParam();
     const auto key = mp::hotkey_key, val = "Esc";
-    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
+
+    {
+        InSequence seq;
+        EXPECT_CALL(*mock_qsettings, sync).Times(1); // needs to flush to ensure failure to write
+        EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
+    }
 
     inject_mock_qsettings();
     EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
@@ -220,7 +225,6 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSet,
                                 std::pair<QString, QString>{mp::mounts_key, "true"}));
 
 // TODO@ricab converts bool reprs to true/false
-// TODO@ricab syncs and verifies status OR throws on bad status?
 
 template <typename T>
 struct SettingValueRepresentation
