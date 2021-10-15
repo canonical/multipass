@@ -81,7 +81,7 @@ struct TestSettings : public Test
 
 TEST_F(TestSettings, getReadsUtf8)
 {
-    auto key = mp::petenv_key;
+    const auto key = mp::petenv_key;
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
@@ -92,7 +92,7 @@ TEST_F(TestSettings, getReadsUtf8)
 
 TEST_F(TestSettings, setWritesUtf8)
 {
-    auto key = mp::bridged_interface_key, val = "foo";
+    const auto key = mp::bridged_interface_key, val = "foo";
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
@@ -103,7 +103,7 @@ TEST_F(TestSettings, setWritesUtf8)
 
 TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
 {
-    auto key = mp::hotkey_key;
+    const auto key = mp::hotkey_key;
     EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/asdf"));
 
     inject_mock_qsettings();
@@ -117,7 +117,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
 
 TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnwritableFile))
 {
-    auto key = mp::mounts_key, val = "yes";
+    const auto key = mp::mounts_key, val = "yes";
     EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/fdsa"));
 
     inject_mock_qsettings();
@@ -140,7 +140,7 @@ struct TestSettingsReadWriteError : public TestSettings, public WithParamInterfa
 TEST_P(TestSettingsReadWriteError, getThrowsOnFileReadError)
 {
     const auto& [status, desc] = GetParam();
-    auto key = multipass::driver_key;
+    const auto key = multipass::driver_key;
     EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
 
     inject_mock_qsettings();
@@ -153,7 +153,7 @@ TEST_P(TestSettingsReadWriteError, getThrowsOnFileReadError)
 TEST_P(TestSettingsReadWriteError, setThrowsOnFileWriteError)
 {
     const auto& [status, desc] = GetParam();
-    auto key = mp::hotkey_key, val = "Esc";
+    const auto key = mp::hotkey_key, val = "Esc";
     EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
 
     inject_mock_qsettings();
@@ -173,8 +173,8 @@ struct TestSettingsKeyParam : public TestSettings, public WithParamInterface<QSt
 
 TEST_P(TestSettingsKeyParam, getReturnsRecordedSetting)
 {
-    auto key = GetParam();
-    auto val = "asdf";
+    const auto key = GetParam();
+    const auto val = "asdf";
     EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), _)).WillOnce(Return(val));
 
     inject_mock_qsettings();
@@ -238,7 +238,7 @@ MP_TYPED_TEST_SUITE(TestSuccessfulSettingsGetAs, GetAsTestTypes);
 TYPED_TEST(TestSuccessfulSettingsGetAs, getAsConvertsValues)
 {
     InSequence seq;
-    auto key = "whatever";
+    const auto key = "whatever";
     for (const auto& [val, reprs] : setting_val_reprs<TypeParam>())
     {
         for (const auto& repr : reprs)
@@ -251,8 +251,8 @@ TYPED_TEST(TestSuccessfulSettingsGetAs, getAsConvertsValues)
 
 TEST_F(TestSettings, getAsThrowsOnUnsupportedTypeConversion)
 {
-    auto key = "the.key";
-    auto bad_repr = "#$%!@";
+    const auto key = "the.key";
+    const auto bad_repr = "#$%!@";
     EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(bad_repr));
     MP_ASSERT_THROW_THAT(MP_SETTINGS.get_as<QVariant>(key), mp::UnsupportedSettingValueType<QVariant>,
                          mpt::match_what(HasSubstr(key)));
@@ -260,8 +260,8 @@ TEST_F(TestSettings, getAsThrowsOnUnsupportedTypeConversion)
 
 TEST_F(TestSettings, getAsReturnsDefaultOnBadValue)
 {
-    auto key = "a.key";
-    auto bad_int = "ceci n'est pas une int";
+    const auto key = "a.key";
+    const auto bad_int = "ceci n'est pas une int";
     EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(bad_int));
     EXPECT_EQ(MP_SETTINGS.get_as<int>(key), 0);
 }
@@ -276,7 +276,7 @@ TEST(MockSettings, providesGetDefaultAsGetByDefault)
 TEST(MockSettings, canHaveGetMocked)
 {
     const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
-    auto& mock = mpt::MockSettings::mock_instance();
+    const auto& mock = mpt::MockSettings::mock_instance();
 
     EXPECT_CALL(mock, get(test)).WillOnce(Return(proof));
     ASSERT_EQ(MP_SETTINGS.get(test), proof);
