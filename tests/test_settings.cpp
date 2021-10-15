@@ -167,11 +167,11 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestSettingsReadWriteError,
                          Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
                                 DescribedQSettingsStatus{QSettings::AccessError, "access"}));
 
-struct TestSettingsKeyParam : public TestSettings, public WithParamInterface<QString>
+struct TestSettingsGet : public TestSettings, public WithParamInterface<QString>
 {
 };
 
-TEST_P(TestSettingsKeyParam, getReturnsRecordedSetting)
+TEST_P(TestSettingsGet, getReturnsRecordedSetting)
 {
     const auto key = GetParam();
     const auto val = "asdf";
@@ -195,7 +195,32 @@ std::vector<QString> get_regular_keys()
     return ret;
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsRegularKeys, TestSettingsKeyParam, ValuesIn(get_regular_keys()));
+INSTANTIATE_TEST_SUITE_P(TestSettingsGetRegularKeys, TestSettingsGet, ValuesIn(get_regular_keys()));
+
+struct TestSettingsSet : public TestSettings, public WithParamInterface<std::pair<QString, QString>>
+{
+};
+
+TEST_P(TestSettingsSet, setRecordsProvidedSetting)
+{
+    const auto& [key, val] = GetParam();
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+
+    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSet,
+                         Values(std::pair<QString, QString>{mp::petenv_key, "instance-name"},
+                                std::pair<QString, QString>{mp::autostart_key, "false"},
+                                std::pair<QString, QString>{mp::hotkey_key, "Alt+X"},
+                                std::pair<QString, QString>{mp::bridged_interface_key, "iface"},
+                                std::pair<QString, QString>{mp::mounts_key, "true"}));
+
+// TODO@ricab converts bool reprs to true/false
+// TODO@ricab syncs and verifies status OR throws on bad status?
 
 template <typename T>
 struct SettingValueRepresentation
