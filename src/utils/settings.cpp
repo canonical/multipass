@@ -207,7 +207,7 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
     // TODO we should have handler callbacks instead
     if (key == petenv_key && !val.isEmpty() && !mp::utils::valid_hostname(val.toStdString()))
         throw InvalidSettingsException{key, val, "Invalid hostname"};
-    else if (key == driver_key && !mp::platform::is_backend_supported(val))
+    else if (key == driver_key && !MP_PLATFORM.is_backend_supported(val))
         throw InvalidSettingsException(key, val, "Invalid driver");
     else if ((key == autostart_key || key == mounts_key) && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
