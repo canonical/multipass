@@ -127,12 +127,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnreadableFile))
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
 }
 
-struct DescribedQSettingsStatus
-{
-    QSettings::Status status;
-    std::string description;
-};
-
+using DescribedQSettingsStatus = std::pair<QSettings::Status, std::string>;
 struct TestSettingsReadWriteError : public TestSettings, public WithParamInterface<DescribedQSettingsStatus>
 {
 };
@@ -172,11 +167,11 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestSettingsReadWriteError,
                          Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
                                 DescribedQSettingsStatus{QSettings::AccessError, "access"}));
 
-struct TestSettingsGet : public TestSettings, public WithParamInterface<QString>
+struct TestSettingsGetRegularKeys : public TestSettings, public WithParamInterface<QString>
 {
 };
 
-TEST_P(TestSettingsGet, getReturnsRecordedSetting)
+TEST_P(TestSettingsGetRegularKeys, getReturnsRecordedSetting)
 {
     const auto key = GetParam();
     const auto val = "asdf";
@@ -189,24 +184,26 @@ TEST_P(TestSettingsGet, getReturnsRecordedSetting)
     EXPECT_EQ(MP_SETTINGS.get(key), QString{val});
 }
 
-std::vector<QString> get_regular_keys()
-{
-    std::vector<QString> ret{
-        mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key, mp::bridged_interface_key, mp::mounts_key};
+INSTANTIATE_TEST_SUITE_P(TestSettingsGetRegularKeys, TestSettingsGetRegularKeys, ValuesIn([] {
+                             std::vector<QString> ret{mp::petenv_key,
+                                                      mp::driver_key,
+                                                      mp::autostart_key,
+                                                      mp::hotkey_key,
+                                                      mp::bridged_interface_key,
+                                                      mp::mounts_key};
 
-    for (const auto& item : mp::platform::extra_settings_defaults())
-        ret.push_back(item.first);
+                             for (const auto& item : mp::platform::extra_settings_defaults())
+                                 ret.push_back(item.first);
 
-    return ret;
-}
+                             return ret;
+                         }()));
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsGetRegularKeys, TestSettingsGet, ValuesIn(get_regular_keys()));
-
-struct TestSettingsSet : public TestSettings, public WithParamInterface<std::pair<QString, QString>>
+using KeyVal = std::pair<QString, QString>;
+struct TestSettingsSetRegularKeys : public TestSettings, public WithParamInterface<KeyVal>
 {
 };
 
-TEST_P(TestSettingsSet, setRecordsProvidedSetting)
+TEST_P(TestSettingsSetRegularKeys, setRecordsProvidedSetting)
 {
     const auto& [key, val] = GetParam();
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
@@ -238,8 +235,8 @@ TEST_P(TestSettingsBoolConversion, setConvertsAcceptableBoolRepresentations)
     ASSERT_NO_THROW(MP_SETTINGS.set(key, repr));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsTrueConv, TestSettingsBoolConversion, ValuesIn([] {
-                             std::vector<std::tuple<QString, QString, QString>> ret;
+INSTANTIATE_TEST_SUITE_P(TestSettingsGoodBoolConv, TestSettingsBoolConversion, ValuesIn([] {
+                             std::vector<KeyReprVal> ret;
                              for (const auto& key : {mp::autostart_key, mp::mounts_key})
                              {
                                  for (const auto& repr : {"yes", "on", "1", "true"})
