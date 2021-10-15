@@ -249,11 +249,11 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsGoodBool, TestSettingsGoodBoolConversion, V
                              return ret;
                          }()));
 
-struct TestSettingsBadBoolConversion : public TestSettings, WithParamInterface<KeyVal>
+struct TestSettingsBadValue : public TestSettings, WithParamInterface<KeyVal>
 {
 };
 
-TEST_P(TestSettingsBadBoolConversion, setThrowsOnInvalidBoolRepresentations)
+TEST_P(TestSettingsBadValue, setThrowsOnInvalidSettingValue)
 {
     const auto& [key, val] = GetParam();
 
@@ -263,9 +263,15 @@ TEST_P(TestSettingsBadBoolConversion, setThrowsOnInvalidBoolRepresentations)
                          mpt::match_what(AllOf(HasSubstr(key.toStdString()), HasSubstr(val.toStdString()))));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsBadBool, TestSettingsBadBoolConversion,
+INSTANTIATE_TEST_SUITE_P(TestSettingsBadBool, TestSettingsBadValue,
                          Combine(Values(mp::autostart_key, mp::mounts_key),
                                  Values("nonsense", "invalid", "", "bool", "representations", "-", "null")));
+
+INSTANTIATE_TEST_SUITE_P(TestSettingsBadPetEnv, TestSettingsBadValue,
+                         Combine(Values(mp::petenv_key), Values("-", "-a-b-", "_asd", "_1", "1-2-3")));
+
+// TODO@ricab accepts disable primary
+// TODO@ricab accepts/rejects driver
 
 template <typename T>
 struct SettingValueRepresentation
