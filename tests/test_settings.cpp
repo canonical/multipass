@@ -74,7 +74,8 @@ struct TestSettings : public Test
         MP_SETTINGS.Settings::set(key, val); // invoke the base
     }
 
-    MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject();
+    MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* strict
+                                                to ensure that, other than explicitly injected, no QSettings are used */
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
     std::unique_ptr<MockQSettings> mock_qsettings = std::make_unique<MockQSettings>(); // TODO@ricab nice?
 };
