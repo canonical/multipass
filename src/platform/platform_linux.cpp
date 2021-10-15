@@ -31,7 +31,13 @@
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/lxd/lxd_virtual_machine_factory.h"
+
+#ifdef QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
+#else
+#define QEMU_ENABLED 0
+#endif
+
 #include "logger/journald_logger.h"
 #include "platform_linux_detail.h"
 #include "platform_shared.h"
@@ -244,13 +250,13 @@ QString mp::platform::Platform::get_workflows_url_override() const
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
-    return true;
+    // snapcraft:core don't work on LXD yet
+    return !(utils::get_driver_str() == "lxd" && remote == "snapcraft" && (alias == "core" || alias == "16.04"));
 }
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
-    // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
-    return remote != "snapcraft" || utils::get_driver_str() != "lxd";
+    return true;
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
@@ -370,7 +376,10 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::default_driver()
 {
-    return QStringLiteral("qemu");
+    if (QEMU_ENABLED)
+        return QStringLiteral("qemu");
+    else
+        return QStringLiteral("lxd");
 }
 
 QString mp::platform::default_privileged_mounts()
@@ -390,20 +399,24 @@ QString mp::platform::daemon_config_home() // temporary
 
 bool mp::platform::is_backend_supported(const QString& backend)
 {
-    return backend == "qemu" || backend == "libvirt" || backend == "lxd";
+    return (backend == "qemu" && QEMU_ENABLED) || backend == "libvirt" || backend == "lxd";
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     const auto& driver = utils::get_driver_str();
+#if QEMU_ENABLED
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
-    else if (driver == QStringLiteral("libvirt"))
+#endif
+
+    if (driver == QStringLiteral("libvirt"))
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
-    else if (driver == QStringLiteral("lxd"))
+
+    if (driver == QStringLiteral("lxd"))
         return std::make_unique<LXDVirtualMachineFactory>(data_dir);
-    else
-        throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
+
+    throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)

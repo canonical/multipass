@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set (CMAKE_AUTOMOC ON)
-
 add_library(shared STATIC
   base_virtual_machine.cpp
   base_virtual_machine_factory.cpp
@@ -26,8 +24,5 @@ target_link_libraries(shared
   utils
   Qt5::Core)
 
-if("qemu" IN_LIST MULTIPASS_BACKENDS)
-  add_subdirectory(qemu_img_utils)
-endif()
-
+add_subdirectory(qemu_img_utils)
 add_subdirectory(${MULTIPASS_PLATFORM})
