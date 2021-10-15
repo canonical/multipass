@@ -216,9 +216,9 @@ TEST_P(TestSettingsSetRegularKeys, setRecordsProvidedSetting)
 }
 
 INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSetRegularKeys,
-                         Values(KeyVal{mp::petenv_key, "instance-name"}, KeyVal{mp::autostart_key, "false"},
-                                KeyVal{mp::hotkey_key, "Alt+X"}, KeyVal{mp::bridged_interface_key, "iface"},
-                                KeyVal{mp::mounts_key, "true"}));
+                         Values(KeyVal{mp::petenv_key, "instance-name"}, KeyVal{mp::petenv_key, ""},
+                                KeyVal{mp::autostart_key, "false"}, KeyVal{mp::hotkey_key, "Alt+X"},
+                                KeyVal{mp::bridged_interface_key, "iface"}, KeyVal{mp::mounts_key, "true"}));
 
 using KeyReprVal = std::tuple<QString, QString, QString>;
 struct TestSettingsGoodBoolConversion : public TestSettings, public WithParamInterface<KeyReprVal>
