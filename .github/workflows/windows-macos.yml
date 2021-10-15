@@ -515,7 +515,7 @@ jobs:
         fi
 
         if [ -n "${{ needs.BuildAndTest.outputs.windows-url }}" ]; then
-          INPUTS+="{ \"windows-package\": \"${{ needs.BuildAndTest.outputs.windows-url }}\" }"
+          INPUTS+="{ \"win-package\": \"${{ needs.BuildAndTest.outputs.windows-url }}\" }"
         fi
 
         echo "${INPUTS}" | jq -cs '. | add' | awk '{ print "::set-output name=inputs::" $0 }'
