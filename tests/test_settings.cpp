@@ -65,6 +65,25 @@ struct TestSettings : public Test
             .WillOnce(Return(ByMove(std::move(mock_qsettings))));
     }
 
+    void inject_real_settings_get(const QString& key)
+    {
+        EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(call_real_settings_get);
+    }
+
+    void inject_real_settings_set(const QString& key, const QString& val)
+    {
+        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+    }
+
+public:
+    MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* this
+    is made strict to ensure that, other than explicitly injected, no QSettings are used; that's particularly important
+    when injecting real get and set behavior (don't want tests to be affected, nor themselves affect, disk state) */
+    MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
+    std::unique_ptr<MockQSettings> mock_qsettings = std::make_unique<MockQSettings>(); // TODO@ricab nice?
+    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
+
+private:
     static QString call_real_settings_get(const QString& key)
     {
         return MP_SETTINGS.Settings::get(key); // invoke the base
@@ -74,11 +93,6 @@ struct TestSettings : public Test
     {
         MP_SETTINGS.Settings::set(key, val); // invoke the base
     }
-
-    MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* strict
-                                                to ensure that, other than explicitly injected, no QSettings are used */
-    MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
-    std::unique_ptr<MockQSettings> mock_qsettings = std::make_unique<MockQSettings>(); // TODO@ricab nice?
 };
 
 TEST_F(TestSettings, getReadsUtf8)
@@ -87,8 +101,7 @@ TEST_F(TestSettings, getReadsUtf8)
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key)))
-        .WillOnce(call_real_settings_get); // TODO@ricab extract?
+    inject_real_settings_get(key);
 
     MP_SETTINGS.get(key);
 }
@@ -99,7 +112,7 @@ TEST_F(TestSettings, setWritesUtf8)
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+    inject_real_settings_set(key, val);
 
     MP_SETTINGS.set(key, val);
 }
@@ -110,7 +123,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
     EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/asdf"));
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
+    inject_real_settings_get(key);
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
@@ -124,7 +137,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnreadableFile))
     EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/fdsa"));
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+    inject_real_settings_set(key, val);
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
@@ -142,7 +155,7 @@ TEST_P(TestSettingsReadWriteError, getThrowsOnFileReadError)
     EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
+    inject_real_settings_get(key);
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr(desc))));
@@ -160,7 +173,7 @@ TEST_P(TestSettingsReadWriteError, setThrowsOnFileWriteError)
     }
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+    inject_real_settings_set(key, val);
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("write"), HasSubstr(desc))));
@@ -181,7 +194,7 @@ TEST_P(TestSettingsGetRegularKeys, getReturnsRecordedSetting)
     EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), _)).WillOnce(Return(val));
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
+    inject_real_settings_get(key);
 
     ASSERT_NE(val, mpt::MockSettings::mock_instance().get_default(key));
     EXPECT_EQ(MP_SETTINGS.get(key), QString{val});
@@ -212,7 +225,7 @@ TEST_P(TestSettingsSetRegularKeys, setRecordsProvidedSetting)
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+    inject_real_settings_set(key, val);
 
     ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
 }
@@ -232,7 +245,7 @@ TEST_F(TestSettings, setAcceptsValidBackend)
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+    inject_real_settings_set(key, val);
 
     ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
 }
@@ -244,7 +257,7 @@ TEST_F(TestSettings, setRejectsInvalidBackend)
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
 
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+    inject_real_settings_set(key, val);
 
     MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingsException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
@@ -261,7 +274,7 @@ TEST_P(TestSettingsGoodBoolConversion, setConvertsAcceptableBoolRepresentations)
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(repr))).WillOnce(call_real_settings_set);
+    inject_real_settings_set(key, repr);
 
     ASSERT_NO_THROW(MP_SETTINGS.set(key, repr));
 }
@@ -287,7 +300,7 @@ TEST_P(TestSettingsBadValue, setThrowsOnInvalidSettingValue)
 {
     const auto& [key, val] = GetParam();
 
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+    inject_real_settings_set(key, val);
 
     MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingsException,
                          mpt::match_what(AllOf(HasSubstr(key.toStdString()), HasSubstr(val.toStdString()))));
