@@ -80,7 +80,7 @@ public:
     is made strict to ensure that, other than explicitly injected, no QSettings are used; that's particularly important
     when injecting real get and set behavior (don't want tests to be affected, nor themselves affect, disk state) */
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
-    std::unique_ptr<MockQSettings> mock_qsettings = std::make_unique<MockQSettings>(); // TODO@ricab nice?
+    std::unique_ptr<NiceMock<MockQSettings>> mock_qsettings = std::make_unique<NiceMock<MockQSettings>>();
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 
 private:
