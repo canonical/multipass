@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "disabling_macros.h"
+#include "mock_platform.h"
 #include "mock_settings.h"
 
 #include <src/utils/qsettings_wrapper.h>
@@ -42,7 +43,7 @@ public:
     MOCK_CONST_METHOD0(fileName, QString());
     MOCK_CONST_METHOD2(value_impl, QVariant(const QString& key, const QVariant& default_value)); // promote visibility
     MOCK_METHOD1(setIniCodec, void(const char* codec_name));
-    MOCK_METHOD0(sync, void()); // TODO@ricab verify all these
+    MOCK_METHOD0(sync, void());
     MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
 };
 
@@ -86,7 +87,8 @@ TEST_F(TestSettings, getReadsUtf8)
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(call_real_settings_get);
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key)))
+        .WillOnce(call_real_settings_get); // TODO@ricab extract?
 
     MP_SETTINGS.get(key);
 }
@@ -220,6 +222,34 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSetRegularKeys,
                                 KeyVal{mp::autostart_key, "false"}, KeyVal{mp::hotkey_key, "Alt+X"},
                                 KeyVal{mp::bridged_interface_key, "iface"}, KeyVal{mp::mounts_key, "true"}));
 
+TEST_F(TestSettings, setAcceptsValidBackend)
+{
+    auto key = mp::driver_key, val = "good driver";
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+
+    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
+}
+
+TEST_F(TestSettings, setRejectsInvalidBackend)
+{
+    auto key = mp::driver_key, val = "bad driver";
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
+
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+
+    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingsException,
+                         mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
+}
+
 using KeyReprVal = std::tuple<QString, QString, QString>;
 struct TestSettingsGoodBoolConversion : public TestSettings, public WithParamInterface<KeyReprVal>
 {
@@ -269,9 +299,6 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsBadBool, TestSettingsBadValue,
 
 INSTANTIATE_TEST_SUITE_P(TestSettingsBadPetEnv, TestSettingsBadValue,
                          Combine(Values(mp::petenv_key), Values("-", "-a-b-", "_asd", "_1", "1-2-3")));
-
-// TODO@ricab accepts disable primary
-// TODO@ricab accepts/rejects driver
 
 template <typename T>
 struct SettingValueRepresentation
