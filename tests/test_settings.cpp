@@ -127,7 +127,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnreadableFile))
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
 }
 
-using DescribedQSettingsStatus = std::pair<QSettings::Status, std::string>;
+using DescribedQSettingsStatus = std::tuple<QSettings::Status, std::string>;
 struct TestSettingsReadWriteError : public TestSettings, public WithParamInterface<DescribedQSettingsStatus>
 {
 };
@@ -198,7 +198,7 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsGetRegularKeys, TestSettingsGetRegularKeys,
                              return ret;
                          }()));
 
-using KeyVal = std::pair<QString, QString>;
+using KeyVal = std::tuple<QString, QString>;
 struct TestSettingsSetRegularKeys : public TestSettings, public WithParamInterface<KeyVal>
 {
 };
