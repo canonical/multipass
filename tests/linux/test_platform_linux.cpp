@@ -30,7 +30,16 @@
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 #include <src/platform/backends/libvirt/libvirt_wrapper.h>
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
+
+#ifdef QEMU_ENABLED
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
+#define DEFAULT_FACTORY mp::QemuVirtualMachineFactory
+#define DEFAULT_DRIVER "qemu"
+#else
+#define DEFAULT_FACTORY mp::LXDVirtualMachineFactory
+#define DEFAULT_DRIVER "lxd"
+#endif
+
 #include <src/platform/platform_linux_detail.h>
 
 #include <multipass/constants.h>
@@ -294,15 +303,17 @@ TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
     EXPECT_THROW(mp::platform::setup_gui_autostart_prerequisites(), mp::AutostartSetupException);
 }
 
-TEST_F(PlatformLinux, test_default_qemu_driver_produces_correct_factory)
+TEST_F(PlatformLinux, test_default_driver_produces_correct_factory)
 {
-    aux_test_driver_factory<mp::QemuVirtualMachineFactory>();
+    aux_test_driver_factory<DEFAULT_FACTORY>();
 }
 
+#ifdef QEMU_ENABLED
 TEST_F(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
 {
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
+#endif
 
 TEST_F(PlatformLinux, test_libvirt_driver_produces_correct_factory)
 {
@@ -325,7 +336,7 @@ TEST_F(PlatformLinux, test_qemu_in_env_var_is_ignored)
 TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 {
     mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
-    aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
+    aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
 }
 
 TEST_F(PlatformLinux, workflowsURLOverrideSetReturnsExpectedData)
@@ -358,7 +369,7 @@ TEST_F(PlatformLinux, test_is_remote_supported_lxd)
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported("daily"));
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported(""));
     EXPECT_TRUE(MP_PLATFORM.is_remote_supported("appliance"));
-    EXPECT_FALSE(MP_PLATFORM.is_remote_supported("snapcraft"));
+    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("snapcraft"));
 }
 
 TEST_F(PlatformLinux, test_snap_returns_expected_default_address)
@@ -385,6 +396,17 @@ TEST_F(PlatformLinux, test_not_snap_returns_expected_default_address)
 TEST_F(PlatformLinux, test_is_alias_supported_returns_true)
 {
     EXPECT_TRUE(MP_PLATFORM.is_alias_supported("focal", "release"));
+}
+
+TEST_F(PlatformLinux, test_is_alias_supported_lxd)
+{
+    setup_driver_settings("lxd");
+
+    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("focal", "release"));
+    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("core18", "snapcraft"));
+    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("core20", "snapcraft"));
+    EXPECT_FALSE(MP_PLATFORM.is_alias_supported("core", "snapcraft"));
+    EXPECT_FALSE(MP_PLATFORM.is_alias_supported("16.04", "snapcraft"));
 }
 
 struct TestUnsupportedDrivers : public TestWithParam<QString>
