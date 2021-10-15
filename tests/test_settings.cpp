@@ -217,14 +217,39 @@ TEST_P(TestSettingsSet, setRecordsProvidedSetting)
     ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSet,
-                         Values(std::pair<QString, QString>{mp::petenv_key, "instance-name"},
-                                std::pair<QString, QString>{mp::autostart_key, "false"},
-                                std::pair<QString, QString>{mp::hotkey_key, "Alt+X"},
-                                std::pair<QString, QString>{mp::bridged_interface_key, "iface"},
-                                std::pair<QString, QString>{mp::mounts_key, "true"}));
+INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSetRegularKeys,
+                         Values(KeyVal{mp::petenv_key, "instance-name"}, KeyVal{mp::autostart_key, "false"},
+                                KeyVal{mp::hotkey_key, "Alt+X"}, KeyVal{mp::bridged_interface_key, "iface"},
+                                KeyVal{mp::mounts_key, "true"}));
 
-// TODO@ricab converts bool reprs to true/false
+using KeyReprVal = std::tuple<QString, QString, QString>;
+struct TestSettingsBoolConversion : public TestSettings, public WithParamInterface<KeyReprVal>
+{
+};
+
+TEST_P(TestSettingsBoolConversion, setConvertsAcceptableBoolRepresentations)
+{
+    const auto& [key, repr, val] = GetParam();
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
+
+    inject_mock_qsettings();
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(repr))).WillOnce(call_real_settings_set);
+
+    ASSERT_NO_THROW(MP_SETTINGS.set(key, repr));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestSettingsTrueConv, TestSettingsBoolConversion, ValuesIn([] {
+                             std::vector<std::tuple<QString, QString, QString>> ret;
+                             for (const auto& key : {mp::autostart_key, mp::mounts_key})
+                             {
+                                 for (const auto& repr : {"yes", "on", "1", "true"})
+                                     ret.emplace_back(key, repr, "true");
+                                 for (const auto& repr : {"no", "off", "0", "false"})
+                                     ret.emplace_back(key, repr, "false");
+                             }
+
+                             return ret;
+                         }()));
 
 template <typename T>
 struct SettingValueRepresentation
