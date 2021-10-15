@@ -220,11 +220,11 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSetRegularKeys,
                                 KeyVal{mp::mounts_key, "true"}));
 
 using KeyReprVal = std::tuple<QString, QString, QString>;
-struct TestSettingsBoolConversion : public TestSettings, public WithParamInterface<KeyReprVal>
+struct TestSettingsGoodBoolConversion : public TestSettings, public WithParamInterface<KeyReprVal>
 {
 };
 
-TEST_P(TestSettingsBoolConversion, setConvertsAcceptableBoolRepresentations)
+TEST_P(TestSettingsGoodBoolConversion, setConvertsAcceptableBoolRepresentations)
 {
     const auto& [key, repr, val] = GetParam();
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
@@ -235,7 +235,7 @@ TEST_P(TestSettingsBoolConversion, setConvertsAcceptableBoolRepresentations)
     ASSERT_NO_THROW(MP_SETTINGS.set(key, repr));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsGoodBoolConv, TestSettingsBoolConversion, ValuesIn([] {
+INSTANTIATE_TEST_SUITE_P(TestSettingsGoodBool, TestSettingsGoodBoolConversion, ValuesIn([] {
                              std::vector<KeyReprVal> ret;
                              for (const auto& key : {mp::autostart_key, mp::mounts_key})
                              {
@@ -247,6 +247,24 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsGoodBoolConv, TestSettingsBoolConversion, V
 
                              return ret;
                          }()));
+
+struct TestSettingsBadBoolConversion : public TestSettings, WithParamInterface<KeyVal>
+{
+};
+
+TEST_P(TestSettingsBadBoolConversion, setThrowsOnInvalidBoolRepresentations)
+{
+    const auto& [key, val] = GetParam();
+
+    EXPECT_CALL(mpt::MockSettings::mock_instance(), set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
+
+    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingsException,
+                         mpt::match_what(AllOf(HasSubstr(key.toStdString()), HasSubstr(val.toStdString()))));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestSettingsBadBool, TestSettingsBadBoolConversion,
+                         Combine(Values(mp::autostart_key, mp::mounts_key),
+                                 Values("nonsense", "invalid", "", "bool", "representations", "-", "null")));
 
 template <typename T>
 struct SettingValueRepresentation
