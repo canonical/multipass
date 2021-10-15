@@ -33,7 +33,8 @@ const std::unordered_set<std::string> supported_release_aliases{"core",   "core1
                                                                 "16.04", "x", "xenial",
                                                                 "18.04", "b", "bionic",
                                                                 "20.04", "f", "focal",
-                                                                "21.04", "h", "hirsute"};
+                                                                "21.04", "h", "hirsute"
+                                                                "21.10", "i", "impish"};
 // clang-format on
 const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18"};
 const std::unordered_set<std::string> supported_snapcraft_aliases{"core", "core16", "core18", "core20"};
