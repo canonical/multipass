@@ -88,7 +88,14 @@ mp::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAcces
     {
         if (lease.toObject()["hwaddr"].toString() == mac_addr)
         {
-            return mp::optional<mp::IPAddress>{lease.toObject()["address"].toString().toStdString()};
+            try
+            {
+                return mp::optional<mp::IPAddress>{lease.toObject()["address"].toString().toStdString()};
+            }
+            catch (const std::invalid_argument&)
+            {
+                continue;
+            }
         }
     }
 
