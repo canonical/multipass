@@ -51,9 +51,10 @@ mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
     aliases.add_alias(alias_name, alias_definition);
 
     // Each element of this list is a folder in the system's path.
-    auto path = qEnvironmentVariable("PATH").split(QRegularExpression("[:;]"));
+    auto path = qEnvironmentVariable("PATH").split(QRegularExpression("[;:](?!\\\\)"));
 
     QDir alias_folder = MP_PLATFORM.get_alias_scripts_folder();
+
     const auto comp = [&alias_folder](auto folder_str) { return QDir(folder_str) == alias_folder; };
 
     // If the alias folder is already in the path, return without displaying a message.
