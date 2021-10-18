@@ -2800,4 +2800,14 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
 
     ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot create aliases config file "));
 }
+
+TEST_F(ClientAlias, creating_first_alias_displays_message)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
+
+    ASSERT_THAT(cout_stream.str(), HasSubstr("You'll need to add "));
+}
 } // namespace
