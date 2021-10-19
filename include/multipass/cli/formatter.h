@@ -19,7 +19,6 @@
 #define MULTIPASS_FORMATTER_H
 
 #include <multipass/disabled_copy_move.h>
-
 #include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <multipass/cli/alias_dict.h>

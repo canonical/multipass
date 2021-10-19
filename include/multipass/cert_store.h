@@ -19,6 +19,7 @@
 #define MULTIPASS_CERT_STORE_H
 
 #include "disabled_copy_move.h"
+
 #include <string>
 
 namespace multipass

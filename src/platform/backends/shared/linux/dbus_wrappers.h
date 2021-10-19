@@ -20,6 +20,7 @@
 
 #include "multipass/optional.h"
 #include "multipass/singleton.h"
+
 #include <multipass/disabled_copy_move.h>
 
 #include <QString>
