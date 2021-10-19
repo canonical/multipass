@@ -438,6 +438,10 @@ jobs:
           ${{ needs.BuildAndTest.outputs.mac-arm-package }} \
           ${PKG}
 
+        ${ARCH_WRAPPER} packaging/macos/sign-and-notarize.sh \
+          --app-signer - \
+          ${PKG}
+
         echo "::set-output name=name::${PKG}"
         echo "::set-output name=path::$( greadlink -f ${PKG} )"
 
