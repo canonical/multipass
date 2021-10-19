@@ -22,7 +22,6 @@
 #include <multipass/platform.h>
 
 #include <QDir>
-#include <QRegularExpression>
 #include <QtGlobal>
 
 namespace mp = multipass;
