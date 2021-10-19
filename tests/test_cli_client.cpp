@@ -2804,17 +2804,17 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
 
 TEST_F(ClientAlias, creating_first_alias_displays_message)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
 
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
 
-    ASSERT_THAT(cout_stream.str(), HasSubstr("You'll need to add "));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("You'll need to add "));
 }
 
 TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
 
     auto path = qgetenv("PATH");
 #ifdef MULTIPASS_PLATFORM_WINDOWS
@@ -2828,6 +2828,6 @@ TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
 
-    ASSERT_THAT(cout_stream.str(), Eq(""));
+    EXPECT_THAT(cout_stream.str(), Eq(""));
 }
 } // namespace
