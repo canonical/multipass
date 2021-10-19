@@ -100,6 +100,22 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    auto command = definition.right(definition.size() - colon_pos - 1).toStdString();
+
+    if (parser->positionalArguments().count() == 1)
+    {
+        alias_name = QFileInfo(QString::fromStdString(command)).fileName().toStdString();
+    }
+    else
+    {
+        alias_name = cl_definition[1].toStdString();
+        if (QFileInfo(cl_definition[1]).fileName().toStdString() != alias_name)
+        {
+            cerr << "Alias has to be a valid filename" << std::endl;
+            return ParseCode::CommandLineError;
+        }
+    }
+
     auto instance = definition.left(colon_pos).toStdString();
 
     info_request.mutable_instance_names()->add_instance_name(instance);
@@ -125,10 +141,6 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         cerr << fmt::format("Instance '{}' does not exist\n", instance);
         return ParseCode::CommandLineError;
     }
-
-    auto command = definition.right(definition.size() - colon_pos - 1).toStdString();
-
-    alias_name = parser->positionalArguments().count() == 1 ? command : cl_definition[1].toStdString();
 
     if (aliases.get_alias(alias_name))
     {
