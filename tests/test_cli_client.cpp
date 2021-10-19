@@ -2534,17 +2534,19 @@ TEST_F(ClientAlias, alias_creates_alias)
                                    "primary,another_command\n");
 }
 
-struct ClientAliasNameSuite
-    : public ClientAlias,
-      public WithParamInterface<std::tuple<std::vector<std::string> /* arguments */, std::string /* command */>>
+struct ClientAliasNameSuite : public ClientAlias,
+                              public WithParamInterface<std::tuple<std::string /* command */, std::string /* path */>>
 {
 };
 
 TEST_P(ClientAliasNameSuite, creates_correct_default_alias_name)
 {
-    const auto& [arguments, command] = GetParam();
+    const auto& [command, path] = GetParam();
 
     EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::vector<std::string> arguments{"alias"};
+    arguments.push_back(fmt::format("primary:{}{}", path, command));
 
     EXPECT_EQ(send_command(arguments), mp::ReturnCode::Ok);
 
@@ -2552,18 +2554,13 @@ TEST_P(ClientAliasNameSuite, creates_correct_default_alias_name)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_THAT(cout_stream.str(), fmt::format("Alias,Instance,Command\n"
-                                               "command,primary,{}\n",
-                                               command));
+                                               "{},primary,{}{}\n",
+                                               command, path, command));
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    ClientAlias, ClientAliasNameSuite,
-    Values(std::make_tuple(std::vector<std::string>{"alias", "primary:command"}, "command"),
-           std::make_tuple(std::vector<std::string>{"alias", "primary:/command"}, "/command"),
-           std::make_tuple(std::vector<std::string>{"alias", "primary:/deep/command"}, "/deep/command"),
-           std::make_tuple(std::vector<std::string>{"alias", "primary:./relative/command"}, "./relative/command"),
-           std::make_tuple(std::vector<std::string>{"alias", "primary:./relative/../command"},
-                           "./relative/../command")));
+INSTANTIATE_TEST_SUITE_P(ClientAlias, ClientAliasNameSuite,
+                         Combine(Values("command", "com.mand", "com.ma.nd"),
+                                 Values("", "/", "./", "./relative/", "/absolute/", "../more/relative/")));
 
 TEST_F(ClientAlias, fails_if_cannot_write_script)
 {
@@ -2638,6 +2635,10 @@ INSTANTIATE_TEST_SUITE_P(
            std::make_tuple(std::vector<std::string>{"alias", "primary:command", "/absolute/alias_name"},
                            mp::ReturnCode::CommandLineError, "", "Alias has to be a valid filename\n"),
            std::make_tuple(std::vector<std::string>{"alias", "primary:command", "weird alias_name"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "com.mand"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "com.ma.nd"}, mp::ReturnCode::Ok,
                            "You'll need to add", "")));
 
 TEST_F(ClientAlias, empty_aliases)
