@@ -17,10 +17,12 @@
  */
 
 #include "tests/common.h"
+#include "tests/file_operations.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_file_ops.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_standard_paths.h"
+#include "tests/mock_utils.h"
 #include "tests/temp_dir.h"
 
 #include <src/platform/platform_proprietary.h>
@@ -367,11 +369,22 @@ TEST(PlatformOSX, create_alias_script_works)
     EXPECT_TRUE(script_permissions & QFileDevice::ExeOther);
 }
 
+TEST(PlatformOSX, create_alias_script_overwrites)
+{
+    auto [mock_utils, guard1] = mpt::MockUtils::inject();
+    auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
+    EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
+    EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(true));
+
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command"}));
+}
+
 TEST(PlatformOSX, create_alias_script_throws_if_cannot_create_path)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
@@ -382,7 +395,6 @@ TEST(PlatformOSX, create_alias_script_throws_if_cannot_write_script)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));

@@ -435,7 +435,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 
     std::string script = "#!/bin/sh\n\n\"" + multipass_exec + "\" " + alias + "\n";
 
-    MP_UTILS.make_file_with_content(file_path, script);
+    MP_UTILS.make_file_with_content(file_path, script, true);
 
     QFile file(QString::fromStdString(file_path));
     auto permissions =
