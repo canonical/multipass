@@ -128,9 +128,19 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
 
     auto command = definition.right(definition.size() - colon_pos - 1).toStdString();
 
-    alias_name = parser->positionalArguments().count() == 1
-                     ? QFileInfo(QString::fromStdString(command)).baseName().toStdString()
-                     : cl_definition[1].toStdString();
+    if (parser->positionalArguments().count() == 1)
+    {
+        alias_name = QFileInfo(QString::fromStdString(command)).baseName().toStdString();
+    }
+    else
+    {
+        alias_name = cl_definition[1].toStdString();
+        if (QFileInfo(cl_definition[1]).baseName().toStdString() != alias_name)
+        {
+            cerr << "Alias has to be a valid filename" << std::endl;
+            return ParseCode::CommandLineError;
+        }
+    }
 
     if (aliases.get_alias(alias_name))
     {

@@ -2617,22 +2617,28 @@ TEST_P(ArgumentCheckTestsuite, answers_correctly)
     EXPECT_EQ(cerr_stream.str(), expected_cerr);
 }
 
-INSTANTIATE_TEST_SUITE_P(Client, ArgumentCheckTestsuite,
-                         Values(std::make_tuple(std::vector<std::string>{"alias"}, mp::ReturnCode::CommandLineError, "",
-                                                "Wrong number of arguments given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", "instance", "command", "alias_name"},
-                                                mp::ReturnCode::CommandLineError, "",
-                                                "Wrong number of arguments given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", "instance", "alias_name"},
-                                                mp::ReturnCode::CommandLineError, "", "No command given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", "primary:command", "alias_name"},
-                                                mp::ReturnCode::Ok, "You'll need to add", ""),
-                                std::make_tuple(std::vector<std::string>{"alias", "primary:command"},
-                                                mp::ReturnCode::Ok, "You'll need to add", ""),
-                                std::make_tuple(std::vector<std::string>{"alias", ":command"},
-                                                mp::ReturnCode::CommandLineError, "", "No instance name given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", ":command", "alias_name"},
-                                                mp::ReturnCode::CommandLineError, "", "No instance name given\n")));
+INSTANTIATE_TEST_SUITE_P(
+    Client, ArgumentCheckTestsuite,
+    Values(std::make_tuple(std::vector<std::string>{"alias"}, mp::ReturnCode::CommandLineError, "",
+                           "Wrong number of arguments given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "instance", "command", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Wrong number of arguments given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "instance", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "No command given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "alias_name"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", ":command"}, mp::ReturnCode::CommandLineError, "",
+                           "No instance name given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", ":command", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "No instance name given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "relative/alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Alias has to be a valid filename\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "/absolute/alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Alias has to be a valid filename\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "weird alias_name"}, mp::ReturnCode::Ok,
+                           "You'll need to add", "")));
 
 TEST_F(ClientAlias, empty_aliases)
 {
