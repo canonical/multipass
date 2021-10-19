@@ -286,6 +286,14 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
     return false;
 }
 
+bool mp::platform::Platform::is_backend_supported(const QString& backend) const
+{
+    return (backend == "hyperkit" && HYPERKIT_ENABLED) ||
+           (backend == "qemu" && QEMU_ENABLED &&
+            QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSCatalina) ||
+           (backend == "virtualbox" && VIRTUALBOX_ENABLED);
+}
+
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
     return {};
@@ -343,14 +351,6 @@ QString mp::platform::daemon_config_home() // temporary
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
 
     return ret;
-}
-
-bool mp::platform::is_backend_supported(const QString& backend)
-{
-    return (backend == "hyperkit" && HYPERKIT_ENABLED) ||
-           (backend == "qemu" && QEMU_ENABLED &&
-            QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSCatalina) ||
-           (backend == "virtualbox" && VIRTUALBOX_ENABLED);
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
