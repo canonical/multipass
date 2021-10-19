@@ -214,7 +214,7 @@ fi
 
 if [ -z "${NOTARIZE_ID+x}" ] || [ -z "${NOTARIZE_PASSWORD+x}" ]; then
     echo "Required Notarization credentials not supplied (--notarize-id, --notarize-password), bailing"
-    exit 2
+    exit 0
 fi
 
 
