@@ -53,15 +53,9 @@ mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
     // Each element of this list is a folder in the system's path.
     auto path = qEnvironmentVariable("PATH").split(QRegularExpression("[;:](?!\\\\)"));
 
-    QDir alias_folder = MP_PLATFORM.get_alias_scripts_folder();
+    auto alias_folder = MP_PLATFORM.get_alias_scripts_folder().absolutePath();
 
-    const auto comp = [&alias_folder](auto folder_str) { return QDir(folder_str) == alias_folder; };
-
-    // If the alias folder is already in the path, return without displaying a message.
-    if (std::find_if(path.cbegin(), path.cend(), comp) != path.cend())
-        return ReturnCode::Ok;
-
-    if (empty_before_add && aliases.size() == 1)
+    if (empty_before_add && aliases.size() == 1 && std::find(path.cbegin(), path.cend(), alias_folder) == path.cend())
         cout << MP_PLATFORM.alias_path_message();
 
     return ReturnCode::Ok;
