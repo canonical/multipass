@@ -2534,6 +2534,37 @@ TEST_F(ClientAlias, alias_creates_alias)
                                    "primary,another_command\n");
 }
 
+struct ClientAliasNameSuite
+    : public ClientAlias,
+      public WithParamInterface<std::tuple<std::vector<std::string> /* arguments */, std::string /* command */>>
+{
+};
+
+TEST_P(ClientAliasNameSuite, creates_correct_default_alias_name)
+{
+    const auto& [arguments, command] = GetParam();
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    EXPECT_EQ(send_command(arguments), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), fmt::format("Alias,Instance,Command\n"
+                                               "command,primary,{}\n",
+                                               command));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ClientAlias, ClientAliasNameSuite,
+    Values(std::make_tuple(std::vector<std::string>{"alias", "primary:command"}, "command"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:/command"}, "/command"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:/deep/command"}, "/deep/command"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:./relative/command"}, "./relative/command"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:./relative/../command"},
+                           "./relative/../command")));
+
 TEST_F(ClientAlias, fails_if_cannot_write_script)
 {
     EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("aaa")));

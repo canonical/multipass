@@ -128,7 +128,9 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
 
     auto command = definition.right(definition.size() - colon_pos - 1).toStdString();
 
-    alias_name = parser->positionalArguments().count() == 1 ? command : cl_definition[1].toStdString();
+    alias_name = parser->positionalArguments().count() == 1
+                     ? QFileInfo(QString::fromStdString(command)).baseName().toStdString()
+                     : cl_definition[1].toStdString();
 
     if (aliases.get_alias(alias_name))
     {
