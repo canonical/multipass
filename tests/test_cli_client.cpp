@@ -2823,7 +2823,7 @@ TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set
     path += ':';
 #endif
     path += MP_PLATFORM.get_alias_scripts_folder().path().toUtf8();
-    qputenv("PATH", path);
+    const auto env_scope = mpt::SetEnvScope{"PATH", path};
 
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
