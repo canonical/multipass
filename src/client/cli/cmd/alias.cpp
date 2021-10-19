@@ -23,6 +23,7 @@
 
 #include <QDir>
 #include <QRegularExpression>
+#include <QtGlobal>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
