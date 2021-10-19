@@ -2868,4 +2868,24 @@ TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set
 
     EXPECT_THAT(cout_stream.str(), Eq(""));
 }
+
+TEST_F(ClientAlias, fails_when_name_clashes_with_command_alias)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "ls"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), Eq("Alias name 'ls' clashes with a command name\n"));
+}
+
+TEST_F(ClientAlias, fails_when_name_clashes_with_command_name)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "list"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), Eq("Alias name 'list' clashes with a command name\n"));
+}
 } // namespace
