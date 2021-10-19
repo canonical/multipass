@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <QDir>
 #include <QFile>
 
+#include <fstream>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -33,6 +34,32 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto chain_name = "multipass_client_certs.pem";
+
+auto load_certs_from_file(const multipass::Path& cert_dir)
+{
+    std::vector<std::string> certs;
+    std::string cert;
+    auto path = QDir(cert_dir).filePath(chain_name);
+
+    if (QFile::exists(path))
+    {
+        std::ifstream cert_file{path.toStdString()};
+        std::string line;
+        while (std::getline(cert_file, line))
+        {
+            // Re-add the newline to make comparing of cert sent by client easier
+            cert.append(line + '\n');
+
+            if (line == "-----END CERTIFICATE-----")
+            {
+                certs.push_back(cert);
+                cert.clear();
+            }
+        }
+    }
+
+    return certs;
+}
 
 void validate_certificate(const std::string& pem_cert)
 {
@@ -45,7 +72,8 @@ void validate_certificate(const std::string& pem_cert)
 }
 } // namespace
 
-mp::ClientCertStore::ClientCertStore(const multipass::Path& cert_dir) : cert_dir{cert_dir}
+mp::ClientCertStore::ClientCertStore(const multipass::Path& cert_dir)
+    : cert_dir{cert_dir}, authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
 }
 
