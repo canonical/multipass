@@ -269,6 +269,21 @@ TEST(Utils, make_file_with_content_does_not_overwrite)
     check_file_contents(checked_file, file_contents);
 }
 
+TEST(Utils, make_file_with_content_overwrites_when_asked)
+{
+    mpt::TempDir temp_dir;
+    QString file_name = temp_dir.path() + "/test-file";
+
+    EXPECT_NO_THROW(MP_UTILS.make_file_with_content(file_name.toStdString(), file_contents));
+
+    QFile checked_file(file_name);
+    check_file_contents(checked_file, file_contents);
+
+    EXPECT_NO_THROW(MP_UTILS.make_file_with_content(file_name.toStdString(), "other stuff\n", true));
+
+    check_file_contents(checked_file, "other stuff\n");
+}
+
 TEST(Utils, make_file_with_content_creates_path)
 {
     mpt::TempDir temp_dir;

@@ -135,7 +135,8 @@ public:
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code);
-    virtual void make_file_with_content(const std::string& file_name, const std::string& content);
+    virtual void make_file_with_content(const std::string& file_name, const std::string& content,
+                                        const bool& overwrite = false);
 
     // command and process helpers
     virtual std::string run_cmd_for_output(const QString& cmd, const QStringList& args,

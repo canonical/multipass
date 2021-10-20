@@ -21,6 +21,7 @@
 #include "tests/mock_logger.h"
 #include "tests/mock_settings.h"
 #include "tests/mock_standard_paths.h"
+#include "tests/mock_utils.h"
 #include "tests/temp_dir.h"
 
 #include <src/platform/platform_proprietary.h>
@@ -591,11 +592,20 @@ TEST(PlatformWin, create_alias_script_works)
     EXPECT_TRUE(checked_script.atEnd());
 }
 
+TEST(PlatformWin, create_alias_script_overwrites)
+{
+    auto [mock_utils, guard1] = mpt::MockUtils::inject();
+    auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
+
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command"}));
+}
+
 TEST(PlatformWin, create_alias_script_throws_if_cannot_create_path)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
@@ -606,7 +616,6 @@ TEST(PlatformWin, create_alias_script_throws_if_cannot_write_script)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));
