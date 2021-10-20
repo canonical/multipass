@@ -21,6 +21,9 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/platform.h>
 
+#include <QDir>
+#include <QtGlobal>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
@@ -47,7 +50,18 @@ mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
 
     aliases.add_alias(alias_name, alias_definition);
 
-    if (empty_before_add && aliases.size() == 1)
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    QChar separator(';');
+#else
+    QChar separator(':');
+#endif
+
+    // Each element of this list is a folder in the system's path.
+    auto path = qEnvironmentVariable("PATH").split(separator);
+
+    auto alias_folder = MP_PLATFORM.get_alias_scripts_folder().absolutePath();
+
+    if (empty_before_add && aliases.size() == 1 && std::find(path.cbegin(), path.cend(), alias_folder) == path.cend())
         cout << MP_PLATFORM.alias_path_message();
 
     return ReturnCode::Ok;
