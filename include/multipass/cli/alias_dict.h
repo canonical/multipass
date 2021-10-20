@@ -24,6 +24,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace multipass
 {
@@ -39,7 +40,7 @@ public:
     ~AliasDict();
     void add_alias(const std::string& alias, const AliasDefinition& command);
     bool remove_alias(const std::string& alias);
-    void remove_aliases_for_instance(const std::string& instance);
+    std::vector<std::string> remove_aliases_for_instance(const std::string& instance);
     optional<AliasDefinition> get_alias(const std::string& alias) const;
     DictType::iterator begin()
     {
