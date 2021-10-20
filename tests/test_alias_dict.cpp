@@ -20,6 +20,7 @@
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
+#include <multipass/platform.h>
 
 #include <gmock/gmock.h>
 
@@ -314,13 +315,13 @@ typedef std::vector<std::vector<std::string>> CmdList;
 
 struct DaemonAliasTestsuite : public mpt::DaemonTestFixture,
                               public FakeAliasConfig,
-                              public WithParamInterface<std::pair<CmdList, std::string>>
+                              public WithParamInterface<std::tuple<CmdList, std::string, std::vector<std::string>>>
 {
 };
 
-TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
+TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 {
-    auto [commands, expected_output] = GetParam();
+    auto [commands, expected_output, expected_removed_aliases] = GetParam();
 
     auto mock_image_vault = std::make_unique<NaggyMock<mpt::MockVMImageVault>>();
 
@@ -333,7 +334,18 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
 
     std::string json_contents = make_instance_json(mp::nullopt, {}, {"primary"});
 
-    populate_db_file(AliasesVector{{"lsp", {"primary", "ls"}}, {"lsz", {"real-zebraphant", "ls"}}});
+    AliasesVector fake_aliases{{"lsp", {"primary", "ls"}}, {"lsz", {"real-zebraphant", "ls"}}};
+
+    populate_db_file(fake_aliases);
+    create_fake_alias_scripts(fake_aliases);
+
+    auto scripts_folder = MP_PLATFORM.get_alias_scripts_folder();
+
+    for (const auto& fake_alias : fake_aliases)
+    {
+        auto file_path = scripts_folder.absoluteFilePath(QString::fromStdString(fake_alias.first));
+        ASSERT_TRUE(QFile::exists(file_path));
+    }
 
     mpt::TempDir temp_dir;
     QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
@@ -359,14 +371,20 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
     stream.str({});
     send_command({"aliases", "--format", "csv"}, stream);
     EXPECT_EQ(stream.str(), expected_output);
+
+    for (const auto& removed_alias : expected_removed_aliases)
+    {
+        auto file_path = scripts_folder.absoluteFilePath(QString::fromStdString(removed_alias));
+        ASSERT_FALSE(QFile::exists(file_path));
+    }
 }
 
-INSTANTIATE_TEST_SUITE_P(AliasDictionary, DaemonAliasTestsuite,
-                         Values(std::make_pair(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
-                                               std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}),
-                                std::make_pair(CmdList{{"delete", "--purge", "real-zebraphant"}},
-                                               std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}),
-                                std::make_pair(CmdList{{"delete", "primary"},
-                                                       {"delete", "primary", "real-zebraphant", "--purge"}},
-                                               std::string{"Alias,Instance,Command\n"})));
+INSTANTIATE_TEST_SUITE_P(
+    AliasDictionary, DaemonAliasTestsuite,
+    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"}),
+           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}},
+                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"}),
+           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp", "lsz"})));
 } // namespace
