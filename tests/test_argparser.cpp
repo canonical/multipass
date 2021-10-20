@@ -102,4 +102,6 @@ INSTANTIATE_TEST_SUITE_P(
            std::make_tuple(QStringList{"mp", "an_alias", "--", "--an_option"},
                            QStringList{"mp", "exec", "an_instance", "a_command", "--", "--an_option"}),
            std::make_tuple(QStringList{"mp", "an_alias", "--", "--an_option", "an_argument"},
-                           QStringList{"mp", "exec", "an_instance", "a_command", "--", "--an_option", "an_argument"})));
+                           QStringList{"mp", "exec", "an_instance", "a_command", "--", "--an_option", "an_argument"}),
+           std::make_tuple(QStringList{"mp", "an_alias", "an_alias", "an_alias"}, // args happen to be called the same
+                           QStringList{"mp", "exec", "an_instance", "a_command", "an_alias", "an_alias"})));

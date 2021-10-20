@@ -96,18 +96,11 @@ mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Co
 mp::ParseCode mp::ArgParser::prepare_alias_execution(const QString& alias)
 {
     chosen_command = findCommand("exec");
-    QStringList new_arguments;
 
-    for (const auto& arg : arguments)
-    {
-        if (arg == alias)
-            new_arguments << "exec" << QString::fromStdString(execute_alias->instance)
-                          << QString::fromStdString(execute_alias->command);
-        else
-            new_arguments << arg;
-    }
-
-    arguments = std::move(new_arguments);
+    auto pos = arguments.indexOf(alias);
+    arguments.replace(pos, "exec");
+    arguments.insert(pos + 1, QString::fromStdString(execute_alias->instance));
+    arguments.insert(pos + 2, QString::fromStdString(execute_alias->command));
 
     return mp::ParseCode::Ok;
 }
