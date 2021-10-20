@@ -2753,7 +2753,7 @@ TEST_F(ClientAlias, unalias_succeeds_even_if_script_cannot_be_removed)
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "another_alias"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("Warning: bbb for 'another_alias'"));
+    EXPECT_THAT(cerr_stream.str(), Eq("Warning when removing alias script for 'another_alias': bbb\n"));
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
