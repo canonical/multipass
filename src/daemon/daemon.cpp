@@ -913,7 +913,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
       vm_instance_specs{load_db(
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
-      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
+      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider,
+                 config->client_cert_store.get()},
       metrics_provider{"https://api.jujucharms.com/omnibus/v4/multipass/metrics", get_unique_id(config->data_directory),
                        config->data_directory},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)},

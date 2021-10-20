@@ -47,8 +47,7 @@ bool check_is_server_running(const std::string& address)
 }
 
 auto make_server(const std::string& server_address, mp::RpcConnectionType conn_type,
-                 const mp::CertProvider& cert_provider, const mp::CertStore& client_cert_store,
-                 mp::Rpc::Service* service)
+                 const mp::CertProvider& cert_provider, mp::Rpc::Service* service)
 {
     grpc::ServerBuilder builder;
 
@@ -94,8 +93,10 @@ grpc::Status emit_signal_and_wait_for_result(OperationSignal operation_signal)
 } // namespace
 
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
-                         const CertProvider& cert_provider, const CertStore& client_cert_store)
-    : server_address{server_address}, server{make_server(server_address, type, cert_provider, this)}
+                         const CertProvider& cert_provider, CertStore* client_cert_store)
+    : server_address{server_address},
+      server{make_server(server_address, type, cert_provider, this)},
+      client_cert_store{client_cert_store}
 {
     std::string ssl_enabled = type == mp::RpcConnectionType::ssl ? "on" : "off";
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));

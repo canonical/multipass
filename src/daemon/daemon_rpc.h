@@ -45,7 +45,7 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service, private Disabl
     Q_OBJECT
 public:
     DaemonRpc(const std::string& server_address, multipass::RpcConnectionType type, const CertProvider& cert_provider,
-              const CertStore& client_cert_store);
+              CertStore* client_cert_store);
 
 signals:
     void on_create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,
@@ -88,6 +88,7 @@ signals:
 private:
     const std::string server_address;
     const std::unique_ptr<grpc::Server> server;
+    CertStore* client_cert_store;
 
 protected:
     grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
