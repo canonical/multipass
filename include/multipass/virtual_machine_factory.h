@@ -18,12 +18,13 @@
 #ifndef MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
 
-#include <multipass/days.h>
-#include <multipass/fetch_type.h>
-#include <multipass/path.h>
-#include <multipass/virtual_machine.h>
-#include <multipass/vm_image.h>
-#include <multipass/vm_image_vault.h>
+#include "days.h"
+#include "disabled_copy_move.h"
+#include "fetch_type.h"
+#include "path.h"
+#include "virtual_machine.h"
+#include "vm_image.h"
+#include "vm_image_vault.h"
 
 namespace YAML
 {
@@ -39,7 +40,7 @@ class VMStatusMonitor;
 struct NetworkInterface;
 struct NetworkInterfaceInfo;
 
-class VirtualMachineFactory
+class VirtualMachineFactory : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<VirtualMachineFactory>;
@@ -70,8 +71,6 @@ public:
 
 protected:
     VirtualMachineFactory() = default;
-    VirtualMachineFactory(const VirtualMachineFactory&) = delete;
-    VirtualMachineFactory& operator=(const VirtualMachineFactory&) = delete;
 
     virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) = 0;
 };

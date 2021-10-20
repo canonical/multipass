@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,30 @@
  *
  */
 
-#ifndef MULTIPASS_CERTPROVIDER_H
-#define MULTIPASS_CERTPROVIDER_H
-
-#include "disabled_copy_move.h"
-
-#include <string>
+#ifndef MULTIPASS_DISABLED_COPY_MOVE_H
+#define MULTIPASS_DISABLED_COPY_MOVE_H
 
 namespace multipass
 {
-class CertProvider : private DisabledCopyMove
+
+/**
+ * A simple base class to disable copy and move construction and assignment.
+ *
+ * To use, inherit privately, Like so:
+ * @code
+ *  class Foo : private DisabledCopyMove {...};`
+ * @endcode
+ */
+class DisabledCopyMove
 {
 public:
-    virtual ~CertProvider() = default;
-    virtual std::string PEM_certificate() const = 0;
-    virtual std::string PEM_signing_key() const = 0;
+    DisabledCopyMove(const DisabledCopyMove&) = delete;
+    DisabledCopyMove& operator=(const DisabledCopyMove&) = delete;
 
 protected:
-    CertProvider() = default;
+    DisabledCopyMove() = default;
+    ~DisabledCopyMove() = default; // non-virtual, but needs protected - see Core Guidelines C.35
 };
 } // namespace multipass
-#endif // MULTIPASS_CERTPROVIDER_H
+
+#endif // MULTIPASS_DISABLED_COPY_MOVE_H

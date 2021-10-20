@@ -39,8 +39,6 @@ class BaseVirtualMachine : public VirtualMachine
 public:
     BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name) : VirtualMachine(state, vm_name){};
     BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
-    BaseVirtualMachine(const BaseVirtualMachine&) = delete;
-    BaseVirtualMachine& operator=(const BaseVirtualMachine&) = delete;
 
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
 };

@@ -20,6 +20,7 @@
 
 #include <multipass/callable_traits.h>
 #include <multipass/cli/return_codes.h>
+#include <multipass/disabled_copy_move.h>
 #include <multipass/format.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
@@ -36,7 +37,7 @@ class ArgParser;
 
 namespace cmd
 {
-class Command
+class Command : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<Command>;
@@ -134,9 +135,6 @@ protected:
             }
         });
     }
-
-    Command(const Command&) = delete;
-    Command& operator=(const Command&) = delete;
 
     grpc::Channel* rpc_channel;
     Rpc::Stub* stub;

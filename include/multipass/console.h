@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_CONSOLE_H
 #define MULTIPASS_CONSOLE_H
 
+#include "disabled_copy_move.h"
+
 #include <libssh/libssh.h>
 
 #include <memory>
@@ -26,7 +28,7 @@ namespace multipass
 {
 class Terminal;
 
-class Console
+class Console : private DisabledCopyMove
 {
 public:
     struct ConsoleGeometry
@@ -48,8 +50,6 @@ public:
 
 protected:
     explicit Console() = default;
-    Console(const Console&) = delete;
-    Console& operator=(const Console&) = delete;
 };
 } // namespace multipass
 #endif // MULTIPASS_CONSOLE_H
