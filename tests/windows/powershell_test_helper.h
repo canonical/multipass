@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_POWERSHELL_TEST_HELPER_H
 #define MULTIPASS_POWERSHELL_TEST_HELPER_H
 
+#include <multipass/disabled_copy_move.h>
+
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 
@@ -29,16 +31,11 @@ using namespace testing;
 
 namespace multipass::test
 {
-class PowerShellTestHelper
+class PowerShellTestHelper : private DisabledCopyMove
 {
 public:
     PowerShellTestHelper() = default;
     virtual ~PowerShellTestHelper() = default;
-
-    PowerShellTestHelper(const PowerShell&) = delete;
-    PowerShellTestHelper(PowerShell&&) = delete;
-    PowerShellTestHelper& operator=(const PowerShell&) = delete;
-    PowerShellTestHelper& operator=(PowerShell&&) = delete;
 
     // only the last call to this function has any effect at the moment the PS process is created
     void mock_ps_exec(const QByteArray& output, bool succeed = true);
