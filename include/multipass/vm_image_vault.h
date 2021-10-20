@@ -18,11 +18,12 @@
 #ifndef MULTIPASS_VM_IMAGE_VAULT_H
 #define MULTIPASS_VM_IMAGE_VAULT_H
 
-#include <multipass/fetch_type.h>
-#include <multipass/memory_size.h>
-#include <multipass/path.h>
-#include <multipass/progress_monitor.h>
-#include <multipass/vm_image_info.h>
+#include "disabled_copy_move.h"
+#include "fetch_type.h"
+#include "memory_size.h"
+#include "path.h"
+#include "progress_monitor.h"
+#include "vm_image_info.h"
 
 #include <QDir>
 #include <QFile>
@@ -71,7 +72,7 @@ private:
 
 class Query;
 class VMImage;
-class VMImageVault
+class VMImageVault : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<VMImageVault>;
@@ -91,8 +92,6 @@ public:
 
 protected:
     VMImageVault() = default;
-    VMImageVault(const VMImageVault&) = delete;
-    VMImageVault& operator=(const VMImageVault&) = delete;
 };
 } // namespace multipass
 #endif // MULTIPASS_VM_IMAGE_VAULT_H

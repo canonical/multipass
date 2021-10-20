@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_SINGLETON_H
 #define MULTIPASS_SINGLETON_H
 
+#include "disabled_copy_move.h"
 #include "private_pass_provider.h"
 
 #include <memory>
@@ -29,21 +30,15 @@ namespace multipass
 
 // A mockable singleton. To use, inherit (publicly) using the CRTP idiom
 template <typename T>
-class Singleton : public PrivatePassProvider<Singleton<T>>
+class Singleton : public PrivatePassProvider<Singleton<T>>, private DisabledCopyMove
 {
 public:
     using Base = PrivatePassProvider<Singleton<T>>;
     using PrivatePass = typename Base::PrivatePass;
 
     constexpr Singleton(const PrivatePass&) noexcept;
-    virtual ~Singleton() = default;
+    virtual ~Singleton() noexcept = default;
     static T& instance() noexcept(noexcept(T(Base::pass)));
-
-    // non-copyable
-    Singleton(const Singleton&) = delete;
-    Singleton(Singleton&&) = delete;
-    void operator=(const Singleton&) = delete;
-    void operator=(Singleton&&) = delete;
 
 protected:
     template <typename U, typename = std::enable_if_t<std::is_base_of<T, U>::value>>

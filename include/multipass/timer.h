@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_TIMER_H
 #define MULTIPASS_TIMER_H
 
+#include "disabled_copy_move.h"
 #include "singleton.h"
 
 #include <chrono>
@@ -36,13 +37,11 @@ enum class TimerState : int
     Paused
 };
 
-class Timer
+class Timer : private DisabledCopyMove
 {
 public:
     Timer(std::chrono::milliseconds, std::function<void()>); /* NB: callback runs on the timeout thread. */
     ~Timer();
-    Timer(const Timer&) = delete;
-    const Timer& operator=(const Timer&) = delete;
 
 public:
     void start();

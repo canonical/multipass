@@ -18,8 +18,9 @@
 #ifndef MULTIPASS_VIRTUAL_MACHINE_H
 #define MULTIPASS_VIRTUAL_MACHINE_H
 
-#include <multipass/ip_address.h>
-#include <multipass/optional.h>
+#include "disabled_copy_move.h"
+#include "ip_address.h"
+#include "optional.h"
 
 #include <chrono>
 #include <condition_variable>
@@ -32,7 +33,7 @@ namespace multipass
 {
 class SSHKeyProvider;
 
-class VirtualMachine
+class VirtualMachine : private DisabledCopyMove
 {
 public:
     enum class State
@@ -81,8 +82,6 @@ public:
 protected:
     VirtualMachine(VirtualMachine::State state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};
     VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name){};
-    VirtualMachine(const VirtualMachine&) = delete;
-    VirtualMachine& operator=(const VirtualMachine&) = delete;
 };
 } // namespace multipass
 #endif // MULTIPASS_VIRTUAL_MACHINE_H

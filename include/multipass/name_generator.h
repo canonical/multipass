@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,14 @@
 #ifndef MULTIPASS_NAME_GENERATOR_H
 #define MULTIPASS_NAME_GENERATOR_H
 
+#include "disabled_copy_move.h"
+
 #include <memory>
 #include <string>
 
 namespace multipass
 {
-class NameGenerator
+class NameGenerator : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<NameGenerator>;
@@ -34,8 +36,6 @@ public:
 
 protected:
     NameGenerator() = default;
-    NameGenerator(const NameGenerator&) = delete;
-    NameGenerator& operator=(const NameGenerator&) = delete;
 };
 
 NameGenerator::UPtr make_default_name_generator();

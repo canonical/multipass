@@ -74,8 +74,6 @@ class Daemon : public QObject, public multipass::VMStatusMonitor
     Q_OBJECT
 public:
     explicit Daemon(std::unique_ptr<const DaemonConfig> config);
-    Daemon(const Daemon&) = delete;
-    Daemon& operator=(const Daemon&) = delete;
 
     void persist_instances();
 
