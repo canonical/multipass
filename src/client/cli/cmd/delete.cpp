@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/platform.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -35,7 +36,21 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
     auto on_success = [this](mp::DeleteReply& reply) {
         auto size = reply.purged_instances_size();
         for (auto i = 0; i < size; ++i)
-            aliases.remove_aliases_for_instance(reply.purged_instances(i));
+        {
+            auto removed_aliases = aliases.remove_aliases_for_instance(reply.purged_instances(i));
+
+            for (const auto& removed_alias : removed_aliases)
+            {
+                try
+                {
+                    MP_PLATFORM.remove_alias_script(removed_alias);
+                }
+                catch (std::runtime_error& e)
+                {
+                    cerr << fmt::format("Warning when removing alias script for '{}': {}\n", removed_alias, e.what());
+                }
+            }
+        }
 
         return mp::ReturnCode::Ok;
     };
