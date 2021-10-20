@@ -40,6 +40,7 @@
 #include <QStringList>
 #include <QTemporaryFile>
 #include <QtCore/QTemporaryDir>
+#include <QtGlobal>
 
 #include <chrono>
 #include <initializer_list>
@@ -2837,5 +2838,34 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
     send_command({"alias", "primary:command", "alias"}, trash_stream, cerr_stream);
 
     ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot create aliases config file "));
+}
+
+TEST_F(ClientAlias, creating_first_alias_displays_message)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cout_stream.str(), HasSubstr("You'll need to add "));
+}
+
+TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+
+    auto path = qgetenv("PATH");
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    path += ';';
+#else
+    path += ':';
+#endif
+    path += MP_PLATFORM.get_alias_scripts_folder().path().toUtf8();
+    const auto env_scope = mpt::SetEnvScope{"PATH", path};
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cout_stream.str(), Eq(""));
 }
 } // namespace
