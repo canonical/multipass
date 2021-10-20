@@ -93,12 +93,21 @@ mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Co
 {
 }
 
-mp::ParseCode mp::ArgParser::prepare_alias_execution()
+mp::ParseCode mp::ArgParser::prepare_alias_execution(const QString& alias)
 {
     chosen_command = findCommand("exec");
-    arguments.replace(1, "exec");
-    arguments.insert(2, QString::fromStdString(execute_alias->instance));
-    arguments.insert(3, QString::fromStdString(execute_alias->command));
+    QStringList new_arguments;
+
+    for (const auto& arg : arguments)
+    {
+        if (arg == alias)
+            new_arguments << "exec" << QString::fromStdString(execute_alias->instance)
+                          << QString::fromStdString(execute_alias->command);
+        else
+            new_arguments << arg;
+    }
+
+    arguments = std::move(new_arguments);
 
     return mp::ParseCode::Ok;
 }
@@ -158,8 +167,7 @@ mp::ParseCode mp::ArgParser::parse(const mp::optional<mp::AliasDict>& aliases)
     {
         execute_alias = aliases->get_alias(requested_command.toStdString());
         if (execute_alias)
-            return prepare_alias_execution();
-
+            return prepare_alias_execution(requested_command);
     }
 
     // Fall through
