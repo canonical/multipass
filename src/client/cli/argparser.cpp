@@ -87,10 +87,20 @@ auto verbosity_level_in(const QStringList& arguments)
 }
 } // namespace
 
-mp::ArgParser::ArgParser(QStringList arguments, const std::vector<cmd::Command::UPtr>& commands, std::ostream& cout,
-                         std::ostream& cerr)
+mp::ArgParser::ArgParser(const QStringList& arguments, const std::vector<cmd::Command::UPtr>& commands,
+                         std::ostream& cout, std::ostream& cerr)
     : arguments(arguments), commands(commands), chosen_command(nullptr), help_requested(false), cout(cout), cerr(cerr)
 {
+}
+
+mp::ParseCode mp::ArgParser::prepare_alias_execution()
+{
+    chosen_command = findCommand("exec");
+    arguments.replace(1, "exec");
+    arguments.insert(2, QString::fromStdString(execute_alias->instance));
+    arguments.insert(3, QString::fromStdString(execute_alias->command));
+
+    return mp::ParseCode::Ok;
 }
 
 mp::ParseCode mp::ArgParser::parse(const mp::optional<mp::AliasDict>& aliases)
@@ -148,14 +158,8 @@ mp::ParseCode mp::ArgParser::parse(const mp::optional<mp::AliasDict>& aliases)
     {
         execute_alias = aliases->get_alias(requested_command.toStdString());
         if (execute_alias)
-        {
-            chosen_command = findCommand("exec");
-            arguments.replace(1, "exec");
-            arguments.insert(2, QString::fromStdString(execute_alias->instance));
-            arguments.insert(3, QString::fromStdString(execute_alias->command));
+            return prepare_alias_execution();
 
-            return mp::ParseCode::Ok;
-        }
     }
 
     // Fall through

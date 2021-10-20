@@ -32,7 +32,7 @@ class ArgParser
     // Note: We are using camelCase here for methods since this class mimics the QCommandLineParser class
 
 public:
-    ArgParser(QStringList arguments, const std::vector<cmd::Command::UPtr>& commands, std::ostream& cout,
+    ArgParser(const QStringList& arguments, const std::vector<cmd::Command::UPtr>& commands, std::ostream& cout,
               std::ostream& cerr);
 
     void setApplicationDescription(const QString& description);
@@ -78,6 +78,7 @@ public:
 private:
     QString generalHelpText();
     QString helpText(cmd::Command* command);
+    ParseCode prepare_alias_execution();
 
     QStringList arguments;
     const std::vector<cmd::Command::UPtr>& commands;
