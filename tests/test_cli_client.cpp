@@ -40,6 +40,7 @@
 #include <QStringList>
 #include <QTemporaryFile>
 #include <QtCore/QTemporaryDir>
+#include <QtGlobal>
 
 #include <chrono>
 #include <initializer_list>
@@ -2542,6 +2543,34 @@ TEST_F(ClientAlias, alias_creates_alias)
                                    "primary,another_command\n");
 }
 
+struct ClientAliasNameSuite : public ClientAlias,
+                              public WithParamInterface<std::tuple<std::string /* command */, std::string /* path */>>
+{
+};
+
+TEST_P(ClientAliasNameSuite, creates_correct_default_alias_name)
+{
+    const auto& [command, path] = GetParam();
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::vector<std::string> arguments{"alias"};
+    arguments.push_back(fmt::format("primary:{}{}", path, command));
+
+    EXPECT_EQ(send_command(arguments), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), fmt::format("Alias,Instance,Command\n"
+                                               "{},primary,{}{}\n",
+                                               command, path, command));
+}
+
+INSTANTIATE_TEST_SUITE_P(ClientAlias, ClientAliasNameSuite,
+                         Combine(Values("command", "com.mand", "com.ma.nd"),
+                                 Values("", "/", "./", "./relative/", "/absolute/", "../more/relative/")));
+
 TEST_F(ClientAlias, fails_if_cannot_write_script)
 {
     EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("aaa")));
@@ -2594,22 +2623,32 @@ TEST_P(ArgumentCheckTestsuite, answers_correctly)
     EXPECT_EQ(cerr_stream.str(), expected_cerr);
 }
 
-INSTANTIATE_TEST_SUITE_P(Client, ArgumentCheckTestsuite,
-                         Values(std::make_tuple(std::vector<std::string>{"alias"}, mp::ReturnCode::CommandLineError, "",
-                                                "Wrong number of arguments given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", "instance", "command", "alias_name"},
-                                                mp::ReturnCode::CommandLineError, "",
-                                                "Wrong number of arguments given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", "instance", "alias_name"},
-                                                mp::ReturnCode::CommandLineError, "", "No command given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", "primary:command", "alias_name"},
-                                                mp::ReturnCode::Ok, "You'll need to add", ""),
-                                std::make_tuple(std::vector<std::string>{"alias", "primary:command"},
-                                                mp::ReturnCode::Ok, "You'll need to add", ""),
-                                std::make_tuple(std::vector<std::string>{"alias", ":command"},
-                                                mp::ReturnCode::CommandLineError, "", "No instance name given\n"),
-                                std::make_tuple(std::vector<std::string>{"alias", ":command", "alias_name"},
-                                                mp::ReturnCode::CommandLineError, "", "No instance name given\n")));
+INSTANTIATE_TEST_SUITE_P(
+    Client, ArgumentCheckTestsuite,
+    Values(std::make_tuple(std::vector<std::string>{"alias"}, mp::ReturnCode::CommandLineError, "",
+                           "Wrong number of arguments given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "instance", "command", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Wrong number of arguments given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "instance", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "No command given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "alias_name"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", ":command"}, mp::ReturnCode::CommandLineError, "",
+                           "No instance name given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", ":command", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "No instance name given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "relative/alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Alias has to be a valid filename\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "/absolute/alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Alias has to be a valid filename\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "weird alias_name"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "com.mand"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "com.ma.nd"}, mp::ReturnCode::Ok,
+                           "You'll need to add", "")));
 
 TEST_F(ClientAlias, empty_aliases)
 {
@@ -2807,5 +2846,34 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
     send_command({"alias", "primary:command", "alias"}, trash_stream, cerr_stream);
 
     ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot create aliases config file "));
+}
+
+TEST_F(ClientAlias, creating_first_alias_displays_message)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cout_stream.str(), HasSubstr("You'll need to add "));
+}
+
+TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+
+    auto path = qgetenv("PATH");
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    path += ';';
+#else
+    path += ':';
+#endif
+    path += MP_PLATFORM.get_alias_scripts_folder().path().toUtf8();
+    const auto env_scope = mpt::SetEnvScope{"PATH", path};
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cout_stream.str(), Eq(""));
 }
 } // namespace

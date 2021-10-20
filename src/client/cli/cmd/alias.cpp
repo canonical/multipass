@@ -21,6 +21,9 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/platform.h>
 
+#include <QDir>
+#include <QtGlobal>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 using RpcMethod = mp::Rpc::Stub;
@@ -47,7 +50,18 @@ mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
 
     aliases.add_alias(alias_name, alias_definition);
 
-    if (empty_before_add && aliases.size() == 1)
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    QChar separator(';');
+#else
+    QChar separator(':');
+#endif
+
+    // Each element of this list is a folder in the system's path.
+    auto path = qEnvironmentVariable("PATH").split(separator);
+
+    auto alias_folder = MP_PLATFORM.get_alias_scripts_folder().absolutePath();
+
+    if (empty_before_add && aliases.size() == 1 && std::find(path.cbegin(), path.cend(), alias_folder) == path.cend())
         cout << MP_PLATFORM.alias_path_message();
 
     return ReturnCode::Ok;
@@ -100,6 +114,22 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    auto command = definition.right(definition.size() - colon_pos - 1).toStdString();
+
+    if (parser->positionalArguments().count() == 1)
+    {
+        alias_name = QFileInfo(QString::fromStdString(command)).fileName().toStdString();
+    }
+    else
+    {
+        alias_name = cl_definition[1].toStdString();
+        if (QFileInfo(cl_definition[1]).fileName().toStdString() != alias_name)
+        {
+            cerr << "Alias has to be a valid filename" << std::endl;
+            return ParseCode::CommandLineError;
+        }
+    }
+
     auto instance = definition.left(colon_pos).toStdString();
 
     info_request.mutable_instance_names()->add_instance_name(instance);
@@ -125,10 +155,6 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         cerr << fmt::format("Instance '{}' does not exist\n", instance);
         return ParseCode::CommandLineError;
     }
-
-    auto command = definition.right(definition.size() - colon_pos - 1).toStdString();
-
-    alias_name = parser->positionalArguments().count() == 1 ? command : cl_definition[1].toStdString();
 
     if (aliases.get_alias(alias_name))
     {
