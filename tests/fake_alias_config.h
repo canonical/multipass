@@ -20,6 +20,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/constants.h>
+#include <multipass/platform.h>
 
 #include "mock_standard_paths.h"
 #include "stub_terminal.h"
@@ -57,6 +58,12 @@ struct FakeAliasConfig
 
         for (const auto& alias : aliases)
             writer.add_alias(alias.first, alias.second);
+    }
+
+    void create_fake_alias_scripts(const std::vector<std::pair<std::string, mp::AliasDefinition>>& aliases)
+    {
+        for (const auto& alias : aliases)
+            MP_PLATFORM.create_alias_script(alias.first, alias.second);
     }
 
     mpt::TempDir fake_alias_dir;
