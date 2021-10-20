@@ -162,6 +162,12 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    if (parser->findCommand(QString::fromStdString(alias_name)))
+    {
+        cerr << fmt::format("Alias name '{}' clashes with a command name\n", alias_name);
+        return ParseCode::CommandLineError;
+    }
+
     alias_definition = AliasDefinition{instance, command};
 
     return ParseCode::Ok;
