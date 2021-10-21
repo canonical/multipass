@@ -47,7 +47,7 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
                 }
                 catch (const std::runtime_error& e)
                 {
-                    cerr << fmt::format("Warning when removing alias script for '{}': {}\n", removed_alias, e.what());
+                    cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), removed_alias);
                 }
             }
         }
