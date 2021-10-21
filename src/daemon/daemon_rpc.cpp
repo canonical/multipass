@@ -90,6 +90,11 @@ grpc::Status emit_signal_and_wait_for_result(OperationSignal operation_signal)
 
     return status_future.get();
 }
+
+auto client_cert_from(grpc::ServerContext* context)
+{
+    return context->auth_context()->FindPropertyValues("x509_pem_cert").front().data();
+}
 } // namespace
 
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
@@ -105,120 +110,120 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionTyp
 grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context, const CreateRequest* request,
                                    grpc::ServerWriter<CreateReply>* reply)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_create, this, request, reply, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_create, this, request, reply, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context, const LaunchRequest* request,
                                    grpc::ServerWriter<LaunchReply>* reply)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_launch, this, request, reply, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_launch, this, request, reply, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context, const PurgeRequest* request,
                                   grpc::ServerWriter<PurgeReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_purge, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_purge, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context, const FindRequest* request,
                                  grpc::ServerWriter<FindReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_find, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_find, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::info(grpc::ServerContext* context, const InfoRequest* request,
                                  grpc::ServerWriter<InfoReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_info, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_info, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::list(grpc::ServerContext* context, const ListRequest* request,
                                  grpc::ServerWriter<ListReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_list, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_list, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::networks(grpc::ServerContext* context, const NetworksRequest* request,
                                      grpc::ServerWriter<NetworksReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_networks, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_networks, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::mount(grpc::ServerContext* context, const MountRequest* request,
                                   grpc::ServerWriter<MountReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_mount, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_mount, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::recover(grpc::ServerContext* context, const RecoverRequest* request,
                                     grpc::ServerWriter<RecoverReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_recover, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_recover, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
                                      grpc::ServerWriter<SSHInfoReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_ssh_info, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_ssh_info, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::start(grpc::ServerContext* context, const StartRequest* request,
                                   grpc::ServerWriter<StartReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_start, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_start, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::stop(grpc::ServerContext* context, const StopRequest* request,
                                  grpc::ServerWriter<StopReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_stop, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_stop, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::suspend(grpc::ServerContext* context, const SuspendRequest* request,
                                     grpc::ServerWriter<SuspendReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_suspend, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_suspend, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::restart(grpc::ServerContext* context, const RestartRequest* request,
                                     grpc::ServerWriter<RestartReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_restart, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_restart, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::delet(grpc::ServerContext* context, const DeleteRequest* request,
                                   grpc::ServerWriter<DeleteReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_delete, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_delete, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::umount(grpc::ServerContext* context, const UmountRequest* request,
                                    grpc::ServerWriter<UmountReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_umount, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_umount, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionRequest* request,
                                     grpc::ServerWriter<VersionReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_version, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_version, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response)
@@ -229,6 +234,12 @@ grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest
 grpc::Status mp::DaemonRpc::get(grpc::ServerContext* context, const GetRequest* request,
                                 grpc::ServerWriter<GetReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_get, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_get, this, request, response, std::placeholders::_1), client_cert_from(context));
+}
+
+template <typename OperationSignal>
+grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert)
+{
+    return emit_signal_and_wait_for_result(signal);
 }

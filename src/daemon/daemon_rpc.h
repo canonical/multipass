@@ -86,6 +86,9 @@ signals:
                 std::promise<grpc::Status>* status_promise);
 
 private:
+    template <typename OperationSignal>
+    grpc::Status verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert);
+
     const std::string server_address;
     const std::unique_ptr<grpc::Server> server;
     CertStore* client_cert_store;
