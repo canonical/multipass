@@ -20,7 +20,6 @@
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
-#include <multipass/platform.h>
 
 #include <gmock/gmock.h>
 
@@ -30,6 +29,7 @@
 #include "file_operations.h"
 #include "json_utils.h"
 #include "mock_file_ops.h"
+#include "mock_platform.h"
 #include "mock_vm_image_vault.h"
 #include "stub_terminal.h"
 
@@ -337,15 +337,12 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     AliasesVector fake_aliases{{"lsp", {"primary", "ls"}}, {"lsz", {"real-zebraphant", "ls"}}};
 
     populate_db_file(fake_aliases);
-    create_fake_alias_scripts(fake_aliases);
 
-    auto scripts_folder = MP_PLATFORM.get_alias_scripts_folder();
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = attr.first;
 
     for (const auto& fake_alias : fake_aliases)
-    {
-        auto file_path = scripts_folder.absoluteFilePath(QString::fromStdString(fake_alias.first));
-        ASSERT_TRUE(QFile::exists(file_path));
-    }
+        EXPECT_CALL(*mock_platform, create_alias_script(fake_alias.first, fake_alias.second)).WillRepeatedly(Return());
 
     mpt::TempDir temp_dir;
     QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
@@ -373,10 +370,7 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     EXPECT_EQ(stream.str(), expected_output);
 
     for (const auto& removed_alias : expected_removed_aliases)
-    {
-        auto file_path = scripts_folder.absoluteFilePath(QString::fromStdString(removed_alias));
-        ASSERT_FALSE(QFile::exists(file_path));
-    }
+        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias)).WillRepeatedly(Return());
 }
 
 INSTANTIATE_TEST_SUITE_P(
