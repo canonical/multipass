@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "disabling_macros.h"
+#include "mock_file_ops.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 
@@ -120,21 +121,29 @@ TEST_F(TestSettings, setWritesUtf8)
 TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
 {
     const auto key = mp::hotkey_key;
-    EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/asdf"));
+    const auto filename = "/an/unreadable/file";
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, fopen(StrEq(filename), StrEq("r")))
+        .WillOnce(DoAll(Assign(&errno, EACCES), Return(nullptr)));
+    EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
 
     inject_mock_qsettings();
     inject_real_settings_get(key);
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
-
-    EXPECT_EQ(errno, EACCES) << "errno is " << errno;
 }
 
 TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnreadableFile))
 {
     const auto key = mp::mounts_key, val = "yes";
-    EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return("/root/fdsa"));
+    const auto filename = "/an/unreadable/file";
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, fopen(StrEq(filename), StrEq("r")))
+        .WillOnce(DoAll(Assign(&errno, EACCES), Return(nullptr)));
+    EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
 
     inject_mock_qsettings();
     inject_real_settings_set(key, val);
