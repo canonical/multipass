@@ -104,6 +104,13 @@ std::string mp::ClientCertStore::PEM_cert_chain() const
 
 bool mp::ClientCertStore::verify_cert(const std::string& pem_cert)
 {
+    // The first client to connect will automatically have its certificate stored
+    if (authenticated_client_certs.empty())
+    {
+        add_cert(pem_cert);
+        return true;
+    }
+
     return std::find(authenticated_client_certs.cbegin(), authenticated_client_certs.cend(), pem_cert) !=
            authenticated_client_certs.cend();
 }
