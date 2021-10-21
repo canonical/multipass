@@ -89,6 +89,8 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
     size_t written = file.write(pem_cert.data(), pem_cert.size());
     if (written != pem_cert.size())
         throw std::runtime_error("failed to write certificate");
+
+    authenticated_client_certs.push_back(pem_cert);
 }
 
 std::string mp::ClientCertStore::PEM_cert_chain() const
