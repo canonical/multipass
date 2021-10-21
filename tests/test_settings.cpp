@@ -76,6 +76,17 @@ struct TestSettings : public Test
         EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
     }
 
+    mpt::MockFileOps::Guard mock_unreadable_settings_file(const char* filename)
+    {
+        auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+        EXPECT_CALL(*mock_file_ops, fopen(StrEq(filename), StrEq("r")))
+            .WillOnce(DoAll(Assign(&errno, EACCES), Return(nullptr)));
+        EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
+
+        return std::move(guard);
+    }
+
 public:
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* this
     is made strict to ensure that, other than explicitly injected, no QSettings are used; that's particularly important
@@ -121,12 +132,7 @@ TEST_F(TestSettings, setWritesUtf8)
 TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
 {
     const auto key = mp::hotkey_key;
-    const auto filename = "/an/unreadable/file";
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, fopen(StrEq(filename), StrEq("r")))
-        .WillOnce(DoAll(Assign(&errno, EACCES), Return(nullptr)));
-    EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
+    auto guard = mock_unreadable_settings_file("/an/unreadable/file");
 
     inject_mock_qsettings();
     inject_real_settings_get(key);
@@ -138,12 +144,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
 TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnreadableFile))
 {
     const auto key = mp::mounts_key, val = "yes";
-    const auto filename = "/an/unreadable/file";
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, fopen(StrEq(filename), StrEq("r")))
-        .WillOnce(DoAll(Assign(&errno, EACCES), Return(nullptr)));
-    EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
+    auto guard = mock_unreadable_settings_file("unreadable");
 
     inject_mock_qsettings();
     inject_real_settings_set(key, val);
