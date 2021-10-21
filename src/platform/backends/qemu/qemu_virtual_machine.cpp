@@ -202,7 +202,9 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
     {
         update_shutdown_status = false;
 
-        if (state == State::running)
+        // The "cortex-a72" part below is a workaround for disabling suspend support on Apple M1 due
+        // QEMU crashing when running "savevm".
+        if (state == State::running && !qemu_platform->vm_platform_args(desc).contains("cortex-a72"))
         {
             suspend();
         }
@@ -292,6 +294,11 @@ void mp::QemuVirtualMachine::shutdown()
 
 void mp::QemuVirtualMachine::suspend()
 {
+    // The "cortex-a72" part below is a workaround for disabling suspend support on Apple M1 due
+    // QEMU crashing when running "savevm".
+    if (qemu_platform->vm_platform_args(desc).contains("cortex-a72"))
+        throw std::runtime_error("suspend is currently not supported");
+
     if ((state == State::running || state == State::delayed_shutdown) && vm_process->running())
     {
         if (update_shutdown_status)
