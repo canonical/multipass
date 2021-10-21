@@ -32,6 +32,7 @@ public:
     explicit ClientCertStore(const multipass::Path& cert_dir);
     void add_cert(const std::string& pem_cert) override;
     std::string PEM_cert_chain() const override;
+    bool verify_cert(const std::string& pem_cert) override;
 
 private:
     Path cert_dir;

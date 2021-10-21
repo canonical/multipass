@@ -99,3 +99,9 @@ std::string mp::ClientCertStore::PEM_cert_chain() const
         return mp::utils::contents_of(path);
     return {};
 }
+
+bool mp::ClientCertStore::verify_cert(const std::string& pem_cert)
+{
+    return std::find(authenticated_client_certs.cbegin(), authenticated_client_certs.cend(), pem_cert) !=
+           authenticated_client_certs.cend();
+}
