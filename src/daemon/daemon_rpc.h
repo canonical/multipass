@@ -84,6 +84,8 @@ signals:
                     std::promise<grpc::Status>* status_promise);
     void on_get(const GetRequest* request, grpc::ServerWriter<GetReply>* response,
                 std::promise<grpc::Status>* status_promise);
+    void on_authenticate(const AuthenticateRequest* request, grpc::ServerWriter<AuthenticateReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
 private:
     template <typename OperationSignal>
@@ -131,6 +133,8 @@ protected:
     grpc::Status ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response) override;
     grpc::Status get(grpc::ServerContext* context, const GetRequest* request,
                      grpc::ServerWriter<GetReply>* response) override;
+    grpc::Status authenticate(grpc::ServerContext* context, const AuthenticateRequest* request,
+                              grpc::ServerWriter<AuthenticateReply>* response) override;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H

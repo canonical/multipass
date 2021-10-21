@@ -638,6 +638,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
     QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
 }
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
@@ -2048,6 +2049,20 @@ try
 catch (const mp::InvalidSettingsException& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::authenticate(const AuthenticateRequest* request,
+                              grpc::ServerWriterInterface<AuthenticateReply>* server,
+                              std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<AuthenticateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    status_promise->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {
