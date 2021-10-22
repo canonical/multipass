@@ -433,7 +433,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 
     auto multipass_exec = QCoreApplication::applicationFilePath().toStdString();
 
-    std::string script = "#!/bin/sh\n\n\"" + multipass_exec + "\" " + alias + "\n";
+    std::string script = "#!/bin/sh\n\n\"" + multipass_exec + "\" " + alias + " -- " + "\"${@}\"\n";
 
     MP_UTILS.make_file_with_content(file_path, script);
 

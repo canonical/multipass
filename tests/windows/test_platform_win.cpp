@@ -587,7 +587,7 @@ TEST(PlatformWin, create_alias_script_works)
 
     std::string script_line = checked_script.readLine().toStdString();
     EXPECT_THAT(script_line, HasSubstr("@"));
-    EXPECT_THAT(script_line, HasSubstr(" alias_name\n"));
+    EXPECT_THAT(script_line, HasSubstr(" alias_name -- %*\n"));
     EXPECT_TRUE(checked_script.atEnd());
 }
 
