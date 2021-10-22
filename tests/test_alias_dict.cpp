@@ -354,19 +354,10 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     config_builder.data_directory = temp_dir.path();
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream stream;
-    send_command({"list", "--format", "csv"}, stream);
-    EXPECT_THAT(stream.str(), HasSubstr("primary"));
-    EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
-
-    stream.str({});
-    send_command({"aliases", "--format", "csv"}, stream);
-    EXPECT_EQ(stream.str(), "Alias,Instance,Command\nlsp,primary,ls\nlsz,real-zebraphant,ls\n");
-
     for (const auto& command : commands)
         send_command(command);
 
-    stream.str({});
+    std::stringstream stream;
     send_command({"aliases", "--format", "csv"}, stream);
     EXPECT_EQ(stream.str(), expected_output);
 }
