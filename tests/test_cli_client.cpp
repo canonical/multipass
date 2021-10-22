@@ -2694,15 +2694,25 @@ TEST_F(ClientAlias, execute_unexisting_alias)
     EXPECT_THAT(cout_stream.str(), HasSubstr("Unknown command or alias"));
 }
 
-TEST_F(ClientAlias, refuses_executing_alias_with_arguments)
+TEST_F(ClientAlias, execute_alias_with_arguments)
+{
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+
+    EXPECT_EQ(send_command({"some_alias", "some_argument"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(ClientAlias, fails_executing_alias_without_separator)
 {
     populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(0);
 
     std::stringstream cerr_stream;
-    EXPECT_EQ(send_command({"some_alias", "some_argument"}, trash_stream, cerr_stream), mp::ReturnCode::CommandFail);
-    EXPECT_EQ(cerr_stream.str(), "Too many arguments given\n");
+    EXPECT_EQ(send_command({"some_alias", "--some-option"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("<alias> --"));
 }
 
 TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)
@@ -2807,7 +2817,7 @@ TEST_F(ClientAlias, fails_when_remove_backup_alias_file_fails)
     EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
 
     std::stringstream cerr_stream;
-    send_command({"alias", "primary:command", "alias"}, trash_stream, cerr_stream);
+    send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
 
     ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot remove old aliases backup file "));
 }
@@ -2825,7 +2835,7 @@ TEST_F(ClientAlias, fails_renaming_alias_file_fails)
     EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
 
     std::stringstream cerr_stream;
-    send_command({"alias", "primary:command", "alias"}, trash_stream, cerr_stream);
+    send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
 
     ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot rename aliases config to "));
 }
@@ -2843,7 +2853,7 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
     EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
 
     std::stringstream cerr_stream;
-    send_command({"alias", "primary:command", "alias"}, trash_stream, cerr_stream);
+    send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
 
     ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot create aliases config file "));
 }
@@ -2875,5 +2885,25 @@ TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set
     EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
 
     EXPECT_THAT(cout_stream.str(), Eq(""));
+}
+
+TEST_F(ClientAlias, fails_when_name_clashes_with_command_alias)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "ls"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), Eq("Alias name 'ls' clashes with a command name\n"));
+}
+
+TEST_F(ClientAlias, fails_when_name_clashes_with_command_name)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "list"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), Eq("Alias name 'list' clashes with a command name\n"));
 }
 } // namespace

@@ -69,6 +69,10 @@ public:
     int verbosityLevel() const;
 
     bool containsArgument(const QString& argument) const;
+    QStringList allArguments() const
+    {
+        return arguments;
+    }
 
     optional<AliasDefinition> executeAlias()
     {
@@ -78,9 +82,9 @@ public:
 private:
     QString generalHelpText();
     QString helpText(cmd::Command* command);
-    ParseCode prepare_alias_execution();
+    ParseCode prepare_alias_execution(const QString& alias);
 
-    const QStringList& arguments;
+    QStringList arguments;
     const std::vector<cmd::Command::UPtr>& commands;
     cmd::Command* chosen_command;
     optional<AliasDefinition> execute_alias;
