@@ -313,15 +313,17 @@ INSTANTIATE_TEST_SUITE_P(
 
 typedef std::vector<std::vector<std::string>> CmdList;
 
-struct DaemonAliasTestsuite : public mpt::DaemonTestFixture,
-                              public FakeAliasConfig,
-                              public WithParamInterface<std::tuple<CmdList, std::string, std::vector<std::string>>>
+struct DaemonAliasTestsuite
+    : public mpt::DaemonTestFixture,
+      public FakeAliasConfig,
+      public WithParamInterface<std::tuple<CmdList, std::string, std::vector<std::string> /* removed aliases */,
+                                           std::vector<std::string> /* failed removal aliases */>>
 {
 };
 
 TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 {
-    auto [commands, expected_output, expected_removed_aliases] = GetParam();
+    auto [commands, expected_output, expected_removed_aliases, expected_failed_removal] = GetParam();
 
     auto mock_image_vault = std::make_unique<NaggyMock<mpt::MockVMImageVault>>();
 
@@ -344,6 +346,8 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     ON_CALL(*mock_platform, create_alias_script(_, _)).WillByDefault(Return());
     for (const auto& removed_alias : expected_removed_aliases)
         EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias));
+    for (const auto& removed_alias : expected_failed_removal)
+        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias)).WillOnce(Throw(std::runtime_error("foo")));
 
     mpt::TempDir temp_dir;
     QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
@@ -354,20 +358,33 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     config_builder.data_directory = temp_dir.path();
     mp::Daemon daemon{config_builder.build()};
 
+    std::stringstream cout, cerr;
     for (const auto& command : commands)
-        send_command(command);
+        send_command(command, cout, cerr);
 
-    std::stringstream stream;
-    send_command({"aliases", "--format", "csv"}, stream);
-    EXPECT_EQ(stream.str(), expected_output);
+    for (const auto& removed_alias : expected_failed_removal)
+        EXPECT_THAT(cerr.str(),
+                    HasSubstr(fmt::format("Warning: 'foo' when removing alias script for {}\n", removed_alias)));
+
+    send_command({"aliases", "--format", "csv"}, cout);
+    EXPECT_EQ(cout.str(), expected_output);
 }
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary, DaemonAliasTestsuite,
     Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
-                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"}),
+                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"},
+                           std::vector<std::string>{}),
            std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}},
-                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"}),
+                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"},
+                           std::vector<std::string>{}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
-                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp", "lsz"})));
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp", "lsz"},
+                           std::vector<std::string>{}),
+           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{},
+                           std::vector<std::string>{"lsp", "lsz"}),
+           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp"},
+                           std::vector<std::string>{"lsz"})));
 } // namespace
