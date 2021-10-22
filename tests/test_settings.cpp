@@ -129,7 +129,7 @@ TEST_F(TestSettings, setWritesUtf8)
     MP_SETTINGS.set(key, val);
 }
 
-TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
+TEST_F(TestSettings, getThrowsOnUnreadableFile)
 {
     const auto key = mp::hotkey_key;
     auto guard = mock_unreadable_settings_file("/an/unreadable/file");
@@ -141,7 +141,7 @@ TEST_F(TestSettings, DISABLE_ON_WINDOWS(getThrowsOnUnreadableFile))
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
 }
 
-TEST_F(TestSettings, DISABLE_ON_WINDOWS(setThrowsOnUnreadableFile))
+TEST_F(TestSettings, setThrowsOnUnreadableFile)
 {
     const auto key = mp::mounts_key, val = "yes";
     auto guard = mock_unreadable_settings_file("unreadable");
