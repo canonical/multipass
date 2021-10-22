@@ -242,8 +242,22 @@ TEST_P(TestSettingsSetRegularKeys, setRecordsProvidedSetting)
 
 INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSetRegularKeys,
                          Values(KeyVal{mp::petenv_key, "instance-name"}, KeyVal{mp::petenv_key, ""},
-                                KeyVal{mp::autostart_key, "false"}, KeyVal{mp::hotkey_key, "Alt+X"},
-                                KeyVal{mp::bridged_interface_key, "iface"}, KeyVal{mp::mounts_key, "true"}));
+                                KeyVal{mp::autostart_key, "false"}, KeyVal{mp::bridged_interface_key, "iface"},
+                                KeyVal{mp::mounts_key, "true"}));
+
+TEST_F(TestSettings, setTranslatesHotkey)
+{
+    const auto key = mp::hotkey_key;
+    const auto val = "Alt+X";
+    const auto native_val = mp::platform::interpret_setting(key, val);
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val))).Times(1);
+
+    inject_mock_qsettings();
+    inject_real_settings_set(key, val);
+
+    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
+}
 
 TEST_F(TestSettings, setAcceptsValidBackend)
 {
