@@ -79,18 +79,23 @@ bool mp::AliasDict::remove_alias(const std::string& alias)
     return false;
 }
 
-void mp::AliasDict::remove_aliases_for_instance(const std::string& instance)
+std::vector<std::string> mp::AliasDict::remove_aliases_for_instance(const std::string& instance)
 {
+    std::vector<std::string> removed_aliases;
+
     for (auto it = aliases.begin(); it != aliases.end();)
     {
         if (it->second.instance == instance)
         {
             modified = true;
+            removed_aliases.push_back(it->first);
             it = aliases.erase(it);
         }
         else
             ++it;
     }
+
+    return removed_aliases;
 }
 
 mp::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
