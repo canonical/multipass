@@ -360,7 +360,7 @@ TEST(PlatformOSX, create_alias_script_works)
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");
-    EXPECT_THAT(checked_script.readLine().toStdString(), HasSubstr("alias_name\n"));
+    EXPECT_THAT(checked_script.readLine().toStdString(), HasSubstr("alias_name -- \"${@}\"\n"));
     EXPECT_TRUE(checked_script.atEnd());
 
     auto script_permissions = checked_script.permissions();
