@@ -341,8 +341,9 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = attr.first;
 
-    for (const auto& fake_alias : fake_aliases)
-        EXPECT_CALL(*mock_platform, create_alias_script(fake_alias.first, fake_alias.second)).WillRepeatedly(Return());
+    ON_CALL(*mock_platform, create_alias_script(_, _)).WillByDefault(Return());
+    for (const auto& removed_alias : expected_removed_aliases)
+        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias));
 
     mpt::TempDir temp_dir;
     QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
@@ -368,9 +369,6 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     stream.str({});
     send_command({"aliases", "--format", "csv"}, stream);
     EXPECT_EQ(stream.str(), expected_output);
-
-    for (const auto& removed_alias : expected_removed_aliases)
-        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias)).WillRepeatedly(Return());
 }
 
 INSTANTIATE_TEST_SUITE_P(
