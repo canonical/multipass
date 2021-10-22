@@ -60,6 +60,11 @@ public:
 
 struct TestSettings : public Test
 {
+    void SetUp()
+    {
+        ON_CALL(*mock_file_ops, fopen(StrEq(""), StrEq("r"))).WillByDefault(Return(&fake_file));
+    }
+
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
@@ -76,24 +81,23 @@ struct TestSettings : public Test
         EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
     }
 
-    mpt::MockFileOps::Guard mock_unreadable_settings_file(const char* filename)
+    void mock_unreadable_settings_file(const char* filename)
     {
-        auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
         EXPECT_CALL(*mock_file_ops, fopen(StrEq(filename), StrEq("r")))
             .WillOnce(DoAll(Assign(&errno, EACCES), Return(nullptr)));
         EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
-
-        return std::move(guard);
     }
 
 public:
+    mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject<NiceMock>();
+    mpt::MockFileOps* mock_file_ops = mock_file_ops_injection.first;
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* this
     is made strict to ensure that, other than explicitly injected, no QSettings are used; that's particularly important
     when injecting real get and set behavior (don't want tests to be affected, nor themselves affect, disk state) */
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
     std::unique_ptr<NiceMock<MockQSettings>> mock_qsettings = std::make_unique<NiceMock<MockQSettings>>();
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
+    FILE fake_file;
 
 private:
     static QString call_real_settings_get(const QString& key)
@@ -132,8 +136,8 @@ TEST_F(TestSettings, setWritesUtf8)
 TEST_F(TestSettings, getThrowsOnUnreadableFile)
 {
     const auto key = mp::hotkey_key;
-    auto guard = mock_unreadable_settings_file("/an/unreadable/file");
 
+    mock_unreadable_settings_file("/an/unreadable/file");
     inject_mock_qsettings();
     inject_real_settings_get(key);
 
@@ -144,8 +148,8 @@ TEST_F(TestSettings, getThrowsOnUnreadableFile)
 TEST_F(TestSettings, setThrowsOnUnreadableFile)
 {
     const auto key = mp::mounts_key, val = "yes";
-    auto guard = mock_unreadable_settings_file("unreadable");
 
+    mock_unreadable_settings_file("unreadable");
     inject_mock_qsettings();
     inject_real_settings_set(key, val);
 
