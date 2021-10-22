@@ -29,6 +29,7 @@
 #include "file_operations.h"
 #include "json_utils.h"
 #include "mock_file_ops.h"
+#include "mock_platform.h"
 #include "mock_vm_image_vault.h"
 #include "stub_terminal.h"
 
@@ -312,15 +313,17 @@ INSTANTIATE_TEST_SUITE_P(
 
 typedef std::vector<std::vector<std::string>> CmdList;
 
-struct DaemonAliasTestsuite : public mpt::DaemonTestFixture,
-                              public FakeAliasConfig,
-                              public WithParamInterface<std::pair<CmdList, std::string>>
+struct DaemonAliasTestsuite
+    : public mpt::DaemonTestFixture,
+      public FakeAliasConfig,
+      public WithParamInterface<std::tuple<CmdList, std::string, std::vector<std::string> /* removed aliases */,
+                                           std::vector<std::string> /* failed removal aliases */>>
 {
 };
 
-TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
+TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 {
-    auto [commands, expected_output] = GetParam();
+    auto [commands, expected_output, expected_removed_aliases, expected_failed_removal] = GetParam();
 
     auto mock_image_vault = std::make_unique<NaggyMock<mpt::MockVMImageVault>>();
 
@@ -333,7 +336,18 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
 
     std::string json_contents = make_instance_json(mp::nullopt, {}, {"primary"});
 
-    populate_db_file(AliasesVector{{"lsp", {"primary", "ls"}}, {"lsz", {"real-zebraphant", "ls"}}});
+    AliasesVector fake_aliases{{"lsp", {"primary", "ls"}}, {"lsz", {"real-zebraphant", "ls"}}};
+
+    populate_db_file(fake_aliases);
+
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = attr.first;
+
+    ON_CALL(*mock_platform, create_alias_script(_, _)).WillByDefault(Return());
+    for (const auto& removed_alias : expected_removed_aliases)
+        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias));
+    for (const auto& removed_alias : expected_failed_removal)
+        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias)).WillOnce(Throw(std::runtime_error("foo")));
 
     mpt::TempDir temp_dir;
     QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
@@ -344,29 +358,39 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases)
     config_builder.data_directory = temp_dir.path();
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream stream;
-    send_command({"list", "--format", "csv"}, stream);
-    EXPECT_THAT(stream.str(), HasSubstr("primary"));
-    EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
-
-    stream.str({});
-    send_command({"aliases", "--format", "csv"}, stream);
-    EXPECT_EQ(stream.str(), "Alias,Instance,Command\nlsp,primary,ls\nlsz,real-zebraphant,ls\n");
-
+    std::stringstream cout, cerr;
     for (const auto& command : commands)
-        send_command(command);
+        send_command(command, cout, cerr);
 
-    stream.str({});
-    send_command({"aliases", "--format", "csv"}, stream);
-    EXPECT_EQ(stream.str(), expected_output);
+    for (const auto& removed_alias : expected_failed_removal)
+        EXPECT_THAT(cerr.str(),
+                    HasSubstr(fmt::format("Warning: 'foo' when removing alias script for {}\n", removed_alias)));
+
+    send_command({"aliases", "--format", "csv"}, cout);
+    EXPECT_EQ(cout.str(), expected_output);
 }
 
-INSTANTIATE_TEST_SUITE_P(AliasDictionary, DaemonAliasTestsuite,
-                         Values(std::make_pair(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
-                                               std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}),
-                                std::make_pair(CmdList{{"delete", "--purge", "real-zebraphant"}},
-                                               std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}),
-                                std::make_pair(CmdList{{"delete", "primary"},
-                                                       {"delete", "primary", "real-zebraphant", "--purge"}},
-                                               std::string{"Alias,Instance,Command\n"})));
+INSTANTIATE_TEST_SUITE_P(
+    AliasDictionary, DaemonAliasTestsuite,
+    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"},
+                           std::vector<std::string>{}),
+           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}},
+                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"},
+                           std::vector<std::string>{}),
+           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp", "lsz"},
+                           std::vector<std::string>{}),
+           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{},
+                           std::vector<std::string>{"lsp", "lsz"}),
+           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp"},
+                           std::vector<std::string>{"lsz"}),
+           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{},
+                           std::vector<std::string>{"lsz"}),
+           std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}},
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{},
+                           std::vector<std::string>{"lsz", "lsp"})));
 } // namespace
