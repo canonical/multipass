@@ -386,5 +386,11 @@ INSTANTIATE_TEST_SUITE_P(
                            std::vector<std::string>{"lsp", "lsz"}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
                            std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp"},
-                           std::vector<std::string>{"lsz"})));
+                           std::vector<std::string>{"lsz"}),
+           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{},
+                           std::vector<std::string>{"lsz"}),
+           std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}},
+                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{},
+                           std::vector<std::string>{"lsz", "lsp"})));
 } // namespace
