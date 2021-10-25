@@ -26,6 +26,8 @@
 #include <QString>
 #include <QTextStream>
 
+#include <cstdio>
+
 #define MP_FILEOPS multipass::FileOps::instance()
 
 namespace multipass
@@ -56,6 +58,9 @@ public:
     virtual qint64 size(QFile& file) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFile& file, const QByteArray& data) const;
+
+    // std operations
+    virtual std::FILE* fopen(const char* filename, const char* mode) const;
 };
 } // namespace multipass
 
