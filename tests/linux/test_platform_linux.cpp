@@ -761,7 +761,7 @@ TEST_F(PlatformLinux, create_alias_script_works_unconfined)
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");
-    EXPECT_THAT(checked_script.readLine().toStdString(), HasSubstr("alias_name\n"));
+    EXPECT_THAT(checked_script.readLine().toStdString(), HasSubstr("alias_name -- \"${@}\"\n"));
     EXPECT_TRUE(checked_script.atEnd());
 
     auto script_permissions = checked_script.permissions();
@@ -786,7 +786,7 @@ TEST_F(PlatformLinux, create_alias_script_works_confined)
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");
-    EXPECT_EQ(checked_script.readLine().toStdString(), "exec /usr/bin/snap run multipass alias_name\n");
+    EXPECT_EQ(checked_script.readLine().toStdString(), "exec /usr/bin/snap run multipass alias_name -- \"${@}\"\n");
     EXPECT_TRUE(checked_script.atEnd());
 
     auto script_permissions = checked_script.permissions();
@@ -798,11 +798,22 @@ TEST_F(PlatformLinux, create_alias_script_works_confined)
     qunsetenv("SNAP_USER_COMMON");
 }
 
+TEST_F(PlatformLinux, create_alias_script_overwrites)
+{
+    auto [mock_utils, guard1] = mpt::MockUtils::inject();
+    auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
+    EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
+    EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(true));
+
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command"}));
+}
+
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
@@ -813,7 +824,6 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));
@@ -827,7 +837,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
     auto [mock_utils, guard1] = mpt::MockUtils::inject();
     auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_utils, make_file_with_content(_, _)).Times(1);
+    EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
     EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
     EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(false));
 

@@ -295,9 +295,9 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
                                      ? "exec /usr/bin/snap run multipass"
                                      : fmt::format("\"{}\"", QCoreApplication::applicationFilePath());
 
-    std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + "\n";
+    std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + " -- \"${@}\"\n";
 
-    MP_UTILS.make_file_with_content(file_path, script);
+    MP_UTILS.make_file_with_content(file_path, script, true);
 
     QFile file(QString::fromStdString(file_path));
     auto permissions =

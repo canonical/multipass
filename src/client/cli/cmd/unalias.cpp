@@ -40,7 +40,7 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
         }
         catch (std::runtime_error& e)
         {
-            cerr << fmt::format("Warning: {} for '{}'\n", e.what(), alias_to_remove);
+            cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), alias_to_remove);
         }
 
         return ReturnCode::Ok;
