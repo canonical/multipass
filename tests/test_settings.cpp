@@ -16,16 +16,15 @@
  */
 
 #include "common.h"
-#include "disabling_macros.h"
 #include "mock_file_ops.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
+#include "mock_singleton_helpers.h"
 
 #include <src/utils/qsettings_wrapper.h>
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
 
 #include <QKeySequence>
 #include <QString>
