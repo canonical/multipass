@@ -52,6 +52,7 @@ class StandardSettingsHandler : public SettingsHandler
 public:
     StandardSettingsHandler(QString filename, std::map<QString, QString> defaults);
     QString get(const QString& key) const override;
+    void set(const QString& key, const QString& val) const override;
 
 private:
     const QString& get_default(const QString& key) const; // throws on unknown key

@@ -17,9 +17,12 @@
 
 #include "wrapped_qsettings.h"
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/file_ops.h>
+#include <multipass/platform.h>
 #include <multipass/settings_handler.h>
+#include <multipass/utils.h> // TODO move out
 
 namespace mp = multipass;
 
@@ -64,6 +67,48 @@ QString checked_get(const mp::WrappedQSettings& settings, const QString& key, co
     check_status(settings, QStringLiteral("read"));
     return ret;
 }
+
+void checked_set(mp::WrappedQSettings& settings, const QString& key, const QString& val, std::mutex& mutex)
+{
+    std::lock_guard<std::mutex> lock{mutex};
+
+    settings.setValue(key, val);
+
+    settings.sync(); // flush to confirm we can write
+    check_status(settings, QStringLiteral("read/write"));
+}
+
+// @TODO@ricab make this available for clients to compose into their callbacks
+QString interpret_bool(QString val)
+{ // constrain accepted values to avoid QVariant::toBool interpreting non-empty strings (such as "nope") as true
+    static constexpr auto convert_to_true = {"on", "yes", "1"};
+    static constexpr auto convert_to_false = {"off", "no", "0"};
+    val = val.toLower();
+
+    if (std::find(cbegin(convert_to_true), cend(convert_to_true), val) != cend(convert_to_true))
+        return QStringLiteral("true");
+    else if (std::find(cbegin(convert_to_false), cend(convert_to_false), val) != cend(convert_to_false))
+        return QStringLiteral("false");
+    else
+        return val;
+}
+
+QString interpret_value(const QString& key, QString val) // work with a copy of val
+{
+    // TODO@ricab we should have handler callbacks instead
+    using namespace multipass;
+
+    if (key == petenv_key && !val.isEmpty() && !mp::utils::valid_hostname(val.toStdString()))
+        throw InvalidSettingsException{key, val, "Invalid hostname"};
+    else if (key == driver_key && !MP_PLATFORM.is_backend_supported(val))
+        throw InvalidSettingsException(key, val, "Invalid driver");
+    else if ((key == autostart_key || key == mounts_key) && (val = interpret_bool(val)) != "true" && val != "false")
+        throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
+    else if (key == winterm_key || key == hotkey_key)
+        val = mp::platform::interpret_setting(key, val);
+
+    return val;
+}
 } // namespace
 
 mp::StandardSettingsHandler::StandardSettingsHandler(QString filename, std::map<QString, QString> defaults)
@@ -89,4 +134,13 @@ const QString& mp::StandardSettingsHandler::get_default(const QString& key) cons
     {
         throw InvalidSettingsException{key}; // TODO@ricab split into unrecognized-key-exc
     }
+}
+
+void mp::StandardSettingsHandler::set(const QString& key, const QString& val) const
+{
+    get_default(key);                             // make sure the key is valid before setting
+    auto interpreted = interpret_value(key, val); // checks value validity, converts as appropriate
+
+    auto settings = persistent_settings(key);
+    checked_set(*settings, key, val, mutex);
 }
