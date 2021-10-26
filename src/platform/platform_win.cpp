@@ -566,7 +566,9 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
 std::string mp::platform::Platform::alias_path_message() const
 {
     return fmt::format("You'll need to add the script alias folder to your path for aliases to work\n"
-                       "without prefixing with `multipass`. For now, you can just do:\n\n$ENV:PATH=\"$ENV:PATH;{}\"\n",
+                       "without prefixing with `multipass`. For now, you can just do:\n\n"
+                       "In PowerShell:\n$ENV:PATH=\"$ENV:PATH;{0}\"\n\n"
+                       "Or in Command Prompt:\nPATH=%PATH%;{0}\n",
                        get_alias_scripts_folder().absolutePath());
 }
 
