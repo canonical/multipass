@@ -190,7 +190,8 @@ jobs:
                 fi
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
-                _install "https://multipass.run/download/windows"
+                # Can't uninstall without input, so let's install the target package straight
+                _install ${{ github.event.inputs.win-package }}
 
                 if [ '${{ matrix.driver }}' == 'hyperv' ]; then
                   _ps "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"
@@ -224,8 +225,9 @@ jobs:
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 _install ${{ matrix.arch == 'arm64' && github.event.inputs.mac-arm-package || github.event.inputs.mac-x86-package }}
 
+              # On Windows just restart the service to fake a reinstall
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
-                _install ${{ github.event.inputs.win-package }}
+                _ps "Restart-Service -Name Multipass"
               fi
 
               # Ensure primary running after upgrade
