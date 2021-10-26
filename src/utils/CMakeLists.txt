@@ -17,6 +17,7 @@ add_library(utils STATIC
   memory_size.cpp
   json_writer.cpp
   settings.cpp
+  settings_handler.cpp
   snap_utils.cpp
   standard_paths.cpp
   timer.cpp

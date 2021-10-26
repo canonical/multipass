@@ -22,6 +22,8 @@
 
 #include <QString>
 
+#include <map>
+#include <mutex>
 #include <set>
 
 namespace multipass
@@ -32,7 +34,8 @@ public:
     SettingsHandler() = default;
     virtual ~SettingsHandler() = default;
 
-    virtual QString get(const QString& key) const = 0;                  // should throw on unknown key
+
+    virtual QString get(const QString& key) const = 0;                  // should throw on unknown key @TODO@ricab doc
     virtual void set(const QString& key, const QString& val) const = 0; // should throw on unknown key or bad settings
 
     /**
@@ -43,6 +46,17 @@ public:
      */
     virtual std::set<QString> keys() const = 0;
 };
+
+class StandardSettingsHandler : public SettingsHandler
+{
+public:
+    StandardSettingsHandler(QString filename, std::map<QString, QString> defaults);
+
+private:
+    QString filename;
+    std::map<QString, QString> defaults;
+};
+
 } // namespace multipass
 
 #endif // MULTIPASS_SETTINGS_HANDLER_H
