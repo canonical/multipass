@@ -73,7 +73,7 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 std::string mp::platform::Platform::alias_path_message() const
 {
     return fmt::format("You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for\n"
-                       "aliases to work without prefixing with `multipass`:\n\nPATH=$PATH:{}\n",
+                       "aliases to work without prefixing with `multipass`:\n\nPATH=\"$PATH:{}\"\n",
                        get_alias_scripts_folder().absolutePath());
 }
 
