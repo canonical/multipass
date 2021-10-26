@@ -20,8 +20,8 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/file_ops.h>
+#include <multipass/persistent_settings_handler.h>
 #include <multipass/platform.h>
-#include <multipass/settings_handler.h>
 #include <multipass/utils.h> // TODO move out
 
 namespace mp = multipass;
@@ -111,20 +111,20 @@ QString interpret_value(const QString& key, QString val) // work with a copy of 
 }
 } // namespace
 
-mp::StandardSettingsHandler::StandardSettingsHandler(QString filename, std::map<QString, QString> defaults)
+mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename, std::map<QString, QString> defaults)
     : filename{std::move(filename)}, defaults{std::move(defaults)}
 {
 }
 
 // TODO try installing yaml backend
-QString mp::StandardSettingsHandler::get(const QString& key) const
+QString mp::PersistentSettingsHandler::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
     auto settings = persistent_settings(key);
     return checked_get(*settings, key, default_ret, mutex);
 }
 
-const QString& mp::StandardSettingsHandler::get_default(const QString& key) const
+const QString& mp::PersistentSettingsHandler::get_default(const QString& key) const
 {
     try
     {
@@ -136,7 +136,7 @@ const QString& mp::StandardSettingsHandler::get_default(const QString& key) cons
     }
 }
 
-void mp::StandardSettingsHandler::set(const QString& key, const QString& val) const
+void mp::PersistentSettingsHandler::set(const QString& key, const QString& val) const
 {
     get_default(key);                             // make sure the key is valid before setting
     auto interpreted = interpret_value(key, val); // checks value validity, converts as appropriate
@@ -145,7 +145,7 @@ void mp::StandardSettingsHandler::set(const QString& key, const QString& val) co
     checked_set(*settings, key, val, mutex);
 }
 
-std::set<QString> mp::StandardSettingsHandler::keys() const
+std::set<QString> mp::PersistentSettingsHandler::keys() const
 {
     std::set<QString> ret{};
     std::transform(cbegin(defaults), cend(defaults), std::inserter(ret, begin(ret)),

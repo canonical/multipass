@@ -22,8 +22,6 @@
 
 #include <QString>
 
-#include <map>
-#include <mutex>
 #include <set>
 
 namespace multipass
@@ -45,23 +43,6 @@ public:
      * @return The set of keys or key templates that this SettingHandler handles.
      */
     virtual std::set<QString> keys() const = 0;
-};
-
-class StandardSettingsHandler : public SettingsHandler
-{
-public:
-    StandardSettingsHandler(QString filename, std::map<QString, QString> defaults);
-    QString get(const QString& key) const override;
-    void set(const QString& key, const QString& val) const override;
-    std::set<QString> keys() const override;
-
-private:
-    const QString& get_default(const QString& key) const; // throws on unknown key
-
-private:
-    QString filename;
-    std::map<QString, QString> defaults;
-    mutable std::mutex mutex;
 };
 
 } // namespace multipass
