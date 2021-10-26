@@ -18,6 +18,7 @@
 #include "qsettings_wrapper.h"
 
 #include <multipass/constants.h>
+#include <multipass/file_ops.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/standard_paths.h>
@@ -29,10 +30,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cerrno>
-#include <fstream>
-#include <iterator>
 #include <memory>
-#include <multipass/file_ops.h>
 #include <stdexcept>
 
 namespace mp = multipass;
