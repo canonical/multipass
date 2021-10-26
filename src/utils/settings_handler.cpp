@@ -144,3 +144,12 @@ void mp::StandardSettingsHandler::set(const QString& key, const QString& val) co
     auto settings = persistent_settings(key);
     checked_set(*settings, key, val, mutex);
 }
+
+std::set<QString> mp::StandardSettingsHandler::keys() const
+{
+    std::set<QString> ret{};
+    std::transform(cbegin(defaults), cend(defaults), std::inserter(ret, begin(ret)),
+                   [](const auto& elem) { return elem.first; }); // I wish get<0> worked here... maybe in C++20
+
+    return ret;
+}
