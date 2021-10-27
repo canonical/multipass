@@ -120,7 +120,7 @@ mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename, std::
 QString mp::PersistentSettingsHandler::get(const QString& key) const
 {
     const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
-    auto settings = persistent_settings(key);
+    auto settings = persistent_settings(filename);
     return checked_get(*settings, key, default_ret, mutex);
 }
 
@@ -141,7 +141,7 @@ void mp::PersistentSettingsHandler::set(const QString& key, const QString& val) 
     get_default(key);                             // make sure the key is valid before setting
     auto interpreted = interpret_value(key, val); // checks value validity, converts as appropriate
 
-    auto settings = persistent_settings(key);
+    auto settings = persistent_settings(filename);
     checked_set(*settings, key, val, mutex);
 }
 
