@@ -51,7 +51,7 @@ public:
      * @note QVariant's conversion rules may be surprising and not always correctly documented. For instance according
      * to Qt's documentation at the time of writing, @c "False" would convert to @c bool as @c true, but it actually
      * converts to @c false. However, @c "no" converts to @c true.
-     * @throws UnsupportedSettingValueType@<T@> If QVariant cannot convert from a @c QString to type @p T. Note that
+     * @throws UnsupportedSettingValueType<T> If QVariant cannot convert from a @c QString to type @c T. Note that
      * this is only thrown when the type itself can't be converted to. The actual value may still fail to convert, in
      * which case a default @c T value is returned.
      */
