@@ -157,6 +157,11 @@ mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass)
 {
 }
 
+void mp::Settings::register_handler(std::unique_ptr<SettingsHandler> handler)
+{
+    handlers.push_back(std::move(handler));
+}
+
 std::set<QString> multipass::Settings::keys() const
 {
     std::set<QString> ret{};

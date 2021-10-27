@@ -19,6 +19,7 @@
 #define MULTIPASS_SETTINGS_H
 
 #include "exceptions/settings_exceptions.h"
+#include "settings_handler.h"
 #include "singleton.h"
 
 #include <QString>
@@ -37,6 +38,14 @@ class Settings : public Singleton<Settings>
 public:
     Settings(const Singleton<Settings>::PrivatePass&);
 
+    void register_handler(std::unique_ptr<SettingsHandler> handler);
+
+    /**
+     * Obtain the keys, or key templates, that this Settings singleton knows about.
+     * @warning Templates are meant for human interpretation (e.g. <tt>local.@<instance@>.cpus</tt>). They cannot be
+     * used in get/set as actual keys.
+     * @return The set of keys or key templates that this Settings singleton knows about.
+     */
     std::set<QString> keys() const;
     virtual QString get(const QString& key) const;            // throws on unknown key
     virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
@@ -64,6 +73,7 @@ protected:
 private:
     void set_aux(const QString& key, QString val);
 
+    std::vector<std::unique_ptr<SettingsHandler>> handlers;
     std::map<QString, QString> defaults;
     mutable std::mutex mutex;
 };
