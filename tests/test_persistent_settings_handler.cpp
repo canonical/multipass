@@ -214,7 +214,23 @@ TEST_F(TestPersistentSettingsHandler, getReturnsDefaultByDefault)
     ASSERT_EQ(handler.get(key), QString(default_));
 }
 
-// TODO@ricab test refuses get/set unknown key
+TEST_F(TestPersistentSettingsHandler, getThrowsOnUnknownKey)
+{
+    const auto key = "clef";
+    const auto handler = make_handler();
+
+    EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
+    MP_EXPECT_THROW_THAT(handler.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestPersistentSettingsHandler, setThrowsOnUnknownKey)
+{
+    const auto key = "ki";
+    const auto handler = make_handler();
+
+    EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
+    MP_EXPECT_THROW_THAT(handler.set(key, "asdf"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
 
 TEST_F(TestPersistentSettingsHandler, setRecordsProvidedSetting)
 {
