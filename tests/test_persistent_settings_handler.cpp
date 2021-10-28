@@ -90,12 +90,12 @@ public:
 TEST_F(TestPersistentSettingsHandler, getReadsUtf8)
 {
     const auto key = "asdf";
-    mp::PersistentSettingsHandler handler{"", {{key, ""}}};
+    mp::PersistentSettingsHandler handler{"", {{key, ""}}}; // TODO@ricab try to extract this
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
 
-    handler.get("asdf");
+    handler.get(key);
 }
 
 TEST_F(TestPersistentSettingsHandler, setWritesUtf8)
@@ -131,6 +131,75 @@ TEST_F(TestPersistentSettingsHandler, setThrowsOnUnreadableFile)
 
     MP_EXPECT_THROW_THAT(handler.set(key, val), mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
+}
+
+using DescribedQSettingsStatus = std::tuple<QSettings::Status, std::string>;
+struct TestPersistentSettingsReadWriteError : public TestPersistentSettingsHandler,
+                                              public WithParamInterface<DescribedQSettingsStatus>
+{
+};
+
+TEST_P(TestPersistentSettingsReadWriteError, getThrowsOnFileReadError)
+{
+    const auto& [status, desc] = GetParam();
+    const auto key = "token";
+    mp::PersistentSettingsHandler handler{"", {{key, ""}}};
+
+    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
+
+    inject_mock_qsettings();
+
+    MP_EXPECT_THROW_THAT(handler.get(key), mp::PersistentSettingsException,
+                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr(desc))));
+}
+
+TEST_P(TestPersistentSettingsReadWriteError, setThrowsOnFileWriteError)
+{
+    const auto& [status, desc] = GetParam();
+    const auto key = "blah";
+    mp::PersistentSettingsHandler handler{"", {{key, ""}}};
+
+    {
+        InSequence seq;
+        EXPECT_CALL(*mock_qsettings, sync).Times(1); // needs to flush to ensure failure to write
+        EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
+    }
+
+    inject_mock_qsettings();
+
+    MP_EXPECT_THROW_THAT(handler.set(key, "bleh"), mp::PersistentSettingsException,
+                         mpt::match_what(AllOf(HasSubstr("write"), HasSubstr(desc))));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestPersistentSettingsReadWriteError,
+                         Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
+                                DescribedQSettingsStatus{QSettings::AccessError, "access"}));
+
+TEST_F(TestPersistentSettingsHandler, getReturnsRecordedSetting)
+{
+    const auto key = "choose.a.key", val = "asdf", default_ = "some default";
+    mp::PersistentSettingsHandler handler{"", {{key, default_}}};
+
+    EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), _)).WillOnce(Return(val));
+
+    inject_mock_qsettings();
+
+    ASSERT_NE(val, default_);
+    EXPECT_EQ(handler.get(key), QString{val});
+}
+
+// TODO@ricab test get default
+// TODO@ricab test refuses get/set unknown key
+
+TEST_F(TestPersistentSettingsHandler, setRecordsProvidedSetting)
+{
+    const auto key = "name.a.key", val = "and a value";
+    mp::PersistentSettingsHandler handler{"", {{key, ""}}};
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
+
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler.set(key, val));
 }
 
 } // namespace

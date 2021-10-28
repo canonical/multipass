@@ -97,46 +97,7 @@ private:
     }
 };
 
-using DescribedQSettingsStatus = std::tuple<QSettings::Status, std::string>;
-struct TestSettingsReadWriteError : public TestSettings, public WithParamInterface<DescribedQSettingsStatus>
-{
-};
-
-TEST_P(TestSettingsReadWriteError, getThrowsOnFileReadError)
-{
-    const auto& [status, desc] = GetParam();
-    const auto key = multipass::driver_key;
-    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
-
-    inject_mock_qsettings();
-    inject_real_settings_get(key);
-
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr(desc))));
-}
-
-TEST_P(TestSettingsReadWriteError, setThrowsOnFileWriteError)
-{
-    const auto& [status, desc] = GetParam();
-    const auto key = mp::hotkey_key, val = "Esc";
-
-    {
-        InSequence seq;
-        EXPECT_CALL(*mock_qsettings, sync).Times(1); // needs to flush to ensure failure to write
-        EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
-    }
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("write"), HasSubstr(desc))));
-}
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestSettingsReadWriteError,
-                         Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
-                                DescribedQSettingsStatus{QSettings::AccessError, "access"}));
-
+// TODO@ricab where do I test specific settings?
 struct TestSettingsGetRegularKeys : public TestSettings, public WithParamInterface<QString>
 {
 };
