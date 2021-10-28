@@ -2044,7 +2044,7 @@ try
     server->Write(reply);
     status_promise->set_value(grpc::Status::OK);
 }
-catch (const mp::InvalidSettingsException& e)
+catch (const mp::UnrecognizedSettingException& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }

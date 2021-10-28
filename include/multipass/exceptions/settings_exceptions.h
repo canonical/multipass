@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,14 +44,18 @@ public:
     }
 };
 
-class InvalidSettingsException : public SettingsException
+class UnrecognizedSettingException : public SettingsException
 {
 public:
-    InvalidSettingsException(const QString& key)
+    UnrecognizedSettingException(const QString& key)
         : SettingsException{fmt::format("Unrecognized settings key: '{}'", key)}
     {
     }
+};
 
+class InvalidSettingsException : public SettingsException
+{
+public:
     InvalidSettingsException(const QString& key, const QString& val, const QString& why)
         : SettingsException{fmt::format("Invalid setting '{}={}': {}", key, val, why)}
     {

@@ -193,7 +193,7 @@ const QString& mp::Settings::get_default(const QString& key) const
     }
     catch (const std::out_of_range&)
     {
-        throw InvalidSettingsException{key};
+        throw UnrecognizedSettingException{key};
     }
 }
 

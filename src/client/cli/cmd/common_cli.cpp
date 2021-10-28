@@ -133,7 +133,10 @@ mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const mp::ArgPars
 
 auto cmd::return_code_from(const mp::SettingsException& e) -> mp::ReturnCode
 {
-    return dynamic_cast<const InvalidSettingsException*>(&e) ? ReturnCode::CommandLineError : ReturnCode::CommandFail;
+    if (dynamic_cast<const InvalidSettingsException*>(&e) || dynamic_cast<const UnrecognizedSettingException*>(&e))
+        return ReturnCode::CommandLineError;
+
+    return ReturnCode::CommandFail;
 }
 
 QString multipass::cmd::describe_settings_keys()

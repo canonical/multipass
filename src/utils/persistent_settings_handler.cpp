@@ -132,7 +132,7 @@ const QString& mp::PersistentSettingsHandler::get_default(const QString& key) co
     }
     catch (const std::out_of_range&)
     {
-        throw InvalidSettingsException{key}; // TODO@ricab split into unrecognized-key-exc
+        throw UnrecognizedSettingException{key};
     }
 }
 
