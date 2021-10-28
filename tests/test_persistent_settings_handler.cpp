@@ -188,7 +188,18 @@ TEST_F(TestPersistentSettingsHandler, getReturnsRecordedSetting)
     EXPECT_EQ(handler.get(key), QString{val});
 }
 
-// TODO@ricab test get default
+TEST_F(TestPersistentSettingsHandler, getReturnsDefaultByDefault)
+{
+    const auto key = "chave", default_ = "Cylinder";
+    mp::PersistentSettingsHandler handler{"", {{key, default_}}};
+
+    EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), Eq(default_))).WillOnce(Return(default_));
+
+    inject_mock_qsettings();
+
+    ASSERT_EQ(handler.get(key), QString(default_));
+}
+
 // TODO@ricab test refuses get/set unknown key
 
 TEST_F(TestPersistentSettingsHandler, setRecordsProvidedSetting)
