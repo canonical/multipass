@@ -343,7 +343,7 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
         return mp::platform::interpret_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
-    throw InvalidSettingsException(key, val, "Setting unavailable on Linux");
+    throw InvalidSettingException(key, val, "Setting unavailable on Linux");
 }
 
 void mp::platform::sync_winterm_profiles()

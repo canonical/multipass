@@ -99,11 +99,11 @@ QString interpret_value(const QString& key, QString val) // work with a copy of 
     using namespace multipass;
 
     if (key == petenv_key && !val.isEmpty() && !mp::utils::valid_hostname(val.toStdString()))
-        throw InvalidSettingsException{key, val, "Invalid hostname"};
+        throw InvalidSettingException{key, val, "Invalid hostname"};
     else if (key == driver_key && !MP_PLATFORM.is_backend_supported(val))
-        throw InvalidSettingsException(key, val, "Invalid driver");
+        throw InvalidSettingException(key, val, "Invalid driver");
     else if ((key == autostart_key || key == mounts_key) && (val = interpret_bool(val)) != "true" && val != "false")
-        throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
+        throw InvalidSettingException(key, val, "Invalid flag, try \"true\" or \"false\"");
     else if (key == winterm_key || key == hotkey_key)
         val = mp::platform::interpret_setting(key, val);
 

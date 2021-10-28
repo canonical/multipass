@@ -188,7 +188,7 @@ TEST_F(TestSettings, setRejectsInvalidBackend)
 
     inject_real_settings_set(key, val);
 
-    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingsException,
+    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
 
@@ -231,7 +231,7 @@ TEST_P(TestSettingsBadValue, setThrowsOnInvalidSettingValue)
 
     inject_real_settings_set(key, val);
 
-    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingsException,
+    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key.toStdString()), HasSubstr(val.toStdString()))));
 }
 

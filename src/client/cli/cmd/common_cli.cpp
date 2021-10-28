@@ -133,7 +133,7 @@ mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const mp::ArgPars
 
 auto cmd::return_code_from(const mp::SettingsException& e) -> mp::ReturnCode
 {
-    if (dynamic_cast<const InvalidSettingsException*>(&e) || dynamic_cast<const UnrecognizedSettingException*>(&e))
+    if (dynamic_cast<const InvalidSettingException*>(&e) || dynamic_cast<const UnrecognizedSettingException*>(&e))
         return ReturnCode::CommandLineError;
 
     return ReturnCode::CommandFail;

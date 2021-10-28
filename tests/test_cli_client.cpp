@@ -244,7 +244,7 @@ struct Client : public Test
     {
         const auto default_val = get_setting(key);
         EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
-            .WillRepeatedly(Throw(mp::InvalidSettingsException{key, val, "bad"}));
+            .WillRepeatedly(Throw(mp::InvalidSettingException{key, val, "bad"}));
         EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
         EXPECT_THAT(get_setting(key), Eq(default_val));
     }

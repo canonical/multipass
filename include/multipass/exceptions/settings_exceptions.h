@@ -53,10 +53,10 @@ public:
     }
 };
 
-class InvalidSettingsException : public SettingsException
+class InvalidSettingException : public SettingsException
 {
 public:
-    InvalidSettingsException(const QString& key, const QString& val, const QString& why)
+    InvalidSettingException(const QString& key, const QString& val, const QString& why)
         : SettingsException{fmt::format("Invalid setting '{}={}': {}", key, val, why)}
     {
     }
