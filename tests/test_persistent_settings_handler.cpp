@@ -72,7 +72,7 @@ public:
 
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
-        EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
+        EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(fake_filename), Eq(QSettings::IniFormat)))
             .WillOnce(Return(ByMove(std::move(mock_qsettings))));
     }
 
@@ -242,7 +242,5 @@ TEST_F(TestPersistentSettingsHandler, setRecordsProvidedSetting)
 
     ASSERT_NO_THROW(handler.set(key, val));
 }
-
-// TODO@ricab check filename
 
 } // namespace
