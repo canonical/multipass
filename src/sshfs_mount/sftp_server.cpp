@@ -338,18 +338,16 @@ int mp::SftpServer::mapped_gid_for(const int gid)
 
 int mp::SftpServer::reverse_uid_for(const int uid, const int rev_uid_if_not_found)
 {
-    auto compare_uid_map_value = [uid](std::pair<int, int> p) { return uid == p.second; };
-
-    auto found = std::find_if(uid_map.cbegin(), uid_map.cend(), compare_uid_map_value);
+    auto found =
+        std::find_if(uid_map.cbegin(), uid_map.cend(), [uid](std::pair<int, int> p) { return uid == p.second; });
 
     return found == uid_map.cend() ? rev_uid_if_not_found : found->first;
 }
 
 int mp::SftpServer::reverse_gid_for(const int gid, const int rev_gid_if_not_found)
 {
-    auto compare_gid_map_value = [gid](std::pair<int, int> p) { return gid == p.second; };
-
-    auto found = std::find_if(gid_map.cbegin(), gid_map.cend(), compare_gid_map_value);
+    auto found =
+        std::find_if(gid_map.cbegin(), gid_map.cend(), [gid](std::pair<int, int> p) { return gid == p.second; });
 
     return found == gid_map.cend() ? rev_gid_if_not_found : found->first;
 }
