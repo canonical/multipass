@@ -185,7 +185,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 
     std::string default_source{"source"};
     std::string default_target{"target"};
-    mp::id_map default_map;
+    mp::id_relationship_list default_map;
     int default_id{1000};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 

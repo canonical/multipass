@@ -46,7 +46,7 @@ struct SSHFSMountsTest : public ::Test
 
     mpt::StubSSHKeyProvider key_provider;
     std::string source_path{"/my/source/path"}, target_path{"/the/target/path"};
-    mp::id_map gid_map{{1, 2}, {3, 4}}, uid_map{{5, -1}, {6, 10}};
+    mp::id_relationship_list gid_map{{1, 2}, {3, 4}}, uid_map{{5, -1}, {6, 10}};
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(default_log_level);
 

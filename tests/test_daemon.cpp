@@ -1041,7 +1041,8 @@ plant_instance_json(const std::string& contents)
     return {std::move(temp_dir), filename};
 }
 
-void check_maps_in_json(const QString& file, const mp::id_map& expected_gid_map, const mp::id_map& expected_uid_map)
+void check_maps_in_json(const QString& file, const mp::id_relationship_list& expected_gid_map,
+                        const mp::id_relationship_list& expected_uid_map)
 {
     QByteArray json = mpt::load(file);
 
@@ -1118,8 +1119,8 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    mp::id_map uid_map{{1002, 0}, {1000, 0}, {1001, 1}};
-    mp::id_map gid_map{{1002, 0}, {1000, 2}};
+    mp::id_relationship_list uid_map{{1002, 0}, {1000, 0}, {1001, 1}};
+    mp::id_relationship_list gid_map{{1002, 0}, {1000, 2}};
     mp::VMMount mount{mpt::TempDir().path().toStdString(), uid_map, gid_map};
 
     const auto [temp_dir, filename] =

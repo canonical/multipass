@@ -23,7 +23,7 @@
 
 namespace multipass
 {
-typedef typename std::vector<std::pair<int, int>> id_map;
+typedef typename std::vector<std::pair<int, int>> id_relationship_list;
 }
 
 #endif // MULTIPASS_ID_MAP_H
