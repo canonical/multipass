@@ -110,11 +110,17 @@ long random_long()
     long out{0};
     std::array<uint8_t, 4> bytes;
 
-    // The array must be used uninitialized. Otherwise, there will be no randomness.
+#if (defined(__GNUC__) && !defined(__clang__))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
+    // The array must be used uninitialized. Otherwise, there will be no randomness.
     RAND_bytes(bytes.data(), bytes.size());
+
+#if (defined(__GNUC__) && !defined(__clang__))
 #pragma GCC diagnostic pop
+#endif
 
     out |= bytes[0];
     out |= bytes[1] << 8u;
