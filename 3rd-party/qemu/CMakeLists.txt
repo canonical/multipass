@@ -42,12 +42,12 @@ ExternalProject_Add(qemu
       --ninja=ninja
       --target-list=${HOST_ARCH}-softmmu
       --enable-hvf
+      --enable-vdi
       --disable-bochs
       --disable-cloop
       --disable-docs
       --disable-guest-agent
       --disable-parallels
-      --disable-vdi
       --disable-qed
       --disable-libiscsi
       --disable-vnc
