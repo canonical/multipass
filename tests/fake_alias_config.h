@@ -21,11 +21,10 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/constants.h>
 
+#include "common.h"
 #include "mock_standard_paths.h"
 #include "stub_terminal.h"
 #include "temp_dir.h"
-
-#include <gmock/gmock.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

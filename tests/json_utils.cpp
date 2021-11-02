@@ -17,12 +17,11 @@
 
 #include <multipass/utils.h>
 
+#include "common.h"
 #include "file_operations.h"
 #include "json_utils.h"
 
 #include <fmt/format.h>
-
-#include <gtest/gtest.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
