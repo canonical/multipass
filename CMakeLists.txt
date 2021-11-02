@@ -46,12 +46,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-fno-omit-frame-pointer -fsanitize=thread)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=thread")
   endif()
-else()
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    add_definitions(-DMULTIPASS_COMPILER_GCC)
-  else()
-    add_definitions(-DMULTIPASS_COMPILER_MSVC)
-  endif()
 endif()
 
 # these we want to apply even to 3rd-party
@@ -162,6 +156,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC)
+  add_definitions(-DMULTIPASS_COMPILER_MSVC)
   add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
   add_definitions(-DNOMINMAX) # otherwise windows defines macros which interfere with std::min, std::max
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
@@ -173,7 +168,13 @@ else()
 
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
+    add_definitions(-DMULTIPASS_COMPILER_APPLE_CLANG)
   else()
+    # Linux
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      add_definitions(-DMULTIPASS_COMPILER_GCC)
+    endif()
+
     add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wnon-virtual-dtor)
 
     if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "^arm")
