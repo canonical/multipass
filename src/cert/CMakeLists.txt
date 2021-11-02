@@ -16,6 +16,7 @@
 add_library(cert STATIC
   biomem.cpp
   client_cert_store.cpp
+  passphrase_handler.cpp
   ssl_cert_provider.cpp
 )
 
