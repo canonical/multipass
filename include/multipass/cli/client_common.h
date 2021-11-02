@@ -47,6 +47,7 @@ std::string update_notice(const multipass::UpdateInfo& update_info);
 
 namespace client
 {
+void register_settings_handlers();
 std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, RpcConnectionType conn_type,
                                             CertProvider& cert_provider);
 std::string get_server_address();

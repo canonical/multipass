@@ -16,20 +16,40 @@
  */
 
 #include <multipass/cli/client_common.h>
+#include <multipass/constants.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/logging/log.h>
+#include <multipass/logging/standard_logger.h>
+#include <multipass/persistent_settings_handler.h>
 #include <multipass/platform.h>
+#include <multipass/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
 #include <fmt/ostream.h>
-#include <multipass/exceptions/autostart_setup_exception.h>
-#include <multipass/logging/log.h>
-#include <multipass/logging/standard_logger.h>
+
+#include <QKeySequence>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
+const auto file_extension = QStringLiteral("conf");
+const auto client_root = QStringLiteral("client");
+const auto petenv_name = QStringLiteral("primary");
+const auto autostart_default = QStringLiteral("true");
+
+QString persistent_settings_filename()
+{
+    return ""; // TODO@ricab implement this
+}
+
+QString default_hotkey()
+{
+    return QKeySequence{mp::hotkey_default}.toString(QKeySequence::NativeText); // outcome depends on platform
+}
+
 mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 {
     return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
@@ -74,6 +94,19 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
 {
     return ::message_box(fmt::format("{}\n{}\n\nGo here for more information: {}", update_info.title(),
                                      update_info.description(), update_info.url()));
+}
+
+void mp::client::register_settings_handlers()
+{
+    auto setting_defaults = std::map<QString, QString>{
+        {mp::petenv_key, petenv_name}, {mp::autostart_key, autostart_default}, {mp::hotkey_key, default_hotkey()}};
+
+    for (const auto& [k, v] : platform::extra_settings_defaults())
+        if (k.startsWith(client_root))
+            setting_defaults.insert_or_assign(k, v);
+
+    MP_SETTINGS.register_handler(
+        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(setting_defaults)));
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
