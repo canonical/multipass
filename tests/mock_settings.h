@@ -36,6 +36,7 @@ public:
     static void mockit();
     static MockSettings& mock_instance();
 
+    MOCK_METHOD1(register_handler, void(std::unique_ptr<SettingsHandler>));
     MOCK_CONST_METHOD1(get, QString(const QString&));
     MOCK_METHOD2(set, void(const QString&, const QString&));
 
