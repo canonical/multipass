@@ -110,7 +110,7 @@ long random_long()
     long out{0};
     std::array<uint8_t, 4> bytes;
 
-#if (defined(__GNUC__) && !defined(__clang__))
+#ifdef MULTIPASS_COMPILER_GCC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
@@ -118,7 +118,7 @@ long random_long()
     // The array must be used uninitialized. Otherwise, there will be no randomness.
     RAND_bytes(bytes.data(), bytes.size());
 
-#if (defined(__GNUC__) && !defined(__clang__))
+#ifdef MULTIPASS_COMPILER_GCC
 #pragma GCC diagnostic pop
 #endif
 
