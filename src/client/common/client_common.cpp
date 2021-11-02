@@ -43,7 +43,12 @@ const auto autostart_default = QStringLiteral("true");
 
 QString persistent_settings_filename()
 {
-    return ""; // TODO@ricab implement this
+    static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
+    static const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
+    static const auto dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
+    static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
+
+    return path;
 }
 
 QString daemon_settings_filename()
