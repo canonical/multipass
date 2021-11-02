@@ -36,12 +36,18 @@ namespace mpl = multipass::logging;
 namespace
 {
 const auto file_extension = QStringLiteral("conf");
+const auto daemon_root = QStringLiteral("local");
 const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
 
 QString persistent_settings_filename()
 {
+    return ""; // TODO@ricab implement this
+}
+
+QString daemon_settings_filename()
+{              // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
     return ""; // TODO@ricab implement this
 }
 
@@ -107,6 +113,19 @@ void mp::client::register_settings_handlers()
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(setting_defaults)));
+
+    { // TODO@ricab remove from client - temporary code, to keep feature parity until we introduce routing handlers
+        auto daemon_defaults = std::map<QString, QString>{{mp::driver_key, mp::platform::default_driver()},
+                                                          {mp::bridged_interface_key, ""},
+                                                          {mp::mounts_key, mp::platform::default_privileged_mounts()}};
+
+        for (const auto& [k, v] : platform::extra_settings_defaults())
+            if (k.startsWith(daemon_root))
+                daemon_defaults.insert_or_assign(k, v);
+
+        MP_SETTINGS.register_handler(
+            std::make_unique<PersistentSettingsHandler>(daemon_settings_filename(), std::move(daemon_defaults)));
+    }
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
