@@ -41,6 +41,12 @@ const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
 
+/*
+ * We make up our own file name to
+ *   a) avoid unknown org/domain in path;
+ *   b) keep settings-file locations consistent among daemon and client
+ * Example: ${HOME}/.config/multipass/multipass.conf
+ */
 QString persistent_settings_filename()
 {
     static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
@@ -51,6 +57,12 @@ QString persistent_settings_filename()
     return path;
 }
 
+/*
+ * We make up our own file name to:
+ *   a) avoid unknown org/domain in path;
+ *   b) write daemon config to a central location (rather than user-dependent)
+ * Example: /root/.config/multipassd/multipassd.conf
+ */
 QString daemon_settings_filename()
 { // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
     static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
