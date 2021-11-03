@@ -17,9 +17,7 @@
 
 #include "common.h"
 #include "mock_file_ops.h"
-#include "mock_singleton_helpers.h"
-
-#include <src/utils/wrapped_qsettings.h>
+#include "mock_qsettings.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
@@ -36,27 +34,6 @@ using namespace testing;
 
 namespace
 {
-class MockQSettings : public mp::WrappedQSettings
-{
-public:
-    using WrappedQSettings::WrappedQSettings; // promote visibility
-    MOCK_CONST_METHOD0(status, QSettings::Status());
-    MOCK_CONST_METHOD0(fileName, QString());
-    MOCK_CONST_METHOD2(value_impl, QVariant(const QString& key, const QVariant& default_value)); // promote visibility
-    MOCK_METHOD1(setIniCodec, void(const char* codec_name));
-    MOCK_METHOD0(sync, void());
-    MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
-};
-
-class MockQSettingsProvider : public mp::WrappedQSettingsFactory
-{
-public:
-    using WrappedQSettingsFactory::WrappedQSettingsFactory;
-    MOCK_CONST_METHOD2(make_wrapped_qsettings,
-                       std::unique_ptr<mp::WrappedQSettings>(const QString&, QSettings::Format));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, WrappedQSettingsFactory);
-};
 
 class TestPersistentSettingsHandler : public Test
 {
@@ -96,11 +73,12 @@ public:
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject<NiceMock>();
     mpt::MockFileOps* mock_file_ops = mock_file_ops_injection.first;
 
-    MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* strict
-                                                to ensure that, other than explicitly injected, no QSettings are used */
-    MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
+    mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
+        mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than explicitly injected, no
+                                                             QSettings are used */
+    mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
 
-    std::unique_ptr<NiceMock<MockQSettings>> mock_qsettings = std::make_unique<NiceMock<MockQSettings>>();
+    std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
 };
 
 TEST_F(TestPersistentSettingsHandler, getReadsUtf8)

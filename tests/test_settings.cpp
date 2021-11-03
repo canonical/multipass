@@ -17,10 +17,8 @@
 
 #include "common.h"
 #include "mock_platform.h"
+#include "mock_qsettings.h"
 #include "mock_settings.h"
-#include "mock_singleton_helpers.h"
-
-#include <src/utils/wrapped_qsettings.h>
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>
@@ -36,28 +34,6 @@ using namespace testing;
 
 namespace
 {
-class MockQSettings : public mp::WrappedQSettings
-{
-public:
-    using WrappedQSettings::WrappedQSettings; // promote visibility
-    MOCK_CONST_METHOD0(status, QSettings::Status());
-    MOCK_CONST_METHOD0(fileName, QString());
-    MOCK_CONST_METHOD2(value_impl, QVariant(const QString& key, const QVariant& default_value)); // promote visibility
-    MOCK_METHOD1(setIniCodec, void(const char* codec_name));
-    MOCK_METHOD0(sync, void());
-    MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
-};
-
-class MockQSettingsProvider : public mp::WrappedQSettingsFactory
-{
-public:
-    using WrappedQSettingsFactory::WrappedQSettingsFactory;
-    MOCK_CONST_METHOD2(make_wrapped_qsettings,
-                       std::unique_ptr<mp::WrappedQSettings>(const QString&, QSettings::Format));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, WrappedQSettingsFactory);
-};
-
 struct TestSettings : public Test
 {
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
@@ -77,12 +53,13 @@ struct TestSettings : public Test
     }
 
 public:
-    MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* this
-    is made strict to ensure that, other than explicitly injected, no QSettings are used; that's particularly important
-    when injecting real get and set behavior (don't want tests to be affected, nor themselves affect, disk state) */
-    MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
+    mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
+        mpt::MockQSettingsProvider::inject<StrictMock>(); /* this is made strict to ensure that, other than explicitly
+        injected, no QSettings are used; that's particularly important when injecting real get and set behavior (don't
+        want tests to be affected, nor themselves affect, disk state) */
+    mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
 
-    std::unique_ptr<NiceMock<MockQSettings>> mock_qsettings = std::make_unique<NiceMock<MockQSettings>>();
+    std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 
 private:
