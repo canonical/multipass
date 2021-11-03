@@ -21,7 +21,7 @@
 #include "mock_settings.h"
 #include "mock_singleton_helpers.h"
 
-#include <src/utils/qsettings_wrapper.h>
+#include <src/utils/wrapped_qsettings.h>
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>

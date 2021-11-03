@@ -15,7 +15,7 @@
  *
  */
 
-#include "qsettings_wrapper.h"
+#include "wrapped_qsettings.h"
 
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
