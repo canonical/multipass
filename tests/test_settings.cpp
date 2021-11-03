@@ -21,7 +21,7 @@
 #include "mock_settings.h"
 #include "mock_singleton_helpers.h"
 
-#include <src/utils/qsettings_wrapper.h>
+#include <src/utils/wrapped_qsettings.h>
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>
@@ -90,10 +90,12 @@ struct TestSettings : public Test
 public:
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject<NiceMock>();
     mpt::MockFileOps* mock_file_ops = mock_file_ops_injection.first;
+
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* this
     is made strict to ensure that, other than explicitly injected, no QSettings are used; that's particularly important
     when injecting real get and set behavior (don't want tests to be affected, nor themselves affect, disk state) */
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
+
     std::unique_ptr<NiceMock<MockQSettings>> mock_qsettings = std::make_unique<NiceMock<MockQSettings>>();
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
     FILE fake_file;

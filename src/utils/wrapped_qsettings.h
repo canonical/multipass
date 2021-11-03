@@ -15,13 +15,15 @@
  *
  */
 
-#ifndef MULTIPASS_QSETTINGS_WRAPPER_H
-#define MULTIPASS_QSETTINGS_WRAPPER_H
+#ifndef MULTIPASS_WRAPPED_QSETTINGS_H
+#define MULTIPASS_WRAPPED_QSETTINGS_H
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/singleton.h>
 
 #include <QSettings>
+
+#include <cassert>
 
 namespace multipass
 {
@@ -101,4 +103,4 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_QSETTINGS_WRAPPER_H
+#endif // MULTIPASS_WRAPPED_QSETTINGS_H
