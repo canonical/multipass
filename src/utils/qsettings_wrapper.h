@@ -23,6 +23,8 @@
 
 #include <QSettings>
 
+#include <cassert>
+
 namespace multipass
 {
 class WrappedQSettingsFactory;
