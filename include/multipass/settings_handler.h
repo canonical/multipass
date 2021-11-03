@@ -51,10 +51,15 @@ class StandardSettingsHandler : public SettingsHandler
 {
 public:
     StandardSettingsHandler(QString filename, std::map<QString, QString> defaults);
+    QString get(const QString& key) const override;
+
+private:
+    const QString& get_default(const QString& key) const; // throws on unknown key
 
 private:
     QString filename;
     std::map<QString, QString> defaults;
+    mutable std::mutex mutex;
 };
 
 } // namespace multipass
