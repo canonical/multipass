@@ -79,6 +79,9 @@ mp::ClientCertStore::ClientCertStore(const multipass::Path& cert_dir)
 
 void mp::ClientCertStore::add_cert(const std::string& pem_cert)
 {
+    if (cert_exists(pem_cert))
+        return;
+
     validate_certificate(pem_cert);
     QDir dir{cert_dir};
     QFile file{dir.filePath(chain_name)};
