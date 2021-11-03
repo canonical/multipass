@@ -32,6 +32,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
+#include <multipass/passphrase_handler.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings.h>
@@ -2061,6 +2062,23 @@ void mp::Daemon::authenticate(const AuthenticateRequest* request,
 try
 {
     mpl::ClientLogger<AuthenticateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    auto stored_hash = MP_SETTINGS.get(mp::passphrase_key);
+
+    if (stored_hash.isNull())
+    {
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                         "Passphrase is not set. Please set the local.passphrase with a trusted client."));
+    }
+
+    auto hashed_passphrase = MP_PASSPHRASE_HANDLER.generate_hash_for(QString::fromStdString(request->passphrase()));
+
+    if (stored_hash != hashed_passphrase)
+    {
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Passphrase is not correct. Please try again."));
+    }
 
     status_promise->set_value(grpc::Status::OK);
 }
