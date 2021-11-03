@@ -24,6 +24,7 @@ add_library(utils STATIC
   vm_image_vault_utils.cpp)
 
 target_link_libraries(utils
+  cert
   fmt
   logger
   ssh_common

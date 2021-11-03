@@ -46,6 +46,7 @@ constexpr auto winterm_profile_guid =
 
 constexpr auto petenv_key = "client.primary-name";     // This will eventually be moved to some dynamic settings schema
 constexpr auto driver_key = "local.driver";            // idem
+constexpr auto passphrase_key = "local.passphrase";    // idem
 constexpr auto bridged_interface_key = "local.bridged-network"; // idem
 constexpr auto bridged_network_name = "bridged";
 constexpr auto mounts_key = "local.privileged-mounts"; // idem
