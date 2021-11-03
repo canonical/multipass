@@ -35,6 +35,8 @@ public:
     bool verify_cert(const std::string& pem_cert) override;
 
 private:
+    bool cert_exists(const std::string& pem_cert);
+
     Path cert_dir;
     std::vector<std::string> authenticated_client_certs;
 };
