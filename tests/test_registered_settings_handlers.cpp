@@ -134,6 +134,11 @@ TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_c
     }
 }
 
+TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_with_overridden_platform_defaults)
+{
+    // TODO@ricab
+}
+
 TEST_F(TestRegisteredSettingsHandlers, clients_do_not_register_persistent_handler_for_daemon_settings)
 {
     // TODO@ricab
@@ -158,10 +163,29 @@ TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_with_
 
 TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_daemon_settings)
 {
-    // TODO@ricab
+    const auto driver = "conductor";
+    const auto mount = "false";
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, default_driver).WillOnce(Return(driver));
+    EXPECT_CALL(*mock_platform, default_privileged_mounts).WillOnce(Return(mount));
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::daemon::register_settings_handlers();
+
+    inject_default_returning_mock_qsettings();
+    EXPECT_EQ(handler->get(mp::driver_key), driver);
+    EXPECT_EQ(handler->get(mp::bridged_interface_key), "");
+    EXPECT_EQ(handler->get(mp::mounts_key), mount);
 }
 
 TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_daemon_platform_settings)
+{
+    // TODO@ricab
+}
+
+TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_with_overridden_platform_defaults)
 {
     // TODO@ricab
 }
