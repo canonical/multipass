@@ -67,14 +67,10 @@ void mp::daemon::register_settings_handlers()
                                                        {mp::bridged_interface_key, ""},
                                                        {mp::mounts_key, mp::platform::default_privileged_mounts()}};
 
-    auto daemon_defaults = std::map<QString, QString>{{mp::driver_key, mp::platform::default_driver()},
-                                                      {mp::bridged_interface_key, ""},
-                                                      {mp::mounts_key, mp::platform::default_privileged_mounts()}};
-
     for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab try algo
         if (k.startsWith(daemon_root))
-            daemon_defaults.insert_or_assign(k, v);
+            setting_defaults.insert_or_assign(k, v);
 
     MP_SETTINGS.register_handler(
-        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(daemon_defaults)));
+        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(setting_defaults)));
 }
