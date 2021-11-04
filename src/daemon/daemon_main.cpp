@@ -113,11 +113,13 @@ int main_impl(int argc, char* argv[])
 
     UnixSignalHandler handler;
 
+    mp::daemon::register_settings_handlers();
+
     auto builder = mp::cli::parse(app);
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    mp::daemon::monitor_and_quit_on_settings_change(); // temporary
+    mp::daemon::monitor_and_quit_on_settings_change(); // TODO@ricab remove
     mp::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);

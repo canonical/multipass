@@ -17,6 +17,9 @@
 
 #include "daemon_init_settings.h"
 
+#include <multipass/constants.h>
+#include <multipass/persistent_settings_handler.h>
+#include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/utils.h>
 
@@ -29,6 +32,24 @@ namespace mp = multipass;
 namespace
 {
 constexpr const int settings_changed_code = 42;
+const auto file_extension = QStringLiteral("conf"); // TODO@ricab refactor
+const auto daemon_root = QStringLiteral("local");
+
+/*
+ * We make up our own file names to:
+ *   a) avoid unknown org/domain in path;
+ *   b) write daemon config to a central location (rather than user-dependent)
+ * Example: /root/.config/multipassd/multipassd.conf
+ */
+QString persistent_settings_filename()
+{
+    static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // TODO@ricab refactor
+    static const auto daemon_dir_path = QDir{mp::platform::daemon_config_home()}; // temporary, replace w/ AppConfigLoc
+    static const auto path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
+
+    return path;
+}
+
 } // namespace
 
 void mp::daemon::monitor_and_quit_on_settings_change() // temporary
@@ -38,4 +59,22 @@ void mp::daemon::monitor_and_quit_on_settings_change() // temporary
 
     static QFileSystemWatcher monitor{{filename}};
     QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(settings_changed_code); });
+}
+
+void mp::daemon::register_settings_handlers()
+{
+    auto setting_defaults = std::map<QString, QString>{{mp::driver_key, mp::platform::default_driver()},
+                                                       {mp::bridged_interface_key, ""},
+                                                       {mp::mounts_key, mp::platform::default_privileged_mounts()}};
+
+    auto daemon_defaults = std::map<QString, QString>{{mp::driver_key, mp::platform::default_driver()},
+                                                      {mp::bridged_interface_key, ""},
+                                                      {mp::mounts_key, mp::platform::default_privileged_mounts()}};
+
+    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab try algo
+        if (k.startsWith(daemon_root))
+            daemon_defaults.insert_or_assign(k, v);
+
+    MP_SETTINGS.register_handler(
+        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(daemon_defaults)));
 }
