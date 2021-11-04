@@ -47,7 +47,7 @@ add_executable(multipass_tests
   test_basic_process.cpp
   test_cli_client.cpp
   test_client_cert_store.cpp
-  test_client_common.cpp
+  test_registered_settings_handlers.cpp
   test_cloud_init_iso.cpp
   test_constants.cpp
   test_custom_image_host.cpp

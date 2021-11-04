@@ -25,6 +25,8 @@
 #include <multipass/constants.h>
 #include <multipass/persistent_settings_handler.h>
 
+#include <src/daemon/daemon_init_settings.h>
+
 #include <QKeySequence>
 
 namespace mp = multipass;
@@ -33,7 +35,7 @@ using namespace testing;
 
 namespace
 {
-struct TestClientRegisteredSettingsHandlers : public Test
+struct TestRegisteredSettingsHandlers : public Test
 {
     void inject_default_returning_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
@@ -58,7 +60,7 @@ public:
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 };
 
-TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_with_client_filename)
+TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_with_client_filename)
 {
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipass/multipass.conf";
@@ -79,7 +81,7 @@ TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_with_c
     handler->set(mp::petenv_key, "goo");
 }
 
-TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_for_client_settings)
+TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_client_settings)
 {
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types (need #2282)
@@ -96,7 +98,7 @@ TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_for_cl
     EXPECT_EQ(QKeySequence{handler->get(mp::hotkey_key)}, QKeySequence{mp::hotkey_default});
 }
 
-TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_for_client_platform_settings)
+TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_client_platform_settings)
 {
     const auto client_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
                                                             {"client.empty.setting", ""},
@@ -135,7 +137,27 @@ TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_for_cl
     }
 }
 
-TEST_F(TestClientRegisteredSettingsHandlers, does_not_register_persistent_handler_for_daemon_settings)
+TEST_F(TestRegisteredSettingsHandlers, clients_do_not_register_persistent_handler_for_daemon_settings)
+{
+    // TODO@ricab
+}
+
+TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_with_daemon_filename)
+{
+    // TODO@ricab
+}
+
+TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_daemon_settings)
+{
+    // TODO@ricab
+}
+
+TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_daemon_platform_settings)
+{
+    // TODO@ricab
+}
+
+TEST_F(TestRegisteredSettingsHandlers, daemon_does_not_register_persistent_handler_for_client_settings)
 {
     // TODO@ricab
 }
