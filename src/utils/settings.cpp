@@ -78,7 +78,7 @@ QString file_for(const QString& key) // the key should have passed checks at thi
     static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
     static const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
     static const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
-    static const auto daemon_dir_path = QDir{mp::platform::daemon_config_home()}; // temporary, replace w/ AppConfigLoc
+    static const auto daemon_dir_path = QDir{MP_PLATFORM.daemon_config_home()}; // temporary, replace w/ AppConfigLoc
     static const auto client_file_path = cli_client_dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
     static const auto daemon_file_path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
 

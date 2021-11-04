@@ -65,6 +65,7 @@ public:
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
     virtual std::map<QString, QString> extra_settings_defaults() const; // TODO@ricab private side
+    virtual QString daemon_config_home() const;                         // temporary // TODO@ricab drop
 };
 
 QString interpret_setting(const QString& key, const QString& val);
@@ -76,8 +77,6 @@ void setup_gui_autostart_prerequisites();
 std::string default_server_address();
 QString default_driver();
 QString default_privileged_mounts();
-
-QString daemon_config_home(); // temporary
 
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);

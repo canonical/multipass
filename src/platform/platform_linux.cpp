@@ -319,6 +319,16 @@ std::map<QString, QString> mp::platform::Platform::extra_settings_defaults() con
     return {};
 }
 
+QString mp::platform::Platform::daemon_config_home() const // temporary
+{
+    auto ret = QString{qgetenv("DAEMON_CONFIG_HOME")};
+    if (ret.isEmpty())
+        ret = QStringLiteral("/root/.config");
+
+    ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
+    return ret;
+}
+
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>
 {
@@ -390,16 +400,6 @@ QString mp::platform::default_driver()
 QString mp::platform::default_privileged_mounts()
 {
     return QStringLiteral("true");
-}
-
-QString mp::platform::daemon_config_home() // temporary
-{
-    auto ret = QString{qgetenv("DAEMON_CONFIG_HOME")};
-    if (ret.isEmpty())
-        ret = QStringLiteral("/root/.config");
-
-    ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
-    return ret;
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)

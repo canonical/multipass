@@ -66,7 +66,7 @@ QString persistent_settings_filename()
 QString daemon_settings_filename()
 { // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
     static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
-    static const auto dir_path = QDir{mp::platform::daemon_config_home()};        // temporary, replace w/ AppConfigLoc
+    static const auto dir_path = QDir{MP_PLATFORM.daemon_config_home()};          // temporary, replace w/ AppConfigLoc
     static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
 
     return path;
