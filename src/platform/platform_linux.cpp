@@ -314,6 +314,11 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
         throw std::runtime_error(strerror(errno));
 }
 
+std::map<QString, QString> mp::platform::Platform::extra_settings_defaults() const
+{
+    return {};
+}
+
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>
 {
@@ -330,11 +335,6 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     update_bridges(ifaces_info);
 
     return ifaces_info;
-}
-
-std::map<QString, QString> mp::platform::extra_settings_defaults()
-{
-    return {};
 }
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)

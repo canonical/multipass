@@ -64,9 +64,8 @@ public:
     virtual void create_alias_script(const std::string& alias, const AliasDefinition& def) const;
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
+    virtual std::map<QString, QString> extra_settings_defaults() const; // TODO@ricab private side
 };
-
-std::map<QString, QString> extra_settings_defaults();
 
 QString interpret_setting(const QString& key, const QString& val);
 void sync_winterm_profiles();

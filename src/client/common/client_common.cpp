@@ -128,7 +128,7 @@ void mp::client::register_settings_handlers()
     auto setting_defaults = std::map<QString, QString>{
         {mp::petenv_key, petenv_name}, {mp::autostart_key, autostart_default}, {mp::hotkey_key, default_hotkey()}};
 
-    for (const auto& [k, v] : platform::extra_settings_defaults())
+    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab try algo
         if (k.startsWith(client_root))
             setting_defaults.insert_or_assign(k, v);
 
@@ -140,7 +140,7 @@ void mp::client::register_settings_handlers()
                                                           {mp::bridged_interface_key, ""},
                                                           {mp::mounts_key, mp::platform::default_privileged_mounts()}};
 
-        for (const auto& [k, v] : platform::extra_settings_defaults())
+        for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults())
             if (k.startsWith(daemon_root))
                 daemon_defaults.insert_or_assign(k, v);
 

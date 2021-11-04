@@ -100,7 +100,7 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsGetRegularKeys, TestSettingsGetRegularKeys,
                                                       mp::bridged_interface_key,
                                                       mp::mounts_key};
 
-                             for (const auto& item : mp::platform::extra_settings_defaults())
+                             for (const auto& item : MP_PLATFORM.extra_settings_defaults())
                                  ret.push_back(item.first);
 
                              return ret;

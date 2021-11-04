@@ -58,7 +58,7 @@ std::map<QString, QString> make_defaults()
                                           {mp::bridged_interface_key, ""},
                                           {mp::mounts_key, mp::platform::default_privileged_mounts()}};
 
-    for(const auto& [k, v] : mp::platform::extra_settings_defaults())
+    for(const auto& [k, v] : MP_PLATFORM.extra_settings_defaults())
         ret.insert_or_assign(k, v);
 
     return ret;
