@@ -19,6 +19,7 @@
 #include "mock_platform.h"
 #include "mock_qsettings.h"
 #include "mock_settings.h"
+#include "mock_standard_paths.h"
 
 #include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
@@ -40,15 +41,6 @@ struct TestClientRegisteredSettingsHandlers : public Test
             .WillRepeatedly(InvokeWithoutArgs(make_default_returning_mock_qsettings));
     }
 
-public:
-    mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
-        mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than explicitly injected, no
-                                                             QSettings are used */
-    mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
-
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
-
-private:
     static std::unique_ptr<multipass::WrappedQSettings> make_default_returning_mock_qsettings()
     {
         auto mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
@@ -56,7 +48,36 @@ private:
 
         return mock_qsettings;
     }
+
+public:
+    mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
+        mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than explicitly injected, no
+                                                             QSettings are used */
+    mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
+
+    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 };
+
+TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_with_client_filename)
+{
+    auto config_location = QStringLiteral("/a/b/c");
+    auto expected_filename = config_location + "/multipass/multipass.conf";
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericConfigLocation))
+        .WillOnce(Return(config_location));
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types (need #2282)
+        .WillOnce([&handler](auto&& arg) { handler = std::move(arg); })
+        .WillOnce(Return()) // TODO@ricab drop this when daemon handler is gone
+        ;
+
+    mp::client::register_settings_handlers();
+    ASSERT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab move into expect
+
+    EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
+        .WillOnce(InvokeWithoutArgs(make_default_returning_mock_qsettings));
+    handler->set(mp::petenv_key, "goo");
+}
 
 TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_for_client_settings)
 {
@@ -119,5 +140,4 @@ TEST_F(TestClientRegisteredSettingsHandlers, does_not_register_persistent_handle
     // TODO@ricab
 }
 
-// TODO@ricab verify filename
 } // namespace
