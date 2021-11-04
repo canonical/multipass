@@ -136,9 +136,9 @@ void mp::client::register_settings_handlers()
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(setting_defaults)));
 
     { // TODO@ricab remove from client - temporary code, to keep feature parity until we introduce routing handlers
-        auto daemon_defaults = std::map<QString, QString>{{mp::driver_key, mp::platform::default_driver()},
+        auto daemon_defaults = std::map<QString, QString>{{mp::driver_key, MP_PLATFORM.default_driver()},
                                                           {mp::bridged_interface_key, ""},
-                                                          {mp::mounts_key, mp::platform::default_privileged_mounts()}};
+                                                          {mp::mounts_key, MP_PLATFORM.default_privileged_mounts()}};
 
         for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults())
             if (k.startsWith(daemon_root))

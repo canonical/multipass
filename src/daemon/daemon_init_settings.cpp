@@ -63,9 +63,9 @@ void mp::daemon::monitor_and_quit_on_settings_change() // temporary
 
 void mp::daemon::register_settings_handlers()
 {
-    auto setting_defaults = std::map<QString, QString>{{mp::driver_key, mp::platform::default_driver()},
+    auto setting_defaults = std::map<QString, QString>{{mp::driver_key, MP_PLATFORM.default_driver()},
                                                        {mp::bridged_interface_key, ""},
-                                                       {mp::mounts_key, mp::platform::default_privileged_mounts()}};
+                                                       {mp::mounts_key, MP_PLATFORM.default_privileged_mounts()}};
 
     for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab try algo
         if (k.startsWith(daemon_root))

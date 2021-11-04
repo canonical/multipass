@@ -66,6 +66,8 @@ public:
     virtual std::string alias_path_message() const;
     virtual std::map<QString, QString> extra_settings_defaults() const; // TODO@ricab private side
     virtual QString daemon_config_home() const;                         // temporary // TODO@ricab drop
+    virtual QString default_driver() const;                             // TODO@ricab private side
+    virtual QString default_privileged_mounts() const;                  // TODO@ricab private side
 };
 
 QString interpret_setting(const QString& key, const QString& val);
@@ -75,8 +77,6 @@ QString autostart_test_data(); // returns a platform-specific string, for testin
 void setup_gui_autostart_prerequisites();
 
 std::string default_server_address();
-QString default_driver();
-QString default_privileged_mounts();
 
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);

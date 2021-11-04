@@ -329,6 +329,19 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     return ret;
 }
 
+QString mp::platform::Platform::default_driver() const
+{
+    if (QEMU_ENABLED)
+        return QStringLiteral("qemu");
+    else
+        return QStringLiteral("lxd");
+}
+
+QString mp::platform::Platform::default_privileged_mounts() const
+{
+    return QStringLiteral("true");
+}
+
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>
 {
@@ -387,19 +400,6 @@ std::string mp::platform::default_server_address()
         base_dir = "/run";
     }
     return "unix:" + base_dir + "/multipass_socket";
-}
-
-QString mp::platform::default_driver()
-{
-    if (QEMU_ENABLED)
-        return QStringLiteral("qemu");
-    else
-        return QStringLiteral("lxd");
-}
-
-QString mp::platform::default_privileged_mounts()
-{
-    return QStringLiteral("true");
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)

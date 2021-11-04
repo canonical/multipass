@@ -52,11 +52,11 @@ QString default_hotkey()
 std::map<QString, QString> make_defaults()
 { // clang-format off
     auto ret = std::map<QString, QString>{{mp::petenv_key, petenv_name},
-                                          {mp::driver_key, mp::platform::default_driver()},
+                                          {mp::driver_key, MP_PLATFORM.default_driver()},
                                           {mp::autostart_key, autostart_default},
                                           {mp::hotkey_key, default_hotkey()},
                                           {mp::bridged_interface_key, ""},
-                                          {mp::mounts_key, mp::platform::default_privileged_mounts()}};
+                                          {mp::mounts_key, MP_PLATFORM.default_privileged_mounts()}};
 
     for(const auto& [k, v] : MP_PLATFORM.extra_settings_defaults())
         ret.insert_or_assign(k, v);
