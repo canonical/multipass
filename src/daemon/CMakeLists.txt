@@ -20,7 +20,7 @@ add_library(daemon STATIC
   custom_image_host.cpp
   daemon.cpp
   daemon_config.cpp
-  daemon_monitor_settings.cpp
+        daemon_init_settings.cpp
   daemon_rpc.cpp
   default_vm_image_vault.cpp
   ubuntu_image_host.cpp)

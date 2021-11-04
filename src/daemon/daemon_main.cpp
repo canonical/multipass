@@ -17,7 +17,7 @@
 
 #include "daemon.h"
 #include "daemon_config.h"
-#include "daemon_monitor_settings.h" // temporary
+#include "daemon_init_settings.h"
 
 #include "cli.h"
 

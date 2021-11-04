@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  *
  */
 
-#include "daemon_monitor_settings.h"
+#include "daemon_init_settings.h"
 
 #include <multipass/settings.h>
 #include <multipass/utils.h>
