@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_platform.h"
 #include "mock_qsettings.h"
 #include "mock_settings.h"
 
@@ -74,7 +75,44 @@ TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_for_cl
     EXPECT_EQ(QKeySequence{handler->get(mp::hotkey_key)}, QKeySequence{mp::hotkey_default});
 }
 
-// TODO@ricab platform extras
+TEST_F(TestClientRegisteredSettingsHandlers, registers_persistent_handler_for_client_platform_settings)
+{
+    const auto client_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
+                                                            {"client.empty.setting", ""},
+                                                            {"client.an.int", "-12345"},
+                                                            {"client.a.float.with.a.long_key", "3.14"}};
+    const auto other_defaults = std::map<QString, QString>{{"abc", "true"}, {"asdf", "fdsa"}};
+    auto all_defaults = client_defaults;
+    all_defaults.insert(other_defaults.cbegin(), other_defaults.cend());
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, extra_settings_defaults)
+        .WillOnce(Return(all_defaults))
+        .WillOnce(Return(std::map<QString, QString>{})); // TODO@ricab drop this when daemon handler is gone
+
+    // TODO@ricab refactor this stuff once following TODOs are settled (need newer gmock)
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types (need #2282)
+        .WillOnce([&handler](auto&& arg) { handler = std::move(arg); })
+        .WillOnce(Return()) // TODO@ricab drop this when daemon handler is gone
+        ;
+
+    mp::client::register_settings_handlers();
+    ASSERT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab move into expect
+
+    inject_default_returning_mock_qsettings();
+
+    for (const auto& item : other_defaults)
+    {
+        MP_EXPECT_THROW_THAT(handler->get(item.first), mp::UnrecognizedSettingException,
+                             mpt::match_what(HasSubstr(item.first.toStdString())));
+    }
+
+    for (const auto& [k, v] : client_defaults)
+    {
+        EXPECT_EQ(handler->get(k), v);
+    }
+}
 
 TEST_F(TestClientRegisteredSettingsHandlers, does_not_register_persistent_handler_for_daemon_settings)
 {
