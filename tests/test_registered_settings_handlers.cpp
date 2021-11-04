@@ -51,6 +51,19 @@ struct TestRegisteredSettingsHandlers : public Test
         return mock_qsettings;
     }
 
+    void grab_registered_persistent_handler(std::unique_ptr<mp::SettingsHandler>& handler)
+    {
+        auto grab_it = [&handler](auto&& arg) {
+            handler = std::move(arg);
+            EXPECT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab matcher
+        };
+
+        EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types, need #2282
+            .WillOnce(grab_it)
+            .WillOnce(Return()) // TODO@ricab drop this when daemon handler is gone
+            ;
+    }
+
 public:
     mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
         mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than explicitly injected, no
@@ -64,17 +77,13 @@ TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_with_
 {
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipass/multipass.conf";
+
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericConfigLocation))
         .WillOnce(Return(config_location));
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types (need #2282)
-        .WillOnce([&handler](auto&& arg) { handler = std::move(arg); })
-        .WillOnce(Return()) // TODO@ricab drop this when daemon handler is gone
-        ;
-
+    grab_registered_persistent_handler(handler);
     mp::client::register_settings_handlers();
-    ASSERT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab move into expect
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
         .WillOnce(InvokeWithoutArgs(make_default_returning_mock_qsettings));
@@ -84,13 +93,8 @@ TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_with_
 TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_client_settings)
 {
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types (need #2282)
-        .WillOnce([&handler](auto&& arg) { handler = std::move(arg); })
-        .WillOnce(Return()) // TODO@ricab drop this when daemon handler is gone
-        ;
-
+    grab_registered_persistent_handler(handler);
     mp::client::register_settings_handlers();
-    ASSERT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab move into expect
 
     inject_default_returning_mock_qsettings();
     EXPECT_EQ(handler->get(mp::petenv_key), "primary");
@@ -113,18 +117,11 @@ TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_c
         .WillOnce(Return(all_defaults))
         .WillOnce(Return(std::map<QString, QString>{})); // TODO@ricab drop this when daemon handler is gone
 
-    // TODO@ricab refactor this stuff once following TODOs are settled (need newer gmock)
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types (need #2282)
-        .WillOnce([&handler](auto&& arg) { handler = std::move(arg); })
-        .WillOnce(Return()) // TODO@ricab drop this when daemon handler is gone
-        ;
-
+    grab_registered_persistent_handler(handler);
     mp::client::register_settings_handlers();
-    ASSERT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab move into expect
 
     inject_default_returning_mock_qsettings();
-
     for (const auto& item : other_defaults)
     {
         MP_EXPECT_THROW_THAT(handler->get(item.first), mp::UnrecognizedSettingException,
