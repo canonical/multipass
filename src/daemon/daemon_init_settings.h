@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_DAEMON_INIT_SETTINGS_H
 #define MULTIPASS_DAEMON_INIT_SETTINGS_H
 
-namespace multipass
+namespace multipass::daemon
 {
 void monitor_and_quit_on_settings_change(); // temporary
 }
