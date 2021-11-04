@@ -60,7 +60,7 @@ struct TestRegisteredSettingsHandlers : public Test
 
         EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types, need #2282
             .WillOnce(grab_it)
-            .WillOnce(Return()) // TODO@ricab drop this when daemon handler is gone
+            .WillRepeatedly(Return()) // TODO@ricab drop this when daemon handler is gone
             ;
     }
 
@@ -141,7 +141,19 @@ TEST_F(TestRegisteredSettingsHandlers, clients_do_not_register_persistent_handle
 
 TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_with_daemon_filename)
 {
-    // TODO@ricab
+    auto config_location = QStringLiteral("/a/b/c");
+    auto expected_filename = config_location + "/multipassd.conf";
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*mock_platform, daemon_config_home).WillOnce(Return(config_location));
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::daemon::register_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
+        .WillOnce(InvokeWithoutArgs(make_default_returning_mock_qsettings));
+    handler->set(mp::bridged_interface_key, "bridge");
 }
 
 TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_daemon_settings)
