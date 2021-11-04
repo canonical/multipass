@@ -26,7 +26,7 @@
 #include <QString>
 #include <QTextStream>
 
-#include <cstdio>
+#include <fstream>
 
 #define MP_FILEOPS multipass::FileOps::instance()
 
@@ -60,7 +60,7 @@ public:
     virtual qint64 write(QFile& file, const QByteArray& data) const;
 
     // std operations
-    virtual std::FILE* fopen(const char* filename, const char* mode) const;
+    virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;
 };
 } // namespace multipass
 
