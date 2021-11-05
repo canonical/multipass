@@ -21,8 +21,6 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
 
-#include <gmock/gmock.h>
-
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "fake_alias_config.h"
