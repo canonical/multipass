@@ -132,8 +132,12 @@ void mp::client::register_settings_handlers()
         if (k.startsWith(client_root))
             setting_defaults.insert_or_assign(k, v);
 
+    std::map<QString, mp::PersistentSetting::UPtr> settings;
+    for (const auto& [k, v] : setting_defaults)
+        settings[k] = std::make_unique<multipass::BasicPersistentSetting>(k, v);
+
     MP_SETTINGS.register_handler(
-        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(setting_defaults)));
+        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
 
     { // TODO@ricab remove from client - temporary code, to keep feature parity until we introduce routing handlers
         auto daemon_defaults = std::map<QString, QString>{{mp::driver_key, MP_PLATFORM.default_driver()},
@@ -144,8 +148,12 @@ void mp::client::register_settings_handlers()
             if (k.startsWith(daemon_root))
                 daemon_defaults.insert_or_assign(k, v);
 
+        std::map<QString, mp::PersistentSetting::UPtr> daemon_settings;
+        for (const auto& [k, v] : daemon_defaults)
+            daemon_settings[k] = std::make_unique<multipass::BasicPersistentSetting>(k, v);
+
         MP_SETTINGS.register_handler(
-            std::make_unique<PersistentSettingsHandler>(daemon_settings_filename(), std::move(daemon_defaults)));
+            std::make_unique<PersistentSettingsHandler>(daemon_settings_filename(), std::move(daemon_settings)));
     }
 }
 

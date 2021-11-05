@@ -44,7 +44,7 @@ public:
         if (specific_key)
             defaults[*specific_key] = specific_val.value_or("banana");
 
-        return mp::PersistentSettingsHandler{fake_filename, defaults};
+        return mp::PersistentSettingsHandler{fake_filename, make_basic_persistent_settings()};
     }
 
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
@@ -79,6 +79,16 @@ public:
     mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
 
     std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
+
+private:
+    std::map<QString, mp::PersistentSetting::UPtr> make_basic_persistent_settings() const
+    {
+        std::map<QString, mp::PersistentSetting::UPtr> ret;
+        for (const auto& [k, v] : defaults)
+            ret[k] = std::make_unique<mp::BasicPersistentSetting>(k, v);
+
+        return ret;
+    }
 };
 
 TEST_F(TestPersistentSettingsHandler, getReadsUtf8)

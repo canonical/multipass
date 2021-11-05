@@ -71,6 +71,10 @@ void mp::daemon::register_settings_handlers()
         if (k.startsWith(daemon_root))
             setting_defaults.insert_or_assign(k, v);
 
+    std::map<QString, mp::PersistentSetting::UPtr> settings;
+    for (const auto& [k, v] : setting_defaults)
+        settings[k] = std::make_unique<multipass::BasicPersistentSetting>(k, v);
+
     MP_SETTINGS.register_handler(
-        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(setting_defaults)));
+        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
 }
