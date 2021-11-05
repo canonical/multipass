@@ -38,6 +38,19 @@ public:
     virtual QString interpret(const QString& val) const = 0;
 };
 
+class BasicPersistentSetting : public PersistentSetting
+{
+public:
+    BasicPersistentSetting(QString key, QString default_);
+    QString get_key() const override;
+    QString get_default() const override;
+    QString interpret(const QString& val) const override;
+
+protected:
+    QString key;
+    QString default_;
+};
+
 class PersistentSettingsHandler : public SettingsHandler
 {
 public:
