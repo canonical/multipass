@@ -17,6 +17,7 @@
 
 #include "daemon_init_settings.h"
 
+#include <multipass/basic_persistent_setting.h>
 #include <multipass/constants.h>
 #include <multipass/persistent_settings_handler.h>
 #include <multipass/platform.h>

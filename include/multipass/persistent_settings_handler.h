@@ -18,39 +18,14 @@
 #ifndef MULTIPASS_PERSISTENT_SETTINGS_HANDLER_H
 #define MULTIPASS_PERSISTENT_SETTINGS_HANDLER_H
 
-#include "disabled_copy_move.h"
+#include "persistent_setting.h"
 #include "settings_handler.h"
 
 #include <map>
-#include <memory>
 #include <mutex>
 
 namespace multipass
 {
-class PersistentSetting : public DisabledCopyMove
-{
-public:
-    using UPtr = std::unique_ptr<PersistentSetting>;
-    virtual ~PersistentSetting() = default;
-
-    virtual QString get_key() const = 0;
-    virtual QString get_default() const = 0;
-    virtual QString interpret(const QString& val) const = 0;
-};
-
-class BasicPersistentSetting : public PersistentSetting
-{
-public:
-    BasicPersistentSetting(QString key, QString default_);
-    QString get_key() const override;
-    QString get_default() const override;
-    QString interpret(const QString& val) const override;
-
-protected:
-    QString key;
-    QString default_;
-};
-
 class PersistentSettingsHandler : public SettingsHandler
 {
 public:

@@ -13,6 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(utils STATIC
+  basic_persistent_setting.cpp
   file_ops.cpp
   memory_size.cpp
   json_writer.cpp

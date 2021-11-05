@@ -19,6 +19,7 @@
 #include "mock_file_ops.h"
 #include "mock_qsettings.h"
 
+#include <multipass/basic_persistent_setting.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/optional.h>

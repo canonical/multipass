@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/basic_persistent_setting.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>

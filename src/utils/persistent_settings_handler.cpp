@@ -117,26 +117,6 @@ mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename,
 {
 }
 
-mp::BasicPersistentSetting::BasicPersistentSetting(QString key, QString default_)
-    : key{std::move(key)}, default_{std::move(default_)}
-{
-}
-
-QString multipass::BasicPersistentSetting::get_key() const
-{
-    return key;
-}
-
-QString multipass::BasicPersistentSetting::get_default() const
-{
-    return default_;
-}
-
-QString multipass::BasicPersistentSetting::interpret(const QString& val) const
-{
-    return val;
-}
-
 // TODO try installing yaml backend
 QString mp::PersistentSettingsHandler::get(const QString& key) const
 {
