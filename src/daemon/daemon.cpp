@@ -34,7 +34,7 @@
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>

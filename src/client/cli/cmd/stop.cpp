@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;

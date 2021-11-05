@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_SETTINGS_HANDLER_H
 #define MULTIPASS_SETTINGS_HANDLER_H
 
-#include "disabled_copy_move.h"
+#include <multipass/disabled_copy_move.h>
 
 #include <QString>
 
@@ -31,7 +31,6 @@ class SettingsHandler : private DisabledCopyMove
 public:
     SettingsHandler() = default;
     virtual ~SettingsHandler() = default;
-
 
     virtual QString get(const QString& key) const = 0;                  // should throw on unknown key @TODO@ricab doc
     virtual void set(const QString& key, const QString& val) const = 0; // should throw on unknown key or bad settings

@@ -24,7 +24,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 
 #include <QCommandLineOption>
 #include <QString>

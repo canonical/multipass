@@ -20,8 +20,8 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/file_ops.h>
-#include <multipass/persistent_settings_handler.h>
 #include <multipass/platform.h>
+#include <multipass/settings/persistent_settings_handler.h>
 #include <multipass/utils.h> // TODO move out
 
 namespace mp = multipass;

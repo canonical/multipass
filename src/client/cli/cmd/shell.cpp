@@ -22,7 +22,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/timer.h>
 

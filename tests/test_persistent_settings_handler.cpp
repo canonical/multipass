@@ -19,11 +19,11 @@
 #include "mock_file_ops.h"
 #include "mock_qsettings.h"
 
-#include <multipass/basic_persistent_setting.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/optional.h>
-#include <multipass/persistent_settings_handler.h>
+#include <multipass/settings/basic_persistent_setting.h>
+#include <multipass/settings/persistent_settings_handler.h>
 
 #include <QString>
 

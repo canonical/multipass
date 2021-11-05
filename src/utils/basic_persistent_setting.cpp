@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/basic_persistent_setting.h>
+#include <multipass/settings/basic_persistent_setting.h>
 
 namespace mp = multipass;
 

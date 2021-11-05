@@ -23,7 +23,7 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h> // temporary
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;

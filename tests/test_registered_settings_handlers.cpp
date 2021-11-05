@@ -23,7 +23,7 @@
 
 #include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
-#include <multipass/persistent_settings_handler.h>
+#include <multipass/settings/persistent_settings_handler.h>
 
 #include <src/daemon/daemon_init_settings.h>
 

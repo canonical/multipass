@@ -18,9 +18,10 @@
 #ifndef MULTIPASS_SETTINGS_H
 #define MULTIPASS_SETTINGS_H
 
-#include "exceptions/settings_exceptions.h"
 #include "settings_handler.h"
-#include "singleton.h"
+
+#include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/singleton.h>
 
 #include <QString>
 #include <QVariant>

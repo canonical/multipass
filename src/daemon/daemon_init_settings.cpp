@@ -17,11 +17,11 @@
 
 #include "daemon_init_settings.h"
 
-#include <multipass/basic_persistent_setting.h>
 #include <multipass/constants.h>
-#include <multipass/persistent_settings_handler.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
+#include <multipass/settings/basic_persistent_setting.h>
+#include <multipass/settings/persistent_settings_handler.h>
+#include <multipass/settings/settings.h>
 #include <multipass/utils.h>
 
 #include <QCoreApplication>

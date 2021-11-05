@@ -22,7 +22,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/format.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/version.h>
 

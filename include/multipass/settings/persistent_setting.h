@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_PERSISTENT_SETTING_H
 #define MULTIPASS_PERSISTENT_SETTING_H
 
-#include "disabled_copy_move.h"
+#include <multipass/disabled_copy_move.h>
 
 #include <QString>
 

@@ -23,9 +23,9 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/constants.h>
-#include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/settings.h>
 #include <multipass/format.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/settings/settings.h>
 
 #include <locale>
 

@@ -20,7 +20,7 @@
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h> // TODO move out
 

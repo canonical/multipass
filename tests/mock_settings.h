@@ -21,7 +21,7 @@
 #include "common.h"
 #include "mock_singleton_helpers.h"
 
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 
 namespace multipass
 {

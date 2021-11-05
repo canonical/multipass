@@ -26,7 +26,7 @@
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
 

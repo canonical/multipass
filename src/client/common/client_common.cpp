@@ -15,15 +15,15 @@
  *
  */
 
-#include <multipass/basic_persistent_setting.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
-#include <multipass/persistent_settings_handler.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
+#include <multipass/settings/basic_persistent_setting.h>
+#include <multipass/settings/persistent_settings_handler.h>
+#include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
