@@ -61,6 +61,7 @@ add_executable(multipass_tests
   test_memory_size.cpp
   test_metrics_provider.cpp
   test_new_release_monitor.cpp
+  test_persistent_settings_handler.cpp
   test_petname.cpp
   test_platform_shared.cpp
   test_private_pass_provider.cpp

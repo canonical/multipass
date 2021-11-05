@@ -113,17 +113,6 @@ private:
     }
 };
 
-TEST_F(TestSettings, getReadsUtf8)
-{
-    const auto key = mp::petenv_key;
-    EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_get(key);
-
-    MP_SETTINGS.get(key);
-}
-
 TEST_F(TestSettings, setWritesUtf8)
 {
     const auto key = mp::bridged_interface_key, val = "foo";
