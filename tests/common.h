@@ -59,6 +59,9 @@
         },                                                                                                             \
         expected_exception)
 
+// work around warning: https://github.com/google/googletest/issues/2271#issuecomment-665742471
+#define MP_TYPED_TEST_SUITE(suite_name, types_param) TYPED_TEST_SUITE(suite_name, types_param, )
+
 // Teach GTest to print Qt stuff
 QT_BEGIN_NAMESPACE
 class QString;

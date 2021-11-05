@@ -415,7 +415,7 @@ struct TestUnsupportedDrivers : public TestWithParam<QString>
 
 TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 {
-    ASSERT_FALSE(mp::platform::is_backend_supported(GetParam()));
+    ASSERT_FALSE(MP_PLATFORM.is_backend_supported(GetParam()));
 
     setup_driver_settings(GetParam());
     EXPECT_THROW(mp::platform::vm_backend(backend_path), std::runtime_error);
@@ -681,7 +681,7 @@ TEST_F(PlatformLinux, find_os_release_etc)
                 open(Property(&QFile::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
         .Times(1)
         .WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(0); // no other open attempts
 
     auto output = multipass::platform::detail::find_os_release();
     EXPECT_EQ(output->fileName(), expected_filename);
@@ -700,7 +700,7 @@ TEST_F(PlatformLinux, find_os_release_usr_lib)
     EXPECT_CALL(*mock_file_ops,
                 open(Property(&QFile::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
         .WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open).Times(0); // no other open attempts
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(0); // no other open attempts
 
     auto output = multipass::platform::detail::find_os_release();
     EXPECT_EQ(output->fileName(), expected_filename);
@@ -726,7 +726,7 @@ TEST_F(PlatformLinux, read_os_release_from_file)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     InSequence seq;
-    EXPECT_CALL(*mock_file_ops, open).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_open).WillOnce(Return(true));
 
     for (const auto& line : input)

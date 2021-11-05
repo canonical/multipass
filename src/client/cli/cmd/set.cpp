@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ namespace
 {
 bool allow_only_stopped_instances(const QString& key, const QString& val) // temporary
 {
-    return key == mp::driver_key && mp::platform::is_backend_supported(val) && (val == "qemu" || val == "libvirt") &&
+    return key == mp::driver_key && MP_PLATFORM.is_backend_supported(val) && (val == "qemu" || val == "libvirt") &&
            val != MP_SETTINGS.get(key); /* if we are switching between qemu and libvirt drivers (on linux),
                                                         we can only have stopped instances */
 }

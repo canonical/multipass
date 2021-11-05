@@ -259,6 +259,11 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
     return true;
 }
 
+bool mp::platform::Platform::is_backend_supported(const QString& backend) const
+{
+    return (backend == "qemu" && QEMU_ENABLED) || backend == "libvirt" || backend == "lxd";
+}
+
 bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     return ::link(target, link) == 0;
@@ -395,11 +400,6 @@ QString mp::platform::daemon_config_home() // temporary
 
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
     return ret;
-}
-
-bool mp::platform::is_backend_supported(const QString& backend)
-{
-    return (backend == "qemu" && QEMU_ENABLED) || backend == "libvirt" || backend == "lxd";
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)

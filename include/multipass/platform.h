@@ -55,6 +55,7 @@ public:
     virtual QString get_workflows_url_override() const;
     virtual bool is_alias_supported(const std::string& alias, const std::string& remote) const;
     virtual bool is_remote_supported(const std::string& remote) const;
+    virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
     virtual bool link(const char* target, const char* link) const;
     virtual bool symlink(const char* target, const char* link, bool is_dir) const;
@@ -79,7 +80,6 @@ QString default_privileged_mounts();
 
 QString daemon_config_home(); // temporary
 
-bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();

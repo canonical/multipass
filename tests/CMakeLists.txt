@@ -64,12 +64,12 @@ add_executable(multipass_tests
   test_petname.cpp
   test_platform_shared.cpp
   test_private_pass_provider.cpp
-  test_mock_settings.cpp
   test_mock_standard_paths.cpp
   test_qemuimg_process_spec.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_singleton.cpp
+  test_settings.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
   test_ssl_cert_provider.cpp
