@@ -113,7 +113,7 @@ qint64 mp::FileOps::write(QFile& file, const QByteArray& data) const
     return file.write(data);
 }
 
-std::FILE* mp::FileOps::fopen(const char* filename, const char* mode) const
+void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const
 {
-    return std::fopen(filename, mode);
+    stream.open(filename, mode);
 }

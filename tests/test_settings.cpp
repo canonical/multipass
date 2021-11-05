@@ -29,6 +29,8 @@
 #include <QKeySequence>
 #include <QString>
 
+#include <fstream>
+
 namespace mp = multipass;
 namespace mpt = mp::test;
 using namespace testing;
@@ -59,11 +61,6 @@ public:
 
 struct TestSettings : public Test
 {
-    void SetUp()
-    {
-        ON_CALL(*mock_file_ops, fopen(StrEq(""), StrEq("r"))).WillByDefault(Return(&fake_file));
-    }
-
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
@@ -82,8 +79,13 @@ struct TestSettings : public Test
 
     void mock_unreadable_settings_file(const char* filename)
     {
-        EXPECT_CALL(*mock_file_ops, fopen(StrEq(filename), StrEq("r")))
-            .WillOnce(DoAll(Assign(&errno, EACCES), Return(nullptr)));
+        std::fstream fstream{};
+        fstream.setstate(std::ios_base::failbit);
+
+        EXPECT_CALL(*mock_file_ops, open(_, StrEq(filename), Eq(std::ios_base::in)))
+            .WillOnce(DoAll(WithArg<0>([](auto& stream) { stream.setstate(std::ios_base::failbit); }),
+                            Assign(&errno, EACCES)));
+
         EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
     }
 
@@ -98,7 +100,6 @@ public:
 
     std::unique_ptr<NiceMock<MockQSettings>> mock_qsettings = std::make_unique<NiceMock<MockQSettings>>();
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
-    FILE fake_file;
 
 private:
     static QString call_real_settings_get(const QString& key)

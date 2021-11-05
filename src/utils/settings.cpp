@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cerrno>
+#include <fstream>
 #include <memory>
 #include <stdexcept>
 
@@ -95,7 +96,9 @@ std::unique_ptr<mp::WrappedQSettings> persistent_settings(const QString& key)
 
 bool exists_but_unreadable(const QString& filename)
 {
-    return !MP_FILEOPS.fopen(qPrintable(filename), "r") && errno && errno != ENOENT; /*
+    std::fstream in_stream;
+    MP_FILEOPS.open(in_stream, qPrintable(filename), std::ios_base::in);
+    return in_stream.fail() && errno && errno != ENOENT; /*
         Note: QFile::error() not enough for us: it would not distinguish the actual cause of failure;
         Note: errno is only set on some platforms, but those were experimentally verified to be the only ones that do
             not set a bad QSettings status on permission denied; to make this code portable, we need to account for a
