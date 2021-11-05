@@ -111,8 +111,9 @@ QString interpret_value(const QString& key, QString val) // work with a copy of 
 }
 } // namespace
 
-mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename, std::map<QString, QString> defaults)
-    : filename{std::move(filename)}, defaults{std::move(defaults)}
+mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename,
+                                                         std::map<QString, PersistentSetting::UPtr> settings)
+    : filename{std::move(filename)}, settings{std::move(settings)}
 {
 }
 
@@ -139,16 +140,16 @@ QString multipass::BasicPersistentSetting::interpret(const QString& val) const
 // TODO try installing yaml backend
 QString mp::PersistentSettingsHandler::get(const QString& key) const
 {
-    const auto& default_ret = get_default(key); // make sure the key is valid before reading from disk
-    auto settings = persistent_settings(filename);
-    return checked_get(*settings, key, default_ret, mutex);
+    const auto& default_ret = get_setting(key).get_default(); // make sure the key is valid before reading from disk
+    auto settings_file = persistent_settings(filename);
+    return checked_get(*settings_file, key, default_ret, mutex);
 }
 
-const QString& mp::PersistentSettingsHandler::get_default(const QString& key) const
+auto mp::PersistentSettingsHandler::get_setting(const QString& key) const -> const PersistentSetting&
 {
     try
     {
-        return defaults.at(key);
+        return *settings.at(key);
     }
     catch (const std::out_of_range&)
     {
@@ -158,17 +159,17 @@ const QString& mp::PersistentSettingsHandler::get_default(const QString& key) co
 
 void mp::PersistentSettingsHandler::set(const QString& key, const QString& val) const
 {
-    get_default(key);                             // make sure the key is valid before setting
+    get_setting(key);                             // make sure the key is valid before setting
     auto interpreted = interpret_value(key, val); // checks value validity, converts as appropriate
 
-    auto settings = persistent_settings(filename);
-    checked_set(*settings, key, val, mutex);
+    auto settings_file = persistent_settings(filename);
+    checked_set(*settings_file, key, val, mutex);
 }
 
 std::set<QString> mp::PersistentSettingsHandler::keys() const
 {
     std::set<QString> ret{};
-    std::transform(cbegin(defaults), cend(defaults), std::inserter(ret, begin(ret)),
+    std::transform(cbegin(settings), cend(settings), std::inserter(ret, begin(ret)),
                    [](const auto& elem) { return elem.first; }); // I wish get<0> worked here... maybe in C++20
 
     return ret;
