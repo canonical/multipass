@@ -74,59 +74,6 @@ private:
     }
 };
 
-// TODO@ricab where do I test specific settings?
-struct TestSettingsGetRegularKeys : public TestSettings, public WithParamInterface<QString>
-{
-};
-
-TEST_P(TestSettingsGetRegularKeys, getReturnsRecordedSetting)
-{
-    const auto key = GetParam();
-    const auto val = "asdf";
-    EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), _)).WillOnce(Return(val));
-
-    inject_mock_qsettings();
-    inject_real_settings_get(key);
-
-    ASSERT_NE(val, mpt::MockSettings::mock_instance().get_default(key));
-    EXPECT_EQ(MP_SETTINGS.get(key), QString{val});
-}
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsGetRegularKeys, TestSettingsGetRegularKeys, ValuesIn([] {
-                             std::vector<QString> ret{mp::petenv_key,
-                                                      mp::driver_key,
-                                                      mp::autostart_key,
-                                                      mp::hotkey_key,
-                                                      mp::bridged_interface_key,
-                                                      mp::mounts_key};
-
-                             for (const auto& item : MP_PLATFORM.extra_settings_defaults())
-                                 ret.push_back(item.first);
-
-                             return ret;
-                         }()));
-
-using KeyVal = std::tuple<QString, QString>;
-struct TestSettingsSetRegularKeys : public TestSettings, public WithParamInterface<KeyVal>
-{
-};
-
-TEST_P(TestSettingsSetRegularKeys, setRecordsProvidedSetting)
-{
-    const auto& [key, val] = GetParam();
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
-}
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSetRegularKeys,
-                         Values(KeyVal{mp::petenv_key, "instance-name"}, KeyVal{mp::petenv_key, ""},
-                                KeyVal{mp::autostart_key, "false"}, KeyVal{mp::bridged_interface_key, "iface"},
-                                KeyVal{mp::mounts_key, "true"}));
-
 TEST_F(TestSettings, setTranslatesHotkey)
 {
     const auto key = mp::hotkey_key;
@@ -198,6 +145,7 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsGoodBool, TestSettingsGoodBoolConversion, V
                              return ret;
                          }()));
 
+using KeyVal = std::tuple<QString, QString>;
 struct TestSettingsBadValue : public TestSettings, WithParamInterface<KeyVal>
 {
 };
