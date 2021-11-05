@@ -359,6 +359,11 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
     return false;
 }
 
+bool mp::platform::Platform::is_backend_supported(const QString& backend) const
+{
+    return backend == "hyperv" || backend == "virtualbox";
+}
+
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
     return {{mp::winterm_key, {"primary"}}};
@@ -446,11 +451,6 @@ QString mp::platform::daemon_config_home() // temporary
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
 
     return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
-}
-
-bool mp::platform::is_backend_supported(const QString& backend)
-{
-    return backend == "hyperv" || backend == "virtualbox";
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
