@@ -73,6 +73,8 @@ public:
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 };
 
+// TODO@ricab de-duplicate daemon/client tests where possible (TEST_P)
+
 TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_with_client_filename)
 {
     auto config_location = QStringLiteral("/a/b/c");
@@ -182,7 +184,32 @@ TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_d
 
 TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_daemon_platform_settings)
 {
-    // TODO@ricab
+    const auto daemon_defaults = std::map<QString, QString>{{"local.blah", "blargh"},
+                                                            {"local.a.bool", "false"},
+                                                            {"local.foo", "barrrr"},
+                                                            {"local.a.long.number", "1234567890"}};
+    const auto other_defaults = std::map<QString, QString>{{"zxy", "0"}, {"helter", "skelter"}};
+    auto all_defaults = daemon_defaults;
+    all_defaults.insert(other_defaults.cbegin(), other_defaults.cend());
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, extra_settings_defaults).WillOnce(Return(all_defaults));
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::daemon::register_settings_handlers();
+
+    inject_default_returning_mock_qsettings();
+    for (const auto& item : other_defaults)
+    {
+        MP_EXPECT_THROW_THAT(handler->get(item.first), mp::UnrecognizedSettingException,
+                             mpt::match_what(HasSubstr(item.first.toStdString())));
+    }
+
+    for (const auto& [k, v] : daemon_defaults)
+    {
+        EXPECT_EQ(handler->get(k), v);
+    }
 }
 
 TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_with_overridden_platform_defaults)
