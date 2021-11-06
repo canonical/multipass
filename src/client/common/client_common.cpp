@@ -86,14 +86,11 @@ QString driver_interpreter(const QString& val)
 void register_daemon_settings_handler()
 { // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
     using namespace multipass;
-    SettingSpec::Set settings{};
+
+    auto settings = MP_PLATFORM.extra_daemon_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
     settings.insert(std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
     settings.insert(std::make_unique<DynamicSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
-
-    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab return specs instead
-        if (k.startsWith(daemon_root))
-            settings.insert(std::make_unique<BasicSettingSpec>(k, v));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(daemon_settings_filename(), std::move(settings)));
@@ -160,16 +157,12 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
 
 void mp::client::register_settings_handlers()
 {
-    SettingSpec::Set settings{};
+    auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
     settings.insert(std::make_unique<DynamicSettingSpec>(mp::petenv_key, petenv_name, petenv_interpreter));
     settings.insert(std::make_unique<DynamicSettingSpec>(mp::hotkey_key, default_hotkey(), [](const QString& val) {
         return mp::platform::interpret_setting(mp::hotkey_key, val);
     }));
-
-    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab return specs instead
-        if (k.startsWith(client_root))
-            settings.insert(std::make_unique<BasicSettingSpec>(k, v));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));

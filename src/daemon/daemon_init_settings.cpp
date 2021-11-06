@@ -74,14 +74,10 @@ void mp::daemon::monitor_and_quit_on_settings_change() // temporary
 
 void mp::daemon::register_settings_handlers()
 {
-    SettingSpec::Set settings{};
+    auto settings = MP_PLATFORM.extra_daemon_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
     settings.insert(std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
     settings.insert(std::make_unique<DynamicSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
-
-    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab return specs instead
-        if (k.startsWith(daemon_root))
-            settings.insert(std::make_unique<BasicSettingSpec>(k, v));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
