@@ -21,7 +21,7 @@
 #include "common.h"
 #include "mock_singleton_helpers.h"
 
-#include <src/utils/wrapped_qsettings.h>
+#include <src/settings/wrapped_qsettings.h>
 
 namespace multipass::test
 {
