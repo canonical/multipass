@@ -20,6 +20,8 @@
 #include <multipass/constants.h>
 #include <multipass/platform.h>
 #include <multipass/settings/basic_setting_spec.h>
+#include <multipass/settings/bool_setting_spec.h>
+#include <multipass/settings/dynamic_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
 #include <multipass/settings/settings.h>
 #include <multipass/utils.h>
@@ -51,6 +53,19 @@ QString persistent_settings_filename()
     return path;
 }
 
+void add_setting(std::map<QString, mp::SettingSpec::UPtr>& settings, mp::SettingSpec::UPtr setting)
+{ // TODO@ricab probably move this to PersistentSettingsHandler
+    settings.insert_or_assign(setting->get_key(), std::move(setting));
+}
+
+QString driver_interpreter(const QString& val)
+{
+    if (!MP_PLATFORM.is_backend_supported(val))
+        throw mp::InvalidSettingException(mp::driver_key, val, "Invalid driver");
+
+    return val;
+}
+
 } // namespace
 
 void mp::daemon::monitor_and_quit_on_settings_change() // temporary
@@ -64,17 +79,15 @@ void mp::daemon::monitor_and_quit_on_settings_change() // temporary
 
 void mp::daemon::register_settings_handlers()
 {
-    auto setting_defaults = std::map<QString, QString>{{mp::driver_key, MP_PLATFORM.default_driver()},
-                                                       {mp::bridged_interface_key, ""},
-                                                       {mp::mounts_key, MP_PLATFORM.default_privileged_mounts()}};
+    std::map<QString, SettingSpec::UPtr> settings;
+    add_setting(settings, std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
+    add_setting(settings, std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
+    add_setting(settings, std::make_unique<DynamicSettingSpec>(driver_key, MP_PLATFORM.default_driver(),
+                                                               driver_interpreter)); // clang-format keep this please
 
-    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab try algo
+    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab return specs instead
         if (k.startsWith(daemon_root))
-            setting_defaults.insert_or_assign(k, v);
-
-    std::map<QString, mp::SettingSpec::UPtr> settings;
-    for (const auto& [k, v] : setting_defaults)
-        settings[k] = std::make_unique<multipass::BasicSettingSpec>(k, v);
+            add_setting(settings, std::make_unique<BasicSettingSpec>(k, v));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
