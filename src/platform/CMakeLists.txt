@@ -37,6 +37,7 @@ include_directories(platform
 
 target_link_libraries(platform
   daemon
+  settings
   shared
   update)
 

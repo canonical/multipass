@@ -125,6 +125,7 @@ target_link_libraries(multipass_tests
   network
   petname
   poco_utils
+  settings
   simplestreams
   sftp_test
   ssh_test
