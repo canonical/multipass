@@ -316,7 +316,12 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
         throw std::runtime_error(strerror(errno));
 }
 
-std::map<QString, QString> mp::platform::Platform::extra_settings_defaults() const
+auto mp::platform::Platform::extra_daemon_settings() const -> SettingSpec::Set
+{
+    return {};
+}
+
+auto mp::platform::Platform::extra_client_settings() const -> SettingSpec::Set
 {
     return {};
 }

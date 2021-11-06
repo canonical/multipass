@@ -24,6 +24,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/process/process.h>
 #include <multipass/process/process_spec.h>
+#include <multipass/settings/setting_spec.h>
 #include <multipass/singleton.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
@@ -64,10 +65,11 @@ public:
     virtual void create_alias_script(const std::string& alias, const AliasDefinition& def) const;
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
-    virtual std::map<QString, QString> extra_settings_defaults() const; // TODO@ricab private side
-    virtual QString daemon_config_home() const;                         // temporary // TODO@ricab drop
-    virtual QString default_driver() const;                             // TODO@ricab private side
-    virtual QString default_privileged_mounts() const;                  // TODO@ricab private side
+    virtual SettingSpec::Set extra_daemon_settings() const; // TODO@ricab private side
+    virtual SettingSpec::Set extra_client_settings() const; // TODO@ricab private side
+    virtual QString daemon_config_home() const;             // temporary // TODO@ricab drop
+    virtual QString default_driver() const;                 // TODO@ricab private side
+    virtual QString default_privileged_mounts() const;      // TODO@ricab private side
 };
 
 QString interpret_setting(const QString& key, const QString& val);
