@@ -15,6 +15,7 @@
 
 add_library(settings STATIC
         basic_setting_spec.cpp
+        bool_setting_spec.cpp
         persistent_settings_handler.cpp
         settings.cpp
         dynamic_setting_spec.cpp)
