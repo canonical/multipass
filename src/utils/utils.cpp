@@ -22,7 +22,6 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/settings/settings.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -437,18 +436,6 @@ QString mp::utils::backend_directory_path(const mp::Path& path, const QString& s
         return path;
 
     return mp::Path("%1/%2").arg(path).arg(subdirectory);
-}
-
-QString mp::utils::get_driver_str()
-{
-    auto driver = qgetenv(mp::driver_env_var);
-    if (!driver.isEmpty())
-    {
-        mpl::log(mpl::Level::warning, "platform",
-                 fmt::format("{} is now ignored, please use `multipass set {}` instead.", mp::driver_env_var,
-                             mp::driver_key));
-    }
-    return MP_SETTINGS.get(mp::driver_key);
 }
 
 QString mp::utils::make_uuid()

@@ -24,6 +24,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -251,7 +252,8 @@ QString mp::platform::Platform::get_workflows_url_override() const
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
     // snapcraft:core don't work on LXD yet
-    return !(utils::get_driver_str() == "lxd" && remote == "snapcraft" && (alias == "core" || alias == "16.04"));
+    return !(MP_SETTINGS.get(mp::driver_key) == "lxd" && remote == "snapcraft" &&
+             (alias == "core" || alias == "16.04"));
 }
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
@@ -404,7 +406,7 @@ std::string mp::platform::default_server_address()
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    const auto& driver = utils::get_driver_str();
+    const auto& driver = MP_SETTINGS.get(mp::driver_key);
 #if QEMU_ENABLED
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);

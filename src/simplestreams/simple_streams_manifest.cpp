@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,9 @@
 #include <QJsonObject>
 #include <QSysInfo>
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/manifest_exceptions.h>
+#include <multipass/settings/settings.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
@@ -117,7 +119,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
             if (items.isEmpty())
                 continue;
 
-            const auto& driver = utils::get_driver_str();
+            const auto& driver = MP_SETTINGS.get(mp::driver_key);
 
             QJsonObject image;
             QString sha256, image_location, kernel_location, initrd_location;

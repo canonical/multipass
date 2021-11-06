@@ -120,7 +120,6 @@ template <typename RegisteredQtEnum>
 std::string qenum_to_string(RegisteredQtEnum val);
 
 // other helpers
-QString get_driver_str();
 QString make_uuid();
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
