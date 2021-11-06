@@ -40,7 +40,8 @@ public:
     MOCK_CONST_METHOD3(utime, int(const char*, int, int));
     MOCK_CONST_METHOD2(create_alias_script, void(const std::string&, const AliasDefinition&));
     MOCK_CONST_METHOD1(remove_alias_script, void(const std::string&));
-    MOCK_CONST_METHOD0(extra_settings_defaults, std::map<QString, QString>());
+    MOCK_CONST_METHOD0(extra_daemon_settings, SettingSpec::Set());
+    MOCK_CONST_METHOD0(extra_client_settings, SettingSpec::Set());
     MOCK_CONST_METHOD0(daemon_config_home, QString());
     MOCK_CONST_METHOD0(default_driver, QString());
     MOCK_CONST_METHOD0(default_privileged_mounts, QString());
