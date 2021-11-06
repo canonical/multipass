@@ -112,7 +112,7 @@ QString interpret_value(const QString& key, QString val) // work with a copy of 
 } // namespace
 
 mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename,
-                                                         std::map<QString, PersistentSetting::UPtr> settings)
+                                                         std::map<QString, SettingSpec::UPtr> settings)
     : filename{std::move(filename)}, settings{std::move(settings)}
 {
 }
@@ -125,7 +125,7 @@ QString mp::PersistentSettingsHandler::get(const QString& key) const
     return checked_get(*settings_file, key, default_ret, mutex);
 }
 
-auto mp::PersistentSettingsHandler::get_setting(const QString& key) const -> const PersistentSetting&
+auto mp::PersistentSettingsHandler::get_setting(const QString& key) const -> const SettingSpec&
 {
     try
     {

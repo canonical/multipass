@@ -22,7 +22,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/optional.h>
-#include <multipass/settings/basic_persistent_setting.h>
+#include <multipass/settings/basic_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
 
 #include <QString>
@@ -82,11 +82,11 @@ public:
     std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
 
 private:
-    std::map<QString, mp::PersistentSetting::UPtr> make_basic_persistent_settings() const
+    std::map<QString, mp::SettingSpec::UPtr> make_basic_persistent_settings() const
     {
-        std::map<QString, mp::PersistentSetting::UPtr> ret;
+        std::map<QString, mp::SettingSpec::UPtr> ret;
         for (const auto& [k, v] : defaults)
-            ret[k] = std::make_unique<mp::BasicPersistentSetting>(k, v);
+            ret[k] = std::make_unique<mp::BasicSettingSpec>(k, v);
 
         return ret;
     }

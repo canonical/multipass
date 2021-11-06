@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_PERSISTENT_SETTINGS_HANDLER_H
 #define MULTIPASS_PERSISTENT_SETTINGS_HANDLER_H
 
-#include "persistent_setting.h"
+#include "setting_spec.h"
 #include "settings_handler.h"
 
 #include <map>
@@ -29,17 +29,17 @@ namespace multipass
 class PersistentSettingsHandler : public SettingsHandler
 {
 public:
-    PersistentSettingsHandler(QString filename, std::map<QString, PersistentSetting::UPtr> settings);
+    PersistentSettingsHandler(QString filename, std::map<QString, SettingSpec::UPtr> settings);
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) const override;
     std::set<QString> keys() const override;
 
 private:
-    const PersistentSetting& get_setting(const QString& key) const; // throws on unknown key
+    const SettingSpec& get_setting(const QString& key) const; // throws on unknown key
 
 private:
     QString filename;
-    std::map<QString, PersistentSetting::UPtr> settings;
+    std::map<QString, SettingSpec::UPtr> settings;
     mutable std::mutex mutex;
 };
 } // namespace multipass

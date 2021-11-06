@@ -21,7 +21,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
-#include <multipass/settings/basic_persistent_setting.h>
+#include <multipass/settings/basic_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
@@ -133,9 +133,9 @@ void mp::client::register_settings_handlers()
         if (k.startsWith(client_root))
             setting_defaults.insert_or_assign(k, v);
 
-    std::map<QString, mp::PersistentSetting::UPtr> settings;
+    std::map<QString, mp::SettingSpec::UPtr> settings;
     for (const auto& [k, v] : setting_defaults)
-        settings[k] = std::make_unique<multipass::BasicPersistentSetting>(k, v);
+        settings[k] = std::make_unique<multipass::BasicSettingSpec>(k, v);
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
@@ -149,9 +149,9 @@ void mp::client::register_settings_handlers()
             if (k.startsWith(daemon_root))
                 daemon_defaults.insert_or_assign(k, v);
 
-        std::map<QString, mp::PersistentSetting::UPtr> daemon_settings;
+        std::map<QString, mp::SettingSpec::UPtr> daemon_settings;
         for (const auto& [k, v] : daemon_defaults)
-            daemon_settings[k] = std::make_unique<multipass::BasicPersistentSetting>(k, v);
+            daemon_settings[k] = std::make_unique<multipass::BasicSettingSpec>(k, v);
 
         MP_SETTINGS.register_handler(
             std::make_unique<PersistentSettingsHandler>(daemon_settings_filename(), std::move(daemon_settings)));

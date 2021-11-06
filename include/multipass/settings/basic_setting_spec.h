@@ -15,27 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_PERSISTENT_SETTING_H
-#define MULTIPASS_PERSISTENT_SETTING_H
+#ifndef MULTIPASS_BASIC_SETTING_SPEC_H
+#define MULTIPASS_BASIC_SETTING_SPEC_H
 
-#include <multipass/disabled_copy_move.h>
-
-#include <QString>
-
-#include <memory>
+#include "setting_spec.h"
 
 namespace multipass
 {
-class PersistentSetting : public DisabledCopyMove
+class BasicSettingSpec : public SettingSpec
 {
 public:
-    using UPtr = std::unique_ptr<PersistentSetting>;
-    virtual ~PersistentSetting() = default;
+    BasicSettingSpec(QString key, QString default_);
+    QString get_key() const override;
+    QString get_default() const override;
+    QString interpret(const QString& val) const override;
 
-    virtual QString get_key() const = 0;
-    virtual QString get_default() const = 0;
-    virtual QString interpret(const QString& val) const = 0;
+protected:
+    QString key;
+    QString default_;
 };
 } // namespace multipass
 
-#endif // MULTIPASS_PERSISTENT_SETTING_H
+#endif // MULTIPASS_BASIC_SETTING_SPEC_H

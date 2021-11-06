@@ -15,25 +15,26 @@
  *
  */
 
-#ifndef MULTIPASS_BASIC_PERSISTENT_SETTING_H
-#define MULTIPASS_BASIC_PERSISTENT_SETTING_H
+#include <multipass/settings/basic_setting_spec.h>
 
-#include "persistent_setting.h"
+namespace mp = multipass;
 
-namespace multipass
+mp::BasicSettingSpec::BasicSettingSpec(QString key, QString default_)
+    : key{std::move(key)}, default_{std::move(default_)}
 {
-class BasicPersistentSetting : public PersistentSetting
+}
+
+QString multipass::BasicSettingSpec::get_key() const
 {
-public:
-    BasicPersistentSetting(QString key, QString default_);
-    QString get_key() const override;
-    QString get_default() const override;
-    QString interpret(const QString& val) const override;
+    return key;
+}
 
-protected:
-    QString key;
-    QString default_;
-};
-} // namespace multipass
+QString multipass::BasicSettingSpec::get_default() const
+{
+    return default_;
+}
 
-#endif // MULTIPASS_BASIC_PERSISTENT_SETTING_H
+QString multipass::BasicSettingSpec::interpret(const QString& val) const
+{
+    return val;
+}

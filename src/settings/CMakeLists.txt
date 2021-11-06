@@ -14,7 +14,7 @@
 #
 
 add_library(settings STATIC
-        basic_persistent_setting.cpp
+        basic_setting_spec.cpp
         persistent_settings_handler.cpp
         settings.cpp)
 
