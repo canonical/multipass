@@ -21,7 +21,7 @@ namespace mp = multipass;
 
 mp::DynamicSettingSpec::DynamicSettingSpec(QString key, QString default_,
                                            std::function<QString(const QString&)> interpreter)
-    : multipass::BasicSettingSpec(std::move(key), std::move(default_)), interpreter{std::move(interpreter)}
+    : multipass::BasicSettingSpec(std::move(key), interpreter(std::move(default_))), interpreter{std::move(interpreter)}
 {
 }
 

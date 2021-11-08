@@ -41,7 +41,7 @@ TYPED_TEST(TestPlainKeyAndDefault, basicSettingSpecReturnsProvidedKeyAndDefault)
     const auto key = "foo", default_ = "true";
     const auto setting = [key, default_]() {
         if constexpr (std::is_same_v<TypeParam, mp::DynamicSettingSpec>)
-            return TypeParam{key, default_, {}};
+            return TypeParam{key, default_, [](const auto& v) { return v; }};
         else
             return TypeParam{key, default_};
     }();
@@ -69,6 +69,13 @@ TEST(TestSettingSpec, dynamicSettingSpecCallsGivenInterpreter)
 
     EXPECT_EQ(setting.interpret(val), val);
     EXPECT_TRUE(called);
+}
+
+TEST(TestSettingSpec, dynamicSettingSpecInterpretsGivenDefault)
+{
+    const auto interpreted = "real";
+    mp::DynamicSettingSpec setting{"poiu", "lkjh", [interpreted](const auto&) { return interpreted; }};
+    EXPECT_EQ(setting.get_default(), interpreted);
 }
 
 struct TestBadBoolSettingSpec : public TestWithParam<const char*>

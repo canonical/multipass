@@ -20,7 +20,8 @@
 namespace mp = multipass;
 
 mp::BasicSettingSpec::BasicSettingSpec(QString key, QString default_)
-    : key{std::move(key)}, default_{std::move(default_)}
+    : key{std::move(key)},
+      default_{std::move(default_)} // no point interpreting here, polymorphism disabled at construction
 {
 }
 
