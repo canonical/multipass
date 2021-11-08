@@ -329,4 +329,18 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsBoolMoun
     ASSERT_NO_THROW(handler->set(mp::mounts_key, "1"));
 }
 
+TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsBrigedInterface)
+{
+    const auto val = "bridge";
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::daemon::register_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::bridged_interface_key), Eq(val)));
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(mp::bridged_interface_key, val));
+}
+
 } // namespace
