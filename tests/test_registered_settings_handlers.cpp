@@ -172,6 +172,18 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTranslatesHotke
     ASSERT_NO_THROW(handler->set(key, val));
 }
 
+TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTakesBoolAutostart)
+{
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::client::register_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::autostart_key), Eq("false")));
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(mp::autostart_key, "0"));
+}
+
 TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFilename)
 {
     auto config_location = QStringLiteral("/a/b/c");
