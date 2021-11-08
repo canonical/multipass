@@ -166,7 +166,7 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTranslatesHotke
     grab_registered_persistent_handler(handler);
     mp::client::register_settings_handlers();
 
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val))).Times(1);
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val)));
     inject_mock_qsettings();
 
     ASSERT_NO_THROW(handler->set(key, val));
@@ -249,7 +249,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBac
     mp::daemon::register_settings_handlers();
 
     EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val)));
     inject_mock_qsettings();
 
     ASSERT_NO_THROW(handler->set(key, val));
