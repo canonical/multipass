@@ -35,13 +35,23 @@ QString interpret_bool(QString val)
     else
         return val;
 }
-} // namespace
 
-QString mp::BoolSettingSpec::interpret(const QString& val) const
+QString interpret_impl(const QString& key, const QString& val)
 {
     auto ret = interpret_bool(val);
     if (ret != "true" && ret != "false")
-        throw InvalidSettingException(key, val, "Invalid flag, try \"true\" or \"false\"");
+        throw mp::InvalidSettingException(key, val, "Invalid flag, try \"true\" or \"false\"");
 
     return ret;
+}
+} // namespace
+
+mp::BoolSettingSpec::BoolSettingSpec(QString key, QString default_)
+    : BasicSettingSpec(std::move(key), interpret_impl(key, default_))
+{
+}
+
+QString mp::BoolSettingSpec::interpret(const QString& val) const
+{
+    return interpret_impl(key, val);
 }
