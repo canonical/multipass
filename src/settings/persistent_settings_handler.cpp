@@ -160,7 +160,7 @@ auto mp::PersistentSettingsHandler::convert(SettingSpec::Set settings) -> Settin
     while (!settings.empty())
     {
         auto it = settings.begin();
-        auto key = (*it)->get_key();                                          // ensure setting not moved yet
+        auto key = (*it)->get_key();                                          // ensure setting not extracted yet
         ret.emplace(std::move(key), std::move(settings.extract(it).value())); /* need to extract to be able to move
                                                  see notes in https://en.cppreference.com/w/cpp/container/set/begin */
     }
