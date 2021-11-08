@@ -16,17 +16,12 @@
  */
 
 #include "common.h"
-#include "mock_platform.h"
-#include "mock_qsettings.h"
 #include "mock_settings.h"
 
 #include <multipass/constants.h>
-#include <multipass/platform.h>
 
 #include <QKeySequence>
 #include <QString>
-
-#include <fstream>
 
 namespace mp = multipass;
 namespace mpt = mp::test;
@@ -36,12 +31,6 @@ namespace
 {
 struct TestSettings : public Test
 {
-    void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
-    {
-        EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
-            .WillOnce(Return(ByMove(std::move(mock_qsettings))));
-    }
-
     void inject_real_settings_get(const QString& key)
     {
         EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(call_real_settings_get);
@@ -53,13 +42,6 @@ struct TestSettings : public Test
     }
 
 public:
-    mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
-        mpt::MockQSettingsProvider::inject<StrictMock>(); /* this is made strict to ensure that, other than explicitly
-        injected, no QSettings are used; that's particularly important when injecting real get and set behavior (don't
-        want tests to be affected, nor themselves affect, disk state) */
-    mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
-
-    std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 
 private:
