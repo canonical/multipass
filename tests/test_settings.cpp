@@ -74,24 +74,6 @@ private:
     }
 };
 
-using KeyVal = std::tuple<QString, QString>;
-struct TestSettingsBadValue : public TestSettings, WithParamInterface<KeyVal>
-{
-};
-
-TEST_P(TestSettingsBadValue, setThrowsOnInvalidSettingValue)
-{
-    const auto& [key, val] = GetParam();
-
-    inject_real_settings_set(key, val);
-
-    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingException,
-                         mpt::match_what(AllOf(HasSubstr(key.toStdString()), HasSubstr(val.toStdString()))));
-}
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsBadPetEnv, TestSettingsBadValue,
-                         Combine(Values(mp::petenv_key), Values("-", "-a-b-", "_asd", "_1", "1-2-3")));
-
 template <typename T>
 struct SettingValueRepresentation
 {

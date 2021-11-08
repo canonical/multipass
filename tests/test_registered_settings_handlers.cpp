@@ -172,9 +172,9 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTranslatesHotke
     ASSERT_NO_THROW(handler->set(key, val));
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTakesBoolAutostart)
+TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatAcceptsBoolAutostart)
 {
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr; // TODO@ricab try to extract this stuff
     grab_registered_persistent_handler(handler);
     mp::client::register_settings_handlers();
 
@@ -183,6 +183,42 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTakesBoolAutost
 
     ASSERT_NO_THROW(handler->set(mp::autostart_key, "0"));
 }
+
+struct TestGoodPetEnvSetting : public TestRegisteredSettingsHandlers, WithParamInterface<const char*>
+{
+};
+
+TEST_P(TestGoodPetEnvSetting, clientsRegisterHandlerThatAcceptsValidPetenv)
+{
+    auto key = mp::petenv_key, val = GetParam();
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr; // TODO@ricab try to extract this stuff
+    grab_registered_persistent_handler(handler);
+    mp::client::register_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val)));
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(key, val));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestGoodPetEnvSetting, TestGoodPetEnvSetting, Values("valid-primary", ""));
+
+struct TestBadPetEnvSetting : public TestRegisteredSettingsHandlers, WithParamInterface<const char*>
+{
+};
+
+TEST_P(TestBadPetEnvSetting, clientsRegisterHandlerThatRejectsInvalidPetenv)
+{
+    auto key = mp::petenv_key, val = GetParam();
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::client::register_settings_handlers();
+
+    MP_ASSERT_THROW_THAT(handler->set(key, val), mp::InvalidSettingException,
+                         mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestBadPetEnvSetting, TestBadPetEnvSetting, Values("-", "-a-b-", "_asd", "_1", "1-2-3"));
 
 TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFilename)
 {
