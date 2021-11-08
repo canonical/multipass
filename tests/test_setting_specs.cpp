@@ -38,7 +38,7 @@ MP_TYPED_TEST_SUITE(TestPlainKeyAndDefault, PlainKeyAndDefaultTypes);
 
 TYPED_TEST(TestPlainKeyAndDefault, basicSettingSpecReturnsProvidedKeyAndDefault)
 {
-    const auto key = "foo", default_ = "bar";
+    const auto key = "foo", default_ = "true";
     const auto setting = [key, default_]() {
         if constexpr (std::is_same_v<TypeParam, mp::DynamicSettingSpec>)
             return TypeParam{key, default_, {}};

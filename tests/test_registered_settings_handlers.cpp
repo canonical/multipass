@@ -125,6 +125,7 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClient
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
     EXPECT_CALL(*mock_platform, extra_client_settings).WillOnce(Return(ByMove(std::move(client_settings))));
+    EXPECT_CALL(*mock_platform, default_privileged_mounts).WillOnce(Return("true"));
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
@@ -171,6 +172,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithDaemo
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
     EXPECT_CALL(*mock_platform, daemon_config_home).WillOnce(Return(config_location));
+    EXPECT_CALL(*mock_platform, default_privileged_mounts).WillOnce(Return("true"));
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
@@ -212,6 +214,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemon
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
     EXPECT_CALL(*mock_platform, extra_daemon_settings).WillOnce(Return(ByMove(std::move(daemon_settings))));
+    EXPECT_CALL(*mock_platform, default_privileged_mounts).WillOnce(Return("true"));
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
