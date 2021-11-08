@@ -38,6 +38,12 @@ namespace
 {
 struct TestRegisteredSettingsHandlers : public Test
 {
+    void SetUp() override
+    {
+        ON_CALL(mock_platform, default_privileged_mounts).WillByDefault(Return("true"));
+        ON_CALL(mock_platform, is_backend_supported).WillByDefault(Return(true));
+    }
+
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
@@ -79,6 +85,9 @@ public:
 
     std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
+
+    mpt::MockPlatform::GuardedMock mock_platform_injection = mpt::MockPlatform::inject<NiceMock>();
+    mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 };
 
 // TODO@ricab de-duplicate daemon/client tests where possible (TEST_P)
@@ -123,10 +132,7 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClient
     for (const auto& [k, v] : client_defaults)
         client_settings.insert(std::make_unique<mp::BasicSettingSpec>(k, v));
 
-    auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*mock_platform, extra_client_settings).WillOnce(Return(ByMove(std::move(client_settings))));
-    EXPECT_CALL(*mock_platform, default_privileged_mounts).WillOnce(Return("true"));
-    EXPECT_CALL(*mock_platform, is_backend_supported).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, extra_client_settings).WillOnce(Return(ByMove(std::move(client_settings))));
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
@@ -171,10 +177,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithDaemo
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipassd.conf";
 
-    auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*mock_platform, daemon_config_home).WillOnce(Return(config_location));
-    EXPECT_CALL(*mock_platform, default_privileged_mounts).WillOnce(Return("true"));
-    EXPECT_CALL(*mock_platform, is_backend_supported).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, daemon_config_home).WillOnce(Return(config_location));
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
@@ -190,10 +193,8 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemon
     const auto driver = "conductor";
     const auto mount = "false";
 
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*mock_platform, default_driver).WillOnce(Return(driver));
-    EXPECT_CALL(*mock_platform, default_privileged_mounts).WillOnce(Return(mount));
-    EXPECT_CALL(*mock_platform, is_backend_supported).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, default_driver).WillOnce(Return(driver));
+    EXPECT_CALL(mock_platform, default_privileged_mounts).WillOnce(Return(mount));
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
@@ -215,10 +216,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemon
     for (const auto& [k, v] : daemon_defaults)
         daemon_settings.insert(std::make_unique<mp::BasicSettingSpec>(k, v));
 
-    auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*mock_platform, extra_daemon_settings).WillOnce(Return(ByMove(std::move(daemon_settings))));
-    EXPECT_CALL(*mock_platform, default_privileged_mounts).WillOnce(Return("true"));
-    EXPECT_CALL(*mock_platform, is_backend_supported).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, extra_daemon_settings).WillOnce(Return(ByMove(std::move(daemon_settings))));
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
@@ -250,9 +248,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegisterHandlerThatAcceptsValidBack
     grab_registered_persistent_handler(handler);
     mp::daemon::register_settings_handlers();
 
-    auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
-
+    EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
     inject_mock_qsettings();
 
@@ -267,8 +263,7 @@ TEST_F(TestRegisteredSettingsHandlers, setRejectsInvalidBackend)
     grab_registered_persistent_handler(handler);
     mp::daemon::register_settings_handlers();
 
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
+    EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
 
     MP_ASSERT_THROW_THAT(handler->set(key, val), mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
