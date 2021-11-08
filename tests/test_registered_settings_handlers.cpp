@@ -38,7 +38,7 @@ namespace
 {
 struct TestRegisteredSettingsHandlers : public Test
 {
-    void inject_default_returning_mock_qsettings() // moves the mock, so call once only, after setting expectations
+    void inject_default_returning_mock_qsettings() // TODO@ricab do I really need this after all?
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings)
             .WillRepeatedly(InvokeWithoutArgs(make_default_returning_mock_qsettings));
