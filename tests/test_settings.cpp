@@ -74,48 +74,6 @@ private:
     }
 };
 
-TEST_F(TestSettings, setTranslatesHotkey)
-{
-    const auto key = mp::hotkey_key;
-    const auto val = "Alt+X";
-    const auto native_val = mp::platform::interpret_setting(key, val);
-
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
-}
-
-TEST_F(TestSettings, setAcceptsValidBackend)
-{
-    auto key = mp::driver_key, val = "good driver";
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
-
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
-}
-
-TEST_F(TestSettings, setRejectsInvalidBackend)
-{
-    auto key = mp::driver_key, val = "bad driver";
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
-
-    inject_real_settings_set(key, val);
-
-    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingException,
-                         mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
-}
-
 using KeyReprVal = std::tuple<QString, QString, QString>;
 struct TestSettingsGoodBoolConversion : public TestSettings, public WithParamInterface<KeyReprVal>
 {

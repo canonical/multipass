@@ -38,6 +38,12 @@ namespace
 {
 struct TestRegisteredSettingsHandlers : public Test
 {
+    void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
+    {
+        EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
+            .WillOnce(Return(ByMove(std::move(mock_qsettings))));
+    }
+
     void inject_default_returning_mock_qsettings() // TODO@ricab do I really need this after all?
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings)
@@ -71,6 +77,7 @@ public:
                                                              QSettings are used */
     mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
 
+    std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 };
 
@@ -143,6 +150,22 @@ TEST_F(TestRegisteredSettingsHandlers, clientsDoNotRegisterPersistentHandlerForD
 
 TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
 {
+    const auto key = mp::hotkey_key;
+    const auto val = "Alt+X";
+    const auto native_val = mp::platform::interpret_setting(key, val);
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::client::register_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val))).Times(1);
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(key, val));
+}
+
+TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFilename)
+{
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipassd.conf";
 
@@ -210,6 +233,38 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithOverr
 TEST_F(TestRegisteredSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClientSettings)
 {
     // TODO@ricab
+}
+
+TEST_F(TestRegisteredSettingsHandlers, daemonRegisterHandlerThatAcceptsValidBackend)
+{
+    auto key = mp::driver_key, val = "good driver";
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::daemon::register_settings_handlers();
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(key, val));
+}
+
+TEST_F(TestRegisteredSettingsHandlers, setRejectsInvalidBackend)
+{
+    auto key = mp::driver_key, val = "bad driver";
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::daemon::register_settings_handlers();
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
+
+    MP_ASSERT_THROW_THAT(handler->set(key, val), mp::InvalidSettingException,
+                         mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
 
 } // namespace
