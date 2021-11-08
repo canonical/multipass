@@ -74,35 +74,6 @@ private:
     }
 };
 
-using KeyReprVal = std::tuple<QString, QString, QString>;
-struct TestSettingsGoodBoolConversion : public TestSettings, public WithParamInterface<KeyReprVal>
-{
-};
-
-TEST_P(TestSettingsGoodBoolConversion, setConvertsAcceptableBoolRepresentations)
-{
-    const auto& [key, repr, val] = GetParam();
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, repr);
-
-    ASSERT_NO_THROW(MP_SETTINGS.set(key, repr));
-}
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsGoodBool, TestSettingsGoodBoolConversion, ValuesIn([] {
-                             std::vector<KeyReprVal> ret;
-                             for (const auto& key : {mp::autostart_key, mp::mounts_key})
-                             {
-                                 for (const auto& repr : {"yes", "on", "1", "true"})
-                                     ret.emplace_back(key, repr, "true");
-                                 for (const auto& repr : {"no", "off", "0", "false"})
-                                     ret.emplace_back(key, repr, "false");
-                             }
-
-                             return ret;
-                         }()));
-
 using KeyVal = std::tuple<QString, QString>;
 struct TestSettingsBadValue : public TestSettings, WithParamInterface<KeyVal>
 {
@@ -117,10 +88,6 @@ TEST_P(TestSettingsBadValue, setThrowsOnInvalidSettingValue)
     MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key.toStdString()), HasSubstr(val.toStdString()))));
 }
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsBadBool, TestSettingsBadValue,
-                         Combine(Values(mp::autostart_key, mp::mounts_key),
-                                 Values("nonsense", "invalid", "", "bool", "representations", "-", "null")));
 
 INSTANTIATE_TEST_SUITE_P(TestSettingsBadPetEnv, TestSettingsBadValue,
                          Combine(Values(mp::petenv_key), Values("-", "-a-b-", "_asd", "_1", "1-2-3")));
