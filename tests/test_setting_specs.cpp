@@ -17,6 +17,7 @@
 
 #include "common.h"
 
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings/basic_setting_spec.h>
 #include <multipass/settings/bool_setting_spec.h>
 #include <multipass/settings/dynamic_setting_spec.h>
@@ -70,4 +71,21 @@ TEST(TestSettingSpec, dynamicSettingSpecCallsGivenInterpreter)
     EXPECT_TRUE(called);
 }
 
+using ReprVal = std::tuple<QString, QString>;
+struct TestGoodBoolSettingSpec : public TestWithParam<ReprVal>
+{
+};
+
+TEST_P(TestGoodBoolSettingSpec, interpretsBools)
+{
+    const auto& [repr, val] = GetParam();
+    mp::BoolSettingSpec setting{"key", "false"};
+
+    EXPECT_EQ(setting.interpret(repr), val);
+}
+
+INSTANTIATE_TEST_SUITE_P(TestTrueBoolSettingSpec, TestGoodBoolSettingSpec,
+                         Combine(Values("yes", "on", "1", "true"), Values("true")));
+INSTANTIATE_TEST_SUITE_P(TestFalseBoolSettingSpec, TestGoodBoolSettingSpec,
+                         Combine(Values("no", "off", "0", "false"), Values("false")));
 } // namespace
