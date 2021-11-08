@@ -240,7 +240,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonDoesNotRegisterPersistentHandlerFor
     // TODO@ricab
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegisterHandlerThatAcceptsValidBackend)
+TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend)
 {
     auto key = mp::driver_key, val = "good driver";
 
@@ -255,7 +255,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegisterHandlerThatAcceptsValidBack
     ASSERT_NO_THROW(handler->set(key, val));
 }
 
-TEST_F(TestRegisteredSettingsHandlers, setRejectsInvalidBackend)
+TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBackend)
 {
     auto key = mp::driver_key, val = "bad driver";
 
