@@ -317,4 +317,16 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidB
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
 
+TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsBoolMounts)
+{
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
+    grab_registered_persistent_handler(handler);
+    mp::daemon::register_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::mounts_key), Eq("true")));
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(mp::mounts_key, "1"));
+}
+
 } // namespace
