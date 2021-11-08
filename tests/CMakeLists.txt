@@ -45,6 +45,7 @@ add_executable(multipass_tests
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
   test_basic_process.cpp
+  test_setting_specs.cpp
   test_cli_client.cpp
   test_client_cert_store.cpp
   test_registered_settings_handlers.cpp
