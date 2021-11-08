@@ -52,7 +52,6 @@ protected:
     void sort_commands();
 
 private:
-    const std::unique_ptr<CertProvider> cert_provider;
     std::shared_ptr<grpc::Channel> rpc_channel;
     std::unique_ptr<multipass::Rpc::Stub> stub;
 

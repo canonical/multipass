@@ -36,8 +36,7 @@ int main_impl(int argc, char* argv[])
     mp::Console::setup_environment();
     auto term = mp::Terminal::make_terminal();
 
-    mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl,
-                            mp::client::get_cert_provider(), term.get()};
+    mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl, nullptr, term.get()};
     mp::Client client{config};
 
     return client.run(QCoreApplication::arguments());
