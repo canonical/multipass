@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,6 @@ public:
     int run(const QStringList& arguments);
 
 private:
-    const std::unique_ptr<CertProvider> cert_provider;
     std::shared_ptr<grpc::Channel> rpc_channel;
     std::unique_ptr<multipass::Rpc::Stub> stub;
     std::stringstream null_stream;

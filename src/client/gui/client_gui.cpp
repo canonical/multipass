@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,9 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 mp::ClientGui::ClientGui(ClientConfig& config)
-    : cert_provider{std::move(config.cert_provider)},
-      rpc_channel{mp::client::make_channel(config.server_address, config.conn_type, *cert_provider)},
+    : rpc_channel{config.conn_type == mp::RpcConnectionType::ssl
+                      ? mp::client::make_secure_channel(config.server_address, config.cert_provider.get())
+                      : mp::client::make_insecure_channel(config.server_address)},
       stub{mp::Rpc::NewStub(rpc_channel)},
       gui_cmd{std::make_unique<cmd::GuiCmd>(*rpc_channel, *stub, null_stream, null_stream)}
 {
