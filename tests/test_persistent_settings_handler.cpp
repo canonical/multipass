@@ -23,11 +23,13 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/optional.h>
 #include <multipass/settings/basic_setting_spec.h>
+#include <multipass/settings/dynamic_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
 
 #include <QString>
 
 #include <cstdio>
+#include <functional>
 
 namespace mp = multipass;
 namespace mpt = mp::test;
@@ -39,13 +41,24 @@ namespace
 class TestPersistentSettingsHandler : public Test
 {
 public:
-    mp::PersistentSettingsHandler make_handler(const mp::optional<QString>& specific_key = mp::nullopt,
-                                               const mp::optional<QString>& specific_val = mp::nullopt)
+    mp::PersistentSettingsHandler
+    make_handler(const mp::optional<QString>& specific_key = mp::nullopt,
+                 const mp::optional<QString>& specific_val = mp::nullopt,
+                 const mp::optional<std::function<QString(const QString&)>>& specific_interpreter = mp::nullopt)
     {
-        if (specific_key)
-            defaults[*specific_key] = specific_val.value_or("banana");
+        auto setting_set = make_basic_persistent_settings();
 
-        return mp::PersistentSettingsHandler{fake_filename, make_basic_persistent_settings()};
+        if (specific_key)
+        {
+            auto val = specific_val.value_or("banana");
+
+            if (specific_interpreter)
+                setting_set.insert(std::make_unique<mp::DynamicSettingSpec>(*specific_key, val, *specific_interpreter));
+            else
+                setting_set.insert(std::make_unique<mp::BasicSettingSpec>(*specific_key, val));
+        }
+
+        return mp::PersistentSettingsHandler{fake_filename, std::move(setting_set)};
     }
 
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
@@ -221,7 +234,7 @@ TEST_F(TestPersistentSettingsHandler, setThrowsOnUnknownKey)
     MP_EXPECT_THROW_THAT(handler.set(key, "asdf"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
 }
 
-TEST_F(TestPersistentSettingsHandler, setRecordsProvidedSetting)
+TEST_F(TestPersistentSettingsHandler, setRecordsProvidedBasicSetting)
 {
     const auto key = "name.a.key", val = "and a value";
     const auto handler = make_handler(key);
@@ -230,6 +243,17 @@ TEST_F(TestPersistentSettingsHandler, setRecordsProvidedSetting)
     inject_mock_qsettings();
 
     ASSERT_NO_THROW(handler.set(key, val));
+}
+
+TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
+{
+    const auto key = "k.e.y", given_val = "given", interpreted_val = "interpreted";
+    const auto handler = make_handler(key, "default", [&interpreted_val](const QString&) { return interpreted_val; });
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(interpreted_val)));
+
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler.set(key, given_val));
 }
 
 } // namespace
