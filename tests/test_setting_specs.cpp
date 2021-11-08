@@ -71,6 +71,30 @@ TEST(TestSettingSpec, dynamicSettingSpecCallsGivenInterpreter)
     EXPECT_TRUE(called);
 }
 
+struct TestBadBoolSettingSpec : public TestWithParam<const char*>
+{
+};
+
+TEST_P(TestBadBoolSettingSpec, boolSettingSpecRejectsBadDefaults)
+{
+    const auto key = "asdf";
+    const auto bad = GetParam();
+    MP_ASSERT_THROW_THAT((mp::BoolSettingSpec{key, bad}), mp::InvalidSettingException,
+                         mpt::match_what(AllOf(HasSubstr(key), HasSubstr(bad))));
+}
+
+TEST_P(TestBadBoolSettingSpec, boolSettingSpecRejectsOtherValues)
+{
+    const auto key = "key";
+    const auto bad = GetParam();
+    mp::BoolSettingSpec setting{key, "true"};
+    MP_ASSERT_THROW_THAT(setting.interpret(bad), mp::InvalidSettingException,
+                         mpt::match_what(AllOf(HasSubstr(key), HasSubstr(bad))));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestBadBoolSettingSpec, TestBadBoolSettingSpec,
+                         Values("nonsense", "invalid", "", "bool", "representations", "-", "null", "4"));
+
 using ReprVal = std::tuple<QString, QString>;
 struct TestGoodBoolSettingSpec : public TestWithParam<ReprVal>
 {
