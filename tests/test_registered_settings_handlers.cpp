@@ -76,7 +76,7 @@ public:
 
 // TODO@ricab de-duplicate daemon/client tests where possible (TEST_P)
 
-TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_with_client_filename)
+TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerWithClientFilename)
 {
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipass/multipass.conf";
@@ -93,7 +93,7 @@ TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_with_
     handler->set(mp::petenv_key, "goo");
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_client_settings)
+TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClient_settings)
 {
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
@@ -105,7 +105,7 @@ TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_c
     EXPECT_EQ(QKeySequence{handler->get(mp::hotkey_key)}, QKeySequence{mp::hotkey_default});
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_client_platform_settings)
+TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClientPlatformSettings)
 {
     const auto client_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
                                                             {"client.empty.setting", ""},
@@ -131,17 +131,17 @@ TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_for_c
     }
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clients_register_persistent_handler_with_overridden_platform_defaults)
+TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddenPlatformDefaults)
 {
     // TODO@ricab
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clients_do_not_register_persistent_handler_for_daemon_settings)
+TEST_F(TestRegisteredSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemonSettings)
 {
     // TODO@ricab
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_with_daemon_filename)
+TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
 {
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipassd.conf";
@@ -158,7 +158,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_with_
     handler->set(mp::bridged_interface_key, "bridge");
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_daemon_settings)
+TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSettings)
 {
     const auto driver = "conductor";
     const auto mount = "false";
@@ -177,7 +177,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_d
     EXPECT_EQ(handler->get(mp::mounts_key), mount);
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_daemon_platform_settings)
+TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlatformSettings)
 {
     const auto daemon_defaults = std::map<QString, QString>{{"local.blah", "blargh"},
                                                             {"local.a.bool", "false"},
@@ -202,12 +202,12 @@ TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_for_d
     }
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemon_registers_persistent_handler_with_overridden_platform_defaults)
+TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithOverriddenPlatformDefaults)
 {
     // TODO@ricab
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemon_does_not_register_persistent_handler_for_client_settings)
+TEST_F(TestRegisteredSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClientSettings)
 {
     // TODO@ricab
 }
