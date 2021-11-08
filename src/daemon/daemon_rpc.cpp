@@ -91,9 +91,17 @@ grpc::Status emit_signal_and_wait_for_result(OperationSignal operation_signal)
     return status_future.get();
 }
 
-auto client_cert_from(grpc::ServerContext* context)
+std::string client_cert_from(grpc::ServerContext* context)
 {
-    return context->auth_context()->FindPropertyValues("x509_pem_cert").front().data();
+    std::string client_cert;
+    auto client_certs{context->auth_context()->FindPropertyValues("x509_pem_cert")};
+
+    if (!client_certs.empty())
+    {
+        client_cert = client_certs.front().data();
+    }
+
+    return client_cert;
 }
 } // namespace
 
@@ -228,6 +236,13 @@ grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionR
 
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response)
 {
+    auto client_cert = client_cert_from(context);
+
+    if (!client_cert.empty() && !client_cert_store->verify_cert(client_cert))
+    {
+        return grpc::Status{grpc::StatusCode::UNAUTHENTICATED, ""};
+    }
+
     return grpc::Status::OK;
 }
 
