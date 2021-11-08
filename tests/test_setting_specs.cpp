@@ -48,3 +48,26 @@ TYPED_TEST(TestPlainKeyAndDefault, basicSettingSpecReturnsProvidedKeyAndDefault)
     EXPECT_EQ(setting.get_key(), key);
     EXPECT_EQ(setting.get_default(), default_);
 }
+
+TEST(TestSettingSpec, basicSettingSpecImplementsInterpretAsIdentity)
+{
+    mp::BasicSettingSpec setting{"a", "b"};
+
+    const auto val = "an arbitrary value";
+    EXPECT_EQ(setting.interpret(val), val);
+}
+
+TEST(TestSettingSpec, dynamicSettingSpecCallsGivenInterpreter)
+{
+    bool called = false;
+    const auto val = "yak";
+    mp::DynamicSettingSpec setting{"a", "b", [&called](const QString& v) {
+                                       called = true;
+                                       return v;
+                                   }};
+
+    EXPECT_EQ(setting.interpret(val), val);
+    EXPECT_TRUE(called);
+}
+
+} // namespace
