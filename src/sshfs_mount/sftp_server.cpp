@@ -251,6 +251,31 @@ auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec
 
     return std::make_unique<mp::SSHProcess>(std::move(sshfs_process));
 }
+
+int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int id_if_not_found)
+{
+    if (id == mp::no_id_info_available)
+        return id_if_not_found;
+
+    auto map = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.first; });
+
+    if (map != id_maps.end())
+    {
+        if (map->second == mp::default_id)
+            return id_if_not_found;
+        else
+            return map->second;
+    }
+
+    return id;
+}
+
+int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int rev_id_if_not_found)
+{
+    auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.second; });
+
+    return found == id_maps.cend() ? rev_id_if_not_found : found->first;
+}
 } // namespace
 
 mp::SftpServer::SftpServer(SSHSession&& session, const std::string& source, const std::string& target,
@@ -300,56 +325,24 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
     return attr;
 }
 
-int mp::SftpServer::mapped_uid_for(const int uid)
+inline int mp::SftpServer::mapped_uid_for(const int uid)
 {
-    if (uid == mp::no_id_info_available)
-        return default_uid;
-
-    auto map = std::find_if(uid_mappings.cbegin(), uid_mappings.cend(), [uid](std::pair<int, int> p) { return uid == p.first; });
-
-    if (map != uid_mappings.end())
-    {
-        if (map->second == mp::default_id)
-            return default_uid;
-        else
-            return map->second;
-    }
-
-    return uid;
+    return mapped_id_for(uid_mappings, uid, default_uid);
 }
 
-int mp::SftpServer::mapped_gid_for(const int gid)
+inline int mp::SftpServer::mapped_gid_for(const int gid)
 {
-    if (gid == mp::no_id_info_available)
-        return default_gid;
-
-    auto map = std::find_if(gid_mappings.cbegin(), gid_mappings.cend(), [gid](std::pair<int, int> p) { return gid == p.first; });
-
-    if (map != gid_mappings.end())
-    {
-        if (map->second == mp::default_id)
-            return default_gid;
-        else
-            return map->second;
-    }
-
-    return gid;
+    return mapped_id_for(gid_mappings, gid, default_gid);
 }
 
-int mp::SftpServer::reverse_uid_for(const int uid, const int rev_uid_if_not_found)
+inline int mp::SftpServer::reverse_uid_for(const int uid, const int rev_uid_if_not_found)
 {
-    auto found =
-        std::find_if(uid_mappings.cbegin(), uid_mappings.cend(), [uid](std::pair<int, int> p) { return uid == p.second; });
-
-    return found == uid_mappings.cend() ? rev_uid_if_not_found : found->first;
+    return reverse_id_for(uid_mappings, uid, rev_uid_if_not_found);
 }
 
-int mp::SftpServer::reverse_gid_for(const int gid, const int rev_gid_if_not_found)
+inline int mp::SftpServer::reverse_gid_for(const int gid, const int rev_gid_if_not_found)
 {
-    auto found =
-        std::find_if(gid_mappings.cbegin(), gid_mappings.cend(), [gid](std::pair<int, int> p) { return gid == p.second; });
-
-    return found == gid_mappings.cend() ? rev_gid_if_not_found : found->first;
+    return reverse_id_for(gid_mappings, gid, rev_gid_if_not_found);
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
