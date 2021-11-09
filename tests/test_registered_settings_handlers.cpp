@@ -84,7 +84,9 @@ public:
     mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
 
     std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
     mpt::MockPlatform::GuardedMock mock_platform_injection = mpt::MockPlatform::inject<NiceMock>();
     mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
