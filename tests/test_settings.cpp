@@ -29,31 +29,11 @@ using namespace testing;
 
 namespace
 {
-struct TestSettings : public Test
+
+struct TestSettingsGetAs : public Test
 {
-    void inject_real_settings_get(const QString& key)
-    {
-        EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(call_real_settings_get);
-    }
-
-    void inject_real_settings_set(const QString& key, const QString& val)
-    {
-        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
-    }
-
-public:
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
-
-private:
-    static QString call_real_settings_get(const QString& key)
-    {
-        return MP_SETTINGS.Settings::get(key); // invoke the base
-    }
-
-    static void call_real_settings_set(const QString& key, const QString& val)
-    {
-        MP_SETTINGS.Settings::set(key, val); // invoke the base
-    }
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 
 template <typename T>
@@ -87,7 +67,7 @@ std::vector<SettingValueRepresentation<QKeySequence>> setting_val_reprs()
 }
 
 template <typename T>
-struct TestSuccessfulSettingsGetAs : public TestSettings
+struct TestSuccessfulSettingsGetAs : public TestSettingsGetAs
 {
 };
 
@@ -102,26 +82,27 @@ TYPED_TEST(TestSuccessfulSettingsGetAs, getAsConvertsValues)
     {
         for (const auto& repr : reprs)
         {
-            EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(repr));
+            EXPECT_CALL(this->mock_settings, get(Eq(key))).WillOnce(Return(repr)); /* needs `this` ¯\_(ツ)_/¯
+                                                                                      TODO@ricab try with newer gtest */
             EXPECT_EQ(MP_SETTINGS.get_as<TypeParam>(key), val);
         }
     }
 }
 
-TEST_F(TestSettings, getAsThrowsOnUnsupportedTypeConversion)
+TEST_F(TestSettingsGetAs, getAsThrowsOnUnsupportedTypeConversion)
 {
     const auto key = "the.key";
     const auto bad_repr = "#$%!@";
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(bad_repr));
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(bad_repr));
     MP_ASSERT_THROW_THAT(MP_SETTINGS.get_as<QVariant>(key), mp::UnsupportedSettingValueType<QVariant>,
                          mpt::match_what(HasSubstr(key)));
 }
 
-TEST_F(TestSettings, getAsReturnsDefaultOnBadValue)
+TEST_F(TestSettingsGetAs, getAsReturnsDefaultOnBadValue)
 {
     const auto key = "a.key";
     const auto bad_int = "ceci n'est pas une int";
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(bad_int));
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(bad_int));
     EXPECT_EQ(MP_SETTINGS.get_as<int>(key), 0);
 }
 
