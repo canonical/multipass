@@ -33,8 +33,8 @@ namespace
 bool allow_only_stopped_instances(const QString& key, const QString& val) // temporary
 {
     return key == mp::driver_key && MP_PLATFORM.is_backend_supported(val) && (val == "qemu" || val == "libvirt") &&
-           val != MP_SETTINGS.get(key); /* if we are switching between qemu and libvirt drivers (on linux),
-                                                        we can only have stopped instances */
+           val != MP_SETTINGS.get(key); /* if we are switching between qemu and libvirt drivers (on linux), we can only
+                                           have stopped instances */
 }
 } // namespace
 
