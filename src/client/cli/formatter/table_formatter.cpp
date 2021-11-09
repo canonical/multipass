@@ -111,12 +111,14 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
                                (i == uid_mappings_size - 1) ? "\n" : ", ");
             }
 
-            for (auto gid_mapping = mount_maps.gid_mappings().cbegin(); gid_mapping != mount_maps.gid_mappings().cend(); ++gid_mapping)
+            for (auto gid_mapping = mount_maps.gid_mappings().cbegin(); gid_mapping != mount_maps.gid_mappings().cend();
+                 ++gid_mapping)
             {
                 auto host_gid = gid_mapping->host_id();
                 auto instance_gid = gid_mapping->instance_id();
 
-                fmt::format_to(buf, "{:>{}}{}:{}{}{}", (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
+                fmt::format_to(buf, "{:>{}}{}:{}{}{}",
+                               (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
                                (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0, std::to_string(host_gid),
                                (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid),
                                (std::next(gid_mapping) != mount_maps.gid_mappings().cend()) ? ", " : "",

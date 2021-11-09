@@ -147,12 +147,14 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_causes_runtime_exception)
     mp::SSHFSMounts sshfs_mounts(key_provider);
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    EXPECT_THROW(try { sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings); } catch (
-                     const std::runtime_error& e) {
-        EXPECT_STREQ(e.what(), "Process returned exit code: 1: Whoopsie");
-        throw;
-    },
-                 std::runtime_error);
+    EXPECT_THROW(
+        try {
+            sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+        } catch (const std::runtime_error& e) {
+            EXPECT_STREQ(e.what(), "Process returned exit code: 1: Whoopsie");
+            throw;
+        },
+        std::runtime_error);
 }
 
 TEST_F(SSHFSMountsTest, stop_terminates_sshfs_process)

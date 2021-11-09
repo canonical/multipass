@@ -109,14 +109,18 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                   "absolute path",
                                   "<target> [<target> ...]");
 
-    QCommandLineOption gid_mappings({"g", "gid-map"}, "A mapping of group IDs for use in the mount. "
-                                                      "File and folder ownership will be mapped from "
-                                                      "<host> to <instance> inside the instance. Can be "
-                                                      "used multiple times.", "host>:<instance");
-    QCommandLineOption uid_mappings({"u", "uid-map"}, "A mapping of user IDs for use in the mount. "
-                                                      "File and folder ownership will be mapped from "
-                                                      "<host> to <instance> inside the instance. Can be "
-                                                      "used multiple times.", "host>:<instance");
+    QCommandLineOption gid_mappings({"g", "gid-map"},
+                                    "A mapping of group IDs for use in the mount. "
+                                    "File and folder ownership will be mapped from "
+                                    "<host> to <instance> inside the instance. Can be "
+                                    "used multiple times.",
+                                    "host>:<instance");
+    QCommandLineOption uid_mappings({"u", "uid-map"},
+                                    "A mapping of user IDs for use in the mount. "
+                                    "File and folder ownership will be mapped from "
+                                    "<host> to <instance> inside the instance. Can be "
+                                    "used multiple times.",
+                                    "host>:<instance");
     parser->addOptions({gid_mappings, uid_mappings});
 
     auto status = parser->commandParse(this);

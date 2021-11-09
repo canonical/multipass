@@ -1591,7 +1591,8 @@ try // clang-format on
                     mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                            *config->ssh_key_provider};
                     mp::utils::install_sshfs_for(name, session);
-                    instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings, uid_mappings);
+                    instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings,
+                                                uid_mappings);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {

@@ -205,7 +205,8 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
 
 mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
                            const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
-    : sftp_server{make_sftp_server(std::move(session), source, target, gid_mappings, uid_mappings)}, sftp_thread{[this] {
+    : sftp_server{make_sftp_server(std::move(session), source, target, gid_mappings, uid_mappings)},
+      sftp_thread{[this] {
           std::cout << "Connected" << std::endl;
           sftp_server->run();
           std::cout << "Stopped" << std::endl;
