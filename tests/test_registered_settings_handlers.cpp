@@ -109,7 +109,7 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerWithClien
     handler->set(mp::petenv_key, "goo");
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClient_settings)
+TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClientSettings)
 {
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
