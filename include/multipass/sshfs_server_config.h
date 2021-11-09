@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_SSHFS_SERVER_CONFIG_H
 #define MULTIPASS_SSHFS_SERVER_CONFIG_H
 
-#include <multipass/id_relationship_list.h>
+#include <multipass/id_mappings.h>
 
 #include <string>
 #include <unordered_map>
@@ -35,8 +35,8 @@ struct SSHFSServerConfig
     std::string private_key;
     std::string source_path;
     std::string target_path;
-    id_relationship_list gid_map;
-    id_relationship_list uid_map;
+    id_mappings gid_map;
+    id_mappings uid_map;
 };
 
 } // namespace multipass

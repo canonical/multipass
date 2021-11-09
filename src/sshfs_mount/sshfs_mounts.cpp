@@ -63,7 +63,7 @@ mp::SSHFSMounts::SSHFSMounts(const SSHKeyProvider& key_provider) : key(key_provi
 }
 
 void mp::SSHFSMounts::start_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
-                                  const mp::id_relationship_list& gid_map, const mp::id_relationship_list& uid_map)
+                                  const mp::id_mappings& gid_map, const mp::id_mappings& uid_map)
 {
     mp::SSHFSServerConfig config;
     config.host = vm->ssh_hostname();

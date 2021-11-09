@@ -52,8 +52,8 @@ struct SftpServer : public mp::test::SftpServerTest
         return make_sftpserver("");
     }
 
-    mp::SftpServer make_sftpserver(const std::string& path, const mp::id_relationship_list& gid_map = {},
-                                   const mp::id_relationship_list& uid_map = {})
+    mp::SftpServer make_sftpserver(const std::string& path, const mp::id_mappings& gid_map = {},
+                                   const mp::id_mappings& uid_map = {})
     {
         mp::SSHSession session{"a", 42};
         return {std::move(session), path, path, gid_map, uid_map, default_id, default_id, "sshfs"};
@@ -2322,8 +2322,8 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdir_chown_honors_maps_in_the_host))
     int sftp_uid = 1008;
     int sftp_gid = 1009;
 
-    mp::id_relationship_list uid_map{{host_uid, sftp_uid}};
-    mp::id_relationship_list gid_map{{host_gid, sftp_gid}};
+    mp::id_mappings uid_map{{host_uid, sftp_uid}};
+    mp::id_mappings gid_map{{host_gid, sftp_gid}};
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_map, uid_map);
 
     auto msg = make_msg(SFTP_MKDIR);
@@ -2377,8 +2377,8 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(symlink_chown_honors_maps_in_the_host))
     int sftp_uid = 1011;
     int sftp_gid = 1012;
 
-    mp::id_relationship_list uid_map{{host_uid, sftp_uid}};
-    mp::id_relationship_list gid_map{{host_gid, sftp_gid}};
+    mp::id_mappings uid_map{{host_uid, sftp_uid}};
+    mp::id_mappings gid_map{{host_gid, sftp_gid}};
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_map, uid_map);
     auto msg = make_msg(SFTP_SYMLINK);
     auto name = name_as_char_array(file_name.toStdString());
@@ -2413,8 +2413,8 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(open_chown_honors_maps_in_the_host))
     int sftp_uid = 1008;
     int sftp_gid = 1009;
 
-    mp::id_relationship_list uid_map{{host_uid, sftp_uid}};
-    mp::id_relationship_list gid_map{{host_gid, sftp_gid}};
+    mp::id_mappings uid_map{{host_uid, sftp_uid}};
+    mp::id_mappings gid_map{{host_gid, sftp_gid}};
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_map, uid_map);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_WRITE;
@@ -2445,8 +2445,8 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_honors_maps_in_the_host))
     int sftp_uid = 1024;
     int sftp_gid = 1025;
 
-    mp::id_relationship_list uid_map{{host_uid, sftp_uid}};
-    mp::id_relationship_list gid_map{{host_gid, sftp_gid}};
+    mp::id_mappings uid_map{{host_uid, sftp_uid}};
+    mp::id_mappings gid_map{{host_gid, sftp_gid}};
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_map, uid_map);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());

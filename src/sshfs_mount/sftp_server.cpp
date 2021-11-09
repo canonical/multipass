@@ -254,8 +254,8 @@ auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec
 } // namespace
 
 mp::SftpServer::SftpServer(SSHSession&& session, const std::string& source, const std::string& target,
-                           const id_relationship_list& gid_map, const id_relationship_list& uid_map, int default_uid,
-                           int default_gid, const std::string& sshfs_exec_line)
+                           const id_mappings& gid_map, const id_mappings& uid_map, int default_uid, int default_gid,
+                           const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, mp::utils::escape_char(source, '"'),
                                          mp::utils::escape_char(target, '"'))},

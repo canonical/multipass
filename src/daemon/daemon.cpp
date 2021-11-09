@@ -298,8 +298,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         std::unordered_map<std::string, mp::VMMount> mounts;
-        mp::id_relationship_list uid_map;
-        mp::id_relationship_list gid_map;
+        mp::id_mappings uid_map;
+        mp::id_mappings gid_map;
 
         for (QJsonValueRef entry : record["mounts"].toArray())
         {
@@ -1527,7 +1527,7 @@ try // clang-format on
                          fmt::format("source \"{}\" is not readable", request->source_path()), ""));
     }
 
-    mp::id_relationship_list uid_map, gid_map;
+    mp::id_mappings uid_map, gid_map;
 
     auto mount_maps = request->mount_maps();
 

@@ -22,7 +22,7 @@
 #include "daemon_rpc.h"
 
 #include <multipass/delayed_shutdown_timer.h>
-#include <multipass/id_relationship_list.h>
+#include <multipass/id_mappings.h>
 #include <multipass/memory_size.h>
 #include <multipass/metrics_provider.h>
 #include <multipass/network_interface.h>
@@ -45,8 +45,8 @@ namespace multipass
 struct VMMount
 {
     std::string source_path;
-    id_relationship_list gid_map;
-    id_relationship_list uid_map;
+    id_mappings gid_map;
+    id_mappings uid_map;
 };
 
 struct VMSpecs

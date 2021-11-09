@@ -24,7 +24,7 @@
 
 #include "../ssh/ssh_client_key_provider.h" // FIXME
 #include <multipass/exceptions/sshfs_missing_error.h>
-#include <multipass/id_relationship_list.h>
+#include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/multiplexing_logger.h>
 #include <multipass/logging/standard_logger.h>
@@ -39,9 +39,9 @@ using namespace std;
 
 namespace
 {
-mp::id_relationship_list convert_id_map(const char* in)
+mp::id_mappings convert_id_mappings(const char* in)
 {
-    mp::id_relationship_list ret_map;
+    mp::id_mappings ret_map;
     std::unordered_set<int> keys;
     QString input(in);
 
@@ -99,8 +99,8 @@ int main(int argc, char* argv[])
     const auto username = string(argv[3]);
     const auto source_path = string(argv[4]);
     const auto target_path = string(argv[5]);
-    const mp::id_relationship_list uid_map = convert_id_map(argv[6]);
-    const mp::id_relationship_list gid_map = convert_id_map(argv[7]);
+    const mp::id_mappings uid_map = convert_id_mappings(argv[6]);
+    const mp::id_mappings gid_map = convert_id_mappings(argv[7]);
     const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
     auto logger = mpp::make_logger(log_level);

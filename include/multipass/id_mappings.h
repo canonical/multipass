@@ -15,15 +15,15 @@
  *
  */
 
-#ifndef MULTIPASS_ID_MAP_H
-#define MULTIPASS_ID_MAP_H
+#ifndef MULTIPASS_ID_MAPPINGS_H
+#define MULTIPASS_ID_MAPPINGS_H
 
 #include <utility>
 #include <vector>
 
 namespace multipass
 {
-typedef typename std::vector<std::pair<int, int>> id_relationship_list;
+typedef typename std::vector<std::pair<int, int>> id_mappings;
 }
 
-#endif // MULTIPASS_ID_MAP_H
+#endif // MULTIPASS_ID_MAPPINGS_H
