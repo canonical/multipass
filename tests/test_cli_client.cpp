@@ -36,7 +36,6 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 
-#include <QKeySequence>
 #include <QStringList>
 #include <QTemporaryFile>
 #include <QtCore/QTemporaryDir>
@@ -236,11 +235,9 @@ struct Client : public Test
 
     void aux_set_cmd_rejects_bad_val(const char* key, const char* val)
     {
-        const auto default_val = get_setting(key);
         EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
             .WillRepeatedly(Throw(mp::InvalidSettingException{key, val, "bad"}));
         EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
-        EXPECT_THAT(get_setting(key), Eq(default_val));
     }
 
     auto make_fill_listreply(std::vector<mp::InstanceStatus_Status> statuses)
@@ -2107,75 +2104,22 @@ TEST_F(Client, set_handles_persistent_settings_errors)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandFail));
 }
 
-TEST_F(Client, set_cmd_rejects_bad_autostart_values)
+TEST_F(Client, set_cmd_rejects_bad_values)
 {
-    aux_set_cmd_rejects_bad_val(mp::autostart_key, "asdf");
-    aux_set_cmd_rejects_bad_val(mp::autostart_key, "trueasdf");
-    aux_set_cmd_rejects_bad_val(mp::autostart_key, "123");
-    aux_set_cmd_rejects_bad_val(mp::autostart_key, "");
-}
-
-TEST_F(Client, get_and_set_can_read_and_write_autostart_flag)
-{
-    const auto orig = get_setting((mp::autostart_key));
-    const auto novel = negate_flag_string(orig);
-
-    EXPECT_CALL(mock_settings, set(Eq(mp::autostart_key), Eq(QString::fromStdString(novel))));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::autostart_key, novel)}), Eq(mp::ReturnCode::Ok));
-
-    EXPECT_CALL(mock_settings, get(Eq(mp::autostart_key))).WillRepeatedly(Return(QString::fromStdString(novel)));
-    EXPECT_THAT(get_setting(mp::autostart_key), Eq(novel));
-}
-
-TEST_F(Client, get_and_set_can_read_and_write_primary_name)
-{
-    const auto name = "xyz";
-    const auto petenv_matcher = make_ssh_info_instance_matcher(name);
-
-    EXPECT_THAT(get_setting(mp::petenv_key), AllOf(Not(IsEmpty()), StrNe(name)));
-
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq(name)));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, name)}), Eq(mp::ReturnCode::Ok));
-
-    EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(name));
-    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
-    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, get_returns_acceptable_primary_name_by_default)
-{
-    const auto default_name = get_setting(mp::petenv_key);
-    const auto petenv_matcher = make_ssh_info_instance_matcher(default_name);
-
-    EXPECT_CALL(mock_daemon, ssh_info(_, petenv_matcher, _));
-    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
-
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, default_name)}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(get_setting(mp::petenv_key), Eq(default_name));
-}
-
-TEST_F(Client, set_cmd_rejects_bad_primary_name)
-{
-    const auto key = mp::petenv_key;
-    const auto default_petenv_matcher = make_ssh_info_instance_matcher(get_setting(key));
-
-    aux_set_cmd_rejects_bad_val(key, "123.badname_");
-
-    EXPECT_CALL(mock_daemon, ssh_info(_, default_petenv_matcher, _));
-    EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, set_cmd_rejects_bad_driver)
-{
-    aux_set_cmd_rejects_bad_val(mp::driver_key, "bad driver");
-    aux_set_cmd_rejects_bad_val(mp::driver_key, "");
+    const auto key = "hip", val = "hop", why = "don't like it";
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(Throw(mp::InvalidSettingException{key, val, why}));
+    EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, set_cmd_falls_through_instances_when_no_driver_change)
 {
-    const auto default_driver = MP_SETTINGS.get(mp::driver_key);
+    const auto driver = "qemu";
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(driver));
+    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq(driver)));
     EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, default_driver)}), Eq(mp::ReturnCode::Ok));
+
+    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, driver)}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
@@ -2188,13 +2132,17 @@ TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
 
 TEST_F(Client, set_cmd_fails_driver_switch_when_needs_daemon_and_grpc_problem)
 {
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return("qemu"));
     EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
+
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, set_cmd_succeeds_when_daemon_not_around)
 {
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return("qemu"));
     EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -2235,40 +2183,15 @@ const std::vector<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCo
 
 TEST_P(TestSetDriverWithInstances, inspects_instance_states)
 {
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return("qemu"));
     EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Invoke(make_fill_listreply(GetParam().first)));
+
     EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(GetParam().second));
 }
 
 INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
 
 #endif // MULTIPASS_PLATFORM_LINUX
-
-#ifndef MULTIPASS_PLATFORM_WINDOWS // Test Windows Terminal setting not recognized outside Windows
-
-TEST_F(Client, get_and_set_do_not_know_about_winterm_integration)
-{
-    const auto val = "asdf";
-    EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key)));
-    EXPECT_THAT(send_command({"get", mp::winterm_key}), Eq(mp::ReturnCode::CommandLineError));
-
-    EXPECT_CALL(mock_settings, set(Eq(mp::winterm_key), Eq(val)));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::winterm_key, val)}), Eq(mp::ReturnCode::CommandLineError));
-}
-
-#else
-
-TEST_F(Client, get_and_set_can_read_and_write_winterm_integration)
-{
-    const auto orig = get_setting((mp::winterm_key));
-    const auto novel = "asdf";
-
-    EXPECT_THAT(get_setting(mp::winterm_key), Not(IsEmpty()));
-
-    EXPECT_CALL(mock_settings, set(Eq(mp::winterm_key), Eq(QString::fromStdString(novel))));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::winterm_key, novel)}), Eq(mp::ReturnCode::Ok));
-}
-
-#endif // #ifndef MULTIPASS_PLATFORM_WINDOWS
 
 TEST_F(Client, getReturnsAcceptableMountsValueByDefault)
 {
