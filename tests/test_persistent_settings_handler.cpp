@@ -256,4 +256,21 @@ TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
     ASSERT_NO_THROW(handler.set(key, given_val));
 }
 
+TEST_F(TestPersistentSettingsHandler, setThrowsInterpreterExceptions)
+{
+    const auto key = "clave", default_ = "valid", val = "invalid";
+    const auto except = mp::InvalidSettingException{key, val, "nope"};
+    const auto handler = make_handler(key, default_, [&default_, &except](const QString& v) {
+        if (v == default_)
+            return v;
+        throw except;
+    });
+
+    EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
+
+    // TODO@ricab pending newer gmock
+    // MP_EXPECT_THROW_THAT(handler.set(key, val), mp::InvalidSettingException, Address(Eq(&except)));
+    MP_EXPECT_THROW_THAT(handler.set(key, val), mp::InvalidSettingException, mpt::match_what(HasSubstr("nope")));
+}
+
 } // namespace
