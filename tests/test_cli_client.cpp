@@ -1983,8 +1983,9 @@ struct TestBasicGetSetOptions : Client, WithParamInterface<const char*>
 TEST_P(TestBasicGetSetOptions, get_can_read_settings)
 {
     const auto& key = GetParam();
-    EXPECT_CALL(mock_settings, get(Eq(key)));
-    get_setting(key);
+    const auto value = "a value";
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(value));
+    EXPECT_THAT(get_setting(key), Eq(value));
 }
 
 TEST_P(TestBasicGetSetOptions, set_can_write_settings)
@@ -2007,7 +2008,14 @@ TEST_P(TestBasicGetSetOptions, set_cmd_allows_empty_val)
 
 INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions,
                          Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key,
-                                mp::bridged_interface_key, mp::mounts_key));
+                                mp::bridged_interface_key, mp::mounts_key, "anything.else.really"));
+
+TEST_F(Client, get_returns_setting)
+{
+    const auto key = "sigur", val = "ros";
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
+    EXPECT_THAT(get_setting(key), Eq(val));
+}
 
 TEST_F(Client, get_cmd_fails_with_no_arguments)
 {
@@ -2192,31 +2200,6 @@ TEST_P(TestSetDriverWithInstances, inspects_instance_states)
 INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
 
 #endif // MULTIPASS_PLATFORM_LINUX
-
-TEST_F(Client, getReturnsAcceptableMountsValueByDefault)
-{
-    EXPECT_THAT(get_setting(mp::mounts_key), AnyOf("true", "false"));
-}
-
-TEST_F(Client, setCmdRejectsBadMountsValues)
-{
-    aux_set_cmd_rejects_bad_val(mp::mounts_key, "asdf");
-    aux_set_cmd_rejects_bad_val(mp::mounts_key, "trueasdf");
-    aux_set_cmd_rejects_bad_val(mp::mounts_key, "123");
-    aux_set_cmd_rejects_bad_val(mp::mounts_key, "");
-}
-
-TEST_F(Client, getAndSetCanReadAndWriteMountsFlag)
-{
-    const auto orig = get_setting((mp::mounts_key));
-    const auto novel = negate_flag_string(orig);
-
-    EXPECT_CALL(mock_settings, set(Eq(mp::mounts_key), Eq(QString::fromStdString(novel))));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::mounts_key, novel)}), Eq(mp::ReturnCode::Ok));
-
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return(QString::fromStdString(novel)));
-    EXPECT_THAT(get_setting(mp::mounts_key), Eq(novel));
-}
 
 // general help tests
 TEST_F(Client, help_returns_ok_return_code)
