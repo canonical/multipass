@@ -125,20 +125,4 @@ TEST_F(TestSettings, getAsReturnsDefaultOnBadValue)
     EXPECT_EQ(MP_SETTINGS.get_as<int>(key), 0);
 }
 
-// Tests for mock settings
-TEST(MockSettings, providesGetDefaultAsGetByDefault)
-{
-    const auto& key = mp::driver_key;
-    ASSERT_EQ(MP_SETTINGS.get(key), mpt::MockSettings::mock_instance().get_default(key));
-}
-
-TEST(MockSettings, canHaveGetMocked)
-{
-    const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
-    const auto& mock = mpt::MockSettings::mock_instance();
-
-    EXPECT_CALL(mock, get(test)).WillOnce(Return(proof));
-    ASSERT_EQ(MP_SETTINGS.get(test), proof);
-}
-
 } // namespace

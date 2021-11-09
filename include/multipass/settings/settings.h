@@ -63,10 +63,6 @@ public:
     template <typename T>
     T get_as(const QString& key) const;
 
-
-protected:
-    const QString& get_default(const QString& key) const; // TODO@ricab remove
-
 private:
     std::vector<std::unique_ptr<SettingsHandler>> handlers;
 };

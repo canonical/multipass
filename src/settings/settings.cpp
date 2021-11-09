@@ -84,8 +84,3 @@ void mp::Settings::set(const QString& key, const QString& val) // TODO@ricab ext
     if (!success)
         throw UnrecognizedSettingException{key};
 }
-
-const QString& mp::Settings::get_default(const QString& key) const
-{
-    throw UnrecognizedSettingException{key}; // TODO@ricab remove this
-}

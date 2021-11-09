@@ -23,29 +23,19 @@
 
 #include <multipass/settings/settings.h>
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
-{
-class MockSettings : public Settings // TODO@ricab turn into regular singleton mock
+class MockSettings : public Settings
 {
 public:
-    using Settings::get_default; // promote visibility
-    using Settings::Settings;    // ctor
-
-    static void mockit();
-    static MockSettings& mock_instance();
+    using Settings::Settings;
 
     MOCK_METHOD1(register_handler, void(std::unique_ptr<SettingsHandler>));
     MOCK_CONST_METHOD1(get, QString(const QString&));
     MOCK_METHOD2(set, void(const QString&, const QString&));
 
-private:
-    void setup_mock_defaults();
-
-    friend class MockSingletonHelper<MockSettings, ::testing::NiceMock>;
+    MP_MOCK_SINGLETON_BOILERPLATE(MockSettings, Settings);
 };
-} // namespace test
-} // namespace multipass
+} // namespace multipass::test
 
 #endif // MULTIPASS_MOCK_SETTINGS_H
