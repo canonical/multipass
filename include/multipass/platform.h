@@ -66,10 +66,11 @@ public:
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
     virtual SettingSpec::Set extra_daemon_settings() const; // TODO@ricab private side
-    virtual SettingSpec::Set extra_client_settings() const; // TODO@ricab private side
-    virtual QString daemon_config_home() const;             // temporary // TODO@ricab drop
-    virtual QString default_driver() const;                 // TODO@ricab private side
-    virtual QString default_privileged_mounts() const;      // TODO@ricab private side
+    virtual SettingSpec::Set
+    extra_client_settings() const;              // TODO@ricab private side (winterm w/ platform::interpret_setting)
+    virtual QString daemon_config_home() const; // temporary // TODO@ricab drop
+    virtual QString default_driver() const;     // TODO@ricab private side
+    virtual QString default_privileged_mounts() const; // TODO@ricab private side
 };
 
 QString interpret_setting(const QString& key, const QString& val);
