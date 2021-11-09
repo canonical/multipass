@@ -182,8 +182,8 @@ message MapPair {
 }
 
 message MountMaps {
-    repeated MapPair uid_map = 1;
-    repeated MapPair gid_map = 2;
+    repeated MapPair uid_mappings = 1;
+    repeated MapPair gid_mappings = 2;
 }
 
 message MountInfo {

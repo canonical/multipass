@@ -63,8 +63,8 @@ QStringList mp::SSHFSServerProcessSpec::arguments() const
 {
     return QStringList() << QString::fromStdString(config.host) << QString::number(config.port)
                          << QString::fromStdString(config.username) << QString::fromStdString(config.source_path)
-                         << QString::fromStdString(config.target_path) << serialise_id_mappings(config.uid_map)
-                         << serialise_id_mappings(config.gid_map)
+                         << QString::fromStdString(config.target_path) << serialise_id_mappings(config.uid_mappings)
+                         << serialise_id_mappings(config.gid_mappings)
                          << QString::number(static_cast<int>(mp::logging::get_logging_level()));
 }
 

@@ -165,11 +165,11 @@ auto construct_single_instance_info_reply()
     mount_entry->set_source_path("/home/user/foo");
     mount_entry->set_target_path("foo");
 
-    auto uid_map_pair = mount_entry->mutable_mount_maps()->add_uid_map();
+    auto uid_map_pair = mount_entry->mutable_mount_maps()->add_uid_mappings();
     uid_map_pair->set_host_id(1000);
     uid_map_pair->set_instance_id(1000);
 
-    auto gid_map_pair = mount_entry->mutable_mount_maps()->add_gid_map();
+    auto gid_map_pair = mount_entry->mutable_mount_maps()->add_gid_mappings();
     gid_map_pair->set_host_id(1000);
     gid_map_pair->set_instance_id(1000);
 
@@ -177,11 +177,11 @@ auto construct_single_instance_info_reply()
     mount_entry->set_source_path("/home/user/test_dir");
     mount_entry->set_target_path("test_dir");
 
-    uid_map_pair = mount_entry->mutable_mount_maps()->add_uid_map();
+    uid_map_pair = mount_entry->mutable_mount_maps()->add_uid_mappings();
     uid_map_pair->set_host_id(1000);
     uid_map_pair->set_instance_id(1000);
 
-    gid_map_pair = mount_entry->mutable_mount_maps()->add_gid_map();
+    gid_map_pair = mount_entry->mutable_mount_maps()->add_gid_mappings();
     gid_map_pair->set_host_id(1000);
     gid_map_pair->set_instance_id(1000);
 
@@ -216,11 +216,11 @@ auto construct_multiple_instances_info_reply()
     mount_entry->set_source_path("/home/user/source");
     mount_entry->set_target_path("source");
 
-    auto uid_map_pair = mount_entry->mutable_mount_maps()->add_uid_map();
+    auto uid_map_pair = mount_entry->mutable_mount_maps()->add_uid_mappings();
     uid_map_pair->set_host_id(1000);
     uid_map_pair->set_instance_id(501);
 
-    auto gid_map_pair = mount_entry->mutable_mount_maps()->add_gid_map();
+    auto gid_map_pair = mount_entry->mutable_mount_maps()->add_gid_mappings();
     gid_map_pair->set_host_id(1000);
     gid_map_pair->set_instance_id(501);
 

@@ -109,15 +109,15 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                   "absolute path",
                                   "<target> [<target> ...]");
 
-    QCommandLineOption gid_map({"g", "gid-map"}, "A mapping of group IDs for use in the mount. "
-                                                 "File and folder ownership will be mapped from "
-                                                 "<host> to <instance> inside the instance. Can be "
-                                                 "used multiple times.", "host>:<instance");
-    QCommandLineOption uid_map({"u", "uid-map"}, "A mapping of user IDs for use in the mount. "
-                                                 "File and folder ownership will be mapped from "
-                                                 "<host> to <instance> inside the instance. Can be "
-                                                 "used multiple times.", "host>:<instance");
-    parser->addOptions({gid_map, uid_map});
+    QCommandLineOption gid_mappings({"g", "gid-map"}, "A mapping of group IDs for use in the mount. "
+                                                      "File and folder ownership will be mapped from "
+                                                      "<host> to <instance> inside the instance. Can be "
+                                                      "used multiple times.", "host>:<instance");
+    QCommandLineOption uid_mappings({"u", "uid-map"}, "A mapping of user IDs for use in the mount. "
+                                                      "File and folder ownership will be mapped from "
+                                                      "<host> to <instance> inside the instance. Can be "
+                                                      "used multiple times.", "host>:<instance");
+    parser->addOptions({gid_mappings, uid_mappings});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -175,9 +175,9 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
     auto mount_maps = request.mutable_mount_maps();
 
-    if (parser->isSet(uid_map))
+    if (parser->isSet(uid_mappings))
     {
-        auto uid_maps = parser->values(uid_map);
+        auto uid_maps = parser->values(uid_mappings);
 
         for (const auto& map : uid_maps)
         {
@@ -194,7 +194,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                 auto host_uid = convert_id_for(parsed_map.at(0));
                 auto instance_uid = convert_id_for(parsed_map.at(1));
 
-                auto uid_pair = mount_maps->add_uid_map();
+                auto uid_pair = mount_maps->add_uid_mappings();
                 uid_pair->set_host_id(host_uid);
                 uid_pair->set_instance_id(instance_uid);
             }
@@ -206,9 +206,9 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         }
     }
 
-    if (parser->isSet(gid_map))
+    if (parser->isSet(gid_mappings))
     {
-        auto gid_maps = parser->values(gid_map);
+        auto gid_maps = parser->values(gid_mappings);
 
         for (const auto& map : gid_maps)
         {
@@ -225,7 +225,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                 auto host_gid = convert_id_for(parsed_map.at(0));
                 auto instance_gid = convert_id_for(parsed_map.at(1));
 
-                auto gid_pair = mount_maps->add_gid_map();
+                auto gid_pair = mount_maps->add_gid_mappings();
                 gid_pair->set_host_id(host_gid);
                 gid_pair->set_instance_id(instance_gid);
             }
@@ -237,16 +237,16 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         }
     }
 
-    if (!parser->isSet(uid_map) && !parser->isSet(gid_map))
+    if (!parser->isSet(uid_mappings) && !parser->isSet(gid_mappings))
     {
         mpl::log(mpl::Level::debug, category,
                  fmt::format("{}:{} {}(): adding default uid/gid mapping", __FILE__, __LINE__, __FUNCTION__));
 
-        auto uid_pair = mount_maps->add_uid_map();
+        auto uid_pair = mount_maps->add_uid_mappings();
         uid_pair->set_host_id(mcp::getuid());
         uid_pair->set_instance_id(mp::default_id);
 
-        auto gid_pair = mount_maps->add_gid_map();
+        auto gid_pair = mount_maps->add_gid_mappings();
         gid_pair->set_host_id(mcp::getgid());
         gid_pair->set_instance_id(mp::default_id);
     }

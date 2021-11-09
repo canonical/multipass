@@ -97,30 +97,30 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
                            mount->target_path());
 
             auto mount_maps = mount->mount_maps();
-            auto uid_map_size = mount_maps.uid_map_size();
+            auto uid_mappings_size = mount_maps.uid_mappings_size();
 
-            for (auto i = 0; i < uid_map_size; ++i)
+            for (auto i = 0; i < uid_mappings_size; ++i)
             {
-                auto uid_map_pair = mount_maps.uid_map(i);
+                auto uid_map_pair = mount_maps.uid_mappings(i);
                 auto host_uid = uid_map_pair.host_id();
                 auto instance_uid = uid_map_pair.instance_id();
 
                 fmt::format_to(buf, "{:>{}}{}:{}{}", (i == 0) ? "UID map: " : "", (i == 0) ? 29 : 0,
                                std::to_string(host_uid),
                                (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid),
-                               (i == uid_map_size - 1) ? "\n" : ", ");
+                               (i == uid_mappings_size - 1) ? "\n" : ", ");
             }
 
-            for (auto gid_map = mount_maps.gid_map().cbegin(); gid_map != mount_maps.gid_map().cend(); ++gid_map)
+            for (auto gid_mapping = mount_maps.gid_mappings().cbegin(); gid_mapping != mount_maps.gid_mappings().cend(); ++gid_mapping)
             {
-                auto host_gid = gid_map->host_id();
-                auto instance_gid = gid_map->instance_id();
+                auto host_gid = gid_mapping->host_id();
+                auto instance_gid = gid_mapping->instance_id();
 
-                fmt::format_to(buf, "{:>{}}{}:{}{}{}", (gid_map == mount_maps.gid_map().cbegin()) ? "GID map: " : "",
-                               (gid_map == mount_maps.gid_map().cbegin()) ? 29 : 0, std::to_string(host_gid),
+                fmt::format_to(buf, "{:>{}}{}:{}{}{}", (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
+                               (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0, std::to_string(host_gid),
                                (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid),
-                               (std::next(gid_map) != mount_maps.gid_map().cend()) ? ", " : "",
-                               (std::next(gid_map) == mount_maps.gid_map().cend()) ? "\n" : "");
+                               (std::next(gid_mapping) != mount_maps.gid_mappings().cend()) ? ", " : "",
+                               (std::next(gid_mapping) == mount_maps.gid_mappings().cend()) ? "\n" : "");
             }
         }
 

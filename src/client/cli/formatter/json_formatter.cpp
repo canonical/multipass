@@ -83,9 +83,9 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
 
             auto mount_maps = mount.mount_maps();
 
-            for (auto i = 0; i < mount_maps.uid_map_size(); ++i)
+            for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
             {
-                auto uid_map_pair = mount_maps.uid_map(i);
+                auto uid_map_pair = mount_maps.uid_mappings(i);
                 auto host_uid = uid_map_pair.host_id();
                 auto instance_uid = uid_map_pair.instance_id();
 
@@ -94,9 +94,9 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
                         .arg(QString::number(host_uid))
                         .arg((instance_uid == mp::default_id) ? "default" : QString::number(instance_uid)));
             }
-            for (auto i = 0; i < mount_maps.gid_map_size(); ++i)
+            for (auto i = 0; i < mount_maps.gid_mappings_size(); ++i)
             {
-                auto gid_map_pair = mount_maps.gid_map(i);
+                auto gid_map_pair = mount_maps.gid_mappings(i);
                 auto host_gid = gid_map_pair.host_id();
                 auto instance_gid = gid_map_pair.instance_id();
 

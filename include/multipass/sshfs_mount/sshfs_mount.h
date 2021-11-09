@@ -31,8 +31,8 @@ class SftpServer;
 class SshfsMount
 {
 public:
-    SshfsMount(SSHSession&& session, const std::string& source, const std::string& target, const id_mappings& gid_map,
-               const id_mappings& uid_map);
+    SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
+               const id_mappings& gid_mappings, const id_mappings& uid_mappings);
     SshfsMount(SshfsMount&& other);
     ~SshfsMount();
 

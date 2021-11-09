@@ -99,8 +99,8 @@ int main(int argc, char* argv[])
     const auto username = string(argv[3]);
     const auto source_path = string(argv[4]);
     const auto target_path = string(argv[5]);
-    const mp::id_mappings uid_map = convert_id_mappings(argv[6]);
-    const mp::id_mappings gid_map = convert_id_mappings(argv[7]);
+    const mp::id_mappings uid_mappings = convert_id_mappings(argv[6]);
+    const mp::id_mappings gid_mappings = convert_id_mappings(argv[7]);
     const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
     auto logger = mpp::make_logger(log_level);
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
         auto watchdog = mpp::make_quit_watchdog(); // called while there is only one thread
 
         mp::SSHSession session{host, port, username, mp::SSHClientKeyProvider{priv_key_blob}};
-        mp::SshfsMount sshfs_mount(move(session), source_path, target_path, gid_map, uid_map);
+        mp::SshfsMount sshfs_mount(move(session), source_path, target_path, gid_mappings, uid_mappings);
 
         // ssh lives on its own thread, use this thread to listen for quit signal
         if (int sig = watchdog())

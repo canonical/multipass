@@ -989,7 +989,7 @@ std::string fake_json_contents(const std::string& default_mac, const std::vector
                                                        "                \"gid_mappings\": ["));
 
         array_elements.clear();
-        for (const auto& gid_pair : mount->gid_map)
+        for (const auto& gid_pair : mount->gid_mappings)
         {
             array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
                                                                  "                        \"host_gid\": {},\n"
@@ -1006,7 +1006,7 @@ std::string fake_json_contents(const std::string& default_mac, const std::vector
                                                        mount->source_path));
 
         array_elements.clear();
-        for (const auto& uid_pair : mount->uid_map)
+        for (const auto& uid_pair : mount->uid_mappings)
         {
             array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
                                                                  "                        \"host_uid\": {},\n"
@@ -1041,8 +1041,8 @@ plant_instance_json(const std::string& contents)
     return {std::move(temp_dir), filename};
 }
 
-void check_maps_in_json(const QString& file, const mp::id_mappings& expected_gid_map,
-                        const mp::id_mappings& expected_uid_map)
+void check_maps_in_json(const QString& file, const mp::id_mappings& expected_gid_mappings,
+                        const mp::id_mappings& expected_uid_mappings)
 {
     QByteArray json = mpt::load(file);
 
@@ -1060,23 +1060,23 @@ void check_maps_in_json(const QString& file, const mp::id_mappings& expected_gid
 
     auto mount = mounts.first().toObject(); // There is at most one mount in our JSON.
 
-    auto gid_map = mount["gid_mappings"].toArray();
+    auto gid_mappings = mount["gid_mappings"].toArray();
 
-    ASSERT_EQ((unsigned)gid_map.size(), expected_gid_map.size());
+    ASSERT_EQ((unsigned)gid_mappings.size(), expected_gid_mappings.size());
 
-    for (unsigned i = 0; i < expected_gid_map.size(); ++i)
+    for (unsigned i = 0; i < expected_gid_mappings.size(); ++i)
     {
-        ASSERT_EQ(gid_map[i].toObject()["host_gid"], expected_gid_map[i].first);
-        ASSERT_EQ(gid_map[i].toObject()["instance_gid"], expected_gid_map[i].second);
+        ASSERT_EQ(gid_mappings[i].toObject()["host_gid"], expected_gid_mappings[i].first);
+        ASSERT_EQ(gid_mappings[i].toObject()["instance_gid"], expected_gid_mappings[i].second);
     }
 
-    auto uid_map = mount["uid_mappings"].toArray();
-    ASSERT_EQ((unsigned)uid_map.size(), expected_uid_map.size());
+    auto uid_mappings = mount["uid_mappings"].toArray();
+    ASSERT_EQ((unsigned)uid_mappings.size(), expected_uid_mappings.size());
 
-    for (unsigned i = 0; i < expected_uid_map.size(); ++i)
+    for (unsigned i = 0; i < expected_uid_mappings.size(); ++i)
     {
-        ASSERT_EQ(uid_map[i].toObject()["host_uid"], expected_uid_map[i].first);
-        ASSERT_EQ(uid_map[i].toObject()["instance_uid"], expected_uid_map[i].second);
+        ASSERT_EQ(uid_mappings[i].toObject()["host_uid"], expected_uid_mappings[i].first);
+        ASSERT_EQ(uid_mappings[i].toObject()["instance_uid"], expected_uid_mappings[i].second);
     }
 }
 
@@ -1119,9 +1119,9 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    mp::id_mappings uid_map{{1002, 0}, {1000, 0}, {1001, 1}};
-    mp::id_mappings gid_map{{1002, 0}, {1000, 2}};
-    mp::VMMount mount{mpt::TempDir().path().toStdString(), uid_map, gid_map};
+    mp::id_mappings uid_mappings{{1002, 0}, {1000, 0}, {1001, 1}};
+    mp::id_mappings gid_mappings{{1002, 0}, {1000, 2}};
+    mp::VMMount mount{mpt::TempDir().path().toStdString(), uid_mappings, gid_mappings};
 
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents("52:54:00:73:76:29", std::vector<mp::NetworkInterface>{}, mount));
@@ -1137,7 +1137,7 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
 
     send_command({"purge"});
 
-    check_maps_in_json(filename, uid_map, gid_map);
+    check_maps_in_json(filename, uid_mappings, gid_mappings);
 }
 
 TEST_F(Daemon, launches_with_valid_network_interface)

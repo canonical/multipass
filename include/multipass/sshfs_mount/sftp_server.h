@@ -38,7 +38,7 @@ class SftpServer
 {
 public:
     SftpServer(SSHSession&& ssh_session, const std::string& source, const std::string& target,
-               const id_mappings& gid_map, const id_mappings& uid_map, int default_uid, int default_gid,
+               const id_mappings& gid_mappings, const id_mappings& uid_mappings, int default_uid, int default_gid,
                const std::string& sshfs_exec_line);
     SftpServer(SftpServer&& other);
     ~SftpServer();
@@ -83,8 +83,8 @@ private:
     const std::string target_path;
     std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
     std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
-    const id_mappings gid_map;
-    const id_mappings uid_map;
+    const id_mappings gid_mappings;
+    const id_mappings uid_mappings;
     const int default_uid;
     const int default_gid;
     const std::string sshfs_exec_line;

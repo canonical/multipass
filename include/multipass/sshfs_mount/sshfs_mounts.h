@@ -38,7 +38,7 @@ public:
     explicit SSHFSMounts(const SSHKeyProvider& ssh_key_provider);
 
     void start_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
-                     const id_mappings& gid_map, const id_mappings& uid_map);
+                     const id_mappings& gid_mappings, const id_mappings& uid_mappings);
 
     bool stop_mount(const std::string& instance, const std::string& path);
     void stop_all_mounts_for_instance(const std::string& instance);

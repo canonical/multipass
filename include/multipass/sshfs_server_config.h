@@ -35,8 +35,8 @@ struct SSHFSServerConfig
     std::string private_key;
     std::string source_path;
     std::string target_path;
-    id_mappings gid_map;
-    id_mappings uid_map;
+    id_mappings gid_mappings;
+    id_mappings uid_mappings;
 };
 
 } // namespace multipass
