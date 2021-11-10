@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_SSHFS_MOUNT
 #define MULTIPASS_SSHFS_MOUNT
 
+#include <multipass/id_mappings.h>
+
 #include <memory>
 #include <thread>
 #include <unordered_map>
@@ -30,7 +32,7 @@ class SshfsMount
 {
 public:
     SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
-               const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map);
+               const id_mappings& gid_mappings, const id_mappings& uid_mappings);
     SshfsMount(SshfsMount&& other);
     ~SshfsMount();
 

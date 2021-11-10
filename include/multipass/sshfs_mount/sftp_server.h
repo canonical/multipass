@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_SFTP_SERVER_H
 #define MULTIPASS_SFTP_SERVER_H
 
+#include <multipass/id_mappings.h>
 #include <multipass/ssh/ssh_session.h>
 
 #include <libssh/sftp.h>
@@ -37,8 +38,8 @@ class SftpServer
 {
 public:
     SftpServer(SSHSession&& ssh_session, const std::string& source, const std::string& target,
-               const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-               int default_uid, int default_gid, const std::string& sshfs_exec_line);
+               const id_mappings& gid_mappings, const id_mappings& uid_mappings, int default_uid, int default_gid,
+               const std::string& sshfs_exec_line);
     SftpServer(SftpServer&& other);
     ~SftpServer();
 
@@ -54,6 +55,8 @@ private:
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
     int mapped_uid_for(const int uid);
     int mapped_gid_for(const int gid);
+    int reverse_uid_for(const int uid, const int rev_uid_if_not_found = -1);
+    int reverse_gid_for(const int gid, const int rev_gid_if_not_found = -1);
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
@@ -80,8 +83,8 @@ private:
     const std::string target_path;
     std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
     std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
-    const std::unordered_map<int, int> gid_map;
-    const std::unordered_map<int, int> uid_map;
+    const id_mappings gid_mappings;
+    const id_mappings uid_mappings;
     const int default_uid;
     const int default_gid;
     const std::string sshfs_exec_line;

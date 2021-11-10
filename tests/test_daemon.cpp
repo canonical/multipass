@@ -948,7 +948,8 @@ INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
                                  Values("1G", mp::default_disk_size, "10G")));
 INSTANTIATE_TEST_SUITE_P(Daemon, LaunchStorageCheckSuite, Values("test_create", "launch"));
 
-std::string fake_json_contents(const std::string& default_mac, const std::vector<mp::NetworkInterface>& extra_ifaces)
+std::string fake_json_contents(const std::string& default_mac, const std::vector<mp::NetworkInterface>& extra_ifaces,
+                               const mp::optional<mp::VMMount>& mount = mp::nullopt)
 {
     QString contents("{\n"
                      "    \"real-zebraphant\": {\n"
@@ -956,18 +957,18 @@ std::string fake_json_contents(const std::string& default_mac, const std::vector
                      "        \"disk_space\": \"5368709120\",\n"
                      "        \"extra_interfaces\": [\n");
 
-    QStringList extra_json;
+    QStringList array_elements;
     for (auto extra_interface : extra_ifaces)
     {
-        extra_json += QString::fromStdString(fmt::format("            {{\n"
-                                                         "                \"auto_mode\": {},\n"
-                                                         "                \"id\": \"{}\",\n"
-                                                         "                \"mac_address\": \"{}\"\n"
-                                                         "            }}\n",
-                                                         extra_interface.auto_mode, extra_interface.id,
-                                                         extra_interface.mac_address));
+        array_elements += QString::fromStdString(fmt::format("            {{\n"
+                                                             "                \"auto_mode\": {},\n"
+                                                             "                \"id\": \"{}\",\n"
+                                                             "                \"mac_address\": \"{}\"\n"
+                                                             "            }}\n",
+                                                             extra_interface.auto_mode, extra_interface.id,
+                                                             extra_interface.mac_address));
     }
-    contents += extra_json.join(',');
+    contents += array_elements.join(',');
 
     contents += QString::fromStdString(fmt::format("        ],\n"
                                                    "        \"mac_addr\": \"{}\",\n"
@@ -979,14 +980,52 @@ std::string fake_json_contents(const std::string& default_mac, const std::vector
                                                    "            ],\n"
                                                    "            \"machine_type\": \"dmc-de-lorean\"\n"
                                                    "        }},\n"
-                                                   "        \"mounts\": [\n"
-                                                   "        ],\n"
+                                                   "        \"mounts\": [\n",
+                                                   default_mac));
+
+    if (mount)
+    {
+        contents += QString::fromStdString(fmt::format("            {{\n"
+                                                       "                \"gid_mappings\": ["));
+
+        array_elements.clear();
+        for (const auto& gid_pair : mount->gid_mappings)
+        {
+            array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
+                                                                 "                        \"host_gid\": {},\n"
+                                                                 "                        \"instance_gid\": {}\n"
+                                                                 "                    }}",
+                                                                 gid_pair.first, gid_pair.second));
+        }
+        contents += array_elements.join(',');
+
+        contents += QString::fromStdString(fmt::format("\n                ],\n"
+                                                       "                \"source_path\": \"{}\",\n"
+                                                       "                \"target_path\": \"Home\",\n"
+                                                       "                \"uid_mappings\": [",
+                                                       mount->source_path));
+
+        array_elements.clear();
+        for (const auto& uid_pair : mount->uid_mappings)
+        {
+            array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
+                                                                 "                        \"host_uid\": {},\n"
+                                                                 "                        \"instance_uid\": {}\n"
+                                                                 "                    }}",
+                                                                 uid_pair.first, uid_pair.second));
+        }
+        contents += array_elements.join(',');
+
+        contents += QString::fromStdString(fmt::format("\n                ]\n"
+                                                       "            }}\n"));
+    }
+
+    contents += QString::fromStdString(fmt::format("        ],\n"
                                                    "        \"num_cores\": 1,\n"
                                                    "        \"ssh_username\": \"ubuntu\",\n"
                                                    "        \"state\": 2\n"
                                                    "    }}\n"
-                                                   "}}",
-                                                   default_mac));
+                                                   "}}"));
 
     return contents.toStdString();
 }
@@ -1000,6 +1039,45 @@ plant_instance_json(const std::string& contents)
     mpt::make_file_with_content(filename, contents);
 
     return {std::move(temp_dir), filename};
+}
+
+void check_maps_in_json(const QString& file, const mp::id_mappings& expected_gid_mappings,
+                        const mp::id_mappings& expected_uid_mappings)
+{
+    QByteArray json = mpt::load(file);
+
+    QJsonParseError parse_error;
+    const auto doc = QJsonDocument::fromJson(json, &parse_error);
+    EXPECT_FALSE(doc.isNull());
+    EXPECT_TRUE(doc.isObject());
+
+    const auto doc_object = doc.object();
+    const auto instance_object = doc_object["real-zebraphant"].toObject();
+
+    const auto mounts = instance_object["mounts"].toArray();
+
+    ASSERT_EQ(mounts.size(), 1);
+
+    auto mount = mounts.first().toObject(); // There is at most one mount in our JSON.
+
+    auto gid_mappings = mount["gid_mappings"].toArray();
+
+    ASSERT_EQ((unsigned)gid_mappings.size(), expected_gid_mappings.size());
+
+    for (unsigned i = 0; i < expected_gid_mappings.size(); ++i)
+    {
+        ASSERT_EQ(gid_mappings[i].toObject()["host_gid"], expected_gid_mappings[i].first);
+        ASSERT_EQ(gid_mappings[i].toObject()["instance_gid"], expected_gid_mappings[i].second);
+    }
+
+    auto uid_mappings = mount["uid_mappings"].toArray();
+    ASSERT_EQ((unsigned)uid_mappings.size(), expected_uid_mappings.size());
+
+    for (unsigned i = 0; i < expected_uid_mappings.size(); ++i)
+    {
+        ASSERT_EQ(uid_mappings[i].toObject()["host_uid"], expected_uid_mappings[i].first);
+        ASSERT_EQ(uid_mappings[i].toObject()["instance_uid"], expected_uid_mappings[i].second);
+    }
 }
 
 TEST_F(Daemon, reads_mac_addresses_from_json)
@@ -1035,6 +1113,31 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
 
     // Finally, check the contents of the file. If they match with what we read, we are done.
     check_interfaces_in_json(filename, mac_addr, extra_interfaces);
+}
+
+TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    mp::id_mappings uid_mappings{{1002, 0}, {1000, 0}, {1001, 1}};
+    mp::id_mappings gid_mappings{{1002, 0}, {1000, 2}};
+    mp::VMMount mount{mpt::TempDir().path().toStdString(), uid_mappings, gid_mappings};
+
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents("52:54:00:73:76:29", std::vector<mp::NetworkInterface>{}, mount));
+
+    config_builder.data_directory = temp_dir->path();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"list"}, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
+
+    QFile::remove(filename);
+
+    send_command({"purge"});
+
+    check_maps_in_json(filename, uid_mappings, gid_mappings);
 }
 
 TEST_F(Daemon, launches_with_valid_network_interface)
