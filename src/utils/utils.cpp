@@ -167,6 +167,22 @@ std::string mp::Utils::get_kernel_version() const
     return QSysInfo::kernelVersion().toStdString();
 }
 
+bool mp::Utils::client_certs_exist(const QString& cert_dir_path) const
+{
+    QDir cert_dir{cert_dir_path};
+
+    return cert_dir.exists(client_cert_file) && cert_dir.exists(client_key_file);
+}
+
+void mp::Utils::copy_client_certs_to_common_dir(const QString& cert_dir_path, const QString& common_cert_dir_path) const
+{
+    mp::utils::make_dir(common_cert_dir_path);
+    QDir common_dir{common_cert_dir_path}, cert_dir{cert_dir_path};
+
+    QFile::copy(cert_dir.filePath(client_cert_file), common_dir.filePath(client_cert_file));
+    QFile::copy(cert_dir.filePath(client_key_file), common_dir.filePath(client_key_file));
+}
+
 QDir mp::utils::base_dir(const QString& path)
 {
     QFileInfo info{path};
