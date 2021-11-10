@@ -65,13 +65,6 @@ namespace
 {
 const auto backend_path = QStringLiteral("/tmp");
 
-void setup_driver_settings(const QString& driver)
-{
-    auto& expectation = EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::driver_key)));
-    if (!driver.isEmpty())
-        expectation.WillRepeatedly(Return(driver));
-}
-
 // hold on to return until the change is to be discarded
 auto temporarily_change_env(const char* var_name, QByteArray var_value)
 {
@@ -160,7 +153,7 @@ void check_autostart_file(const QDir& autostart_dir, const QString& autostart_fi
 struct PlatformLinux : public mpt::TestWithMockedBinPath
 {
     template <typename VMFactoryType>
-    void aux_test_driver_factory(const QString& driver = QStringLiteral(""))
+    void aux_test_driver_factory(const QString& driver)
     {
         auto factory = mpt::MockProcessFactory::Inject();
         setup_driver_settings(driver);
@@ -171,13 +164,19 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
         EXPECT_TRUE(dynamic_cast<VMFactoryType*>(factory_ptr.get()));
     }
 
+    void setup_driver_settings(const QString& driver)
+    {
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return(driver));
+    }
+
     void with_minimally_mocked_libvirt(std::function<void()> test_contents)
     {
         mp::LibvirtWrapper libvirt_wrapper{""};
         test_contents();
     }
 
-    mpt::UnsetEnvScope unset_env_scope{mp::driver_env_var};
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
 
@@ -305,7 +304,7 @@ TEST_F(PlatformLinux, test_autostart_setup_fails_on_absent_desktop_target)
 
 TEST_F(PlatformLinux, test_default_driver_produces_correct_factory)
 {
-    aux_test_driver_factory<DEFAULT_FACTORY>();
+    aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
 }
 
 #ifdef QEMU_ENABLED
@@ -409,7 +408,7 @@ TEST_F(PlatformLinux, test_is_alias_supported_lxd)
     EXPECT_FALSE(MP_PLATFORM.is_alias_supported("16.04", "snapcraft"));
 }
 
-struct TestUnsupportedDrivers : public TestWithParam<QString>
+struct TestUnsupportedDrivers : public PlatformLinux, WithParamInterface<QString>
 {
 };
 
