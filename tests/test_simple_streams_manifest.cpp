@@ -28,7 +28,22 @@ namespace mpt = multipass::test;
 
 using namespace testing;
 
-TEST(SimpleStreamsManifest, can_parse_image_info)
+namespace
+{
+
+struct TestSimpleStreamsManifest : public Test
+{
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu")); /* TODO parameterize driver
+                                                                                              (code branches for lxd) */
+    }
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+};
+
+TEST_F(TestSimpleStreamsManifest, can_parse_image_info)
 {
     auto json = mpt::load_test_file("good_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
@@ -41,7 +56,7 @@ TEST(SimpleStreamsManifest, can_parse_image_info)
     EXPECT_FALSE(info->image_location.isEmpty());
 }
 
-TEST(SimpleStreamsManifest, can_find_info_by_alias)
+TEST_F(TestSimpleStreamsManifest, can_find_info_by_alias)
 {
     auto json = mpt::load_test_file("good_manifest.json");
     const auto host_url{"http://stream/url"};
@@ -58,25 +73,25 @@ TEST(SimpleStreamsManifest, can_find_info_by_alias)
     EXPECT_THAT(info->stream_location, Eq(host_url));
 }
 
-TEST(SimpleStreamsManifest, throws_on_invalid_json)
+TEST_F(TestSimpleStreamsManifest, throws_on_invalid_json)
 {
     QByteArray json;
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
-TEST(SimpleStreamsManifest, throws_on_invalid_top_level_type)
+TEST_F(TestSimpleStreamsManifest, throws_on_invalid_top_level_type)
 {
     auto json = mpt::load_test_file("invalid_top_level.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
-TEST(SimpleStreamsManifest, throws_when_missing_products)
+TEST_F(TestSimpleStreamsManifest, throws_when_missing_products)
 {
     auto json = mpt::load_test_file("missing_products_manifest.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::GenericManifestException);
 }
 
-TEST(SimpleStreamsManifest, throws_when_failed_to_parse_any_products)
+TEST_F(TestSimpleStreamsManifest, throws_when_failed_to_parse_any_products)
 {
     auto json = mpt::load_test_file("missing_versions_manifest.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::EmptyManifestException);
@@ -85,7 +100,7 @@ TEST(SimpleStreamsManifest, throws_when_failed_to_parse_any_products)
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, ""), mp::EmptyManifestException);
 }
 
-TEST(SimpleStreamsManifest, chooses_newest_version)
+TEST_F(TestSimpleStreamsManifest, chooses_newest_version)
 {
     auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
@@ -99,7 +114,7 @@ TEST(SimpleStreamsManifest, chooses_newest_version)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
-TEST(SimpleStreamsManifest, can_query_all_versions)
+TEST_F(TestSimpleStreamsManifest, can_query_all_versions)
 {
     auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
@@ -117,7 +132,7 @@ TEST(SimpleStreamsManifest, can_query_all_versions)
     }
 }
 
-TEST(SimpleStreamsManifest, info_has_kernel_and_initrd_paths)
+TEST_F(TestSimpleStreamsManifest, info_has_kernel_and_initrd_paths)
 {
     auto json = mpt::load_test_file("good_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, "");
@@ -129,10 +144,8 @@ TEST(SimpleStreamsManifest, info_has_kernel_and_initrd_paths)
     EXPECT_FALSE(info->initrd_location.isEmpty());
 }
 
-TEST(SimpleStreamsManifest, lxd_driver_returns_expected_data)
+TEST_F(TestSimpleStreamsManifest, lxd_driver_returns_expected_data)
 {
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
-
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("lxd"));
 
     auto json = mpt::load_test_file("lxd_test_manifest.json");
@@ -152,3 +165,5 @@ TEST(SimpleStreamsManifest, lxd_driver_returns_expected_data)
     const QString expected_bionic_id{"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"};
     EXPECT_EQ(bionic_info->id, expected_bionic_id);
 }
+
+} // namespace
