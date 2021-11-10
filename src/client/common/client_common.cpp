@@ -25,21 +25,11 @@
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 
-#include <QDir>
-#include <QFile>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
-const QString common_client_cert_dir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericDataLocation) +
-                                     "/multipass-client-certificate"};
-const QString gui_client_cert_dir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericDataLocation) +
-                                  "/multipass-gui/client-certificate"};
-const QString cli_client_cert_dir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericDataLocation) +
-                                  "/multipass/client-certificate"};
-
 mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 {
     return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
@@ -60,22 +50,6 @@ std::string message_box(const std::string& message)
     const auto divider = std::string(divider_length, '#');
 
     return '\n' + divider + '\n' + message + '\n' + divider + '\n';
-}
-
-bool client_certs_exist(const QString& cert_dir_path)
-{
-    QDir cert_dir{cert_dir_path};
-
-    return cert_dir.exists(mp::client_cert_file) && cert_dir.exists(mp::client_key_file);
-}
-
-void copy_client_certs_to_common_dir(const QString& cert_dir_path)
-{
-    mp::utils::make_dir(common_client_cert_dir);
-    QDir common_dir{common_client_cert_dir}, cert_dir{cert_dir_path};
-
-    QFile::copy(cert_dir.filePath(mp::client_cert_file), common_dir.filePath(mp::client_cert_file));
-    QFile::copy(cert_dir.filePath(mp::client_key_file), common_dir.filePath(mp::client_key_file));
 }
 
 grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const QString& cert_dir_path)
@@ -141,33 +115,37 @@ std::shared_ptr<grpc::Channel> mp::client::make_secure_channel(const std::string
 {
     if (!cert_provider)
     {
+        auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
+        auto common_client_cert_dir_path{data_location + common_client_cert_dir};
+
         // The following logic is for determing which certificate to use when the client starts up.
         // 1. First check if the new common client certificate exists and use it if it does.
         // 2. Failing that, check if the multipass-gui certificate exists and determine if it's authenticated
         //    with the daemon already.  If it is, copy it to the common client certificate directory and use it.
         // 3. If that fails, then try the certificate from the cli client in the same manner as 2.
         // 4. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
-        if (client_certs_exist(common_client_cert_dir))
+        if (MP_UTILS.client_certs_exist(common_client_cert_dir_path))
         {
-            return create_channel_with_opts(server_address, get_ssl_credentials_opts_from(common_client_cert_dir));
+            return create_channel_with_opts(server_address, get_ssl_credentials_opts_from(common_client_cert_dir_path));
         }
 
-        std::vector<QString> cert_dirs_to_check{gui_client_cert_dir, cli_client_cert_dir};
+        std::vector<QString> cert_dirs_to_check{data_location + gui_client_cert_dir,
+                                                data_location + cli_client_cert_dir};
         for (const auto& cert_dir : cert_dirs_to_check)
         {
-            if (client_certs_exist(cert_dir))
+            if (MP_UTILS.client_certs_exist(cert_dir))
             {
                 if (auto rpc_channel{
                         create_channel_and_validate(server_address, get_ssl_credentials_opts_from(cert_dir))})
                 {
-                    copy_client_certs_to_common_dir(cert_dir);
+                    MP_UTILS.copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
                     return rpc_channel;
                 }
             }
         }
 
-        mp::utils::make_dir(common_client_cert_dir);
-        return create_channel_with_opts(server_address, get_ssl_credentials_opts_from(common_client_cert_dir));
+        mp::utils::make_dir(common_client_cert_dir_path);
+        return create_channel_with_opts(server_address, get_ssl_credentials_opts_from(common_client_cert_dir_path));
     }
 
     auto opts = grpc::SslCredentialsOptions();
