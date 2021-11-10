@@ -49,8 +49,8 @@ struct UbuntuImageHost : public testing::Test
 {
     UbuntuImageHost()
     {
-        EXPECT_CALL(*mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
-        EXPECT_CALL(*mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
+        EXPECT_CALL(mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
+        EXPECT_CALL(mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
 
         EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu")); /* TODO parameterize driver
                                                                                               (code branches for lxd) */
@@ -71,8 +71,8 @@ struct UbuntuImageHost : public testing::Test
     QString expected_location{host_url + "newest_image.img"};
     QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
 
-    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()}; // TODO@ricab homogenize with below
-    mpt::MockPlatform* mock_platform = attr.first;
+    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject()};
+    mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
@@ -126,7 +126,7 @@ TEST_F(UbuntuImageHost, unsupported_alias_iterates_over_expected_entries)
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
 
-    EXPECT_CALL(*mock_platform, is_alias_supported("zesty", _)).WillRepeatedly(Return(false));
+    EXPECT_CALL(mock_platform, is_alias_supported("zesty", _)).WillRepeatedly(Return(false));
 
     host.for_each_entry_do(action);
 
@@ -264,7 +264,7 @@ TEST_F(UbuntuImageHost, all_images_for_release_unsupported_alias_returns_three_m
 
     const std::string unsupported_alias{"zesty"};
 
-    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
+    EXPECT_CALL(mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
 
     auto images = host.all_images_for(release_remote_spec.first, false);
 
@@ -414,7 +414,7 @@ TEST_F(UbuntuImageHost, all_info_for_unsupported_alias_throws)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     const std::string unsupported_alias{"daily"};
-    EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
+    EXPECT_CALL(mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
         host.all_info_for(make_query(unsupported_alias, release_remote_spec.first)), mp::UnsupportedAliasException,
@@ -426,7 +426,7 @@ TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
     const std::string unsupported_remote{"bar"};
-    EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
+    EXPECT_CALL(mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
 
     MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
                          mpt::match_what(HasSubstr(fmt::format(
@@ -437,7 +437,7 @@ TEST_F(UbuntuImageHost, info_for_no_remote_first_unsupported_returns_expected_in
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    EXPECT_CALL(*mock_platform, is_remote_supported("release")).Times(AtLeast(1)).WillRepeatedly(Return(false));
+    EXPECT_CALL(mock_platform, is_remote_supported("release")).Times(AtLeast(1)).WillRepeatedly(Return(false));
 
     auto info = host.info_for(make_query("artful", ""));
 
