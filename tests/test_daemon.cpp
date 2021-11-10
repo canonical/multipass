@@ -141,11 +141,11 @@ struct Daemon : public mpt::DaemonTestFixture
 {
     Daemon()
     {
-        ON_CALL(*mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
-            return mock_utils->Utils::filesystem_bytes_available(data_directory);
+        ON_CALL(mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
+            return mock_utils.Utils::filesystem_bytes_available(data_directory);
         });
 
-        EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
+        EXPECT_CALL(mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
     }
 
     void SetUp() override
@@ -155,11 +155,11 @@ struct Daemon : public mpt::DaemonTestFixture
                              a few more tests for `false`, since there are different portions of code depending on it */
     }
 
-    mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
-    mpt::MockUtils* mock_utils = attr.first;
+    mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils& mock_utils = *mock_utils_injection.first;
 
-    mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
-    mpt::MockPlatform* mock_platform = platform_attr.first;
+    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject()};
+    mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
@@ -329,7 +329,7 @@ TEST_F(Daemon, workflowsURLOverrideIsCorrect)
     auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
     const QString test_workflows_zip{mpt::test_data_path() + "test-workflows.zip"};
 
-    EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillOnce([&test_workflows_zip] {
+    EXPECT_CALL(mock_platform, get_workflows_url_override()).WillOnce([&test_workflows_zip] {
         return QUrl::fromLocalFile(test_workflows_zip).toEncoded();
     });
 
@@ -866,7 +866,7 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
         return mp::MemorySize{img_size_str};
     });
 
-    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(default_total_bytes));
+    EXPECT_CALL(mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(default_total_bytes));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
@@ -894,7 +894,7 @@ TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
@@ -918,7 +918,7 @@ TEST_P(LaunchStorageCheckSuite, launch_fails_when_space_less_than_image)
 
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
@@ -1503,7 +1503,7 @@ TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
                                    std::chrono::seconds(expected_timeout))))
         .WillRepeatedly(Return());
     EXPECT_CALL(
-        *mock_utils,
+        mock_utils,
         wait_for_cloud_init(
             _, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout)), _))
         .WillRepeatedly(Return());
