@@ -150,8 +150,9 @@ struct Daemon : public mpt::DaemonTestFixture
 
     void SetUp() override
     {
-        EXPECT_CALL(mock_settings, get(_))
-            .Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests. */
+        EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet-instance"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true")); /* TODO should probably add
+                             a few more tests for `false`, since there are different portions of code depending on it */
     }
 
     mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
@@ -159,8 +160,9 @@ struct Daemon : public mpt::DaemonTestFixture
 
     mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = platform_attr.first;
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
-                                                                              reset at the end of each test */
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 
 TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
@@ -203,6 +205,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
     EXPECT_CALL(daemon, networks(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::NetworksRequest, mp::NetworksReply>));
+
+    EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
     send_commands({{"test_get", "foo"},
                    {"test_create", "foo"},
@@ -1541,6 +1545,7 @@ TEST_F(Daemon, refuses_launch_bridged_without_setting)
 
     mp::Daemon daemon{config_builder.build()};
 
+    EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillOnce(Return(""));
     EXPECT_CALL(*mock_factory, networks()).Times(0);
 
     std::stringstream err_stream;
@@ -1602,9 +1607,11 @@ TEST_F(Daemon, getHandlesEmptyKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
+    const auto key = "";
     mp::GetRequest request;
-    request.set_key("");
+    request.set_key(key);
 
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<MockServerWriter<mp::GetReply>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
@@ -1615,9 +1622,11 @@ TEST_F(Daemon, getHandlesInvalidKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
+    const auto key = "bad";
     mp::GetRequest request;
-    request.set_key("bad");
+    request.set_key(key);
 
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<MockServerWriter<mp::GetReply>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
