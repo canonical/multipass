@@ -23,6 +23,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/optional.h>
 #include <multipass/persistent_settings_handler.h>
 
 #include <QString>
@@ -60,61 +61,74 @@ public:
 class TestPersistentSettingsHandler : public Test
 {
 public:
+    mp::PersistentSettingsHandler make_handler(const mp::optional<QString>& specific_key = mp::nullopt,
+                                               const mp::optional<QString>& specific_val = mp::nullopt)
+    {
+        if (specific_key)
+            defaults[*specific_key] = specific_val.value_or("banana");
+
+        return mp::PersistentSettingsHandler{fake_filename, defaults};
+    }
+
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
             .WillOnce(Return(ByMove(std::move(mock_qsettings))));
     }
 
-    void mock_unreadable_settings_file(const char* filename)
+    void mock_unreadable_settings_file()
     {
         std::fstream fstream{};
         fstream.setstate(std::ios_base::failbit);
 
-        EXPECT_CALL(*mock_file_ops, open(_, StrEq(filename), Eq(std::ios_base::in)))
+        EXPECT_CALL(*mock_file_ops, open(_, StrEq(qPrintable(fake_filename)), Eq(std::ios_base::in)))
             .WillOnce(DoAll(WithArg<0>([](auto& stream) { stream.setstate(std::ios_base::failbit); }),
                             Assign(&errno, EACCES)));
 
-        EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
+        EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(fake_filename));
     }
 
 public:
+    QString fake_filename = "/tmp/fake.filename";
+    std::map<QString, QString> defaults{
+        {"a.key", "a value"}, {"another.key", "with a value"}, {"one.further.key", "and its default value"}};
+
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject<NiceMock>();
     mpt::MockFileOps* mock_file_ops = mock_file_ops_injection.first;
+
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* strict
                                                 to ensure that, other than explicitly injected, no QSettings are used */
     MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
+
     std::unique_ptr<NiceMock<MockQSettings>> mock_qsettings = std::make_unique<NiceMock<MockQSettings>>();
 };
 
 TEST_F(TestPersistentSettingsHandler, getReadsUtf8)
 {
     const auto key = "asdf";
-    mp::PersistentSettingsHandler handler{"", {{key, ""}}}; // TODO@ricab try to extract this
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
 
-    handler.get(key);
+    make_handler(key).get(key);
 }
 
 TEST_F(TestPersistentSettingsHandler, setWritesUtf8)
 {
     const auto key = "a.key";
-    mp::PersistentSettingsHandler handler{"", {{key, ""}}};
     EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
 
     inject_mock_qsettings();
 
-    handler.set(key, "a value");
+    make_handler(key).set(key, "kokoko");
 }
 
 TEST_F(TestPersistentSettingsHandler, getThrowsOnUnreadableFile)
 {
-    const auto key = "foo", filename = "/an/unreadable/file";
-    mp::PersistentSettingsHandler handler{filename, {{key, ""}}};
+    const auto key = "foo";
+    const auto handler = make_handler(key);
 
-    mock_unreadable_settings_file(filename);
+    mock_unreadable_settings_file();
     inject_mock_qsettings();
 
     MP_EXPECT_THROW_THAT(handler.get(key), mp::PersistentSettingsException,
@@ -123,10 +137,10 @@ TEST_F(TestPersistentSettingsHandler, getThrowsOnUnreadableFile)
 
 TEST_F(TestPersistentSettingsHandler, setThrowsOnUnreadableFile)
 {
-    const auto key = mp::mounts_key, val = "yes", filename = "unreadable";
-    mp::PersistentSettingsHandler handler{filename, {{key, ""}}};
+    const auto key = mp::mounts_key, val = "yes";
+    const auto handler = make_handler(key, val);
 
-    mock_unreadable_settings_file(filename);
+    mock_unreadable_settings_file();
     inject_mock_qsettings();
 
     MP_EXPECT_THROW_THAT(handler.set(key, val), mp::PersistentSettingsException,
@@ -143,7 +157,7 @@ TEST_P(TestPersistentSettingsReadWriteError, getThrowsOnFileReadError)
 {
     const auto& [status, desc] = GetParam();
     const auto key = "token";
-    mp::PersistentSettingsHandler handler{"", {{key, ""}}};
+    const auto handler = make_handler(key);
 
     EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
 
@@ -157,7 +171,7 @@ TEST_P(TestPersistentSettingsReadWriteError, setThrowsOnFileWriteError)
 {
     const auto& [status, desc] = GetParam();
     const auto key = "blah";
-    mp::PersistentSettingsHandler handler{"", {{key, ""}}};
+    const auto handler = make_handler(key);
 
     {
         InSequence seq;
@@ -178,7 +192,7 @@ INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestPersistentSettingsReadWr
 TEST_F(TestPersistentSettingsHandler, getReturnsRecordedSetting)
 {
     const auto key = "choose.a.key", val = "asdf", default_ = "some default";
-    mp::PersistentSettingsHandler handler{"", {{key, default_}}};
+    const auto handler = make_handler(key, default_);
 
     EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), _)).WillOnce(Return(val));
 
@@ -191,7 +205,7 @@ TEST_F(TestPersistentSettingsHandler, getReturnsRecordedSetting)
 TEST_F(TestPersistentSettingsHandler, getReturnsDefaultByDefault)
 {
     const auto key = "chave", default_ = "Cylinder";
-    mp::PersistentSettingsHandler handler{"", {{key, default_}}};
+    const auto handler = make_handler(key, default_);
 
     EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), Eq(default_))).WillOnce(Return(default_));
 
@@ -205,12 +219,14 @@ TEST_F(TestPersistentSettingsHandler, getReturnsDefaultByDefault)
 TEST_F(TestPersistentSettingsHandler, setRecordsProvidedSetting)
 {
     const auto key = "name.a.key", val = "and a value";
-    mp::PersistentSettingsHandler handler{"", {{key, ""}}};
+    const auto handler = make_handler(key);
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
 
     inject_mock_qsettings();
 
     ASSERT_NO_THROW(handler.set(key, val));
 }
+
+// TODO@ricab check filename
 
 } // namespace
