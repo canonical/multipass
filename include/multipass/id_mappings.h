@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,29 +15,15 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_SERVER_CONFIG_H
-#define MULTIPASS_SSHFS_SERVER_CONFIG_H
+#ifndef MULTIPASS_ID_MAPPINGS_H
+#define MULTIPASS_ID_MAPPINGS_H
 
-#include <multipass/id_mappings.h>
-
-#include <string>
-#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace multipass
 {
+typedef typename std::vector<std::pair<int, int>> id_mappings;
+}
 
-struct SSHFSServerConfig
-{
-    std::string host;
-    int port;
-    std::string username;
-    std::string instance;
-    std::string private_key;
-    std::string source_path;
-    std::string target_path;
-    id_mappings gid_mappings;
-    id_mappings uid_mappings;
-};
-
-} // namespace multipass
-#endif // MULTIPASS_SSHFS_SERVER_CONFIG_H
+#endif // MULTIPASS_ID_MAPPINGS_H

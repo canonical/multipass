@@ -1099,53 +1099,53 @@ TEST_F(Client, mount_cmd_fails_invalid_source_path)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_good_valid_uid_map)
+TEST_F(Client, mount_cmd_good_valid_uid_mappings)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "1000:501", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_good_valid_large_uid_map)
+TEST_F(Client, mount_cmd_good_valid_large_uid_mappings)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "218038053:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_fails_invalid_string_uid_map)
+TEST_F(Client, mount_cmd_fails_invalid_string_uid_mappings)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "foo:bar", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_fails_invalid_host_int_uid_map)
+TEST_F(Client, mount_cmd_fails_invalid_host_int_uid_mappings)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "5000000000:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_good_valid_gid_map)
+TEST_F(Client, mount_cmd_good_valid_gid_mappings)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "1000:501", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_good_valid_large_gid_map)
+TEST_F(Client, mount_cmd_good_valid_large_gid_mappings)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "218038053:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_fails_invalid_string_gid_map)
+TEST_F(Client, mount_cmd_fails_invalid_string_gid_mappings)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "foo:bar", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_fails_invalid_host_int_gid_map)
+TEST_F(Client, mount_cmd_fails_invalid_host_int_gid_mappings)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "5000000000:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));

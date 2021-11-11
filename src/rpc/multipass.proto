@@ -176,9 +176,14 @@ message InfoRequest {
     int32 verbosity_level = 2;
 }
 
+message IdMap {
+    int32 host_id = 1;
+    int32 instance_id = 2;
+}
+
 message MountMaps {
-    map<int32, int32> uid_map = 1;
-    map<int32, int32> gid_map = 2;
+    repeated IdMap uid_mappings = 1;
+    repeated IdMap gid_mappings = 2;
 }
 
 message MountInfo {

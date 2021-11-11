@@ -18,6 +18,7 @@
 #include "sshfs_server_process_spec.h"
 
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
 #include <multipass/snap_utils.h>
 
@@ -30,10 +31,10 @@ namespace mu = multipass::utils;
 
 namespace
 {
-QString serialise_id_map(const std::unordered_map<int, int>& id_map)
+QString serialise_id_mappings(const mp::id_mappings& xid_mappings)
 {
     QString out;
-    for (auto ids : id_map)
+    for (auto ids : xid_mappings)
     {
         out += QString("%1:%2,").arg(ids.first).arg(ids.second);
     }
@@ -62,8 +63,8 @@ QStringList mp::SSHFSServerProcessSpec::arguments() const
 {
     return QStringList() << QString::fromStdString(config.host) << QString::number(config.port)
                          << QString::fromStdString(config.username) << QString::fromStdString(config.source_path)
-                         << QString::fromStdString(config.target_path) << serialise_id_map(config.uid_map)
-                         << serialise_id_map(config.gid_map)
+                         << QString::fromStdString(config.target_path) << serialise_id_mappings(config.uid_mappings)
+                         << serialise_id_mappings(config.gid_mappings)
                          << QString::number(static_cast<int>(mp::logging::get_logging_level()));
 }
 
