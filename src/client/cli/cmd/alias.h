@@ -44,7 +44,7 @@ public:
 
 private:
     InfoRequest info_request;
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
 
     AliasDict aliases;
     std::string alias_name;

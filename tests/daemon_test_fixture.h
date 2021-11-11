@@ -103,7 +103,7 @@ public:
     }
 
 private:
-    multipass::ParseCode parse_args(multipass::ArgParser* parser) override
+    multipass::ParseCode parse_args(multipass::ArgParser* parser)
     {
         QCommandLineOption diskOption("disk", "", "disk", "");
         QCommandLineOption memOption("mem", "", "mem", "");
@@ -167,7 +167,7 @@ public:
     }
 
 private:
-    mp::ParseCode parse_args(mp::ArgParser* parser) override
+    mp::ParseCode parse_args(mp::ArgParser* parser)
     {
         parser->addPositionalArgument("key", "key of the setting to get");
 

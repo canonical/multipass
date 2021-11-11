@@ -143,8 +143,6 @@ protected:
     std::ostream& cerr;
 
 private:
-    virtual ParseCode parse_args(ArgParser* parser) = 0;
-
     template <typename SuccessCallable, typename FailureCallable>
     void check_return_callables(SuccessCallable&& on_success, FailureCallable&& on_failure)
     {
