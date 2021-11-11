@@ -16,7 +16,6 @@
  */
 
 #include "common.h"
-#include "mock_file_ops.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_singleton_helpers.h"
@@ -77,22 +76,7 @@ struct TestSettings : public Test
         EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
     }
 
-    void mock_unreadable_settings_file(const char* filename)
-    {
-        std::fstream fstream{};
-        fstream.setstate(std::ios_base::failbit);
-
-        EXPECT_CALL(*mock_file_ops, open(_, StrEq(filename), Eq(std::ios_base::in)))
-            .WillOnce(DoAll(WithArg<0>([](auto& stream) { stream.setstate(std::ios_base::failbit); }),
-                            Assign(&errno, EACCES)));
-
-        EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
-    }
-
 public:
-    mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject<NiceMock>();
-    mpt::MockFileOps* mock_file_ops = mock_file_ops_injection.first;
-
     MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* this
     is made strict to ensure that, other than explicitly injected, no QSettings are used; that's particularly important
     when injecting real get and set behavior (don't want tests to be affected, nor themselves affect, disk state) */
@@ -112,41 +96,6 @@ private:
         MP_SETTINGS.Settings::set(key, val); // invoke the base
     }
 };
-
-TEST_F(TestSettings, setWritesUtf8)
-{
-    const auto key = mp::bridged_interface_key, val = "foo";
-    EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    MP_SETTINGS.set(key, val);
-}
-
-TEST_F(TestSettings, getThrowsOnUnreadableFile)
-{
-    const auto key = mp::hotkey_key;
-
-    mock_unreadable_settings_file("/an/unreadable/file");
-    inject_mock_qsettings();
-    inject_real_settings_get(key);
-
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
-}
-
-TEST_F(TestSettings, setThrowsOnUnreadableFile)
-{
-    const auto key = mp::mounts_key, val = "yes";
-
-    mock_unreadable_settings_file("unreadable");
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
-}
 
 using DescribedQSettingsStatus = std::tuple<QSettings::Status, std::string>;
 struct TestSettingsReadWriteError : public TestSettings, public WithParamInterface<DescribedQSettingsStatus>
