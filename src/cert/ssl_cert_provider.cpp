@@ -115,7 +115,6 @@ long random_long()
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
-    // The array must be used uninitialized. Otherwise, there will be no randomness.
     RAND_bytes(bytes.data(), bytes.size());
 
 #ifdef MULTIPASS_COMPILER_GCC
