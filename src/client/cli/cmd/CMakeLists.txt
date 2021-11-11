@@ -29,6 +29,7 @@ add_library(commands STATIC
   networks.cpp
   purge.cpp
   recover.cpp
+  remote_settings_handler.cpp
   restart.cpp
   set.cpp
   shell.cpp
