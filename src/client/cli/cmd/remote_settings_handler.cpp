@@ -36,16 +36,6 @@ public:
     RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
         : mp::cmd::Command{channel, stub, term}, key{key}, verbosity{verbosity} // need to ensure refs outlive this
     {
-    }
-
-    mp::ReturnCode run()
-    {
-        return run(nullptr);
-    }
-
-private: // demote visibility of the following methods
-    mp::ReturnCode run(mp::ArgParser*) override
-    {
         mp::GetRequest get_request;
         get_request.set_verbosity_level(verbosity);
         get_request.set_key(key.toStdString());
@@ -57,25 +47,33 @@ private: // demote visibility of the following methods
 
         auto on_failure = [this](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
 
-        return dispatch(&RpcMethod::get, get_request, on_success, on_failure);
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
+        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
+        assert(got && "should have thrown otherwise");
     }
 
-    std::string name() const override
+private: // demote visibility of the following methods
+    [[noreturn]] mp::ReturnCode run(mp::ArgParser*) override
     {
-        return fail();
+        fail();
     }
 
-    QString short_help() const override
+    [[noreturn]] std::string name() const override
     {
-        return fail();
+        fail();
     }
 
-    QString description() const override
+    [[noreturn]] QString short_help() const override
     {
-        return fail();
+        fail();
     }
 
-    static const char* fail()
+    [[noreturn]] QString description() const override
+    {
+        fail();
+    }
+
+    [[noreturn]] static void fail()
     {
         assert(false);
         throw std::logic_error{"shouldn't be here"};
@@ -103,10 +101,6 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     {
         assert(term);
         auto remote_get = RemoteGet(key, rpc_channel, stub, term, verbosity);
-        auto result = remote_get.run();
-
-        assert(result == ReturnCode::Ok && "should have thrown otherwise");
-        assert(remote_get.got && "should have thrown otherwise");
         return *remote_get.got;
     }
 
