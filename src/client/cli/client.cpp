@@ -115,12 +115,21 @@ int mp::Client::run(const QStringList& arguments)
     MP_SETTINGS.register_handler(std::make_unique<RemoteSettingsHandler>(daemon_settings_root, *rpc_channel, *stub,
                                                                          term, parser.verbosityLevel()));
 
-    if (!mpl::get_logger())
-        mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
-    mp::client::pre_setup(); // ... something we want to do even if the command was wrong
+    mp::ReturnCode ret;
+    try
+    {
+        if (!mpl::get_logger())
+            mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
+        mp::client::pre_setup(); // ... something we want to do even if the command was wrong
 
-    const auto ret =
-        parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser) : parser.returnCodeFrom(parse_status);
+        ret = parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser)
+                                            : parser.returnCodeFrom(parse_status); // trust me clang-format
+    }
+    catch (const RemoteSettingsException& e)
+    {
+        ret = e.get_return_code();
+        term->cerr() << e.what();
+    }
 
     mp::client::post_setup();
 

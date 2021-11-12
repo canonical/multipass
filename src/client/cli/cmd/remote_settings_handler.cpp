@@ -55,13 +55,14 @@ private: // demote visibility of the following methods
             return mp::ReturnCode::Ok;
         };
 
-        auto on_failure = [this](grpc::Status& status) {
-            std::stringstream grab_error; // TODO@ricab separate the part we need of the failure handler instead
-            if (auto ret = mp::cmd::standard_failure_handler_for("internal", grab_error, status);
-                ret == mp::ReturnCode::Ok)
-                return ret;
+        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCode { // always throws (never actually returns)
+            std::stringstream grab_error;
 
-            throw std::runtime_error{grab_error.str()}; // TODO@ricab throw and catch specific exception w/ ret code
+            // TODO@ricab separate the part we need of the failure handler instead
+            auto ret = mp::cmd::standard_failure_handler_for("internal", grab_error, status);
+
+            assert(ret != mp::ReturnCode::Ok);
+            throw mp::RemoteSettingsException{grab_error.str(), ret};
         };
 
         return dispatch(&RpcMethod::get, get_request, on_success, on_failure);
