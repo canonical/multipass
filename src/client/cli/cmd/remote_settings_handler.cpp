@@ -30,27 +30,10 @@ namespace mp = multipass;
 
 namespace
 {
-class RemoteGet : public mp::cmd::Command // TODO@ricab feels hacky - revisit
+class InternalCmd : public mp::cmd::Command
 {
 public:
-    RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
-        : mp::cmd::Command{channel, stub, term}, key{key}, verbosity{verbosity} // need to ensure refs outlive this
-    {
-        mp::GetRequest get_request;
-        get_request.set_verbosity_level(verbosity);
-        get_request.set_key(key.toStdString());
-
-        auto on_success = [this](mp::GetReply& reply) {
-            got = QString::fromStdString(reply.value());
-            return mp::ReturnCode::Ok;
-        };
-
-        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
-
-        [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
-        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
-        assert(got && "should have thrown otherwise");
-    }
+    using mp::cmd::Command::Command;
 
 private: // demote visibility of the following methods
     [[noreturn]] mp::ReturnCode run(mp::ArgParser*) override
@@ -77,6 +60,29 @@ private: // demote visibility of the following methods
     {
         assert(false);
         throw std::logic_error{"shouldn't be here"};
+    }
+};
+
+class RemoteGet : public InternalCmd // TODO@ricab feels hacky - revisit
+{
+public:
+    RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
+        : InternalCmd{channel, stub, term}, key{key}, verbosity{verbosity} // need to ensure refs outlive this
+    {
+        mp::GetRequest get_request;
+        get_request.set_verbosity_level(verbosity);
+        get_request.set_key(key.toStdString());
+
+        auto on_success = [this](mp::GetReply& reply) {
+            got = QString::fromStdString(reply.value());
+            return mp::ReturnCode::Ok;
+        };
+
+        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
+
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
+        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
+        assert(got && "should have thrown otherwise");
     }
 
 public:
