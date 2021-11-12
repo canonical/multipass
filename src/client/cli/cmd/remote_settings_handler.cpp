@@ -55,15 +55,7 @@ private: // demote visibility of the following methods
             return mp::ReturnCode::Ok;
         };
 
-        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCode { // always throws (never actually returns)
-            std::stringstream grab_error;
-
-            // TODO@ricab separate the part we need of the failure handler instead
-            auto ret = mp::cmd::standard_failure_handler_for("internal", grab_error, status);
-
-            assert(ret != mp::ReturnCode::Ok);
-            throw mp::RemoteSettingsException{grab_error.str(), ret};
-        };
+        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
 
         return dispatch(&RpcMethod::get, get_request, on_success, on_failure);
     }
@@ -136,12 +128,12 @@ std::set<QString> mp::RemoteSettingsHandler::keys() const
     return std::set<QString>(); // TODO@ricab
 }
 
-multipass::RemoteSettingsException::RemoteSettingsException(const std::string& what, ReturnCode ret_code)
-    : std::runtime_error{what}, ret_code{ret_code}
+mp::RemoteSettingsException::RemoteSettingsException(grpc::Status status)
+    : std::runtime_error{"Error reaching remote setting"}, status{std::move(status)}
 {
 }
 
-multipass::ReturnCode multipass::RemoteSettingsException::get_return_code() const noexcept
+auto mp::RemoteSettingsException::handle_failure(const std::string& command, std::ostream& cerr) const -> mp::ReturnCode
 {
-    return ret_code;
+    return mp::cmd::standard_failure_handler_for(command, cerr, status);
 }

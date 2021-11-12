@@ -44,11 +44,11 @@ private:
 class RemoteSettingsException : public std::runtime_error
 {
 public:
-    RemoteSettingsException(const std::string& what, ReturnCode ret_code);
-    ReturnCode get_return_code() const noexcept;
+    RemoteSettingsException(grpc::Status status);
+    ReturnCode handle_failure(const std::string& command, std::ostream& cerr) const;
 
 private:
-    ReturnCode ret_code;
+    grpc::Status status;
 };
 } // namespace multipass
 

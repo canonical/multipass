@@ -127,8 +127,7 @@ int mp::Client::run(const QStringList& arguments)
     }
     catch (const RemoteSettingsException& e)
     {
-        ret = e.get_return_code();
-        term->cerr() << e.what();
+        ret = e.handle_failure(parser.chosenCommand()->name(), term->cerr());
     }
 
     mp::client::post_setup();
