@@ -150,6 +150,7 @@ struct Daemon : public mpt::DaemonTestFixture
 
     void SetUp() override
     {
+        EXPECT_CALL(mock_settings, register_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet-instance"));
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true")); /* TODO should probably add
                              a few more tests for `false`, since there are different portions of code depending on it */

@@ -39,7 +39,6 @@ namespace mpl = multipass::logging;
 namespace
 {
 const auto file_extension = QStringLiteral("conf");
-const auto daemon_root = QStringLiteral("local");
 const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
@@ -155,7 +154,7 @@ QString mp::client::persistent_settings_filename()
     return path;
 }
 
-void mp::client::register_settings_handlers()
+void mp::client::register_settings_handlers() // TODO@ricab rename probably
 {
     auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));

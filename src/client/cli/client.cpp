@@ -30,6 +30,7 @@
 #include "cmd/networks.h"
 #include "cmd/purge.h"
 #include "cmd/recover.h"
+#include "cmd/remote_settings_handler.h"
 #include "cmd/restart.h"
 #include "cmd/set.h"
 #include "cmd/shell.h"
@@ -42,14 +43,21 @@
 #include "cmd/version.h"
 
 #include <algorithm>
+#include <memory>
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/settings/settings.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+namespace
+{
+const auto daemon_settings_root = QStringLiteral("local.");
+}
 
 mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
@@ -102,6 +110,10 @@ int mp::Client::run(const QStringList& arguments)
     parser.setApplicationDescription(description);
 
     ParseCode parse_status = parser.parse(aliases);
+
+    // TODO@ricab this needs removing upon destruction
+    MP_SETTINGS.register_handler(std::make_unique<RemoteSettingsHandler>(daemon_settings_root, *rpc_channel, *stub,
+                                                                         term, parser.verbosityLevel()));
 
     if (!mpl::get_logger())
         mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
