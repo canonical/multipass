@@ -78,7 +78,7 @@ public:
             return mp::ReturnCode::Ok;
         };
 
-        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
+        auto on_failure = [](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
