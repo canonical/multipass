@@ -67,7 +67,7 @@ class RemoteGet : public InternalCmd // TODO@ricab feels hacky - revisit
 {
 public:
     RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
-        : InternalCmd{channel, stub, term}, key{key}, verbosity{verbosity} // need to ensure refs outlive this
+        : InternalCmd{channel, stub, term} // need to ensure refs outlive this
     {
         mp::GetRequest get_request;
         get_request.set_verbosity_level(verbosity);
@@ -87,10 +87,6 @@ public:
 
 public:
     mp::optional<QString> got = mp::nullopt;
-
-private:
-    const QString& key; // careful, reference here
-    int verbosity;
 };
 } // namespace
 
