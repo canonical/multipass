@@ -19,6 +19,8 @@
 
 #include <multipass/settings/settings_handler.h>
 
+#include <stdexcept>
+
 namespace multipass
 {
 class RemoteSettingsHandler : public SettingsHandler
@@ -37,6 +39,16 @@ private:
     Rpc::Stub& stub;
     Terminal* term;
     int verbosity;
+};
+
+class RemoteSettingsException : public std::runtime_error
+{
+public:
+    RemoteSettingsException(const std::string& what, ReturnCode ret_code);
+    ReturnCode get_return_code() const noexcept;
+
+private:
+    ReturnCode ret_code;
 };
 } // namespace multipass
 

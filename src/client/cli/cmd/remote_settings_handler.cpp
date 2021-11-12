@@ -134,3 +134,13 @@ std::set<QString> mp::RemoteSettingsHandler::keys() const
 {
     return std::set<QString>(); // TODO@ricab
 }
+
+multipass::RemoteSettingsException::RemoteSettingsException(const std::string& what, ReturnCode ret_code)
+    : std::runtime_error{what}, ret_code{ret_code}
+{
+}
+
+multipass::ReturnCode multipass::RemoteSettingsException::get_return_code() const noexcept
+{
+    return ret_code;
+}
