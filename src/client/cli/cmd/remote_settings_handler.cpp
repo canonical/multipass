@@ -22,6 +22,7 @@
 #include <multipass/optional.h>
 
 #include <cassert>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -29,7 +30,7 @@ namespace mp = multipass;
 
 namespace
 {
-class RemoteGet : public mp::cmd::Command // TODO@ricab feels is artificial - revisit
+class RemoteGet : public mp::cmd::Command // TODO@ricab feels hacky - revisit
 {
 public:
     RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
@@ -55,7 +56,12 @@ private: // demote visibility of the following methods
         };
 
         auto on_failure = [this](grpc::Status& status) {
-            return mp::cmd::standard_failure_handler_for("internal", cerr, status);
+            std::stringstream grab_error; // TODO@ricab separate the part we need of the failure handler instead
+            if (auto ret = mp::cmd::standard_failure_handler_for("internal", grab_error, status);
+                ret == mp::ReturnCode::Ok)
+                return ret;
+
+            throw std::runtime_error{grab_error.str()}; // TODO@ricab throw and catch specific exception w/ ret code
         };
 
         return dispatch(&RpcMethod::get, get_request, on_success, on_failure);
@@ -104,13 +110,11 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     {
         assert(term);
         auto remote_get = RemoteGet(key, rpc_channel, stub, term, verbosity);
-        if (auto ret = remote_get.run(); ret == ReturnCode::Ok)
-        {
-            assert(remote_get.got);
-            return *remote_get.got;
-        }
-        else
-            throw std::runtime_error{fmt::format("Could not obtain remote setting {}", key)}; // TODO@ricab more info?
+        auto result = remote_get.run();
+
+        assert(result == ReturnCode::Ok && "should have thrown otherwise");
+        assert(remote_get.got && "should have thrown otherwise");
+        return *remote_get.got;
     }
 
     throw mp::UnrecognizedSettingException{key};
