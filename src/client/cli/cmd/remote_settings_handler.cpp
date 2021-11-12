@@ -17,19 +17,100 @@
 
 #include "remote_settings_handler.h"
 
+#include <multipass/cli/command.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/optional.h>
+
+#include <cassert>
+#include <stdexcept>
+#include <utility>
 
 namespace mp = multipass;
 
-mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix) : key_prefix{key_prefix}
+namespace
 {
+class RemoteGet : public mp::cmd::Command // TODO@ricab feels is artificial - revisit
+{
+public:
+    RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
+        : mp::cmd::Command{channel, stub, term}, key{key}, verbosity{verbosity} // need to ensure refs outlive this
+    {
+    }
+
+    mp::ReturnCode run()
+    {
+        return run(nullptr);
+    }
+
+private: // demote visibility of the following methods
+    mp::ReturnCode run(mp::ArgParser*) override
+    {
+        mp::GetRequest get_request;
+        get_request.set_verbosity_level(verbosity);
+        get_request.set_key(key.toStdString());
+
+        auto on_success = [this](mp::GetReply& reply) {
+            got = QString::fromStdString(reply.value());
+            return mp::ReturnCode::Ok;
+        };
+
+        auto on_failure = [this](grpc::Status& status) {
+            return mp::cmd::standard_failure_handler_for("internal", cerr, status);
+        };
+
+        return dispatch(&RpcMethod::get, get_request, on_success, on_failure);
+    }
+
+    std::string name() const override
+    {
+        return fail();
+    }
+
+    QString short_help() const override
+    {
+        return fail();
+    }
+
+    QString description() const override
+    {
+        return fail();
+    }
+
+    static const char* fail()
+    {
+        assert(false);
+        throw std::logic_error{"shouldn't be here"};
+    }
+
+public:
+    mp::optional<QString> got = mp::nullopt;
+
+private:
+    const QString& key; // careful, reference here
+    int verbosity;
+};
+} // namespace
+
+mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix, grpc::Channel& channel, mp::Rpc::Stub& stub,
+                                                 multipass::Terminal* term, int verbosity)
+    : key_prefix{std::move(key_prefix)}, rpc_channel{channel}, stub{stub}, term{term}, verbosity{verbosity}
+{
+    assert(term);
 }
 
 QString mp::RemoteSettingsHandler::get(const QString& key) const
 {
     if (key.startsWith(key_prefix))
     {
-        return QString{"stub"}; // TODO@ricab
+        assert(term);
+        auto remote_get = RemoteGet(key, rpc_channel, stub, term, verbosity);
+        if (auto ret = remote_get.run(); ret == ReturnCode::Ok)
+        {
+            assert(remote_get.got);
+            return *remote_get.got;
+        }
+        else
+            throw std::runtime_error{fmt::format("Could not obtain remote setting {}", key)}; // TODO@ricab more info?
     }
 
     throw mp::UnrecognizedSettingException{key};

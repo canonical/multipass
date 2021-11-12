@@ -15,6 +15,8 @@
  *
  */
 
+#include "common_cli.h"
+
 #include <multipass/settings/settings_handler.h>
 
 namespace multipass
@@ -22,7 +24,8 @@ namespace multipass
 class RemoteSettingsHandler : public SettingsHandler
 {
 public:
-    explicit RemoteSettingsHandler(QString key_prefix);
+    // need to ensure refs outlive this
+    RemoteSettingsHandler(QString key_prefix, grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, int verbosity);
 
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) const override;
@@ -30,6 +33,10 @@ public:
 
 private:
     QString key_prefix;
+    grpc::Channel& rpc_channel;
+    Rpc::Stub& stub;
+    Terminal* term;
+    int verbosity;
 };
 } // namespace multipass
 
