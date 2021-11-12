@@ -221,7 +221,6 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
                    {"find", "something"},
                    {"mount", ".", "target"},
                    {"umount", "instance"},
-                   {"get", "foo"},
                    {"networks"}});
 }
 
