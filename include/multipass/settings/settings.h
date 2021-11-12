@@ -26,8 +26,6 @@
 #include <QString>
 #include <QVariant>
 
-#include <map>
-#include <mutex>
 #include <set>
 
 #define MP_SETTINGS multipass::Settings::instance()
@@ -65,18 +63,12 @@ public:
     template <typename T>
     T get_as(const QString& key) const;
 
-    static QString get_daemon_settings_file_path(); // temporary
-    static QString get_client_settings_file_path(); // idem
 
 protected:
-    const QString& get_default(const QString& key) const; // throws on unknown key
+    const QString& get_default(const QString& key) const; // TODO@ricab remove
 
 private:
-    void set_aux(const QString& key, QString val);
-
     std::vector<std::unique_ptr<SettingsHandler>> handlers;
-    std::map<QString, QString> defaults;
-    mutable std::mutex mutex;
 };
 } // namespace multipass
 

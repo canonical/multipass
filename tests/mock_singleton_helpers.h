@@ -61,7 +61,6 @@ public:                                                                         
 
 namespace multipass::test
 {
-
 template <typename ConcreteMock, template <typename /*MockClass*/> typename MockCharacter = ::testing::NaggyMock>
 class MockSingletonHelper : public ::testing::Environment
 {

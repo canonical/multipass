@@ -140,7 +140,7 @@ void cmd::GuiCmd::update_hotkey()
 
 void cmd::GuiCmd::create_actions()
 {
-    auto client_config_path = Settings::get_client_settings_file_path();
+    auto client_config_path = mp::client::persistent_settings_filename();
 
     mp::utils::check_and_create_config_file(client_config_path);
     config_watcher.addPath(client_config_path);

@@ -27,7 +27,7 @@ namespace multipass
 {
 namespace test
 {
-class MockSettings : public Settings // This will automatically verify expectations set upon it at the end of each test
+class MockSettings : public Settings // TODO@ricab turn into regular singleton mock
 {
 public:
     using Settings::get_default; // promote visibility

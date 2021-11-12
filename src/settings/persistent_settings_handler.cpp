@@ -77,7 +77,7 @@ void checked_set(mp::WrappedQSettings& settings, const QString& key, const QStri
 } // namespace
 
 mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename, SettingSpec::Set settings)
-    : filename{std::move(filename)}, settings{convert(std::move(settings))}
+    : filename{std::move(filename)}, settings{convert(std::move(settings))} // TODO@ricab verify not null
 {
 }
 

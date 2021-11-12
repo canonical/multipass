@@ -45,22 +45,6 @@ const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
 
 /*
- * We make up our own file name to
- *   a) avoid unknown org/domain in path;
- *   b) keep settings-file locations consistent among daemon and client
- * Example: ${HOME}/.config/multipass/multipass.conf
- */
-QString persistent_settings_filename()
-{
-    static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
-    static const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
-    static const auto dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
-    static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
-
-    return path;
-}
-
-/*
  * We make up our own file name to:
  *   a) avoid unknown org/domain in path;
  *   b) write daemon config to a central location (rather than user-dependent)
@@ -153,6 +137,22 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
 {
     return ::message_box(fmt::format("{}\n{}\n\nGo here for more information: {}", update_info.title(),
                                      update_info.description(), update_info.url()));
+}
+
+/*
+ * We make up our own file name to
+ *   a) avoid unknown org/domain in path;
+ *   b) keep settings-file locations consistent among daemon and client
+ * Example: ${HOME}/.config/multipass/multipass.conf
+ */
+QString mp::client::persistent_settings_filename()
+{
+    static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
+    static const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
+    static const auto dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
+    static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
+
+    return path;
 }
 
 void mp::client::register_settings_handlers()
