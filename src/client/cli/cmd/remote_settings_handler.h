@@ -44,7 +44,7 @@ private:
 class RemoteSettingsException : public std::runtime_error
 {
 public:
-    RemoteSettingsException(grpc::Status status);
+    explicit RemoteSettingsException(grpc::Status status);
     grpc::Status get_status() const;
 
 private:
