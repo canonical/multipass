@@ -260,24 +260,21 @@ std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& 
 
 void mp::Backend::check_for_kvm_support()
 {
-    auto check_kvm =
-        MP_PROCFACTORY.create_process(QDir(QCoreApplication::applicationDirPath()).filePath("check_kvm_support"));
-    check_kvm->set_process_channel_mode(QProcess::MergedChannels);
+    QFile kvm_device{"/dev/kvm"};
 
-    auto process_state = check_kvm->execute();
-
-    if (!process_state.completed_successfully())
+    if (!MP_FILEOPS.exists(kvm_device))
     {
-        if (process_state.error->state == QProcess::FailedToStart)
-        {
-            throw std::runtime_error(
-                "The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.");
-        }
+        throw std::runtime_error("KVM support is not enabled on this machine.\n"
+                                 "Please ensure the following:\n"
+                                 "1. The system's CPU supports virtualization.\n"
+                                 "2. Virtualization is enabled in the system BIOS.\n"
+                                 "3. The KVM kernel modules are loaded.");
+    }
 
-        if (process_state.exit_code == 1)
-        {
-            throw std::runtime_error(check_kvm->read_all_standard_output().trimmed().toStdString());
-        }
+    if (!MP_FILEOPS.open(kvm_device, QIODevice::ReadWrite))
+    {
+        throw std::runtime_error("The KVM device cannot be opened for reading and writing.\n"
+                                 "Please ensure the Snap KVM interface is connected for Multipass.");
     }
 }
 
