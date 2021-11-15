@@ -638,6 +638,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
     QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_set, &daemon, &mp::Daemon::set);
 }
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
@@ -2045,6 +2046,26 @@ try
     status_promise->set_value(grpc::Status::OK);
 }
 catch (const mp::UnrecognizedSettingException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::set(const SetRequest* request, grpc::ServerWriterInterface<SetReply>* server,
+                     std::promise<grpc::Status>* status_promise)
+try
+{
+    // TODO@ricab implement
+    status_promise->set_value(grpc::Status::OK);
+}
+catch (const mp::UnrecognizedSettingException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const mp::InvalidSettingException& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }

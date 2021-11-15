@@ -232,3 +232,10 @@ grpc::Status mp::DaemonRpc::get(grpc::ServerContext* context, const GetRequest* 
     return emit_signal_and_wait_for_result(
         std::bind(&DaemonRpc::on_get, this, request, response, std::placeholders::_1));
 }
+
+grpc::Status mp::DaemonRpc::set(grpc::ServerContext* context, const SetRequest* request,
+                                grpc::ServerWriter<SetReply>* response)
+{
+    return emit_signal_and_wait_for_result(
+        std::bind(&DaemonRpc::on_set, this, request, response, std::placeholders::_1));
+}

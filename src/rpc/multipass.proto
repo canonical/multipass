@@ -36,6 +36,7 @@ service Rpc {
     rpc umount (UmountRequest) returns (stream UmountReply);
     rpc version (VersionRequest) returns (stream VersionReply);
     rpc get (GetRequest) returns (stream GetReply);
+    rpc set (SetRequest) returns (stream SetReply);
 }
 
 message OptInStatus {
@@ -408,4 +409,14 @@ message GetRequest {
 message GetReply {
     string value = 1;
     string log_line = 2;
+}
+
+message SetRequest {
+    string key = 1;
+    string val = 2;
+    int32 verbosity_level = 3;
+}
+
+message SetReply {
+    string log_line = 1;
 }
