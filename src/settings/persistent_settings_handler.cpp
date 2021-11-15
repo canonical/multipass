@@ -21,6 +21,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/settings/persistent_settings_handler.h>
 
+#include <cassert>
+
 namespace mp = multipass;
 
 namespace
@@ -77,7 +79,7 @@ void checked_set(mp::WrappedQSettings& settings, const QString& key, const QStri
 } // namespace
 
 mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename, SettingSpec::Set settings)
-    : filename{std::move(filename)}, settings{convert(std::move(settings))} // TODO@ricab verify not null
+    : filename{std::move(filename)}, settings{convert(std::move(settings))}
 {
 }
 
@@ -93,6 +95,7 @@ auto mp::PersistentSettingsHandler::get_setting(const QString& key) const -> con
 {
     try
     {
+        assert(settings.at(key) && "can't have null setting spec"); // TODO use a `not_null` type (e.g. gsl::not_null)
         return *settings.at(key);
     }
     catch (const std::out_of_range&)
@@ -124,6 +127,8 @@ auto mp::PersistentSettingsHandler::convert(SettingSpec::Set settings) -> Settin
     while (!settings.empty())
     {
         auto it = settings.begin();
+
+        assert(*it && "can't have null setting spec"); // TODO use a `not_null` type (e.g. gsl::not_null)
         auto key = (*it)->get_key();                                          // ensure setting not extracted yet
         ret.emplace(std::move(key), std::move(settings.extract(it).value())); /* need to extract to be able to move
                                                  see notes in https://en.cppreference.com/w/cpp/container/set/begin */

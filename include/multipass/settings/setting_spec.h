@@ -45,7 +45,7 @@ public:
         bool operator()(const SettingSpec::UPtr& a, const SettingSpec::UPtr& b) const;
     };
 
-    using Set = std::set<UPtr, LessByKey>;
+    using Set = std::set<UPtr, LessByKey>; // would be nice to have gsl::not_null
 };
 } // namespace multipass
 

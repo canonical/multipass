@@ -28,7 +28,7 @@ mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass) : Singleton
 
 void mp::Settings::register_handler(std::unique_ptr<SettingsHandler> handler)
 {
-    // TODO@ricab verify not null (would be nice to have gsl::not_null)
+    assert(handler && "can't have null settings handler"); // TODO use a `not_null` type (e.g. gsl::not_null)
     handlers.push_back(std::move(handler));
 }
 
@@ -38,10 +38,14 @@ std::set<QString> multipass::Settings::keys() const
     if (!handlers.empty())
     {
         auto it = handlers.cbegin();
+        assert(*it && "can't have null settings handler"); // TODO use a `not_null` type (e.g. gsl::not_null)
         ret = (*it)->keys();
 
         while (++it != handlers.cend())
+        {
+            assert(*it && "can't have null settings handler"); // TODO use a `not_null` type (e.g. gsl::not_null)
             ret.merge((*it)->keys());
+        }
     }
 
     return ret;
@@ -54,6 +58,7 @@ QString mp::Settings::get(const QString& key) const // TODO@ricab extract code c
     {
         try
         {
+            assert(handler && "can't have null settings handler"); // TODO use a `not_null` type (e.g. gsl::not_null)
             return handler->get(key);
         }
         catch (const UnrecognizedSettingException&)
@@ -72,6 +77,7 @@ void mp::Settings::set(const QString& key, const QString& val) // TODO@ricab ext
     {
         try
         {
+            assert(handler && "can't have null settings handler"); // TODO use a `not_null` type (e.g. gsl::not_null)
             handler->set(key, val);
             success = true; // don't return yet, give all handlers a chance to react
         }

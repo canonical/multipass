@@ -29,7 +29,7 @@ namespace multipass
 class PersistentSettingsHandler : public SettingsHandler
 {
 public:
-    PersistentSettingsHandler(QString filename, SettingSpec::Set settings);
+    PersistentSettingsHandler(QString filename, SettingSpec::Set settings); // no nulls please
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) const override;
     std::set<QString> keys() const override;
