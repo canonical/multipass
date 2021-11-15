@@ -45,7 +45,7 @@ class RemoteSettingsException : public std::runtime_error
 {
 public:
     RemoteSettingsException(grpc::Status status);
-    ReturnCode handle_failure(const std::string& command, std::ostream& cerr) const;
+    grpc::Status get_status() const;
 
 private:
     grpc::Status status;

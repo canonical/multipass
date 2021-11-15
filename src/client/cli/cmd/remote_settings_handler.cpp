@@ -22,7 +22,6 @@
 #include <multipass/optional.h>
 
 #include <cassert>
-#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -129,7 +128,7 @@ mp::RemoteSettingsException::RemoteSettingsException(grpc::Status status)
 {
 }
 
-auto mp::RemoteSettingsException::handle_failure(const std::string& command, std::ostream& cerr) const -> mp::ReturnCode
+grpc::Status mp::RemoteSettingsException::get_status() const
 {
-    return mp::cmd::standard_failure_handler_for(command, cerr, status);
+    return status;
 }
