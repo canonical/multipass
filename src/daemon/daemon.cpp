@@ -2058,7 +2058,13 @@ void mp::Daemon::set(const SetRequest* request, grpc::ServerWriterInterface<SetR
                      std::promise<grpc::Status>* status_promise)
 try
 {
-    // TODO@ricab implement
+    mpl::ClientLogger<SetReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    auto key = request->key();
+    auto val = request->val();
+    mpl::log(mpl::Level::debug, category, fmt::format("Trying to set {}={}", key, val));
+    MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+
     status_promise->set_value(grpc::Status::OK);
 }
 catch (const mp::UnrecognizedSettingException& e)
