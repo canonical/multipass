@@ -30,7 +30,7 @@ namespace multipass
 class SettingsException : public std::runtime_error
 {
 public:
-    SettingsException(const std::string& msg) : runtime_error{msg}
+    explicit SettingsException(const std::string& msg) : runtime_error{msg}
     {
     }
 };
@@ -47,7 +47,7 @@ public:
 class UnrecognizedSettingException : public SettingsException
 {
 public:
-    UnrecognizedSettingException(const QString& key)
+    explicit UnrecognizedSettingException(const QString& key)
         : SettingsException{fmt::format("Unrecognized settings key: '{}'", key)}
     {
     }
@@ -66,7 +66,7 @@ template <typename T>
 class UnsupportedSettingValueType : public SettingsException
 {
 public:
-    UnsupportedSettingValueType(const QString& key)
+    explicit UnsupportedSettingValueType(const QString& key)
         : SettingsException{fmt::format("Invalid value type for key {}. Type hint: {}", key, typeid(T).name())}
     {
     }
