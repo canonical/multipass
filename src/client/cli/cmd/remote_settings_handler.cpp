@@ -98,6 +98,7 @@ public:
         mp::SetRequest set_request;
         set_request.set_verbosity_level(verbosity);
         set_request.set_key(key.toStdString());
+        set_request.set_val(val.toStdString());
 
         auto on_success = [](mp::SetReply&) { return mp::ReturnCode::Ok; };
         auto on_failure = [](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
