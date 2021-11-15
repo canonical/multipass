@@ -134,8 +134,8 @@ void mp::RemoteSettingsHandler::set(const QString& key, const QString& val) cons
         assert(term);
         RemoteSet(key, val, rpc_channel, stub, term, verbosity);
     }
-
-    throw mp::UnrecognizedSettingException{key};
+    else
+        throw mp::UnrecognizedSettingException{key};
 }
 
 std::set<QString> mp::RemoteSettingsHandler::keys() const
