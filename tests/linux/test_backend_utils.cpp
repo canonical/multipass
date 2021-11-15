@@ -383,64 +383,34 @@ TEST_P(CreateBridgeExceptionTest, create_bridge_exception_mentions_unknown_cause
 INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeExceptionTest, Values(true, false));
 } // namespace
 
-TEST(LinuxBackendUtils, check_kvm_support_no_error_does_not_throw)
+TEST(LinuxBackendUtils, check_for_kvm_support_no_error_does_not_throw)
 {
-    auto process_factory = mpt::MockProcessFactory::Inject();
-
-    mpt::MockProcessFactory::Callback handle_callback([](mpt::MockProcess* process) {
-        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
-
-        mp::ProcessState exit_state;
-        exit_state.exit_code = 0;
-
-        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-    });
-
-    process_factory->register_callback(handle_callback);
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
 
     EXPECT_NO_THROW(MP_BACKEND.check_for_kvm_support());
 }
 
-TEST(LinuxBackendUtils, check_kvm_support_fails_to_start_throws_expected_message)
+TEST(LinuxBackendUtils, check_for_kvm_support_does_not_exist_throws_expected_error)
 {
-    auto process_factory = mpt::MockProcessFactory::Inject();
-
-    mpt::MockProcessFactory::Callback handle_callback([](mpt::MockProcess* process) {
-        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
-
-        mp::ProcessState exit_state;
-        exit_state.error = mp::ProcessState::Error{QProcess::FailedToStart, "Failure"};
-
-        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-    });
-
-    process_factory->register_callback(handle_callback);
-
-    MP_EXPECT_THROW_THAT(
-        MP_BACKEND.check_for_kvm_support(), std::runtime_error,
-        mpt::match_what(StrEq("The check_kvm_support script failed to start. Ensure it is in multipassd's PATH.")));
-}
-
-TEST(LinuxBackendUtils, check_kvm_support_error_throws_expected_message)
-{
-    const QByteArray error_message{"This is a big failure!"};
-
-    auto process_factory = mpt::MockProcessFactory::Inject();
-
-    mpt::MockProcessFactory::Callback handle_callback([&error_message](mpt::MockProcess* process) {
-        EXPECT_TRUE(process->program().endsWith("check_kvm_support"));
-
-        mp::ProcessState exit_state;
-        exit_state.exit_code = 1;
-
-        EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(error_message));
-        EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-    });
-
-    process_factory->register_callback(handle_callback);
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_BACKEND.check_for_kvm_support(), std::runtime_error,
-                         mpt::match_what(StrEq(error_message.toStdString())));
+                         mpt::match_what(AllOf(HasSubstr("KVM support is not enabled on this machine."),
+                                               HasSubstr("Please ensure the following:"))));
+}
+
+TEST(LinuxBackendUtils, check_for_kvm_support_no_read_write_throws_expected_error)
+{
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(MP_BACKEND.check_for_kvm_support(), std::runtime_error,
+                         mpt::match_what(StrEq("The KVM device cannot be opened for reading and writing.\nPlease "
+                                               "ensure the Snap KVM interface is connected for Multipass.")));
 }
 
 TEST(LinuxBackendUtils, check_kvm_in_use_no_failure_does_not_throw)
