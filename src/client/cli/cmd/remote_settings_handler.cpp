@@ -29,7 +29,7 @@ namespace mp = multipass;
 
 namespace
 {
-class InternalCmd : public mp::cmd::Command // TODO@ricab feels hacky - revisit
+class InternalCmd : public mp::cmd::Command // TODO feels hacky, better untangle dispatch from commands
 {
 public:
     using mp::cmd::Command::Command;

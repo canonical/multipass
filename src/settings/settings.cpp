@@ -52,7 +52,7 @@ std::set<QString> multipass::Settings::keys() const
 }
 
 // TODO try installing yaml backend
-QString mp::Settings::get(const QString& key) const // TODO@ricab extract code common with set
+QString mp::Settings::get(const QString& key) const
 {
     for (const auto& handler : handlers)
     {
@@ -70,7 +70,7 @@ QString mp::Settings::get(const QString& key) const // TODO@ricab extract code c
     throw UnrecognizedSettingException{key};
 }
 
-void mp::Settings::set(const QString& key, const QString& val) // TODO@ricab extract code common with get
+void mp::Settings::set(const QString& key, const QString& val)
 {
     auto success = false;
     for (const auto& handler : handlers)
