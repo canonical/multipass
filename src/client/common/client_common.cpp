@@ -43,42 +43,6 @@ const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
 
-/*
- * We make up our own file name to:
- *   a) avoid unknown org/domain in path;
- *   b) write daemon config to a central location (rather than user-dependent)
- * Example: /root/.config/multipassd/multipassd.conf
- */
-QString daemon_settings_filename()
-{ // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
-    static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
-    static const auto dir_path = QDir{MP_PLATFORM.daemon_config_home()};          // temporary, replace w/ AppConfigLoc
-    static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
-
-    return path;
-}
-
-QString driver_interpreter(const QString& val)
-{ // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
-    if (!MP_PLATFORM.is_backend_supported(val))
-        throw mp::InvalidSettingException(mp::driver_key, val, "Invalid driver");
-
-    return val;
-}
-
-void register_daemon_settings_handler()
-{ // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
-    using namespace multipass;
-
-    auto settings = MP_PLATFORM.extra_daemon_settings(); // platform settings override inserts with the same key below
-    settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
-    settings.insert(std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
-    settings.insert(std::make_unique<DynamicSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
-
-    MP_SETTINGS.register_handler(
-        std::make_unique<PersistentSettingsHandler>(daemon_settings_filename(), std::move(settings)));
-}
-
 QString default_hotkey()
 {
     return QKeySequence{mp::hotkey_default}.toString(QKeySequence::NativeText); // outcome depends on platform
@@ -165,9 +129,6 @@ void mp::client::register_settings_handlers() // TODO@ricab rename probably
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
-
-    register_daemon_settings_handler(); /* TODO@ricab remove - temporary code, to keep feature parity until we introduce
-                                           routing handlers */
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
