@@ -40,16 +40,3 @@ endif()
 
 include_directories(shared_linux
   ..)
-
-if (qemu IN_LIST MULTIPASS_BACKENDS OR libvirt IN_LIST MULTIPASS_BACKENDS)
-  add_custom_target(copy-check-kvm-support ALL DEPENDS
-    ${CMAKE_BINARY_DIR}/bin/check_kvm_support)
-  add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/bin/check_kvm_support
-    COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_SOURCE_DIR}/check_kvm_support
-        ${CMAKE_BINARY_DIR}/bin/check_kvm_support
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/check_kvm_support)
-
-  install(PROGRAMS check_kvm_support
-    DESTINATION bin)
-endif()
