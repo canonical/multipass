@@ -29,7 +29,7 @@ namespace mp = multipass;
 
 namespace
 {
-class InternalCmd : public mp::cmd::Command
+class InternalCmd : public mp::cmd::Command // TODO@ricab feels hacky - revisit
 {
 public:
     using mp::cmd::Command::Command;
@@ -62,7 +62,7 @@ private: // demote visibility of the following methods
     }
 };
 
-class RemoteGet : public InternalCmd // TODO@ricab feels hacky - revisit
+class RemoteGet : public InternalCmd
 {
 public:
     RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
@@ -86,6 +86,25 @@ public:
 
 public:
     mp::optional<QString> got = mp::nullopt;
+};
+
+class RemoteSet : public InternalCmd
+{
+public:
+    RemoteSet(const QString& key, const QString& val, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term,
+              int verbosity)
+        : InternalCmd{channel, stub, term} // need to ensure refs outlive this
+    {
+        mp::SetRequest set_request;
+        set_request.set_verbosity_level(verbosity);
+        set_request.set_key(key.toStdString());
+
+        auto on_success = [](mp::SetReply&) { return mp::ReturnCode::Ok; };
+        auto on_failure = [](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
+
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::set, set_request, on_success, on_failure);
+        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
+    }
 };
 } // namespace
 
@@ -112,7 +131,8 @@ void mp::RemoteSettingsHandler::set(const QString& key, const QString& val) cons
 {
     if (key.startsWith(key_prefix))
     {
-        ; // TODO@ricab
+        assert(term);
+        RemoteSet(key, val, rpc_channel, stub, term, verbosity);
     }
 
     throw mp::UnrecognizedSettingException{key};
