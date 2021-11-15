@@ -46,35 +46,35 @@ bool exists_but_unreadable(const QString& filename)
             zero errno on the remaining platforms */
 }
 
-void check_status(const mp::WrappedQSettings& settings, const QString& attempted_operation)
+void check_status(const mp::WrappedQSettings& qsettings, const QString& attempted_operation)
 {
-    auto status = settings.status();
-    if (status || exists_but_unreadable(settings.fileName()))
+    auto status = qsettings.status();
+    if (status || exists_but_unreadable(qsettings.fileName()))
         throw mp::PersistentSettingsException{
             attempted_operation, status == QSettings::FormatError
                                      ? QStringLiteral("format error")
                                      : QStringLiteral("access error (consider running with an administrative role)")};
 }
 
-QString checked_get(const mp::WrappedQSettings& settings, const QString& key, const QString& fallback,
+QString checked_get(const mp::WrappedQSettings& qsettings, const QString& key, const QString& fallback,
                     std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 
-    auto ret = settings.value(key, fallback).toString();
+    auto ret = qsettings.value(key, fallback).toString();
 
-    check_status(settings, QStringLiteral("read"));
+    check_status(qsettings, QStringLiteral("read"));
     return ret;
 }
 
-void checked_set(mp::WrappedQSettings& settings, const QString& key, const QString& val, std::mutex& mutex)
+void checked_set(mp::WrappedQSettings& qsettings, const QString& key, const QString& val, std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 
-    settings.setValue(key, val);
+    qsettings.setValue(key, val);
 
-    settings.sync(); // flush to confirm we can write
-    check_status(settings, QStringLiteral("read/write"));
+    qsettings.sync(); // flush to confirm we can write
+    check_status(qsettings, QStringLiteral("read/write"));
 }
 } // namespace
 
