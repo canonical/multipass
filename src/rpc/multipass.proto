@@ -37,6 +37,7 @@ service Rpc {
     rpc version (VersionRequest) returns (stream VersionReply);
     rpc get (GetRequest) returns (stream GetReply);
     rpc set (SetRequest) returns (stream SetReply);
+    rpc keys (KeysRequest) returns (stream KeysReply);
 }
 
 message OptInStatus {
@@ -419,4 +420,13 @@ message SetRequest {
 
 message SetReply {
     string log_line = 1;
+}
+
+message KeysRequest {
+    int32 verbosity_level = 3;
+}
+
+message KeysReply {
+    string log_line = 1;
+    repeated string settings_keys = 2;
 }
