@@ -2013,6 +2013,16 @@ TEST_P(TestBasicGetSetOptions, set_cmd_allows_empty_val)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_P(TestBasicGetSetOptions, InteractiveSetWritesSettings)
+{
+    const auto& key = GetParam();
+    const auto val = "blah";
+    std::istringstream cin{fmt::format("{}\n", val)};
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_THAT(send_command({"set", key}, trash_stream, trash_stream, cin), Eq(mp::ReturnCode::Ok));
+}
+
 INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions,
                          Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key,
                                 mp::bridged_interface_key, mp::mounts_key));
@@ -2044,7 +2054,6 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
 {
     EXPECT_CALL(mock_settings, set(_, _)).Times(0); // this is not where the rejection is here
     EXPECT_THAT(send_command({"set", "="}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"set", "abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=foo=bar"}), Eq(mp::ReturnCode::CommandLineError));
@@ -2054,6 +2063,15 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
     EXPECT_THAT(send_command({"set", "foo==bar"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo===bar"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "x=x=x"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, InteractiveSetFailsWithEOF)
+{
+    std::ostringstream cerr;
+    std::istringstream cin;
+
+    EXPECT_THAT(send_command({"set", mp::petenv_key}, trash_stream, cerr, cin), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(cerr.str(), HasSubstr("Unexpected end-of-file"));
 }
 
 TEST_F(Client, get_cmd_fails_with_unknown_key)
@@ -2069,6 +2087,18 @@ TEST_F(Client, set_cmd_fails_with_unknown_key)
     const auto val = "blah";
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, InteractiveSetFailsWithUnknownKey)
+{
+    const auto key = "wrong.key";
+    const auto val = "blah";
+    std::ostringstream cerr;
+    std::istringstream cin{fmt::format("{}\n", val)};
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_THAT(send_command({"set", key}, trash_stream, cerr, cin), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(cerr.str(), HasSubstr("Unrecognized settings key: 'wrong.key'"));
 }
 
 TEST_F(Client, get_handles_persistent_settings_errors)
