@@ -108,10 +108,14 @@ std::string client_cert_from(grpc::ServerContext* context)
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
                          const CertProvider& cert_provider, CertStore* client_cert_store)
     : server_address{server_address},
+      connection_type{type},
       server{make_server(server_address, type, cert_provider, this)},
       client_cert_store{client_cert_store}
 {
-    MP_PLATFORM.set_server_permissions(server_address, client_cert_store->is_store_empty());
+    if (connection_type == mp::RpcConnectionType::ssl)
+    {
+        MP_PLATFORM.set_server_permissions(server_address, client_cert_store->is_store_empty());
+    }
 
     std::string ssl_enabled = type == mp::RpcConnectionType::ssl ? "on" : "off";
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));
@@ -258,13 +262,13 @@ grpc::Status mp::DaemonRpc::get(grpc::ServerContext* context, const GetRequest* 
 grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const AuthenticateRequest* request,
                                          grpc::ServerWriter<AuthenticateReply>* response)
 {
-    auto store_was_empty{client_cert_store->is_store_empty()};
-
     auto status = emit_signal_and_wait_for_result(
         std::bind(&DaemonRpc::on_authenticate, this, request, response, std::placeholders::_1));
 
-    if (status.ok())
+    if (status.ok() && connection_type == mp::RpcConnectionType::ssl)
     {
+        auto store_was_empty{client_cert_store->is_store_empty()};
+
         client_cert_store->add_cert(client_cert_from(context));
 
         if (store_was_empty)
@@ -279,18 +283,21 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
 template <typename OperationSignal>
 grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert)
 {
-    auto store_was_empty{client_cert_store->is_store_empty()};
-
-    if (!client_cert_store->verify_cert(client_cert))
+    if (connection_type == mp::RpcConnectionType::ssl)
     {
-        return grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
-                            "The client is not registered with the Multipass service. Please use 'multipass register' "
-                            "to authenticate the client."};
-    }
+        auto store_was_empty{client_cert_store->is_store_empty()};
 
-    if (store_was_empty)
-    {
-        MP_PLATFORM.set_server_permissions(server_address, false);
+        if (!client_cert_store->verify_cert(client_cert))
+        {
+            return grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
+                                "The client is not registered with the Multipass service.\n"
+                                "Please use 'multipass register' to authenticate the client."};
+        }
+
+        if (store_was_empty)
+        {
+            MP_PLATFORM.set_server_permissions(server_address, false);
+        }
     }
 
     return emit_signal_and_wait_for_result(signal);

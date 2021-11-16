@@ -92,6 +92,7 @@ private:
     grpc::Status verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert);
 
     const std::string server_address;
+    const RpcConnectionType connection_type;
     const std::unique_ptr<grpc::Server> server;
     CertStore* client_cert_store;
 
