@@ -156,7 +156,7 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     if (key.startsWith(key_prefix))
     {
         assert(term);
-        return RemoteGet(key, rpc_channel, stub, term, verbosity).got;
+        return std::move(RemoteGet(key, rpc_channel, stub, term, verbosity).got);
     }
 
     throw mp::UnrecognizedSettingException{key};
