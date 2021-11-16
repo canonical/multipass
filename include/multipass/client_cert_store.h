@@ -33,6 +33,7 @@ public:
     void add_cert(const std::string& pem_cert) override;
     std::string PEM_cert_chain() const override;
     bool verify_cert(const std::string& pem_cert) override;
+    bool is_store_empty() override;
 
 private:
     bool cert_exists(const std::string& pem_cert);

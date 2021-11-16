@@ -31,6 +31,7 @@ public:
     virtual void add_cert(const std::string& pem_cert) = 0;
     virtual std::string PEM_cert_chain() const = 0;
     virtual bool verify_cert(const std::string& pem_cert) = 0;
+    virtual bool is_store_empty() = 0;
 
 protected:
     CertStore() = default;

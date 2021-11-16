@@ -117,6 +117,11 @@ bool mp::ClientCertStore::verify_cert(const std::string& pem_cert)
     return cert_exists(pem_cert);
 }
 
+bool mp::ClientCertStore::is_store_empty()
+{
+    return authenticated_client_certs.empty();
+}
+
 bool mp::ClientCertStore::cert_exists(const std::string& pem_cert)
 {
     return std::find(authenticated_client_certs.cbegin(), authenticated_client_certs.cend(), pem_cert) !=
