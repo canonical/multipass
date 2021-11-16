@@ -44,6 +44,8 @@ constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
 constexpr auto winterm_profile_guid =
     "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the primary Multipass profile in Windows Terminal
 
+constexpr auto settings_extension = ".conf";
+constexpr auto daemon_settings_root = "local.";
 constexpr auto petenv_key = "client.primary-name";     // This will eventually be moved to some dynamic settings schema
 constexpr auto driver_key = "local.driver";            // idem
 constexpr auto bridged_interface_key = "local.bridged-network"; // idem

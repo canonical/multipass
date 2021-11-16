@@ -38,7 +38,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-const auto file_extension = QStringLiteral("conf");
 const auto client_root = QStringLiteral("client");
 const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
@@ -110,7 +109,7 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
  */
 QString mp::client::persistent_settings_filename()
 {
-    static const auto file_pattern = QStringLiteral("%2.%1").arg(file_extension); // note the order
+    static const auto file_pattern = QStringLiteral("%2%1").arg(mp::settings_extension); // note the order
     static const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
     static const auto dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
     static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));

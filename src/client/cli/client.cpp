@@ -47,17 +47,13 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/settings/settings.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-
-namespace
-{
-const auto daemon_settings_root = QStringLiteral("local.");
-}
 
 mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
