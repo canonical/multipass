@@ -258,12 +258,19 @@ grpc::Status mp::DaemonRpc::get(grpc::ServerContext* context, const GetRequest* 
 grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const AuthenticateRequest* request,
                                          grpc::ServerWriter<AuthenticateReply>* response)
 {
+    auto store_was_empty{client_cert_store->is_store_empty()};
+
     auto status = emit_signal_and_wait_for_result(
         std::bind(&DaemonRpc::on_authenticate, this, request, response, std::placeholders::_1));
 
     if (status.ok())
     {
         client_cert_store->add_cert(client_cert_from(context));
+
+        if (store_was_empty)
+        {
+            MP_PLATFORM.set_server_permissions(server_address, false);
+        }
     }
 
     return status;
@@ -272,11 +279,18 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
 template <typename OperationSignal>
 grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert)
 {
+    auto store_was_empty{client_cert_store->is_store_empty()};
+
     if (!client_cert_store->verify_cert(client_cert))
     {
         return grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
                             "The client is not registered with the Multipass service. Please use 'multipass register' "
                             "to authenticate the client."};
+    }
+
+    if (store_was_empty)
+    {
+        MP_PLATFORM.set_server_permissions(server_address, false);
     }
 
     return emit_signal_and_wait_for_result(signal);
