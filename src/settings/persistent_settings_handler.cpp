@@ -129,7 +129,7 @@ auto mp::PersistentSettingsHandler::convert(SettingSpec::Set settings) -> Settin
         auto it = settings.begin();
 
         assert(*it && "can't have null setting spec"); // TODO use a `not_null` type (e.g. gsl::not_null)
-        auto key = (*it)->get_key();                                          // ensure setting not extracted yet
+        auto key = (*it)->get_key();                   // ensure setting not extracted yet
         ret.emplace(std::move(key), std::move(settings.extract(it).value())); /* need to extract to be able to move
                                                  see notes in https://en.cppreference.com/w/cpp/container/set/begin */
     }
