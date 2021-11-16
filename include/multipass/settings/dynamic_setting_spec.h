@@ -25,7 +25,7 @@ namespace multipass
 class DynamicSettingSpec : public multipass::BasicSettingSpec
 {
 public:
-    DynamicSettingSpec(QString key, QString default_, std::function<QString(const QString&)> interpreter);
+    DynamicSettingSpec(QString key, const QString& default_, std::function<QString(const QString&)> interpreter);
     QString interpret(const QString& val) const override;
 
 protected:

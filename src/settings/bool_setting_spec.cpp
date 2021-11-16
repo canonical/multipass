@@ -46,7 +46,7 @@ QString interpret_impl(const QString& key, const QString& val)
 }
 } // namespace
 
-mp::BoolSettingSpec::BoolSettingSpec(QString key, QString default_)
+mp::BoolSettingSpec::BoolSettingSpec(QString key, const QString& default_)
     : BasicSettingSpec(std::move(key), interpret_impl(key, default_))
 {
 }
