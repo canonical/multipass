@@ -72,6 +72,12 @@ protected:
     {
         throw mp::RemoteSettingsException{status};
     }
+
+    template <typename ReplyType>
+    static mp::ReturnCode on_success(ReplyType&)
+    {
+        return mp::ReturnCode::Ok;
+    }
 };
 
 class RemoteGet : public RemoteSettingsCmd
@@ -110,9 +116,7 @@ public:
         set_request.set_key(key.toStdString());
         set_request.set_val(val.toStdString());
 
-        auto on_success = [](mp::SetReply&) { return mp::ReturnCode::Ok; };
-
-        [[maybe_unused]] auto ret = dispatch(&RpcMethod::set, set_request, on_success, on_failure);
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::set, set_request, on_success<mp::SetReply>, on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
