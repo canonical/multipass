@@ -50,7 +50,7 @@ struct TestRegisteredSettingsHandlers : public Test
             .WillOnce(Return(ByMove(std::move(mock_qsettings))));
     }
 
-    void inject_default_returning_mock_qsettings() // TODO@ricab do I really need this after all?
+    void inject_default_returning_mock_qsettings()
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings)
             .WillRepeatedly(InvokeWithoutArgs(make_default_returning_mock_qsettings));
@@ -71,10 +71,8 @@ struct TestRegisteredSettingsHandlers : public Test
             EXPECT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab matcher
         };
 
-        EXPECT_CALL(mock_settings, register_handler(NotNull())) // TODO@ricab will need to distinguish types, need #2282
-            .WillOnce(grab_it)
-            .WillRepeatedly(Return()) // TODO@ricab drop this when daemon handler is gone
-            ;
+        EXPECT_CALL(mock_settings, register_handler(NotNull())).WillOnce(grab_it); /* TODO@ricab better distinguish
+                                                 types in matcher, but need #2282 (for Address + WhenDynamicCastTo) */
     }
 
 public:
