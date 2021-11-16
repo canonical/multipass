@@ -280,7 +280,7 @@ struct Client : public Test
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
     StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider,
-                                          cert_store}; // strict to fail on unexpected calls and play well with sharing
+                                          &cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
                                                                               reset at the end of each test */
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
