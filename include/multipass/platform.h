@@ -64,6 +64,7 @@ public:
     virtual void create_alias_script(const std::string& alias, const AliasDefinition& def) const;
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
+    virtual void set_server_permissions(const std::string& server_address, const bool restricted) const;
 };
 
 std::map<QString, QString> extra_settings_defaults();
