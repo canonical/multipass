@@ -24,25 +24,16 @@
 #include <multipass/auto_join_thread.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
-#include <multipass/platform.h>
 #include <multipass/platform_unix.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
-#include <multipass/virtual_machine_factory.h>
-#include <multipass/vm_image_host.h>
-#include <multipass/vm_image_vault.h>
 
 #include <multipass/format.h>
 
 #include <QCoreApplication>
 
 #include <csignal>
-#include <cstring>
-#include <grp.h>
-#include <sys/stat.h>
-#include <vector>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -50,34 +41,6 @@ namespace mpp = multipass::platform;
 
 namespace
 {
-const std::vector<std::string> supported_socket_groups{"sudo", "admin", "wheel"};
-
-void set_server_permissions(const std::string& server_address)
-{
-    auto tokens = mp::utils::split(server_address, ":");
-    if (tokens.size() != 2u)
-        throw std::runtime_error(fmt::format("invalid server address specified: {}", server_address));
-
-    const auto server_name = tokens[0];
-    if (server_name != "unix")
-        return;
-
-    struct group* group{nullptr};
-    for (const auto& socket_group : supported_socket_groups)
-    {
-        group = getgrnam(socket_group.c_str());
-        if (group)
-            break;
-    }
-
-    const auto socket_path = tokens[1];
-    if (group && chown(socket_path.c_str(), 0, group->gr_gid) == -1)
-        throw std::runtime_error("Could not set ownership of the multipass socket.");
-
-    if (chmod(socket_path.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) == -1)
-        throw std::runtime_error("Could not set permissions for the multipass socket.");
-}
-
 class UnixSignalHandler
 {
 public:
@@ -119,8 +82,6 @@ int main_impl(int argc, char* argv[])
 
     mp::monitor_and_quit_on_settings_change(); // temporary
     mp::Daemon daemon(std::move(config));
-
-    set_server_permissions(server_address);
 
     mpl::log(mpl::Level::info, "daemon", fmt::format("Starting Multipass {}", mp::version_string));
     mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
