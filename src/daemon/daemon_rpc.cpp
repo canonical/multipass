@@ -20,7 +20,7 @@
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/virtual_machine_factory.h>
+#include <multipass/platform.h>
 
 #include <chrono>
 #include <stdexcept>
@@ -111,6 +111,8 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionTyp
       server{make_server(server_address, type, cert_provider, this)},
       client_cert_store{client_cert_store}
 {
+    MP_PLATFORM.set_server_permissions(server_address, client_cert_store->is_store_empty());
+
     std::string ssl_enabled = type == mp::RpcConnectionType::ssl ? "on" : "off";
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));
 }
