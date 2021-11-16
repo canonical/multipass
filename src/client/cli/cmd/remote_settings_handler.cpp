@@ -62,11 +62,23 @@ private: // demote visibility of the following methods
     }
 };
 
-class RemoteGet : public InternalCmd
+class RemoteSettingsCmd : public InternalCmd
+{
+public:
+    using InternalCmd::InternalCmd;
+
+protected:
+    [[noreturn]] static mp::ReturnCode on_failure(grpc::Status& status)
+    {
+        throw mp::RemoteSettingsException{status};
+    }
+};
+
+class RemoteGet : public RemoteSettingsCmd
 {
 public:
     RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
-        : InternalCmd{channel, stub, term} // need to ensure refs outlive this
+        : RemoteSettingsCmd{channel, stub, term} // need to ensure refs outlive this
     {
         mp::GetRequest get_request;
         get_request.set_verbosity_level(verbosity);
@@ -77,8 +89,6 @@ public:
             return mp::ReturnCode::Ok;
         };
 
-        auto on_failure = [](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
-
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
         assert(got && "should have thrown otherwise");
@@ -88,12 +98,12 @@ public:
     mp::optional<QString> got = mp::nullopt;
 };
 
-class RemoteSet : public InternalCmd
+class RemoteSet : public RemoteSettingsCmd
 {
 public:
     RemoteSet(const QString& key, const QString& val, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term,
               int verbosity)
-        : InternalCmd{channel, stub, term} // need to ensure refs outlive this
+        : RemoteSettingsCmd{channel, stub, term} // need to ensure refs outlive this
     {
         mp::SetRequest set_request;
         set_request.set_verbosity_level(verbosity);
@@ -101,18 +111,17 @@ public:
         set_request.set_val(val.toStdString());
 
         auto on_success = [](mp::SetReply&) { return mp::ReturnCode::Ok; };
-        auto on_failure = [](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::set, set_request, on_success, on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
 
-class RemoteKeys : public InternalCmd
+class RemoteKeys : public RemoteSettingsCmd
 {
 public:
     RemoteKeys(grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
-        : InternalCmd{channel, stub, term}
+        : RemoteSettingsCmd{channel, stub, term}
     {
         mp::KeysRequest keys_request;
         keys_request.set_verbosity_level(verbosity);
@@ -123,9 +132,6 @@ public:
 
             return mp::ReturnCode::Ok;
         };
-
-        // TODO@ricab extract
-        auto on_failure = [](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys, keys_request, on_success, on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
