@@ -70,7 +70,7 @@ void mp::daemon::monitor_and_quit_on_settings_change() // temporary // TODO@rica
     QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(settings_changed_code); });
 }
 
-void mp::daemon::register_settings_handlers()
+void mp::daemon::register_global_settings_handlers()
 {
     auto settings = MP_PLATFORM.extra_daemon_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));

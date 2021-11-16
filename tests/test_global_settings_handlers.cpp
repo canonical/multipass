@@ -36,7 +36,7 @@ using namespace testing;
 
 namespace
 {
-struct TestRegisteredSettingsHandlers : public Test
+struct TestGlobalSettingsHandlers : public Test
 {
     void SetUp() override
     {
@@ -92,7 +92,7 @@ public:
 
 // TODO@ricab de-duplicate daemon/client tests where possible (TEST_P)
 
-TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerWithClientFilename)
+TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithClientFilename)
 {
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipass/multipass.conf";
@@ -102,18 +102,18 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerWithClien
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::client::register_settings_handlers();
+    mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
         .WillOnce(InvokeWithoutArgs(make_default_returning_mock_qsettings));
     handler->set(mp::petenv_key, "goo");
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClientSettings)
+TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientSettings)
 {
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::client::register_settings_handlers();
+    mp::client::register_global_settings_handlers();
 
     inject_default_returning_mock_qsettings();
     EXPECT_EQ(handler->get(mp::petenv_key), "primary");
@@ -121,7 +121,7 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClient
     EXPECT_EQ(QKeySequence{handler->get(mp::hotkey_key)}, QKeySequence{mp::hotkey_default});
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClientPlatformSettings)
+TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientPlatformSettings)
 {
     const auto client_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
                                                             {"client.empty.setting", ""},
@@ -136,7 +136,7 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClient
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::client::register_settings_handlers();
+    mp::client::register_global_settings_handlers();
 
     inject_default_returning_mock_qsettings();
 
@@ -146,17 +146,17 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerForClient
     }
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddenPlatformDefaults)
+TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddenPlatformDefaults)
 {
     // TODO@ricab
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemonSettings)
+TEST_F(TestGlobalSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemonSettings)
 {
     // TODO@ricab
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
+TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
 {
     const auto key = mp::hotkey_key;
     const auto val = "Alt+X";
@@ -164,7 +164,7 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTranslatesHotke
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::client::register_settings_handlers();
+    mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val)));
     inject_mock_qsettings();
@@ -172,11 +172,11 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatTranslatesHotke
     ASSERT_NO_THROW(handler->set(key, val));
 }
 
-TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatAcceptsBoolAutostart)
+TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatAcceptsBoolAutostart)
 {
     std::unique_ptr<mp::SettingsHandler> handler = nullptr; // TODO@ricab try to extract this stuff
     grab_registered_persistent_handler(handler);
-    mp::client::register_settings_handlers();
+    mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::autostart_key), Eq("false")));
     inject_mock_qsettings();
@@ -184,7 +184,7 @@ TEST_F(TestRegisteredSettingsHandlers, clientsRegisterHandlerThatAcceptsBoolAuto
     ASSERT_NO_THROW(handler->set(mp::autostart_key, "0"));
 }
 
-struct TestGoodPetEnvSetting : public TestRegisteredSettingsHandlers, WithParamInterface<const char*>
+struct TestGoodPetEnvSetting : public TestGlobalSettingsHandlers, WithParamInterface<const char*>
 {
 };
 
@@ -193,7 +193,7 @@ TEST_P(TestGoodPetEnvSetting, clientsRegisterHandlerThatAcceptsValidPetenv)
     auto key = mp::petenv_key, val = GetParam();
     std::unique_ptr<mp::SettingsHandler> handler = nullptr; // TODO@ricab try to extract this stuff
     grab_registered_persistent_handler(handler);
-    mp::client::register_settings_handlers();
+    mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val)));
     inject_mock_qsettings();
@@ -203,7 +203,7 @@ TEST_P(TestGoodPetEnvSetting, clientsRegisterHandlerThatAcceptsValidPetenv)
 
 INSTANTIATE_TEST_SUITE_P(TestGoodPetEnvSetting, TestGoodPetEnvSetting, Values("valid-primary", ""));
 
-struct TestBadPetEnvSetting : public TestRegisteredSettingsHandlers, WithParamInterface<const char*>
+struct TestBadPetEnvSetting : public TestGlobalSettingsHandlers, WithParamInterface<const char*>
 {
 };
 
@@ -212,7 +212,7 @@ TEST_P(TestBadPetEnvSetting, clientsRegisterHandlerThatRejectsInvalidPetenv)
     auto key = mp::petenv_key, val = GetParam();
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::client::register_settings_handlers();
+    mp::client::register_global_settings_handlers();
 
     MP_ASSERT_THROW_THAT(handler->set(key, val), mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
@@ -220,7 +220,7 @@ TEST_P(TestBadPetEnvSetting, clientsRegisterHandlerThatRejectsInvalidPetenv)
 
 INSTANTIATE_TEST_SUITE_P(TestBadPetEnvSetting, TestBadPetEnvSetting, Values("-", "-a-b-", "_asd", "_1", "1-2-3"));
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFilename)
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFilename)
 {
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipassd.conf";
@@ -229,14 +229,14 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithDaemo
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::daemon::register_settings_handlers();
+    mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
         .WillOnce(InvokeWithoutArgs(make_default_returning_mock_qsettings));
     handler->set(mp::bridged_interface_key, "bridge");
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSettings)
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSettings)
 {
     const auto driver = "conductor";
     const auto mount = "false";
@@ -246,7 +246,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemon
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::daemon::register_settings_handlers();
+    mp::daemon::register_global_settings_handlers();
 
     inject_default_returning_mock_qsettings();
     EXPECT_EQ(handler->get(mp::driver_key), driver);
@@ -254,7 +254,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemon
     EXPECT_EQ(handler->get(mp::mounts_key), mount);
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlatformSettings)
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlatformSettings)
 {
     const auto daemon_defaults = std::map<QString, QString>{{"local.blah", "blargh"},
                                                             {"local.a.bool", "false"},
@@ -268,7 +268,7 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemon
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::daemon::register_settings_handlers();
+    mp::daemon::register_global_settings_handlers();
 
     inject_default_returning_mock_qsettings();
 
@@ -278,23 +278,23 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerForDaemon
     }
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegistersPersistentHandlerWithOverriddenPlatformDefaults)
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithOverriddenPlatformDefaults)
 {
     // TODO@ricab
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClientSettings)
+TEST_F(TestGlobalSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClientSettings)
 {
     // TODO@ricab
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend)
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend)
 {
     auto key = mp::driver_key, val = "good driver";
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::daemon::register_settings_handlers();
+    mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val)));
@@ -303,13 +303,13 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBac
     ASSERT_NO_THROW(handler->set(key, val));
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBackend)
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBackend)
 {
     auto key = mp::driver_key, val = "bad driver";
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::daemon::register_settings_handlers();
+    mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
 
@@ -317,11 +317,11 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidB
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsBoolMounts)
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsBoolMounts)
 {
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::daemon::register_settings_handlers();
+    mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::mounts_key), Eq("true")));
     inject_mock_qsettings();
@@ -329,13 +329,13 @@ TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsBoolMoun
     ASSERT_NO_THROW(handler->set(mp::mounts_key, "1"));
 }
 
-TEST_F(TestRegisteredSettingsHandlers, daemonRegistersHandlerThatAcceptsBrigedInterface)
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsBrigedInterface)
 {
     const auto val = "bridge";
 
     std::unique_ptr<mp::SettingsHandler> handler = nullptr;
     grab_registered_persistent_handler(handler);
-    mp::daemon::register_settings_handlers();
+    mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::bridged_interface_key), Eq(val)));
     inject_mock_qsettings();

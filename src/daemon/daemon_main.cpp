@@ -113,7 +113,7 @@ int main_impl(int argc, char* argv[])
 
     UnixSignalHandler handler;
 
-    mp::daemon::register_settings_handlers();
+    mp::daemon::register_global_settings_handlers();
 
     auto builder = mp::cli::parse(app);
     auto config = builder.build();
