@@ -19,7 +19,6 @@
 
 #include <multipass/cli/command.h>
 #include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/optional.h>
 
 #include <cassert>
 #include <stdexcept>
@@ -97,11 +96,10 @@ public:
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
-        assert(got && "should have thrown otherwise");
     }
 
 public:
-    mp::optional<QString> got = mp::nullopt;
+    QString got = {};
 };
 
 class RemoteSet : public RemoteSettingsCmd
@@ -158,8 +156,7 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     if (key.startsWith(key_prefix))
     {
         assert(term);
-        auto remote_get = RemoteGet(key, rpc_channel, stub, term, verbosity);
-        return *remote_get.got;
+        return RemoteGet(key, rpc_channel, stub, term, verbosity).got;
     }
 
     throw mp::UnrecognizedSettingException{key};
