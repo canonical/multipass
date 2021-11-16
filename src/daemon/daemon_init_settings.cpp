@@ -53,11 +53,6 @@ QString persistent_settings_filename()
     return path;
 }
 
-void add_setting(std::map<QString, mp::SettingSpec::UPtr>& settings, mp::SettingSpec::UPtr setting)
-{ // TODO@ricab probably move this to PersistentSettingsHandler
-    settings.insert_or_assign(setting->get_key(), std::move(setting));
-}
-
 QString driver_interpreter(const QString& val)
 {
     if (!MP_PLATFORM.is_backend_supported(val))
@@ -79,15 +74,14 @@ void mp::daemon::monitor_and_quit_on_settings_change() // temporary
 
 void mp::daemon::register_settings_handlers()
 {
-    std::map<QString, SettingSpec::UPtr> settings;
-    add_setting(settings, std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
-    add_setting(settings, std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
-    add_setting(settings, std::make_unique<DynamicSettingSpec>(driver_key, MP_PLATFORM.default_driver(),
-                                                               driver_interpreter)); // clang-format keep this please
+    SettingSpec::Set settings{};
+    settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
+    settings.insert(std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
+    settings.insert(std::make_unique<DynamicSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
 
     for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab return specs instead
         if (k.startsWith(daemon_root))
-            add_setting(settings, std::make_unique<BasicSettingSpec>(k, v));
+            settings.insert(std::make_unique<BasicSettingSpec>(k, v));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));

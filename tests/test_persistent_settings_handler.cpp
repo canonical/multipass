@@ -82,11 +82,11 @@ public:
     std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
 
 private:
-    std::map<QString, mp::SettingSpec::UPtr> make_basic_persistent_settings() const
+    mp::SettingSpec::Set make_basic_persistent_settings() const
     {
-        std::map<QString, mp::SettingSpec::UPtr> ret;
+        mp::SettingSpec::Set ret;
         for (const auto& [k, v] : defaults)
-            ret[k] = std::make_unique<mp::BasicSettingSpec>(k, v);
+            ret.insert(std::make_unique<mp::BasicSettingSpec>(k, v));
 
         return ret;
     }

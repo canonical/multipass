@@ -111,9 +111,8 @@ QString interpret_value(const QString& key, QString val) // work with a copy of 
 }
 } // namespace
 
-mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename,
-                                                         std::map<QString, SettingSpec::UPtr> settings)
-    : filename{std::move(filename)}, settings{std::move(settings)}
+mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename, SettingSpec::Set settings)
+    : filename{std::move(filename)}, settings{convert(std::move(settings))}
 {
 }
 
@@ -151,6 +150,20 @@ std::set<QString> mp::PersistentSettingsHandler::keys() const
     std::set<QString> ret{};
     std::transform(cbegin(settings), cend(settings), std::inserter(ret, begin(ret)),
                    [](const auto& elem) { return elem.first; }); // I wish get<0> worked here... maybe in C++20
+
+    return ret;
+}
+
+auto mp::PersistentSettingsHandler::convert(SettingSpec::Set settings) -> SettingMap
+{
+    SettingMap ret;
+    while (!settings.empty())
+    {
+        auto it = settings.begin();
+        auto key = (*it)->get_key();                                          // ensure setting not moved yet
+        ret.emplace(std::move(key), std::move(settings.extract(it).value())); /* need to extract to be able to move
+                                                 see notes in https://en.cppreference.com/w/cpp/container/set/begin */
+    }
 
     return ret;
 }

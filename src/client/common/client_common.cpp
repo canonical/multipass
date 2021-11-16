@@ -22,6 +22,8 @@
 #include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
 #include <multipass/settings/basic_setting_spec.h>
+#include <multipass/settings/bool_setting_spec.h>
+#include <multipass/settings/dynamic_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
@@ -73,9 +75,41 @@ QString daemon_settings_filename()
     return path;
 }
 
+QString driver_interpreter(const QString& val)
+{ // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
+    if (!MP_PLATFORM.is_backend_supported(val))
+        throw mp::InvalidSettingException(mp::driver_key, val, "Invalid driver");
+
+    return val;
+}
+
+void register_daemon_settings_handler()
+{ // TODO@ricab remove - tmp code, to keep feature parity until we introduce routing handlers
+    using namespace multipass;
+    SettingSpec::Set settings{};
+    settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
+    settings.insert(std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
+    settings.insert(std::make_unique<DynamicSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
+
+    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab return specs instead
+        if (k.startsWith(daemon_root))
+            settings.insert(std::make_unique<BasicSettingSpec>(k, v));
+
+    MP_SETTINGS.register_handler(
+        std::make_unique<PersistentSettingsHandler>(daemon_settings_filename(), std::move(settings)));
+}
+
 QString default_hotkey()
 {
     return QKeySequence{mp::hotkey_default}.toString(QKeySequence::NativeText); // outcome depends on platform
+}
+
+QString petenv_interpreter(const QString& val)
+{
+    if (!val.isEmpty() && !mp::utils::valid_hostname(val.toStdString()))
+        throw mp::InvalidSettingException{mp::petenv_key, val, "Invalid hostname"};
+
+    return val;
 }
 
 mp::ReturnCode return_code_for(const grpc::StatusCode& code)
@@ -126,36 +160,22 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
 
 void mp::client::register_settings_handlers()
 {
-    auto setting_defaults = std::map<QString, QString>{
-        {mp::petenv_key, petenv_name}, {mp::autostart_key, autostart_default}, {mp::hotkey_key, default_hotkey()}};
+    SettingSpec::Set settings{};
+    settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
+    settings.insert(std::make_unique<DynamicSettingSpec>(mp::petenv_key, petenv_name, petenv_interpreter));
+    settings.insert(std::make_unique<DynamicSettingSpec>(mp::hotkey_key, default_hotkey(), [](const QString& val) {
+        return mp::platform::interpret_setting(mp::hotkey_key, val);
+    }));
 
-    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab try algo
+    for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults()) // TODO@ricab return specs instead
         if (k.startsWith(client_root))
-            setting_defaults.insert_or_assign(k, v);
-
-    std::map<QString, mp::SettingSpec::UPtr> settings;
-    for (const auto& [k, v] : setting_defaults)
-        settings[k] = std::make_unique<multipass::BasicSettingSpec>(k, v);
+            settings.insert(std::make_unique<BasicSettingSpec>(k, v));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
 
-    { // TODO@ricab remove from client - temporary code, to keep feature parity until we introduce routing handlers
-        auto daemon_defaults = std::map<QString, QString>{{mp::driver_key, MP_PLATFORM.default_driver()},
-                                                          {mp::bridged_interface_key, ""},
-                                                          {mp::mounts_key, MP_PLATFORM.default_privileged_mounts()}};
-
-        for (const auto& [k, v] : MP_PLATFORM.extra_settings_defaults())
-            if (k.startsWith(daemon_root))
-                daemon_defaults.insert_or_assign(k, v);
-
-        std::map<QString, mp::SettingSpec::UPtr> daemon_settings;
-        for (const auto& [k, v] : daemon_defaults)
-            daemon_settings[k] = std::make_unique<multipass::BasicSettingSpec>(k, v);
-
-        MP_SETTINGS.register_handler(
-            std::make_unique<PersistentSettingsHandler>(daemon_settings_filename(), std::move(daemon_settings)));
-    }
+    register_daemon_settings_handler(); /* TODO@ricab remove - temporary code, to keep feature parity until we introduce
+                                           routing handlers */
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,

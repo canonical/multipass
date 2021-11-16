@@ -29,7 +29,7 @@ namespace multipass
 class PersistentSettingsHandler : public SettingsHandler
 {
 public:
-    PersistentSettingsHandler(QString filename, std::map<QString, SettingSpec::UPtr> settings);
+    PersistentSettingsHandler(QString filename, SettingSpec::Set settings);
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) const override;
     std::set<QString> keys() const override;
@@ -38,8 +38,12 @@ private:
     const SettingSpec& get_setting(const QString& key) const; // throws on unknown key
 
 private:
+    using SettingMap = std::map<QString, SettingSpec::UPtr>;
+    static SettingMap convert(SettingSpec::Set);
+
+private:
     QString filename;
-    std::map<QString, SettingSpec::UPtr> settings;
+    SettingMap settings;
     mutable std::mutex mutex;
 };
 } // namespace multipass
