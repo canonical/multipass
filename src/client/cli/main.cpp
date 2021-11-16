@@ -36,7 +36,7 @@ int main_impl(int argc, char* argv[])
     mp::Console::setup_environment();
     auto term = mp::Terminal::make_terminal();
 
-    mp::client::register_settings_handlers();
+    mp::client::register_global_settings_handlers();
 
     mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl,
                             mp::client::get_cert_provider(), term.get()};

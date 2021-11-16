@@ -117,7 +117,7 @@ QString mp::client::persistent_settings_filename()
     return path;
 }
 
-void mp::client::register_settings_handlers() // TODO@ricab rename probably
+void mp::client::register_global_settings_handlers()
 {
     auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
