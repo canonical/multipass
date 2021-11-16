@@ -107,6 +107,33 @@ public:
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
+
+class RemoteKeys : public InternalCmd
+{
+public:
+    RemoteKeys(grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
+        : InternalCmd{channel, stub, term}
+    {
+        mp::KeysRequest keys_request;
+        keys_request.set_verbosity_level(verbosity);
+
+        auto on_success = [this](mp::KeysReply& reply) {
+            for (const auto& key : *reply.mutable_settings_keys())
+                keys.insert(QString::fromStdString(std::move(key)));
+
+            return mp::ReturnCode::Ok;
+        };
+
+        // TODO@ricab extract
+        auto on_failure = [](grpc::Status& status) -> mp::ReturnCode { throw mp::RemoteSettingsException{status}; };
+
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys, keys_request, on_success, on_failure);
+        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
+    }
+
+public:
+    std::set<QString> keys = {};
+};
 } // namespace
 
 mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix, grpc::Channel& channel, mp::Rpc::Stub& stub,
@@ -141,7 +168,8 @@ void mp::RemoteSettingsHandler::set(const QString& key, const QString& val) cons
 
 std::set<QString> mp::RemoteSettingsHandler::keys() const
 {
-    return std::set<QString>(); // TODO@ricab
+    assert(term);
+    return std::move(RemoteKeys{rpc_channel, stub, term, verbosity}.keys);
 }
 
 mp::RemoteSettingsException::RemoteSettingsException(grpc::Status status)
