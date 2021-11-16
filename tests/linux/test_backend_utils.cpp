@@ -408,9 +408,10 @@ TEST(LinuxBackendUtils, check_for_kvm_support_no_read_write_throws_expected_erro
     EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_BACKEND.check_for_kvm_support(), std::runtime_error,
-                         mpt::match_what(StrEq("The KVM device cannot be opened for reading and writing.\nPlease "
-                                               "ensure the Snap KVM interface is connected for Multipass.")));
+    MP_EXPECT_THROW_THAT(
+        MP_BACKEND.check_for_kvm_support(), std::runtime_error,
+        mpt::match_what(StrEq("The KVM device cannot be opened for reading and writing.\nPlease "
+                              "ensure the Snap KVM interface is connected by issuing:\n$ snap connect multipass:kvm")));
 }
 
 TEST(LinuxBackendUtils, check_kvm_in_use_no_failure_does_not_throw)

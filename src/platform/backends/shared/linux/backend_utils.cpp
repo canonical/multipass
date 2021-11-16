@@ -274,7 +274,8 @@ void mp::Backend::check_for_kvm_support()
     if (!MP_FILEOPS.open(kvm_device, QIODevice::ReadWrite))
     {
         throw std::runtime_error("The KVM device cannot be opened for reading and writing.\n"
-                                 "Please ensure the Snap KVM interface is connected for Multipass.");
+                                 "Please ensure the Snap KVM interface is connected by issuing:\n"
+                                 "$ snap connect multipass:kvm");
     }
 }
 
