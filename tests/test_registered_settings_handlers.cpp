@@ -66,8 +66,8 @@ struct TestRegisteredSettingsHandlers : public Test
 
     void grab_registered_persistent_handler(std::unique_ptr<mp::SettingsHandler>& handler)
     {
-        auto grab_it = [&handler](auto&& arg) {
-            handler = std::move(arg);
+        auto grab_it = [&handler](auto uptr) {
+            handler = std::move(uptr);
             EXPECT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab matcher
         };
 
