@@ -18,8 +18,6 @@
 #include "common.h"
 #include "mock_settings.h"
 
-#include <multipass/constants.h>
-
 #include <QKeySequence>
 #include <QString>
 

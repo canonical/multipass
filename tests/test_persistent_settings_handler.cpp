@@ -28,7 +28,6 @@
 
 #include <QString>
 
-#include <cstdio>
 #include <functional>
 
 namespace mp = multipass;
