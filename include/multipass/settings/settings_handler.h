@@ -33,6 +33,14 @@ public:
     virtual ~SettingsHandler() = default;
 
     /**
+     * Obtain the keys, or key templates, that this SettingHandler handles.
+     * @warning These are meant for human interpretation and may include templates and descriptions that cannot be used
+     * in get/set as actual keys (e.g. <tt>local.@<instance@>.cpus</tt>).
+     * @return The set of keys, key templates, or key descriptions that this SettingHandler handles.
+     */
+    virtual std::set<QString> keys() const = 0;
+
+    /**
      * Get the value of the setting specified by @c key.
      * @param key The key identifying the requested setting.
      * @return A string representation of the value of the specified setting, according to this SettingsHandler's
@@ -53,14 +61,6 @@ public:
      * @note Descendents are free to throw other exceptions as well.
      */
     virtual void set(const QString& key, const QString& val) const = 0;
-
-    /**
-     * Obtain the keys, or key templates, that this SettingHandler handles.
-     * @warning These are meant for human interpretation and may include templates and descriptions that cannot be used
-     * in get/set as actual keys (e.g. <tt>local.@<instance@>.cpus</tt>).
-     * @return The set of keys, key templates, or key descriptions that this SettingHandler handles.
-     */
-    virtual std::set<QString> keys() const = 0;
 };
 
 } // namespace multipass
