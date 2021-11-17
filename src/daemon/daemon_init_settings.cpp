@@ -61,7 +61,7 @@ QString driver_interpreter(const QString& val)
 
 } // namespace
 
-void mp::daemon::monitor_and_quit_on_settings_change() // temporary // TODO@ricab move to handler
+void mp::daemon::monitor_and_quit_on_settings_change() // temporary
 {
     static const auto filename = persistent_settings_filename();
     mp::utils::check_and_create_config_file(filename); // create if not there

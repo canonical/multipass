@@ -119,7 +119,7 @@ int main_impl(int argc, char* argv[])
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    mp::daemon::monitor_and_quit_on_settings_change(); // TODO@ricab remove
+    mp::daemon::monitor_and_quit_on_settings_change();
     mp::Daemon daemon(std::move(config));
 
     set_server_permissions(server_address);
