@@ -27,6 +27,19 @@ namespace mpt = multipass::test;
 
 using namespace testing;
 
+namespace
+{
+constexpr auto cert_data = "-----BEGIN CERTIFICATE-----\n"
+                           "MIIBUjCB+AIBKjAKBggqhkjOPQQDAjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJ\n"
+                           "Q2Fub25pY2FsMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTgwNjIxMTM0MjI5WhcN\n"
+                           "MTkwNjIxMTM0MjI5WjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJQ2Fub25pY2Fs\n"
+                           "MRIwEAYDVQQDDAlsb2NhbGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQA\n"
+                           "FGNAqq7c5IMDeQ/cV4+EmogmkfpbTLSPfXgXVLHRsvL04xUAkqGpL+eyGFVE6dqa\n"
+                           "J7sAPJJwlVj1xD0r5DX5MAoGCCqGSM49BAMCA0kAMEYCIQCvI0PYv9f201fbe4LP\n"
+                           "BowTeYWSqMQtLNjvZgd++AAGhgIhALNPW+NRSKCXwadiIFgpbjPInLPqXPskLWSc\n"
+                           "aXByaQyt\n"
+                           "-----END CERTIFICATE-----\n";
+
 struct ClientCertStore : public testing::Test
 {
     ClientCertStore()
@@ -36,6 +49,7 @@ struct ClientCertStore : public testing::Test
     mpt::TempDir temp_dir;
     mp::Path cert_dir;
 };
+} // namespace
 
 TEST_F(ClientCertStore, returns_empty_chain_if_no_certificate_found)
 {
@@ -48,17 +62,6 @@ TEST_F(ClientCertStore, returns_empty_chain_if_no_certificate_found)
 TEST_F(ClientCertStore, returns_persisted_certificate_chain)
 {
     mp::ClientCertStore cert_store{cert_dir};
-
-    constexpr auto cert_data = "-----BEGIN CERTIFICATE-----\n"
-                               "MIIBUjCB+AIBKjAKBggqhkjOPQQDAjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJ\n"
-                               "Q2Fub25pY2FsMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTgwNjIxMTM0MjI5WhcN\n"
-                               "MTkwNjIxMTM0MjI5WjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJQ2Fub25pY2Fs\n"
-                               "MRIwEAYDVQQDDAlsb2NhbGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQA\n"
-                               "FGNAqq7c5IMDeQ/cV4+EmogmkfpbTLSPfXgXVLHRsvL04xUAkqGpL+eyGFVE6dqa\n"
-                               "J7sAPJJwlVj1xD0r5DX5MAoGCCqGSM49BAMCA0kAMEYCIQCvI0PYv9f201fbe4LP\n"
-                               "BowTeYWSqMQtLNjvZgd++AAGhgIhALNPW+NRSKCXwadiIFgpbjPInLPqXPskLWSc\n"
-                               "aXByaQyt\n"
-                               "-----END CERTIFICATE-----\n";
 
     const QDir dir{cert_dir};
     const auto cert_path = dir.filePath("multipass_client_certs.pem");
@@ -77,20 +80,70 @@ TEST_F(ClientCertStore, add_cert_throws_on_invalid_data)
 
 TEST_F(ClientCertStore, add_cert_stores_certificate)
 {
-    constexpr auto cert_data = "-----BEGIN CERTIFICATE-----\n"
-                               "MIIBUjCB+AIBKjAKBggqhkjOPQQDAjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJ\n"
-                               "Q2Fub25pY2FsMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTgwNjIxMTM0MjI5WhcN\n"
-                               "MTkwNjIxMTM0MjI5WjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJQ2Fub25pY2Fs\n"
-                               "MRIwEAYDVQQDDAlsb2NhbGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQA\n"
-                               "FGNAqq7c5IMDeQ/cV4+EmogmkfpbTLSPfXgXVLHRsvL04xUAkqGpL+eyGFVE6dqa\n"
-                               "J7sAPJJwlVj1xD0r5DX5MAoGCCqGSM49BAMCA0kAMEYCIQCvI0PYv9f201fbe4LP\n"
-                               "BowTeYWSqMQtLNjvZgd++AAGhgIhALNPW+NRSKCXwadiIFgpbjPInLPqXPskLWSc\n"
-                               "aXByaQyt\n"
-                               "-----END CERTIFICATE-----\n";
-
     mp::ClientCertStore cert_store{cert_dir};
     EXPECT_NO_THROW(cert_store.add_cert(cert_data));
 
     const auto content = cert_store.PEM_cert_chain();
     EXPECT_THAT(content, StrEq(cert_data));
+}
+
+TEST_F(ClientCertStore, verifyCertEmptyAddsCertAndReturnsTrue)
+{
+    mp::ClientCertStore cert_store{cert_dir};
+
+    ASSERT_TRUE(cert_store.PEM_cert_chain().empty());
+
+    EXPECT_TRUE(cert_store.verify_cert(cert_data));
+
+    const auto content = cert_store.PEM_cert_chain();
+
+    EXPECT_EQ(content, cert_data);
+}
+
+TEST_F(ClientCertStore, verifyCertInStoreReturnsTrue)
+{
+    const QDir dir{cert_dir};
+    const auto cert_path = dir.filePath("multipass_client_certs.pem");
+    mpt::make_file_with_content(cert_path, cert_data);
+
+    mp::ClientCertStore cert_store{cert_dir};
+
+    ASSERT_FALSE(cert_store.PEM_cert_chain().empty());
+
+    EXPECT_TRUE(cert_store.verify_cert(cert_data));
+}
+
+TEST_F(ClientCertStore, addCertAlreadyExistingDoesNotAddAgain)
+{
+    const QDir dir{cert_dir};
+    const auto cert_path = dir.filePath("multipass_client_certs.pem");
+    mpt::make_file_with_content(cert_path, cert_data);
+
+    mp::ClientCertStore cert_store{cert_dir};
+
+    ASSERT_FALSE(cert_store.PEM_cert_chain().empty());
+
+    EXPECT_NO_THROW(cert_store.add_cert(cert_data));
+
+    const auto content = cert_store.PEM_cert_chain();
+
+    EXPECT_EQ(content, cert_data);
+}
+
+TEST_F(ClientCertStore, storeEmptyReturnsTrueWhenNoCerts)
+{
+    mp::ClientCertStore cert_store{cert_dir};
+
+    EXPECT_TRUE(cert_store.is_store_empty());
+}
+
+TEST_F(ClientCertStore, storeEmptyReturnsFalseWhenCertExists)
+{
+    const QDir dir{cert_dir};
+    const auto cert_path = dir.filePath("multipass_client_certs.pem");
+    mpt::make_file_with_content(cert_path, cert_data);
+
+    mp::ClientCertStore cert_store{cert_dir};
+
+    EXPECT_FALSE(cert_store.is_store_empty());
 }
