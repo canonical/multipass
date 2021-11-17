@@ -56,9 +56,9 @@ public:
 
     /**
      * Obtain the keys, or key templates, that this SettingHandler handles.
-     * @warning Templates are meant for human interpretation (e.g. <tt>local.@<instance@>.cpus</tt>). They cannot be
-     * used in get/set as actual keys.
-     * @return The set of keys or key templates that this SettingHandler handles.
+     * @warning These are meant for human interpretation and may include templates and descriptions that cannot be used
+     * in get/set as actual keys (e.g. <tt>local.@<instance@>.cpus</tt>).
+     * @return The set of keys, key templates, or key descriptions that this SettingHandler handles.
      */
     virtual std::set<QString> keys() const = 0;
 };
