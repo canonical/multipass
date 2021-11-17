@@ -639,6 +639,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
     QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
     QObject::connect(&rpc, &mp::DaemonRpc::on_set, &daemon, &mp::Daemon::set);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_keys, &daemon, &mp::Daemon::keys);
 }
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
@@ -2074,6 +2075,27 @@ catch (const mp::UnrecognizedSettingException& e)
 catch (const mp::InvalidSettingException& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::keys(const mp::KeysRequest* request, grpc::ServerWriterInterface<KeysReply>* server,
+                      std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<KeysReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    KeysReply reply;
+
+    for (const auto& key : MP_SETTINGS.keys())
+        reply.add_settings_keys(key.toStdString());
+
+    mpl::log(mpl::Level::debug, category, fmt::format("Returning {} settings keys", reply.settings_keys_size()));
+    server->Write(reply);
+
+    status_promise->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {

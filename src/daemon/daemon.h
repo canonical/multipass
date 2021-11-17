@@ -146,6 +146,9 @@ public slots:
     virtual void set(const SetRequest* request, grpc::ServerWriterInterface<SetReply>* response,
                      std::promise<grpc::Status>* status_promise);
 
+    virtual void keys(const KeysRequest* request, grpc::ServerWriterInterface<KeysReply>* response,
+                      std::promise<grpc::Status>* status_promise);
+
 private:
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;

@@ -86,6 +86,8 @@ signals:
                 std::promise<grpc::Status>* status_promise);
     void on_set(const SetRequest* request, grpc::ServerWriter<SetReply>* response,
                 std::promise<grpc::Status>* status_promise);
+    void on_keys(const KeysRequest* request, grpc::ServerWriter<KeysReply>* response,
+                 std::promise<grpc::Status>* status_promise);
 
 private:
     const std::string server_address;
@@ -131,6 +133,8 @@ protected:
                      grpc::ServerWriter<GetReply>* response) override;
     grpc::Status set(grpc::ServerContext* context, const SetRequest* request,
                      grpc::ServerWriter<SetReply>* response) override;
+    grpc::Status keys(grpc::ServerContext* context, const KeysRequest* request,
+                      grpc::ServerWriter<KeysReply>* response) override;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H

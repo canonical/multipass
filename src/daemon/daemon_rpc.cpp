@@ -239,3 +239,10 @@ grpc::Status mp::DaemonRpc::set(grpc::ServerContext* context, const SetRequest* 
     return emit_signal_and_wait_for_result(
         std::bind(&DaemonRpc::on_set, this, request, response, std::placeholders::_1));
 }
+
+grpc::Status mp::DaemonRpc::keys(grpc::ServerContext* context, const KeysRequest* request,
+                                 grpc::ServerWriter<KeysReply>* response)
+{
+    return emit_signal_and_wait_for_result(
+        std::bind(&DaemonRpc::on_keys, this, request, response, std::placeholders::_1));
+}
