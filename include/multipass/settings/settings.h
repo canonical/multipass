@@ -46,7 +46,30 @@ public:
      * @return The set of keys, key templates, or key descriptions that this Settings singleton knows about.
      */
     std::set<QString> keys() const;
+
+    /**
+     * Get the value of the setting specified by @c key, as returned by the first registered handler that handles it.
+     * @param key The key identifying the requested setting.
+     * @return A string representation of the value of the specified setting, according to the corresponding
+     * SettingsHandler's interpretation.
+     * @throws UnrecognizedSettingException When @c key does not identify a setting that any registered handler
+     * recognizes.
+     * @note May also throw any other exceptions that occur when handling.
+     */
     virtual QString get(const QString& key) const;            // throws on unknown key
+
+    /**
+     * Set the value of the setting specified by @c key to @val, according to the interpretation of first registered
+     * handler that handles the respective setting.
+     * @param key The key identifying the setting to modify.
+     * @param val A string representation of the value to assign to the setting. The actual value is derived according
+     * to the corresponding SettingsHandler's interpretation.
+     * @throws UnrecognizedSettingException When @c key does not identify a setting that any registered handler
+     * recognizes.
+     * @throws InvalidSettingException When @c val does not represent a valid value for the setting identified by
+     * @c key, according to the corresponding SettingHandler's interpretation.
+     * @note May also throw any other exceptions that occur when handling.
+     */
     virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
 
     /**
