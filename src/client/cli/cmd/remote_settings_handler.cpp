@@ -89,12 +89,12 @@ public:
         get_request.set_verbosity_level(verbosity);
         get_request.set_key(key.toStdString());
 
-        auto on_success = [this](mp::GetReply& reply) {
+        auto custom_on_success = [this](mp::GetReply& reply) {
             got = QString::fromStdString(reply.value());
             return mp::ReturnCode::Ok;
         };
 
-        [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, custom_on_success, on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
@@ -122,20 +122,30 @@ public:
 class RemoteKeys : public RemoteSettingsCmd
 {
 public:
-    RemoteKeys(grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
+    RemoteKeys(QString fallback, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
         : RemoteSettingsCmd{channel, stub, term}
     {
         mp::KeysRequest keys_request;
         keys_request.set_verbosity_level(verbosity);
 
-        auto on_success = [this](mp::KeysReply& reply) {
+        auto custom_on_success = [this](mp::KeysReply& reply) {
             for (const auto& key : *reply.mutable_settings_keys())
                 keys.insert(QString::fromStdString(std::move(key)));
 
             return mp::ReturnCode::Ok;
         };
 
-        [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys, keys_request, on_success, on_failure);
+        auto custom_on_failure = [this, fallback = std::move(fallback)](grpc::Status& status) {
+            if (status.error_code() == grpc::StatusCode::NOT_FOUND)
+            {
+                keys.insert(std::move(fallback));
+                return mp::ReturnCode::Ok;
+            }
+
+            return on_failure(status);
+        };
+
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
@@ -176,7 +186,9 @@ void mp::RemoteSettingsHandler::set(const QString& key, const QString& val) cons
 std::set<QString> mp::RemoteSettingsHandler::keys() const
 {
     assert(term);
-    return std::move(RemoteKeys{rpc_channel, stub, term, verbosity}.keys);
+
+    auto fallback = QStringLiteral("%1* \t (need daemon to find out actual keys)").arg(key_prefix);
+    return std::move(RemoteKeys{std::move(fallback), rpc_channel, stub, term, verbosity}.keys);
 }
 
 mp::RemoteSettingsException::RemoteSettingsException(grpc::Status status)
