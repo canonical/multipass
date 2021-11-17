@@ -337,6 +337,51 @@ TEST(Utils, make_file_with_content_throws_on_write_error)
                          mpt::match_what(HasSubstr("failed to write to file")));
 }
 
+TEST(Utils, clientCertsExistsReturnsTrueWhenFound)
+{
+    mpt::TempDir temp_dir;
+    auto cert_name = temp_dir.path() + "/multipass_cert.pem";
+    auto key_name = temp_dir.path() + "/multipass_cert_key.pem";
+
+    mpt::make_file_with_content(cert_name);
+    mpt::make_file_with_content(key_name);
+
+    EXPECT_TRUE(MP_UTILS.client_certs_exist(temp_dir.path()));
+}
+
+TEST(Utils, clientCertsExistsReturnsFalseWhenNotFound)
+{
+    mpt::TempDir temp_dir;
+
+    EXPECT_FALSE(MP_UTILS.client_certs_exist(temp_dir.path()));
+}
+
+TEST(Utils, clientCertsCopiedToCommonDir)
+{
+    mpt::TempDir temp_dir, common_dir;
+    const std::string cert_file_content{"This is the cert file"}, key_file_content{"This is the key file"};
+
+    auto cert_name = temp_dir.path() + "/multipass_cert.pem";
+    auto key_name = temp_dir.path() + "/multipass_cert_key.pem";
+
+    mpt::make_file_with_content(cert_name, cert_file_content);
+    mpt::make_file_with_content(key_name, key_file_content);
+
+    MP_UTILS.copy_client_certs_to_common_dir(temp_dir.path(), common_dir.path());
+
+    auto common_cert = common_dir.path() + "/multipass_cert.pem";
+    auto common_key = common_dir.path() + "/multipass_cert_key.pem";
+
+    ASSERT_TRUE(QFile::exists(common_cert));
+    ASSERT_TRUE(QFile::exists(common_key));
+
+    auto cert_content = mp::utils::contents_of(common_cert);
+    EXPECT_EQ(cert_content, cert_file_content);
+
+    auto key_content = mp::utils::contents_of(common_key);
+    EXPECT_EQ(key_content, key_file_content);
+}
+
 TEST(Utils, to_cmd_output_has_no_quotes)
 {
     std::vector<std::string> args{"hello", "world"};
