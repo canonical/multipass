@@ -111,7 +111,7 @@ int mp::Client::run(const QStringList& arguments)
     MP_SETTINGS.register_handler(std::make_unique<RemoteSettingsHandler>(daemon_settings_root, *rpc_channel, *stub,
                                                                          term, parser.verbosityLevel()));
 
-    mp::ReturnCode ret;
+    mp::ReturnCode ret = mp::ReturnCode::Ok;
     try
     {
         if (!mpl::get_logger())
@@ -123,7 +123,7 @@ int mp::Client::run(const QStringList& arguments)
     }
     catch (const RemoteSettingsException& e)
     {
-        mp::cmd::standard_failure_handler_for(parser.chosenCommand()->name(), term->cerr(), e.get_status());
+        ret = mp::cmd::standard_failure_handler_for(parser.chosenCommand()->name(), term->cerr(), e.get_status());
     }
 
     mp::client::post_setup();
