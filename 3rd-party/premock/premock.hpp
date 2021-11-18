@@ -567,6 +567,8 @@ struct FunctionTraits<R(*)(A...)> {
 #define UT_FUNC_ARGS_9(func) UT_FUNC_ARGS_8(func), UT_FUNC_TYPE_AND_ARG(func, 8)
 #define UT_FUNC_FWD_9 UT_FUNC_FWD_8, UT_FUNC_ARG(8)
 
+#define UT_FUNC_ARGS_10(func) UT_FUNC_ARGS_9(func), UT_FUNC_TYPE_AND_ARG(func, 9)
+#define UT_FUNC_FWD_10 UT_FUNC_FWD_9, UT_FUNC_ARG(9)
 
 /**
  The implementation of the C++ mock for function func. This version makes the mock
