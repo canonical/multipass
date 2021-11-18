@@ -51,9 +51,16 @@ TEST_F(CLIPrompters, PlainReturnsText)
     EXPECT_EQ(prompt.prompt(""), "value");
 }
 
-TEST_F(CLIPrompters, PlainThrowsOnEOF)
+class CLIPromptersCinState : public CLIPrompters, public WithParamInterface<std::ios_base::iostate>
+{
+};
+
+TEST_P(CLIPromptersCinState, PlainThrows)
 {
     auto prompt = mp::PlainPrompter{&term};
 
-    MP_EXPECT_THROW_THAT(prompt.prompt(""), mp::ValueException, mpt::match_what(HasSubstr("Unexpected end-of-file")));
+    cin.clear(GetParam());
+    MP_EXPECT_THROW_THAT(prompt.prompt(""), mp::ValueException, mpt::match_what(HasSubstr("Failed to read value")));
 }
+
+INSTANTIATE_TEST_SUITE_P(BadCin, CLIPromptersCinState, Values(std::ios::eofbit, std::ios::failbit, std::ios::badbit));

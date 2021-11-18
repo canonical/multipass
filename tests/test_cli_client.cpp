@@ -2071,7 +2071,7 @@ TEST_F(Client, InteractiveSetFailsWithEOF)
     std::istringstream cin;
 
     EXPECT_THAT(send_command({"set", mp::petenv_key}, trash_stream, cerr, cin), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(cerr.str(), HasSubstr("Unexpected end-of-file"));
+    EXPECT_THAT(cerr.str(), HasSubstr("Failed to read value"));
 }
 
 TEST_F(Client, get_cmd_fails_with_unknown_key)

@@ -30,8 +30,8 @@ std::string PlainPrompter::prompt(const std::string& text)
     std::string value;
     std::getline(term->cin(), value);
 
-    if (term->cin().eof())
-        throw ValueException("Unexpected end-of-file");
+    if (!term->cin().good())
+        throw ValueException("Failed to read value");
 
     return value;
 }
