@@ -37,7 +37,8 @@ class Settings : public Singleton<Settings>
 public:
     Settings(const Singleton<Settings>::PrivatePass&);
 
-    virtual void register_handler(std::unique_ptr<SettingsHandler> handler); // no nulls please
+    virtual SettingsHandler* register_handler(std::unique_ptr<SettingsHandler> handler); // no nulls please
+    virtual void unregister_handler(SettingsHandler* handler); // no-op if handler isn't registered
 
     /**
      * Obtain the keys, or key templates, that this Settings singleton knows about.

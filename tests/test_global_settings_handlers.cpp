@@ -69,6 +69,7 @@ struct TestGlobalSettingsHandlers : public Test
         auto grab_it = [&handler](auto uptr) {
             handler = std::move(uptr);
             EXPECT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab matcher
+            return handler.get();
         };
 
         EXPECT_CALL(mock_settings, register_handler(NotNull())).WillOnce(grab_it); /* TODO@ricab better distinguish

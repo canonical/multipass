@@ -26,10 +26,24 @@ mp::Settings::Settings(const Singleton<Settings>::PrivatePass& pass) : Singleton
 {
 }
 
-void mp::Settings::register_handler(std::unique_ptr<SettingsHandler> handler)
+auto mp::Settings::register_handler(std::unique_ptr<SettingsHandler> handler) -> SettingsHandler*
 {
     assert(handler && "can't have null settings handler"); // TODO use a `not_null` type (e.g. gsl::not_null)
+
+    auto ret = handler.get();
     handlers.push_back(std::move(handler));
+
+    return ret;
+}
+
+void mp::Settings::unregister_handler(SettingsHandler* handler)
+{
+    auto it = std::find_if(handlers.begin(), handlers.end(), [handler](const auto& uptr) { // trust me clang-format
+        return uptr.get() == handler;
+    });
+
+    if (it != handlers.end())
+        handlers.erase(it);
 }
 
 std::set<QString> multipass::Settings::keys() const
