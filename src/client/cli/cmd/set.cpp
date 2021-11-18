@@ -21,7 +21,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
-#include <multipass/exceptions/cmd_exceptions.h>
+#include <multipass/exceptions/cli_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h> // temporary
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -156,7 +156,7 @@ mp::ParseCode cmd::Set::checked_prompt(const QString& key)
         val = QString::fromStdString(prompter.prompt(key.toStdString()));
         return ParseCode::Ok;
     }
-    catch (const mp::ValueException& e)
+    catch (const mp::PromptException& e)
     {
         cerr << e.what() << std::endl;
         return ParseCode::CommandLineError;

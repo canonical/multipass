@@ -19,7 +19,7 @@
 #include "stub_terminal.h"
 
 #include <multipass/cli/prompters.h>
-#include <multipass/exceptions/cmd_exceptions.h>
+#include <multipass/exceptions/cli_exceptions.h>
 
 #include <sstream>
 
@@ -60,7 +60,7 @@ TEST_P(CLIPromptersCinState, PlainThrows)
     auto prompt = mp::PlainPrompter{&term};
 
     cin.clear(GetParam());
-    MP_EXPECT_THROW_THAT(prompt.prompt(""), mp::ValueException, mpt::match_what(HasSubstr("Failed to read value")));
+    MP_EXPECT_THROW_THAT(prompt.prompt(""), mp::PromptException, mpt::match_what(HasSubstr("Failed to read value")));
 }
 
 INSTANTIATE_TEST_SUITE_P(BadCin, CLIPromptersCinState, Values(std::ios::eofbit, std::ios::failbit, std::ios::badbit));

@@ -15,25 +15,19 @@
  *
  */
 
-#include <multipass/cli/prompters.h>
-#include <multipass/exceptions/cli_exceptions.h>
+#ifndef MULTIPASS_CLI_EXCEPTIONS_H
+#define MULTIPASS_CLI_EXCEPTIONS_H
 
-#include <iostream>
+#include <stdexcept>
 
 namespace multipass
 {
-
-std::string PlainPrompter::prompt(const std::string& text)
+class PromptException : public std::runtime_error
 {
-    term->cout() << text << ": ";
-
-    std::string value;
-    std::getline(term->cin(), value);
-
-    if (!term->cin().good())
-        throw PromptException("Failed to read value");
-
-    return value;
-}
+public:
+    using std::runtime_error::runtime_error;
+};
 
 } // namespace multipass
+
+#endif // MULTIPASS_CLI_EXCEPTIONS_H
