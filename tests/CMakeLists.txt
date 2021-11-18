@@ -45,8 +45,6 @@ add_executable(multipass_tests
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
   test_basic_process.cpp
-  test_cli_client.cpp
-  test_cli_client_alias.cpp
   test_client_cert_store.cpp
   test_cloud_init_iso.cpp
   test_constants.cpp
@@ -186,6 +184,7 @@ target_include_directories(multipass_tests
     PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 
+add_subdirectory(client)
 add_subdirectory(${MULTIPASS_PLATFORM})
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)

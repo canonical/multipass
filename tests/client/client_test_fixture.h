@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_CLIENT_TEST_FIXTURE_H
 #define MULTIPASS_CLIENT_TEST_FIXTURE_H
 
-#include "common.h"
-#include "stub_cert_store.h"
-#include "stub_certprovider.h"
-#include "stub_terminal.h"
+#include <tests/common.h>
+#include <tests/stub_cert_store.h>
+#include <tests/stub_certprovider.h>
+#include <tests/stub_terminal.h>
 
 #include <src/client/cli/client.h>
 #include <src/daemon/daemon_rpc.h>

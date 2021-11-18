@@ -16,10 +16,11 @@
  */
 
 #include "client_test_fixture.h"
-#include "fake_alias_config.h"
-#include "mock_environment_helpers.h"
-#include "mock_file_ops.h"
-#include "mock_platform.h"
+
+#include <tests/fake_alias_config.h>
+#include <tests/mock_environment_helpers.h>
+#include <tests/mock_file_ops.h>
+#include <tests/mock_platform.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

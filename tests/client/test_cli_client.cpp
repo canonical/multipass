@@ -16,13 +16,14 @@
  */
 
 #include "client_test_fixture.h"
-#include "disabling_macros.h"
-#include "mock_environment_helpers.h"
-#include "mock_settings.h"
-#include "mock_standard_paths.h"
-#include "mock_stdcin.h"
-#include "mock_utils.h"
-#include "path.h"
+
+#include <tests/disabling_macros.h>
+#include <tests/mock_environment_helpers.h>
+#include <tests/mock_settings.h>
+#include <tests/mock_standard_paths.h>
+#include <tests/mock_stdcin.h>
+#include <tests/mock_utils.h>
+#include <tests/path.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
