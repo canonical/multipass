@@ -35,6 +35,7 @@
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
+#include <multipass/settings/settings_handler.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
@@ -843,6 +844,11 @@ auto timeout_for(const int requested_timeout, const int workflow_timeout)
     return mp::default_timeout;
 }
 
+mp::SettingsHandler* register_instance_mod()
+{
+    return nullptr; // TODO@ricab
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -851,7 +857,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      instance_mounts{*config->ssh_key_provider}
+      instance_mounts{*config->ssh_key_provider},
+      instance_mod_handler{register_instance_mod()}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -995,6 +1002,11 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     {
         mpl::log(mpl::Level::warning, category, fmt::format("Hypervisor health check failed: {}", e.what()));
     }
+}
+
+mp::Daemon::~Daemon()
+{
+    mp::top_catch_all(category, [this] { MP_SETTINGS.unregister_handler(instance_mod_handler); });
 }
 
 void mp::Daemon::create(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* server,

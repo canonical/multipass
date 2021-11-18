@@ -63,11 +63,13 @@ struct VMSpecs
 };
 
 struct DaemonConfig;
+struct SettingsHandler;
 class Daemon : public QObject, public multipass::VMStatusMonitor
 {
     Q_OBJECT
 public:
     explicit Daemon(std::unique_ptr<const DaemonConfig> config);
+    ~Daemon();
 
     void persist_instances();
 
@@ -188,6 +190,7 @@ private:
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;
+    SettingsHandler* instance_mod_handler;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H
