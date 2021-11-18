@@ -42,18 +42,33 @@
 #include "cmd/unalias.h"
 #include "cmd/version.h"
 
-#include <algorithm>
-#include <memory>
-
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/settings/settings.h>
+#include <multipass/top_catch_all.h>
+
+#include <scope_guard.hpp>
+
+#include <algorithm>
+#include <memory>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+namespace
+{
+auto make_handler_unregisterer(mp::SettingsHandler* handler)
+{
+    return sg::make_scope_guard([handler]() noexcept {
+        mp::top_catch_all("client", [handler] {
+            MP_SETTINGS.unregister_handler(handler); // trust me clang-format
+        });
+    });
+}
+} // namespace
 
 mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
@@ -105,25 +120,29 @@ int mp::Client::run(const QStringList& arguments)
     ArgParser parser(arguments, commands, term->cout(), term->cerr());
     parser.setApplicationDescription(description);
 
+    mp::ReturnCode ret = mp::ReturnCode::Ok;
     ParseCode parse_status = parser.parse(aliases);
 
-    // TODO@ricab this needs removing upon destruction
-    MP_SETTINGS.register_handler(std::make_unique<RemoteSettingsHandler>(daemon_settings_root, *rpc_channel, *stub,
-                                                                         term, parser.verbosityLevel()));
+    auto verbosity = parser.verbosityLevel(); // try to respect requested verbosity, even if parsing failed
+    if (!mpl::get_logger())
+        mp::client::set_logger(mpl::level_from(verbosity));
 
-    mp::ReturnCode ret = mp::ReturnCode::Ok;
-    try
     {
-        if (!mpl::get_logger())
-            mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
-        mp::client::pre_setup(); // ... something we want to do even if the command was wrong
+        auto* handler = MP_SETTINGS.register_handler(
+            std::make_unique<RemoteSettingsHandler>(daemon_settings_root, *rpc_channel, *stub, term, verbosity));
+        auto handler_unregisterer = make_handler_unregisterer(handler); // remove handler before its dependencies expire
 
-        ret = parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser)
-                                            : parser.returnCodeFrom(parse_status); // trust me clang-format
-    }
-    catch (const RemoteSettingsException& e)
-    {
-        ret = mp::cmd::standard_failure_handler_for(parser.chosenCommand()->name(), term->cerr(), e.get_status());
+        try
+        {
+            mp::client::pre_setup();
+
+            ret = parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser)
+                                                : parser.returnCodeFrom(parse_status);
+        }
+        catch (const RemoteSettingsException& e)
+        {
+            ret = mp::cmd::standard_failure_handler_for(parser.chosenCommand()->name(), term->cerr(), e.get_status());
+        }
     }
 
     mp::client::post_setup();
