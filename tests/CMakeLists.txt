@@ -29,6 +29,7 @@ add_executable(multipass_tests
   mischievous_url_downloader.cpp
   mock_logger.cpp
   mock_process_factory.cpp
+  mock_openssl_syscalls.cpp
   mock_settings.cpp
   mock_standard_paths.cpp
   mock_sftp.cpp
@@ -66,6 +67,7 @@ add_executable(multipass_tests
   test_platform_shared.cpp
   test_private_pass_provider.cpp
   test_mock_standard_paths.cpp
+  test_passhphrase_handler.cpp
   test_qemuimg_process_spec.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
@@ -113,8 +115,11 @@ target_compile_definitions(sftp_test PRIVATE
 target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
 
+target_compile_definitions(cert_test PRIVATE
+  -DEVP_PBE_scrypt=ut_EVP_PBE_scrypt)
+
 target_link_libraries(multipass_tests
-  cert
+  cert_test
   client
   daemon
   delayed_shutdown
