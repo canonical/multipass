@@ -139,20 +139,26 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
             }
             else
             {
-                mp::PlainPrompter prompter(term);
                 key = keyval.at(0);
-                try
-                {
-                    val = QString::fromStdString(prompter.prompt(key.toStdString()));
-                }
-                catch (const mp::ValueException& e)
-                {
-                    cerr << e.what() << std::endl;
-                    status = ParseCode::CommandLineError;
-                }
+                status = checked_prompt(key);
             }
         }
     }
 
     return status;
+}
+
+mp::ParseCode cmd::Set::checked_prompt(const QString& key)
+{
+    mp::PlainPrompter prompter(term);
+    try
+    {
+        val = QString::fromStdString(prompter.prompt(key.toStdString()));
+        return ParseCode::Ok;
+    }
+    catch (const mp::ValueException& e)
+    {
+        cerr << e.what() << std::endl;
+        return ParseCode::CommandLineError;
+    }
 }
