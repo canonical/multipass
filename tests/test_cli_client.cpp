@@ -15,7 +15,7 @@
  *
  */
 
-#include "common.h"
+#include "client_test_fixture.h"
 #include "disabling_macros.h"
 #include "fake_alias_config.h"
 #include "mock_environment_helpers.h"
@@ -26,12 +26,6 @@
 #include "mock_stdcin.h"
 #include "mock_utils.h"
 #include "path.h"
-#include "stub_cert_store.h"
-#include "stub_certprovider.h"
-#include "stub_terminal.h"
-
-#include <src/client/cli/client.h>
-#include <src/daemon/daemon_rpc.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
@@ -58,49 +52,7 @@ auto petenv_name()
     return MP_SETTINGS.get(mp::petenv_key).toStdString();
 }
 
-struct MockDaemonRpc : public mp::DaemonRpc
-{
-    using mp::DaemonRpc::DaemonRpc; // ctor
-
-    MOCK_METHOD3(create, grpc::Status(grpc::ServerContext* context, const mp::CreateRequest* request,
-                                      grpc::ServerWriter<mp::CreateReply>* reply)); // here only to ensure not called
-    MOCK_METHOD3(launch, grpc::Status(grpc::ServerContext* context, const mp::LaunchRequest* request,
-                                      grpc::ServerWriter<mp::LaunchReply>* reply));
-    MOCK_METHOD3(purge, grpc::Status(grpc::ServerContext* context, const mp::PurgeRequest* request,
-                                     grpc::ServerWriter<mp::PurgeReply>* response));
-    MOCK_METHOD3(find, grpc::Status(grpc::ServerContext* context, const mp::FindRequest* request,
-                                    grpc::ServerWriter<mp::FindReply>* response));
-    MOCK_METHOD3(info, grpc::Status(grpc::ServerContext* context, const mp::InfoRequest* request,
-                                    grpc::ServerWriter<mp::InfoReply>* response));
-    MOCK_METHOD3(list, grpc::Status(grpc::ServerContext* context, const mp::ListRequest* request,
-                                    grpc::ServerWriter<mp::ListReply>* response));
-    MOCK_METHOD3(mount, grpc::Status(grpc::ServerContext* context, const mp::MountRequest* request,
-                                     grpc::ServerWriter<mp::MountReply>* response));
-    MOCK_METHOD3(recover, grpc::Status(grpc::ServerContext* context, const mp::RecoverRequest* request,
-                                       grpc::ServerWriter<mp::RecoverReply>* response));
-    MOCK_METHOD3(ssh_info, grpc::Status(grpc::ServerContext* context, const mp::SSHInfoRequest* request,
-                                        grpc::ServerWriter<mp::SSHInfoReply>* response));
-    MOCK_METHOD3(start, grpc::Status(grpc::ServerContext* context, const mp::StartRequest* request,
-                                     grpc::ServerWriter<mp::StartReply>* response));
-    MOCK_METHOD3(stop, grpc::Status(grpc::ServerContext* context, const mp::StopRequest* request,
-                                    grpc::ServerWriter<mp::StopReply>* response));
-    MOCK_METHOD3(suspend, grpc::Status(grpc::ServerContext* context, const mp::SuspendRequest* request,
-                                       grpc::ServerWriter<mp::SuspendReply>* response));
-    MOCK_METHOD3(restart, grpc::Status(grpc::ServerContext* context, const mp::RestartRequest* request,
-                                       grpc::ServerWriter<mp::RestartReply>* response));
-    MOCK_METHOD3(delet, grpc::Status(grpc::ServerContext* context, const mp::DeleteRequest* request,
-                                     grpc::ServerWriter<mp::DeleteReply>* response));
-    MOCK_METHOD3(umount, grpc::Status(grpc::ServerContext* context, const mp::UmountRequest* request,
-                                      grpc::ServerWriter<mp::UmountReply>* response));
-    MOCK_METHOD3(version, grpc::Status(grpc::ServerContext* context, const mp::VersionRequest* request,
-                                       grpc::ServerWriter<mp::VersionReply>* response));
-    MOCK_METHOD3(ping,
-                 grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
-    MOCK_METHOD3(get, grpc::Status(grpc::ServerContext* context, const mp::GetRequest* request,
-                                   grpc::ServerWriter<mp::GetReply>* response));
-};
-
-struct Client : public Test
+struct Client : public mpt::ClientTestFixture
 {
     auto make_get_reply(const std::string& value)
     {
@@ -129,31 +81,6 @@ struct Client : public Test
             .Times(AnyNumber())
             .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                                             it gets reset at the end of each test (by VerifyAndClearExpectations) */
-    }
-
-    void TearDown() override
-    {
-        Mock::VerifyAndClearExpectations(&mock_daemon); /* We got away without this before because, being a strict mock
-                                                           every call to mock_daemon had to be explicitly "expected".
-                                                           Being the best match for incoming calls, each expectation
-                                                           took precedence over the previous ones, preventing them from
-                                                           being saturated inadvertently */
-    }
-
-    int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
-                     std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
-    {
-        mpt::StubTerminal term(cout, cerr, cin);
-        mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                       std::make_unique<mpt::StubCertProvider>(), &term};
-        mp::Client client{client_config};
-        QStringList args = QStringList() << "multipass_test";
-
-        for (const auto& arg : command)
-        {
-            args << QString::fromStdString(arg);
-        }
-        return client.run(args);
     }
 
     template <typename Str1, typename Str2>
@@ -272,18 +199,8 @@ struct Client : public Test
         return QVariant::fromValue(!flag).toString().toStdString();
     }
 
-#ifdef WIN32
-    std::string server_address{"localhost:50051"};
-#else
-    std::string server_address{"unix:/tmp/test-multipassd.socket"};
-#endif
-    mpt::StubCertProvider cert_provider;
-    mpt::StubCertStore cert_store;
-    StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider,
-                                          cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
                                                                               reset at the end of each test */
-    static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
 
 struct ClientAlias : public Client, public FakeAliasConfig
@@ -302,8 +219,6 @@ struct ClientAlias : public Client, public FakeAliasConfig
 };
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
-
-std::stringstream Client::trash_stream; // replace with inline in C++17
 
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
