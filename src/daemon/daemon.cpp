@@ -912,6 +912,26 @@ private:
         throw mp::UnrecognizedSettingException{key};
     }
 
+    mp::VirtualMachine& find_instance(const QString& name, const QString& key) const
+    {
+        auto instance_name = name.toStdString();
+        try
+        {
+            auto& ret_ptr = vm_instances.at(instance_name);
+
+            assert(ret_ptr && "can't have null instance");
+            return *ret_ptr;
+        }
+        catch (std::out_of_range&)
+        {
+            const auto is_deleted = deleted_instances.find(instance_name) != deleted_instances.end();
+            const auto reason = is_deleted ? "Instance is deleted" : "No such instance";
+            auto detail = QStringLiteral("%1: %2").arg(reason, std::move(name));
+
+            throw mp::UnrecognizedSettingException{key, std::move(detail)};
+        }
+    }
+
 private:
     inline static constexpr auto cpus_suffix = "cpus";
     inline static constexpr auto mem_suffix = "memory";
