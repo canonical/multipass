@@ -848,7 +848,12 @@ auto timeout_for(const int requested_timeout, const int workflow_timeout)
 class InstanceModHandler : public mp::SettingsHandler // TODO@ricab move out
 {
 public:
-    using SettingsHandler::SettingsHandler; // TODO@ricab
+    InstanceModHandler(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
+                       std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
+                       const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances)
+        : vm_instance_specs{vm_instance_specs}, vm_instances{vm_instances}, deleted_instances{deleted_instances}
+    {
+    }
 
     std::set<QString> keys() const override
     {
@@ -911,11 +916,20 @@ private:
     inline static constexpr auto cpus_suffix = "cpus";
     inline static constexpr auto mem_suffix = "memory";
     inline static constexpr auto disk_suffix = "disk";
+
+    // references, careful
+    std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs;
+    std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances;
+    const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances;
 };
 
-mp::SettingsHandler* register_instance_mod()
+mp::SettingsHandler*
+register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
+                      std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
+                      const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances)
 {
-    return MP_SETTINGS.register_handler(std::make_unique<InstanceModHandler>());
+    return MP_SETTINGS.register_handler(
+        std::make_unique<InstanceModHandler>(vm_instance_specs, vm_instances, deleted_instances));
 }
 
 } // namespace
@@ -927,7 +941,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
       instance_mounts{*config->ssh_key_provider},
-      instance_mod_handler{register_instance_mod()}
+      instance_mod_handler{register_instance_mod(vm_instance_specs, vm_instances, deleted_instances)}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
