@@ -59,6 +59,7 @@
 #include <QJsonParseError>
 #include <QRegularExpression>
 #include <QString>
+#include <QStringList> // TODO@ricab move out with instance mod handler
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
 
@@ -844,7 +845,7 @@ auto timeout_for(const int requested_timeout, const int workflow_timeout)
     return mp::default_timeout;
 }
 
-class InstanceModHandler : public mp::SettingsHandler
+class InstanceModHandler : public mp::SettingsHandler // TODO@ricab move out
 {
 public:
     using SettingsHandler::SettingsHandler; // TODO@ricab
@@ -872,6 +873,35 @@ public:
     void set(const QString& key, const QString& val) override
     {
         // TODO@ricab
+    }
+
+private:
+    std::pair<QString, QString> parse_key(const QString& key) const
+    {
+        static const auto key_pattern = [] {
+            auto instance_pattern = QStringLiteral("(?<instance>.*)");
+
+            const auto property_template = QStringLiteral("(?<property>%1)");
+            auto either_property = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
+            auto property_pattern = property_template.arg(std::move(either_property));
+
+            const auto key_template = QStringLiteral(R"(%1\.%2\.%3)").arg(mp::daemon_settings_root);
+            auto inner_key_pattern = key_template.arg(std::move(instance_pattern)).arg(std::move(property_pattern));
+
+            return QRegularExpression::anchoredPattern(std::move(inner_key_pattern));
+        }();
+
+        auto match = QRegularExpression{key_pattern}.match(key);
+        if (match.hasMatch())
+        {
+            auto instance = match.captured("instance");
+            auto property = match.captured("property");
+
+            assert(!instance.isEmpty() && !property.isEmpty());
+            return {std::move(instance), std::move(property)};
+        }
+
+        throw mp::UnrecognizedSettingException{key};
     }
 
 private:
