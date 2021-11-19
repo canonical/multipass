@@ -23,7 +23,7 @@
 namespace multipass
 {
 
-std::string PlainPrompter::prompt(const std::string& text)
+std::string PlainPrompter::prompt(const std::string& text) const
 {
     term->cout() << text << ": ";
 

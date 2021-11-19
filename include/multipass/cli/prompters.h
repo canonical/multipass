@@ -28,11 +28,11 @@ namespace multipass
 class Prompter : private DisabledCopyMove
 {
 public:
-    Prompter(Terminal*);
+    explicit Prompter(Terminal*);
 
     virtual ~Prompter() = default;
 
-    virtual std::string prompt(const std::string&) = 0;
+    virtual std::string prompt(const std::string&) const = 0;
 
 protected:
     Prompter() = default;
@@ -41,7 +41,7 @@ protected:
 class BasePrompter : public Prompter
 {
 public:
-    BasePrompter(Terminal* term) : term(term){};
+    explicit BasePrompter(Terminal* term) : term(term){};
 
 protected:
     Terminal* term;
@@ -52,7 +52,7 @@ class PlainPrompter : public BasePrompter
 public:
     using BasePrompter::BasePrompter;
 
-    std::string prompt(const std::string&) override;
+    std::string prompt(const std::string&) const override;
 };
 
 } // namespace multipass
