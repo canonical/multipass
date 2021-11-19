@@ -898,6 +898,10 @@ public:
 
     void set(const QString& key, const QString& val) override
     {
+        auto [instance_name, property] = parse_key(key);
+
+        auto& instance = find_instance(instance_name, InstanceSettingsException::Operation::Update);
+        check_state_for_update(instance);
         // TODO@ricab
     }
 
@@ -950,6 +954,14 @@ private:
 
             throw InstanceSettingsException{operation, instance_name, reason};
         }
+    }
+
+    void check_state_for_update(mp::VirtualMachine& instance) const
+    {
+        auto st = instance.current_state();
+        if (st != mp::VirtualMachine::State::stopped && st != mp::VirtualMachine::State::off)
+            throw InstanceSettingsException{InstanceSettingsException::Operation::Update, instance.vm_name,
+                                            "Instance must be stopped for instance modification"};
     }
 
 private:
