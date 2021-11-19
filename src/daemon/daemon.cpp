@@ -851,7 +851,17 @@ public:
 
     std::set<QString> keys() const override
     {
-        return std::set<QString>(); // TODO@ricab
+        static constexpr auto instance_placeholder = "<instance-name>"; // actual instances would bloat help text
+        static const auto ret = [] {
+            std::set<QString> ret;
+            const auto key_template = QStringLiteral("%1.%2.%3").arg(mp::daemon_settings_root);
+            for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix})
+                ret.insert(key_template.arg(instance_placeholder).arg(suffix));
+
+            return ret;
+        }();
+
+        return ret;
     }
 
     QString get(const QString& key) const override
@@ -863,6 +873,11 @@ public:
     {
         // TODO@ricab
     }
+
+private:
+    inline static constexpr auto cpus_suffix = "cpus";
+    inline static constexpr auto mem_suffix = "memory";
+    inline static constexpr auto disk_suffix = "disk";
 };
 
 mp::SettingsHandler* register_instance_mod()
