@@ -47,17 +47,13 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/settings/settings.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-
-namespace
-{
-const auto daemon_settings_root = QStringLiteral("local.");
-}
 
 mp::Client::Client(ClientConfig& config)
     : cert_provider{std::move(config.cert_provider)},
@@ -111,9 +107,10 @@ int mp::Client::run(const QStringList& arguments)
 
     ParseCode parse_status = parser.parse(aliases);
 
+    auto daemon_settings_prefix = QString{daemon_settings_root} + ".";
     // TODO@ricab this needs removing upon destruction
-    MP_SETTINGS.register_handler(std::make_unique<RemoteSettingsHandler>(daemon_settings_root, *rpc_channel, *stub,
-                                                                         term, parser.verbosityLevel()));
+    MP_SETTINGS.register_handler(std::make_unique<RemoteSettingsHandler>(
+        std::move(daemon_settings_prefix), *rpc_channel, *stub, term, parser.verbosityLevel()));
 
     mp::ReturnCode ret;
     try
