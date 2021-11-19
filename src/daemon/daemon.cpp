@@ -845,12 +845,12 @@ auto timeout_for(const int requested_timeout, const int workflow_timeout)
     return mp::default_timeout;
 }
 
-class InstanceModHandler : public mp::SettingsHandler // TODO@ricab move out
+class InstanceSettingsHandler : public mp::SettingsHandler // TODO@ricab move out
 {
 public:
-    InstanceModHandler(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
-                       std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
-                       const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances)
+    InstanceSettingsHandler(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
+                            std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
+                            const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances)
         : vm_instance_specs{vm_instance_specs}, vm_instances{vm_instances}, deleted_instances{deleted_instances}
     {
     }
@@ -949,7 +949,7 @@ register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_
                       const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances)
 {
     return MP_SETTINGS.register_handler(
-        std::make_unique<InstanceModHandler>(vm_instance_specs, vm_instances, deleted_instances));
+        std::make_unique<InstanceSettingsHandler>(vm_instance_specs, vm_instances, deleted_instances));
 }
 
 } // namespace
