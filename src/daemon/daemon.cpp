@@ -876,22 +876,25 @@ public:
     }
 
 private:
+    static QRegularExpression make_key_regex()
+    {
+        auto instance_pattern = QStringLiteral("(?<instance>.*)");
+
+        const auto property_template = QStringLiteral("(?<property>%1)");
+        auto either_property = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
+        auto property_pattern = property_template.arg(std::move(either_property));
+
+        const auto key_template = QStringLiteral(R"(%1\.%2\.%3)").arg(mp::daemon_settings_root);
+        auto inner_key_pattern = key_template.arg(std::move(instance_pattern)).arg(std::move(property_pattern));
+
+        return QRegularExpression{QRegularExpression::anchoredPattern(std::move(inner_key_pattern))};
+    }
+
     std::pair<QString, QString> parse_key(const QString& key) const
     {
-        static const auto key_pattern = [] {
-            auto instance_pattern = QStringLiteral("(?<instance>.*)");
+        static const auto key_regex = make_key_regex();
 
-            const auto property_template = QStringLiteral("(?<property>%1)");
-            auto either_property = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
-            auto property_pattern = property_template.arg(std::move(either_property));
-
-            const auto key_template = QStringLiteral(R"(%1\.%2\.%3)").arg(mp::daemon_settings_root);
-            auto inner_key_pattern = key_template.arg(std::move(instance_pattern)).arg(std::move(property_pattern));
-
-            return QRegularExpression::anchoredPattern(std::move(inner_key_pattern));
-        }();
-
-        auto match = QRegularExpression{key_pattern}.match(key);
+        auto match = key_regex.match(key);
         if (match.hasMatch())
         {
             auto instance = match.captured("instance");
