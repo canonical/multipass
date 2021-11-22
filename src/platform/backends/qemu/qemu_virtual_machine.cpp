@@ -564,7 +564,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 
 void mp::QemuVirtualMachine::update_num_cores(int num_cores)
 {
-    throw NotImplementedOnThisBackendException{"Update CPUs"}; // TODO@ricab implement
+    assert(num_cores > 0);
+    desc.num_cores = num_cores;
 }
 
 void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)

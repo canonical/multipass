@@ -1994,6 +1994,7 @@ try
     auto val = request->val();
     mpl::log(mpl::Level::debug, category, fmt::format("Trying to set {}={}", key, val));
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+    mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
 
     status_promise->set_value(grpc::Status::OK);
 }

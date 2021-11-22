@@ -69,7 +69,7 @@ private:
     void on_restart();
     void initialize_vm_process();
 
-    const VirtualMachineDescription desc;
+    VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
     const std::string mac_addr;
     const std::string username;
