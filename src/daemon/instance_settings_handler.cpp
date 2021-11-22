@@ -31,10 +31,10 @@ constexpr auto cpus_suffix = "cpus";
 constexpr auto mem_suffix = "memory";
 constexpr auto disk_suffix = "disk";
 
-std::string operation_msg(mp::InstanceSettingsException::Operation op)
+std::string operation_msg(mp::InstanceSettingsHandler::Operation op)
 {
-    return op == mp::InstanceSettingsException::Operation::Obtain ? "Cannot obtain instance settings"
-                                                                  : "Cannot update instance settings";
+    return op == mp::InstanceSettingsHandler::Operation::Obtain ? "Cannot obtain instance settings"
+                                                                : "Cannot update instance settings";
 }
 
 QRegularExpression make_key_regex()
@@ -72,14 +72,14 @@ void check_state_for_update(mp::VirtualMachine& instance)
 {
     auto st = instance.current_state();
     if (st != mp::VirtualMachine::State::stopped && st != mp::VirtualMachine::State::off)
-        throw mp::InstanceSettingsException{mp::InstanceSettingsException::Operation::Update, instance.vm_name,
+        throw mp::InstanceSettingsException{mp::InstanceSettingsHandler::Operation::Update, instance.vm_name,
                                             "Instance must be stopped for instance modification"};
 }
 
 } // namespace
 
-mp::InstanceSettingsException::InstanceSettingsException(Operation op, std::string instance, std::string detail)
-    : SettingsException{fmt::format("{}; instance: {}; reason: {}", operation_msg(op), instance, detail)}
+mp::InstanceSettingsException::InstanceSettingsException(mp::InstanceSettingsHandler::Operation op,
+                                                         std::string instance, std::string detail)
 {
 }
 
@@ -115,13 +115,12 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 {
     auto [instance_name, property] = parse_key(key);
 
-    auto& instance = find_instance(instance_name, InstanceSettingsException::Operation::Update);
+    auto& instance = find_instance(instance_name, Operation::Update);
     check_state_for_update(instance);
     // TODO@ricab
 }
 
-auto mp::InstanceSettingsHandler::find_instance(const QString& name,
-                                                InstanceSettingsException::Operation operation) const -> VirtualMachine&
+auto mp::InstanceSettingsHandler::find_instance(const QString& name, Operation operation) const -> VirtualMachine&
 {
     auto instance_name = name.toStdString();
     try

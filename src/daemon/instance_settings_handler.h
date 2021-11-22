@@ -31,18 +31,6 @@
 
 namespace multipass
 {
-class InstanceSettingsException : public SettingsException
-{
-public:
-    enum class Operation // TODO@ricab move this to the handler
-    {
-        Obtain,
-        Update
-    };
-
-    InstanceSettingsException(Operation op, std::string instance, std::string detail);
-};
-
 class InstanceSettingsHandler : public SettingsHandler
 {
 public:
@@ -54,8 +42,15 @@ public:
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) override;
 
+public:
+    enum class Operation
+    {
+        Obtain,
+        Update
+    };
+
 private:
-    VirtualMachine& find_instance(const QString& name, InstanceSettingsException::Operation operation) const;
+    VirtualMachine& find_instance(const QString& name, Operation operation) const;
 
 private:
     // references, careful
@@ -63,6 +58,13 @@ private:
     std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances;
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
 };
+
+class InstanceSettingsException : public SettingsException
+{
+public:
+    InstanceSettingsException(InstanceSettingsHandler::Operation op, std::string instance, std::string detail);
+};
+
 } // namespace multipass
 
 #endif // MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
