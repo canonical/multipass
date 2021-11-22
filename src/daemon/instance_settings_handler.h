@@ -28,6 +28,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace multipass
 {
@@ -36,7 +37,8 @@ class InstanceSettingsHandler : public SettingsHandler
 public:
     InstanceSettingsHandler(std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
                             std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
-                            const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances);
+                            const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
+                            const std::unordered_set<std::string>& preparing_instances);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -57,6 +59,7 @@ private:
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances;
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
+    const std::unordered_set<std::string>& preparing_instances;
 };
 
 class InstanceSettingsException : public SettingsException

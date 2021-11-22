@@ -88,8 +88,12 @@ mp::InstanceSettingsException::InstanceSettingsException(mp::InstanceSettingsHan
 mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
     std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
-    const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances)
-    : vm_instance_specs{vm_instance_specs}, vm_instances{vm_instances}, deleted_instances{deleted_instances}
+    const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
+    const std::unordered_set<std::string>& preparing_instances)
+    : vm_instance_specs{vm_instance_specs},
+      vm_instances{vm_instances},
+      deleted_instances{deleted_instances},
+      preparing_instances{preparing_instances}
 {
 }
 
@@ -115,7 +119,10 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
 
 void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 {
-    auto [instance_name, property] = parse_key(key);
+    auto [instance_name, property] = parse_key(key); // TODO@ricab work with std::strings
+
+    if (preparing_instances.find(instance_name.toStdString()) != preparing_instances.end())
+        throw InstanceSettingsException{Operation::Update, instance_name.toStdString(), "Instance is being prepared"};
 
     auto& instance = find_instance(instance_name, Operation::Update);
     check_state_for_update(instance);
