@@ -120,24 +120,53 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
 void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 {
     auto [instance_name, property] = parse_key(key);
+    assert(property == cpus_suffix || property == mem_suffix || property == disk_suffix);
 
     if (preparing_instances.find(instance_name) != preparing_instances.end())
         throw InstanceSettingsException{Operation::Update, instance_name, "Instance is being prepared"};
 
-    auto& instance = find_instance(instance_name, Operation::Update);
+    auto [instance, spec] = find_instance(instance_name, Operation::Update); // notice we get refs
     check_state_for_update(instance);
-    // TODO@ricab
+
+    bool converted_ok = false;
+    if (property == cpus_suffix)
+    {
+        if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < 1)
+            throw InvalidSettingException{key, val, "Need a positive decimal integer"};
+        else if (cpus < spec.num_cores)
+            throw InvalidSettingException{key, val, "The number of cores can only be increased"};
+        else if (cpus > spec.num_cores) // NOOP if equal
+        {
+            instance.update_num_cores(cpus);
+            spec.num_cores = cpus;
+        }
+    }
+    else
+    {
+        // TODO@ricab val -> MemorySize
+        if (property == mem_suffix)
+        {
+            // TODO@ricab
+        }
+        else
+        {
+            assert(property == disk_suffix);
+            // TODO@ricab
+        }
+    }
 }
 
 auto mp::InstanceSettingsHandler::find_instance(const std::string& instance_name, Operation operation) const
-    -> VirtualMachine&
+    -> std::pair<VirtualMachine&, VMSpecs&>
 {
     try
     {
-        auto& ret_ptr = vm_instances.at(instance_name);
+        auto& vm_ptr = vm_instances.at(instance_name);
+        auto& spec = vm_instance_specs.at(instance_name);
 
-        assert(ret_ptr && "can't have null instance");
-        return *ret_ptr;
+        assert(vm_ptr && "can't have null instance");
+
+        return {*vm_ptr, spec};
     }
     catch (std::out_of_range&)
     {

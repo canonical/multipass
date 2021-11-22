@@ -29,6 +29,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace multipass
 {
@@ -52,7 +53,7 @@ public:
     };
 
 private:
-    VirtualMachine& find_instance(const std::string& instance_name, Operation operation) const;
+    std::pair<VirtualMachine&, VMSpecs&> find_instance(const std::string& instance_name, Operation operation) const;
 
 private:
     // references, careful
