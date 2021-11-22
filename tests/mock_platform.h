@@ -40,6 +40,7 @@ public:
     MOCK_CONST_METHOD3(utime, int(const char*, int, int));
     MOCK_CONST_METHOD2(create_alias_script, void(const std::string&, const AliasDefinition&));
     MOCK_CONST_METHOD1(remove_alias_script, void(const std::string&));
+    MOCK_CONST_METHOD2(set_server_permissions, void(const std::string&, const bool));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };
