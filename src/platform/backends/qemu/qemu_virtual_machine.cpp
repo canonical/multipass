@@ -21,8 +21,10 @@
 
 #include <shared/shared_backend_utils.h>
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@ricab remove
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
@@ -558,4 +560,19 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             on_shutdown();
         }
     });
+}
+
+void mp::QemuVirtualMachine::update_num_cores(int num_cores)
+{
+    throw NotImplementedOnThisBackendException{"Update CPUs"}; // TODO@ricab implement
+}
+
+void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Resize memory"}; // TODO@ricab implement
+}
+
+void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Resize disk"}; // TODO@ricab implement
 }

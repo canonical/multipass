@@ -22,10 +22,12 @@
 #include <QJsonDocument>
 
 #include <multipass/exceptions/local_socket_connection_exception.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@ricab remove
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/memory_size.h>
 #include <multipass/network_access_manager.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
@@ -398,4 +400,19 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
     {
         // Implies the task doesn't exist, move on...
     }
+}
+
+void mp::LXDVirtualMachine::update_num_cores(int num_cores)
+{
+    throw NotImplementedOnThisBackendException{"Update CPUs"}; // TODO@ricab implement
+}
+
+void mp::LXDVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Resize memory"}; // TODO@ricab implement
+}
+
+void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Resize disk"}; // TODO@ricab implement
 }

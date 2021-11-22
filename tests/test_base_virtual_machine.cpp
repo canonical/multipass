@@ -100,6 +100,18 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     void update_state()
     {
     }
+
+    void update_num_cores(int num_cores) override
+    {
+    }
+
+    void resize_memory(const mp::MemorySize&) override
+    {
+    }
+
+    void resize_disk(const mp::MemorySize&) override
+    {
+    }
 };
 
 struct BaseVM : public Test

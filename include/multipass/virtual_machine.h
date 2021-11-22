@@ -31,6 +31,7 @@
 
 namespace multipass
 {
+class MemorySize;
 class SSHKeyProvider;
 
 class VirtualMachine : private DisabledCopyMove
@@ -71,6 +72,9 @@ public:
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void ensure_vm_is_running() = 0;
     virtual void update_state() = 0;
+    virtual void update_num_cores(int num_cores) = 0;           // TODO@ricab private side
+    virtual void resize_memory(const MemorySize& new_size) = 0; // TODO@ricab private side
+    virtual void resize_disk(const MemorySize& new_size) = 0;   // TODO@ricab private side
 
     VirtualMachine::State state;
     const std::string vm_name;

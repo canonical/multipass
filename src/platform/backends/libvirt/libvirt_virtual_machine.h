@@ -52,6 +52,9 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void ensure_vm_is_running() override;
     void update_state() override;
+    void update_num_cores(int num_cores) override;
+    void resize_memory(const MemorySize& new_size) override;
+    void resize_disk(const MemorySize& new_size) override;
 
     static ConnectionUPtr open_libvirt_connection(const LibvirtWrapper::UPtr& libvirt_wrapper);
 
