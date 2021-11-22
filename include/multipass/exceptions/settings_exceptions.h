@@ -51,11 +51,6 @@ public:
         : SettingsException{fmt::format("Unrecognized settings key: '{}'", key)}
     {
     }
-
-    UnrecognizedSettingException(const QString& key, const QString& detail)
-        : SettingsException{fmt::format("Unrecognized settings key: '{}' ({})", key, detail)}
-    {
-    }
 };
 
 class InvalidSettingException : public SettingsException

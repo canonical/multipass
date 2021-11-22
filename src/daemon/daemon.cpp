@@ -845,6 +845,27 @@ auto timeout_for(const int requested_timeout, const int workflow_timeout)
     return mp::default_timeout;
 }
 
+class InstanceSettingsException : public mp::SettingsException
+{
+public:
+    enum class Operation // TODO@ricab move this to the handler
+    {
+        Obtain,
+        Update
+    };
+
+    InstanceSettingsException(Operation op, std::string instance, std::string detail)
+        : SettingsException{fmt::format("{}; instance: {}; reason: {}", operation_msg(op), instance, detail)}
+    {
+    }
+
+private:
+    static std::string operation_msg(Operation op)
+    {
+        return op == Operation::Obtain ? "Cannot obtain instance settings" : "Cannot update instance settings";
+    }
+};
+
 class InstanceSettingsHandler : public mp::SettingsHandler // TODO@ricab move out
 {
 public:
@@ -912,7 +933,7 @@ private:
         throw mp::UnrecognizedSettingException{key};
     }
 
-    mp::VirtualMachine& find_instance(const QString& name, const QString& key) const
+    mp::VirtualMachine& find_instance(const QString& name, InstanceSettingsException::Operation operation) const
     {
         auto instance_name = name.toStdString();
         try
@@ -926,9 +947,8 @@ private:
         {
             const auto is_deleted = deleted_instances.find(instance_name) != deleted_instances.end();
             const auto reason = is_deleted ? "Instance is deleted" : "No such instance";
-            auto detail = QStringLiteral("%1: %2").arg(reason, std::move(name));
 
-            throw mp::UnrecognizedSettingException{key, std::move(detail)};
+            throw InstanceSettingsException{operation, instance_name, reason};
         }
     }
 
