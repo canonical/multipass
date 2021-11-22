@@ -39,7 +39,7 @@ std::string operation_msg(mp::InstanceSettingsHandler::Operation op)
 
 QRegularExpression make_key_regex()
 {
-    auto instance_pattern = QStringLiteral("(?<instance>.*)");
+    auto instance_pattern = QStringLiteral("(?<instance>.+)");
 
     const auto property_template = QStringLiteral("(?<property>%1)");
     auto either_property = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
