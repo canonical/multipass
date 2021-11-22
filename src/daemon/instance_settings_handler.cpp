@@ -80,6 +80,8 @@ void check_state_for_update(mp::VirtualMachine& instance)
 
 mp::InstanceSettingsException::InstanceSettingsException(mp::InstanceSettingsHandler::Operation op,
                                                          std::string instance, std::string detail)
+    : SettingsException{
+          fmt::format("{}; instance: {}; reason: {}", operation_msg(op), std::move(instance), std::move(detail))}
 {
 }
 
