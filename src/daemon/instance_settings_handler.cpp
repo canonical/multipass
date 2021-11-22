@@ -73,7 +73,7 @@ void check_state_for_update(mp::VirtualMachine& instance)
     auto st = instance.current_state();
     if (st != mp::VirtualMachine::State::stopped && st != mp::VirtualMachine::State::off)
         throw mp::InstanceSettingsException{mp::InstanceSettingsHandler::Operation::Update, instance.vm_name,
-                                            "Instance must be stopped for instance modification"};
+                                            "Instance must be stopped for modification"};
 }
 
 } // namespace
