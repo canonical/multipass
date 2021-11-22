@@ -19,6 +19,7 @@
 #define MULTIPASS_DAEMON_TEST_FIXTURE_H
 
 #include "common.h"
+#include "mock_cert_provider.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
 #include "stub_cert_store.h"
@@ -271,8 +272,18 @@ struct DaemonTestFixture : public ::Test
         // Event loop is started/stopped to ensure all signals are delivered
         AutoJoinThread t([this, &commands, &cout, &cerr, &cin] {
             StubTerminal term(cout, cerr, cin);
-            ClientConfig client_config{server_address, RpcConnectionType::insecure,
-                                       std::make_unique<StubCertProvider>(), &term};
+
+            std::unique_ptr<CertProvider> cert_provider;
+            if (config_builder.connection_type == RpcConnectionType::ssl)
+            {
+                cert_provider = std::make_unique<MockCertProvider>();
+            }
+            else
+            {
+                cert_provider = std::make_unique<StubCertProvider>();
+            }
+
+            ClientConfig client_config{server_address, config_builder.connection_type, std::move(cert_provider), &term};
             TestClient client{client_config};
             for (const auto& command : commands)
             {
