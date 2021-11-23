@@ -162,11 +162,12 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
     std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
-    const std::unordered_set<std::string>& preparing_instances)
+    const std::unordered_set<std::string>& preparing_instances, std::function<void()> instance_persister)
     : vm_instance_specs{vm_instance_specs},
       vm_instances{vm_instances},
       deleted_instances{deleted_instances},
-      preparing_instances{preparing_instances}
+      preparing_instances{preparing_instances},
+      instance_persister{std::move(instance_persister)}
 {
 }
 
@@ -224,7 +225,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
         }
     }
 
-    // TODO@ricab need to persist!
+    instance_persister();
 }
 
 auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name) -> VirtualMachine&

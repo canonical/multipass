@@ -22,7 +22,6 @@
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
 
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@ricab remove
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>

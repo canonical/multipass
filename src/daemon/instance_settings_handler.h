@@ -26,6 +26,7 @@
 
 #include <QString>
 
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -39,7 +40,8 @@ public:
     InstanceSettingsHandler(std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
                             std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
                             const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
-                            const std::unordered_set<std::string>& preparing_instances);
+                            const std::unordered_set<std::string>& preparing_instances,
+                            std::function<void()> instance_persister);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -56,6 +58,7 @@ private:
     std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances;
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
     const std::unordered_set<std::string>& preparing_instances;
+    std::function<void()> instance_persister;
 };
 
 class InstanceSettingsException : public SettingsException
