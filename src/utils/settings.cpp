@@ -19,7 +19,6 @@
 
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
-#include <multipass/passphrase_handler.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/standard_paths.h>
@@ -216,7 +215,7 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
     else if (key == winterm_key || key == hotkey_key)
         val = mp::platform::interpret_setting(key, val);
     else if (key == passphrase_key)
-        val = MP_PASSPHRASE_HANDLER.generate_hash_for(val);
+        val = MP_UTILS.generate_scrypt_hash_for(val);
 
     auto settings = persistent_settings(key);
     checked_set(*settings, key, val, mutex);

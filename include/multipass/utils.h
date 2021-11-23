@@ -163,6 +163,9 @@ public:
     virtual bool client_certs_exist(const QString& cert_dir_path) const;
     virtual void copy_client_certs_to_common_dir(const QString& cert_dir_path,
                                                  const QString& common_cert_dir_path) const;
+
+    // scrypt hash generator
+    virtual QString generate_scrypt_hash_for(const QString& passphrase) const;
 };
 } // namespace multipass
 

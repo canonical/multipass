@@ -19,6 +19,7 @@
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
+#include "mock_openssl_syscalls.h"
 #include "mock_ssh.h"
 #include "mock_ssh_process_exit_status.h"
 #include "mock_virtual_machine.h"
@@ -380,6 +381,22 @@ TEST(Utils, clientCertsCopiedToCommonDir)
 
     auto key_content = mp::utils::contents_of(common_key);
     EXPECT_EQ(key_content, key_file_content);
+}
+
+TEST(Utils, expectedScryptHashReturned)
+{
+    const auto passphrase = MP_UTILS.generate_scrypt_hash_for("passphrase");
+
+    EXPECT_EQ(passphrase, "f28cb995d91eed8064674766f28e468aae8065b2cf02af556c857dd77de2d2476f3830fd02147f3e35037a1812df"
+                          "0d0d0934fa677be585269fee5358d5c70758");
+}
+
+TEST(Utils, generateScryptHashErrorThrows)
+{
+    REPLACE(EVP_PBE_scrypt, [](auto...) { return 0; });
+
+    MP_EXPECT_THROW_THAT(MP_UTILS.generate_scrypt_hash_for("passphrase"), std::runtime_error,
+                         mpt::match_what(StrEq("Cannot generate passphrase hash")));
 }
 
 TEST(Utils, to_cmd_output_has_no_quotes)

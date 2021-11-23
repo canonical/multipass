@@ -32,7 +32,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
-#include <multipass/passphrase_handler.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings.h>
@@ -2072,7 +2071,7 @@ try
                          "Passphrase is not set. Please set the local.passphrase with a trusted client."));
     }
 
-    auto hashed_passphrase = MP_PASSPHRASE_HANDLER.generate_hash_for(QString::fromStdString(request->passphrase()));
+    auto hashed_passphrase = MP_UTILS.generate_scrypt_hash_for(QString::fromStdString(request->passphrase()));
 
     if (stored_hash != hashed_passphrase)
     {

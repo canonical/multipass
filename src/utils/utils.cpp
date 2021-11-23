@@ -45,6 +45,8 @@
 #include <regex>
 #include <sstream>
 
+#include <openssl/evp.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -53,6 +55,7 @@ using namespace std::chrono_literals;
 namespace
 {
 constexpr auto category = "utils";
+constexpr auto scrypt_hash_size{64};
 
 auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
 {
@@ -181,6 +184,17 @@ void mp::Utils::copy_client_certs_to_common_dir(const QString& cert_dir_path, co
 
     QFile::copy(cert_dir.filePath(client_cert_file), common_dir.filePath(client_cert_file));
     QFile::copy(cert_dir.filePath(client_key_file), common_dir.filePath(client_key_file));
+}
+
+QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
+{
+    QByteArray hash(scrypt_hash_size, '\0');
+
+    if (!EVP_PBE_scrypt(passphrase.toStdString().c_str(), passphrase.size(), nullptr, 0, 1 << 14, 8, 1, 0,
+                        reinterpret_cast<unsigned char*>(hash.data()), scrypt_hash_size))
+        throw std::runtime_error("Cannot generate passphrase hash");
+
+    return QString(hash.toHex());
 }
 
 QDir mp::utils::base_dir(const QString& path)
