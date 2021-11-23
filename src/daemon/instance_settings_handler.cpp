@@ -77,6 +77,44 @@ void check_state_for_update(mp::VirtualMachine& instance)
                                             "Instance must be stopped for modification"};
 }
 
+void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec)
+{
+    bool converted_ok = false;
+    if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < 1)
+        throw mp::InvalidSettingException{key, val, "Need a positive decimal integer"};
+    else if (cpus < spec.num_cores)
+        throw mp::InvalidSettingException{key, val, "The number of cores can only be increased"};
+    else if (cpus > spec.num_cores) // NOOP if equal
+    {
+        instance.update_num_cores(cpus);
+        spec.num_cores = cpus;
+    }
+}
+
+void update_mem(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec,
+                const mp::MemorySize& size)
+{
+    if (size < spec.mem_size)
+        throw mp::InvalidSettingException{key, val, "Memory can only be expanded"};
+    else if (size > spec.mem_size) // NOOP if equal
+    {
+        instance.resize_memory(size);
+        spec.mem_size = size;
+    }
+}
+
+void update_disk(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec,
+                 const mp::MemorySize& size)
+{
+    if (size < spec.disk_space)
+        throw mp::InvalidSettingException{key, val, "Disk can only be expanded"};
+    else if (size > spec.disk_space) // NOOP if equal
+    {
+        instance.resize_disk(size);
+        spec.disk_space = size;
+    }
+}
+
 } // namespace
 
 mp::InstanceSettingsException::InstanceSettingsException(mp::InstanceSettingsHandler::Operation op,
@@ -130,44 +168,19 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     check_state_for_update(instance);
 
     // TODO@ricab refactor
-    bool converted_ok = false;
     if (property == cpus_suffix)
-    {
-        if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < 1)
-            throw InvalidSettingException{key, val, "Need a positive decimal integer"};
-        else if (cpus < spec.num_cores)
-            throw InvalidSettingException{key, val, "The number of cores can only be increased"};
-        else if (cpus > spec.num_cores) // NOOP if equal
-        {
-            instance.update_num_cores(cpus);
-            spec.num_cores = cpus;
-        }
-    }
+        update_cpus(key, val, instance, spec);
     else
     {
         try
         {
             MemorySize size{val.toStdString()};
             if (property == mem_suffix)
-            {
-                if (size < spec.mem_size)
-                    throw InvalidSettingException{key, val, "Memory can only be expanded"};
-                else if (size > spec.mem_size) // NOOP if equal
-                {
-                    instance.resize_memory(size);
-                    spec.mem_size = size;
-                }
-            }
+                update_mem(key, val, instance, spec, size);
             else
             {
                 assert(property == disk_suffix);
-                if (size < spec.disk_space)
-                    throw InvalidSettingException{key, val, "Disk can only be expanded"};
-                else if (size > spec.disk_space) // NOOP if equal
-                {
-                    instance.resize_disk(size);
-                    spec.disk_space = size;
-                }
+                update_disk(key, val, instance, spec, size);
             }
         }
         catch (const InvalidMemorySizeException& e)
