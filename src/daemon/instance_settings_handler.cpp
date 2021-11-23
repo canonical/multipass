@@ -184,7 +184,16 @@ std::set<QString> mp::InstanceSettingsHandler::keys() const
 
 QString mp::InstanceSettingsHandler::get(const QString& key) const
 {
-    return QString(); // TODO@ricab
+    auto [instance_name, property] = parse_key(key);
+
+    const auto& spec = find_spec(instance_name, Operation::Obtain);
+    if (property == cpus_suffix)
+        return QString::number(spec.num_cores);
+    if (property == mem_suffix)
+        return QString::number(spec.mem_size.in_bytes()) + " bytes"; // TODO@ricab choose best unit
+
+    assert(property == disk_suffix);
+    return QString::number(spec.disk_space.in_bytes()) + " bytes"; // TODO@ricab choose best unit
 }
 
 void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
