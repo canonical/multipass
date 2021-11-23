@@ -53,7 +53,8 @@ public:
     };
 
 private:
-    std::pair<VirtualMachine&, VMSpecs&> find_instance(const std::string& instance_name, Operation operation) const;
+    VirtualMachine& find_instance(const std::string& instance_name, Operation operation) const;
+    VMSpecs& find_spec(const std::string& instance_name, Operation operation) const;
 
 private:
     // references, careful

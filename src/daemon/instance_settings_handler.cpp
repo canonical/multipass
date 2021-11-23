@@ -69,6 +69,25 @@ std::pair<std::string, std::string> parse_key(const QString& key)
     throw mp::UnrecognizedSettingException{key};
 }
 
+template <typename InstanceMap>
+typename InstanceMap::mapped_type&
+pick_instance(InstanceMap& instances, const std::string& instance_name,
+              mp::InstanceSettingsHandler::Operation operation,
+              const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted = {})
+{
+    try
+    {
+        return instances.at(instance_name);
+    }
+    catch (std::out_of_range&)
+    {
+        const auto is_deleted = deleted.find(instance_name) != deleted.end();
+        const auto reason = is_deleted ? "Instance is deleted" : "No such instance";
+
+        throw mp::InstanceSettingsException{operation, instance_name, reason};
+    }
+}
+
 void check_state_for_update(mp::VirtualMachine& instance)
 {
     auto st = instance.current_state();
@@ -176,7 +195,8 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     if (preparing_instances.find(instance_name) != preparing_instances.end())
         throw InstanceSettingsException{Operation::Update, instance_name, "Instance is being prepared"};
 
-    auto [instance, spec] = find_instance(instance_name, Operation::Update); // notice we get refs
+    auto& instance = find_instance(instance_name, Operation::Update);
+    auto& spec = find_spec(instance_name, Operation::Update);
     check_state_for_update(instance);
 
     if (property == cpus_suffix)
@@ -195,22 +215,15 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 }
 
 auto mp::InstanceSettingsHandler::find_instance(const std::string& instance_name, Operation operation) const
-    -> std::pair<VirtualMachine&, VMSpecs&>
+    -> VirtualMachine&
 {
-    try
-    {
-        auto& vm_ptr = vm_instances.at(instance_name);
-        auto& spec = vm_instance_specs.at(instance_name);
+    auto ret = pick_instance(vm_instances, instance_name, operation, deleted_instances);
 
-        assert(vm_ptr && "can't have null instance");
+    assert(ret && "can't have null instance");
+    return *ret;
+}
 
-        return {*vm_ptr, spec};
-    }
-    catch (std::out_of_range&)
-    {
-        const auto is_deleted = deleted_instances.find(instance_name) != deleted_instances.end();
-        const auto reason = is_deleted ? "Instance is deleted" : "No such instance";
-
-        throw InstanceSettingsException{operation, instance_name, reason};
-    }
+auto mp::InstanceSettingsHandler::find_spec(const std::string& instance_name, Operation operation) const -> VMSpecs&
+{
+    return pick_instance(vm_instance_specs, instance_name, operation);
 }
