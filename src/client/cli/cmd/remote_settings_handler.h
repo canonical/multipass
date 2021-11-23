@@ -41,10 +41,10 @@ private:
     int verbosity;
 };
 
-class RemoteSettingsException : public std::runtime_error
+class RemoteHandlerException : public std::runtime_error
 {
 public:
-    explicit RemoteSettingsException(grpc::Status status);
+    explicit RemoteHandlerException(grpc::Status status);
     grpc::Status get_status() const;
 
 private:

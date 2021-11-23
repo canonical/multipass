@@ -69,7 +69,7 @@ public:
 protected:
     [[noreturn]] static mp::ReturnCode on_failure(grpc::Status& status)
     {
-        throw mp::RemoteSettingsException{status};
+        throw mp::RemoteHandlerException{status};
     }
 
     template <typename ReplyType>
@@ -191,12 +191,12 @@ std::set<QString> mp::RemoteSettingsHandler::keys() const
     return std::move(RemoteKeys{std::move(fallback), rpc_channel, stub, term, verbosity}.keys);
 }
 
-mp::RemoteSettingsException::RemoteSettingsException(grpc::Status status)
+mp::RemoteHandlerException::RemoteHandlerException(grpc::Status status)
     : std::runtime_error{"Error reaching remote setting"}, status{std::move(status)}
 {
 }
 
-grpc::Status mp::RemoteSettingsException::get_status() const
+grpc::Status mp::RemoteHandlerException::get_status() const
 {
     return status;
 }

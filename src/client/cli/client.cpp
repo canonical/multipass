@@ -140,7 +140,7 @@ int mp::Client::run(const QStringList& arguments)
             ret = parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser)
                                                 : parser.returnCodeFrom(parse_status);
         }
-        catch (const RemoteSettingsException& e)
+        catch (const RemoteHandlerException& e)
         {
             ret = mp::cmd::standard_failure_handler_for(parser.chosenCommand()->name(), term->cerr(), e.get_status());
         }
