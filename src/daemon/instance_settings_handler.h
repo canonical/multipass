@@ -1,0 +1,68 @@
+/*
+ * Copyright (C) 2021 Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#ifndef MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
+#define MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
+
+#include "daemon.h" // TODO@ricab split VMSpecs
+
+#include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/settings/settings_handler.h>
+#include <multipass/virtual_machine.h>
+
+#include <QString>
+
+#include <string>
+#include <unordered_map>
+
+namespace multipass
+{
+class InstanceSettingsException : public SettingsException
+{
+public:
+    enum class Operation // TODO@ricab move this to the handler
+    {
+        Obtain,
+        Update
+    };
+
+    InstanceSettingsException(Operation op, std::string instance, std::string detail);
+};
+
+class InstanceSettingsHandler : public SettingsHandler
+{
+public:
+    InstanceSettingsHandler(std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
+                            std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
+                            const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances);
+
+    std::set<QString> keys() const override;
+    QString get(const QString& key) const override;
+    void set(const QString& key, const QString& val) override;
+
+private:
+    VirtualMachine& find_instance(const QString& name, InstanceSettingsException::Operation operation) const;
+
+private:
+    // references, careful
+    std::unordered_map<std::string, VMSpecs>& vm_instance_specs;
+    std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances;
+    const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
+};
+} // namespace multipass
+
+#endif // MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
