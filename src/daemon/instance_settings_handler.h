@@ -45,17 +45,10 @@ public:
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) override;
 
-public:
-    enum class Operation
-    {
-        Obtain,
-        Modify
-    };
-
 private:
-    VirtualMachine& modify_instance(const std::string& instance_name, Operation operation);
-    VMSpecs& modify_spec(const std::string& instance_name, Operation operation);
-    const VMSpecs& find_spec(const std::string& instance_name, Operation operation) const;
+    VirtualMachine& modify_instance(const std::string& instance_name);
+    VMSpecs& modify_spec(const std::string& instance_name);
+    const VMSpecs& find_spec(const std::string& instance_name) const;
 
 private:
     // references, careful
@@ -68,8 +61,7 @@ private:
 class InstanceSettingsException : public SettingsException
 {
 public:
-    InstanceSettingsException(InstanceSettingsHandler::Operation op, const std::string& instance,
-                              const std::string& detail);
+    InstanceSettingsException(const std::string& reason, const std::string& instance, const std::string& detail);
 };
 
 } // namespace multipass

@@ -32,10 +32,15 @@ constexpr auto cpus_suffix = "cpus";
 constexpr auto mem_suffix = "memory";
 constexpr auto disk_suffix = "disk";
 
-std::string operation_msg(mp::InstanceSettingsHandler::Operation op)
+enum class Operation
 {
-    return op == mp::InstanceSettingsHandler::Operation::Obtain ? "Cannot obtain instance settings"
-                                                                : "Cannot update instance settings";
+    Obtain,
+    Modify
+};
+
+std::string operation_msg(Operation op)
+{
+    return op == Operation::Obtain ? "Cannot obtain instance settings" : "Cannot update instance settings";
 }
 
 QRegularExpression make_key_regex()
@@ -71,8 +76,7 @@ std::pair<std::string, std::string> parse_key(const QString& key)
 
 template <typename InstanceMap>
 typename InstanceMap::mapped_type&
-pick_instance(InstanceMap& instances, const std::string& instance_name,
-              mp::InstanceSettingsHandler::Operation operation,
+pick_instance(InstanceMap& instances, const std::string& instance_name, Operation operation,
               const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted = {})
 {
     try
@@ -84,7 +88,7 @@ pick_instance(InstanceMap& instances, const std::string& instance_name,
         const auto is_deleted = deleted.find(instance_name) != deleted.end();
         const auto reason = is_deleted ? "Instance is deleted" : "No such instance";
 
-        throw mp::InstanceSettingsException{operation, instance_name, reason};
+        throw mp::InstanceSettingsException{operation_msg(operation), instance_name, reason};
     }
 }
 
@@ -92,7 +96,7 @@ void check_state_for_update(mp::VirtualMachine& instance)
 {
     auto st = instance.current_state();
     if (st != mp::VirtualMachine::State::stopped && st != mp::VirtualMachine::State::off)
-        throw mp::InstanceSettingsException{mp::InstanceSettingsHandler::Operation::Modify, instance.vm_name,
+        throw mp::InstanceSettingsException{operation_msg(Operation::Modify), instance.vm_name,
                                             "Instance must be stopped for modification"};
 }
 
@@ -148,9 +152,9 @@ void update_disk(const QString& key, const QString& val, mp::VirtualMachine& ins
 
 } // namespace
 
-mp::InstanceSettingsException::InstanceSettingsException(InstanceSettingsHandler::Operation op,
-                                                         const std::string& instance, const std::string& detail)
-    : SettingsException{fmt::format("{}; instance: {}; reason: {}", operation_msg(op), instance, detail)}
+mp::InstanceSettingsException::InstanceSettingsException(const std::string& reason, const std::string& instance,
+                                                         const std::string& detail)
+    : SettingsException{fmt::format("{}; instance: {}; reason: {}", reason, instance, detail)}
 {
 }
 
@@ -185,7 +189,7 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
 {
     auto [instance_name, property] = parse_key(key);
 
-    const auto& spec = find_spec(instance_name, Operation::Obtain);
+    const auto& spec = find_spec(instance_name);
     if (property == cpus_suffix)
         return QString::number(spec.num_cores);
     if (property == mem_suffix)
@@ -200,10 +204,10 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     auto [instance_name, property] = parse_key(key);
 
     if (preparing_instances.find(instance_name) != preparing_instances.end())
-        throw InstanceSettingsException{Operation::Modify, instance_name, "Instance is being prepared"};
+        throw InstanceSettingsException{operation_msg(Operation::Modify), instance_name, "Instance is being prepared"};
 
-    auto& instance = modify_instance(instance_name, Operation::Modify);
-    auto& spec = modify_spec(instance_name, Operation::Modify);
+    auto& instance = modify_instance(instance_name);
+    auto& spec = modify_spec(instance_name);
     check_state_for_update(instance);
 
     if (property == cpus_suffix)
@@ -223,22 +227,20 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     // TODO@ricab need to persist!
 }
 
-auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name, Operation operation)
-    -> VirtualMachine&
+auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name) -> VirtualMachine&
 {
-    auto ret = pick_instance(vm_instances, instance_name, operation, deleted_instances);
+    auto ret = pick_instance(vm_instances, instance_name, Operation::Modify, deleted_instances);
 
     assert(ret && "can't have null instance");
     return *ret;
 }
 
-auto mp::InstanceSettingsHandler::modify_spec(const std::string& instance_name, Operation operation) -> VMSpecs&
+auto mp::InstanceSettingsHandler::modify_spec(const std::string& instance_name) -> VMSpecs&
 {
-    return pick_instance(vm_instance_specs, instance_name, operation);
+    return pick_instance(vm_instance_specs, instance_name, Operation::Modify);
 }
 
-auto mp::InstanceSettingsHandler::find_spec(const std::string& instance_name, Operation operation) const
-    -> const VMSpecs&
+auto mp::InstanceSettingsHandler::find_spec(const std::string& instance_name) const -> const VMSpecs&
 {
-    return pick_instance(vm_instance_specs, instance_name, operation);
+    return pick_instance(vm_instance_specs, instance_name, Operation::Obtain);
 }
