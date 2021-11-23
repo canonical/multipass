@@ -844,9 +844,30 @@ auto timeout_for(const int requested_timeout, const int workflow_timeout)
     return mp::default_timeout;
 }
 
+class InstanceModHandler : public mp::SettingsHandler
+{
+public:
+    using SettingsHandler::SettingsHandler; // TODO@ricab
+
+    std::set<QString> keys() const override
+    {
+        return std::set<QString>(); // TODO@ricab
+    }
+
+    QString get(const QString& key) const override
+    {
+        return QString(); // TODO@ricab
+    }
+
+    void set(const QString& key, const QString& val) override
+    {
+        // TODO@ricab
+    }
+};
+
 mp::SettingsHandler* register_instance_mod()
 {
-    return nullptr; // TODO@ricab
+    return MP_SETTINGS.register_handler(std::make_unique<InstanceModHandler>());
 }
 
 } // namespace
