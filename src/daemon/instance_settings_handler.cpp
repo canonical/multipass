@@ -77,6 +77,18 @@ void check_state_for_update(mp::VirtualMachine& instance)
                                             "Instance must be stopped for modification"};
 }
 
+mp::MemorySize get_memory_size(const QString& key, const QString& val)
+{
+    try
+    {
+        return mp::MemorySize{val.toStdString()};
+    }
+    catch (const mp::InvalidMemorySizeException& e)
+    {
+        throw mp::InvalidSettingException{key, val, e.what()};
+    }
+}
+
 void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec)
 {
     bool converted_ok = false;
@@ -167,25 +179,17 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     auto [instance, spec] = find_instance(instance_name, Operation::Update); // notice we get refs
     check_state_for_update(instance);
 
-    // TODO@ricab refactor
     if (property == cpus_suffix)
         update_cpus(key, val, instance, spec);
     else
     {
-        try
+        auto size = get_memory_size(key, val);
+        if (property == mem_suffix)
+            update_mem(key, val, instance, spec, size);
+        else
         {
-            MemorySize size{val.toStdString()};
-            if (property == mem_suffix)
-                update_mem(key, val, instance, spec, size);
-            else
-            {
-                assert(property == disk_suffix);
-                update_disk(key, val, instance, spec, size);
-            }
-        }
-        catch (const InvalidMemorySizeException& e)
-        {
-            throw InvalidSettingException{key, val, e.what()};
+            assert(property == disk_suffix);
+            update_disk(key, val, instance, spec, size);
         }
     }
 }
