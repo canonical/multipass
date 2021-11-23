@@ -52,7 +52,7 @@ public:
     };
 
 private:
-    VirtualMachine& find_instance(const QString& name, Operation operation) const;
+    VirtualMachine& find_instance(const std::string& instance_name, Operation operation) const;
 
 private:
     // references, careful

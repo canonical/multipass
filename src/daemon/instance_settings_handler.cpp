@@ -51,7 +51,7 @@ QRegularExpression make_key_regex()
     return QRegularExpression{QRegularExpression::anchoredPattern(std::move(inner_key_pattern))};
 }
 
-std::pair<QString, QString> parse_key(const QString& key)
+std::pair<std::string, std::string> parse_key(const QString& key)
 {
     static const auto key_regex = make_key_regex();
 
@@ -62,7 +62,7 @@ std::pair<QString, QString> parse_key(const QString& key)
         auto property = match.captured("property");
 
         assert(!instance.isEmpty() && !property.isEmpty());
-        return {std::move(instance), std::move(property)};
+        return {instance.toStdString(), property.toStdString()};
     }
 
     throw mp::UnrecognizedSettingException{key};
@@ -119,19 +119,19 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
 
 void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 {
-    auto [instance_name, property] = parse_key(key); // TODO@ricab work with std::strings
+    auto [instance_name, property] = parse_key(key);
 
-    if (preparing_instances.find(instance_name.toStdString()) != preparing_instances.end())
-        throw InstanceSettingsException{Operation::Update, instance_name.toStdString(), "Instance is being prepared"};
+    if (preparing_instances.find(instance_name) != preparing_instances.end())
+        throw InstanceSettingsException{Operation::Update, instance_name, "Instance is being prepared"};
 
     auto& instance = find_instance(instance_name, Operation::Update);
     check_state_for_update(instance);
     // TODO@ricab
 }
 
-auto mp::InstanceSettingsHandler::find_instance(const QString& name, Operation operation) const -> VirtualMachine&
+auto mp::InstanceSettingsHandler::find_instance(const std::string& instance_name, Operation operation) const
+    -> VirtualMachine&
 {
-    auto instance_name = name.toStdString();
     try
     {
         auto& ret_ptr = vm_instances.at(instance_name);
