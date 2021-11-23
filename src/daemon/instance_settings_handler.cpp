@@ -18,6 +18,7 @@
 #include "instance_settings_handler.h"
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/format.h>
 
 #include <QRegularExpression>
@@ -128,6 +129,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     auto [instance, spec] = find_instance(instance_name, Operation::Update); // notice we get refs
     check_state_for_update(instance);
 
+    // TODO@ricab refactor
     bool converted_ok = false;
     if (property == cpus_suffix)
     {
@@ -143,15 +145,34 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     }
     else
     {
-        // TODO@ricab val -> MemorySize
-        if (property == mem_suffix)
+        try
         {
-            // TODO@ricab
+            MemorySize size{val.toStdString()};
+            if (property == mem_suffix)
+            {
+                if (size < spec.mem_size)
+                    throw InvalidSettingException{key, val, "Memory can only be expanded"};
+                else if (size > spec.mem_size) // NOOP if equal
+                {
+                    instance.resize_memory(size);
+                    spec.mem_size = size;
+                }
+            }
+            else
+            {
+                assert(property == disk_suffix);
+                if (size < spec.disk_space)
+                    throw InvalidSettingException{key, val, "Disk can only be expanded"};
+                else if (size > spec.disk_space) // NOOP if equal
+                {
+                    instance.resize_disk(size);
+                    spec.disk_space = size;
+                }
+            }
         }
-        else
+        catch (const InvalidMemorySizeException& e)
         {
-            assert(property == disk_suffix);
-            // TODO@ricab
+            throw InvalidSettingException{key, val, e.what()};
         }
     }
 }
