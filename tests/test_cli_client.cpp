@@ -98,6 +98,8 @@ struct MockDaemonRpc : public mp::DaemonRpc
                  grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
     MOCK_METHOD3(get, grpc::Status(grpc::ServerContext* context, const mp::GetRequest* request,
                                    grpc::ServerWriter<mp::GetReply>* response));
+    MOCK_METHOD3(authenticate, grpc::Status(grpc::ServerContext* context, const mp::AuthenticateRequest* request,
+                                            grpc::ServerWriter<mp::AuthenticateReply>* response));
 };
 
 struct Client : public Test
@@ -2416,6 +2418,34 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 
     EXPECT_THAT(help_cmd_launch.str(), Ne(""));
     EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
+}
+
+// register cli tests
+TEST_F(Client, registerCmdGoodPassphraseOk)
+{
+    EXPECT_CALL(mock_daemon, authenticate);
+    EXPECT_EQ(send_command({"register", "foo"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, registerCmdInvalidOptionFails)
+{
+    EXPECT_EQ(send_command({"register", "--foo"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, registerCmdHelpOk)
+{
+    EXPECT_EQ(send_command({"register", "--help"}), mp::ReturnCode::Ok);
+}
+
+// TODO: This test will change when the echoless passphrase prompt in working
+TEST_F(Client, registerCmdNoPassphrasFails)
+{
+    EXPECT_EQ(send_command({"register"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, registerCmdTooManyArgsFails)
+{
+    EXPECT_EQ(send_command({"register", "foo", "bar"}), mp::ReturnCode::CommandLineError);
 }
 
 const std::vector<std::string> timeout_commands{"launch", "start", "restart", "shell"};
