@@ -68,6 +68,19 @@ mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
+    // TODO: Add the echoless passphrase handling here
+    if (parser->positionalArguments().count() == 0)
+    {
+        cerr << "No passphrase given\n";
+        return ParseCode::CommandLineError;
+    }
+
+    if (parser->positionalArguments().count() > 1)
+    {
+        cerr << "Too many passphrases given\n";
+        return ParseCode::CommandLineError;
+    }
+
     request.set_passphrase(parser->positionalArguments().first().toStdString());
 
     return status;
