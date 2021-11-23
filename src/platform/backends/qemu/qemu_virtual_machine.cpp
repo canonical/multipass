@@ -19,6 +19,7 @@
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
+#include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@ricab remove
@@ -38,6 +39,8 @@
 #include <QString>
 #include <QStringList>
 #include <QTemporaryFile>
+
+#include <cassert>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -575,5 +578,8 @@ void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Resize disk"}; // TODO@ricab implement
+    assert(new_size > desc.disk_space);
+
+    mp::backend::resize_instance_image(new_size, desc.image.image_path);
+    desc.disk_space = new_size;
 }
