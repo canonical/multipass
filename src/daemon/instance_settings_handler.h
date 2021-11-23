@@ -49,12 +49,13 @@ public:
     enum class Operation
     {
         Obtain,
-        Update
+        Modify
     };
 
 private:
-    VirtualMachine& find_instance(const std::string& instance_name, Operation operation) const;
-    VMSpecs& find_spec(const std::string& instance_name, Operation operation) const;
+    VirtualMachine& modify_instance(const std::string& instance_name, Operation operation);
+    VMSpecs& modify_spec(const std::string& instance_name, Operation operation);
+    const VMSpecs& find_spec(const std::string& instance_name, Operation operation) const;
 
 private:
     // references, careful

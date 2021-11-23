@@ -92,7 +92,7 @@ void check_state_for_update(mp::VirtualMachine& instance)
 {
     auto st = instance.current_state();
     if (st != mp::VirtualMachine::State::stopped && st != mp::VirtualMachine::State::off)
-        throw mp::InstanceSettingsException{mp::InstanceSettingsHandler::Operation::Update, instance.vm_name,
+        throw mp::InstanceSettingsException{mp::InstanceSettingsHandler::Operation::Modify, instance.vm_name,
                                             "Instance must be stopped for modification"};
 }
 
@@ -200,10 +200,10 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     auto [instance_name, property] = parse_key(key);
 
     if (preparing_instances.find(instance_name) != preparing_instances.end())
-        throw InstanceSettingsException{Operation::Update, instance_name, "Instance is being prepared"};
+        throw InstanceSettingsException{Operation::Modify, instance_name, "Instance is being prepared"};
 
-    auto& instance = find_instance(instance_name, Operation::Update);
-    auto& spec = find_spec(instance_name, Operation::Update);
+    auto& instance = modify_instance(instance_name, Operation::Modify);
+    auto& spec = modify_spec(instance_name, Operation::Modify);
     check_state_for_update(instance);
 
     if (property == cpus_suffix)
@@ -219,9 +219,11 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
             update_disk(key, val, instance, spec, size);
         }
     }
+
+    // TODO@ricab need to persist!
 }
 
-auto mp::InstanceSettingsHandler::find_instance(const std::string& instance_name, Operation operation) const
+auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name, Operation operation)
     -> VirtualMachine&
 {
     auto ret = pick_instance(vm_instances, instance_name, operation, deleted_instances);
@@ -230,7 +232,13 @@ auto mp::InstanceSettingsHandler::find_instance(const std::string& instance_name
     return *ret;
 }
 
-auto mp::InstanceSettingsHandler::find_spec(const std::string& instance_name, Operation operation) const -> VMSpecs&
+auto mp::InstanceSettingsHandler::modify_spec(const std::string& instance_name, Operation operation) -> VMSpecs&
+{
+    return pick_instance(vm_instance_specs, instance_name, operation);
+}
+
+auto mp::InstanceSettingsHandler::find_spec(const std::string& instance_name, Operation operation) const
+    -> const VMSpecs&
 {
     return pick_instance(vm_instance_specs, instance_name, operation);
 }
