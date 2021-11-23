@@ -242,10 +242,15 @@ grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionR
 
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response)
 {
-    auto client_cert = client_cert_from(context);
-
-    if (!client_cert.empty() && !client_cert_store->verify_cert(client_cert))
+    if (connection_type == mp::RpcConnectionType::ssl)
     {
+        auto client_cert = client_cert_from(context);
+
+        if (!client_cert.empty() && client_cert_store->verify_cert(client_cert))
+        {
+            return grpc::Status::OK;
+        }
+
         return grpc::Status{grpc::StatusCode::UNAUTHENTICATED, ""};
     }
 
