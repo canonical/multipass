@@ -42,14 +42,14 @@ QRegularExpression make_key_regex()
 {
     auto instance_pattern = QStringLiteral("(?<instance>.+)");
 
-    const auto property_template = QStringLiteral("(?<property>%1)");
-    auto either_property = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
-    auto property_pattern = property_template.arg(std::move(either_property));
+    const auto prop_template = QStringLiteral("(?<property>%1)");
+    auto either_prop = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
+    auto prop_pattern = prop_template.arg(std::move(either_prop));
 
-    const auto key_template = QStringLiteral(R"(%1\.%2\.%3)").arg(mp::daemon_settings_root);
-    auto inner_key_pattern = key_template.arg(std::move(instance_pattern)).arg(std::move(property_pattern));
+    const auto key_template = QStringLiteral(R"(%1\.%2\.%3)");
+    auto key_pattern = key_template.arg(mp::daemon_settings_root, std::move(instance_pattern), std::move(prop_pattern));
 
-    return QRegularExpression{QRegularExpression::anchoredPattern(std::move(inner_key_pattern))};
+    return QRegularExpression{QRegularExpression::anchoredPattern(std::move(key_pattern))};
 }
 
 std::pair<std::string, std::string> parse_key(const QString& key)
