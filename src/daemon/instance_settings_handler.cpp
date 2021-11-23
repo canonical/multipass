@@ -190,7 +190,6 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
 void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 {
     auto [instance_name, property] = parse_key(key);
-    assert(property == cpus_suffix || property == mem_suffix || property == disk_suffix);
 
     if (preparing_instances.find(instance_name) != preparing_instances.end())
         throw InstanceSettingsException{Operation::Update, instance_name, "Instance is being prepared"};
