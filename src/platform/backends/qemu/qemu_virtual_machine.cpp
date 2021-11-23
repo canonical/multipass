@@ -573,7 +573,7 @@ void mp::QemuVirtualMachine::update_num_cores(int num_cores)
 
 void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Resize memory"}; // TODO@ricab implement
+    desc.mem_size = new_size;
 }
 
 void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
