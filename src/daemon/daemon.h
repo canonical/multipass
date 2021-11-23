@@ -40,7 +40,7 @@
 namespace multipass
 {
 struct DaemonConfig;
-struct SettingsHandler;
+class SettingsHandler;
 class Daemon : public QObject, public multipass::VMStatusMonitor
 {
     Q_OBJECT
