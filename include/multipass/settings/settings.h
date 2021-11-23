@@ -57,7 +57,7 @@ public:
      * recognizes.
      * @note May also throw any other exceptions that occur when handling.
      */
-    virtual QString get(const QString& key) const;            // throws on unknown key
+    virtual QString get(const QString& key) const;
 
     /**
      * Set the value of the setting specified by @c key to @val, according to the interpretation of first registered
@@ -71,7 +71,7 @@ public:
      * @c key, according to the corresponding SettingHandler's interpretation.
      * @note May also throw any other exceptions that occur when handling.
      */
-    virtual void set(const QString& key, const QString& val); // throws on unknown key or bad settings
+    virtual void set(const QString& key, const QString& val);
 
     /**
      * Obtain a setting as a certain type
