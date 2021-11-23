@@ -139,7 +139,7 @@ TEST_F(TestPersistentSettingsHandler, getThrowsOnUnreadableFile)
 TEST_F(TestPersistentSettingsHandler, setThrowsOnUnreadableFile)
 {
     const auto key = mp::mounts_key, val = "yes";
-    const auto handler = make_handler(key, val);
+    auto handler = make_handler(key, val);
 
     mock_unreadable_settings_file();
     inject_mock_qsettings();
@@ -172,7 +172,7 @@ TEST_P(TestPersistentSettingsReadWriteError, setThrowsOnFileWriteError)
 {
     const auto& [status, desc] = GetParam();
     const auto key = "blah";
-    const auto handler = make_handler(key);
+    auto handler = make_handler(key);
 
     {
         InSequence seq;
@@ -227,7 +227,7 @@ TEST_F(TestPersistentSettingsHandler, getThrowsOnUnknownKey)
 TEST_F(TestPersistentSettingsHandler, setThrowsOnUnknownKey)
 {
     const auto key = "ki";
-    const auto handler = make_handler();
+    auto handler = make_handler();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
     MP_EXPECT_THROW_THAT(handler.set(key, "asdf"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
@@ -236,7 +236,7 @@ TEST_F(TestPersistentSettingsHandler, setThrowsOnUnknownKey)
 TEST_F(TestPersistentSettingsHandler, setRecordsProvidedBasicSetting)
 {
     const auto key = "name.a.key", val = "and a value";
-    const auto handler = make_handler(key);
+    auto handler = make_handler(key);
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val)));
 
     inject_mock_qsettings();
@@ -247,7 +247,7 @@ TEST_F(TestPersistentSettingsHandler, setRecordsProvidedBasicSetting)
 TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
 {
     const auto key = "k.e.y", given_val = "given", interpreted_val = "interpreted";
-    const auto handler = make_handler(key, "default", [&interpreted_val](const QString&) { return interpreted_val; });
+    auto handler = make_handler(key, "default", [&interpreted_val](const QString&) { return interpreted_val; });
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(interpreted_val)));
 
     inject_mock_qsettings();
@@ -258,7 +258,7 @@ TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
 TEST_F(TestPersistentSettingsHandler, setThrowsInterpreterExceptions)
 {
     const auto key = "clave", default_ = "valid", val = "invalid", error = "nope";
-    const auto handler = make_handler(key, default_, [&key, &default_, &val, &error](const QString& v) {
+    auto handler = make_handler(key, default_, [&key, &default_, &val, &error](const QString& v) {
         if (v == default_)
             return v;
 

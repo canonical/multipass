@@ -30,7 +30,7 @@ public:
     RemoteSettingsHandler(QString key_prefix, grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, int verbosity);
 
     QString get(const QString& key) const override;
-    void set(const QString& key, const QString& val) const override;
+    void set(const QString& key, const QString& val) override;
     std::set<QString> keys() const override;
 
 private:

@@ -60,7 +60,7 @@ public:
      * @c key, according to this SettingHandler's interpretation.
      * @note Descendents are free to throw other exceptions as well.
      */
-    virtual void set(const QString& key, const QString& val) const = 0;
+    virtual void set(const QString& key, const QString& val) = 0;
 };
 
 } // namespace multipass
