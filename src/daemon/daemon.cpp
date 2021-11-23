@@ -1992,7 +1992,8 @@ try
 
     auto key = request->key();
     auto val = request->val();
-    mpl::log(mpl::Level::debug, category, fmt::format("Trying to set {}={}", key, val));
+
+    mpl::log(mpl::Level::trace, category, fmt::format("Trying to set {}={}", key, val));
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
 
