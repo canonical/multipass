@@ -267,7 +267,7 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
 
     if (status.ok() && connection_type == mp::RpcConnectionType::ssl)
     {
-        auto store_was_empty{client_cert_store->is_store_empty()};
+        const auto store_was_empty{client_cert_store->is_store_empty()};
 
         client_cert_store->add_cert(client_cert_from(context));
 
@@ -285,7 +285,7 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
 {
     if (connection_type == mp::RpcConnectionType::ssl)
     {
-        auto store_was_empty{client_cert_store->is_store_empty()};
+        const auto store_was_empty{client_cert_store->is_store_empty()};
 
         if (!client_cert_store->verify_cert(client_cert))
         {
