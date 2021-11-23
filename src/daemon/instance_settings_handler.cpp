@@ -148,10 +148,9 @@ void update_disk(const QString& key, const QString& val, mp::VirtualMachine& ins
 
 } // namespace
 
-mp::InstanceSettingsException::InstanceSettingsException(mp::InstanceSettingsHandler::Operation op,
-                                                         std::string instance, std::string detail)
-    : SettingsException{
-          fmt::format("{}; instance: {}; reason: {}", operation_msg(op), std::move(instance), std::move(detail))}
+mp::InstanceSettingsException::InstanceSettingsException(InstanceSettingsHandler::Operation op,
+                                                         const std::string& instance, const std::string& detail)
+    : SettingsException{fmt::format("{}; instance: {}; reason: {}", operation_msg(op), instance, detail)}
 {
 }
 

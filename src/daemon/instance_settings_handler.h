@@ -67,7 +67,8 @@ private:
 class InstanceSettingsException : public SettingsException
 {
 public:
-    InstanceSettingsException(InstanceSettingsHandler::Operation op, std::string instance, std::string detail);
+    InstanceSettingsException(InstanceSettingsHandler::Operation op, const std::string& instance,
+                              const std::string& detail);
 };
 
 } // namespace multipass
