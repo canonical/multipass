@@ -50,6 +50,7 @@ apps:
       XDG_CONFIG_HOME: &daemon-config $SNAP_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
     daemon: simple
+    stop-timeout: 5m
     plugs:
       - all-home
       - firewall-control
