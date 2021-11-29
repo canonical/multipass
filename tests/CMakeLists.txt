@@ -55,7 +55,6 @@ add_executable(multipass_tests
   test_daemon.cpp
   test_daemon_authenticate.cpp
   test_daemon_find.cpp
-  test_daemon_rpc.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
   test_format_utils.cpp
@@ -197,3 +196,7 @@ add_subdirectory(${MULTIPASS_PLATFORM})
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+if (UNIX)
+  add_subdirectory(unix)
+endif()

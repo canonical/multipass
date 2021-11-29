@@ -15,11 +15,11 @@
  *
  */
 
-#include "daemon_test_fixture.h"
-#include "mock_cert_provider.h"
-#include "mock_cert_store.h"
-#include "mock_daemon.h"
-#include "mock_platform.h"
+#include <tests/daemon_test_fixture.h>
+#include <tests/mock_cert_provider.h>
+#include <tests/mock_cert_store.h>
+#include <tests/mock_daemon.h>
+#include <tests/mock_platform.h>
 
 #include <src/daemon/daemon_rpc.h>
 
