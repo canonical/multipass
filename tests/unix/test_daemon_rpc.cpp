@@ -213,3 +213,24 @@ TEST_F(TestDaemonRpc, listCertNotVerifiedHasError)
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not registered with the Multipass service."),
                                     HasSubstr("Please use 'multipass register' to authenticate the client.")));
 }
+
+TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
+{
+    server_address = "localhost:50051";
+    config_builder.server_address = server_address;
+
+    EXPECT_CALL(*mock_platform, set_server_permissions).Times(0);
+
+    EXPECT_CALL(*mock_cert_store, is_store_empty()).Times(0);
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(0);
+    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(false));
+
+    mpt::MockDaemon daemon{make_secure_server()};
+
+    std::stringstream stream;
+
+    send_command({"list"}, trash_stream, stream);
+
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not registered with the Multipass service."),
+                                    HasSubstr("Please use 'multipass register' to authenticate the client.")));
+}
