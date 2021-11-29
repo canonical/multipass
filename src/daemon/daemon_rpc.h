@@ -94,6 +94,7 @@ private:
     const std::string server_address;
     const RpcConnectionType connection_type;
     const std::unique_ptr<grpc::Server> server;
+    const ServerSocketType server_socket_type;
     CertStore* client_cert_store;
 
 protected:
