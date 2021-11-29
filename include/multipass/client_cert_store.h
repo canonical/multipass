@@ -36,8 +36,6 @@ public:
     bool is_store_empty() override;
 
 private:
-    bool cert_exists(const std::string& pem_cert);
-
     Path cert_dir;
     std::vector<std::string> authenticated_client_certs;
 };

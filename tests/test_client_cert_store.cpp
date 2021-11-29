@@ -87,17 +87,17 @@ TEST_F(ClientCertStore, add_cert_stores_certificate)
     EXPECT_THAT(content, StrEq(cert_data));
 }
 
-TEST_F(ClientCertStore, verifyCertEmptyAddsCertAndReturnsTrue)
+TEST_F(ClientCertStore, verifyCertEmptyStoreReturnsFalse)
 {
     mp::ClientCertStore cert_store{cert_dir};
 
     ASSERT_TRUE(cert_store.PEM_cert_chain().empty());
 
-    EXPECT_TRUE(cert_store.verify_cert(cert_data));
+    EXPECT_FALSE(cert_store.verify_cert(cert_data));
 
     const auto content = cert_store.PEM_cert_chain();
 
-    EXPECT_EQ(content, cert_data);
+    EXPECT_TRUE(content.empty());
 }
 
 TEST_F(ClientCertStore, verifyCertInStoreReturnsTrue)

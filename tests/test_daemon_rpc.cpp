@@ -187,7 +187,7 @@ TEST_F(TestDaemonRpc, listNoCertsExistWillVerifyAndComplete)
     EXPECT_CALL(*mock_platform, set_server_permissions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).Times(2).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(true));
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
 
     mpt::MockDaemon daemon{make_secure_server()};
     EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto, auto* status_promise) {

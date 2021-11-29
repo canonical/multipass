@@ -292,7 +292,7 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
     {
         const auto store_was_empty{client_cert_store->is_store_empty()};
 
-        if (!client_cert_store->verify_cert(client_cert))
+        if (!store_was_empty && !client_cert_store->verify_cert(client_cert))
         {
             return grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
                                 "The client is not registered with the Multipass service.\n"
@@ -301,6 +301,7 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
 
         if (store_was_empty)
         {
+            client_cert_store->add_cert(client_cert);
             MP_PLATFORM.set_server_permissions(server_address, false);
         }
     }
