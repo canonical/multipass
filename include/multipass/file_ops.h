@@ -61,6 +61,7 @@ public:
 
     // std operations
     virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;
+    virtual std::istream& getline(std::ifstream& stream, std::string& line);
 };
 } // namespace multipass
 

@@ -117,3 +117,8 @@ void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base
 {
     stream.open(filename, mode);
 }
+
+std::istream& mp::FileOps::getline(std::ifstream& stream, std::string& line)
+{
+    return std::getline(stream, line);
+}
