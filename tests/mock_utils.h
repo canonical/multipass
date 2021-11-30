@@ -40,6 +40,8 @@ public:
     MOCK_CONST_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
     MOCK_CONST_METHOD0(get_kernel_version, std::string());
     MOCK_CONST_METHOD1(generate_scrypt_hash_for, QString(const QString&));
+    MOCK_CONST_METHOD1(client_certs_exist, bool(const QString&));
+    MOCK_CONST_METHOD2(copy_client_certs_to_common_dir, void(const QString&, const QString&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };
