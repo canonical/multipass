@@ -16,6 +16,9 @@
  */
 
 #include <multipass/client_cert_store.h>
+#include <multipass/file_ops.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
 #include "biomem.h"
@@ -30,10 +33,12 @@
 #include <stdexcept>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
 constexpr auto chain_name = "multipass_client_certs.pem";
+constexpr auto category = "client_cert_store";
 
 auto load_certs_from_file(const multipass::Path& cert_dir)
 {
@@ -45,7 +50,7 @@ auto load_certs_from_file(const multipass::Path& cert_dir)
     {
         std::ifstream cert_file{path.toStdString()};
         std::string line;
-        while (std::getline(cert_file, line))
+        while (MP_FILEOPS.getline(cert_file, line))
         {
             // Re-add the newline to make comparing of cert sent by client easier
             cert.append(line + '\n');
@@ -55,6 +60,11 @@ auto load_certs_from_file(const multipass::Path& cert_dir)
                 certs.push_back(cert);
                 cert.clear();
             }
+        }
+
+        if (!cert_file.eof() && (cert_file.fail() || cert_file.bad()))
+        {
+            mpl::log(mpl::Level::error, category, fmt::format("Error reading from {}", chain_name));
         }
     }
 
