@@ -172,3 +172,26 @@ TEST_F(ClientCertStore, readingCertFileErrorLogsErrorAndNoCerts)
 
     EXPECT_TRUE(cert_store.is_store_empty());
 }
+
+TEST_F(ClientCertStore, openingFileForWritingFailsAndThrows)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
+
+    mp::ClientCertStore cert_store{cert_dir};
+
+    MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data), std::runtime_error,
+                         mpt::match_what(StrEq("failed to create file to store certificate")));
+}
+
+TEST_F(ClientCertStore, writingFileFailsAndThrows)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(0));
+
+    mp::ClientCertStore cert_store{cert_dir};
+
+    MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data), std::runtime_error,
+                         mpt::match_what(StrEq("failed to write certificate")));
+}
