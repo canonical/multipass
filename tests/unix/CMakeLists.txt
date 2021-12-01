@@ -17,6 +17,7 @@ target_sources(multipass_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/mock_libc_functions.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_daemon_rpc.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_platform_unix.cpp
 )
 
 target_compile_definitions(platform_test PRIVATE
