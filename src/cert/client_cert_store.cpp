@@ -48,6 +48,9 @@ auto load_certs_from_file(const multipass::Path& cert_dir)
 
     if (QFile::exists(path))
     {
+        // Ensure the file is only read/write by root
+        QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner);
+
         std::ifstream cert_file{path.toStdString()};
         std::string line;
         while (MP_FILEOPS.getline(cert_file, line))
@@ -80,10 +83,17 @@ void validate_certificate(const std::string& pem_cert)
     if (raw_cert == nullptr)
         throw std::runtime_error("invalid certificate data");
 }
+
+auto ensure_perms_for(const multipass::Path& cert_dir)
+{
+    QFile::setPermissions(cert_dir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+
+    return cert_dir;
+}
 } // namespace
 
 mp::ClientCertStore::ClientCertStore(const multipass::Path& cert_dir)
-    : cert_dir{cert_dir}, authenticated_client_certs{load_certs_from_file(cert_dir)}
+    : cert_dir{ensure_perms_for(cert_dir)}, authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
 }
 
@@ -95,11 +105,12 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
     validate_certificate(pem_cert);
     QDir dir{cert_dir};
     QFile file{dir.filePath(chain_name)};
-    auto opened = file.open(QIODevice::WriteOnly | QIODevice::Append);
-    if (!opened)
+    if (!MP_FILEOPS.open(file, QIODevice::WriteOnly | QIODevice::Append))
         throw std::runtime_error("failed to create file to store certificate");
 
-    size_t written = file.write(pem_cert.data(), pem_cert.size());
+    file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
+
+    size_t written = MP_FILEOPS.write(file, pem_cert.data(), pem_cert.size());
     if (written != pem_cert.size())
         throw std::runtime_error("failed to write certificate");
 
