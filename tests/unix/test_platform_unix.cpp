@@ -34,16 +34,13 @@ namespace
 struct TestPlatformUnix : public Test
 {
     mpt::TempFile file;
-
-    // MockPlatform here is needed to mock chown/chmod in set_server_permissions()
-    // May need to move this out if other PlatformUnix functions are to be tested
-    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
-    mpt::MockPlatform* mock_platform = attr.first;
 };
 } // namespace
 
 TEST_F(TestPlatformUnix, setServerPermissionsNotRestrictedIsCorrect)
 {
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
     EXPECT_CALL(*mock_platform, chown(_, 0, 0)).WillOnce(Return(0));
     EXPECT_CALL(*mock_platform, chmod(_, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH))
         .WillOnce(Return(0));
@@ -53,6 +50,7 @@ TEST_F(TestPlatformUnix, setServerPermissionsNotRestrictedIsCorrect)
 
 TEST_F(TestPlatformUnix, setServerPermissionsRestrictedIsCorrect)
 {
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
     const int gid{42};
     struct group group;
     group.gr_gid = gid;
@@ -67,13 +65,14 @@ TEST_F(TestPlatformUnix, setServerPermissionsRestrictedIsCorrect)
 
 TEST_F(TestPlatformUnix, setServerPermissionsNoUnixPathThrows)
 {
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.Platform::set_server_permissions(file.name().toStdString(), false),
-                         std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.set_server_permissions(file.name().toStdString(), false), std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("invalid server address specified: {}", file.name()))));
 }
 
 TEST_F(TestPlatformUnix, setServerPermissionsNonUnixTypeReturns)
 {
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
     EXPECT_CALL(*mock_platform, chown).Times(0);
     EXPECT_CALL(*mock_platform, chmod).Times(0);
 
@@ -82,6 +81,8 @@ TEST_F(TestPlatformUnix, setServerPermissionsNonUnixTypeReturns)
 
 TEST_F(TestPlatformUnix, setServerPermissionsChownFailsThrows)
 {
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
     EXPECT_CALL(*mock_platform, chown(_, 0, 0)).WillOnce([](auto...) {
         errno = EPERM;
         return -1;
@@ -94,6 +95,8 @@ TEST_F(TestPlatformUnix, setServerPermissionsChownFailsThrows)
 
 TEST_F(TestPlatformUnix, setServerPermissionsChmodFailsThrows)
 {
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
     EXPECT_CALL(*mock_platform, chown(_, 0, 0)).WillOnce(Return(0));
     EXPECT_CALL(*mock_platform, chmod(_, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH))
         .WillOnce([](auto...) {
@@ -104,4 +107,17 @@ TEST_F(TestPlatformUnix, setServerPermissionsChmodFailsThrows)
     MP_EXPECT_THROW_THAT(
         MP_PLATFORM.Platform::set_server_permissions(fmt::format("unix:{}", file.name()), false), std::runtime_error,
         mpt::match_what(StrEq("Could not set permissions for the multipass socket: Operation not permitted")));
+}
+
+TEST_F(TestPlatformUnix, chmodSetsFileModsAndReturns)
+{
+    auto perms = QFileInfo(file.name()).permissions();
+    ASSERT_EQ(perms, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser | QFileDevice::WriteUser);
+
+    EXPECT_EQ(MP_PLATFORM.chmod(file.name().toStdString().c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP), 0);
+
+    perms = QFileInfo(file.name()).permissions();
+
+    EXPECT_EQ(perms, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser | QFileDevice::WriteUser |
+                         QFileDevice::ReadGroup | QFileDevice::WriteGroup);
 }
