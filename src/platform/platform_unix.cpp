@@ -118,10 +118,11 @@ void mp::platform::Platform::set_server_permissions(const std::string& server_ad
 
     const auto socket_path = tokens[1];
     if (chown(socket_path.c_str(), 0, gid) == -1)
-        throw std::runtime_error("Could not set ownership of the multipass socket.");
+        throw std::runtime_error(fmt::format("Could not set ownership of the multipass socket: {}", strerror(errno)));
 
     if (chmod(socket_path.c_str(), mode) == -1)
-        throw std::runtime_error("Could not set permissions for the multipass socket.");
+        throw std::runtime_error(
+            fmt::format("Could not set permissions for the multipass socket: {}", strerror(errno)));
 }
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
