@@ -39,7 +39,7 @@ add_library(commands STATIC
   umount.cpp
   unalias.cpp
   version.cpp
-  ${PLATFORM_COMMANDS})
+)
 
 target_link_libraries(commands
   client_common

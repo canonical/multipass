@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,35 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_SET_H
-#define MULTIPASS_SET_H
+#include <multipass/cli/prompters.h>
+#include <multipass/exceptions/cli_exceptions.h>
 
-#include <multipass/cli/command.h>
-
-#include <QString>
+#include <iostream>
 
 namespace multipass
 {
-namespace cmd
+
+std::string PlainPrompter::prompt(const std::string& text) const
 {
-class Set final : public Command
-{
-public:
-    using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
+    term->cout() << text << ": ";
 
-    std::string name() const override;
-    QString short_help() const override;
-    QString description() const override;
+    std::string value;
+    std::getline(term->cin(), value);
 
-private:
-    ParseCode parse_args(ArgParser* parser) override;
-    ParseCode checked_prompt(const QString& key);
+    if (!term->cin().good())
+        throw PromptException("Failed to read value");
 
-    QString key;
-    QString val;
-};
-} // namespace cmd
+    return value;
+}
+
 } // namespace multipass
-
-#endif // MULTIPASS_SET_H
