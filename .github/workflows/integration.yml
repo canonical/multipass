@@ -39,6 +39,8 @@ jobs:
           MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "qemu", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "hyperkit", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "qemu", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-12", "driver": "hyperkit", "arch": "x86_64" }'
+          MATRIX+='{"os": "macOS", "vm": "macos-12", "driver": "qemu", "arch": "x86_64" }'
         fi
 
         if [ -n '${{ github.event.inputs.mac-arm-package }}' ]; then
