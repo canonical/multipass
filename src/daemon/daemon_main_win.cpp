@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,12 @@
 #include "daemon_config.h"
 #include "daemon_monitor_settings.h" // temporary
 
+#include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/ssl_cert_provider.h>
+
 #include <multipass/utils.h>
 #include <multipass/version.h>
 
@@ -39,6 +42,8 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+#define BUFF_SZ 32767
 
 namespace
 {
@@ -249,6 +254,25 @@ void control_handler(DWORD control)
     }
 }
 
+void create_client_cert_if_necessary()
+{
+    TCHAR infoBuf[BUFF_SZ];
+    GetSystemDirectory(infoBuf, BUFF_SZ);
+
+    const QString multipassd_data_dir_path{
+        QString("%1\\config\\systemprofile\\AppData\\Roaming\\multipassd\\").arg(infoBuf)};
+
+    mp::ClientCertStore cert_store{mp::utils::make_dir(multipassd_data_dir_path, mp::registered_certs_dir)};
+
+    if (cert_store.is_store_empty())
+    {
+        auto client_cert_dir_path{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericDataLocation) +
+                                  mp::common_client_cert_dir};
+        mp::SSLCertProvider cert_provider{client_cert_dir_path};
+        cert_store.add_cert(cert_provider.PEM_certificate());
+    }
+}
+
 int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
 {
     QCoreApplication app(argc, argv);
@@ -328,6 +352,7 @@ try // clang-format on
         std::string cmd{argv[1]};
         if (cmd == "/install")
         {
+            create_client_cert_if_necessary();
             install_service();
             return EXIT_SUCCESS;
         }
