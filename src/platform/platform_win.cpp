@@ -364,6 +364,11 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
     return backend == "hyperv" || backend == "virtualbox";
 }
 
+void mp::platform::Platform::set_server_permissions(const std::string& /* server_address */,
+                                                    const bool /* restricted */) const
+{
+}
+
 std::map<QString, QString> mp::platform::extra_settings_defaults()
 {
     return {{mp::winterm_key, {"primary"}}};
@@ -494,6 +499,11 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 }
 
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
+{
+    return 0;
+}
+
+int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
 {
     return 0;
 }
