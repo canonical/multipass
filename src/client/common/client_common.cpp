@@ -86,14 +86,6 @@ std::shared_ptr<grpc::Channel> create_channel_and_validate(const std::string& se
 
     return status.ok() ? rpc_channel : nullptr;
 }
-
-void remove_cert_dirs(const std::vector<QString>& cert_dirs)
-{
-    for (const auto& cert_dir : cert_dirs)
-    {
-        QDir(cert_dir).removeRecursively();
-    }
-}
 } // namespace
 
 mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command, std::ostream& cerr,
@@ -147,14 +139,14 @@ std::shared_ptr<grpc::Channel> mp::client::make_secure_channel(const std::string
                         create_channel_and_validate(server_address, get_ssl_credentials_opts_from(cert_dir))})
                 {
                     MP_UTILS.copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
-                    remove_cert_dirs(cert_dirs);
+                    mp::utils::remove_directories(cert_dirs);
 
                     return rpc_channel;
                 }
             }
         }
 
-        remove_cert_dirs(cert_dirs);
+        mp::utils::remove_directories(cert_dirs);
         mp::utils::make_dir(common_client_cert_dir_path);
 
         return create_channel_with_opts(server_address, get_ssl_credentials_opts_from(common_client_cert_dir_path));
