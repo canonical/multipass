@@ -56,6 +56,8 @@ constexpr auto hotkey_key = "client.gui.hotkey";                      // idem
 constexpr auto hotkey_default = "Ctrl+Alt+U";                         // idem; translates to Cmd+Opt+U on macOS
 
 constexpr auto timeout_exit_code = 5;
+
+constexpr auto registered_certs_dir = "registered-certs";
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H
