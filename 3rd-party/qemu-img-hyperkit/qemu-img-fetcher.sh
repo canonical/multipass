@@ -69,12 +69,6 @@ cp -f "$DOWNLOAD_DIR/qemu/4.2.0/bin/qemu-img" "$BINDIR/$QEMU_IMG_BIN_NAME"
 get_brew_and_extract glib-2.66.7
 
 cp -f "$DOWNLOAD_DIR/glib/2.66.7/lib/libgthread-2.0.0.dylib" "$LIBDIR/"
-cp -f "$DOWNLOAD_DIR/glib/2.66.7/lib/libglib-2.0.0.dylib"    "$LIBDIR/"
-
-# pcre - required by glib (no other deps)
-get_brew_and_extract pcre-8.44
-
-cp -f "$DOWNLOAD_DIR/pcre/8.44/lib/libpcre.1.dylib" "$LIBDIR/"
 
 # gettext (no other deps)
 get_brew_and_extract gettext-0.21
@@ -142,11 +136,6 @@ install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_CELLAR@@/glib/2.66.7/lib/libglib-2.0.0.dylib" "@rpath/libglib-2.0.0.dylib"      "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/pcre/lib/libpcre.1.dylib"        "@rpath/libpcre.1.dylib"          "$LIBDIR/libgthread-2.0.0.dylib"
-
-install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libglib-2.0.0.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$LIBDIR/libglib-2.0.0.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libglib-2.0.0.dylib"    "@rpath/libglib-2.0.0.dylib"      "$LIBDIR/libglib-2.0.0.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/pcre/lib/libpcre.1.dylib"        "@rpath/libpcre.1.dylib"          "$LIBDIR/libglib-2.0.0.dylib"
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/p11-kit/lib/libp11-kit.0.dylib"  "@rpath/libp11-kit.0.dylib"         "$LIBDIR/libgnutls.30.dylib"
