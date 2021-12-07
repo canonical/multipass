@@ -461,6 +461,14 @@ mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
     return dir_path;
 }
 
+void mp::utils::remove_directories(const std::vector<QString>& dirs)
+{
+    for (const auto& dir : dirs)
+    {
+        QDir(dir).removeRecursively();
+    }
+}
+
 QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
 {
     if (subdirectory.isEmpty())
