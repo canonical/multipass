@@ -18,6 +18,8 @@
 #include "unix_terminal.h"
 
 #include <iostream>
+
+#include <termios.h>
 #include <unistd.h>
 
 namespace mp = multipass;

@@ -32,6 +32,8 @@ public:
 
     int cout_fd() const;
     bool cout_is_live() const override;
+
+    void set_cin_echo(const bool enable) override;
 };
 } // namespace multipass
 
