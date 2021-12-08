@@ -2259,18 +2259,6 @@ TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
 
 #ifdef MULTIPASS_PLATFORM_LINUX // These tests concern linux-specific behavior for qemu<->libvirt switching
 
-TEST_F(Client, set_cmd_fails_driver_switch_when_needs_daemon_and_grpc_problem)
-{
-    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
-}
-
-TEST_F(Client, set_cmd_succeeds_when_daemon_not_around)
-{
-    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::Ok));
-}
-
 TEST_F(Client, set_cmd_toggle_petenv)
 {
     EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
@@ -2279,40 +2267,6 @@ TEST_F(Client, set_cmd_toggle_petenv)
     EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}), Eq(mp::ReturnCode::Ok));
 }
-
-struct TestSetDriverWithInstances
-    : Client,
-      WithParamInterface<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>>
-{
-};
-
-const std::vector<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>> set_driver_expected{
-    {{}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::DELETED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::STOPPED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::STOPPED, mp::InstanceStatus::DELETED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::DELETED, mp::InstanceStatus::DELETED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::DELETED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::RUNNING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::STARTING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::RESTARTING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::DELAYED_SHUTDOWN}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::UNKNOWN}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::RUNNING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::STARTING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-};
-
-TEST_P(TestSetDriverWithInstances, inspects_instance_states)
-{
-    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Invoke(make_fill_listreply(GetParam().first)));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(GetParam().second));
-}
-
-INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
 
 #endif // MULTIPASS_PLATFORM_LINUX
 
