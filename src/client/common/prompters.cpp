@@ -20,10 +20,9 @@
 
 #include <iostream>
 
-namespace multipass
-{
+namespace mp = multipass;
 
-std::string PlainPrompter::prompt(const std::string& text) const
+std::string mp::PlainPrompter::prompt(const std::string& text) const
 {
     term->cout() << text << ": ";
 
@@ -35,5 +34,3 @@ std::string PlainPrompter::prompt(const std::string& text) const
 
     return value;
 }
-
-} // namespace multipass
