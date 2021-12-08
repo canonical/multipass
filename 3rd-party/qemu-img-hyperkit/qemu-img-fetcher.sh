@@ -69,17 +69,6 @@ cp -f "$DOWNLOAD_DIR/qemu/4.2.0/bin/qemu-img" "$BINDIR/$QEMU_IMG_BIN_NAME"
 get_brew_and_extract glib-2.66.7
 
 cp -f "$DOWNLOAD_DIR/glib/2.66.7/lib/libgthread-2.0.0.dylib" "$LIBDIR/"
-cp -f "$DOWNLOAD_DIR/glib/2.66.7/lib/libglib-2.0.0.dylib"    "$LIBDIR/"
-
-# pcre - required by glib (no other deps)
-get_brew_and_extract pcre-8.44
-
-cp -f "$DOWNLOAD_DIR/pcre/8.44/lib/libpcre.1.dylib" "$LIBDIR/"
-
-# gettext (no other deps)
-get_brew_and_extract gettext-0.21
-
-cp -f "$DOWNLOAD_DIR/gettext/0.21/lib/libintl.8.dylib" "$LIBDIR/"
 
 # nettle (no other deps)
 get_brew_and_extract nettle-3.4.1
@@ -87,7 +76,7 @@ get_brew_and_extract nettle-3.4.1
 cp -f "$DOWNLOAD_DIR/nettle/3.4.1/lib/libnettle.6.dylib"  "$LIBDIR/"
 cp -f "$DOWNLOAD_DIR/nettle/3.4.1/lib/libhogweed.4.dylib" "$LIBDIR/"  # needed by gnutls
 
-# gnutls - requires p11-kit, libunistring, libtasn1, nettle (above), gmp, libintl (above), libidn2
+# gnutls - requires p11-kit, libunistring, libtasn1, nettle (above), gmp, libintl, libidn2
 get_brew_and_extract gnutls-3.6.13
 
 cp -f "$DOWNLOAD_DIR/gnutls/3.6.13/lib/libgnutls.30.dylib" "$LIBDIR/"
@@ -117,7 +106,7 @@ get_brew_and_extract gmp-6.2.1
 
 cp -f "$DOWNLOAD_DIR/gmp/6.2.1/lib/libgmp.10.dylib" "$LIBDIR/"
 
-# libidn2 - requires libintl (above), libunistring (above)
+# libidn2 - requires libintl, libunistring (above)
 get_brew_and_extract libidn2-2.3.0
 
 cp -f "$DOWNLOAD_DIR/libidn2/2.3.0/lib/libidn2.0.dylib" "$LIBDIR/"
@@ -142,11 +131,6 @@ install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_CELLAR@@/glib/2.66.7/lib/libglib-2.0.0.dylib" "@rpath/libglib-2.0.0.dylib"      "$LIBDIR/libgthread-2.0.0.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/pcre/lib/libpcre.1.dylib"        "@rpath/libpcre.1.dylib"          "$LIBDIR/libgthread-2.0.0.dylib"
-
-install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libglib-2.0.0.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/gettext/lib/libintl.8.dylib"     "@rpath/libintl.8.dylib"          "$LIBDIR/libglib-2.0.0.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/glib/lib/libglib-2.0.0.dylib"    "@rpath/libglib-2.0.0.dylib"      "$LIBDIR/libglib-2.0.0.dylib"
-install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/pcre/lib/libpcre.1.dylib"        "@rpath/libpcre.1.dylib"          "$LIBDIR/libglib-2.0.0.dylib"
 
 install_name_tool -add_rpath "@loader_path/" "$LIBDIR/libgnutls.30.dylib"
 install_name_tool -change "@@HOMEBREW_PREFIX@@/opt/p11-kit/lib/libp11-kit.0.dylib"  "@rpath/libp11-kit.0.dylib"         "$LIBDIR/libgnutls.30.dylib"
