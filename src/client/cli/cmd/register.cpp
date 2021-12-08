@@ -20,6 +20,8 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/prompters.h>
+#include <multipass/exceptions/cli_exceptions.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -64,18 +66,14 @@ QString cmd::Register::description() const
 
 mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("passphrase", "Passphrase to register with the Multipass service", "<passphrase>");
+    parser->addPositionalArgument("passphrase",
+                                  "Passphrase to register with the Multipass service. If omitted, a prompt will be "
+                                  "displayed for entering the passphrase.",
+                                  "<passphrase>");
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
-
-    // TODO: Add the echoless passphrase handling here
-    if (parser->positionalArguments().count() == 0)
-    {
-        cerr << "No passphrase given\n";
-        return ParseCode::CommandLineError;
-    }
 
     if (parser->positionalArguments().count() > 1)
     {
@@ -83,7 +81,37 @@ mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    request.set_passphrase(parser->positionalArguments().first().toStdString());
+    if (parser->positionalArguments().empty())
+    {
+        if (!term->is_live())
+        {
+            cerr << "The terminal is not live: The passphrase argument is required\n";
+            return ParseCode::CommandLineError;
+        }
+
+        try
+        {
+            mp::PassphrasePrompter prompter(term);
+            auto passphrase = prompter.prompt("Please enter passphrase: ");
+
+            if (passphrase.empty())
+            {
+                cerr << "No passphrase given\n";
+                return ParseCode::CommandLineError;
+            }
+
+            request.set_passphrase(passphrase);
+        }
+        catch (const mp::PromptException& e)
+        {
+            cerr << e.what() << std::endl;
+            return ParseCode::CommandLineError;
+        }
+    }
+    else
+    {
+        request.set_passphrase(parser->positionalArguments().first().toStdString());
+    }
 
     return status;
 }
