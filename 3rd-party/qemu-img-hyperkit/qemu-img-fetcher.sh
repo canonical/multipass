@@ -70,18 +70,13 @@ get_brew_and_extract glib-2.66.7
 
 cp -f "$DOWNLOAD_DIR/glib/2.66.7/lib/libgthread-2.0.0.dylib" "$LIBDIR/"
 
-# gettext (no other deps)
-get_brew_and_extract gettext-0.21
-
-cp -f "$DOWNLOAD_DIR/gettext/0.21/lib/libintl.8.dylib" "$LIBDIR/"
-
 # nettle (no other deps)
 get_brew_and_extract nettle-3.4.1
 
 cp -f "$DOWNLOAD_DIR/nettle/3.4.1/lib/libnettle.6.dylib"  "$LIBDIR/"
 cp -f "$DOWNLOAD_DIR/nettle/3.4.1/lib/libhogweed.4.dylib" "$LIBDIR/"  # needed by gnutls
 
-# gnutls - requires p11-kit, libunistring, libtasn1, nettle (above), gmp, libintl (above), libidn2
+# gnutls - requires p11-kit, libunistring, libtasn1, nettle (above), gmp, libintl, libidn2
 get_brew_and_extract gnutls-3.6.13
 
 cp -f "$DOWNLOAD_DIR/gnutls/3.6.13/lib/libgnutls.30.dylib" "$LIBDIR/"
@@ -111,7 +106,7 @@ get_brew_and_extract gmp-6.2.1
 
 cp -f "$DOWNLOAD_DIR/gmp/6.2.1/lib/libgmp.10.dylib" "$LIBDIR/"
 
-# libidn2 - requires libintl (above), libunistring (above)
+# libidn2 - requires libintl, libunistring (above)
 get_brew_and_extract libidn2-2.3.0
 
 cp -f "$DOWNLOAD_DIR/libidn2/2.3.0/lib/libidn2.0.dylib" "$LIBDIR/"
