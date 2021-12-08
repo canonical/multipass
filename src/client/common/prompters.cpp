@@ -34,3 +34,28 @@ std::string mp::PlainPrompter::prompt(const std::string& text) const
 
     return value;
 }
+
+mp::PassphrasePrompter::PassphrasePrompter(Terminal* term) : BasePrompter(term)
+{
+    term->set_cin_echo(false);
+}
+
+mp::PassphrasePrompter::~PassphrasePrompter()
+{
+    term->set_cin_echo(true);
+}
+
+std::string mp::PassphrasePrompter::prompt(const std::string& text) const
+{
+    term->cout() << text;
+
+    std::string passphrase;
+    std::getline(term->cin(), passphrase);
+
+    if (!term->cin().good())
+        throw PromptException("Failed to read passphrase");
+
+    term->cout() << "\n";
+
+    return passphrase;
+}

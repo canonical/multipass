@@ -55,6 +55,14 @@ public:
     std::string prompt(const std::string&) const override;
 };
 
+class PassphrasePrompter : public BasePrompter
+{
+public:
+    explicit PassphrasePrompter(Terminal* term);
+    virtual ~PassphrasePrompter();
+
+    std::string prompt(const std::string&) const override;
+};
 } // namespace multipass
 
 #endif // MULTIPASS_CLI_PROMPTERS_H
