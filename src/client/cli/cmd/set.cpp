@@ -110,10 +110,19 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
 
 mp::ParseCode cmd::Set::checked_prompt(const QString& key)
 {
-    mp::PlainPrompter prompter(term);
     try
     {
-        val = QString::fromStdString(prompter.prompt(key.toStdString()));
+        if (key == passphrase_key)
+        {
+            mp::NewPassphrasePrompter prompter(term);
+            val = QString::fromStdString(prompter.prompt("Enter passphrase", "Re-enter passphrase"));
+        }
+        else
+        {
+            mp::PlainPrompter prompter(term);
+            val = QString::fromStdString(prompter.prompt(key.toStdString()));
+        }
+
         return ParseCode::Ok;
     }
     catch (const mp::PromptException& e)
