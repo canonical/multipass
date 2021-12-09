@@ -22,15 +22,25 @@
 
 namespace mp = multipass;
 
+namespace
+{
+auto get_input(std::istream& cin)
+{
+    std::string value;
+    std::getline(cin, value);
+
+    if (!cin.good())
+        throw mp::PromptException("Failed to read value");
+
+    return value;
+}
+} // namespace
+
 std::string mp::PlainPrompter::prompt(const std::string& text) const
 {
     term->cout() << text << ": ";
 
-    std::string value;
-    std::getline(term->cin(), value);
-
-    if (!term->cin().good())
-        throw PromptException("Failed to read value");
+    auto value = get_input(term->cin());
 
     return value;
 }
@@ -49,11 +59,7 @@ std::string mp::PassphrasePrompter::prompt(const std::string& text) const
 {
     term->cout() << text;
 
-    std::string passphrase;
-    std::getline(term->cin(), passphrase);
-
-    if (!term->cin().good())
-        throw PromptException("Failed to read passphrase");
+    auto passphrase = get_input(term->cin());
 
     term->cout() << "\n";
 
@@ -62,33 +68,28 @@ std::string mp::PassphrasePrompter::prompt(const std::string& text) const
 
 std::string mp::NewPassphrasePrompter::prompt(const std::string& prompt1, const std::string& prompt2) const
 {
-    std::string passphrase1, passphrase2;
+    std::string passphrase;
 
     while (true)
     {
         term->cout() << prompt1 << ": ";
-        std::getline(term->cin(), passphrase1);
 
-        if (!term->cin().good())
-            throw PromptException("Failed to read passphrase");
+        passphrase = get_input(term->cin());
 
         term->cout() << "\n" << prompt2 << ": ";
-        std::getline(term->cin(), passphrase2);
 
-        if (!term->cin().good())
-            throw PromptException("Failed to read passphrase");
-
-        if (passphrase1 == passphrase2)
+        // Confirm the passphrase is the same by re-entering it
+        if (passphrase == get_input(term->cin()))
         {
             break;
         }
         else
         {
-            term->cout() << "\nPassphrases did not match. Please try again.\n";
+            term->cout() << "\nPassphrases do not match. Please try again.\n";
         }
     }
 
     term->cout() << "\n";
 
-    return passphrase1;
+    return passphrase;
 }
