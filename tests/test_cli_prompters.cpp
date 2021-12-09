@@ -65,7 +65,7 @@ TEST_F(CLIPrompters, passphraseCallsEchoAndReturnsExpectedPassphrase)
     EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
     EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
     EXPECT_CALL(mock_terminal, cout()).Times(2).WillRepeatedly([this]() -> std::ostream& { return cout; });
-    EXPECT_CALL(mock_terminal, cin()).Times(2).WillRepeatedly([this]() -> std::istream& { return cin; });
+    EXPECT_CALL(mock_terminal, cin()).WillOnce([this]() -> std::istream& { return cin; });
 
     mp::PassphrasePrompter prompter{&mock_terminal};
 
