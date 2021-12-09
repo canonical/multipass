@@ -115,7 +115,7 @@ mp::ParseCode cmd::Set::checked_prompt(const QString& key)
         if (key == passphrase_key)
         {
             mp::NewPassphrasePrompter prompter(term);
-            val = QString::fromStdString(prompter.prompt("Enter passphrase", "Re-enter passphrase"));
+            val = QString::fromStdString(prompter.prompt("Enter passphrase: ", "Re-enter passphrase: "));
         }
         else
         {

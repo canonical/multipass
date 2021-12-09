@@ -72,11 +72,11 @@ std::string mp::NewPassphrasePrompter::prompt(const std::string& prompt1, const 
 
     while (true)
     {
-        term->cout() << prompt1 << ": ";
+        term->cout() << prompt1;
 
         passphrase = get_input(term->cin());
 
-        term->cout() << "\n" << prompt2 << ": ";
+        term->cout() << "\n" << prompt2;
 
         // Confirm the passphrase is the same by re-entering it
         if (passphrase == get_input(term->cin()))
