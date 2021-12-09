@@ -75,6 +75,64 @@ TEST_F(CLIPrompters, passphraseCallsEchoAndReturnsExpectedPassphrase)
     EXPECT_EQ(input, passphrase);
 }
 
+TEST_F(CLIPrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphrase)
+{
+    const std::string prompter1_string{"Enter passphrase: "}, prompter2_string{"Re-enter passphrase: "};
+    const std::string passphrase{"foo"};
+    mpt::MockTerminal mock_terminal;
+
+    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+    EXPECT_CALL(mock_terminal, cout()).Times(3).WillRepeatedly([this]() -> std::ostream& { return cout; });
+    EXPECT_CALL(mock_terminal, cin()).Times(2).WillRepeatedly([this, &passphrase]() -> std::istream& {
+        cin.str(passphrase + "\n");
+        return cin;
+    });
+
+    mp::NewPassphrasePrompter prompter{&mock_terminal};
+
+    auto input = prompter.prompt(prompter1_string, prompter2_string);
+
+    EXPECT_EQ(cout.str(), prompter1_string + "\n" + prompter2_string + "\n");
+    EXPECT_EQ(input, passphrase);
+}
+
+TEST_F(CLIPrompters, newPassPhraseWrongPassphraseRepeats)
+{
+    const std::string prompter1_string{"Enter passphrase: "}, prompter2_string{"Re-enter passphrase: "};
+    const std::string passphrase{"foo"}, wrong_passphrase{"bar"};
+    mpt::MockTerminal mock_terminal;
+
+    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+
+    auto good_passphrase = [this, &passphrase]() -> std::istream& {
+        cin.str(passphrase + "\n");
+        return cin;
+    };
+
+    auto bad_passphrase = [this, &wrong_passphrase]() -> std::istream& {
+        cin.str(wrong_passphrase + "\n");
+        return cin;
+    };
+
+    EXPECT_CALL(mock_terminal, cout()).Times(6).WillRepeatedly([this]() -> std::ostream& { return cout; });
+    EXPECT_CALL(mock_terminal, cin())
+        .Times(4)
+        .WillOnce(Invoke(good_passphrase))
+        .WillOnce(Invoke(bad_passphrase))
+        .WillRepeatedly(Invoke(good_passphrase));
+
+    mp::NewPassphrasePrompter prompter{&mock_terminal};
+
+    auto input = prompter.prompt(prompter1_string, prompter2_string);
+
+    EXPECT_EQ(cout.str(), prompter1_string + "\n" + prompter2_string +
+                              "\nPassphrases do not match. Please try again.\n" + prompter1_string + "\n" +
+                              prompter2_string + "\n");
+    EXPECT_EQ(input, passphrase);
+}
+
 class CLIPromptersBadCinState : public CLIPrompters, public WithParamInterface<std::ios_base::iostate>
 {
 };
