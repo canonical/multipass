@@ -63,6 +63,15 @@ public:
 
     std::string prompt(const std::string&) const override;
 };
+
+class NewPassphrasePrompter : public PassphrasePrompter
+{
+public:
+    using PassphrasePrompter::PassphrasePrompter;
+    using PassphrasePrompter::prompt;
+
+    std::string prompt(const std::string&, const std::string&) const;
+};
 } // namespace multipass
 
 #endif // MULTIPASS_CLI_PROMPTERS_H

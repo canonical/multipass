@@ -59,3 +59,36 @@ std::string mp::PassphrasePrompter::prompt(const std::string& text) const
 
     return passphrase;
 }
+
+std::string mp::NewPassphrasePrompter::prompt(const std::string& prompt1, const std::string& prompt2) const
+{
+    std::string passphrase1, passphrase2;
+
+    while (true)
+    {
+        term->cout() << prompt1 << ": ";
+        std::getline(term->cin(), passphrase1);
+
+        if (!term->cin().good())
+            throw PromptException("Failed to read passphrase");
+
+        term->cout() << "\n" << prompt2 << ": ";
+        std::getline(term->cin(), passphrase2);
+
+        if (!term->cin().good())
+            throw PromptException("Failed to read passphrase");
+
+        if (passphrase1 == passphrase2)
+        {
+            break;
+        }
+        else
+        {
+            term->cout() << "\nPassphrases did not match. Please try again.\n";
+        }
+    }
+
+    term->cout() << "\n";
+
+    return passphrase1;
+}
