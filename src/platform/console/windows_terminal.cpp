@@ -71,3 +71,17 @@ std::string mp::WindowsTerminal::read_all_cin()
     _setmode(_fileno(stdin), _O_BINARY);
     return mp::Terminal::read_all_cin();
 }
+
+void mp::WindowsTerminal::set_cin_echo(const bool enable)
+{
+    DWORD console_input_mode;
+
+    GetConsoleMode(cin_handle(), &console_input_mode);
+
+    if (!enable)
+        console_input_mode &= ~ENABLE_ECHO_INPUT;
+    else
+        console_input_mode |= ENABLE_ECHO_INPUT;
+
+    SetConsoleMode(cin_handle(), console_input_mode);
+}
