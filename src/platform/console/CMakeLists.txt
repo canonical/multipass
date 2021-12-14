@@ -13,13 +13,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-add_library(console STATIC
+function(add_target TARGET_NAME)
+  add_library(${TARGET_NAME} STATIC
     console.cpp
     terminal.cpp
     unix_console.cpp
     unix_terminal.cpp)
 
-target_link_libraries(console
-  client_platform
-  platform
-  libssh)
+  target_link_libraries(${TARGET_NAME}
+    client_platform
+    platform
+    libssh)
+endfunction()
+
+add_target(console)
+if(MULTIPASS_ENABLE_TESTS)
+  add_target(console_test)
+endif()
