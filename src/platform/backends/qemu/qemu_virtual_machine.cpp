@@ -213,8 +213,6 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
             shutdown();
         }
     }
-
-    qemu_platform->remove_resources_for(vm_name);
 }
 
 void mp::QemuVirtualMachine::start()
