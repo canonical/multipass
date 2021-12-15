@@ -239,6 +239,26 @@ jobs:
 
               _run $MP exec primary -- uname -a
 
+              # Ensure primary running after daemon restart
+              if [ '${{ matrix.os }}' == 'Linux' ]; then
+                _run sudo snap restart multipass
+
+              elif [ '${{ matrix.os }}' == 'macOS' ]; then
+                _run sudo launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
+                _run sudo launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
+
+              elif [ '${{ matrix.os }}' == 'Windows' ]; then
+                _ps "Restart-Service -Name Multipass"
+              fi
+
+              _retry_grep 12 5 "multipassd" _run $MP version
+
+              _run $MP list
+
+              _run $MP start primary --timeout 1200
+
+              _run $MP exec primary -- uname -a
+
     - name: Run the job
       id: run
       uses: nick-fields/retry@v2
