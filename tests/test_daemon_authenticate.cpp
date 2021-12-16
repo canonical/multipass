@@ -72,7 +72,8 @@ TEST_F(TestDaemonAuthenticate, authenticateNoPassphraseSetReturnsError)
                                         StrictMock<mpt::MockServerWriter<mp::AuthenticateReply>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_EQ(status.error_message(), "Passphrase is not set. Please set the local.passphrase with a trusted client.");
+    EXPECT_EQ(status.error_message(),
+              "Passphrase is not set. Please `multipass set local.passphrase` with a trusted client.");
 }
 
 TEST_F(TestDaemonAuthenticate, authenticatePassphraseMismatchReturnsError)
