@@ -123,7 +123,7 @@ std::shared_ptr<grpc::Channel> mp::client::make_secure_channel(const std::string
         // 2. Failing that, check if the multipass-gui certificate exists and determine if it's authenticated
         //    with the daemon already.  If it is, copy it to the common client certificate directory and use it.
         // 3. If that fails, then try the certificate from the cli client in the same manner as 2.
-        // 4. If cert dirs already exist, delete them.
+        // 4. Delete any per-client certificate dirs.
         // 5. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
         if (MP_UTILS.client_certs_exist(common_client_cert_dir_path))
         {
