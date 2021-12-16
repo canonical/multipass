@@ -57,12 +57,14 @@ QString cmd::Register::short_help() const
 
 QString cmd::Register::description() const
 {
-    return QStringLiteral("Register the client for allowing connections to the Multipass service.");
+    return QStringLiteral("Register with the Multipass service.\n"
+                          "A system administrator should provide you with a passphrase\n"
+                          "to allow use of the Multipass service.");
 }
 
 mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("passphrase", "Trusted passphrase to send to Multipass service", "<passphrase>");
+    parser->addPositionalArgument("passphrase", "Passphrase to register with the Multipass service", "<passphrase>");
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -77,7 +79,7 @@ mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() > 1)
     {
-        cerr << "Too many passphrases given\n";
+        cerr << "Too many arguments given\n";
         return ParseCode::CommandLineError;
     }
 
