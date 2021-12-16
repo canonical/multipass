@@ -2068,7 +2068,7 @@ try
     {
         return status_promise->set_value(
             grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
-                         "Passphrase is not set. Please set the local.passphrase with a trusted client."));
+                         "Passphrase is not set. Please `multipass set local.passphrase` with a trusted client."));
     }
 
     auto hashed_passphrase = MP_UTILS.generate_scrypt_hash_for(QString::fromStdString(request->passphrase()));
