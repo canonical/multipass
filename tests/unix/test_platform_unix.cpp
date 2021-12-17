@@ -37,7 +37,7 @@ struct TestPlatformUnix : public Test
 };
 } // namespace
 
-TEST_F(TestPlatformUnix, setServerPermissionsNotRestrictedIsCorrect)
+TEST_F(TestPlatformUnix, setServerSocketRestrictionsNotRestrictedIsCorrect)
 {
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
@@ -45,10 +45,10 @@ TEST_F(TestPlatformUnix, setServerPermissionsNotRestrictedIsCorrect)
     EXPECT_CALL(*mock_platform, chmod(_, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH))
         .WillOnce(Return(0));
 
-    EXPECT_NO_THROW(MP_PLATFORM.Platform::set_server_permissions(fmt::format("unix:{}", file.name()), false));
+    EXPECT_NO_THROW(MP_PLATFORM.Platform::set_server_socket_restrictions(fmt::format("unix:{}", file.name()), false));
 }
 
-TEST_F(TestPlatformUnix, setServerPermissionsRestrictedIsCorrect)
+TEST_F(TestPlatformUnix, setServerSocketRestrictionsRestrictedIsCorrect)
 {
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     const int gid{42};
@@ -60,26 +60,27 @@ TEST_F(TestPlatformUnix, setServerPermissionsRestrictedIsCorrect)
 
     REPLACE(getgrnam, [&group](auto) { return &group; });
 
-    EXPECT_NO_THROW(MP_PLATFORM.Platform::set_server_permissions(fmt::format("unix:{}", file.name()), true));
+    EXPECT_NO_THROW(MP_PLATFORM.Platform::set_server_socket_restrictions(fmt::format("unix:{}", file.name()), true));
 }
 
-TEST_F(TestPlatformUnix, setServerPermissionsNoUnixPathThrows)
+TEST_F(TestPlatformUnix, setServerSocketRestrictionsNoUnixPathThrows)
 {
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.set_server_permissions(file.name().toStdString(), false), std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.set_server_socket_restrictions(file.name().toStdString(), false),
+                         std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("invalid server address specified: {}", file.name()))));
 }
 
-TEST_F(TestPlatformUnix, setServerPermissionsNonUnixTypeReturns)
+TEST_F(TestPlatformUnix, setServerSocketRestrictionsNonUnixTypeReturns)
 {
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, chown).Times(0);
     EXPECT_CALL(*mock_platform, chmod).Times(0);
 
-    EXPECT_NO_THROW(MP_PLATFORM.Platform::set_server_permissions(fmt::format("dns:{}", file.name()), false));
+    EXPECT_NO_THROW(MP_PLATFORM.Platform::set_server_socket_restrictions(fmt::format("dns:{}", file.name()), false));
 }
 
-TEST_F(TestPlatformUnix, setServerPermissionsChownFailsThrows)
+TEST_F(TestPlatformUnix, setServerSocketRestrictionsChownFailsThrows)
 {
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
@@ -89,11 +90,12 @@ TEST_F(TestPlatformUnix, setServerPermissionsChownFailsThrows)
     });
 
     MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.Platform::set_server_permissions(fmt::format("unix:{}", file.name()), false), std::runtime_error,
+        MP_PLATFORM.Platform::set_server_socket_restrictions(fmt::format("unix:{}", file.name()), false),
+        std::runtime_error,
         mpt::match_what(StrEq("Could not set ownership of the multipass socket: Operation not permitted")));
 }
 
-TEST_F(TestPlatformUnix, setServerPermissionsChmodFailsThrows)
+TEST_F(TestPlatformUnix, setServerSocketRestrictionsChmodFailsThrows)
 {
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
@@ -105,7 +107,8 @@ TEST_F(TestPlatformUnix, setServerPermissionsChmodFailsThrows)
         });
 
     MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.Platform::set_server_permissions(fmt::format("unix:{}", file.name()), false), std::runtime_error,
+        MP_PLATFORM.Platform::set_server_socket_restrictions(fmt::format("unix:{}", file.name()), false),
+        std::runtime_error,
         mpt::match_what(StrEq("Could not set permissions for the multipass socket: Operation not permitted")));
 }
 

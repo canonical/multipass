@@ -84,7 +84,7 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
 
 TEST_F(TestDaemonRpc, setsRestrictedPermissionsWhenNoCerts)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, true)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).WillOnce(Return(true));
 
@@ -93,7 +93,7 @@ TEST_F(TestDaemonRpc, setsRestrictedPermissionsWhenNoCerts)
 
 TEST_F(TestDaemonRpc, setsUnrestrictedPermissionsWhenCertAlreadyExists)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, false)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).WillOnce(Return(false));
 
@@ -102,8 +102,8 @@ TEST_F(TestDaemonRpc, setsUnrestrictedPermissionsWhenCertAlreadyExists)
 
 TEST_F(TestDaemonRpc, authenticateCompletesSuccesfully)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, true)).Times(1);
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, false)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).WillOnce(Return(true)).WillOnce(Return(true));
     EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
@@ -118,7 +118,7 @@ TEST_F(TestDaemonRpc, authenticateCompletesSuccesfully)
 
 TEST_F(TestDaemonRpc, authenticateFailsSkipsCertImportCalls)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, true)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).WillOnce(Return(true));
     EXPECT_CALL(*mock_cert_store, add_cert(_)).Times(0);
@@ -133,7 +133,7 @@ TEST_F(TestDaemonRpc, authenticateFailsSkipsCertImportCalls)
 
 TEST_F(TestDaemonRpc, pingReturnsOkWhenCertIsVerified)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, false)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).WillOnce(Return(false));
     EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(true));
@@ -150,7 +150,7 @@ TEST_F(TestDaemonRpc, pingReturnsOkWhenCertIsVerified)
 
 TEST_F(TestDaemonRpc, pingReturnsUnauthenticatedWhenCertIsNotVerified)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, false)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).WillOnce(Return(false));
     EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(false));
@@ -168,7 +168,7 @@ TEST_F(TestDaemonRpc, pingReturnsUnauthenticatedWhenCertIsNotVerified)
 // The following 'list' command tests are for testing the authentication of an arbirary command in DaemonRpc
 TEST_F(TestDaemonRpc, listCertExistsCompletesSuccesfully)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, false)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).Times(2).WillRepeatedly(Return(false));
     EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(true));
@@ -183,8 +183,8 @@ TEST_F(TestDaemonRpc, listCertExistsCompletesSuccesfully)
 
 TEST_F(TestDaemonRpc, listNoCertsExistWillVerifyAndComplete)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, true)).Times(1);
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, false)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
@@ -199,7 +199,7 @@ TEST_F(TestDaemonRpc, listNoCertsExistWillVerifyAndComplete)
 
 TEST_F(TestDaemonRpc, listCertNotVerifiedHasError)
 {
-    EXPECT_CALL(*mock_platform, set_server_permissions(_, false)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).Times(2).WillRepeatedly(Return(false));
     EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(false));
@@ -219,7 +219,7 @@ TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
     server_address = "localhost:50052";
     config_builder.server_address = server_address;
 
-    EXPECT_CALL(*mock_platform, set_server_permissions).Times(0);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions).Times(0);
 
     EXPECT_CALL(*mock_cert_store, is_store_empty()).Times(0);
     EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(0);

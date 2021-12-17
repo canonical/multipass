@@ -86,7 +86,8 @@ std::string mp::platform::Platform::alias_path_message() const
                        get_alias_scripts_folder().absolutePath());
 }
 
-void mp::platform::Platform::set_server_permissions(const std::string& server_address, const bool restricted) const
+void mp::platform::Platform::set_server_socket_restrictions(const std::string& server_address,
+                                                            const bool restricted) const
 {
     auto tokens = mp::utils::split(server_address, ":");
     if (tokens.size() != 2u)

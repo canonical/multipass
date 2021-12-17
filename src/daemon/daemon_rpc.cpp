@@ -113,6 +113,7 @@ std::string client_cert_from(grpc::ServerContext* context)
 
     return client_cert;
 }
+
 } // namespace
 
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
@@ -125,7 +126,7 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionTyp
 {
     if (connection_type == mp::RpcConnectionType::ssl && server_socket_type == mp::ServerSocketType::unix)
     {
-        MP_PLATFORM.set_server_permissions(server_address, client_cert_store->is_store_empty());
+        MP_PLATFORM.set_server_socket_restrictions(server_address, client_cert_store->is_store_empty());
     }
 
     std::string ssl_enabled = type == mp::RpcConnectionType::ssl ? "on" : "off";
@@ -289,7 +290,7 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
 
         if (store_was_empty && server_socket_type == mp::ServerSocketType::unix)
         {
-            MP_PLATFORM.set_server_permissions(server_address, false);
+            MP_PLATFORM.set_server_socket_restrictions(server_address, false);
         }
     }
 
@@ -304,7 +305,7 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
         if (server_socket_type == mp::ServerSocketType::unix && client_cert_store->is_store_empty())
         {
             client_cert_store->add_cert(client_cert);
-            MP_PLATFORM.set_server_permissions(server_address, false);
+            MP_PLATFORM.set_server_socket_restrictions(server_address, false);
         }
         else if (!client_cert_store->verify_cert(client_cert))
         {
