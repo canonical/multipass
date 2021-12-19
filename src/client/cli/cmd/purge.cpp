@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/platform.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -32,7 +33,27 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::PurgeReply& reply) { return mp::ReturnCode::Ok; };
+    auto on_success = [this](mp::PurgeReply& reply) {
+        auto size = reply.purged_instances_size();
+        for (auto i = 0; i < size; ++i)
+        {
+            const auto removed_aliases = aliases.remove_aliases_for_instance(reply.purged_instances(i));
+
+            for (const auto& removed_alias : removed_aliases)
+            {
+                try
+                {
+                    MP_PLATFORM.remove_alias_script(removed_alias);
+                }
+                catch (const std::runtime_error& e)
+                {
+                    cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), removed_alias);
+                }
+            }
+        }
+
+        return mp::ReturnCode::Ok;
+    };
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 

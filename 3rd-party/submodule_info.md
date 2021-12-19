@@ -7,12 +7,12 @@ info on where to find release information about the submodule.
 **This file needs updating when a submodule is updated!**
 
 ### gRPC
-Version: 1.36.4 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.36.4..cb8af401)) |
+Version: 1.41.0 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.41.0..64647dc0)) |
 <https://github.com/CanonicalLtd/grpc.git> |
 <https://github.com/grpc/grpc/releases>
 
 ### libssh
-Version: 0.9.5 (+[our patches](https://github.com/CanonicalLtd/libssh/compare/libssh-0.9.5..4511b0b3)) |
+Version: 0.9.6 (+[our patches](https://github.com/CanonicalLtd/libssh/compare/libssh-0.9.6..6f4ec9be)) |
 <https://github.com/CanonicalLtd/libssh.git> |
 <https://www.libssh.org/>
 

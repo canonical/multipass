@@ -5,7 +5,7 @@
       "path": "daily_manifest.json",
       "updated": "Wed, 18 Oct 2017 12:14:50 +0000",
       "products": [
-        "com.ubuntu.cloud.daily:server:17.10:amd64"
+        "com.ubuntu.cloud.daily:server:17.10:@MANIFEST_ARCH@"
       ],
       "format": "products:1.0"
     },

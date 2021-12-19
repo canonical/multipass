@@ -13,6 +13,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(commands STATIC
+  alias.cpp
+  aliases.cpp
   animated_spinner.cpp
   common_cli.cpp
   delete.cpp
@@ -35,8 +37,9 @@ add_library(commands STATIC
   suspend.cpp
   transfer.cpp
   umount.cpp
+  unalias.cpp
   version.cpp
-  ${PLATFORM_COMMANDS})
+)
 
 target_link_libraries(commands
   client_common

@@ -32,6 +32,7 @@
 #include <multipass/utils.h>
 
 #include <QString>
+#include <QSysInfo>
 #include <QUrl>
 
 #include <chrono>
@@ -129,7 +130,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
     {
-        image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get(), manifest_ttl));
+        image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(),
+                                                                      url_downloader.get(), manifest_ttl));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, std::string>>{
                 {mp::release_remote, "https://cloud-images.ubuntu.com/releases/"},

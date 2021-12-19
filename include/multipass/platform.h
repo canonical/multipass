@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_PLATFORM_H
 #define MULTIPASS_PLATFORM_H
 
+#include <multipass/cli/alias_definition.h>
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
@@ -29,6 +30,7 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
 
+#include <QDir>
 #include <QString>
 
 #include <functional>
@@ -53,10 +55,15 @@ public:
     virtual QString get_workflows_url_override() const;
     virtual bool is_alias_supported(const std::string& alias, const std::string& remote) const;
     virtual bool is_remote_supported(const std::string& remote) const;
+    virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
     virtual bool link(const char* target, const char* link) const;
     virtual bool symlink(const char* target, const char* link, bool is_dir) const;
     virtual int utime(const char* path, int atime, int mtime) const;
+    virtual QDir get_alias_scripts_folder() const;
+    virtual void create_alias_script(const std::string& alias, const AliasDefinition& def) const;
+    virtual void remove_alias_script(const std::string& alias) const;
+    virtual std::string alias_path_message() const;
 };
 
 std::map<QString, QString> extra_settings_defaults();
@@ -73,7 +80,6 @@ QString default_privileged_mounts();
 
 QString daemon_config_home(); // temporary
 
-bool is_backend_supported(const QString& backend); // temporary
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();

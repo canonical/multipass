@@ -15,7 +15,10 @@
  *
  */
 
+#include "wrapped_qsettings.h"
+
 #include <multipass/constants.h>
+#include <multipass/file_ops.h>
 #include <multipass/platform.h>
 #include <multipass/settings.h>
 #include <multipass/standard_paths.h>
@@ -23,13 +26,11 @@
 
 #include <QDir>
 #include <QKeySequence>
-#include <QSettings>
 
 #include <algorithm>
 #include <cassert>
 #include <cerrno>
 #include <fstream>
-#include <iterator>
 #include <memory>
 #include <stdexcept>
 
@@ -85,9 +86,9 @@ QString file_for(const QString& key) // the key should have passed checks at thi
     return key.startsWith(daemon_root) ? daemon_file_path : client_file_path;
 }
 
-std::unique_ptr<QSettings> persistent_settings(const QString& key)
+std::unique_ptr<mp::WrappedQSettings> persistent_settings(const QString& key)
 {
-    auto ret = std::make_unique<QSettings>(file_for(key), QSettings::IniFormat);
+    auto ret = mp::WrappedQSettingsFactory::instance().make_wrapped_qsettings(file_for(key), QSettings::IniFormat);
     ret->setIniCodec("UTF-8");
 
     return ret;
@@ -95,16 +96,16 @@ std::unique_ptr<QSettings> persistent_settings(const QString& key)
 
 bool exists_but_unreadable(const QString& filename)
 {
-    std::ifstream stream;
-    stream.open(filename.toStdString(), std::ios_base::in);
-    return stream.fail() && errno && errno != ENOENT; /*
+    std::fstream in_stream;
+    MP_FILEOPS.open(in_stream, qPrintable(filename), std::ios_base::in);
+    return in_stream.fail() && errno && errno != ENOENT; /*
         Note: QFile::error() not enough for us: it would not distinguish the actual cause of failure;
         Note: errno is only set on some platforms, but those were experimentally verified to be the only ones that do
             not set a bad QSettings status on permission denied; to make this code portable, we need to account for a
             zero errno on the remaining platforms */
 }
 
-void check_status(const QSettings& settings, const QString& attempted_operation)
+void check_status(const mp::WrappedQSettings& settings, const QString& attempted_operation)
 {
     auto status = settings.status();
     if (status || exists_but_unreadable(settings.fileName()))
@@ -114,7 +115,8 @@ void check_status(const QSettings& settings, const QString& attempted_operation)
                                      : QStringLiteral("access error (consider running with an administrative role)")};
 }
 
-QString checked_get(const QSettings& settings, const QString& key, const QString& fallback, std::mutex& mutex)
+QString checked_get(const mp::WrappedQSettings& settings, const QString& key, const QString& fallback,
+                    std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 
@@ -124,7 +126,7 @@ QString checked_get(const QSettings& settings, const QString& key, const QString
     return ret;
 }
 
-void checked_set(QSettings& settings, const QString& key, const QString& val, std::mutex& mutex)
+void checked_set(mp::WrappedQSettings& settings, const QString& key, const QString& val, std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 
@@ -205,7 +207,7 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
     // TODO we should have handler callbacks instead
     if (key == petenv_key && !val.isEmpty() && !mp::utils::valid_hostname(val.toStdString()))
         throw InvalidSettingsException{key, val, "Invalid hostname"};
-    else if (key == driver_key && !mp::platform::is_backend_supported(val))
+    else if (key == driver_key && !MP_PLATFORM.is_backend_supported(val))
         throw InvalidSettingsException(key, val, "Invalid driver");
     else if ((key == autostart_key || key == mounts_key) && (val = interpret_bool(val)) != "true" && val != "false")
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");

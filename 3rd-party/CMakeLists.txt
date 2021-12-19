@@ -61,6 +61,11 @@ target_link_libraries(gRPC INTERFACE
 
 target_compile_options(gRPC INTERFACE "-Wno-unused-parameter")
 
+# TODO: remove this when gRPC fixes the compilation with g++ 11.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(gRPC INTERFACE "-Wno-error=maybe-uninitialized")
+endif()
+
 # YAML C++
 # Disable tests here to avoid double-including gtest
 option(YAML_CPP_BUILD_TOOLS OFF)

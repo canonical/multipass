@@ -31,7 +31,13 @@
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/lxd/lxd_virtual_machine_factory.h"
+
+#ifdef QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
+#else
+#define QEMU_ENABLED 0
+#endif
+
 #include "logger/journald_logger.h"
 #include "platform_linux_detail.h"
 #include "platform_shared.h"
@@ -39,13 +45,19 @@
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QRegularExpression>
 #include <QString>
 #include <QTextStream>
 
+#include <errno.h>
 #include <linux/if_arp.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -153,6 +165,13 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         }
     }
 }
+
+std::string get_alias_script_path(const std::string& alias)
+{
+    auto aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
+
+    return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
+}
 } // namespace
 
 std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
@@ -231,18 +250,68 @@ QString mp::platform::Platform::get_workflows_url_override() const
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
-    return true;
+    // snapcraft:core don't work on LXD yet
+    return !(utils::get_driver_str() == "lxd" && remote == "snapcraft" && (alias == "core" || alias == "16.04"));
 }
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
-    // snapcraft:core{18,20} images don't work on LXD yet, so whack it altogether.
-    return remote != "snapcraft" || utils::get_driver_str() != "lxd";
+    return true;
+}
+
+bool mp::platform::Platform::is_backend_supported(const QString& backend) const
+{
+    return (backend == "qemu" && QEMU_ENABLED) || backend == "libvirt" || backend == "lxd";
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     return ::link(target, link) == 0;
+}
+
+QDir mp::platform::Platform::get_alias_scripts_folder() const
+{
+    QDir aliases_folder;
+
+    if (mu::in_multipass_snap())
+    {
+        aliases_folder = QDir(QString(mu::snap_user_common_dir()) + "/bin");
+    }
+    else
+    {
+        QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
+        aliases_folder = QDir{location};
+    }
+
+    return aliases_folder;
+}
+
+void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def) const
+{
+    std::string file_path = get_alias_script_path(alias);
+
+    std::string multipass_exec = mu::in_multipass_snap()
+                                     ? "exec /usr/bin/snap run multipass"
+                                     : fmt::format("\"{}\"", QCoreApplication::applicationFilePath());
+
+    std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + " -- \"${@}\"\n";
+
+    MP_UTILS.make_file_with_content(file_path, script, true);
+
+    QFile file(QString::fromStdString(file_path));
+    auto permissions =
+        MP_FILEOPS.permissions(file) | QFileDevice::ExeOwner | QFileDevice::ExeGroup | QFileDevice::ExeOther;
+
+    if (!MP_FILEOPS.setPermissions(file, permissions))
+        throw std::runtime_error(fmt::format("cannot set permissions to alias script '{}'", file_path));
+}
+
+void mp::platform::Platform::remove_alias_script(const std::string& alias) const
+{
+    auto file_path = get_alias_script_path(alias);
+
+    if (::unlink(file_path.c_str()))
+        throw std::runtime_error(strerror(errno));
 }
 
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
@@ -312,7 +381,10 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::default_driver()
 {
-    return QStringLiteral("qemu");
+    if (QEMU_ENABLED)
+        return QStringLiteral("qemu");
+    else
+        return QStringLiteral("lxd");
 }
 
 QString mp::platform::default_privileged_mounts()
@@ -330,22 +402,21 @@ QString mp::platform::daemon_config_home() // temporary
     return ret;
 }
 
-bool mp::platform::is_backend_supported(const QString& backend)
-{
-    return backend == "qemu" || backend == "libvirt" || backend == "lxd";
-}
-
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     const auto& driver = utils::get_driver_str();
+#if QEMU_ENABLED
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
-    else if (driver == QStringLiteral("libvirt"))
+#endif
+
+    if (driver == QStringLiteral("libvirt"))
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
-    else if (driver == QStringLiteral("lxd"))
+
+    if (driver == QStringLiteral("lxd"))
         return std::make_unique<LXDVirtualMachineFactory>(data_dir);
-    else
-        throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
+
+    throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)

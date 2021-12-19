@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,15 @@
 #ifndef MULTIPASS_SSH_KEY_PROVIDER_H
 #define MULTIPASS_SSH_KEY_PROVIDER_H
 
+#include <multipass/disabled_copy_move.h>
+
 #include <libssh/libssh.h>
 
 #include <string>
 
 namespace multipass
 {
-class SSHKeyProvider
+class SSHKeyProvider : private DisabledCopyMove
 {
 public:
     virtual ~SSHKeyProvider() = default;
@@ -36,8 +38,6 @@ public:
 
 protected:
     SSHKeyProvider() = default;
-    SSHKeyProvider(const SSHKeyProvider&) = delete;
-    SSHKeyProvider& operator=(const SSHKeyProvider&) = delete;
 };
 }
 #endif // MULTIPASS_SSH_KEY_PROVIDER_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,9 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/cli_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h> // temporary
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -32,9 +34,9 @@ namespace
 {
 bool allow_only_stopped_instances(const QString& key, const QString& val) // temporary
 {
-    return key == mp::driver_key && mp::platform::is_backend_supported(val) && (val == "qemu" || val == "libvirt") &&
-           val != MP_SETTINGS.get(key); /* if we are switching between qemu and libvirt drivers (on linux),
-                                                        we can only have stopped instances */
+    return key == mp::driver_key && MP_PLATFORM.is_backend_supported(val) && (val == "qemu" || val == "libvirt") &&
+           val != MP_SETTINGS.get(key); /* if we are switching between qemu and libvirt drivers (on linux), we can only
+                                           have stopped instances */
 }
 } // namespace
 
@@ -107,10 +109,11 @@ QString cmd::Set::description() const
 
 mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument(
-        "keyval",
-        "A key-value pair. The key specifies a path to the setting to configure. The value is its intended value.",
-        "<key>=<value>");
+    parser->addPositionalArgument("keyval",
+                                  "A key, or a key-value pair. The key specifies a path to the setting to configure. "
+                                  "The value is its intended value. If only the key is given, "
+                                  "the value will be prompted for.",
+                                  "<key>[=<value>]");
 
     auto status = parser->commandParse(this);
     if (status == ParseCode::Ok)
@@ -124,18 +127,38 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
         else
         {
             const auto keyval = args.at(0).split('=', QString::KeepEmptyParts);
-            if (keyval.size() != 2 || keyval[0].isEmpty())
+            if ((keyval.size() != 1 && keyval.size() != 2) || keyval[0].isEmpty())
             {
                 cerr << "Bad key-value format.\n";
                 status = ParseCode::CommandLineError;
             }
-            else
+            else if (keyval.size() == 2)
             {
                 key = keyval.at(0);
                 val = keyval.at(1);
+            }
+            else
+            {
+                key = keyval.at(0);
+                status = checked_prompt(key);
             }
         }
     }
 
     return status;
+}
+
+mp::ParseCode cmd::Set::checked_prompt(const QString& key)
+{
+    mp::PlainPrompter prompter(term);
+    try
+    {
+        val = QString::fromStdString(prompter.prompt(key.toStdString()));
+        return ParseCode::Ok;
+    }
+    catch (const mp::PromptException& e)
+    {
+        cerr << e.what() << std::endl;
+        return ParseCode::CommandLineError;
+    }
 }

@@ -251,19 +251,44 @@ auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec
 
     return std::make_unique<mp::SSHProcess>(std::move(sshfs_process));
 }
+
+int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int id_if_not_found)
+{
+    if (id == mp::no_id_info_available)
+        return id_if_not_found;
+
+    auto map = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.first; });
+
+    if (map != id_maps.end())
+    {
+        if (map->second == mp::default_id)
+            return id_if_not_found;
+        else
+            return map->second;
+    }
+
+    return id;
+}
+
+int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int rev_id_if_not_found)
+{
+    auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.second; });
+
+    return found == id_maps.cend() ? rev_id_if_not_found : found->first;
+}
 } // namespace
 
 mp::SftpServer::SftpServer(SSHSession&& session, const std::string& source, const std::string& target,
-                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map,
-                           int default_uid, int default_gid, const std::string& sshfs_exec_line)
+                           const id_mappings& gid_mappings, const id_mappings& uid_mappings, int default_uid,
+                           int default_gid, const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, mp::utils::escape_char(source, '"'),
                                          mp::utils::escape_char(target, '"'))},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
       source_path{source},
       target_path{target},
-      gid_map{gid_map},
-      uid_map{uid_map},
+      gid_mappings{gid_mappings},
+      uid_mappings{uid_mappings},
       default_uid{default_uid},
       default_gid{default_gid},
       sshfs_exec_line{sshfs_exec_line}
@@ -300,38 +325,24 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
     return attr;
 }
 
-int mp::SftpServer::mapped_uid_for(const int uid)
+inline int mp::SftpServer::mapped_uid_for(const int uid)
 {
-    if (uid == mp::no_id_info_available)
-        return default_uid;
-
-    auto map = uid_map.find(uid);
-    if (map != uid_map.end())
-    {
-        if (map->second == mp::default_id)
-            return default_uid;
-        else
-            return map->second;
-    }
-
-    return uid;
+    return mapped_id_for(uid_mappings, uid, default_uid);
 }
 
-int mp::SftpServer::mapped_gid_for(const int gid)
+inline int mp::SftpServer::mapped_gid_for(const int gid)
 {
-    if (gid == mp::no_id_info_available)
-        return default_gid;
+    return mapped_id_for(gid_mappings, gid, default_gid);
+}
 
-    auto map = gid_map.find(gid);
-    if (map != gid_map.end())
-    {
-        if (map->second == mp::default_id)
-            return default_gid;
-        else
-            return map->second;
-    }
+inline int mp::SftpServer::reverse_uid_for(const int uid, const int rev_uid_if_not_found)
+{
+    return reverse_id_for(uid_mappings, uid, rev_uid_if_not_found);
+}
 
-    return gid;
+inline int mp::SftpServer::reverse_gid_for(const int gid, const int rev_gid_if_not_found)
+{
+    return reverse_id_for(gid_mappings, gid, rev_gid_if_not_found);
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
@@ -520,12 +531,14 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 
     QFileInfo current_dir(filename);
     QFileInfo parent_dir(current_dir.path());
-    auto ret = MP_PLATFORM.chown(filename, parent_dir.ownerId(), parent_dir.groupId());
-    if (ret < 0)
+
+    int rev_uid = reverse_uid_for(msg->attr->uid);
+    int rev_gid = reverse_gid_for(msg->attr->gid);
+
+    if (MP_PLATFORM.chown(filename, rev_uid, rev_gid) < 0)
     {
         mpl::log(mpl::Level::trace, category,
-                 fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, parent_dir.ownerId(),
-                             parent_dir.groupId()));
+                 fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, rev_uid, rev_gid));
         return reply_failure(msg);
     }
     return reply_ok(msg);
@@ -609,12 +622,14 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
         QFileInfo current_file(filename);
         QFileInfo current_dir(current_file.path());
-        auto ret = MP_PLATFORM.chown(filename, current_dir.ownerId(), current_dir.groupId());
-        if (ret < 0)
+
+        auto new_uid = reverse_uid_for(msg->attr->uid, current_dir.ownerId());
+        auto new_gid = reverse_gid_for(msg->attr->gid, current_dir.groupId());
+
+        if (MP_PLATFORM.chown(filename, new_uid, new_gid) < 0)
         {
             mpl::log(mpl::Level::trace, category,
-                     fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, current_dir.ownerId(),
-                                 current_dir.groupId()));
+                     fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, new_uid, new_gid));
             return reply_failure(msg);
         }
     }
@@ -915,14 +930,13 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
+    if ((msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID) &&
+        (MP_PLATFORM.chown(filename.toStdString().c_str(), reverse_uid_for(msg->attr->uid),
+                           reverse_gid_for(msg->attr->gid)) < 0))
     {
-        if (MP_PLATFORM.chown(filename.toStdString().c_str(), msg->attr->uid, msg->attr->gid) < 0)
-        {
-            mpl::log(mpl::Level::trace, category,
-                     fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
-            return reply_failure(msg);
-        }
+        mpl::log(mpl::Level::trace, category,
+                 fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
+        return reply_failure(msg);
     }
 
     return reply_ok(msg);
@@ -988,12 +1002,14 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 
     QFileInfo current_file(new_name);
     QFileInfo current_dir(current_file.path());
-    auto ret = MP_PLATFORM.chown(new_name, current_dir.ownerId(), current_dir.groupId());
-    if (ret < 0)
+
+    auto new_uid = reverse_uid_for(msg->attr->uid, current_dir.ownerId());
+    auto new_gid = reverse_gid_for(msg->attr->gid, current_dir.groupId());
+
+    if (MP_PLATFORM.chown(new_name, new_uid, new_gid) < 0)
     {
         mpl::log(mpl::Level::trace, category,
-                 fmt::format("failed to chown '{}' to owner:{} and group:{}", new_name, current_dir.ownerId(),
-                             current_dir.groupId()));
+                 fmt::format("failed to chown '{}' to owner:{} and group:{}", new_name, new_uid, new_gid));
         return reply_failure(msg);
     }
 

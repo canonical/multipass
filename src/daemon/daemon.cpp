@@ -17,7 +17,6 @@
 
 #include "daemon.h"
 #include "base_cloud_init_config.h"
-#include "json_writer.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -26,7 +25,9 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/ip_address.h>
+#include <multipass/json_writer.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -35,6 +36,7 @@
 #include <multipass/query.h>
 #include <multipass/settings.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
@@ -296,8 +298,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         std::unordered_map<std::string, mp::VMMount> mounts;
-        std::unordered_map<int, int> uid_map;
-        std::unordered_map<int, int> gid_map;
+        mp::id_mappings uid_mappings;
+        mp::id_mappings gid_mappings;
 
         for (QJsonValueRef entry : record["mounts"].toArray())
         {
@@ -306,15 +308,17 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
             for (QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
             {
-                uid_map[uid_entry.toObject()["host_uid"].toInt()] = uid_entry.toObject()["instance_uid"].toInt();
+                uid_mappings.push_back(
+                    {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
             }
 
             for (QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
             {
-                gid_map[gid_entry.toObject()["host_gid"].toInt()] = gid_entry.toObject()["instance_gid"].toInt();
+                gid_mappings.push_back(
+                    {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
             }
 
-            mp::VMMount mount{source_path, gid_map, uid_map};
+            mp::VMMount mount{source_path, gid_mappings, uid_mappings};
             mounts[target_path] = mount;
         }
 
@@ -459,6 +463,11 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     try
     {
         workflow_provider.info_for(request->image());
+    }
+    catch (const mp::IncompatibleWorkflowException&)
+    {
+        throw std::runtime_error(
+            fmt::format("The \"{}\" workflow is not compatible with this host.", request->image()));
     }
     catch (const std::out_of_range&)
     {
@@ -982,8 +991,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
             QTimer::singleShot(0, [this, &name] {
-                vm_instances[name]->start();
-                on_restart(name);
+                multipass::top_catch_all(name, [this, &name]() {
+                    vm_instances[name]->start();
+                    on_restart(name);
+                });
             });
         }
     }
@@ -1112,12 +1123,18 @@ void mp::Daemon::purge(const PurgeRequest* request, grpc::ServerWriterInterface<
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    PurgeReply response;
+
     for (const auto& del : deleted_instances)
+    {
         release_resources(del.first);
+        response.add_purged_instances(del.first);
+    }
 
     deleted_instances.clear();
     persist_instances();
 
+    server->Write(response);
     status_promise->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
@@ -1317,13 +1334,17 @@ try // clang-format on
                 entry->set_source_path(mount.second.source_path);
                 entry->set_target_path(mount.first);
 
-                for (const auto& uid_map : mount.second.uid_map)
+                for (const auto& uid_mapping : mount.second.uid_mappings)
                 {
-                    (*entry->mutable_mount_maps()->mutable_uid_map())[uid_map.first] = uid_map.second;
+                    auto uid_pair = entry->mutable_mount_maps()->add_uid_mappings();
+                    uid_pair->set_host_id(uid_mapping.first);
+                    uid_pair->set_instance_id(uid_mapping.second);
                 }
-                for (const auto& gid_map : mount.second.gid_map)
+                for (const auto& gid_mapping : mount.second.gid_mappings)
                 {
-                    (*entry->mutable_mount_maps()->mutable_gid_map())[gid_map.first] = gid_map.second;
+                    auto gid_pair = entry->mutable_mount_maps()->add_gid_mappings();
+                    gid_pair->set_host_id(gid_mapping.first);
+                    gid_pair->set_instance_id(gid_mapping.second);
                 }
             }
         }
@@ -1506,10 +1527,21 @@ try // clang-format on
                          fmt::format("source \"{}\" is not readable", request->source_path()), ""));
     }
 
-    std::unordered_map<int, int> uid_map{request->mount_maps().uid_map().begin(),
-                                         request->mount_maps().uid_map().end()};
-    std::unordered_map<int, int> gid_map{request->mount_maps().gid_map().begin(),
-                                         request->mount_maps().gid_map().end()};
+    mp::id_mappings uid_mappings, gid_mappings;
+
+    auto mount_maps = request->mount_maps();
+
+    for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
+    {
+        auto map_pair = mount_maps.uid_mappings(i);
+        uid_mappings.push_back({map_pair.host_id(), map_pair.instance_id()});
+    }
+
+    for (auto i = 0; i < mount_maps.gid_mappings_size(); ++i)
+    {
+        auto map_pair = mount_maps.gid_mappings(i);
+        gid_mappings.push_back({map_pair.host_id(), map_pair.instance_id()});
+    }
 
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
@@ -1542,7 +1574,7 @@ try // clang-format on
         {
             try
             {
-                instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_map, uid_map);
+                instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings, uid_mappings);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1559,7 +1591,8 @@ try // clang-format on
                     mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                            *config->ssh_key_provider};
                     mp::utils::install_sshfs_for(name, session);
-                    instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_map, uid_map);
+                    instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings,
+                                                uid_mappings);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
@@ -1579,7 +1612,7 @@ try // clang-format on
             continue;
         }
 
-        VMMount mount{request->source_path(), gid_map, uid_map};
+        VMMount mount{request->source_path(), gid_mappings, uid_mappings};
         vm_specs.mounts[target_path] = mount;
     }
 
@@ -1872,6 +1905,7 @@ void mp::Daemon::delet(const DeleteRequest* request, grpc::ServerWriterInterface
 try // clang-format on
 {
     mpl::ClientLogger<DeleteReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    DeleteReply response;
 
     const auto [operational_instances_to_delete, trashed_instances_to_delete, status] =
         find_instances_to_delete(request->instance_names().instance_name(), vm_instances, deleted_instances);
@@ -1893,7 +1927,10 @@ try // clang-format on
             instance->shutdown();
 
             if (purge)
+            {
                 release_resources(name);
+                response.add_purged_instances(name);
+            }
             else
             {
                 deleted_instances[name] = std::move(instance);
@@ -1910,12 +1947,14 @@ try // clang-format on
                 assert(vm_instance_specs[name].deleted);
                 release_resources(name);
                 deleted_instances.erase(name);
+                response.add_purged_instances(name);
             }
         }
 
         persist_instances();
     }
 
+    server->Write(response);
     status_promise->set_value(status);
 }
 catch (const std::exception& e)
@@ -2095,29 +2134,29 @@ void mp::Daemon::persist_instances()
             entry.insert("source_path", QString::fromStdString(mount.second.source_path));
             entry.insert("target_path", QString::fromStdString(mount.first));
 
-            QJsonArray uid_map;
-            for (const auto& map : mount.second.uid_map)
+            QJsonArray uid_mappings;
+            for (const auto& map : mount.second.uid_mappings)
             {
                 QJsonObject map_entry;
                 map_entry.insert("host_uid", map.first);
                 map_entry.insert("instance_uid", map.second);
 
-                uid_map.append(map_entry);
+                uid_mappings.append(map_entry);
             }
 
-            entry.insert("uid_mappings", uid_map);
+            entry.insert("uid_mappings", uid_mappings);
 
-            QJsonArray gid_map;
-            for (const auto& map : mount.second.gid_map)
+            QJsonArray gid_mappings;
+            for (const auto& map : mount.second.gid_mappings)
             {
                 QJsonObject map_entry;
                 map_entry.insert("host_gid", map.first);
                 map_entry.insert("instance_gid", map.second);
 
-                gid_map.append(map_entry);
+                gid_mappings.append(map_entry);
             }
 
-            entry.insert("gid_mappings", gid_map);
+            entry.insert("gid_mappings", gid_mappings);
             mounts.append(entry);
         }
 
@@ -2530,12 +2569,12 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
             {
                 auto& target_path = mount_entry.first;
                 auto& source_path = mount_entry.second.source_path;
-                auto& uid_map = mount_entry.second.uid_map;
-                auto& gid_map = mount_entry.second.gid_map;
+                auto& uid_mappings = mount_entry.second.uid_mappings;
+                auto& gid_mappings = mount_entry.second.gid_mappings;
 
                 try
                 {
-                    instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
+                    instance_mounts.start_mount(vm.get(), source_path, target_path, gid_mappings, uid_mappings);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
@@ -2551,7 +2590,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                         mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                                *config->ssh_key_provider};
                         mp::utils::install_sshfs_for(name, session);
-                        instance_mounts.start_mount(vm.get(), source_path, target_path, gid_map, uid_map);
+                        instance_mounts.start_mount(vm.get(), source_path, target_path, gid_mappings, uid_mappings);
                     }
                     catch (const mp::SSHFSMissingError&)
                     {

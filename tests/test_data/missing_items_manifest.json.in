@@ -4,9 +4,9 @@
   "format": "products:1.0",
   "license": "http://www.canonical.com/intellectual-property-policy",
   "products": {
-    "com.ubuntu.cloud:server:16.04:amd64": {
+    "com.ubuntu.cloud:server:16.04:@MANIFEST_ARCH@": {
       "aliases": "16.04,default,lts,x,xenial",
-      "arch": "amd64",
+      "arch": "@MANIFEST_ARCH@",
       "os": "ubuntu",
       "release": "xenial",
       "release_codename": "Xenial Xerus",
@@ -17,7 +17,7 @@
       "versions": {
         "20170516": {
           "label": "release",
-          "pubname": "ubuntu-xenial-16.04-amd64-server-20170516"
+          "pubname": "ubuntu-xenial-16.04-@MANIFEST_ARCH@-server-20170516"
         }
       }
     }

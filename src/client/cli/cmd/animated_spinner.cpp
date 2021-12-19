@@ -26,7 +26,7 @@ namespace
 void clear_line(std::ostream& out)
 {
     out << "\r" << std::setw(80) << " ";
-    out << "\r";
+    out << "\r" << std::flush;
 }
 }
 

@@ -17,6 +17,7 @@
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
+#include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
@@ -168,7 +169,7 @@ void set_owner_for(mp::SSHSession& session, const std::string& root, const std::
 }
 
 auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const std::string& target,
-                      const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
+                      const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
 {
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(source = {}, target = {}, …): ", __FILE__, __LINE__, __FUNCTION__, source, target));
@@ -196,15 +197,16 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
         set_owner_for(session, leading, missing, default_uid, default_gid);
     }
 
-    return std::make_unique<mp::SftpServer>(std::move(session), source, leading + missing, gid_map, uid_map,
+    return std::make_unique<mp::SftpServer>(std::move(session), source, leading + missing, gid_mappings, uid_mappings,
                                             default_uid, default_gid, sshfs_exec_line);
 }
 
 } // namespace
 
 mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
-                           const std::unordered_map<int, int>& gid_map, const std::unordered_map<int, int>& uid_map)
-    : sftp_server{make_sftp_server(std::move(session), source, target, gid_map, uid_map)}, sftp_thread{[this] {
+                           const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
+    : sftp_server{make_sftp_server(std::move(session), source, target, gid_mappings, uid_mappings)},
+      sftp_thread{[this] {
           std::cout << "Connected" << std::endl;
           sftp_server->run();
           std::cout << "Stopped" << std::endl;

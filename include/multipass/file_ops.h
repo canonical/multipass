@@ -26,6 +26,8 @@
 #include <QString>
 #include <QTextStream>
 
+#include <fstream>
+
 #define MP_FILEOPS multipass::FileOps::instance()
 
 namespace multipass
@@ -36,12 +38,15 @@ public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
     // QDir operations
-    virtual bool isReadable(QDir& dir) const;
+    virtual bool isReadable(const QDir& dir) const;
+    virtual bool mkpath(const QDir& dir, const QString& dirName) const;
     virtual bool rmdir(QDir& dir, const QString& dirName) const;
 
     // QFile operations
-    virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
+    virtual bool exists(const QFile& file) const;
     virtual bool is_open(const QFile& file) const;
+    virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
+    virtual QFileDevice::Permissions permissions(const QFile& file) const;
     virtual qint64 read(QFile& file, char* data, qint64 maxSize) const;
     virtual QByteArray read_all(QFile& file) const;
     virtual QString read_line(QTextStream& text_stream) const;
@@ -53,6 +58,9 @@ public:
     virtual qint64 size(QFile& file) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFile& file, const QByteArray& data) const;
+
+    // std operations
+    virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;
 };
 } // namespace multipass
 

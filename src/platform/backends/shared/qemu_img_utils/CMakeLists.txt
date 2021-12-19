@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_library(qemu_img_utils STATIC
+add_library(qemu_img_utils STATIC EXCLUDE_FROM_ALL
   qemu_img_utils.cpp)
 
 target_link_libraries(qemu_img_utils

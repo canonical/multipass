@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_QEMU_PLATFORM_H
 #define MULTIPASS_QEMU_PLATFORM_H
 
+#include <multipass/disabled_copy_move.h>
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
@@ -32,7 +33,7 @@
 
 namespace multipass
 {
-class QemuPlatform
+class QemuPlatform : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<QemuPlatform>;
@@ -42,10 +43,11 @@ public:
     virtual optional<IPAddress> get_ip_for(const std::string& hw_addr) = 0;
     virtual void remove_resources_for(const std::string&) = 0;
     virtual void platform_health_check() = 0;
-    virtual QStringList platform_args(const VirtualMachineDescription& vm_desc)
+    virtual QStringList vmstate_platform_args()
     {
         return {};
     };
+    virtual QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) = 0;
     virtual QString get_directory_name()
     {
         return {};
@@ -53,8 +55,6 @@ public:
 
 protected:
     explicit QemuPlatform() = default;
-    QemuPlatform(const QemuPlatform&) = delete;
-    QemuPlatform& operator=(const QemuPlatform&) = delete;
 };
 
 #define MP_QEMU_PLATFORM_FACTORY multipass::QemuPlatformFactory::instance()

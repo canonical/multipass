@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2018-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,13 @@
 #ifndef MULTIPASS_CERTPROVIDER_H
 #define MULTIPASS_CERTPROVIDER_H
 
+#include "disabled_copy_move.h"
+
 #include <string>
 
 namespace multipass
 {
-class CertProvider
+class CertProvider : private DisabledCopyMove
 {
 public:
     virtual ~CertProvider() = default;
@@ -31,8 +33,6 @@ public:
 
 protected:
     CertProvider() = default;
-    CertProvider(const CertProvider&) = delete;
-    CertProvider& operator=(const CertProvider&) = delete;
 };
 } // namespace multipass
 #endif // MULTIPASS_CERTPROVIDER_H

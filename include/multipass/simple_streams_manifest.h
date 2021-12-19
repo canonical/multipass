@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2017-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,8 @@
 #ifndef MULTIPASS_SIMPLE_STREAMS_MANIFEST_H
 #define MULTIPASS_SIMPLE_STREAMS_MANIFEST_H
 
-#include <multipass/vm_image_info.h>
+#include "disabled_copy_move.h"
+#include "vm_image_info.h"
 
 #include <QByteArray>
 #include <QMap>
@@ -34,8 +35,6 @@ namespace multipass
 
 struct SimpleStreamsManifest
 {
-    SimpleStreamsManifest(const SimpleStreamsManifest&) = delete;
-    SimpleStreamsManifest& operator=(const SimpleStreamsManifest&) = delete;
     static std::unique_ptr<SimpleStreamsManifest> fromJson(const QByteArray& json, const QString& host_url);
 
     const QString updated_at;

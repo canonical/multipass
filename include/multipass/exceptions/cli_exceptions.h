@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,22 +13,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#include "json_writer.h"
+#ifndef MULTIPASS_CLI_EXCEPTIONS_H
+#define MULTIPASS_CLI_EXCEPTIONS_H
 
-#include <QFile>
-#include <QJsonDocument>
+#include <stdexcept>
 
-namespace mp = multipass;
-
-void mp::write_json(const QJsonObject& root, QString file_name)
+namespace multipass
 {
-    QJsonDocument doc{root};
-    auto raw_json = doc.toJson();
-    QFile db_file{file_name};
-    db_file.open(QIODevice::ReadWrite | QIODevice::Truncate);
-    db_file.write(raw_json);
-}
+class PromptException : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
+} // namespace multipass
+
+#endif // MULTIPASS_CLI_EXCEPTIONS_H

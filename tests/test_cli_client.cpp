@@ -17,7 +17,10 @@
 
 #include "common.h"
 #include "disabling_macros.h"
+#include "fake_alias_config.h"
 #include "mock_environment_helpers.h"
+#include "mock_file_ops.h"
+#include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
@@ -37,6 +40,7 @@
 #include <QStringList>
 #include <QTemporaryFile>
 #include <QtCore/QTemporaryDir>
+#include <QtGlobal>
 
 #include <chrono>
 #include <initializer_list>
@@ -281,6 +285,23 @@ struct Client : public Test
                                                                               reset at the end of each test */
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
 };
+
+struct ClientAlias : public Client, public FakeAliasConfig
+{
+    ClientAlias()
+    {
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
+            .WillRepeatedly(Return(fake_alias_dir.path()));
+
+        EXPECT_CALL(*mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
+        EXPECT_CALL(*mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
+    }
+
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform* mock_platform = attr.first;
+};
+
+typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
 std::stringstream Client::trash_stream; // replace with inline in C++17
 
@@ -597,6 +618,28 @@ TEST_F(Client, launch_cmd_good_arguments)
 {
     EXPECT_CALL(mock_daemon, launch(_, _, _));
     EXPECT_THAT(send_command({"launch", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_wrong_mem_arguments)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).Times(0);
+    MP_EXPECT_THROW_THAT(send_command({"launch", "-m", "wrong"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("wrong is not a valid memory size")));
+    MP_EXPECT_THROW_THAT(send_command({"launch", "--mem", "1.23f"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("1.23f is not a valid memory size")));
+    MP_EXPECT_THROW_THAT(send_command({"launch", "-mem", "2048M"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("em is not a valid memory size"))); // note single dash
+}
+
+TEST_F(Client, launch_cmd_wrong_disk_arguments)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _, _)).Times(0);
+    MP_EXPECT_THROW_THAT(send_command({"launch", "-d", "wrong"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("wrong is not a valid memory size")));
+    MP_EXPECT_THROW_THAT(send_command({"launch", "--disk", "4.56f"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("4.56f is not a valid memory size")));
+    MP_EXPECT_THROW_THAT(send_command({"launch", "-disk", "8192M"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("isk is not a valid memory size"))); // note single dash
 }
 
 TEST_F(Client, launch_cmd_help_ok)
@@ -950,6 +993,31 @@ TEST_F(Client, exec_cmd_no_double_dash_no_unknown_option_fails_does_not_print_su
                       "<command> <arguments>\n")));
 }
 
+TEST_F(Client, exec_cmd_starts_instance_if_stopped_or_suspended)
+{
+    const auto instance = "ordinary";
+    const auto ssh_info_matcher = make_ssh_info_instance_matcher(instance);
+    const auto start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(instance);
+    const grpc::Status ok{}, aborted{grpc::StatusCode::ABORTED, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, start(_, start_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(ok));
+
+    EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, exec_cmd_fails_on_other_absent_instance)
+{
+    const auto instance = "ordinary";
+    const auto instance_matcher = make_ssh_info_instance_matcher(instance);
+    const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, instance_matcher, _)).WillOnce(Return(notfound));
+    EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::CommandFail));
+}
+
 // help cli tests
 TEST_F(Client, help_cmd_ok_with_valid_single_arg)
 {
@@ -1048,53 +1116,53 @@ TEST_F(Client, mount_cmd_fails_invalid_source_path)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_good_valid_uid_map)
+TEST_F(Client, mount_cmd_good_valid_uid_mappings)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "1000:501", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_good_valid_large_uid_map)
+TEST_F(Client, mount_cmd_good_valid_large_uid_mappings)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "218038053:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_fails_invalid_string_uid_map)
+TEST_F(Client, mount_cmd_fails_invalid_string_uid_mappings)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "foo:bar", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_fails_invalid_host_int_uid_map)
+TEST_F(Client, mount_cmd_fails_invalid_host_int_uid_mappings)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-u", "5000000000:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_good_valid_gid_map)
+TEST_F(Client, mount_cmd_good_valid_gid_mappings)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "1000:501", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_good_valid_large_gid_map)
+TEST_F(Client, mount_cmd_good_valid_large_gid_mappings)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "218038053:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, mount_cmd_fails_invalid_string_gid_map)
+TEST_F(Client, mount_cmd_fails_invalid_string_gid_mappings)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "foo:bar", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mount_cmd_fails_invalid_host_int_gid_map)
+TEST_F(Client, mount_cmd_fails_invalid_host_int_gid_mappings)
 {
     EXPECT_THAT(send_command({"mount", mpt::test_data_path().toStdString(), "-g", "5000000000:0", "test-vm:test"}),
                 Eq(mp::ReturnCode::CommandLineError));
@@ -1970,6 +2038,16 @@ TEST_P(TestBasicGetSetOptions, set_cmd_allows_empty_val)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_P(TestBasicGetSetOptions, InteractiveSetWritesSettings)
+{
+    const auto& key = GetParam();
+    const auto val = "blah";
+    std::istringstream cin{fmt::format("{}\n", val)};
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_THAT(send_command({"set", key}, trash_stream, trash_stream, cin), Eq(mp::ReturnCode::Ok));
+}
+
 INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions,
                          Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key,
                                 mp::bridged_interface_key, mp::mounts_key));
@@ -2001,7 +2079,6 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
 {
     EXPECT_CALL(mock_settings, set(_, _)).Times(0); // this is not where the rejection is here
     EXPECT_THAT(send_command({"set", "="}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"set", "abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=foo=bar"}), Eq(mp::ReturnCode::CommandLineError));
@@ -2011,6 +2088,15 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
     EXPECT_THAT(send_command({"set", "foo==bar"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo===bar"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "x=x=x"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, InteractiveSetFailsWithEOF)
+{
+    std::ostringstream cerr;
+    std::istringstream cin;
+
+    EXPECT_THAT(send_command({"set", mp::petenv_key}, trash_stream, cerr, cin), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(cerr.str(), HasSubstr("Failed to read value"));
 }
 
 TEST_F(Client, get_cmd_fails_with_unknown_key)
@@ -2026,6 +2112,18 @@ TEST_F(Client, set_cmd_fails_with_unknown_key)
     const auto val = "blah";
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, InteractiveSetFailsWithUnknownKey)
+{
+    const auto key = "wrong.key";
+    const auto val = "blah";
+    std::ostringstream cerr;
+    std::istringstream cin{fmt::format("{}\n", val)};
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_THAT(send_command({"set", key}, trash_stream, cerr, cin), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(cerr.str(), HasSubstr("Unrecognized settings key: 'wrong.key'"));
 }
 
 TEST_F(Client, get_handles_persistent_settings_errors)
@@ -2274,6 +2372,29 @@ TEST_F(Client, help_returns_ok_return_code)
     EXPECT_THAT(send_command({"--help"}), Eq(mp::ReturnCode::Ok));
 }
 
+struct HelpTestsuite : public ClientAlias, public WithParamInterface<std::pair<std::string, std::string>>
+{
+};
+
+TEST_P(HelpTestsuite, answers_correctly)
+{
+    auto [command, expected_text] = GetParam();
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"help", command}, cout_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_text));
+
+    cout_stream.str(std::string());
+    EXPECT_EQ(send_command({command, "-h"}, cout_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_text));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, HelpTestsuite,
+                         Values(std::make_pair(std::string{"alias"},
+                                               "Create an alias to be executed on a given instance.\n"),
+                                std::make_pair(std::string{"aliases"}, "List available aliases\n"),
+                                std::make_pair(std::string{"unalias"}, "Remove an alias\n")));
+
 TEST_F(Client, command_help_is_different_than_general_help)
 {
     std::stringstream general_help_output;
@@ -2435,4 +2556,401 @@ INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
                          Values(std::vector<std::string>{"launch"},
                                 std::vector<std::string>{"mount", "..", "test-vm:test"},
                                 std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
+
+auto info_function = [](grpc::ServerContext*, const mp::InfoRequest* request,
+                        grpc::ServerWriter<mp::InfoReply>* response) {
+    mp::InfoReply info_reply;
+
+    if (request->instance_names().instance_name(0) == "primary")
+    {
+        auto vm_info = info_reply.add_info();
+        vm_info->set_name("primary");
+        vm_info->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+
+        response->Write(info_reply);
+
+        return grpc::Status{};
+    }
+    else
+        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+};
+
+TEST_F(ClientAlias, alias_creates_alias)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
+
+    EXPECT_EQ(send_command({"alias", "primary:another_command", "another_alias"}), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
+                                   "primary,another_command\n");
+}
+
+struct ClientAliasNameSuite : public ClientAlias,
+                              public WithParamInterface<std::tuple<std::string /* command */, std::string /* path */>>
+{
+};
+
+TEST_P(ClientAliasNameSuite, creates_correct_default_alias_name)
+{
+    const auto& [command, path] = GetParam();
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::vector<std::string> arguments{"alias"};
+    arguments.push_back(fmt::format("primary:{}{}", path, command));
+
+    EXPECT_EQ(send_command(arguments), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), fmt::format("Alias,Instance,Command\n"
+                                               "{},primary,{}{}\n",
+                                               command, path, command));
+}
+
+INSTANTIATE_TEST_SUITE_P(ClientAlias, ClientAliasNameSuite,
+                         Combine(Values("command", "com.mand", "com.ma.nd"),
+                                 Values("", "/", "./", "./relative/", "/absolute/", "../more/relative/")));
+
+TEST_F(ClientAlias, fails_if_cannot_write_script)
+{
+    EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("aaa")));
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"alias", "primary:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(cerr_stream.str(), "Error when creating script for alias: aaa\n");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\n");
+}
+
+TEST_F(ClientAlias, alias_does_not_overwrite_alias)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"alias", "primary:another_command", "an_alias"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists\n");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+}
+
+struct ArgumentCheckTestsuite
+    : public ClientAlias,
+      public WithParamInterface<std::tuple<std::vector<std::string>, mp::ReturnCode, std::string, std::string>>
+{
+};
+
+TEST_P(ArgumentCheckTestsuite, answers_correctly)
+{
+    auto [arguments, expected_return_code, expected_cout, expected_cerr] = GetParam();
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cout_stream, cerr_stream;
+    EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream), expected_return_code);
+
+    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_cout));
+    EXPECT_EQ(cerr_stream.str(), expected_cerr);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Client, ArgumentCheckTestsuite,
+    Values(std::make_tuple(std::vector<std::string>{"alias"}, mp::ReturnCode::CommandLineError, "",
+                           "Wrong number of arguments given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "instance", "command", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Wrong number of arguments given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "instance", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "No command given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "alias_name"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", ":command"}, mp::ReturnCode::CommandLineError, "",
+                           "No instance name given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", ":command", "alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "No instance name given\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "relative/alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Alias has to be a valid filename\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "/absolute/alias_name"},
+                           mp::ReturnCode::CommandLineError, "", "Alias has to be a valid filename\n"),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "weird alias_name"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "com.mand"}, mp::ReturnCode::Ok,
+                           "You'll need to add", ""),
+           std::make_tuple(std::vector<std::string>{"alias", "primary:command", "com.ma.nd"}, mp::ReturnCode::Ok,
+                           "You'll need to add", "")));
+
+TEST_F(ClientAlias, empty_aliases)
+{
+    std::stringstream cout_stream;
+    send_command({"aliases"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "No aliases defined.\n");
+}
+
+TEST_F(ClientAlias, bad_aliases_format)
+{
+    std::stringstream cerr_stream;
+    send_command({"aliases", "--format", "wrong"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), "Invalid format type given.\n");
+}
+
+TEST_F(ClientAlias, too_many_aliases_arguments)
+{
+    std::stringstream cerr_stream;
+    send_command({"aliases", "bad_argument"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), "This command takes no arguments\n");
+}
+
+TEST_F(ClientAlias, execute_existing_alias)
+{
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+
+    EXPECT_EQ(send_command({"some_alias"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(ClientAlias, execute_unexisting_alias)
+{
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(0);
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"other_undefined_alias"}, cout_stream), mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Unknown command or alias"));
+}
+
+TEST_F(ClientAlias, execute_alias_with_arguments)
+{
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+
+    EXPECT_EQ(send_command({"some_alias", "some_argument"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(ClientAlias, fails_executing_alias_without_separator)
+{
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).Times(0);
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"some_alias", "--some-option"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("<alias> --"));
+}
+
+TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
+
+    std::stringstream cout_stream, cerr_stream;
+    send_command({"alias", "foo:another_command", "another_alias"}, cout_stream, cerr_stream);
+
+    EXPECT_EQ(cout_stream.str(), "");
+    EXPECT_EQ(cerr_stream.str(), "Instance 'foo' does not exist\n");
+
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+}
+
+TEST_F(ClientAlias, alias_refuses_creation_rpc_error)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
+
+    std::stringstream cout_stream, cerr_stream;
+    send_command({"alias", "foo:another_command", "another_alias"}, cout_stream, cerr_stream);
+
+    EXPECT_EQ(cout_stream.str(), "");
+    EXPECT_EQ(cerr_stream.str(), "Error retrieving list of instances\n");
+
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+}
+
+TEST_F(ClientAlias, unalias_removes_existing_alias)
+{
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
+                                   {"another_alias", {"another_instance", "another_command"}}});
+
+    EXPECT_EQ(send_command({"unalias", "another_alias"}), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+}
+
+TEST_F(ClientAlias, unalias_succeeds_even_if_script_cannot_be_removed)
+{
+    EXPECT_CALL(*mock_platform, remove_alias_script(_)).Times(1).WillRepeatedly(Throw(std::runtime_error("bbb")));
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
+                                   {"another_alias", {"another_instance", "another_command"}}});
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"unalias", "another_alias"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cerr_stream.str(), Eq("Warning: 'bbb' when removing alias script for another_alias\n"));
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+}
+
+TEST_F(ClientAlias, unalias_does_not_remove_unexisting_alias)
+{
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
+                                   {"another_alias", {"another_instance", "another_command"}}});
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"unalias", "unexisting_alias"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(cerr_stream.str(), "Alias 'unexisting_alias' does not exist\n");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
+                                 "another_instance,another_command\n");
+}
+
+TEST_F(ClientAlias, too_many_unalias_arguments)
+{
+    std::stringstream cerr_stream;
+    send_command({"unalias", "alias_name", "other_argument"}, trash_stream, cerr_stream);
+
+    EXPECT_EQ(cerr_stream.str(), "Wrong number of arguments given\n");
+}
+
+TEST_F(ClientAlias, fails_when_remove_backup_alias_file_fails)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(true)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, remove(_)).WillOnce(Return(false));
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot remove old aliases backup file "));
+}
+
+TEST_F(ClientAlias, fails_renaming_alias_file_fails)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(true)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot rename aliases config to "));
+}
+
+TEST_F(ClientAlias, fails_creating_alias_file_fails)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
+    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot create aliases config file "));
+}
+
+TEST_F(ClientAlias, creating_first_alias_displays_message)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cout_stream.str(), HasSubstr("You'll need to add "));
+}
+
+TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+
+    auto path = qgetenv("PATH");
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    path += ';';
+#else
+    path += ':';
+#endif
+    path += MP_PLATFORM.get_alias_scripts_folder().path().toUtf8();
+    const auto env_scope = mpt::SetEnvScope{"PATH", path};
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cout_stream.str(), Eq(""));
+}
+
+TEST_F(ClientAlias, fails_when_name_clashes_with_command_alias)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "ls"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), Eq("Alias name 'ls' clashes with a command name\n"));
+}
+
+TEST_F(ClientAlias, fails_when_name_clashes_with_command_name)
+{
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+
+    std::stringstream cerr_stream;
+    send_command({"alias", "primary:command", "list"}, trash_stream, cerr_stream);
+
+    ASSERT_THAT(cerr_stream.str(), Eq("Alias name 'list' clashes with a command name\n"));
+}
 } // namespace

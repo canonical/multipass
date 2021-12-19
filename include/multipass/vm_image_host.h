@@ -18,8 +18,9 @@
 #ifndef MULTIPASS_VM_IMAGE_HOST_H
 #define MULTIPASS_VM_IMAGE_HOST_H
 
-#include <multipass/optional.h>
-#include <multipass/vm_image_info.h>
+#include "disabled_copy_move.h"
+#include "optional.h"
+#include "vm_image_info.h"
 
 #include <functional>
 #include <string>
@@ -30,7 +31,7 @@ namespace multipass
 {
 class Query;
 class VMImage;
-class VMImageHost
+class VMImageHost : private DisabledCopyMove
 {
 public:
     using Action = std::function<void(const std::string&, const VMImageInfo&)>;
@@ -45,8 +46,6 @@ public:
 
 protected:
     VMImageHost() = default;
-    VMImageHost(const VMImageHost&) = delete;
-    VMImageHost& operator=(const VMImageHost&) = delete;
 };
 }
 #endif // MULTIPASS_VM_IMAGE_HOST_H

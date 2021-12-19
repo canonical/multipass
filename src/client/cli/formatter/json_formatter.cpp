@@ -81,19 +81,29 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
             QJsonArray mount_uids;
             QJsonArray mount_gids;
 
-            for (const auto& uid_map : mount.mount_maps().uid_map())
+            auto mount_maps = mount.mount_maps();
+
+            for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
             {
+                auto uid_map_pair = mount_maps.uid_mappings(i);
+                auto host_uid = uid_map_pair.host_id();
+                auto instance_uid = uid_map_pair.instance_id();
+
                 mount_uids.append(
                     QString("%1:%2")
-                        .arg(QString::number(uid_map.first))
-                        .arg((uid_map.second == mp::default_id) ? "default" : QString::number(uid_map.second)));
+                        .arg(QString::number(host_uid))
+                        .arg((instance_uid == mp::default_id) ? "default" : QString::number(instance_uid)));
             }
-            for (const auto& gid_map : mount.mount_maps().gid_map())
+            for (auto i = 0; i < mount_maps.gid_mappings_size(); ++i)
             {
+                auto gid_map_pair = mount_maps.gid_mappings(i);
+                auto host_gid = gid_map_pair.host_id();
+                auto instance_gid = gid_map_pair.instance_id();
+
                 mount_gids.append(
                     QString("%1:%2")
-                        .arg(QString::number(gid_map.first))
-                        .arg((gid_map.second == mp::default_id) ? "default" : QString::number(gid_map.second)));
+                        .arg(QString::number(host_gid))
+                        .arg((instance_gid == mp::default_id) ? "default" : QString::number(instance_gid)));
             }
             entry.insert("uid_mappings", mount_uids);
             entry.insert("gid_mappings", mount_gids);
@@ -211,4 +221,27 @@ std::string mp::JsonFormatter::format(const VersionReply& reply, const std::stri
         }
     }
     return QString(QJsonDocument(version_json).toJson()).toStdString();
+}
+
+std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
+{
+    QJsonObject aliases_json;
+    QJsonArray aliases_array;
+
+    for (const auto& elt : sort_dict(aliases))
+    {
+        const auto& alias = elt.first;
+        const auto& def = elt.second;
+
+        QJsonObject alias_obj;
+        alias_obj.insert("alias", QString::fromStdString(alias));
+        alias_obj.insert("instance", QString::fromStdString(def.instance));
+        alias_obj.insert("command", QString::fromStdString(def.command));
+
+        aliases_array.append(alias_obj);
+    }
+
+    aliases_json.insert("aliases", aliases_array);
+
+    return QString(QJsonDocument(aliases_json).toJson()).toStdString();
 }

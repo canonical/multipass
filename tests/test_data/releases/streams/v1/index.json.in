@@ -5,7 +5,7 @@
       "path": "multiple_versions_manifest.json",
       "updated": "Thu, 18 May 2017 09:18:01 +0000",
       "products": [
-        "com.ubuntu.cloud:server:16.04:amd64"
+        "com.ubuntu.cloud:server:16.04:@MANIFEST_ARCH@"
       ],
       "format": "products:1.0"
     },

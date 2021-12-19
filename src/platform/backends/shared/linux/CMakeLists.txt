@@ -40,4 +40,3 @@ endif()
 
 include_directories(shared_linux
   ..)
-

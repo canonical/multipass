@@ -1,0 +1,8 @@
+description: An invalid arch workflow
+version: 0.1
+
+runs-on: arch
+
+instances:
+  arch-only:
+    image: "daily:bionic"

@@ -18,16 +18,17 @@
 #ifndef MULTIPASS_VM_WORKFLOW_PROVIDER_H
 #define MULTIPASS_VM_WORKFLOW_PROVIDER_H
 
-#include <multipass/query.h>
-#include <multipass/virtual_machine_description.h>
-#include <multipass/vm_image_info.h>
+#include "disabled_copy_move.h"
+#include "query.h"
+#include "virtual_machine_description.h"
+#include "vm_image_info.h"
 
 #include <string>
 #include <vector>
 
 namespace multipass
 {
-class VMWorkflowProvider
+class VMWorkflowProvider : private DisabledCopyMove
 {
 public:
     virtual ~VMWorkflowProvider() = default;
@@ -40,8 +41,6 @@ public:
 
 protected:
     VMWorkflowProvider() = default;
-    VMWorkflowProvider(const VMWorkflowProvider&) = delete;
-    VMWorkflowProvider& operator=(const VMWorkflowProvider&) = delete;
 };
 } // namespace multipass
 #endif // MULTIPASS_VM_WORKFLOW_PROVIDER_H

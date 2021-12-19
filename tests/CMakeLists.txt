@@ -24,6 +24,7 @@ add_executable(multipass_tests
   common.cpp
   file_operations.cpp
   image_host_remote_count.cpp
+  json_utils.cpp
   main.cpp
   mischievous_url_downloader.cpp
   mock_logger.cpp
@@ -39,11 +40,13 @@ add_executable(multipass_tests
   stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
+  test_alias_dict.cpp
   test_argparser.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
   test_basic_process.cpp
   test_cli_client.cpp
+  test_cli_prompters.cpp
   test_client_cert_store.cpp
   test_cloud_init_iso.cpp
   test_constants.cpp
@@ -51,6 +54,7 @@ add_executable(multipass_tests
   test_daemon.cpp
   test_daemon_find.cpp
   test_delayed_shutdown.cpp
+  test_disabled_copy_move.cpp
   test_format_utils.cpp
   test_output_formatter.cpp
   test_image_vault.cpp
@@ -61,12 +65,12 @@ add_executable(multipass_tests
   test_petname.cpp
   test_platform_shared.cpp
   test_private_pass_provider.cpp
-  test_mock_settings.cpp
   test_mock_standard_paths.cpp
   test_qemuimg_process_spec.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_singleton.cpp
+  test_settings.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
   test_ssl_cert_provider.cpp
@@ -141,7 +145,29 @@ add_test(NAME multipass_tests
   COMMAND multipass_tests
 )
 
-file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+  string(TOUPPER ${BACKEND}_ENABLED DEF)
+  target_compile_definitions(multipass_tests PRIVATE ${DEF})
+endforeach()
+
+string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} MANIFEST_ARCH)
+if (${MANIFEST_ARCH} STREQUAL "x86_64")
+  string(TOLOWER "amd64" MANIFEST_ARCH)
+endif()
+
+target_compile_definitions(multipass_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
+
+file(GLOB_RECURSE MANIFEST_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "test_data/*.in")
+
+foreach (MANIFEST_IN IN LISTS MANIFEST_FILES)
+  string(REGEX REPLACE "\.in$" "" MANIFEST_OUT ${MANIFEST_IN})
+  configure_file(
+    ${MANIFEST_IN}
+    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${MANIFEST_OUT}
+    @ONLY)
+endforeach()
+
+file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} PATTERN "*\.in" EXCLUDE)
 
 # Mock binaries for testing BasicProcess (cross-platform compatible)
 add_executable(mock_process
@@ -155,12 +181,10 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_tests mock_process)
 
-if(LINUX)
-  target_include_directories(multipass_tests
-    BEFORE
-      PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/linux
-  )
-endif()
+target_include_directories(multipass_tests
+  BEFORE
+    PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
+)
 
 add_subdirectory(${MULTIPASS_PLATFORM})
 

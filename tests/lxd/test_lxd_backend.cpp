@@ -95,6 +95,7 @@ const std::vector<LXDInstanceStatusParamType> lxd_instance_status_suite_inputs{
     {mpt::vm_state_freezing_data, mp::VirtualMachine::State::suspending},
     {mpt::vm_state_frozen_data, mp::VirtualMachine::State::suspended},
     {mpt::vm_state_cancelling_data, mp::VirtualMachine::State::unknown},
+    {mpt::vm_state_error_data, mp::VirtualMachine::State::unknown},
     {mpt::vm_state_other_data, mp::VirtualMachine::State::unknown},
     {mpt::vm_state_fully_running_data, mp::VirtualMachine::State::running}};
 } // namespace
@@ -962,12 +963,18 @@ TEST_F(LXDBackend, healthcheck_error_advises_snap_connections_when_in_snap)
                          mpt::match_what(HasSubstr("snap connect multipass:lxd lxd")));
 }
 
-TEST_F(LXDBackend, returns_expected_network_info)
+struct LXDNetworkInfoSuite : LXDBackend, WithParamInterface<QByteArray>
 {
+};
+
+TEST_P(LXDNetworkInfoSuite, returns_expected_network_info)
+{
+    const auto leases_data = GetParam();
+
     mpt::StubVMStatusMonitor stub_monitor;
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
-        .WillRepeatedly([](auto, auto request, auto outgoingData) {
+        .WillRepeatedly([&leases_data](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -981,7 +988,7 @@ TEST_F(LXDBackend, returns_expected_network_info)
                 }
                 else if (url.contains("1.0/networks/" + bridge_name + "/leases"))
                 {
-                    return new mpt::MockLocalSocketReply(mpt::network_leases_data);
+                    return new mpt::MockLocalSocketReply(leases_data);
                 }
             }
             else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
@@ -1002,6 +1009,10 @@ TEST_F(LXDBackend, returns_expected_network_info)
     EXPECT_EQ(machine.ssh_port(), 22);
     EXPECT_EQ(machine.VirtualMachine::ssh_hostname(), "10.217.27.168");
 }
+
+INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworkInfoSuite,
+                         Values(mpt::network_leases_data, mpt::network_leases_data_with_ipv6,
+                                mpt::network_leases_data_with_others));
 
 TEST_F(LXDBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 {
@@ -1846,7 +1857,22 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "unexpected LXD state", AnyNumber());
+    if (expected_state == multipass::VirtualMachine::State::unknown)
+    {
+        QJsonParseError json_error;
+        const auto json_reply = QJsonDocument::fromJson(status_data, &json_error);
+        ASSERT_EQ(json_error.error, QJsonParseError::NoError);
+
+        const auto metadata = json_reply["metadata"].toObject();
+        const auto code = metadata["status_code"].toInt();
+        if (code > 112)
+        {
+            QString error_msg{"unexpected LXD state: "};
+            error_msg += metadata["status"].toString() + " (" + QString::number(code) + ")";
+            logger_scope.mock_logger->expect_log(mpl::Level::error, error_msg.toStdString(), AtLeast(1));
+        }
+    }
+
     mp::LXDVirtualMachine machine{default_description, stub_monitor,        mock_network_access_manager.get(), base_url,
                                   bridge_name,         default_storage_pool};
 

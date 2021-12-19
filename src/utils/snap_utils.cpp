@@ -70,3 +70,8 @@ QByteArray mu::snap_real_home_dir()
 {
     return checked_snap_dir("SNAP_REAL_HOME");
 }
+
+QByteArray mu::snap_user_common_dir()
+{
+    return checked_snap_dir("SNAP_USER_COMMON");
+}

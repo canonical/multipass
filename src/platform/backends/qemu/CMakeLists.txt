@@ -33,6 +33,7 @@ add_library(qemu_backend STATIC
 
 target_link_libraries(qemu_backend
   fmt
+  ip_address
   logger
   qemu_img_utils
   qemu_platform_detail

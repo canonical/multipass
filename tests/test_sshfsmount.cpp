@@ -55,7 +55,8 @@ struct SshfsMount : public mp::test::SftpServerTest
     mp::SshfsMount make_sshfsmount(mp::optional<std::string> target = mp::nullopt)
     {
         mp::SSHSession session{"a", 42};
-        return {std::move(session), default_source, target.value_or(default_target), default_map, default_map};
+        return {std::move(session), default_source, target.value_or(default_target), default_mappings,
+                default_mappings};
     }
 
     auto make_exec_that_fails_for(const std::vector<std::string>& expected_cmds, bool& invoked)
@@ -185,7 +186,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 
     std::string default_source{"source"};
     std::string default_target{"target"};
-    std::unordered_map<int, int> default_map;
+    mp::id_mappings default_mappings;
     int default_id{1000};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 

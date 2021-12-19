@@ -66,7 +66,6 @@ private:
     const QUrl state_url();
     const QUrl network_leases_url();
     void request_state(const QString& new_state);
-    const multipass::optional<multipass::IPAddress> get_ip();
 };
 } // namespace multipass
 #endif // MULTIPASS_LXD_VIRTUAL_MACHINE_H

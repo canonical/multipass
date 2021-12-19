@@ -50,6 +50,7 @@ apps:
       XDG_CONFIG_HOME: &daemon-config $SNAP_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
     daemon: simple
+    stop-timeout: 5m
     plugs:
       - all-home
       - firewall-control
@@ -90,6 +91,7 @@ apps:
       - unity7
       - wayland
       - x11
+      - system-observe
 
 parts:
   multipass:
@@ -129,7 +131,7 @@ parts:
     - dnsmasq-utils
     source: .
     cmake-parameters:
-    - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    - -DCMAKE_BUILD_TYPE=Release
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
     - -DMULTIPASS_UPSTREAM=origin

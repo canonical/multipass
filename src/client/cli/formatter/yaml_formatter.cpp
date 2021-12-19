@@ -17,6 +17,7 @@
 
 #include <multipass/cli/yaml_formatter.h>
 
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/utils.h>
@@ -91,17 +92,23 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         {
             YAML::Node mount_node;
 
-            for (const auto& uid_map : mount.mount_maps().uid_map())
+            for (const auto& uid_mapping : mount.mount_maps().uid_mappings())
             {
+                auto host_uid = uid_mapping.host_id();
+                auto instance_uid = uid_mapping.instance_id();
+
                 mount_node["uid_mappings"].push_back(
-                    fmt::format("{}:{}", std::to_string(uid_map.first),
-                                (uid_map.second == mp::default_id) ? "default" : std::to_string(uid_map.second)));
+                    fmt::format("{}:{}", std::to_string(host_uid),
+                                (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid)));
             }
-            for (const auto& gid_map : mount.mount_maps().gid_map())
+            for (const auto& gid_mapping : mount.mount_maps().gid_mappings())
             {
+                auto host_gid = gid_mapping.host_id();
+                auto instance_gid = gid_mapping.instance_id();
+
                 mount_node["gid_mappings"].push_back(
-                    fmt::format("{}:{}", std::to_string(gid_map.first),
-                                (gid_map.second == mp::default_id) ? "default" : std::to_string(gid_map.second)));
+                    fmt::format("{}:{}", std::to_string(host_gid),
+                                (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid)));
             }
 
             mount_node["source_path"] = mount.source_path();
@@ -203,4 +210,26 @@ std::string mp::YamlFormatter::format(const VersionReply& reply, const std::stri
     }
 
     return mpu::emit_yaml(version);
+}
+
+std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
+{
+    YAML::Node aliases_list, aliases_node;
+
+    for (const auto& elt : sort_dict(aliases))
+    {
+        const auto& alias = elt.first;
+        const auto& def = elt.second;
+
+        YAML::Node alias_node;
+        alias_node["alias"] = alias;
+        alias_node["command"] = def.command;
+        alias_node["instance"] = def.instance;
+
+        aliases_node.push_back(alias_node);
+    }
+
+    aliases_list["aliases"] = aliases_node;
+
+    return mpu::emit_yaml(aliases_list);
 }

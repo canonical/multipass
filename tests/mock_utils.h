@@ -35,10 +35,12 @@ public:
     MOCK_METHOD1(exit, void(int));
     MOCK_CONST_METHOD3(run_cmd_for_output, std::string(const QString&, const QStringList&, const int));
     MOCK_CONST_METHOD3(run_cmd_for_status, bool(const QString&, const QStringList&, const int));
+    MOCK_METHOD2(make_file_with_content, void(const std::string&, const std::string&));
+    MOCK_METHOD3(make_file_with_content, void(const std::string&, const std::string&, const bool&));
     MOCK_CONST_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
     MOCK_CONST_METHOD0(get_kernel_version, std::string());
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_UTILS_FUNCTIONS_H
+#endif // MULTIPASS_MOCK_UTILS_H

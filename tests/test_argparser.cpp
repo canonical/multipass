@@ -16,7 +16,10 @@
  */
 
 #include "common.h"
+#include "tests/fake_alias_config.h"
+#include "tests/stub_terminal.h"
 
+#include <multipass/cli/alias_definition.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/command.h>
 
@@ -24,10 +27,14 @@
 #include <QStringList>
 
 #include <sstream>
+#include <string>
 #include <vector>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
 using namespace testing;
+
+typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
 struct TestVerbosity : public TestWithParam<int>
 {
@@ -55,3 +62,46 @@ TEST_P(TestVerbosity, test_various_vs)
 }
 
 INSTANTIATE_TEST_SUITE_P(ArgParser, TestVerbosity, Range(0, 10));
+
+struct TestAliasArguments : public TestWithParam<std::tuple<QStringList /* pre */, QStringList /* post */>>,
+                            public FakeAliasConfig
+{
+};
+
+TEST_P(TestAliasArguments, test_alias_arguments)
+{
+    std::ostringstream oss;
+    std::istringstream cin;
+    mpt::StubTerminal term(oss, oss, cin);
+    const auto cmds = std::vector<mp::cmd::Command::UPtr>{};
+
+    const auto& [pre, post] = GetParam();
+
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
+
+    mp::AliasDict alias_dict(&term);
+    auto parser = mp::ArgParser{pre, cmds, oss, oss};
+    const auto& result = parser.parse(alias_dict);
+
+    ASSERT_EQ(result, mp::ParseCode::Ok) << "Failed to parse given arguments";
+
+    EXPECT_EQ(parser.allArguments(), post);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ArgParser, TestAliasArguments,
+    Values(std::make_tuple(QStringList{"mp", "an_alias"}, QStringList{"mp", "exec", "an_instance", "a_command"}),
+           std::make_tuple(QStringList{"mp", "-v", "an_alias"},
+                           QStringList{"mp", "-v", "exec", "an_instance", "a_command"}),
+           std::make_tuple(QStringList{"mp", "an_alias", "-v"},
+                           QStringList{"mp", "exec", "an_instance", "a_command", "-v"}),
+           std::make_tuple(QStringList{"mp", "an_alias", "an_argument"},
+                           QStringList{"mp", "exec", "an_instance", "a_command", "an_argument"}),
+           std::make_tuple(QStringList{"mp", "an_alias", "--", "an_argument"},
+                           QStringList{"mp", "exec", "an_instance", "a_command", "--", "an_argument"}),
+           std::make_tuple(QStringList{"mp", "an_alias", "--", "--an_option"},
+                           QStringList{"mp", "exec", "an_instance", "a_command", "--", "--an_option"}),
+           std::make_tuple(QStringList{"mp", "an_alias", "--", "--an_option", "an_argument"},
+                           QStringList{"mp", "exec", "an_instance", "a_command", "--", "--an_option", "an_argument"}),
+           std::make_tuple(QStringList{"mp", "an_alias", "an_alias", "an_alias"}, // args happen to be called the same
+                           QStringList{"mp", "exec", "an_instance", "a_command", "an_alias", "an_alias"})));

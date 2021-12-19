@@ -4,9 +4,9 @@
   "format": "products:1.0",
   "license": "http://www.canonical.com/intellectual-property-policy",
   "products": {
-    "com.ubuntu.cloud.daily:server:17.10:amd64": {
+    "com.ubuntu.cloud.daily:server:17.10:@MANIFEST_ARCH@": {
       "aliases": "17.10,a,artful,devel",
-      "arch": "amd64",
+      "arch": "@MANIFEST_ARCH@",
       "os": "ubuntu",
       "release": "artful",
       "release_codename": "Artful Aardvark",
@@ -26,7 +26,7 @@
             }
           },
           "label": "daily",
-          "pubname": "ubuntu-artful-daily-amd64-server-20170701"
+          "pubname": "ubuntu-artful-daily-@MANIFEST_ARCH@-server-20170701"
         },
         "20170702": {
           "items": {
@@ -39,13 +39,13 @@
             }
           },
           "label": "daily",
-          "pubname": "ubuntu-artful-daily-amd64-server-20170702"
+          "pubname": "ubuntu-artful-daily-@MANIFEST_ARCH@-server-20170702"
         }
       }
     },
-    "com.ubuntu.cloud:server:17.04:amd64": {
+    "com.ubuntu.cloud:server:17.04:@MANIFEST_ARCH@": {
       "aliases": "17.04,z,zesty",
-      "arch": "amd64",
+      "arch": "@MANIFEST_ARCH@",
       "os": "ubuntu",
       "release": "zesty",
       "release_codename": "Zesty Zapus",
@@ -67,13 +67,13 @@
               "combined_squashfs_sha256": "f50337be60f7fce4ddd71397285490115e208aeb37565b8d77529cb352cdad05",
               "ftype": "lxd.tar.xz",
               "md5": "21a945923eff127e1553d581c8872bb6",
-              "path": "server/releases/zesty/release-20170619.1/ubuntu-17.04-server-cloudimg-amd64-lxd.tar.xz",
+              "path": "server/releases/zesty/release-20170619.1/ubuntu-17.04-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
               "sha256": "c258ec70a733b5ea22c7b8a608d2b2e95fb1cf6ec01e0ffba367bd46baf1f8e1",
               "size": 848
             }
           },
           "label": "release",
-          "pubname": "ubuntu-zesty-17.04-amd64-server-20170619.1"
+          "pubname": "ubuntu-zesty-17.04-@MANIFEST_ARCH@-server-20170619.1"
         }
       }
     }
