@@ -114,6 +114,11 @@ std::string client_cert_from(grpc::ServerContext* context)
     return client_cert;
 }
 
+void accept_cert(mp::CertStore* client_cert_store, const std::string& client_cert, const std::string& server_address)
+{
+    client_cert_store->add_cert(client_cert);
+    MP_PLATFORM.set_server_socket_restrictions(server_address, false);
+}
 } // namespace
 
 mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
@@ -124,7 +129,7 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionTyp
       server_socket_type{server_socket_type_for(server_address)},
       client_cert_store{client_cert_store}
 {
-    if (connection_type == mp::RpcConnectionType::ssl && server_socket_type == mp::ServerSocketType::unix)
+    if (connection_type == mp::RpcConnectionType::ssl)
     {
         MP_PLATFORM.set_server_socket_restrictions(server_address, client_cert_store->is_store_empty());
     }
@@ -284,14 +289,7 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
 
     if (status.ok() && connection_type == mp::RpcConnectionType::ssl)
     {
-        const auto store_was_empty{client_cert_store->is_store_empty()};
-
-        client_cert_store->add_cert(client_cert_from(context));
-
-        if (store_was_empty && server_socket_type == mp::ServerSocketType::unix)
-        {
-            MP_PLATFORM.set_server_socket_restrictions(server_address, false);
-        }
+        accept_cert(client_cert_store, client_cert_from(context), server_address);
     }
 
     return status;
@@ -304,8 +302,7 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
     {
         if (server_socket_type == mp::ServerSocketType::unix && client_cert_store->is_store_empty())
         {
-            client_cert_store->add_cert(client_cert);
-            MP_PLATFORM.set_server_socket_restrictions(server_address, false);
+            accept_cert(client_cert_store, client_cert, server_address);
         }
         else if (!client_cert_store->verify_cert(client_cert))
         {

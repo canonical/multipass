@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Canonical, Ltd.
+ * Copyright (C) 2021-2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ TEST_F(TestDaemonRpc, authenticateCompletesSuccesfully)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
-    EXPECT_CALL(*mock_cert_store, is_store_empty()).WillOnce(Return(true)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_cert_store, is_store_empty()).WillOnce(Return(true));
     EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
 
     mpt::MockDaemon daemon{make_secure_server()};
@@ -219,9 +219,9 @@ TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
     server_address = "localhost:50052";
     config_builder.server_address = server_address;
 
-    EXPECT_CALL(*mock_platform, set_server_socket_restrictions).Times(0);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions).Times(1);
 
-    EXPECT_CALL(*mock_cert_store, is_store_empty()).Times(0);
+    EXPECT_CALL(*mock_cert_store, is_store_empty()).Times(1);
     EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(0);
     EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(false));
 
