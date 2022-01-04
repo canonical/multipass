@@ -83,7 +83,7 @@ auto make_server(const std::string& server_address, mp::RpcConnectionType conn_t
 
 auto server_socket_type_for(const std::string& server_address)
 {
-    if (server_address.find("unix") != std::string::npos)
+    if (server_address.find("unix") == 0)
     {
         return mp::ServerSocketType::unix;
     }
