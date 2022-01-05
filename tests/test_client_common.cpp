@@ -72,9 +72,6 @@ TEST_F(TestClientCommon, usesCommonCertWhenItExists)
     mpt::make_file_with_content(common_client_cert_file, mpt::client_cert);
     mpt::make_file_with_content(common_client_key_file, mpt::client_key);
 
-    auto [mock_utils, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils, client_certs_exist(common_cert_dir)).WillOnce(Return(true));
-
     EXPECT_TRUE(mp::client::make_secure_channel(server_address, nullptr));
 }
 
@@ -87,11 +84,6 @@ TEST_F(TestClientCommon, usesExistingGuiCert)
 
     mpt::make_file_with_content(gui_client_cert_file, mpt::client_cert);
     mpt::make_file_with_content(gui_client_key_file, mpt::client_key);
-
-    auto [mock_utils, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils, client_certs_exist(common_cert_dir)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_utils, client_certs_exist(gui_cert_dir)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils, copy_client_certs_to_common_dir(gui_cert_dir, common_cert_dir)).Times(1);
 
     mpt::MockDaemon daemon{make_secure_server()};
 
@@ -114,13 +106,8 @@ TEST_F(TestClientCommon, failsGuiCertUsesExistingCliCert)
     mpt::make_file_with_content(cli_client_cert_file, mpt::client_cert);
     mpt::make_file_with_content(cli_client_key_file, mpt::client_key);
 
-    auto [mock_utils, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils, client_certs_exist(common_cert_dir)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_utils, client_certs_exist(gui_cert_dir)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils, client_certs_exist(cli_cert_dir)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils, copy_client_certs_to_common_dir(cli_cert_dir, common_cert_dir)).Times(1);
-
     EXPECT_CALL(*mock_cert_store, verify_cert).WillOnce(Return(false)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_cert_store, is_store_empty).WillOnce(Return(false));
     config_builder.client_cert_store = std::move(mock_cert_store);
 
     mpt::MockDaemon daemon{make_secure_server()};
@@ -145,13 +132,8 @@ TEST_F(TestClientCommon, noValidCertsCreatesNewCommonCert)
     mpt::make_file_with_content(cli_client_cert_file, mpt::client_cert);
     mpt::make_file_with_content(cli_client_key_file, mpt::client_key);
 
-    auto [mock_utils, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils, client_certs_exist(common_cert_dir)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_utils, client_certs_exist(gui_cert_dir)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils, client_certs_exist(cli_cert_dir)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils, copy_client_certs_to_common_dir).Times(0);
-
     EXPECT_CALL(*mock_cert_store, verify_cert).Times(2).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_cert_store, is_store_empty).WillOnce(Return(false));
     config_builder.client_cert_store = std::move(mock_cert_store);
 
     mpt::MockDaemon daemon{make_secure_server()};

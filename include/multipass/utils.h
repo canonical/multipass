@@ -48,15 +48,6 @@ namespace multipass
 class SSHKeyProvider;
 class VirtualMachine;
 
-const QString common_client_cert_dir{"/multipass-client-certificate"};
-const QString gui_client_cert_dir{"/multipass-gui/client-certificate"};
-const QString cli_client_cert_dir{"/multipass/client-certificate"};
-const QString client_cert_prefix{"multipass_cert"};
-const QString cert_file_suffix{".pem"};
-const QString key_file_suffix{"_key.pem"};
-const QString client_cert_file{client_cert_prefix + cert_file_suffix};
-const QString client_key_file{client_cert_prefix + key_file_suffix};
-
 namespace utils
 {
 
@@ -159,11 +150,6 @@ public:
 
     // system info helpers
     virtual std::string get_kernel_version() const;
-
-    // client cert helpers
-    virtual bool client_certs_exist(const QString& cert_dir_path) const;
-    virtual void copy_client_certs_to_common_dir(const QString& cert_dir_path,
-                                                 const QString& common_cert_dir_path) const;
 
     // scrypt hash generator
     virtual QString generate_scrypt_hash_for(const QString& passphrase) const;

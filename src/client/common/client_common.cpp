@@ -86,6 +86,22 @@ std::shared_ptr<grpc::Channel> create_channel_and_validate(const std::string& se
 
     return status.ok() ? rpc_channel : nullptr;
 }
+
+bool client_certs_exist(const QString& cert_dir_path)
+{
+    QDir cert_dir{cert_dir_path};
+
+    return cert_dir.exists(mp::client_cert_file) && cert_dir.exists(mp::client_key_file);
+}
+
+void copy_client_certs_to_common_dir(const QString& cert_dir_path, const QString& common_cert_dir_path)
+{
+    mp::utils::make_dir(common_cert_dir_path);
+    QDir common_dir{common_cert_dir_path}, cert_dir{cert_dir_path};
+
+    QFile::copy(cert_dir.filePath(mp::client_cert_file), common_dir.filePath(mp::client_cert_file));
+    QFile::copy(cert_dir.filePath(mp::client_key_file), common_dir.filePath(mp::client_key_file));
+}
 } // namespace
 
 mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command, std::ostream& cerr,
@@ -125,7 +141,7 @@ std::shared_ptr<grpc::Channel> mp::client::make_secure_channel(const std::string
         // 3. If that fails, then try the certificate from the cli client in the same manner as 2.
         // 4. Delete any per-client certificate dirs.
         // 5. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
-        if (MP_UTILS.client_certs_exist(common_client_cert_dir_path))
+        if (client_certs_exist(common_client_cert_dir_path))
         {
             return create_channel_with_opts(server_address, get_ssl_credentials_opts_from(common_client_cert_dir_path));
         }
@@ -133,12 +149,12 @@ std::shared_ptr<grpc::Channel> mp::client::make_secure_channel(const std::string
         const std::vector<QString> cert_dirs{data_location + gui_client_cert_dir, data_location + cli_client_cert_dir};
         for (const auto& cert_dir : cert_dirs)
         {
-            if (MP_UTILS.client_certs_exist(cert_dir))
+            if (client_certs_exist(cert_dir))
             {
                 if (auto rpc_channel{
                         create_channel_and_validate(server_address, get_ssl_credentials_opts_from(cert_dir))})
                 {
-                    MP_UTILS.copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
+                    copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
                     mp::utils::remove_directories(cert_dirs);
 
                     return rpc_channel;
