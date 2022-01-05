@@ -59,6 +59,7 @@ namespace client
 std::shared_ptr<grpc::Channel> make_secure_channel(const std::string& server_address, CertProvider* cert_provider);
 std::shared_ptr<grpc::Channel> make_insecure_channel(const std::string& server_address);
 std::string get_server_address();
+std::unique_ptr<SSLCertProvider> get_cert_provider();
 void set_logger();
 void set_logger(multipass::logging::Level verbosity); // full param qualification makes sure msvc is happy
 void pre_setup();

@@ -129,22 +129,19 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
 std::shared_ptr<grpc::Channel> mp::client::make_secure_channel(const std::string& server_address,
                                                                mp::CertProvider* cert_provider)
 {
+    // No common client certificates exist yet.
+    // TODO: Remove the following logic when we are comfortable all installed clients are using the common cert
     if (!cert_provider)
     {
         auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
         auto common_client_cert_dir_path{data_location + common_client_cert_dir};
 
         // The following logic is for determing which certificate to use when the client starts up.
-        // 1. First check if the new common client certificate exists and use it if it does.
-        // 2. Failing that, check if the multipass-gui certificate exists and determine if it's authenticated
+        // 1. Check if the multipass-gui certificate exists and determine if it's authenticated
         //    with the daemon already.  If it is, copy it to the common client certificate directory and use it.
-        // 3. If that fails, then try the certificate from the cli client in the same manner as 2.
-        // 4. Delete any per-client certificate dirs.
-        // 5. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
-        if (client_certs_exist(common_client_cert_dir_path))
-        {
-            return create_channel_with_opts(server_address, get_ssl_credentials_opts_from(common_client_cert_dir_path));
-        }
+        // 2. If that fails, then try the certificate from the cli client in the same manner.
+        // 3. Delete any per-client certificate dirs.
+        // 4. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
 
         const std::vector<QString> cert_dirs{data_location + gui_client_cert_dir, data_location + cli_client_cert_dir};
         for (const auto& cert_dir : cert_dirs)
@@ -191,6 +188,19 @@ std::string mp::client::get_server_address()
     }
 
     return mp::platform::default_server_address();
+}
+
+std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
+{
+    auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
+    auto common_client_cert_dir_path{data_location + common_client_cert_dir};
+
+    if (client_certs_exist(common_client_cert_dir_path))
+    {
+        return std::make_unique<mp::SSLCertProvider>(common_client_cert_dir_path);
+    }
+
+    return nullptr;
 }
 
 void mp::client::set_logger()
