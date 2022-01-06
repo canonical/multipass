@@ -186,5 +186,5 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
         std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), std::move(client_cert_store),
         std::move(update_prompt), multiplexing_logger, std::move(network_proxy), std::move(workflow_provider),
-        cache_directory, data_directory, server_address, ssh_username, connection_type, image_refresh_timer});
+        cache_directory, data_directory, server_address, ssh_username, image_refresh_timer});
 }

@@ -26,7 +26,6 @@
 #include <multipass/name_generator.h>
 #include <multipass/path.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/rpc_connection_type.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/update_prompt.h>
 #include <multipass/url_downloader.h>
@@ -61,7 +60,6 @@ struct DaemonConfig
     const multipass::Path data_directory;
     const std::string server_address;
     const std::string ssh_username;
-    const RpcConnectionType connection_type;
     const std::chrono::hours image_refresh_timer;
 };
 
@@ -86,7 +84,6 @@ struct DaemonConfigBuilder
     multipass::days days_to_expire{14};
     std::chrono::hours image_refresh_timer{6};
     multipass::logging::Level verbosity_level{multipass::logging::Level::info};
-    RpcConnectionType connection_type{RpcConnectionType::ssl};
 
     std::unique_ptr<const DaemonConfig> build();
 };

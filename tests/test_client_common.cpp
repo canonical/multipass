@@ -48,7 +48,6 @@ struct TestClientCommon : public mpt::DaemonTestFixture
         EXPECT_CALL(*mock_cert_provider, PEM_certificate()).WillOnce(Return(mpt::daemon_cert));
         EXPECT_CALL(*mock_cert_provider, PEM_signing_key()).WillOnce(Return(mpt::daemon_key));
 
-        config_builder.connection_type = mp::RpcConnectionType::ssl;
         config_builder.server_address = server_address;
         config_builder.cert_provider = std::move(mock_cert_provider);
 

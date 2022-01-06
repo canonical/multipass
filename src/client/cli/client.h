@@ -22,7 +22,6 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/rpc_connection_type.h>
 #include <multipass/terminal.h>
 
 #include <map>

@@ -22,7 +22,6 @@
 
 #include <multipass/cert_provider.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/rpc_connection_type.h>
 
 #include <memory>
 #include <sstream>

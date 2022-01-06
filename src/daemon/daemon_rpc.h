@@ -23,7 +23,6 @@
 #include <multipass/cert_provider.h>
 #include <multipass/disabled_copy_move.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/rpc_connection_type.h>
 
 #include <grpcpp/grpcpp.h>
 
@@ -38,6 +37,15 @@ using CreateRequest = LaunchRequest;
 using CreateReply = LaunchReply;
 using CreateError = LaunchError;
 using CreateProgress = LaunchProgress;
+
+// Skip running moc on this enum class since it fails parsing it
+#ifndef Q_MOC_RUN
+enum class ServerSocketType
+{
+    tcp,
+    unix
+};
+#endif
 
 struct DaemonConfig;
 class DaemonRpc : public QObject, public multipass::Rpc::Service, private DisabledCopyMove

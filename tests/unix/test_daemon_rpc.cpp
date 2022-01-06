@@ -68,7 +68,6 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
 
     mpt::MockDaemon make_secure_server()
     {
-        config_builder.connection_type = mp::RpcConnectionType::ssl;
         config_builder.cert_provider = std::move(mock_cert_provider);
         config_builder.client_cert_store = std::move(mock_cert_store);
 
