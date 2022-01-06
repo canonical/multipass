@@ -18,6 +18,7 @@
 #include "common.h"
 #include "disabling_macros.h"
 #include "fake_alias_config.h"
+#include "mock_cert_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_platform.h"
@@ -27,7 +28,6 @@
 #include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
-#include "stub_certprovider.h"
 #include "stub_terminal.h"
 
 #include <src/client/cli/client.h>
@@ -131,6 +131,9 @@ struct Client : public Test
             .Times(AnyNumber())
             .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                                             it gets reset at the end of each test (by VerifyAndClearExpectations) */
+
+        EXPECT_CALL(*client_cert_provider, PEM_certificate()).WillOnce(Return(mpt::client_cert));
+        EXPECT_CALL(*client_cert_provider, PEM_signing_key()).WillOnce(Return(mpt::client_key));
     }
 
     void TearDown() override
@@ -146,7 +149,7 @@ struct Client : public Test
                      std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
         mpt::StubTerminal term(cout, cerr, cin);
-        mp::ClientConfig client_config{server_address, std::make_unique<mpt::StubCertProvider>(), &term};
+        mp::ClientConfig client_config{server_address, std::move(client_cert_provider), &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -278,9 +281,12 @@ struct Client : public Test
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
-    mpt::StubCertProvider cert_provider;
+    std::unique_ptr<mpt::MockCertProvider> client_cert_provider{std::make_unique<mpt::MockCertProvider>()};
+    std::unique_ptr<mpt::MockCertProvider> daemon_cert_provider{std::make_unique<mpt::MockCertProvider>()};
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
+    mpt::MockPlatform* mock_platform = attr.first;
     mpt::StubCertStore cert_store;
-    StrictMock<MockDaemonRpc> mock_daemon{server_address, cert_provider,
+    StrictMock<MockDaemonRpc> mock_daemon{server_address, *daemon_cert_provider,
                                           &cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
                                                                               reset at the end of each test */
@@ -297,9 +303,6 @@ struct ClientAlias : public Client, public FakeAliasConfig
         EXPECT_CALL(*mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
         EXPECT_CALL(*mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
     }
-
-    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
-    mpt::MockPlatform* mock_platform = attr.first;
 };
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;

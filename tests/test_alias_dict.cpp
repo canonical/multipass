@@ -338,7 +338,7 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 
     populate_db_file(fake_aliases);
 
-    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
 
     ON_CALL(*mock_platform, create_alias_script(_, _)).WillByDefault(Return());

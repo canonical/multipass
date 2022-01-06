@@ -23,7 +23,6 @@
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
 #include "stub_cert_store.h"
-#include "stub_certprovider.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
 #include "stub_ssh_key_provider.h"
@@ -264,7 +263,7 @@ struct DaemonTestFixture : public ::Test
         config_builder.factory = std::make_unique<StubVirtualMachineFactory>();
         config_builder.image_hosts.push_back(std::make_unique<StubVMImageHost>());
         config_builder.ssh_key_provider = std::make_unique<StubSSHKeyProvider>();
-        config_builder.cert_provider = std::make_unique<StubCertProvider>();
+        config_builder.cert_provider = std::make_unique<MockCertProvider>();
         config_builder.client_cert_store = std::make_unique<StubCertStore>();
         config_builder.logger = std::make_unique<StubLogger>();
         config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();

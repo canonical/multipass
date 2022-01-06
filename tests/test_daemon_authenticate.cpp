@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
+#include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_utils.h"
 
@@ -35,8 +36,10 @@ constexpr auto bad_hash{"b2cf02af556c857dd77de2d2476f3830fd0214"};
 
 struct TestDaemonAuthenticate : public mpt::DaemonTestFixture
 {
-    mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
-    mpt::MockUtils* mock_utils = attr.first;
+    mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils* mock_utils = utils_attr.first;
+    mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject<NiceMock>()};
+    mpt::MockPlatform* mock_platform = platform_attr.first;
 
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
 };

@@ -28,7 +28,11 @@ namespace multipass::test
 class MockPlatform : public platform::Platform
 {
 public:
-    using Platform::Platform;
+    MockPlatform(const PrivatePass& pass) : platform::Platform(pass)
+    {
+        ON_CALL(*this, set_server_socket_restrictions).WillByDefault(testing::Return());
+    };
+
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
     MOCK_CONST_METHOD0(get_workflows_url_override, QString());
     MOCK_CONST_METHOD1(is_remote_supported, bool(const std::string&));
