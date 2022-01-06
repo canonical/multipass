@@ -53,9 +53,7 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 mp::Client::Client(ClientConfig& config)
-    : rpc_channel{config.conn_type == mp::RpcConnectionType::ssl
-                      ? mp::client::make_secure_channel(config.server_address, config.cert_provider.get())
-                      : mp::client::make_insecure_channel(config.server_address)},
+    : rpc_channel{mp::client::make_channel(config.server_address, config.cert_provider.get())},
       stub{mp::Rpc::NewStub(rpc_channel)},
       term{config.term},
       aliases{config.term}

@@ -56,8 +56,7 @@ std::string update_notice(const multipass::UpdateInfo& update_info);
 
 namespace client
 {
-std::shared_ptr<grpc::Channel> make_secure_channel(const std::string& server_address, CertProvider* cert_provider);
-std::shared_ptr<grpc::Channel> make_insecure_channel(const std::string& server_address);
+std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, CertProvider* cert_provider);
 std::string get_server_address();
 std::unique_ptr<SSLCertProvider> get_cert_provider();
 void set_logger();

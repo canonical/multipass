@@ -126,8 +126,8 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
                                      update_info.description(), update_info.url()));
 }
 
-std::shared_ptr<grpc::Channel> mp::client::make_secure_channel(const std::string& server_address,
-                                                               mp::CertProvider* cert_provider)
+std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
+                                                        mp::CertProvider* cert_provider)
 {
     // No common client certificates exist yet.
     // TODO: Remove the following logic when we are comfortable all installed clients are using the common cert
@@ -171,11 +171,6 @@ std::shared_ptr<grpc::Channel> mp::client::make_secure_channel(const std::string
     opts.pem_private_key = cert_provider->PEM_signing_key();
 
     return create_channel_with_opts(server_address, opts);
-}
-
-std::shared_ptr<grpc::Channel> mp::client::make_insecure_channel(const std::string& server_address)
-{
-    return grpc::CreateChannel(server_address, grpc::InsecureChannelCredentials());
 }
 
 std::string mp::client::get_server_address()

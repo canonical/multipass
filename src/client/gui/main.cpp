@@ -34,7 +34,7 @@ int main_impl(int argc, char* argv[])
 
     app.setApplicationName("multipass-gui");
 
-    mp::ClientConfig config{mp::client::get_server_address(), mp::RpcConnectionType::ssl, nullptr};
+    mp::ClientConfig config{mp::client::get_server_address(), mp::client::get_cert_provider()};
     mp::ClientGui client{config};
 
     return client.run(app.arguments());

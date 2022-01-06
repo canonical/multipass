@@ -146,8 +146,7 @@ struct Client : public Test
                      std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
         mpt::StubTerminal term(cout, cerr, cin);
-        mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                       std::make_unique<mpt::StubCertProvider>(), &term};
+        mp::ClientConfig client_config{server_address, std::make_unique<mpt::StubCertProvider>(), &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 

@@ -323,7 +323,7 @@ struct DaemonTestFixture : public ::Test
             std::unique_ptr<CertProvider> cert_provider;
             cert_provider = std::make_unique<MockCertProvider>();
 
-            ClientConfig client_config{server_address, RpcConnectionType::ssl, std::move(cert_provider), &term};
+            ClientConfig client_config{server_address, std::move(cert_provider), &term};
             TestClient client{client_config};
             for (const auto& command : commands)
             {

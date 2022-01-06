@@ -34,7 +34,6 @@ namespace multipass
 struct ClientConfig
 {
     const std::string server_address;
-    const RpcConnectionType conn_type;
     std::unique_ptr<CertProvider> cert_provider;
     Terminal *term;
 };
