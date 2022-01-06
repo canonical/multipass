@@ -266,7 +266,6 @@ struct DaemonTestFixture : public ::Test
         config_builder.ssh_key_provider = std::make_unique<StubSSHKeyProvider>();
         config_builder.cert_provider = std::make_unique<StubCertProvider>();
         config_builder.client_cert_store = std::make_unique<StubCertStore>();
-        config_builder.connection_type = RpcConnectionType::insecure;
         config_builder.logger = std::make_unique<StubLogger>();
         config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
         config_builder.workflow_provider = std::make_unique<StubVMWorkflowProvider>();
@@ -322,16 +321,9 @@ struct DaemonTestFixture : public ::Test
             StubTerminal term(cout, cerr, cin);
 
             std::unique_ptr<CertProvider> cert_provider;
-            if (config_builder.connection_type == RpcConnectionType::ssl)
-            {
-                cert_provider = std::make_unique<MockCertProvider>();
-            }
-            else
-            {
-                cert_provider = std::make_unique<StubCertProvider>();
-            }
+            cert_provider = std::make_unique<MockCertProvider>();
 
-            ClientConfig client_config{server_address, config_builder.connection_type, std::move(cert_provider), &term};
+            ClientConfig client_config{server_address, RpcConnectionType::ssl, std::move(cert_provider), &term};
             TestClient client{client_config};
             for (const auto& command : commands)
             {

@@ -281,7 +281,7 @@ struct Client : public Test
 #endif
     mpt::StubCertProvider cert_provider;
     mpt::StubCertStore cert_store;
-    StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider,
+    StrictMock<MockDaemonRpc> mock_daemon{server_address, cert_provider,
                                           &cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
                                                                               reset at the end of each test */

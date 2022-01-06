@@ -46,26 +46,14 @@ bool check_is_server_running(const std::string& address)
     return stub->ping(&context, request, &reply).ok();
 }
 
-auto make_server(const std::string& server_address, mp::RpcConnectionType conn_type,
-                 const mp::CertProvider& cert_provider, mp::Rpc::Service* service)
+auto make_server(const std::string& server_address, const mp::CertProvider& cert_provider, mp::Rpc::Service* service)
 {
     grpc::ServerBuilder builder;
 
     std::shared_ptr<grpc::ServerCredentials> creds;
-    if (conn_type == mp::RpcConnectionType::ssl)
-    {
-        grpc::SslServerCredentialsOptions opts(GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY);
-        opts.pem_key_cert_pairs.push_back({cert_provider.PEM_signing_key(), cert_provider.PEM_certificate()});
-        creds = grpc::SslServerCredentials(opts);
-    }
-    else if (conn_type == mp::RpcConnectionType::insecure)
-    {
-        creds = grpc::InsecureServerCredentials();
-    }
-    else
-    {
-        throw std::invalid_argument("Unknown connection type");
-    }
+    grpc::SslServerCredentialsOptions opts(GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY);
+    opts.pem_key_cert_pairs.push_back({cert_provider.PEM_signing_key(), cert_provider.PEM_certificate()});
+    creds = grpc::SslServerCredentials(opts);
 
     builder.AddListeningPort(server_address, creds);
     builder.RegisterService(service);
@@ -121,21 +109,16 @@ void accept_cert(mp::CertStore* client_cert_store, const std::string& client_cer
 }
 } // namespace
 
-mp::DaemonRpc::DaemonRpc(const std::string& server_address, mp::RpcConnectionType type,
-                         const CertProvider& cert_provider, CertStore* client_cert_store)
+mp::DaemonRpc::DaemonRpc(const std::string& server_address, const CertProvider& cert_provider,
+                         CertStore* client_cert_store)
     : server_address{server_address},
-      connection_type{type},
-      server{make_server(server_address, type, cert_provider, this)},
+      server{make_server(server_address, cert_provider, this)},
       server_socket_type{server_socket_type_for(server_address)},
       client_cert_store{client_cert_store}
 {
-    if (connection_type == mp::RpcConnectionType::ssl)
-    {
-        MP_PLATFORM.set_server_socket_restrictions(server_address, client_cert_store->is_store_empty());
-    }
+    MP_PLATFORM.set_server_socket_restrictions(server_address, client_cert_store->is_store_empty());
 
-    std::string ssl_enabled = type == mp::RpcConnectionType::ssl ? "on" : "off";
-    mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}, SSL:{}", server_address, ssl_enabled));
+    mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}", server_address));
 }
 
 grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context, const CreateRequest* request,
@@ -259,19 +242,14 @@ grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context, const VersionR
 
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response)
 {
-    if (connection_type == mp::RpcConnectionType::ssl)
+    auto client_cert = client_cert_from(context);
+
+    if (!client_cert.empty() && client_cert_store->verify_cert(client_cert))
     {
-        auto client_cert = client_cert_from(context);
-
-        if (!client_cert.empty() && client_cert_store->verify_cert(client_cert))
-        {
-            return grpc::Status::OK;
-        }
-
-        return grpc::Status{grpc::StatusCode::UNAUTHENTICATED, ""};
+        return grpc::Status::OK;
     }
 
-    return grpc::Status::OK;
+    return grpc::Status{grpc::StatusCode::UNAUTHENTICATED, ""};
 }
 
 grpc::Status mp::DaemonRpc::get(grpc::ServerContext* context, const GetRequest* request,
@@ -287,7 +265,7 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
     auto status = emit_signal_and_wait_for_result(
         std::bind(&DaemonRpc::on_authenticate, this, request, response, std::placeholders::_1));
 
-    if (status.ok() && connection_type == mp::RpcConnectionType::ssl)
+    if (status.ok())
     {
         accept_cert(client_cert_store, client_cert_from(context), server_address);
     }
@@ -298,18 +276,15 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
 template <typename OperationSignal>
 grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert)
 {
-    if (connection_type == mp::RpcConnectionType::ssl)
+    if (server_socket_type == mp::ServerSocketType::unix && client_cert_store->is_store_empty())
     {
-        if (server_socket_type == mp::ServerSocketType::unix && client_cert_store->is_store_empty())
-        {
-            accept_cert(client_cert_store, client_cert, server_address);
-        }
-        else if (!client_cert_store->verify_cert(client_cert))
-        {
-            return grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
-                                "The client is not registered with the Multipass service.\n"
-                                "Please use 'multipass register' to authenticate the client."};
-        }
+        accept_cert(client_cert_store, client_cert, server_address);
+    }
+    else if (!client_cert_store->verify_cert(client_cert))
+    {
+        return grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
+                            "The client is not registered with the Multipass service.\n"
+                            "Please use 'multipass register' to authenticate the client."};
     }
 
     return emit_signal_and_wait_for_result(signal);
