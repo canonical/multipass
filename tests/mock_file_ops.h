@@ -49,7 +49,7 @@ public:
     MOCK_CONST_METHOD3(write, qint64(QFile&, const char*, qint64));
     MOCK_CONST_METHOD2(write, qint64(QFileDevice&, const QByteArray&));
     MOCK_CONST_METHOD3(open, void(std::fstream&, const char*, std::ios_base::openmode));
-    MOCK_METHOD2(getline, std::istream&(std::ifstream&, std::string&));
+    MOCK_CONST_METHOD1(commit, bool(QSaveFile&));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };
