@@ -113,6 +113,11 @@ qint64 mp::FileOps::write(QFileDevice& file, const QByteArray& data) const
     return file.write(data);
 }
 
+bool mp::FileOps::commit(QSaveFile& file) const
+{
+    return file.commit();
+}
+
 void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const
 {
     stream.open(filename, mode);

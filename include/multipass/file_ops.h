@@ -23,6 +23,7 @@
 #include <QByteArray>
 #include <QDir>
 #include <QFileDevice>
+#include <QSaveFile>
 #include <QString>
 #include <QTextStream>
 
@@ -58,6 +59,9 @@ public:
     virtual qint64 size(QFile& file) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFileDevice& file, const QByteArray& data) const;
+
+    // QSaveFile operations
+    virtual bool commit(QSaveFile& file) const;
 
     // std operations
     virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;
