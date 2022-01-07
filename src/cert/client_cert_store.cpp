@@ -21,6 +21,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QSaveFile>
 
 #include <stdexcept>
 
@@ -73,14 +74,22 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
         return;
 
     QDir dir{cert_dir};
-    QFile file{dir.filePath(chain_name)};
-    if (!MP_FILEOPS.open(file, QIODevice::WriteOnly | QIODevice::Append))
+    QSaveFile file{dir.filePath(chain_name)};
+    if (!MP_FILEOPS.open(file, QIODevice::WriteOnly))
         throw std::runtime_error("failed to create file to store certificate");
 
     file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
 
-    size_t written = MP_FILEOPS.write(file, pem_cert.data(), pem_cert.size());
-    if (written != pem_cert.size())
+    // QIODevice::Append is not supported in QSaveFile, so must write out all of the
+    // existing clients certs each time.
+    for (const auto& saved_cert : authenticated_client_certs)
+    {
+        MP_FILEOPS.write(file, saved_cert.toPem());
+    }
+
+    MP_FILEOPS.write(file, cert.toPem());
+
+    if (!MP_FILEOPS.commit(file))
         throw std::runtime_error("failed to write certificate");
 
     authenticated_client_certs.push_back(cert);
