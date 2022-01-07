@@ -21,8 +21,8 @@
 #include <multipass/cert_store.h>
 #include <multipass/path.h>
 
-#include <string>
-#include <vector>
+#include <QList>
+#include <QSslCertificate>
 
 namespace multipass
 {
@@ -36,8 +36,10 @@ public:
     bool is_store_empty() override;
 
 private:
+    bool verify_cert(const QSslCertificate& cert);
+
     Path cert_dir;
-    std::vector<std::string> authenticated_client_certs;
+    QList<QSslCertificate> authenticated_client_certs;
 };
 } // namespace multipass
 #endif // MULTIPASS_CLIENT_CERT_STORE_H

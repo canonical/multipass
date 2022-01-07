@@ -151,28 +151,6 @@ TEST_F(ClientCertStore, storeEmptyReturnsFalseWhenCertExists)
     EXPECT_FALSE(cert_store.is_store_empty());
 }
 
-TEST_F(ClientCertStore, readingCertFileErrorLogsErrorAndNoCerts)
-{
-    const QDir dir{cert_dir};
-    const auto cert_path = dir.filePath("multipass_client_certs.pem");
-    mpt::make_file_with_content(cert_path, cert_data);
-
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, getline(_, _)).WillOnce([](auto& fstream, auto...) -> std::istream& {
-        fstream.setstate(std::ios_base::failbit);
-
-        return fstream;
-    });
-
-    auto logger_scope = mpt::MockLogger::inject();
-    logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "Error reading from multipass_client_certs.pem");
-
-    mp::ClientCertStore cert_store{cert_dir};
-
-    EXPECT_TRUE(cert_store.is_store_empty());
-}
-
 TEST_F(ClientCertStore, openingFileForWritingFailsAndThrows)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();

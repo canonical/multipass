@@ -17,71 +17,36 @@
 
 #include <multipass/client_cert_store.h>
 #include <multipass/file_ops.h>
-#include <multipass/format.h>
-#include <multipass/logging/log.h>
 #include <multipass/utils.h>
-
-#include "biomem.h"
-
-#include <openssl/pem.h>
-#include <openssl/x509.h>
 
 #include <QDir>
 #include <QFile>
 
-#include <fstream>
 #include <stdexcept>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 
 namespace
 {
 constexpr auto chain_name = "multipass_client_certs.pem";
-constexpr auto category = "client_cert_store";
 
 auto load_certs_from_file(const multipass::Path& cert_dir)
 {
-    std::vector<std::string> certs;
-    std::string cert;
+    QList<QSslCertificate> certs;
     auto path = QDir(cert_dir).filePath(chain_name);
 
-    if (QFile::exists(path))
+    QFile cert_file{path};
+
+    if (cert_file.exists())
     {
         // Ensure the file is only read/write by root
-        QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner);
+        cert_file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
 
-        std::ifstream cert_file{path.toStdString()};
-        std::string line;
-        while (MP_FILEOPS.getline(cert_file, line))
-        {
-            // Re-add the newline to make comparing of cert sent by client easier
-            cert.append(line + '\n');
-
-            if (line == "-----END CERTIFICATE-----")
-            {
-                certs.push_back(cert);
-                cert.clear();
-            }
-        }
-
-        if (!cert_file.eof() && (cert_file.fail() || cert_file.bad()))
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Error reading from {}", chain_name));
-        }
+        cert_file.open(QFile::ReadOnly);
+        certs = QSslCertificate::fromDevice(&cert_file);
     }
 
     return certs;
-}
-
-void validate_certificate(const std::string& pem_cert)
-{
-    mp::BIOMem bio{pem_cert};
-    auto raw_cert = PEM_read_bio_X509(bio.get(), nullptr, nullptr, nullptr);
-    std::unique_ptr<X509, decltype(X509_free)*> x509{raw_cert, X509_free};
-
-    if (raw_cert == nullptr)
-        throw std::runtime_error("invalid certificate data");
 }
 
 auto ensure_perms_for(const multipass::Path& cert_dir)
@@ -99,10 +64,14 @@ mp::ClientCertStore::ClientCertStore(const multipass::Path& cert_dir)
 
 void mp::ClientCertStore::add_cert(const std::string& pem_cert)
 {
-    if (verify_cert(pem_cert))
+    QSslCertificate cert(QByteArray::fromStdString(pem_cert));
+
+    if (cert.isNull())
+        throw std::runtime_error("invalid certificate data");
+
+    if (verify_cert(cert))
         return;
 
-    validate_certificate(pem_cert);
     QDir dir{cert_dir};
     QFile file{dir.filePath(chain_name)};
     if (!MP_FILEOPS.open(file, QIODevice::WriteOnly | QIODevice::Append))
@@ -114,7 +83,7 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
     if (written != pem_cert.size())
         throw std::runtime_error("failed to write certificate");
 
-    authenticated_client_certs.push_back(pem_cert);
+    authenticated_client_certs.push_back(cert);
 }
 
 std::string mp::ClientCertStore::PEM_cert_chain() const
@@ -128,8 +97,12 @@ std::string mp::ClientCertStore::PEM_cert_chain() const
 
 bool mp::ClientCertStore::verify_cert(const std::string& pem_cert)
 {
-    return std::find(authenticated_client_certs.cbegin(), authenticated_client_certs.cend(), pem_cert) !=
-           authenticated_client_certs.cend();
+    return verify_cert(QSslCertificate(QByteArray::fromStdString(pem_cert)));
+}
+
+bool mp::ClientCertStore::verify_cert(const QSslCertificate& cert)
+{
+    return authenticated_client_certs.contains(cert);
 }
 
 bool mp::ClientCertStore::is_store_empty()
