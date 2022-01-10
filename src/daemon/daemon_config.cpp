@@ -162,8 +162,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         cert_provider = std::make_unique<mp::SSLCertProvider>(mp::utils::make_dir(data_directory, "certificates"),
                                                               server_name_from(server_address));
     if (client_cert_store == nullptr)
-        client_cert_store =
-            std::make_unique<mp::ClientCertStore>(mp::utils::make_dir(data_directory, mp::registered_certs_dir));
+        client_cert_store = std::make_unique<mp::ClientCertStore>(data_directory);
     if (ssh_username.empty())
         ssh_username = "ubuntu";
 
