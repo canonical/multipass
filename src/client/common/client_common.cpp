@@ -64,16 +64,10 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const QString& cert_di
     return opts;
 }
 
-std::shared_ptr<grpc::Channel> create_channel_with_opts(const std::string& server_address,
-                                                        const grpc::SslCredentialsOptions& opts)
-{
-    return grpc::CreateChannel(server_address, grpc::SslCredentials(opts));
-}
-
 std::shared_ptr<grpc::Channel> create_channel_and_validate(const std::string& server_address,
                                                            const grpc::SslCredentialsOptions& opts)
 {
-    auto rpc_channel{create_channel_with_opts(server_address, opts)};
+    auto rpc_channel{grpc::CreateChannel(server_address, grpc::SslCredentials(opts))};
     mp::Rpc::Stub stub{rpc_channel};
 
     grpc::ClientContext context;
@@ -162,7 +156,8 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
         mp::utils::remove_directories(cert_dirs);
         mp::utils::make_dir(common_client_cert_dir_path);
 
-        return create_channel_with_opts(server_address, get_ssl_credentials_opts_from(common_client_cert_dir_path));
+        return grpc::CreateChannel(server_address,
+                                   grpc::SslCredentials(get_ssl_credentials_opts_from(common_client_cert_dir_path)));
     }
 
     auto opts = grpc::SslCredentialsOptions();
@@ -170,7 +165,7 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
     opts.pem_cert_chain = cert_provider->PEM_certificate();
     opts.pem_private_key = cert_provider->PEM_signing_key();
 
-    return create_channel_with_opts(server_address, opts);
+    return grpc::CreateChannel(server_address, grpc::SslCredentials(opts));
 }
 
 std::string mp::client::get_server_address()
