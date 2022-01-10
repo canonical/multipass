@@ -40,9 +40,6 @@ auto load_certs_from_file(const multipass::Path& cert_dir)
 
     if (cert_file.exists())
     {
-        // Ensure the file is only read/write by root
-        cert_file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
-
         cert_file.open(QFile::ReadOnly);
         certs = QSslCertificate::fromDevice(&cert_file);
     }
