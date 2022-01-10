@@ -41,7 +41,7 @@ public:
         return true;
     }
 
-    bool is_store_empty() override
+    bool empty() override
     {
         return true;
     }

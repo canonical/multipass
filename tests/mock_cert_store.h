@@ -27,7 +27,7 @@ struct MockCertStore : public CertStore
     MOCK_METHOD1(add_cert, void(const std::string&));
     MOCK_CONST_METHOD0(PEM_cert_chain, std::string());
     MOCK_METHOD1(verify_cert, bool(const std::string&));
-    MOCK_METHOD0(is_store_empty, bool());
+    MOCK_METHOD0(empty, bool());
 };
 } // namespace multipass::test
 #endif // MULTIPASS_MOCK_CERT_STORE_H

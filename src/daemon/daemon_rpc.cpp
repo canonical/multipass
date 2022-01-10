@@ -116,7 +116,7 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, const CertProvider& 
       server_socket_type{server_socket_type_for(server_address)},
       client_cert_store{client_cert_store}
 {
-    MP_PLATFORM.set_server_socket_restrictions(server_address, client_cert_store->is_store_empty());
+    MP_PLATFORM.set_server_socket_restrictions(server_address, client_cert_store->empty());
 
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}", server_address));
 }
@@ -276,7 +276,7 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
 template <typename OperationSignal>
 grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert)
 {
-    if (server_socket_type == mp::ServerSocketType::unix && client_cert_store->is_store_empty())
+    if (server_socket_type == mp::ServerSocketType::unix && client_cert_store->empty())
     {
         accept_cert(client_cert_store, client_cert, server_address);
     }

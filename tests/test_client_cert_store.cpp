@@ -137,7 +137,7 @@ TEST_F(ClientCertStore, storeEmptyReturnsTrueWhenNoCerts)
 {
     mp::ClientCertStore cert_store{cert_dir};
 
-    EXPECT_TRUE(cert_store.is_store_empty());
+    EXPECT_TRUE(cert_store.empty());
 }
 
 TEST_F(ClientCertStore, storeEmptyReturnsFalseWhenCertExists)
@@ -148,7 +148,7 @@ TEST_F(ClientCertStore, storeEmptyReturnsFalseWhenCertExists)
 
     mp::ClientCertStore cert_store{cert_dir};
 
-    EXPECT_FALSE(cert_store.is_store_empty());
+    EXPECT_FALSE(cert_store.empty());
 }
 
 TEST_F(ClientCertStore, openingFileForWritingFailsAndThrows)

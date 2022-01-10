@@ -106,7 +106,7 @@ TEST_F(TestClientCommon, failsGuiCertUsesExistingCliCert)
     mpt::make_file_with_content(cli_client_key_file, mpt::client_key);
 
     EXPECT_CALL(*mock_cert_store, verify_cert).WillOnce(Return(false)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_cert_store, is_store_empty).WillOnce(Return(false));
+    EXPECT_CALL(*mock_cert_store, empty).WillOnce(Return(false));
     config_builder.client_cert_store = std::move(mock_cert_store);
 
     mpt::MockDaemon daemon{make_secure_server()};
@@ -132,7 +132,7 @@ TEST_F(TestClientCommon, noValidCertsCreatesNewCommonCert)
     mpt::make_file_with_content(cli_client_key_file, mpt::client_key);
 
     EXPECT_CALL(*mock_cert_store, verify_cert).Times(2).WillRepeatedly(Return(false));
-    EXPECT_CALL(*mock_cert_store, is_store_empty).WillOnce(Return(false));
+    EXPECT_CALL(*mock_cert_store, empty).WillOnce(Return(false));
     config_builder.client_cert_store = std::move(mock_cert_store);
 
     mpt::MockDaemon daemon{make_secure_server()};

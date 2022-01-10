@@ -114,7 +114,7 @@ bool mp::ClientCertStore::verify_cert(const QSslCertificate& cert)
     return authenticated_client_certs.contains(cert);
 }
 
-bool mp::ClientCertStore::is_store_empty()
+bool mp::ClientCertStore::empty()
 {
     return authenticated_client_certs.empty();
 }
