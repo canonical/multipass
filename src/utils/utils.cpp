@@ -422,7 +422,7 @@ void mp::utils::link_autostart_file(const QDir& link_dir, const QString& autosta
     }
 }
 
-mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
+mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name, const QFileDevice::Permissions permissions)
 {
     mp::Path dir_path;
     bool success{false};
@@ -442,7 +442,18 @@ mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
     {
         throw std::runtime_error(fmt::format("unable to create directory '{}'", dir_path));
     }
+
+    if (permissions)
+    {
+        QFile::setPermissions(dir_path, permissions);
+    }
+
     return dir_path;
+}
+
+mp::Path mp::utils::make_dir(const QDir& dir, const QFileDevice::Permissions permissions)
+{
+    return make_dir(dir, QString(), permissions);
 }
 
 void mp::utils::remove_directories(const std::vector<QString>& dirs)
