@@ -93,8 +93,8 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
     if (tokens.size() != 2u)
         throw std::runtime_error(fmt::format("invalid server address specified: {}", server_address));
 
-    const auto server_name = tokens[0];
-    if (server_name != "unix")
+    const auto schema = tokens[0];
+    if (schema != "unix")
         return;
 
     int gid{0};
