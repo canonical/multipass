@@ -16,6 +16,7 @@
  */
 
 #include <multipass/client_cert_store.h>
+#include <multipass/constants.h>
 #include <multipass/file_ops.h>
 #include <multipass/utils.h>
 
@@ -46,17 +47,11 @@ auto load_certs_from_file(const multipass::Path& cert_dir)
 
     return certs;
 }
-
-auto ensure_perms_for(const multipass::Path& cert_dir)
-{
-    QFile::setPermissions(cert_dir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
-
-    return cert_dir;
-}
 } // namespace
 
-mp::ClientCertStore::ClientCertStore(const multipass::Path& cert_dir)
-    : cert_dir{ensure_perms_for(cert_dir)}, authenticated_client_certs{load_certs_from_file(cert_dir)}
+mp::ClientCertStore::ClientCertStore(const multipass::Path& data_dir)
+    : cert_dir{QDir(data_dir).filePath(mp::registered_certs_dir)},
+      authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
 }
 
@@ -70,7 +65,7 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
     if (verify_cert(cert))
         return;
 
-    QDir dir{cert_dir};
+    QDir dir{mp::utils::make_dir(cert_dir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner)};
     QSaveFile file{dir.filePath(chain_name)};
     if (!MP_FILEOPS.open(file, QIODevice::WriteOnly))
         throw std::runtime_error("failed to create file to store certificate");
