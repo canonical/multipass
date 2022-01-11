@@ -43,6 +43,18 @@ constexpr auto cert_data = "-----BEGIN CERTIFICATE-----\n"
                            "aXByaQyt\n"
                            "-----END CERTIFICATE-----\n";
 
+constexpr auto cert2_data = "-----BEGIN CERTIFICATE-----\n"
+                            "MIIBizCCATECBBv4mFwwCgYIKoZIzj0EAwIwUDELMAkGA1UEBhMCVVMxEjAQBgNV\n"
+                            "BAoMCUNhbm9uaWNhbDEtMCsGA1UEAwwkNThhZGNkMjQtNDJmMi00ZjI0LWExYTYt\n"
+                            "ODk5MDY3ZTdkODhkMB4XDTIxMTEwOTE1MDk0NloXDTIyMTEwOTE1MDk0NlowUDEL\n"
+                            "MAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEtMCsGA1UEAwwkNThhZGNk\n"
+                            "MjQtNDJmMi00ZjI0LWExYTYtODk5MDY3ZTdkODhkMFkwEwYHKoZIzj0CAQYIKoZI\n"
+                            "zj0DAQcDQgAEqybAYAPImXZX5tZSJi6oyvkt4S/sZbk+mkoeg8t9G2lLbMDSG6W1\n"
+                            "yN7oKVc/A6QJ4SO7FmTAr0ruAYQkBo65czAKBggqhkjOPQQDAgNIADBFAiEA/J34\n"
+                            "z4dITtBKaWWUVpGt9Ih2ZCzwinvAh3w3eUaI5hECIFiT1JaL6QRa3holvTRpDm5O\n"
+                            "5ZaxnIFvH2NZ/dCmFWQT\n"
+                            "-----END CERTIFICATE-----\n";
+
 struct ClientCertStore : public testing::Test
 {
     ClientCertStore()
@@ -131,6 +143,25 @@ TEST_F(ClientCertStore, addCertAlreadyExistingDoesNotAddAgain)
     const auto content = cert_store.PEM_cert_chain();
 
     EXPECT_EQ(content, cert_data);
+}
+
+TEST_F(ClientCertStore, addCertWithExistingCertPersistsCerts)
+{
+    const QDir dir{cert_dir};
+    const auto cert_path = dir.filePath("multipass_client_certs.pem");
+    mpt::make_file_with_content(cert_path, cert_data);
+
+    mp::ClientCertStore cert_store{cert_dir};
+
+    ASSERT_FALSE(cert_store.PEM_cert_chain().empty());
+
+    cert_store.add_cert(cert2_data);
+
+    auto all_certs = std::string(cert_data) + std::string(cert2_data);
+
+    const auto content = cert_store.PEM_cert_chain();
+
+    EXPECT_EQ(content, all_certs);
 }
 
 TEST_F(ClientCertStore, storeEmptyReturnsTrueWhenNoCerts)
