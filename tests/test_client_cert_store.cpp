@@ -22,6 +22,7 @@
 #include "temp_dir.h"
 
 #include <multipass/client_cert_store.h>
+#include <multipass/constants.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
@@ -59,7 +60,7 @@ struct ClientCertStore : public testing::Test
 {
     ClientCertStore()
     {
-        cert_dir = mp::utils::make_dir(temp_dir.path(), "test-cert-store");
+        cert_dir = mp::utils::make_dir(temp_dir.path(), mp::registered_certs_dir);
     }
     mpt::TempDir temp_dir;
     mp::Path cert_dir;
@@ -68,7 +69,7 @@ struct ClientCertStore : public testing::Test
 
 TEST_F(ClientCertStore, returns_empty_chain_if_no_certificate_found)
 {
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     auto cert_chain = cert_store.PEM_cert_chain();
     EXPECT_TRUE(cert_chain.empty());
@@ -76,7 +77,7 @@ TEST_F(ClientCertStore, returns_empty_chain_if_no_certificate_found)
 
 TEST_F(ClientCertStore, returns_persisted_certificate_chain)
 {
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     const QDir dir{cert_dir};
     const auto cert_path = dir.filePath("multipass_client_certs.pem");
@@ -88,14 +89,15 @@ TEST_F(ClientCertStore, returns_persisted_certificate_chain)
 
 TEST_F(ClientCertStore, add_cert_throws_on_invalid_data)
 {
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
-    EXPECT_THROW(cert_store.add_cert("not a certificate"), std::runtime_error);
+    MP_EXPECT_THROW_THAT(cert_store.add_cert("not a certificate"), std::runtime_error,
+                         mpt::match_what(StrEq("invalid certificate data")));
 }
 
 TEST_F(ClientCertStore, add_cert_stores_certificate)
 {
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
     EXPECT_NO_THROW(cert_store.add_cert(cert_data));
 
     const auto content = cert_store.PEM_cert_chain();
@@ -104,7 +106,7 @@ TEST_F(ClientCertStore, add_cert_stores_certificate)
 
 TEST_F(ClientCertStore, verifyCertEmptyStoreReturnsFalse)
 {
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     ASSERT_TRUE(cert_store.PEM_cert_chain().empty());
 
@@ -121,7 +123,7 @@ TEST_F(ClientCertStore, verifyCertInStoreReturnsTrue)
     const auto cert_path = dir.filePath("multipass_client_certs.pem");
     mpt::make_file_with_content(cert_path, cert_data);
 
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     ASSERT_FALSE(cert_store.PEM_cert_chain().empty());
 
@@ -134,7 +136,7 @@ TEST_F(ClientCertStore, addCertAlreadyExistingDoesNotAddAgain)
     const auto cert_path = dir.filePath("multipass_client_certs.pem");
     mpt::make_file_with_content(cert_path, cert_data);
 
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     ASSERT_FALSE(cert_store.PEM_cert_chain().empty());
 
@@ -151,7 +153,7 @@ TEST_F(ClientCertStore, addCertWithExistingCertPersistsCerts)
     const auto cert_path = dir.filePath("multipass_client_certs.pem");
     mpt::make_file_with_content(cert_path, cert_data);
 
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     ASSERT_FALSE(cert_store.PEM_cert_chain().empty());
 
@@ -166,7 +168,7 @@ TEST_F(ClientCertStore, addCertWithExistingCertPersistsCerts)
 
 TEST_F(ClientCertStore, storeEmptyReturnsTrueWhenNoCerts)
 {
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     EXPECT_TRUE(cert_store.empty());
 }
@@ -177,7 +179,7 @@ TEST_F(ClientCertStore, storeEmptyReturnsFalseWhenCertExists)
     const auto cert_path = dir.filePath("multipass_client_certs.pem");
     mpt::make_file_with_content(cert_path, cert_data);
 
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     EXPECT_FALSE(cert_store.empty());
 }
@@ -187,7 +189,7 @@ TEST_F(ClientCertStore, openingFileForWritingFailsAndThrows)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data), std::runtime_error,
                          mpt::match_what(StrEq("failed to create file to store certificate")));
@@ -202,7 +204,7 @@ TEST_F(ClientCertStore, writingFileFailsAndThrows)
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_file_ops, commit).WillOnce(Return(false));
 
-    mp::ClientCertStore cert_store{cert_dir};
+    mp::ClientCertStore cert_store{temp_dir.path()};
 
     MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data), std::runtime_error,
                          mpt::match_what(StrEq("failed to write certificate")));
