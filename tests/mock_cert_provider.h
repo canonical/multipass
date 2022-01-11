@@ -34,6 +34,7 @@ constexpr auto client_cert = "-----BEGIN CERTIFICATE-----\n"
                              "BowTeYWSqMQtLNjvZgd++AAGhgIhALNPW+NRSKCXwadiIFgpbjPInLPqXPskLWSc\n"
                              "aXByaQyt\n"
                              "-----END CERTIFICATE-----\n";
+
 constexpr auto client_key = "-----BEGIN PRIVATE KEY-----\n"
                             "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgsSAz5ggzrLjai0I/\n"
                             "F0hYg5oG/shpXJiBQtJdBCG3lUShRANCAAQAFGNAqq7c5IMDeQ/cV4+Emogmkfpb\n"
