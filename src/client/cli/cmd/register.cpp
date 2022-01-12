@@ -83,12 +83,6 @@ mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().empty())
     {
-        if (!term->is_live())
-        {
-            cerr << "The terminal is not live: The passphrase argument is required\n";
-            return ParseCode::CommandLineError;
-        }
-
         try
         {
             mp::PassphrasePrompter prompter(term);
