@@ -156,8 +156,7 @@ jobs:
 
                 if [ '${{ matrix.os }}' == 'Linux' ]; then
                   # Give snapd time to settle
-                  _retry 5 30 _run sudo sh -c "snap\ list\ multipass || sudo snap install multipass --channel ${PACKAGE}"
-                  _run sudo snap install multipass --channel ${PACKAGE}
+                  _retry 5 30 _run sudo sh -c "snap\ list\ multipass && sudo snap refresh multipass --channel ${PACKAGE} || sudo snap install multipass --channel ${PACKAGE}"
 
                 elif [ '${{ matrix.os }}' == 'macOS' ]; then
                   _run curl --location --output multipass.pkg "${PACKAGE}"
