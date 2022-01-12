@@ -1776,7 +1776,7 @@ TEST_F(SftpServer, write_cannot_seek_fails)
     };
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce([](QFile& file, QIODevice::OpenMode mode) {
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce([](QFileDevice& file, QIODevice::OpenMode mode) {
         return file.open(mode);
     });
     EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(true));
@@ -1830,7 +1830,7 @@ TEST_F(SftpServer, write_failure_fails)
     };
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce([](QFile& file, QIODevice::OpenMode mode) {
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce([](QFileDevice& file, QIODevice::OpenMode mode) {
         return file.open(mode);
     });
     EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(true));

@@ -48,7 +48,7 @@ bool mp::FileOps::is_open(const QFile& file) const
     return file.isOpen();
 }
 
-bool mp::FileOps::open(QFile& file, QIODevice::OpenMode mode) const
+bool mp::FileOps::open(QFileDevice& file, QIODevice::OpenMode mode) const
 {
     return file.open(mode);
 }
@@ -108,9 +108,14 @@ qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize) const
     return file.write(data, maxSize);
 }
 
-qint64 mp::FileOps::write(QFile& file, const QByteArray& data) const
+qint64 mp::FileOps::write(QFileDevice& file, const QByteArray& data) const
 {
     return file.write(data);
+}
+
+bool mp::FileOps::commit(QSaveFile& file) const
+{
+    return file.commit();
 }
 
 void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const

@@ -23,7 +23,6 @@
 #include <multipass/cert_provider.h>
 #include <multipass/cli/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/rpc_connection_type.h>
 #include <multipass/ssl_cert_provider.h>
 
 #include <memory>
@@ -31,6 +30,15 @@
 
 namespace multipass
 {
+const QString common_client_cert_dir{"/multipass-client-certificate"};
+const QString gui_client_cert_dir{"/multipass-gui/client-certificate"};
+const QString cli_client_cert_dir{"/multipass/client-certificate"};
+const QString client_cert_prefix{"multipass_cert"};
+const QString cert_file_suffix{".pem"};
+const QString key_file_suffix{"_key.pem"};
+const QString client_cert_file{client_cert_prefix + cert_file_suffix};
+const QString client_key_file{client_cert_prefix + key_file_suffix};
+
 namespace logging
 {
 enum class Level : int; // Fwd decl
@@ -47,8 +55,7 @@ std::string update_notice(const multipass::UpdateInfo& update_info);
 
 namespace client
 {
-std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, RpcConnectionType conn_type,
-                                            CertProvider& cert_provider);
+std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, CertProvider* cert_provider);
 std::string get_server_address();
 std::unique_ptr<SSLCertProvider> get_cert_provider();
 void set_logger();

@@ -45,6 +45,8 @@
 #include <regex>
 #include <sstream>
 
+#include <openssl/evp.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -53,6 +55,7 @@ using namespace std::chrono_literals;
 namespace
 {
 constexpr auto category = "utils";
+constexpr auto scrypt_hash_size{64};
 
 auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
 {
@@ -165,6 +168,17 @@ void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::ch
 std::string mp::Utils::get_kernel_version() const
 {
     return QSysInfo::kernelVersion().toStdString();
+}
+
+QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
+{
+    QByteArray hash(scrypt_hash_size, '\0');
+
+    if (!EVP_PBE_scrypt(passphrase.toStdString().c_str(), passphrase.size(), nullptr, 0, 1 << 14, 8, 1, 0,
+                        reinterpret_cast<unsigned char*>(hash.data()), scrypt_hash_size))
+        throw std::runtime_error("Cannot generate passphrase hash");
+
+    return QString(hash.toHex());
 }
 
 QDir mp::utils::base_dir(const QString& path)
@@ -408,7 +422,7 @@ void mp::utils::link_autostart_file(const QDir& link_dir, const QString& autosta
     }
 }
 
-mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
+mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name, const QFileDevice::Permissions permissions)
 {
     mp::Path dir_path;
     bool success{false};
@@ -428,7 +442,26 @@ mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name)
     {
         throw std::runtime_error(fmt::format("unable to create directory '{}'", dir_path));
     }
+
+    if (permissions)
+    {
+        QFile::setPermissions(dir_path, permissions);
+    }
+
     return dir_path;
+}
+
+mp::Path mp::utils::make_dir(const QDir& dir, const QFileDevice::Permissions permissions)
+{
+    return make_dir(dir, QString(), permissions);
+}
+
+void mp::utils::remove_directories(const std::vector<QString>& dirs)
+{
+    for (const auto& dir : dirs)
+    {
+        QDir(dir).removeRecursively();
+    }
 }
 
 QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
