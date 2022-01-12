@@ -28,18 +28,24 @@ namespace multipass::test
 class MockPlatform : public platform::Platform
 {
 public:
-    using Platform::Platform;
+    MockPlatform(const PrivatePass& pass) : platform::Platform(pass)
+    {
+        ON_CALL(*this, set_server_socket_restrictions).WillByDefault(testing::Return());
+    };
+
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
     MOCK_CONST_METHOD0(get_workflows_url_override, QString());
     MOCK_CONST_METHOD1(is_remote_supported, bool(const std::string&));
     MOCK_CONST_METHOD1(is_backend_supported, bool(const QString&));
     MOCK_CONST_METHOD2(is_alias_supported, bool(const std::string&, const std::string&));
+    MOCK_CONST_METHOD2(chmod, int(const char*, unsigned int));
     MOCK_CONST_METHOD3(chown, int(const char*, unsigned int, unsigned int));
     MOCK_CONST_METHOD2(link, bool(const char*, const char*));
     MOCK_CONST_METHOD3(symlink, bool(const char*, const char*, bool));
     MOCK_CONST_METHOD3(utime, int(const char*, int, int));
     MOCK_CONST_METHOD2(create_alias_script, void(const std::string&, const AliasDefinition&));
     MOCK_CONST_METHOD1(remove_alias_script, void(const std::string&));
+    MOCK_CONST_METHOD2(set_server_socket_restrictions, void(const std::string&, const bool));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };

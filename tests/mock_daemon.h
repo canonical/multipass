@@ -63,6 +63,8 @@ struct MockDaemon : public Daemon
     MOCK_METHOD3(get, void(const GetRequest*, grpc::ServerWriterInterface<GetReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(networks, void(const NetworksRequest*, grpc::ServerWriterInterface<NetworksReply>*,
                                 std::promise<grpc::Status>*));
+    MOCK_METHOD3(authenticate, void(const AuthenticateRequest*, grpc::ServerWriterInterface<AuthenticateReply>*,
+                                    std::promise<grpc::Status>*));
 
     template <typename Request, typename Reply>
     void set_promise_value(const Request*, grpc::ServerWriterInterface<Reply>*,

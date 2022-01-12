@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Canonical, Ltd.
+ * Copyright (C) 2019-2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 
 #include <multipass/cert_provider.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/rpc_connection_type.h>
 
 #include <memory>
 #include <sstream>
@@ -33,7 +32,6 @@ namespace multipass
 struct ClientConfig
 {
     const std::string server_address;
-    const RpcConnectionType conn_type;
     std::unique_ptr<CertProvider> cert_provider;
 };
 
@@ -44,7 +42,6 @@ public:
     int run(const QStringList& arguments);
 
 private:
-    const std::unique_ptr<CertProvider> cert_provider;
     std::shared_ptr<grpc::Channel> rpc_channel;
     std::unique_ptr<multipass::Rpc::Stub> stub;
     std::stringstream null_stream;

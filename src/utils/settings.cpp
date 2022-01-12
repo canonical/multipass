@@ -56,7 +56,8 @@ std::map<QString, QString> make_defaults()
                                           {mp::autostart_key, autostart_default},
                                           {mp::hotkey_key, default_hotkey()},
                                           {mp::bridged_interface_key, ""},
-                                          {mp::mounts_key, mp::platform::default_privileged_mounts()}};
+                                          {mp::mounts_key, mp::platform::default_privileged_mounts()},
+                                          {mp::passphrase_key, QString()}};
 
     for(const auto& [k, v] : mp::platform::extra_settings_defaults())
         ret.insert_or_assign(k, v);
@@ -213,6 +214,8 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
         throw InvalidSettingsException(key, val, "Invalid flag, try \"true\" or \"false\"");
     else if (key == winterm_key || key == hotkey_key)
         val = mp::platform::interpret_setting(key, val);
+    else if (key == passphrase_key)
+        val = MP_UTILS.generate_scrypt_hash_for(val);
 
     auto settings = persistent_settings(key);
     checked_set(*settings, key, val, mutex);

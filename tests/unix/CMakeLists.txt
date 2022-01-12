@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 Canonical Ltd.
+# Copyright © 2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -13,27 +13,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-add_library(cert STATIC
-  biomem.cpp
-  client_cert_store.cpp
-  ssl_cert_provider.cpp
+target_sources(multipass_tests
+  PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/mock_libc_functions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_daemon_rpc.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_platform_unix.cpp
 )
 
-target_include_directories(cert PRIVATE
-  ${OPENSSL_INCLUDE_DIR})
+target_compile_definitions(platform_test PRIVATE
+  -Dgetgrnam=ut_getgrnam
+)
 
-foreach(flag -Wno-nested-anon-types -Wno-gnu -Wno-pedantic -Wno-ignored-qualifiers)
-  check_cxx_compiler_flag(${flag} SUPPORTED)
-  if(SUPPORTED)
-    target_compile_options(cert PRIVATE ${flag})
-  endif()
-endforeach()
-
-target_link_libraries(cert
-  fmt
-  utils
-  OpenSSL::SSL
-  OpenSSL::Crypto
-  Qt5::Core
-  Qt5::Network
+target_link_libraries(multipass_tests
+  platform_test
 )
