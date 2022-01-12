@@ -21,6 +21,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
 
 #include <chrono>
 #include <stdexcept>
@@ -102,10 +103,25 @@ std::string client_cert_from(grpc::ServerContext* context)
     return client_cert;
 }
 
+void handle_socket_restrictions(const std::string& server_address, const bool restricted)
+{
+    try
+    {
+        MP_PLATFORM.set_server_socket_restrictions(server_address, restricted);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error, category,
+                 fmt::format("Fatal error: Cannot set server socket restrictions: {}", e.what()));
+        MP_UTILS.exit(EXIT_FAILURE);
+    }
+}
+
 void accept_cert(mp::CertStore* client_cert_store, const std::string& client_cert, const std::string& server_address)
 {
     client_cert_store->add_cert(client_cert);
-    MP_PLATFORM.set_server_socket_restrictions(server_address, false);
+
+    handle_socket_restrictions(server_address, false);
 }
 } // namespace
 
@@ -116,7 +132,7 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, const CertProvider& 
       server_socket_type{server_socket_type_for(server_address)},
       client_cert_store{client_cert_store}
 {
-    MP_PLATFORM.set_server_socket_restrictions(server_address, client_cert_store->empty());
+    handle_socket_restrictions(server_address, client_cert_store->empty());
 
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}", server_address));
 }
@@ -267,7 +283,14 @@ grpc::Status mp::DaemonRpc::authenticate(grpc::ServerContext* context, const Aut
 
     if (status.ok())
     {
-        accept_cert(client_cert_store, client_cert_from(context), server_address);
+        try
+        {
+            accept_cert(client_cert_store, client_cert_from(context), server_address);
+        }
+        catch (const std::exception& e)
+        {
+            return grpc::Status{grpc::StatusCode::INTERNAL, e.what()};
+        }
     }
 
     return status;
@@ -278,7 +301,14 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
 {
     if (server_socket_type == mp::ServerSocketType::unix && client_cert_store->empty())
     {
-        accept_cert(client_cert_store, client_cert, server_address);
+        try
+        {
+            accept_cert(client_cert_store, client_cert, server_address);
+        }
+        catch (const std::exception& e)
+        {
+            return grpc::Status{grpc::StatusCode::INTERNAL, e.what()};
+        }
     }
     else if (!client_cert_store->verify_cert(client_cert))
     {
