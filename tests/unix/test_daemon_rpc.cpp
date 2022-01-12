@@ -19,11 +19,14 @@
 #include <tests/mock_cert_provider.h>
 #include <tests/mock_cert_store.h>
 #include <tests/mock_daemon.h>
+#include <tests/mock_logger.h>
 #include <tests/mock_platform.h>
+#include <tests/mock_utils.h>
 
 #include <src/daemon/daemon_rpc.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -76,8 +79,12 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
 
     std::unique_ptr<mpt::MockCertProvider> mock_cert_provider{std::make_unique<mpt::MockCertProvider>()};
     std::unique_ptr<mpt::MockCertStore> mock_cert_store{std::make_unique<mpt::MockCertStore>()};
+
     mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = platform_attr.first;
+
+    mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils* mock_utils = attr.first;
 };
 } // namespace
 
@@ -128,6 +135,26 @@ TEST_F(TestDaemonRpc, authenticateFailsSkipsCertImportCalls)
     });
 
     send_command({"register", "foo"});
+}
+
+TEST_F(TestDaemonRpc, authenticateAddCertFailsReturnsError)
+{
+    const std::string error_msg{"Error adding certificate"};
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
+
+    EXPECT_CALL(*mock_cert_store, empty()).WillOnce(Return(true));
+    EXPECT_CALL(*mock_cert_store, add_cert).WillOnce(Throw(std::runtime_error(error_msg)));
+
+    mpt::MockDaemon daemon{make_secure_server()};
+    EXPECT_CALL(daemon, authenticate(_, _, _)).WillOnce([](auto, auto, auto* status_promise) {
+        status_promise->set_value(grpc::Status::OK);
+    });
+
+    std::stringstream stream;
+
+    send_command({"register", "foo"}, trash_stream, stream);
+
+    EXPECT_THAT(stream.str(), HasSubstr(error_msg));
 }
 
 TEST_F(TestDaemonRpc, pingReturnsOkWhenCertIsVerified)
@@ -232,4 +259,50 @@ TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
 
     EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not registered with the Multipass service."),
                                     HasSubstr("Please use 'multipass register' to authenticate the client.")));
+}
+
+TEST_F(TestDaemonRpc, listAcceptCertFailsHasError)
+{
+    const std::string error_msg{"Error adding certificate"};
+
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
+
+    EXPECT_CALL(*mock_cert_store, empty()).Times(2).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).WillOnce(Throw(std::runtime_error(error_msg)));
+
+    mpt::MockDaemon daemon{make_secure_server()};
+
+    std::stringstream stream;
+
+    send_command({"list"}, trash_stream, stream);
+
+    EXPECT_THAT(stream.str(), HasSubstr(error_msg));
+}
+
+TEST_F(TestDaemonRpc, listSettingServerPermissionsFailLogsErrorAndExits)
+{
+    const std::string error_msg{"Error setting socket permissions"};
+
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
+    EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false))
+        .WillOnce(Throw(std::runtime_error(error_msg)));
+
+    EXPECT_CALL(*mock_cert_store, empty()).Times(2).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
+
+    // Detects if the daemon would actually exit
+    EXPECT_CALL(*mock_utils, exit(EXIT_FAILURE)).Times(1);
+
+    mpt::MockDaemon daemon{make_secure_server()};
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, error_msg);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to set up autostart prerequisites", AnyNumber());
+
+    EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto, auto* status_promise) {
+        status_promise->set_value(grpc::Status::OK);
+    });
+
+    send_command({"list"});
 }
