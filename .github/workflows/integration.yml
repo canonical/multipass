@@ -182,12 +182,7 @@ jobs:
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
-                if [ '${{ matrix.driver }}' == 'virtualbox' ]; then
-                  # VirtualBox broken in stable
-                  _install ${{ github.event.inputs.mac-x86-package }}
-                else
-                  _install "https://multipass.run/download/macos"
-                fi
+                _install "https://multipass.run/download/macos"
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
                 # Can't uninstall without input, so let's install the target package straight
