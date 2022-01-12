@@ -638,6 +638,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
     QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
 }
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
@@ -913,7 +914,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
       vm_instance_specs{load_db(
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
-      daemon_rpc{config->server_address, config->connection_type, *config->cert_provider, *config->client_cert_store},
+      daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
       metrics_provider{"https://api.jujucharms.com/omnibus/v4/multipass/metrics", get_unique_id(config->data_directory),
                        config->data_directory},
       metrics_opt_in{get_metrics_opt_in(config->data_directory)},
@@ -2047,6 +2048,37 @@ try
 catch (const mp::InvalidSettingsException& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::authenticate(const AuthenticateRequest* request,
+                              grpc::ServerWriterInterface<AuthenticateReply>* server,
+                              std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<AuthenticateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    auto stored_hash = MP_SETTINGS.get(mp::passphrase_key);
+
+    if (stored_hash.isNull())
+    {
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                         "Passphrase is not set. Please `multipass set local.passphrase` with a trusted client."));
+    }
+
+    auto hashed_passphrase = MP_UTILS.generate_scrypt_hash_for(QString::fromStdString(request->passphrase()));
+
+    if (stored_hash != hashed_passphrase)
+    {
+        return status_promise->set_value(
+            grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Passphrase is not correct. Please try again."));
+    }
+
+    status_promise->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {

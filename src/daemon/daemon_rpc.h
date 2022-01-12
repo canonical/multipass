@@ -23,7 +23,6 @@
 #include <multipass/cert_provider.h>
 #include <multipass/disabled_copy_move.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/rpc_connection_type.h>
 
 #include <grpcpp/grpcpp.h>
 
@@ -39,13 +38,21 @@ using CreateReply = LaunchReply;
 using CreateError = LaunchError;
 using CreateProgress = LaunchProgress;
 
+// Skip running moc on this enum class since it fails parsing it
+#ifndef Q_MOC_RUN
+enum class ServerSocketType
+{
+    tcp,
+    unix
+};
+#endif
+
 struct DaemonConfig;
 class DaemonRpc : public QObject, public multipass::Rpc::Service, private DisabledCopyMove
 {
     Q_OBJECT
 public:
-    DaemonRpc(const std::string& server_address, multipass::RpcConnectionType type, const CertProvider& cert_provider,
-              const CertStore& client_cert_store);
+    DaemonRpc(const std::string& server_address, const CertProvider& cert_provider, CertStore* client_cert_store);
 
 signals:
     void on_create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,
@@ -84,10 +91,17 @@ signals:
                     std::promise<grpc::Status>* status_promise);
     void on_get(const GetRequest* request, grpc::ServerWriter<GetReply>* response,
                 std::promise<grpc::Status>* status_promise);
+    void on_authenticate(const AuthenticateRequest* request, grpc::ServerWriter<AuthenticateReply>* response,
+                         std::promise<grpc::Status>* status_promise);
 
 private:
+    template <typename OperationSignal>
+    grpc::Status verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert);
+
     const std::string server_address;
     const std::unique_ptr<grpc::Server> server;
+    const ServerSocketType server_socket_type;
+    CertStore* client_cert_store;
 
 protected:
     grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
@@ -127,6 +141,8 @@ protected:
     grpc::Status ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response) override;
     grpc::Status get(grpc::ServerContext* context, const GetRequest* request,
                      grpc::ServerWriter<GetReply>* response) override;
+    grpc::Status authenticate(grpc::ServerContext* context, const AuthenticateRequest* request,
+                              grpc::ServerWriter<AuthenticateReply>* response) override;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H

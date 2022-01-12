@@ -29,6 +29,7 @@ add_executable(multipass_tests
   mischievous_url_downloader.cpp
   mock_logger.cpp
   mock_process_factory.cpp
+  mock_openssl_syscalls.cpp
   mock_settings.cpp
   mock_standard_paths.cpp
   mock_sftp.cpp
@@ -48,10 +49,12 @@ add_executable(multipass_tests
   test_cli_client.cpp
   test_cli_prompters.cpp
   test_client_cert_store.cpp
+  test_client_common.cpp
   test_cloud_init_iso.cpp
   test_constants.cpp
   test_custom_image_host.cpp
   test_daemon.cpp
+  test_daemon_authenticate.cpp
   test_daemon_find.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
@@ -113,6 +116,9 @@ target_compile_definitions(sftp_test PRIVATE
 target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
 
+target_compile_definitions(utils_test PRIVATE
+  -DEVP_PBE_scrypt=ut_EVP_PBE_scrypt)
+
 target_link_libraries(multipass_tests
   cert
   client
@@ -129,7 +135,7 @@ target_link_libraries(multipass_tests
   ssh_test
   ssh_client_test
   sshfs_mount_test
-  utils
+  utils_test
   # 3rd-party
   premock
   scope_guard
@@ -191,3 +197,7 @@ add_subdirectory(${MULTIPASS_PLATFORM})
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+if (UNIX)
+  add_subdirectory(unix)
+endif()

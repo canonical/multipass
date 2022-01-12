@@ -66,13 +66,15 @@ enum class TimeoutAction
 
 // filesystem and path helpers
 QDir base_dir(const QString& path);
-multipass::Path make_dir(const QDir& a_dir, const QString& name);
+Path make_dir(const QDir& a_dir, const QString& name, const QFileDevice::Permissions permissions = 0);
+Path make_dir(const QDir& dir, const QFileDevice::Permissions permissions = 0);
 bool is_dir(const std::string& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string filename_for(const std::string& path);
 std::string contents_of(const multipass::Path& file_path);
 bool invalid_target_path(const QString& target_path);
 QTemporaryFile create_temp_file_with_path(const QString& filename_template);
+void remove_directories(const std::vector<QString>& dirs);
 
 // special-file helpers
 void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
@@ -149,6 +151,9 @@ public:
 
     // system info helpers
     virtual std::string get_kernel_version() const;
+
+    // scrypt hash generator
+    virtual QString generate_scrypt_hash_for(const QString& passphrase) const;
 };
 } // namespace multipass
 
