@@ -40,9 +40,7 @@ std::string mp::PlainPrompter::prompt(const std::string& text) const
 {
     term->cout() << text << ": ";
 
-    auto value = get_input(term->cin());
-
-    return value;
+    return get_input(term->cin());
 }
 
 mp::PassphrasePrompter::PassphrasePrompter(Terminal* term) : BasePrompter(term)
