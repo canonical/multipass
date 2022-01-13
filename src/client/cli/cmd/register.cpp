@@ -69,7 +69,7 @@ mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument("passphrase",
                                   "Passphrase to register with the Multipass service. If omitted, a prompt will be "
                                   "displayed for entering the passphrase.",
-                                  "<passphrase>");
+                                  "[<passphrase>]");
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
