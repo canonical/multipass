@@ -55,22 +55,21 @@ public:
     std::string prompt(const std::string&) const override;
 };
 
-class PassphrasePrompter : public BasePrompter
+class PassphrasePrompter : public PlainPrompter
 {
 public:
     explicit PassphrasePrompter(Terminal* term);
     virtual ~PassphrasePrompter();
 
-    std::string prompt(const std::string&) const override;
+    std::string prompt(const std::string& text = "Please enter passphrase") const override;
 };
 
 class NewPassphrasePrompter : public PassphrasePrompter
 {
 public:
     using PassphrasePrompter::PassphrasePrompter;
-    using PassphrasePrompter::prompt;
 
-    std::string prompt(const std::string&, const std::string&) const;
+    std::string prompt(const std::string& text = "Please re-enter passphrase") const override;
 };
 } // namespace multipass
 
