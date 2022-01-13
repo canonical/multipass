@@ -2399,20 +2399,6 @@ TEST_F(Client, registerCmdHelpOk)
     EXPECT_EQ(send_command({"register", "--help"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, registerCmdNoPassphraseFailsNoLiveTTY)
-{
-    std::ostringstream cerr, cout;
-    mpt::MockTerminal mock_terminal;
-
-    EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
-    EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
-    EXPECT_CALL(mock_terminal, cin_is_live).WillOnce(Return(false));
-
-    EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::CommandLineError);
-
-    EXPECT_EQ(cerr.str(), "The terminal is not live: The passphrase argument is required\n");
-}
-
 TEST_F(Client, registerCmdAcceptsEnteredPassphrase)
 {
     const std::string passphrase{"foo"};
@@ -2425,8 +2411,6 @@ TEST_F(Client, registerCmdAcceptsEnteredPassphrase)
     EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
     EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
     EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
-    EXPECT_CALL(mock_terminal, cin_is_live).WillOnce(Return(true));
-    EXPECT_CALL(mock_terminal, cout_is_live).WillOnce(Return(true));
     EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
     EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
 
@@ -2449,8 +2433,6 @@ TEST_F(Client, registerCmdNoPassphraseEnteredReturnsError)
     EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
     EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
     EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
-    EXPECT_CALL(mock_terminal, cin_is_live).WillOnce(Return(true));
-    EXPECT_CALL(mock_terminal, cout_is_live).WillOnce(Return(true));
     EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
     EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
 
@@ -2470,8 +2452,6 @@ TEST_F(Client, registerCmdNoPassphrasePrompterFailsReturnsError)
     EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
     EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
     EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
-    EXPECT_CALL(mock_terminal, cin_is_live).WillOnce(Return(true));
-    EXPECT_CALL(mock_terminal, cout_is_live).WillOnce(Return(true));
     EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
     EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
 

@@ -56,7 +56,7 @@ TEST_F(CLIPrompters, PlainReturnsText)
 // that is specific to platform terminal types.
 TEST_F(CLIPrompters, passphraseCallsEchoAndReturnsExpectedPassphrase)
 {
-    const std::string prompter_string{"Enter passphrase: "};
+    const std::string expected_output{"Please enter passphrase: \n"};
     const std::string passphrase{"foo"};
     mpt::MockTerminal mock_terminal;
 
@@ -64,26 +64,26 @@ TEST_F(CLIPrompters, passphraseCallsEchoAndReturnsExpectedPassphrase)
 
     EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
     EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
-    EXPECT_CALL(mock_terminal, cout()).Times(2).WillRepeatedly([this]() -> std::ostream& { return cout; });
+    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly([this]() -> std::ostream& { return cout; });
     EXPECT_CALL(mock_terminal, cin()).WillOnce([this]() -> std::istream& { return cin; });
 
     mp::PassphrasePrompter prompter{&mock_terminal};
 
-    auto input = prompter.prompt(prompter_string);
+    auto input = prompter.prompt();
 
-    EXPECT_EQ(cout.str(), prompter_string + "\n");
+    EXPECT_EQ(cout.str(), expected_output);
     EXPECT_EQ(input, passphrase);
 }
 
 TEST_F(CLIPrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphrase)
 {
-    const std::string prompter1_string{"Enter passphrase: "}, prompter2_string{"Re-enter passphrase: "};
+    const std::string expected_output{"Please enter passphrase: \nPlease re-enter passphrase: \n"};
     const std::string passphrase{"foo"};
     mpt::MockTerminal mock_terminal;
 
     EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
     EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
-    EXPECT_CALL(mock_terminal, cout()).Times(3).WillRepeatedly([this]() -> std::ostream& { return cout; });
+    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly([this]() -> std::ostream& { return cout; });
     EXPECT_CALL(mock_terminal, cin()).Times(2).WillRepeatedly([this, &passphrase]() -> std::istream& {
         cin.str(passphrase + "\n");
         return cin;
@@ -91,15 +91,15 @@ TEST_F(CLIPrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphrase)
 
     mp::NewPassphrasePrompter prompter{&mock_terminal};
 
-    auto input = prompter.prompt(prompter1_string, prompter2_string);
+    auto input = prompter.prompt();
 
-    EXPECT_EQ(cout.str(), prompter1_string + "\n" + prompter2_string + "\n");
+    EXPECT_EQ(cout.str(), expected_output);
     EXPECT_EQ(input, passphrase);
 }
 
-TEST_F(CLIPrompters, newPassPhraseWrongPassphraseRepeats)
+TEST_F(CLIPrompters, newPassPhraseWrongPassphraseThrows)
 {
-    const std::string prompter1_string{"Enter passphrase: "}, prompter2_string{"Re-enter passphrase: "};
+    const std::string expected_output{"Please enter passphrase: \nPlease re-enter passphrase: \n"};
     const std::string passphrase{"foo"}, wrong_passphrase{"bar"};
     mpt::MockTerminal mock_terminal;
 
@@ -116,21 +116,14 @@ TEST_F(CLIPrompters, newPassPhraseWrongPassphraseRepeats)
         return cin;
     };
 
-    EXPECT_CALL(mock_terminal, cout()).Times(6).WillRepeatedly([this]() -> std::ostream& { return cout; });
-    EXPECT_CALL(mock_terminal, cin())
-        .Times(4)
-        .WillOnce(Invoke(good_passphrase))
-        .WillOnce(Invoke(bad_passphrase))
-        .WillRepeatedly(Invoke(good_passphrase));
+    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly([this]() -> std::ostream& { return cout; });
+    EXPECT_CALL(mock_terminal, cin()).WillOnce(Invoke(good_passphrase)).WillOnce(Invoke(bad_passphrase));
 
     mp::NewPassphrasePrompter prompter{&mock_terminal};
 
-    auto input = prompter.prompt(prompter1_string, prompter2_string);
+    MP_EXPECT_THROW_THAT(prompter.prompt(), mp::PromptException, mpt::match_what(StrEq("Passphrases do not match")));
 
-    EXPECT_EQ(cout.str(), prompter1_string + "\n" + prompter2_string +
-                              "\nPassphrases do not match. Please try again.\n" + prompter1_string + "\n" +
-                              prompter2_string + "\n");
-    EXPECT_EQ(input, passphrase);
+    EXPECT_EQ(cout.str(), expected_output);
 }
 
 class CLIPromptersBadCinState : public CLIPrompters, public WithParamInterface<std::ios_base::iostate>
