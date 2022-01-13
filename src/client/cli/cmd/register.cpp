@@ -86,7 +86,7 @@ mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
         try
         {
             mp::PassphrasePrompter prompter(term);
-            auto passphrase = prompter.prompt("Please enter passphrase: ");
+            auto passphrase = prompter.prompt();
 
             if (passphrase.empty())
             {
