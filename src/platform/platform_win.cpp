@@ -364,8 +364,8 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
     return backend == "hyperv" || backend == "virtualbox";
 }
 
-void mp::platform::Platform::set_server_permissions(const std::string& /* server_address */,
-                                                    const bool /* restricted */) const
+void mp::platform::Platform::set_server_socket_restrictions(const std::string& /* server_address */,
+                                                            const bool /* restricted */) const
 {
 }
 

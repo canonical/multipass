@@ -21,10 +21,12 @@
 #include "daemon_monitor_settings.h" // temporary
 
 #include <multipass/client_cert_store.h>
+#include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssl_cert_provider.h>
+#include <multipass/standard_paths.h>
 
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -264,7 +266,7 @@ void create_client_cert_if_necessary()
 
     mp::ClientCertStore cert_store{mp::utils::make_dir(multipassd_data_dir_path, mp::registered_certs_dir)};
 
-    if (cert_store.is_store_empty())
+    if (cert_store.empty())
     {
         auto data_location{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericDataLocation)};
         auto client_cert_dir_path{data_location + mp::common_client_cert_dir};
