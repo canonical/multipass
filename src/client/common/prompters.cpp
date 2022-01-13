@@ -43,7 +43,7 @@ std::string mp::PlainPrompter::prompt(const std::string& text) const
     return get_input(term->cin());
 }
 
-mp::PassphrasePrompter::PassphrasePrompter(Terminal* term) : BasePrompter(term)
+mp::PassphrasePrompter::PassphrasePrompter(Terminal* term) : PlainPrompter(term)
 {
     term->set_cin_echo(false);
 }
@@ -55,39 +55,22 @@ mp::PassphrasePrompter::~PassphrasePrompter()
 
 std::string mp::PassphrasePrompter::prompt(const std::string& text) const
 {
-    term->cout() << text;
-
-    auto passphrase = get_input(term->cin());
+    auto passphrase = PlainPrompter::prompt(text);
 
     term->cout() << "\n";
 
     return passphrase;
 }
 
-std::string mp::NewPassphrasePrompter::prompt(const std::string& prompt1, const std::string& prompt2) const
+std::string mp::NewPassphrasePrompter::prompt(const std::string& text) const
 {
-    std::string passphrase;
+    auto passphrase = PassphrasePrompter::prompt();
 
-    while (true)
+    // Confirm the passphrase is the same by re-entering it
+    if (passphrase != PassphrasePrompter::prompt(text))
     {
-        term->cout() << prompt1;
-
-        passphrase = get_input(term->cin());
-
-        term->cout() << "\n" << prompt2;
-
-        // Confirm the passphrase is the same by re-entering it
-        if (passphrase == get_input(term->cin()))
-        {
-            break;
-        }
-        else
-        {
-            term->cout() << "\nPassphrases do not match. Please try again.\n";
-        }
+        throw PromptException("Passphrases do not match");
     }
-
-    term->cout() << "\n";
 
     return passphrase;
 }
