@@ -110,3 +110,19 @@ TEST_F(TestUnixTerminal, unsetsEchoOnTerminal)
 
     unix_terminal.set_cin_echo(false);
 }
+
+TEST_F(TestUnixTerminal, echoEnabledOnDestruction)
+{
+    REPLACE(fileno, [this](auto) { return fake_fd; });
+
+    REPLACE(tcgetattr, [](auto...) { return 0; });
+
+    REPLACE(tcsetattr, [](auto, auto, auto termios_p) {
+        EXPECT_TRUE((termios_p->c_lflag & ECHO) == ECHO);
+        return 0;
+    });
+
+    {
+        mp::UnixTerminal term;
+    }
+}
