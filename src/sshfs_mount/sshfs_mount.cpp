@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 Canonical, Ltd.
+ * Copyright (C) 2017-2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
 #include <semver200.h>
@@ -206,10 +207,12 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
 mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
                            const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
     : sftp_server{make_sftp_server(std::move(session), source, target, gid_mappings, uid_mappings)},
-      sftp_thread{[this] {
-          std::cout << "Connected" << std::endl;
-          sftp_server->run();
-          std::cout << "Stopped" << std::endl;
+      sftp_thread{[this]() {
+          mp::top_catch_all(category, [this] {
+              std::cout << "Connected" << std::endl;
+              sftp_server->run();
+              std::cout << "Stopped" << std::endl;
+          });
       }}
 {
 }
