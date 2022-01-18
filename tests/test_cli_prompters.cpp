@@ -81,8 +81,8 @@ TEST_F(CLIPrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphrase)
     const std::string passphrase{"foo"};
     mpt::MockTerminal mock_terminal;
 
-    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
-    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(2);
+    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(2);
     EXPECT_CALL(mock_terminal, cout()).WillRepeatedly([this]() -> std::ostream& { return cout; });
     EXPECT_CALL(mock_terminal, cin()).Times(2).WillRepeatedly([this, &passphrase]() -> std::istream& {
         cin.str(passphrase + "\n");
@@ -103,8 +103,8 @@ TEST_F(CLIPrompters, newPassPhraseWrongPassphraseThrows)
     const std::string passphrase{"foo"}, wrong_passphrase{"bar"};
     mpt::MockTerminal mock_terminal;
 
-    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
-    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(2);
+    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(2);
 
     auto good_passphrase = [this, &passphrase]() -> std::istream& {
         cin.str(passphrase + "\n");
