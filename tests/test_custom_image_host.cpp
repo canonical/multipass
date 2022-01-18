@@ -48,6 +48,7 @@ namespace
 constexpr auto sha256_sums =
     "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7 *ubuntu-core-16-amd64.img.xz\n"
     "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f *ubuntu-core-18-amd64.img.xz\n"
+    "2cac21bdaf783be5bfa4c88d9d21adf1e87dd6fe08c8f5133efc5cb0e549c8ad *ubuntu-core-20-amd64.img.xz\n"
     "a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48  ubuntu-16.04-minimal-cloudimg-amd64-disk1.img\n"
     "96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c  bionic-server-cloudimg-amd64-disk.img\n"
     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  focal-server-cloudimg-amd64-disk.img\n"
@@ -113,6 +114,9 @@ INSTANTIATE_TEST_SUITE_P(
            CustomData{std::vector<std::string>{"core18"}, "",
                       "https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/ubuntu-core-18-amd64.img.xz",
                       "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f", "core-18", "Core 18"},
+           CustomData{std::vector<std::string>{"core20"}, "",
+                      "https://cdimage.ubuntu.com/ubuntu-core/20/stable/current/ubuntu-core-20-amd64.img.xz",
+                      "2cac21bdaf783be5bfa4c88d9d21adf1e87dd6fe08c8f5133efc5cb0e549c8ad", "core-20", "Core 20"},
            CustomData{
                std::vector<std::string>{"core18", "18.04"}, "snapcraft",
                "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/bionic-server-cloudimg-amd64-disk.img",
@@ -150,11 +154,12 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{5};
+    const size_t expected_entries{6};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7"), Eq(1u));
     EXPECT_THAT(ids.count("1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f"), Eq(1u));
+    EXPECT_THAT(ids.count("2cac21bdaf783be5bfa4c88d9d21adf1e87dd6fe08c8f5133efc5cb0e549c8ad"), Eq(1u));
     EXPECT_THAT(ids.count("96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c"), Eq(1u));
     EXPECT_THAT(ids.count("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), Eq(1u));
     EXPECT_THAT(ids.count("aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c"), Eq(1u));
@@ -171,7 +176,7 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{3};
+    const size_t expected_entries{4};
     EXPECT_EQ(ids.size(), expected_entries);
 }
 
@@ -187,7 +192,7 @@ TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
 
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{2};
+    const size_t expected_entries{3};
     EXPECT_EQ(ids.size(), expected_entries);
 }
 

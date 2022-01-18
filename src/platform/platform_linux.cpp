@@ -250,6 +250,10 @@ QString mp::platform::Platform::get_workflows_url_override() const
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
+    // core20 only works on LXD today
+    if (utils::get_driver_str() != "lxd" && remote.empty() && alias == "core20")
+        return false;
+
     return true;
 }
 

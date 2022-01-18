@@ -72,6 +72,14 @@ const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
         "core-18",
         "Core 18",
         "",
+        ""}},
+      {{"ubuntu-core-20-amd64.img.xz"},
+       {"https://cdimage.ubuntu.com/ubuntu-core/20/stable/current/",
+        {"core20"},
+        "Ubuntu",
+        "core-20",
+        "Core 20",
+        "",
         ""}}}}};
 
 const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
