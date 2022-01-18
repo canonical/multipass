@@ -1,4 +1,4 @@
-# Copyright © 2018-2021 Canonical Ltd.
+# Copyright © 2021 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -11,32 +11,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-include(FindPkgConfig)
-pkg_search_module(APPARMOR libapparmor REQUIRED)
+target_sources(multipass_tests
+  PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/mock_libc_functions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_daemon_rpc.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_platform_unix.cpp
+)
 
-find_package(Qt5 REQUIRED COMPONENTS DBus)
+target_compile_definitions(platform_test PRIVATE
+  -Dgetgrnam=ut_getgrnam
+)
 
-function(add_target TARGET_NAME)
-  add_library(${TARGET_NAME} STATIC
-    apparmor.cpp
-    backend_utils.cpp
-    process_factory.cpp)
-
-  target_link_libraries(${TARGET_NAME}
-    apparmor
-    fmt
-    scope_guard
-    shared
-    utils
-    Qt5::Core
-    Qt5::DBus)
-endfunction()
-
-add_target(shared_linux)
-if(MULTIPASS_ENABLE_TESTS)
-  add_target(shared_linux_test)
-endif()
-
-include_directories(shared_linux
-  ..)
+target_link_libraries(multipass_tests
+  platform_test
+)

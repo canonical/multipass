@@ -48,6 +48,7 @@ constexpr auto settings_extension = ".conf";
 constexpr auto daemon_settings_root = "local";
 constexpr auto petenv_key = "client.primary-name";     // This will eventually be moved to some dynamic settings schema
 constexpr auto driver_key = "local.driver";            // idem
+constexpr auto passphrase_key = "local.passphrase";    // idem
 constexpr auto bridged_interface_key = "local.bridged-network"; // idem
 constexpr auto bridged_network_name = "bridged";
 constexpr auto mounts_key = "local.privileged-mounts"; // idem
@@ -57,6 +58,8 @@ constexpr auto hotkey_key = "client.gui.hotkey";                      // idem
 constexpr auto hotkey_default = "Ctrl+Alt+U";                         // idem; translates to Cmd+Opt+U on macOS
 
 constexpr auto timeout_exit_code = 5;
+
+constexpr auto registered_certs_dir = "registered-certs";
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H

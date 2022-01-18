@@ -77,6 +77,50 @@ std::string message_box(const std::string& message)
     return '\n' + divider + '\n' + message + '\n' + divider + '\n';
 }
 
+grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const QString& cert_dir_path)
+{
+    mp::SSLCertProvider cert_provider{cert_dir_path};
+    auto opts = grpc::SslCredentialsOptions();
+
+    opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
+    opts.pem_cert_chain = cert_provider.PEM_certificate();
+    opts.pem_private_key = cert_provider.PEM_signing_key();
+
+    return opts;
+}
+
+std::shared_ptr<grpc::Channel> create_channel_and_validate(const std::string& server_address,
+                                                           const grpc::SslCredentialsOptions& opts)
+{
+    auto rpc_channel{grpc::CreateChannel(server_address, grpc::SslCredentials(opts))};
+    mp::Rpc::Stub stub{rpc_channel};
+
+    grpc::ClientContext context;
+    auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(100); // should be enough...
+    context.set_deadline(deadline);
+
+    mp::PingRequest request;
+    mp::PingReply reply;
+    auto status = stub.ping(&context, request, &reply);
+
+    return status.ok() ? rpc_channel : nullptr;
+}
+
+bool client_certs_exist(const QString& cert_dir_path)
+{
+    QDir cert_dir{cert_dir_path};
+
+    return cert_dir.exists(mp::client_cert_file) && cert_dir.exists(mp::client_key_file);
+}
+
+void copy_client_certs_to_common_dir(const QString& cert_dir_path, const QString& common_cert_dir_path)
+{
+    mp::utils::make_dir(common_cert_dir_path);
+    QDir common_dir{common_cert_dir_path}, cert_dir{cert_dir_path};
+
+    QFile::copy(cert_dir.filePath(mp::client_cert_file), common_dir.filePath(mp::client_cert_file));
+    QFile::copy(cert_dir.filePath(mp::client_key_file), common_dir.filePath(mp::client_key_file));
+}
 } // namespace
 
 mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command, std::ostream& cerr,
@@ -131,27 +175,51 @@ void mp::client::register_global_settings_handlers()
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
-                                                        mp::RpcConnectionType conn_type,
-                                                        mp::CertProvider& cert_provider)
+                                                        mp::CertProvider* cert_provider)
 {
-    std::shared_ptr<grpc::ChannelCredentials> creds;
-    if (conn_type == mp::RpcConnectionType::ssl)
+    // No common client certificates exist yet.
+    // TODO: Remove the following logic when we are comfortable all installed clients are using the common cert
+    if (!cert_provider)
     {
-        auto opts = grpc::SslCredentialsOptions();
-        opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
-        opts.pem_cert_chain = cert_provider.PEM_certificate();
-        opts.pem_private_key = cert_provider.PEM_signing_key();
-        creds = grpc::SslCredentials(opts);
+        auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
+        auto common_client_cert_dir_path{data_location + common_client_cert_dir};
+
+        // The following logic is for determing which certificate to use when the client starts up.
+        // 1. Check if the multipass-gui certificate exists and determine if it's authenticated
+        //    with the daemon already.  If it is, copy it to the common client certificate directory and use it.
+        // 2. If that fails, then try the certificate from the cli client in the same manner.
+        // 3. Delete any per-client certificate dirs.
+        // 4. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
+
+        const std::vector<QString> cert_dirs{data_location + gui_client_cert_dir, data_location + cli_client_cert_dir};
+        for (const auto& cert_dir : cert_dirs)
+        {
+            if (client_certs_exist(cert_dir))
+            {
+                if (auto rpc_channel{
+                        create_channel_and_validate(server_address, get_ssl_credentials_opts_from(cert_dir))})
+                {
+                    copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
+                    mp::utils::remove_directories(cert_dirs);
+
+                    return rpc_channel;
+                }
+            }
+        }
+
+        mp::utils::remove_directories(cert_dirs);
+        mp::utils::make_dir(common_client_cert_dir_path);
+
+        return grpc::CreateChannel(server_address,
+                                   grpc::SslCredentials(get_ssl_credentials_opts_from(common_client_cert_dir_path)));
     }
-    else if (conn_type == mp::RpcConnectionType::insecure)
-    {
-        creds = grpc::InsecureChannelCredentials();
-    }
-    else
-    {
-        throw std::runtime_error("Unknown connection type");
-    }
-    return grpc::CreateChannel(server_address, creds);
+
+    auto opts = grpc::SslCredentialsOptions();
+    opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
+    opts.pem_cert_chain = cert_provider->PEM_certificate();
+    opts.pem_private_key = cert_provider->PEM_signing_key();
+
+    return grpc::CreateChannel(server_address, grpc::SslCredentials(opts));
 }
 
 std::string mp::client::get_server_address()
@@ -168,9 +236,15 @@ std::string mp::client::get_server_address()
 
 std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
 {
-    auto data_dir = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
-    auto client_cert_dir = mp::utils::make_dir(data_dir, "client-certificate");
-    return std::make_unique<mp::SSLCertProvider>(client_cert_dir);
+    auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
+    auto common_client_cert_dir_path{data_location + common_client_cert_dir};
+
+    if (client_certs_exist(common_client_cert_dir_path))
+    {
+        return std::make_unique<mp::SSLCertProvider>(common_client_cert_dir_path);
+    }
+
+    return nullptr;
 }
 
 void mp::client::set_logger()

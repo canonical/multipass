@@ -20,6 +20,8 @@
 
 #include <multipass/cli/command.h>
 
+#include <QString>
+
 namespace multipass
 {
 namespace cmd
@@ -36,6 +38,7 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
+    ParseCode checked_prompt(const QString& key);
 
     QString key;
     QString val;

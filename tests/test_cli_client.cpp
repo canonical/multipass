@@ -18,6 +18,7 @@
 #include "common.h"
 #include "disabling_macros.h"
 #include "fake_alias_config.h"
+#include "mock_cert_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_platform.h"
@@ -27,7 +28,6 @@
 #include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
-#include "stub_certprovider.h"
 #include "stub_terminal.h"
 
 #include <src/client/cli/client.h>
@@ -93,6 +93,8 @@ struct MockDaemonRpc : public mp::DaemonRpc
                  grpc::Status(grpc::ServerContext* context, const mp::PingRequest* request, mp::PingReply* response));
     MOCK_METHOD3(get, grpc::Status(grpc::ServerContext* context, const mp::GetRequest* request,
                                    grpc::ServerWriter<mp::GetReply>* response));
+    MOCK_METHOD3(authenticate, grpc::Status(grpc::ServerContext* context, const mp::AuthenticateRequest* request,
+                                            grpc::ServerWriter<mp::AuthenticateReply>* response));
 };
 
 struct Client : public Test
@@ -122,6 +124,9 @@ struct Client : public Test
             .Times(AnyNumber())
             .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                                             it gets reset at the end of each test (by VerifyAndClearExpectations) */
+
+        EXPECT_CALL(*client_cert_provider, PEM_certificate()).WillOnce(Return(mpt::client_cert));
+        EXPECT_CALL(*client_cert_provider, PEM_signing_key()).WillOnce(Return(mpt::client_key));
     }
 
     void TearDown() override
@@ -137,8 +142,7 @@ struct Client : public Test
                      std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
     {
         mpt::StubTerminal term(cout, cerr, cin);
-        mp::ClientConfig client_config{server_address, mp::RpcConnectionType::insecure,
-                                       std::make_unique<mpt::StubCertProvider>(), &term};
+        mp::ClientConfig client_config{server_address, std::move(client_cert_provider), &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -268,10 +272,13 @@ struct Client : public Test
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
-    mpt::StubCertProvider cert_provider;
+    std::unique_ptr<mpt::MockCertProvider> client_cert_provider{std::make_unique<mpt::MockCertProvider>()};
+    std::unique_ptr<mpt::MockCertProvider> daemon_cert_provider{std::make_unique<mpt::MockCertProvider>()};
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
+    mpt::MockPlatform* mock_platform = attr.first;
     mpt::StubCertStore cert_store;
-    StrictMock<MockDaemonRpc> mock_daemon{server_address, mp::RpcConnectionType::insecure, cert_provider,
-                                          cert_store}; // strict to fail on unexpected calls and play well with sharing
+    StrictMock<MockDaemonRpc> mock_daemon{server_address, *daemon_cert_provider,
+                                          &cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
     static std::stringstream trash_stream; // this may have contents (that we don't care about)
@@ -288,9 +295,6 @@ struct ClientAlias : public Client, public FakeAliasConfig
         EXPECT_CALL(*mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
         EXPECT_CALL(*mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
     }
-
-    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
-    mpt::MockPlatform* mock_platform = attr.first;
 };
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
@@ -983,6 +987,31 @@ TEST_F(Client, exec_cmd_no_double_dash_no_unknown_option_fails_does_not_print_su
         cerr_stream.str(),
         Not(HasSubstr("Options to the inner command should come after \"--\", like this:\nmultipass exec <instance> -- "
                       "<command> <arguments>\n")));
+}
+
+TEST_F(Client, exec_cmd_starts_instance_if_stopped_or_suspended)
+{
+    const auto instance = "ordinary";
+    const auto ssh_info_matcher = make_ssh_info_instance_matcher(instance);
+    const auto start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(instance);
+    const grpc::Status ok{}, aborted{grpc::StatusCode::ABORTED, "msg"};
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_CALL(mock_daemon, start(_, start_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(ok));
+
+    EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, exec_cmd_fails_on_other_absent_instance)
+{
+    const auto instance = "ordinary";
+    const auto instance_matcher = make_ssh_info_instance_matcher(instance);
+    const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, instance_matcher, _)).WillOnce(Return(notfound));
+    EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::CommandFail));
 }
 
 // help cli tests
@@ -2006,6 +2035,16 @@ TEST_P(TestBasicGetSetOptions, set_cmd_allows_empty_val)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_P(TestBasicGetSetOptions, InteractiveSetWritesSettings)
+{
+    const auto& key = GetParam();
+    const auto val = "blah";
+    std::istringstream cin{fmt::format("{}\n", val)};
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_THAT(send_command({"set", key}, trash_stream, trash_stream, cin), Eq(mp::ReturnCode::Ok));
+}
+
 INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions,
                          Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key,
                                 mp::bridged_interface_key, mp::mounts_key, "anything.else.really"));
@@ -2044,7 +2083,6 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
 {
     EXPECT_CALL(mock_settings, set(_, _)).Times(0); // this is not where the rejection is here
     EXPECT_THAT(send_command({"set", "="}), Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_THAT(send_command({"set", "abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=foo=bar"}), Eq(mp::ReturnCode::CommandLineError));
@@ -2054,6 +2092,15 @@ TEST_F(Client, set_cmd_fails_with_bad_key_val_format)
     EXPECT_THAT(send_command({"set", "foo==bar"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo===bar"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "x=x=x"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, InteractiveSetFailsWithEOF)
+{
+    std::ostringstream cerr;
+    std::istringstream cin;
+
+    EXPECT_THAT(send_command({"set", mp::petenv_key}, trash_stream, cerr, cin), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(cerr.str(), HasSubstr("Failed to read value"));
 }
 
 TEST_F(Client, get_cmd_fails_with_unknown_key)
@@ -2069,6 +2116,18 @@ TEST_F(Client, set_cmd_fails_with_unknown_key)
     const auto val = "blah";
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, InteractiveSetFailsWithUnknownKey)
+{
+    const auto key = "wrong.key";
+    const auto val = "blah";
+    std::ostringstream cerr;
+    std::istringstream cin{fmt::format("{}\n", val)};
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+    EXPECT_THAT(send_command({"set", key}, trash_stream, cerr, cin), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(cerr.str(), HasSubstr("Unrecognized settings key: 'wrong.key'"));
 }
 
 TEST_F(Client, get_handles_persistent_settings_errors)
@@ -2119,40 +2178,7 @@ TEST_F(Client, set_cmd_rejects_bad_values)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, set_cmd_falls_through_instances_when_no_driver_change)
-{
-    const auto driver = "qemu";
-
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(driver));
-    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq(driver)));
-    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
-
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, driver)}), Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, set_cmd_falls_through_instances_when_another_driver)
-{
-    EXPECT_CALL(mock_daemon, list(_, _, _)).Times(0);
-    aux_set_cmd_rejects_bad_val(mp::driver_key, "other");
-}
-
 #ifdef MULTIPASS_PLATFORM_LINUX // These tests concern linux-specific behavior for qemu<->libvirt switching
-
-TEST_F(Client, set_cmd_fails_driver_switch_when_needs_daemon_and_grpc_problem)
-{
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return("qemu"));
-    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
-
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::CommandFail));
-}
-
-TEST_F(Client, set_cmd_succeeds_when_daemon_not_around)
-{
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return("qemu"));
-    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
-
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(mp::ReturnCode::Ok));
-}
 
 TEST_F(Client, set_cmd_toggle_petenv)
 {
@@ -2162,42 +2188,6 @@ TEST_F(Client, set_cmd_toggle_petenv)
     EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}), Eq(mp::ReturnCode::Ok));
 }
-
-struct TestSetDriverWithInstances
-    : Client,
-      WithParamInterface<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>>
-{
-};
-
-const std::vector<std::pair<std::vector<mp::InstanceStatus_Status>, mp::ReturnCode>> set_driver_expected{
-    {{}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::DELETED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::STOPPED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::STOPPED, mp::InstanceStatus::DELETED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::DELETED, mp::InstanceStatus::DELETED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::DELETED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::Ok},
-    {{mp::InstanceStatus::RUNNING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::STARTING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::RESTARTING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::DELAYED_SHUTDOWN}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDING}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::UNKNOWN}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::RUNNING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::STARTING, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-    {{mp::InstanceStatus::SUSPENDED, mp::InstanceStatus::STOPPED}, mp::ReturnCode::CommandFail},
-};
-
-TEST_P(TestSetDriverWithInstances, inspects_instance_states)
-{
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return("qemu"));
-    EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce(Invoke(make_fill_listreply(GetParam().first)));
-
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::driver_key, "libvirt")}), Eq(GetParam().second));
-}
-
-INSTANTIATE_TEST_SUITE_P(Client, TestSetDriverWithInstances, ValuesIn(set_driver_expected));
 
 #endif // MULTIPASS_PLATFORM_LINUX
 
@@ -2251,6 +2241,34 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 
     EXPECT_THAT(help_cmd_launch.str(), Ne(""));
     EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
+}
+
+// register cli tests
+TEST_F(Client, registerCmdGoodPassphraseOk)
+{
+    EXPECT_CALL(mock_daemon, authenticate);
+    EXPECT_EQ(send_command({"register", "foo"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, registerCmdInvalidOptionFails)
+{
+    EXPECT_EQ(send_command({"register", "--foo"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, registerCmdHelpOk)
+{
+    EXPECT_EQ(send_command({"register", "--help"}), mp::ReturnCode::Ok);
+}
+
+// TODO: This test will change when the echoless passphrase prompt in working
+TEST_F(Client, registerCmdNoPassphrasFails)
+{
+    EXPECT_EQ(send_command({"register"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, registerCmdTooManyArgsFails)
+{
+    EXPECT_EQ(send_command({"register", "foo", "bar"}), mp::ReturnCode::CommandLineError);
 }
 
 const std::vector<std::string> timeout_commands{"launch", "start", "restart", "shell"};

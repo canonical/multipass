@@ -14,7 +14,8 @@
 
 add_library(client_common STATIC
   alias_dict.cpp
-  client_common.cpp)
+  client_common.cpp
+  prompters.cpp)
 
 target_link_libraries(client_common
   cert

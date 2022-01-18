@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,19 @@
  *
  */
 
-#ifndef MULTIPASS_RPC_CONNECTION_TYPE_H
-#define MULTIPASS_RPC_CONNECTION_TYPE_H
+#ifndef MULTIPASS_CLI_EXCEPTIONS_H
+#define MULTIPASS_CLI_EXCEPTIONS_H
+
+#include <stdexcept>
+
 namespace multipass
 {
-enum class RpcConnectionType
+class PromptException : public std::runtime_error
 {
-    insecure,
-    ssl
+public:
+    using std::runtime_error::runtime_error;
 };
-}
-#endif // MULTIPASS_RPC_CONNECTION_TYPE_H
+
+} // namespace multipass
+
+#endif // MULTIPASS_CLI_EXCEPTIONS_H

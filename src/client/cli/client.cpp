@@ -30,6 +30,7 @@
 #include "cmd/networks.h"
 #include "cmd/purge.h"
 #include "cmd/recover.h"
+#include "cmd/register.h"
 #include "cmd/remote_settings_handler.h"
 #include "cmd/restart.h"
 #include "cmd/set.h"
@@ -71,8 +72,7 @@ auto make_handler_unregisterer(mp::SettingsHandler* handler)
 } // namespace
 
 mp::Client::Client(ClientConfig& config)
-    : cert_provider{std::move(config.cert_provider)},
-      rpc_channel{mp::client::make_channel(config.server_address, config.conn_type, *cert_provider)},
+    : rpc_channel{mp::client::make_channel(config.server_address, config.cert_provider.get())},
       stub{mp::Rpc::NewStub(rpc_channel)},
       term{config.term},
       aliases{config.term}
@@ -90,6 +90,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Networks>();
     add_command<cmd::Mount>();
     add_command<cmd::Recover>();
+    add_command<cmd::Register>();
     add_command<cmd::Set>();
     add_command<cmd::Shell>();
     add_command<cmd::Start>();

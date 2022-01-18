@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,32 @@
  *
  */
 
-#ifndef MULTIPASS_CERT_STORE_H
-#define MULTIPASS_CERT_STORE_H
+#ifndef MULTIPASS_REGISTER_H
+#define MULTIPASS_REGISTER_H
 
-#include "disabled_copy_move.h"
-
-#include <string>
+#include <multipass/cli/command.h>
 
 namespace multipass
 {
-class CertStore : private DisabledCopyMove
+namespace cmd
+{
+class Register final : public Command
 {
 public:
-    virtual ~CertStore() = default;
-    virtual void add_cert(const std::string& pem_cert) = 0;
-    virtual std::string PEM_cert_chain() const = 0;
-    virtual bool verify_cert(const std::string& pem_cert) = 0;
-    virtual bool empty() = 0;
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
 
-protected:
-    CertStore() = default;
+    std::string name() const override;
+    std::vector<std::string> aliases() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    ParseCode parse_args(ArgParser* parser);
+
+    AuthenticateRequest request;
 };
+} // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_CERT_STORE_H
+
+#endif // MULTIPASS_REGISTER_H

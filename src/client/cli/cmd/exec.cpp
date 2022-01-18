@@ -39,10 +39,20 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
 
     auto on_success = [this, &args](mp::SSHInfoReply& reply) { return exec_success(reply, args, term); };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this, parser](grpc::Status& status) {
+        if (status.error_code() == grpc::StatusCode::ABORTED)
+            return run_cmd_and_retry({"multipass", "start", QString::fromStdString(request.instance_name(0))}, parser,
+                                     cout, cerr);
+        else
+            return standard_failure_handler_for(name(), cerr, status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
+    ReturnCode return_code;
+    while ((return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)) == ReturnCode::Retry)
+        ;
+
+    return return_code;
 }
 
 std::string cmd::Exec::name() const

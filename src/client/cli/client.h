@@ -22,7 +22,6 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/rpc_connection_type.h>
 #include <multipass/terminal.h>
 
 #include <map>
@@ -34,7 +33,6 @@ namespace multipass
 struct ClientConfig
 {
     const std::string server_address;
-    const RpcConnectionType conn_type;
     std::unique_ptr<CertProvider> cert_provider;
     Terminal *term;
 };
@@ -52,7 +50,6 @@ protected:
     void sort_commands();
 
 private:
-    const std::unique_ptr<CertProvider> cert_provider;
     std::shared_ptr<grpc::Channel> rpc_channel;
     std::unique_ptr<multipass::Rpc::Stub> stub;
 

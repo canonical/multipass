@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,27 +15,6 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_CERTPROVIDER_H
-#define MULTIPASS_STUB_CERTPROVIDER_H
+#include "mock_libc_functions.h"
 
-#include <multipass/cert_provider.h>
-
-namespace multipass
-{
-namespace test
-{
-class StubCertProvider : public CertProvider
-{
-public:
-    std::string PEM_certificate() const override
-    {
-        return {};
-    };
-    std::string PEM_signing_key() const override
-    {
-        return {};
-    };
-};
-} // namespace test
-} // namespace multipass
-#endif // MULTIPASS_STUB_CERTPROVIDER_H
+extern "C" IMPL_MOCK_DEFAULT(1, getgrnam);

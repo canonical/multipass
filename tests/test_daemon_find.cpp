@@ -18,6 +18,7 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
+#include "mock_platform.h"
 #include "mock_vm_image_vault.h"
 #include "mock_vm_workflow_provider.h"
 
@@ -39,6 +40,8 @@ auto workflow_description_for(const std::string& workflow_name)
 
 struct DaemonFind : public mpt::DaemonTestFixture
 {
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
+    mpt::MockPlatform* mock_platform = attr.first;
 };
 
 TEST_F(DaemonFind, blankQueryReturnsAllData)

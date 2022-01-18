@@ -58,6 +58,7 @@ public:
     virtual bool is_remote_supported(const std::string& remote) const;
     virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
+    virtual int chmod(const char* path, unsigned int mode) const;
     virtual bool link(const char* target, const char* link) const;
     virtual bool symlink(const char* target, const char* link, bool is_dir) const;
     virtual int utime(const char* path, int atime, int mtime) const;
@@ -65,6 +66,7 @@ public:
     virtual void create_alias_script(const std::string& alias, const AliasDefinition& def) const;
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
+    virtual void set_server_socket_restrictions(const std::string& server_address, const bool restricted) const;
     virtual SettingSpec::Set extra_daemon_settings() const; // TODO@ricab private side
     virtual SettingSpec::Set
     extra_client_settings() const;              // TODO@ricab private side (winterm w/ platform::interpret_setting)

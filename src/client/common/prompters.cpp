@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_CERT_STORE_H
-#define MULTIPASS_CERT_STORE_H
+#include <multipass/cli/prompters.h>
+#include <multipass/exceptions/cli_exceptions.h>
 
-#include "disabled_copy_move.h"
-
-#include <string>
+#include <iostream>
 
 namespace multipass
 {
-class CertStore : private DisabledCopyMove
-{
-public:
-    virtual ~CertStore() = default;
-    virtual void add_cert(const std::string& pem_cert) = 0;
-    virtual std::string PEM_cert_chain() const = 0;
-    virtual bool verify_cert(const std::string& pem_cert) = 0;
-    virtual bool empty() = 0;
 
-protected:
-    CertStore() = default;
-};
+std::string PlainPrompter::prompt(const std::string& text) const
+{
+    term->cout() << text << ": ";
+
+    std::string value;
+    std::getline(term->cin(), value);
+
+    if (!term->cin().good())
+        throw PromptException("Failed to read value");
+
+    return value;
+}
+
 } // namespace multipass
-#endif // MULTIPASS_CERT_STORE_H

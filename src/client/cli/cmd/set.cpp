@@ -19,7 +19,9 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/cli_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h> // temporary
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -27,16 +29,6 @@
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
-
-namespace
-{
-bool allow_only_stopped_instances(const QString& key, const QString& val) // temporary
-{
-    return key == mp::driver_key && MP_PLATFORM.is_backend_supported(val) && (val == "qemu" || val == "libvirt") &&
-           val != MP_SETTINGS.get(key); /* if we are switching between qemu and libvirt drivers (on linux), we can only
-                                           have stopped instances */
-}
-} // namespace
 
 mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
 {
@@ -46,36 +38,6 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
     {
         try
         {
-            if (allow_only_stopped_instances(key, val))
-            {
-                auto on_success = [this](ListReply& reply) {
-                    for (const auto& instance : reply.instances())
-                    {
-                        if (instance.instance_status().status() != mp::InstanceStatus::STOPPED &&
-                            instance.instance_status().status() != mp::InstanceStatus::DELETED)
-                        {
-                            cerr << "All instances need to be stopped.\n";
-                            cerr << "If you have any suspended instances, please start them first,\n";
-                            cerr << "save any data and stop all instances before proceeding:\n\n";
-                            cerr << "multipass stop --all\n";
-                            return ReturnCode::CommandFail;
-                        }
-                    }
-
-                    return ReturnCode::Ok;
-                };
-
-                auto on_failure = [this](grpc::Status& status) {
-                    return status.error_code() == grpc::StatusCode::NOT_FOUND
-                               ? mp::ReturnCode::Ok // let it go through - assuming no instances if daemon not around
-                               : standard_failure_handler_for(name(), cerr, status);
-                };
-
-                ListRequest request;
-                request.set_verbosity_level(parser->verbosityLevel());
-                ret = dispatch(&RpcMethod::list, request, on_success, on_failure);
-            }
-
             if (ret == ReturnCode::Ok)
                 MP_SETTINGS.set(key, val);
         }
@@ -107,10 +69,11 @@ QString cmd::Set::description() const
 
 mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument(
-        "keyval",
-        "A key-value pair. The key specifies a path to the setting to configure. The value is its intended value.",
-        "<key>=<value>");
+    parser->addPositionalArgument("keyval",
+                                  "A key, or a key-value pair. The key specifies a path to the setting to configure. "
+                                  "The value is its intended value. If only the key is given, "
+                                  "the value will be prompted for.",
+                                  "<key>[=<value>]");
 
     auto status = parser->commandParse(this);
     if (status == ParseCode::Ok)
@@ -124,18 +87,38 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
         else
         {
             const auto keyval = args.at(0).split('=', QString::KeepEmptyParts);
-            if (keyval.size() != 2 || keyval[0].isEmpty())
+            if ((keyval.size() != 1 && keyval.size() != 2) || keyval[0].isEmpty())
             {
                 cerr << "Bad key-value format.\n";
                 status = ParseCode::CommandLineError;
             }
-            else
+            else if (keyval.size() == 2)
             {
                 key = keyval.at(0);
                 val = keyval.at(1);
+            }
+            else
+            {
+                key = keyval.at(0);
+                status = checked_prompt(key);
             }
         }
     }
 
     return status;
+}
+
+mp::ParseCode cmd::Set::checked_prompt(const QString& key)
+{
+    mp::PlainPrompter prompter(term);
+    try
+    {
+        val = QString::fromStdString(prompter.prompt(key.toStdString()));
+        return ParseCode::Ok;
+    }
+    catch (const mp::PromptException& e)
+    {
+        cerr << e.what() << std::endl;
+        return ParseCode::CommandLineError;
+    }
 }
