@@ -43,18 +43,10 @@ std::string mp::PlainPrompter::prompt(const std::string& text) const
     return get_input(term->cin());
 }
 
-mp::PassphrasePrompter::PassphrasePrompter(Terminal* term) : PlainPrompter(term)
-{
-    term->set_cin_echo(false);
-}
-
-mp::PassphrasePrompter::~PassphrasePrompter()
-{
-    term->set_cin_echo(true);
-}
-
 std::string mp::PassphrasePrompter::prompt(const std::string& text) const
 {
+    ScopedEcholessInput scoped_echoless_input(term);
+
     auto passphrase = PlainPrompter::prompt(text);
 
     term->cout() << "\n";
