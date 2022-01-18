@@ -264,7 +264,7 @@ void create_client_cert_if_necessary()
     const QString multipassd_data_dir_path{
         QString("%1\\config\\systemprofile\\AppData\\Roaming\\multipassd\\").arg(infoBuf)};
 
-    mp::ClientCertStore cert_store{mp::utils::make_dir(multipassd_data_dir_path, mp::registered_certs_dir)};
+    mp::ClientCertStore cert_store{multipassd_data_dir_path};
 
     if (cert_store.empty())
     {
