@@ -13,32 +13,39 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-if(LINUX)
-  add_library(platform STATIC
-    platform_linux.cpp
-    platform_shared.cpp
-    platform_unix.cpp)
+function(add_target TARGET_NAME)
+  if(LINUX)
+    add_library(${TARGET_NAME} STATIC
+      platform_linux.cpp
+      platform_shared.cpp
+      platform_unix.cpp)
 
-  target_link_libraries(platform
-    journaldlogger)
+    target_link_libraries(${TARGET_NAME}
+      journaldlogger)
+  endif()
+
+  foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+    string(TOUPPER ${BACKEND}_ENABLED DEF)
+    target_compile_definitions(${TARGET_NAME} PRIVATE -D${DEF})
+
+    target_link_libraries(${TARGET_NAME}
+      ${BACKEND}_backend)
+  endforeach()
+
+  include_directories(${TARGET_NAME}
+    backends
+    ${CMAKE_SOURCE_DIR}/src)
+
+  target_link_libraries(${TARGET_NAME}
+    daemon
+    shared
+    update)
+endfunction()
+
+add_target(platform)
+if(MULTIPASS_ENABLE_TESTS)
+  add_target(platform_test)
 endif()
-
-foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
-  string(TOUPPER ${BACKEND}_ENABLED DEF)
-  target_compile_definitions(platform PRIVATE -D${DEF})
-
-  target_link_libraries(platform
-    ${BACKEND}_backend)
-endforeach()
-
-include_directories(platform
-  backends
-  ${CMAKE_SOURCE_DIR}/src)
-
-target_link_libraries(platform
-  daemon
-  shared
-  update)
 
 add_subdirectory(backends)
 add_subdirectory(client)

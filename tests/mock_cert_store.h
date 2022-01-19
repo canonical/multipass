@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,19 @@
  *
  */
 
-#ifndef MULTIPASS_CERT_STORE_H
-#define MULTIPASS_CERT_STORE_H
+#ifndef MULTIPASS_MOCK_CERT_STORE_H
+#define MULTIPASS_MOCK_CERT_STORE_H
 
-#include "disabled_copy_move.h"
+#include <multipass/cert_store.h>
 
-#include <string>
-
-namespace multipass
+namespace multipass::test
 {
-class CertStore : private DisabledCopyMove
+struct MockCertStore : public CertStore
 {
-public:
-    virtual ~CertStore() = default;
-    virtual void add_cert(const std::string& pem_cert) = 0;
-    virtual std::string PEM_cert_chain() const = 0;
-    virtual bool verify_cert(const std::string& pem_cert) = 0;
-    virtual bool empty() = 0;
-
-protected:
-    CertStore() = default;
+    MOCK_METHOD1(add_cert, void(const std::string&));
+    MOCK_CONST_METHOD0(PEM_cert_chain, std::string());
+    MOCK_METHOD1(verify_cert, bool(const std::string&));
+    MOCK_METHOD0(empty, bool());
 };
-} // namespace multipass
-#endif // MULTIPASS_CERT_STORE_H
+} // namespace multipass::test
+#endif // MULTIPASS_MOCK_CERT_STORE_H

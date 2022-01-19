@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Canonical, Ltd.
+ * Copyright (C) 2021 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,13 @@
  *
  */
 
-#ifndef MULTIPASS_RPC_CONNECTION_TYPE_H
-#define MULTIPASS_RPC_CONNECTION_TYPE_H
-namespace multipass
-{
-enum class RpcConnectionType
-{
-    insecure,
-    ssl
-};
-}
-#endif // MULTIPASS_RPC_CONNECTION_TYPE_H
+#ifndef MULTIPASS_MOCK_OPENSSL_SYSCALLS_H
+#define MULTIPASS_MOCK_OPENSSL_SYSCALLS_H
+
+#include <premock.hpp>
+
+#include <openssl/evp.h>
+
+DECL_MOCK(EVP_PBE_scrypt);
+
+#endif // MULTIPASS_MOCK_OPENSSL_SYSCALLS_H

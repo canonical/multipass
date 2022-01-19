@@ -22,7 +22,8 @@
 
 #include <QByteArray>
 #include <QDir>
-#include <QFile>
+#include <QFileDevice>
+#include <QSaveFile>
 #include <QString>
 #include <QTextStream>
 
@@ -45,7 +46,7 @@ public:
     // QFile operations
     virtual bool exists(const QFile& file) const;
     virtual bool is_open(const QFile& file) const;
-    virtual bool open(QFile& file, QIODevice::OpenMode mode) const;
+    virtual bool open(QFileDevice& file, QIODevice::OpenMode mode) const;
     virtual QFileDevice::Permissions permissions(const QFile& file) const;
     virtual qint64 read(QFile& file, char* data, qint64 maxSize) const;
     virtual QByteArray read_all(QFile& file) const;
@@ -57,7 +58,10 @@ public:
     virtual bool setPermissions(QFile& file, QFileDevice::Permissions permissions) const;
     virtual qint64 size(QFile& file) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
-    virtual qint64 write(QFile& file, const QByteArray& data) const;
+    virtual qint64 write(QFileDevice& file, const QByteArray& data) const;
+
+    // QSaveFile operations
+    virtual bool commit(QSaveFile& file) const;
 
     // std operations
     virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;

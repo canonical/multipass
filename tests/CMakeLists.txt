@@ -17,8 +17,17 @@ set (CMAKE_AUTOMOC ON)
 
 include(c_mock_defines.cmake)
 
-set(MULTIPASS_GMOCK_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googlemock)
-set(MULTIPASS_GTEST_DIR ${CMAKE_SOURCE_DIR}/3rd-party/grpc/third_party/googletest/googletest)
+include(FetchContent)
+set(FETCHCONTENT_QUIET FALSE)
+
+FetchContent_Declare(googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG main
+  GIT_SHALLOW TRUE
+  GIT_PROGRESS TRUE
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 add_executable(multipass_tests
   common.cpp
@@ -29,6 +38,7 @@ add_executable(multipass_tests
   mischievous_url_downloader.cpp
   mock_logger.cpp
   mock_process_factory.cpp
+  mock_openssl_syscalls.cpp
   mock_settings.cpp
   mock_standard_paths.cpp
   mock_sftp.cpp
@@ -48,10 +58,12 @@ add_executable(multipass_tests
   test_cli_client.cpp
   test_cli_prompters.cpp
   test_client_cert_store.cpp
+  test_client_common.cpp
   test_cloud_init_iso.cpp
   test_constants.cpp
   test_custom_image_host.cpp
   test_daemon.cpp
+  test_daemon_authenticate.cpp
   test_daemon_find.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
@@ -88,19 +100,12 @@ add_executable(multipass_tests
   test_utils.cpp
   test_with_mocked_bin_path.cpp
   test_workflow_provider.cpp
-
-  ${MULTIPASS_GMOCK_DIR}/src/gmock-all.cc
-  ${MULTIPASS_GTEST_DIR}/src/gtest-all.cc
 )
 
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${CMAKE_SOURCE_DIR}/src
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
-  PRIVATE ${MULTIPASS_GTEST_DIR}
-  PRIVATE ${MULTIPASS_GTEST_DIR}/include
-  PRIVATE ${MULTIPASS_GMOCK_DIR}
-  PRIVATE ${MULTIPASS_GMOCK_DIR}/include
 )
 
 add_definitions(-DWITH_SERVER)
@@ -113,11 +118,16 @@ target_compile_definitions(sftp_test PRIVATE
 target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
 
+target_compile_definitions(utils_test PRIVATE
+  -DEVP_PBE_scrypt=ut_EVP_PBE_scrypt)
+
 target_link_libraries(multipass_tests
   cert
   client
   daemon
   delayed_shutdown
+  gmock_main
+  gtest_main
   ip_address
   iso
   metrics
@@ -129,7 +139,7 @@ target_link_libraries(multipass_tests
   ssh_test
   ssh_client_test
   sshfs_mount_test
-  utils
+  utils_test
   # 3rd-party
   premock
   scope_guard
@@ -191,3 +201,7 @@ add_subdirectory(${MULTIPASS_PLATFORM})
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+if (UNIX)
+  add_subdirectory(unix)
+endif()

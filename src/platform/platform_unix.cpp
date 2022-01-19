@@ -17,7 +17,9 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/utils.h>
 
+#include <grp.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -28,6 +30,8 @@ namespace mp = multipass;
 
 namespace
 {
+const std::vector<std::string> supported_socket_groups{"sudo", "admin", "wheel"};
+
 sftp_attributes_struct stat_to_attr(const struct stat* st)
 {
     sftp_attributes_struct attr{};
@@ -54,6 +58,11 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return ::lchown(path, uid, gid);
 }
 
+int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
+{
+    return ::chmod(path, mode);
+}
+
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
     return ::symlink(target, link) == 0;
@@ -75,6 +84,46 @@ std::string mp::platform::Platform::alias_path_message() const
     return fmt::format("You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for\n"
                        "aliases to work without prefixing with `multipass`:\n\nPATH=\"$PATH:{}\"\n",
                        get_alias_scripts_folder().absolutePath());
+}
+
+void mp::platform::Platform::set_server_socket_restrictions(const std::string& server_address,
+                                                            const bool restricted) const
+{
+    auto tokens = mp::utils::split(server_address, ":");
+    if (tokens.size() != 2u)
+        throw std::runtime_error(fmt::format("invalid server address specified: {}", server_address));
+
+    const auto schema = tokens[0];
+    if (schema != "unix")
+        return;
+
+    int gid{0};
+    int mode{S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP};
+
+    if (restricted)
+    {
+        for (const auto& socket_group : supported_socket_groups)
+        {
+            auto group = getgrnam(socket_group.c_str());
+            if (group)
+            {
+                gid = group->gr_gid;
+                break;
+            }
+        }
+    }
+    else
+    {
+        mode |= S_IROTH | S_IWOTH;
+    }
+
+    const auto socket_path = tokens[1];
+    if (chown(socket_path.c_str(), 0, gid) == -1)
+        throw std::runtime_error(fmt::format("Could not set ownership of the multipass socket: {}", strerror(errno)));
+
+    if (chmod(socket_path.c_str(), mode) == -1)
+        throw std::runtime_error(
+            fmt::format("Could not set permissions for the multipass socket: {}", strerror(errno)));
 }
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
