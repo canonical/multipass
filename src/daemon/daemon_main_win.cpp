@@ -264,12 +264,12 @@ void create_client_cert_if_necessary()
     const QString multipassd_data_dir_path{
         QString("%1\\config\\systemprofile\\AppData\\Roaming\\multipassd\\").arg(infoBuf)};
 
-    mp::ClientCertStore cert_store{mp::utils::make_dir(multipassd_data_dir_path, mp::registered_certs_dir)};
+    mp::ClientCertStore cert_store{multipassd_data_dir_path};
 
     if (cert_store.empty())
     {
         auto data_location{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericDataLocation)};
-        auto client_cert_dir_path{data_location + mp::common_client_cert_dir};
+        auto client_cert_dir_path{mp::utils::make_dir(data_location + mp::common_client_cert_dir)};
         mp::SSLCertProvider cert_provider{client_cert_dir_path};
 
         cert_store.add_cert(cert_provider.PEM_certificate());
