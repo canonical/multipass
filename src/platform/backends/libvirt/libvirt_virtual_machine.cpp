@@ -531,8 +531,9 @@ void mp::LibVirtVirtualMachine::update_cpus(int num_cores)
 
 void mp::LibVirtVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetMemoryFlags,
-                            new_size.in_kilobytes(), VIR_DOMAIN_MEM_MAXIMUM, "memory");
+    auto new_size_kb = new_size.in_kilobytes(); /* floored here */
+    update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetMemoryFlags, new_size_kb,
+                            VIR_DOMAIN_MEM_MAXIMUM, "memory");
 
     desc.mem_size = new_size;
 }
