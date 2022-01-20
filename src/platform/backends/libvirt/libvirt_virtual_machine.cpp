@@ -27,10 +27,10 @@
 #include <multipass/vm_status_monitor.h>
 
 #include <shared/linux/backend_utils.h>
+#include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
 
 #include <QXmlStreamReader>
-
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -522,5 +522,8 @@ void mp::LibVirtVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Resize disk"}; // TODO@ricab implement
+    assert(new_size > desc.disk_space);
+
+    mp::backend::resize_instance_image(new_size, desc.image.image_path);
+    desc.disk_space = new_size;
 }
