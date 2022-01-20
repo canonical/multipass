@@ -473,6 +473,19 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
     return domain;
 }
 
+mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::checked_vm_domain() const
+{
+    auto connection = open_libvirt_connection(libvirt_wrapper);
+    assert(connection && "should have thrown otherwise");
+
+    auto domain = domain_by_name_for(vm_name, connection.get(), libvirt_wrapper);
+    if (!domain)
+        throw std::runtime_error{
+            fmt::format("Could not obtain libvirt domain: {}", libvirt_wrapper->virGetLastErrorMessage())};
+
+    return domain;
+}
+
 mp::LibVirtVirtualMachine::ConnectionUPtr
 mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
@@ -495,19 +508,14 @@ void mp::LibVirtVirtualMachine::update_num_cores(int num_cores)
 {
     assert(num_cores > 0);
 
-    auto connection = open_libvirt_connection(libvirt_wrapper);
-    assert(connection && "should have thrown otherwise");
-
-    auto domain = domain_by_name_for(vm_name, connection.get(), libvirt_wrapper);
-    if (!domain)
-        throw std::runtime_error{
-            fmt::format("Could not obtain libvirt domain: {}", libvirt_wrapper->virGetLastErrorMessage())};
+    auto domain_uptr = checked_vm_domain();
+    assert(domain_uptr && "should have thrown otherwise");
 
     int twice = 0;
     unsigned int flags = VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_VCPU_MAXIMUM;
     do
     {
-        if (libvirt_wrapper->virDomainSetVcpusFlags(domain.get(), num_cores, flags) < 0)
+        if (libvirt_wrapper->virDomainSetVcpusFlags(domain_uptr.get(), num_cores, flags) < 0)
             throw std::runtime_error("Could not update cores");
         flags &= ~VIR_DOMAIN_VCPU_MAXIMUM;
     } while (!twice++); // first set the maximum, then actual

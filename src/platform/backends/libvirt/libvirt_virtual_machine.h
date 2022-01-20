@@ -60,6 +60,7 @@ public:
 
 private:
     DomainUPtr initialize_domain_info(virConnectPtr connection);
+    DomainUPtr checked_vm_domain() const;
 
     std::string mac_addr;
     const std::string username;
