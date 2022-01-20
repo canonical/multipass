@@ -238,6 +238,23 @@ bool domain_is_running(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& libv
 
     return true;
 }
+
+template <typename Updater, typename Integer>
+void update_max_and_property(virDomainPtr domain_ptr, Updater* fun_ptr, Integer new_value, unsigned int max_flag,
+                             const std::string& property_name)
+{
+    assert(domain_ptr);
+
+    int twice = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CONFIG | max_flag;
+    do
+    {
+        if (fun_ptr(domain_ptr, new_value, flags) < 0)
+            throw std::runtime_error(fmt::format("Could not update property: {}", property_name));
+
+        flags &= ~max_flag;
+    } while (!twice++); // first set the maximum, then actual
+}
 } // namespace
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
@@ -506,35 +523,16 @@ mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPt
 void mp::LibVirtVirtualMachine::update_num_cores(int num_cores)
 {
     assert(num_cores > 0);
-
-    auto domain_uptr = checked_vm_domain();
-    assert(domain_uptr && "should have thrown otherwise");
-
-    int twice = 0;
-    unsigned int flags = VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_VCPU_MAXIMUM;
-    do
-    {
-        if (libvirt_wrapper->virDomainSetVcpusFlags(domain_uptr.get(), num_cores, flags) < 0)
-            throw std::runtime_error("Could not update cores");
-        flags &= ~VIR_DOMAIN_VCPU_MAXIMUM;
-    } while (!twice++); // first set the maximum, then actual
+    update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetVcpusFlags, num_cores,
+                            VIR_DOMAIN_VCPU_MAXIMUM, "CPUs");
 
     desc.num_cores = num_cores;
 }
 
 void mp::LibVirtVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    auto domain_uptr = checked_vm_domain();
-    assert(domain_uptr && "should have thrown otherwise");
-
-    int twice = 0;
-    unsigned int flags = VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_MEM_MAXIMUM;
-    do
-    {
-        if (libvirt_wrapper->virDomainSetMemoryFlags(domain_uptr.get(), new_size.in_kilobytes(), flags) < 0)
-            throw std::runtime_error("Could not update memory");
-        flags &= ~VIR_DOMAIN_MEM_MAXIMUM;
-    } while (!twice++); // first set the maximum, then actual
+    update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetMemoryFlags,
+                            new_size.in_kilobytes(), VIR_DOMAIN_MEM_MAXIMUM, "memory");
 
     desc.mem_size = new_size;
 }
