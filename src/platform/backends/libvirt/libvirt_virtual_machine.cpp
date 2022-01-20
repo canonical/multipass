@@ -17,7 +17,6 @@
 
 #include "libvirt_virtual_machine.h"
 
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@ricab remove
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -525,7 +524,19 @@ void mp::LibVirtVirtualMachine::update_num_cores(int num_cores)
 
 void mp::LibVirtVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Resize memory"}; // TODO@ricab implement
+    auto domain_uptr = checked_vm_domain();
+    assert(domain_uptr && "should have thrown otherwise");
+
+    int twice = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_MEM_MAXIMUM;
+    do
+    {
+        if (libvirt_wrapper->virDomainSetMemoryFlags(domain_uptr.get(), new_size.in_kilobytes(), flags) < 0)
+            throw std::runtime_error("Could not update memory");
+        flags &= ~VIR_DOMAIN_MEM_MAXIMUM;
+    } while (!twice++); // first set the maximum, then actual
+
+    desc.mem_size = new_size;
 }
 
 void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
