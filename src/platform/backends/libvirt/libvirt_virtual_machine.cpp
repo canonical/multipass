@@ -520,7 +520,7 @@ mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPt
     return connection;
 }
 
-void mp::LibVirtVirtualMachine::update_num_cores(int num_cores)
+void mp::LibVirtVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
     update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetVcpusFlags, num_cores,

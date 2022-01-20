@@ -94,7 +94,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void update_num_cores(int num_cores) override
+    void update_cpus(int num_cores) override
     {
     }
 

@@ -101,7 +101,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    void update_num_cores(int num_cores) override
+    void update_cpus(int num_cores) override
     {
     }
 

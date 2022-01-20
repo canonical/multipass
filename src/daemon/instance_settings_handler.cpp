@@ -121,7 +121,7 @@ void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& ins
         throw mp::InvalidSettingException{key, val, "The number of cores can only be increased"};
     else if (cpus > spec.num_cores) // NOOP if equal
     {
-        instance.update_num_cores(cpus);
+        instance.update_cpus(cpus);
         spec.num_cores = cpus;
     }
 }

@@ -402,7 +402,7 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
     }
 }
 
-void mp::LXDVirtualMachine::update_num_cores(int num_cores)
+void mp::LXDVirtualMachine::update_cpus(int num_cores)
 {
     throw NotImplementedOnThisBackendException{"Update CPUs"}; // TODO@ricab implement
 }
