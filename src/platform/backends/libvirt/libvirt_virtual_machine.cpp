@@ -493,7 +493,26 @@ mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPt
 
 void mp::LibVirtVirtualMachine::update_num_cores(int num_cores)
 {
-    throw NotImplementedOnThisBackendException{"Update CPUs"}; // TODO@ricab implement
+    assert(num_cores > 0);
+
+    auto connection = open_libvirt_connection(libvirt_wrapper);
+    assert(connection && "should have thrown otherwise");
+
+    auto domain = domain_by_name_for(vm_name, connection.get(), libvirt_wrapper);
+    if (!domain)
+        throw std::runtime_error{
+            fmt::format("Could not obtain libvirt domain: {}", libvirt_wrapper->virGetLastErrorMessage())};
+
+    int twice = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_VCPU_MAXIMUM;
+    do
+    {
+        if (libvirt_wrapper->virDomainSetVcpusFlags(domain.get(), num_cores, flags) < 0)
+            throw std::runtime_error("Could not update cores");
+        flags &= ~VIR_DOMAIN_VCPU_MAXIMUM;
+    } while (!twice++); // first set the maximum, then actual
+
+    desc.num_cores = num_cores;
 }
 
 void mp::LibVirtVirtualMachine::resize_memory(const MemorySize& new_size)

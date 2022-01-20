@@ -63,7 +63,7 @@ private:
 
     std::string mac_addr;
     const std::string username;
-    const VirtualMachineDescription desc;
+    VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
     // Make this a reference since LibVirtVirtualMachineFactory can modify the name later
     const std::string& bridge_name;
