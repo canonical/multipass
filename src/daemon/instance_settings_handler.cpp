@@ -194,10 +194,11 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
     if (property == cpus_suffix)
         return QString::number(spec.num_cores);
     if (property == mem_suffix)
-        return QString::number(spec.mem_size.in_bytes()) + " bytes"; // TODO@ricab choose best unit
+        return QString::fromStdString(spec.mem_size.human_readable()); /* TODO return in bytes when --raw
+                                                                          (need unmarshall capability, w/ flag) */
 
     assert(property == disk_suffix);
-    return QString::number(spec.disk_space.in_bytes()) + " bytes"; // TODO@ricab choose best unit
+    return QString::fromStdString(spec.disk_space.human_readable()); // TODO idem
 }
 
 void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
