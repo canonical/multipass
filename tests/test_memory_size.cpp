@@ -55,9 +55,9 @@ struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, st
     static auto generate_unit_args()
     {
         const UnitSpec byte_unit{{"", "b", "B"}, 1LL};
-        const UnitSpec kilo_unit{{"k", "kb", "kB", "Kb", "KB", "K"}, kilo};
-        const UnitSpec mega_unit{{"m", "mb", "mB", "Mb", "MB", "M"}, mega};
-        const UnitSpec giga_unit{{"g", "gb", "gB", "Gb", "GB", "G"}, giga};
+        const UnitSpec kilo_unit{{"k", "kb", "kB", "Kb", "KB", "K", "KiB"}, kilo};
+        const UnitSpec mega_unit{{"m", "mb", "mB", "Mb", "MB", "M", "MiB"}, mega};
+        const UnitSpec giga_unit{{"g", "gb", "gB", "Gb", "GB", "G", "GiB"}, giga};
 
         auto args = byte_unit.gen_unit_args();
         const auto kilo_args = kilo_unit.gen_unit_args();

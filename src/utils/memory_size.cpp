@@ -25,13 +25,13 @@ namespace mp = multipass;
 
 namespace
 {
-constexpr auto kilo = 1024LL;
-constexpr auto mega = kilo * kilo;
-constexpr auto giga = mega * kilo;
+constexpr auto kibi = 1024LL;
+constexpr auto mebi = kibi * kibi;
+constexpr auto gibi = mebi * kibi;
 
 long long in_bytes(const std::string& mem_value)
 {
-    QRegExp matcher("(\\d+)([KMG])?B?", Qt::CaseInsensitive);
+    QRegExp matcher("(\\d+)([KMG])?i?B?", Qt::CaseInsensitive); // TODO accept decimals
 
     if (matcher.exactMatch(QString::fromStdString(mem_value)))
     {
@@ -42,13 +42,13 @@ long long in_bytes(const std::string& mem_value)
             switch (unit.at(0).toLower().toLatin1())
             {
             case 'g':
-                val *= giga;
+                val *= gibi;
                 break;
             case 'm':
-                val *= mega;
+                val *= mebi;
                 break;
             case 'k':
-                val *= kilo;
+                val *= kibi;
                 break;
             default:
                 assert(false && "Shouldn't be here (invalid unit)");
@@ -77,17 +77,17 @@ long long mp::MemorySize::in_bytes() const noexcept
 
 long long mp::MemorySize::in_kilobytes() const noexcept
 {
-    return bytes / kilo; // integer division to floor
+    return bytes / kibi; // integer division to floor
 }
 
 long long mp::MemorySize::in_megabytes() const noexcept
 {
-    return bytes / mega; // integer division to floor
+    return bytes / mebi; // integer division to floor
 }
 
 long long mp::MemorySize::in_gigabytes() const noexcept
 {
-    return bytes / giga; // integer division to floor
+    return bytes / gibi; // integer division to floor
 }
 
 bool mp::operator==(const MemorySize& a, const MemorySize& b)
