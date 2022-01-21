@@ -95,6 +95,14 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPt
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir, const QUrl& base_url)
     : LXDVirtualMachineFactory(std::make_unique<NetworkAccessManager>(), data_dir, base_url)
 {
+    try
+    {
+        hypervisor_health_check();
+    }
+    catch (const std::runtime_error& e)
+    {
+        mpl::log(mpl::Level::warning, category, e.what());
+    }
 }
 
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
