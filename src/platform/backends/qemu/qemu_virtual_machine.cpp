@@ -256,8 +256,7 @@ void mp::QemuVirtualMachine::start()
 
         update_shutdown_status = true;
         is_starting_from_suspend = true;
-        current_resume_start_time = std::chrono::steady_clock::now();
-        network_reset_wait_time = 5s;
+        network_deadline = std::chrono::steady_clock::now() + 5s;
     }
     else
     {
@@ -418,10 +417,9 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
         // starts the instance, the daemon won't be able to reach the instance since the instance
         // won't refresh it's IP address.  The following will force the instance to refresh by resetting
         // the network at 5 seconds and then every 30 seconds until the start timeout is reached.
-        if (std::chrono::steady_clock::now() > current_resume_start_time + network_reset_wait_time)
+        if (std::chrono::steady_clock::now() > network_deadline)
         {
-            current_resume_start_time = std::chrono::steady_clock::now();
-            network_reset_wait_time = 30s;
+            network_deadline = std::chrono::steady_clock::now() + 30s;
             emit on_reset_network();
         }
     }
