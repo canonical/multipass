@@ -253,6 +253,11 @@ jobs:
 
               _run $MP exec primary -- uname -a
 
+              # Launch another instance with the version under test
+              _run $MP delete --purge primary
+              _run $MP start --timeout 1200
+              _run $MP exec primary -- uname -a
+
     - name: Run the job
       id: run
       uses: nick-fields/retry@v2
