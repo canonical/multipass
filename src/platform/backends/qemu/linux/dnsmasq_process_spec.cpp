@@ -21,6 +21,8 @@
 #include <multipass/format.h>
 #include <multipass/snap_utils.h>
 
+#include <QStandardPaths>
+
 namespace mp = multipass;
 namespace mu = multipass::utils;
 
@@ -40,6 +42,7 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
     const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
     const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
+    conf_file_path = QStandardPaths::locate(QStandardPaths::writableLocation, QString("${XDG_DATA_HOME}/dnsmasq.d/dnsmasq.conf"), QStandardPaths::LocateFile);
 
     return QStringList() << "--keep-in-foreground"
                          << "--strict-order"
