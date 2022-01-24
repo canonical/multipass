@@ -66,14 +66,12 @@ struct TestGlobalSettingsHandlers : public Test
 
     void grab_registered_persistent_handler(std::unique_ptr<mp::SettingsHandler>& handler)
     {
-        auto grab_it = [&handler](auto uptr) {
-            handler = std::move(uptr);
-            EXPECT_THAT(dynamic_cast<mp::PersistentSettingsHandler*>(handler.get()), NotNull()); // TODO@ricab matcher
-            return handler.get();
-        };
-
-        EXPECT_CALL(mock_settings, register_handler(NotNull())).WillOnce(grab_it); /* TODO@ricab better distinguish
-                                                 types in matcher, but need #2282 (for Address + WhenDynamicCastTo) */
+        EXPECT_CALL(mock_settings,
+                    register_handler(Pointer(WhenDynamicCastTo<const mp::PersistentSettingsHandler*>(NotNull()))))
+            .WillOnce([&handler](auto uptr) {
+                handler = std::move(uptr);
+                return handler.get();
+            });
     }
 
 public:
