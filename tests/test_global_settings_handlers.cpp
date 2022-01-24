@@ -42,6 +42,13 @@ struct TestGlobalSettingsHandlers : public Test
     {
         ON_CALL(mock_platform, default_privileged_mounts).WillByDefault(Return("true"));
         ON_CALL(mock_platform, is_backend_supported).WillByDefault(Return(true));
+
+        EXPECT_CALL(mock_settings,
+                    register_handler(Pointer(WhenDynamicCastTo<const mp::PersistentSettingsHandler*>(NotNull()))))
+            .WillOnce([this](auto uptr) {
+                handler = std::move(uptr);
+                return handler.get();
+            });
     }
 
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
@@ -64,16 +71,6 @@ struct TestGlobalSettingsHandlers : public Test
         return mock_qsettings;
     }
 
-    void grab_registered_persistent_handler(std::unique_ptr<mp::SettingsHandler>& handler)
-    {
-        EXPECT_CALL(mock_settings,
-                    register_handler(Pointer(WhenDynamicCastTo<const mp::PersistentSettingsHandler*>(NotNull()))))
-            .WillOnce([&handler](auto uptr) {
-                handler = std::move(uptr);
-                return handler.get();
-            });
-    }
-
 public:
     mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
         mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than explicitly injected, no
@@ -87,6 +84,8 @@ public:
 
     mpt::MockPlatform::GuardedMock mock_platform_injection = mpt::MockPlatform::inject<NiceMock>();
     mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
+
+    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
 };
 
 // TODO@ricab de-duplicate daemon/client tests where possible (TEST_P)
@@ -99,8 +98,6 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithClientFil
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericConfigLocation))
         .WillOnce(Return(config_location));
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
@@ -110,8 +107,6 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithClientFil
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientSettings)
 {
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::client::register_global_settings_handlers();
 
     inject_default_returning_mock_qsettings();
@@ -133,8 +128,6 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientPlat
 
     EXPECT_CALL(mock_platform, extra_client_settings).WillOnce(Return(ByMove(std::move(client_settings))));
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::client::register_global_settings_handlers();
 
     inject_default_returning_mock_qsettings();
@@ -147,11 +140,13 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientPlat
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddenPlatformDefaults)
 {
+    mp::client::register_global_settings_handlers();
     // TODO@ricab
 }
 
 TEST_F(TestGlobalSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemonSettings)
 {
+    mp::client::register_global_settings_handlers();
     // TODO@ricab
 }
 
@@ -161,8 +156,6 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
     const auto val = "Alt+X";
     const auto native_val = mp::platform::interpret_setting(key, val);
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val)));
@@ -173,8 +166,6 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatAcceptsBoolAutostart)
 {
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr; // TODO@ricab try to extract this stuff
-    grab_registered_persistent_handler(handler);
     mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::autostart_key), Eq("false")));
@@ -190,8 +181,6 @@ struct TestGoodPetEnvSetting : public TestGlobalSettingsHandlers, WithParamInter
 TEST_P(TestGoodPetEnvSetting, clientsRegisterHandlerThatAcceptsValidPetenv)
 {
     auto key = mp::petenv_key, val = GetParam();
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr; // TODO@ricab try to extract this stuff
-    grab_registered_persistent_handler(handler);
     mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val)));
@@ -209,8 +198,6 @@ struct TestBadPetEnvSetting : public TestGlobalSettingsHandlers, WithParamInterf
 TEST_P(TestBadPetEnvSetting, clientsRegisterHandlerThatRejectsInvalidPetenv)
 {
     auto key = mp::petenv_key, val = GetParam();
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::client::register_global_settings_handlers();
 
     MP_ASSERT_THROW_THAT(handler->set(key, val), mp::InvalidSettingException,
@@ -226,8 +213,6 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFil
 
     EXPECT_CALL(mock_platform, daemon_config_home).WillOnce(Return(config_location));
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
@@ -243,8 +228,6 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSett
     EXPECT_CALL(mock_platform, default_driver).WillOnce(Return(driver));
     EXPECT_CALL(mock_platform, default_privileged_mounts).WillOnce(Return(mount));
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::daemon::register_global_settings_handlers();
 
     inject_default_returning_mock_qsettings();
@@ -265,8 +248,6 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlat
 
     EXPECT_CALL(mock_platform, extra_daemon_settings).WillOnce(Return(ByMove(std::move(daemon_settings))));
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::daemon::register_global_settings_handlers();
 
     inject_default_returning_mock_qsettings();
@@ -279,11 +260,13 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlat
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithOverriddenPlatformDefaults)
 {
+    mp::client::register_global_settings_handlers();
     // TODO@ricab
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClientSettings)
 {
+    mp::client::register_global_settings_handlers();
     // TODO@ricab
 }
 
@@ -291,8 +274,6 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend
 {
     auto key = mp::driver_key, val = "good driver";
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
@@ -306,8 +287,6 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBacke
 {
     auto key = mp::driver_key, val = "bad driver";
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
@@ -318,8 +297,6 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBacke
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsBoolMounts)
 {
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::mounts_key), Eq("true")));
@@ -332,8 +309,6 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsBrigedInterf
 {
     const auto val = "bridge";
 
-    std::unique_ptr<mp::SettingsHandler> handler = nullptr;
-    grab_registered_persistent_handler(handler);
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::bridged_interface_key), Eq(val)));
