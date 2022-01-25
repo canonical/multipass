@@ -64,8 +64,8 @@ TEST_F(CLIPrompters, passphraseCallsEchoAndReturnsExpectedPassphrase)
 
     EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
     EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
-    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly([this]() -> std::ostream& { return cout; });
-    EXPECT_CALL(mock_terminal, cin()).WillOnce([this]() -> std::istream& { return cin; });
+    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
+    EXPECT_CALL(mock_terminal, cin()).WillOnce(ReturnRef(cin));
 
     mp::PassphrasePrompter prompter{&mock_terminal};
 
@@ -83,7 +83,8 @@ TEST_F(CLIPrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphrase)
 
     EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(2);
     EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(2);
-    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly([this]() -> std::ostream& { return cout; });
+    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
+
     EXPECT_CALL(mock_terminal, cin()).Times(2).WillRepeatedly([this, &passphrase]() -> std::istream& {
         cin.str(passphrase + "\n");
         return cin;
@@ -116,7 +117,7 @@ TEST_F(CLIPrompters, newPassPhraseWrongPassphraseThrows)
         return cin;
     };
 
-    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly([this]() -> std::ostream& { return cout; });
+    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
     EXPECT_CALL(mock_terminal, cin()).WillOnce(Invoke(good_passphrase)).WillOnce(Invoke(bad_passphrase));
 
     mp::NewPassphrasePrompter prompter{&mock_terminal};
