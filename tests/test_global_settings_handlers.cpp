@@ -130,24 +130,21 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientSett
     EXPECT_EQ(QKeySequence{handler->get(mp::hotkey_key)}, QKeySequence{mp::hotkey_default});
 }
 
-TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientPlatformSettings)
+TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddingPlatformSettings)
 {
-    const auto client_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
-                                                            {"client.empty.setting", ""},
-                                                            {"client.an.int", "-12345"},
-                                                            {"client.a.float.with.a.long_key", "3.14"}};
+    const auto platform_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
+                                                              {mp::petenv_key, "secondary"},
+                                                              {"client.empty.setting", ""},
+                                                              {mp::autostart_key, "false"},
+                                                              {"client.an.int", "-12345"},
+                                                              {mp::hotkey_key, ""},
+                                                              {"client.a.float.with.a.long_key", "3.14"}};
 
-    EXPECT_CALL(mock_platform, extra_client_settings).WillOnce(Return(ByMove(to_setting_set(client_defaults))));
+    EXPECT_CALL(mock_platform, extra_client_settings).WillOnce(Return(ByMove(to_setting_set(platform_defaults))));
     mp::client::register_global_settings_handlers();
     inject_default_returning_mock_qsettings();
 
-    expect_setting_values(client_defaults);
-}
-
-TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddenPlatformDefaults)
-{
-    mp::client::register_global_settings_handlers();
-    // TODO@ricab
+    expect_setting_values(platform_defaults);
 }
 
 TEST_F(TestGlobalSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemonSettings)
@@ -242,22 +239,22 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSett
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlatformSettings)
 {
-    const auto daemon_defaults = std::map<QString, QString>{{"local.blah", "blargh"},
-                                                            {"local.a.bool", "false"},
-                                                            {"local.foo", "barrrr"},
-                                                            {"local.a.long.number", "1234567890"}};
+    const auto platform_defaults = std::map<QString, QString>{{"local.blah", "blargh"},
+                                                              {mp::driver_key, "platform-hypervisor"},
+                                                              {"local.a.bool", "false"},
+                                                              {mp::bridged_interface_key, "platform-bridge"},
+                                                              {"local.foo", "barrrr"},
+                                                              {mp::mounts_key, "false"},
+                                                              {"local.a.long.number", "1234567890"}};
 
-    EXPECT_CALL(mock_platform, extra_daemon_settings).WillOnce(Return(ByMove(to_setting_set(daemon_defaults))));
+    EXPECT_CALL(mock_platform, default_driver).WillOnce(Return("unused"));
+    EXPECT_CALL(mock_platform, default_privileged_mounts).WillOnce(Return("true"));
+    EXPECT_CALL(mock_platform, extra_daemon_settings).WillOnce(Return(ByMove(to_setting_set(platform_defaults))));
+
     mp::daemon::register_global_settings_handlers();
     inject_default_returning_mock_qsettings();
 
-    expect_setting_values(daemon_defaults);
-}
-
-TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithOverriddenPlatformDefaults)
-{
-    mp::client::register_global_settings_handlers();
-    // TODO@ricab
+    expect_setting_values(platform_defaults);
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClientSettings)
