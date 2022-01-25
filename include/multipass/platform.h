@@ -49,7 +49,7 @@ namespace platform
 class Platform : public Singleton<Platform>
 {
 public:
-    Platform(const Singleton::PrivatePass&) noexcept;
+    Platform(const Singleton::PrivatePass&) noexcept; // TODO@nomerge
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
     virtual QString get_workflows_url_override() const;
