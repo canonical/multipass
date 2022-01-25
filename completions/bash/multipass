@@ -165,6 +165,26 @@ _multipass_complete()
         if [[ ${mode_found} == 0 ]]; then opts="${opts} mode="; fi
     }
 
+    # Get the setting keys.
+    _multipass_setting_keys()
+    {
+        local append_string=""
+        local -a settings
+
+        if [[ -v 1 ]]; then
+            append_string=$1
+        fi
+
+        readarray -t settings < <(multipass get --help | \
+            awk 'BEGIN { p = 0; } /^Keys:/ { p = 1; next } /^ *$/ { if (p) { p = 0; }} {if (p) { print }}')
+        for key in ${settings[@]}; do
+            if [[ "${COMP_WORDS[*]}" =~ ${key} ]]; then
+                return
+            fi
+        done
+        opts="${opts} $(printf "%s${append_string}" "${settings[@]}")"
+    }
+
     # Add comma and equals sign to the list of word separators if they are not already there, useful to separate
     # options of the form "opt1=val1,opt2=val2".
     if [[ ! "${COMP_WORDBREAKS}" =~ "," ]]; then
@@ -226,6 +246,11 @@ _multipass_complete()
         "unalias")
             _multipass_aliases
             opts="${opts} ${multipass_aliases}"
+        ;;
+        "get")
+            if [[ ! ${COMP_WORDS[*]} =~ --raw ]]; then
+                opts="${opts} --raw"
+            fi
         ;;
     esac
 
@@ -337,6 +362,13 @@ _multipass_complete()
             "alias")
                 _unspecified_alias_vars
                 # TODO: Do use spaces after the completion of an option starting with "--".
+                compopt -o nospace
+            ;;
+            "get")
+                _multipass_setting_keys
+            ;;
+            "set")
+                _multipass_setting_keys "="
                 compopt -o nospace
             ;;
             "help")
