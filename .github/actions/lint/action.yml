@@ -4,6 +4,21 @@ description: Run Linting steps
 runs:
   using: composite
   steps:
+  - name: Check "nomerge" tag
+    shell: bash
+    run: |
+      set -e -o pipefail
+
+      # On pull requests, HEAD^1 will always be the merge base, so diff against that, but exclude this file,
+      # which is the one legitimate place for the "nomerge" string in diffs
+      git diff -U0 --no-color HEAD^1 -- . ':(exclude).github/actions/lint/action.yml' |
+        egrep -Hn "nomerge" |
+        tee ${HOME}/nomerge_occurrences
+      if [ "$(stat --printf='%s' ${HOME}/nomerge_occurrences )" -ne 0 ]; then
+        echo "##[error] "nomerge" tag found in the diff 👆"
+        exit 1
+      fi
+
   - name: Install clang-format
     shell: bash
     run: sudo apt-get install --no-install-recommends --yes clang-format-12
