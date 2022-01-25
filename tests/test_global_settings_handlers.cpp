@@ -71,6 +71,15 @@ struct TestGlobalSettingsHandlers : public Test
         }
     }
 
+    template <typename... Ts>
+    void assert_unrecognized_keys(Ts... keys)
+    {
+        for (const char* key : {keys...})
+        {
+            MP_ASSERT_THROW_THAT(handler->get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+        }
+    }
+
     static std::unique_ptr<multipass::WrappedQSettings> make_default_returning_mock_qsettings()
     {
         auto mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
@@ -152,10 +161,7 @@ TEST_F(TestGlobalSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemo
     mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, _)).Times(0);
-    for (auto key : {mp::driver_key, mp::bridged_interface_key, mp::mounts_key, mp::passphrase_key})
-    {
-        MP_ASSERT_THROW_THAT(handler->get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
-    }
+    assert_unrecognized_keys(mp::driver_key, mp::bridged_interface_key, mp::mounts_key, mp::passphrase_key);
 }
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
@@ -267,10 +273,7 @@ TEST_F(TestGlobalSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClie
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, _)).Times(0);
-    for (auto key : {mp::petenv_key, mp::autostart_key, mp::hotkey_key, mp::winterm_key})
-    {
-        MP_ASSERT_THROW_THAT(handler->get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
-    }
+    assert_unrecognized_keys(mp::petenv_key, mp::autostart_key, mp::hotkey_key, mp::winterm_key);
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend)
