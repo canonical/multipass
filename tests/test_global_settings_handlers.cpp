@@ -150,7 +150,12 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddi
 TEST_F(TestGlobalSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemonSettings)
 {
     mp::client::register_global_settings_handlers();
-    // TODO@ricab
+
+    EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, _)).Times(0);
+    for (auto key : {mp::driver_key, mp::bridged_interface_key, mp::mounts_key, mp::passphrase_key})
+    {
+        MP_ASSERT_THROW_THAT(handler->get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    }
 }
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
@@ -259,8 +264,13 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlat
 
 TEST_F(TestGlobalSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClientSettings)
 {
-    mp::client::register_global_settings_handlers();
-    // TODO@ricab
+    mp::daemon::register_global_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, _)).Times(0);
+    for (auto key : {mp::petenv_key, mp::autostart_key, mp::hotkey_key, mp::winterm_key})
+    {
+        MP_ASSERT_THROW_THAT(handler->get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    }
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend)
