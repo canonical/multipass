@@ -44,6 +44,7 @@ _multipass_complete()
     _multipass_networks()
     {
         local cmd="multipass networks --format=csv 2>/dev/null"
+        echo "NO-MERGE"
 
         opts=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
     }

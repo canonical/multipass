@@ -15,7 +15,7 @@ base: core20
 
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu # test /nO_MergE' hasdfsdfaf
   /usr/share/X11:
     bind: $SNAP/usr/share/X11
   /etc/fonts:

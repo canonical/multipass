@@ -31,7 +31,7 @@ service Rpc {
     rpc start (StartRequest) returns (stream StartReply);
     rpc stop (StopRequest) returns (stream StopReply);
     rpc suspend (SuspendRequest) returns (stream SuspendReply);
-    rpc restart (RestartRequest) returns (stream RestartReply);
+    rpc restart (RestartRequest) returns (stream RestartReply); // TODO@NoMerge
     rpc delet (DeleteRequest) returns (stream DeleteReply);
     rpc umount (UmountRequest) returns (stream UmountReply);
     rpc version (VersionRequest) returns (stream VersionReply);
