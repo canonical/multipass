@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Canonical, Ltd.
+ * Copyright (C) 2019-2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -303,7 +303,7 @@ void cmd::GuiCmd::create_menu()
 
     about_client_version.setEnabled(false);
     about_daemon_version.setEnabled(false);
-    about_copyright.setText("Copyright © 2017-2021 Canonical Ltd.");
+    about_copyright.setText("Copyright © 2017-2022 Canonical Ltd.");
     about_copyright.setEnabled(false);
 
     about_menu.insertActions(0, {&autostart_option, &about_client_version, &about_daemon_version, &about_copyright});

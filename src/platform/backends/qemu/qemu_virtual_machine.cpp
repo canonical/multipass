@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Canonical, Ltd.
+ * Copyright (C) 2017-2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,8 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -187,13 +189,36 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       qemu_platform{qemu_platform},
       monitor{&monitor}
 {
-    QObject::connect(this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
-                     [this] {
-                         mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
-                         vm_process->write(hmc_to_qmp_json("delvm " + QString::fromStdString(suspend_tag)));
-                         delete_memory_snapshot = false;
-                     },
-                     Qt::QueuedConnection);
+    QObject::connect(
+        this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
+        [this] {
+            mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
+            vm_process->write(hmc_to_qmp_json("delvm " + QString::fromStdString(suspend_tag)));
+            is_starting_from_suspend = false;
+        },
+        Qt::QueuedConnection);
+
+    // The following is the actual code to reset the network via QMP if an IP address is not obtained after
+    // starting from suspend.  This will probably be deprecated in the future.
+    QObject::connect(
+        this, &QemuVirtualMachine::on_reset_network, this,
+        [this] {
+            mpl::log(mpl::Level::debug, vm_name, fmt::format("Resetting the network"));
+
+            auto qmp = QJsonDocument::fromJson(qmp_execute_json("set_link")).object();
+            QJsonObject args;
+            args.insert("name", "virtio-net-pci.0");
+            args.insert("up", false);
+            qmp.insert("arguments", args);
+
+            vm_process->write(QJsonDocument(qmp).toJson());
+
+            args["up"] = true;
+            qmp["arguments"] = args;
+
+            vm_process->write(QJsonDocument(qmp).toJson());
+        },
+        Qt::QueuedConnection);
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
@@ -213,8 +238,6 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
             shutdown();
         }
     }
-
-    qemu_platform->remove_resources_for(vm_name);
 }
 
 void mp::QemuVirtualMachine::start()
@@ -232,7 +255,8 @@ void mp::QemuVirtualMachine::start()
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
 
         update_shutdown_status = true;
-        delete_memory_snapshot = true;
+        is_starting_from_suspend = true;
+        network_deadline = std::chrono::steady_clock::now() + 5s;
     }
     else
     {
@@ -386,6 +410,20 @@ void mp::QemuVirtualMachine::on_restart()
 
 void mp::QemuVirtualMachine::ensure_vm_is_running()
 {
+    if (is_starting_from_suspend)
+    {
+        // Due to https://github.com/canonical/multipass/issues/2374, the DHCP address is removed from
+        // the dnsmasq leases file, so if the daemon restarts while an instance is suspended and then
+        // starts the instance, the daemon won't be able to reach the instance since the instance
+        // won't refresh it's IP address.  The following will force the instance to refresh by resetting
+        // the network at 5 seconds and then every 30 seconds until the start timeout is reached.
+        if (std::chrono::steady_clock::now() > network_deadline)
+        {
+            network_deadline = std::chrono::steady_clock::now() + 30s;
+            emit on_reset_network();
+        }
+    }
+
     auto is_vm_running = [this] { return (vm_process && vm_process->running()); };
 
     mp::backend::ensure_vm_is_running_for(this, is_vm_running, saved_error_msg);
@@ -426,7 +464,7 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 {
     mp::utils::wait_until_ssh_up(this, timeout, std::bind(&QemuVirtualMachine::ensure_vm_is_running, this));
 
-    if (delete_memory_snapshot)
+    if (is_starting_from_suspend)
     {
         emit on_delete_memory_snapshot();
     }

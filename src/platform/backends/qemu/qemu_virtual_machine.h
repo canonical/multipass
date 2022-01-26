@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Canonical, Ltd.
+ * Copyright (C) 2017-2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,6 +56,7 @@ public:
 
 signals:
     void on_delete_memory_snapshot();
+    void on_reset_network();
 
 private:
     void on_started();
@@ -73,7 +74,8 @@ private:
     VMStatusMonitor* monitor;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
-    bool delete_memory_snapshot{false};
+    bool is_starting_from_suspend{false};
+    std::chrono::steady_clock::time_point network_deadline;
 };
 } // namespace multipass
 
