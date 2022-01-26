@@ -13,7 +13,7 @@ runs:
       # which is the one legitimate place for the forbidden tag in diffs
       forbidden_tag="nomerge"
       git diff -U0 --no-color HEAD^1 -- . ':(exclude).github/actions/lint/action.yml' |
-        (egrep -Hn $forbidden_tag || true) |
+        (egrep $forbidden_tag || true) |
         tee ${HOME}/forbidden_occurrences
       if [ "$( stat --printf='%s' ${HOME}/forbidden_occurrences )" -ne 0 ]; then
         echo "##[error] Forbidden string \"$forbidden_tag\" found in the diff 👆"
