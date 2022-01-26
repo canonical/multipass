@@ -11,12 +11,12 @@ runs:
 
       # On pull requests, HEAD^1 will always be the merge base, so diff against that, but exclude this file,
       # which is the one legitimate place for the forbidden tag in diffs
-      forbidden_tag="nomerge"
+      forbidden_regex="(?i)no[_-]?merge"
       git diff -U0 --no-color HEAD^1 -- . ':(exclude).github/actions/lint/action.yml' |
-        (egrep $forbidden_tag || true) |
+        (grep -P $forbidden_regex || true) |
         tee ${HOME}/forbidden_occurrences
       if [ "$( stat --printf='%s' ${HOME}/forbidden_occurrences )" -ne 0 ]; then
-        echo "##[error] Forbidden string \"$forbidden_tag\" found in the diff 👆"
+        echo "##[error] Forbidden string found in the diff 👆 (matched \"$forbidden_regex\")"
         exit 1
       fi
 
