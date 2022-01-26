@@ -923,7 +923,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
 
-    for (auto& entry : vm_instance_specs)
+    for (auto& entry : vm_instance_specs) // nomerge
     {
         const auto& name = entry.first;
         auto& spec = entry.second;
