@@ -27,7 +27,7 @@ jobs:
       with:
         fetch-depth: 2
 
-    - name: Run clang-format through the diff
+    - name: Lint the code
       uses: ./.github/actions/lint
 
   BuildAndTest:
