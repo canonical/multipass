@@ -47,6 +47,7 @@ jobs:
 
         if [ -n '${{ github.event.inputs.win-package }}' ]; then
           MATRIX+='{"os": "Windows",  "vm": "windows-10", "driver": "hyperv"}'
+          MATRIX+='{"os": "Windows",  "vm": "windows-11", "driver": "hyperv"}'
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
