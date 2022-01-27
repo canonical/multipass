@@ -2399,20 +2399,37 @@ TEST_F(Client, registerCmdHelpOk)
     EXPECT_EQ(send_command({"register", "--help"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, registerCmdAcceptsEnteredPassphrase)
+TEST_F(Client, registerCmdTooManyArgsFails)
 {
-    const std::string passphrase{"foo"};
+    EXPECT_EQ(send_command({"register", "foo", "bar"}), mp::ReturnCode::CommandLineError);
+}
+
+struct RegisterCommandClient : public Client
+{
+    RegisterCommandClient()
+    {
+        EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
+        EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
+        EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
+
+        {
+            InSequence s;
+
+            EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+            EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+        }
+    }
+
     std::ostringstream cerr, cout;
     std::istringstream cin;
     mpt::MockTerminal mock_terminal;
+};
+
+TEST_F(RegisterCommandClient, registerCmdAcceptsEnteredPassphrase)
+{
+    const std::string passphrase{"foo"};
 
     cin.str(passphrase + "\n");
-
-    EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
-    EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
-    EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
-    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
-    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
 
     EXPECT_CALL(mock_daemon, authenticate(_, _, _)).WillOnce([&passphrase](auto, const auto request, auto) {
         EXPECT_EQ(request->passphrase(), passphrase);
@@ -2422,47 +2439,22 @@ TEST_F(Client, registerCmdAcceptsEnteredPassphrase)
     EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, registerCmdNoPassphraseEnteredReturnsError)
+TEST_F(RegisterCommandClient, registerCmdNoPassphraseEnteredReturnsError)
 {
-    std::ostringstream cerr, cout;
-    std::istringstream cin;
-    mpt::MockTerminal mock_terminal;
-
     cin.str("\n");
-
-    EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
-    EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
-    EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
-    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
-    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
 
     EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::CommandLineError);
 
     EXPECT_EQ(cerr.str(), "No passphrase given\n");
 }
 
-TEST_F(Client, registerCmdNoPassphrasePrompterFailsReturnsError)
+TEST_F(RegisterCommandClient, registerCmdNoPassphrasePrompterFailsReturnsError)
 {
-    std::ostringstream cerr, cout;
-    std::istringstream cin;
-    mpt::MockTerminal mock_terminal;
-
     cin.clear();
-
-    EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
-    EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
-    EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
-    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
-    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
 
     EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::CommandLineError);
 
     EXPECT_EQ(cerr.str(), "Failed to read value\n");
-}
-
-TEST_F(Client, registerCmdTooManyArgsFails)
-{
-    EXPECT_EQ(send_command({"register", "foo", "bar"}), mp::ReturnCode::CommandLineError);
 }
 
 const std::vector<std::string> timeout_commands{"launch", "start", "restart", "shell"};
