@@ -35,6 +35,18 @@ struct CLIPrompters : Test
     mpt::StubTerminal term{cout, cerr, cin};
 };
 
+struct TestPassphrasePrompters : Test
+{
+    TestPassphrasePrompters()
+    {
+        EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
+    }
+
+    std::ostringstream cerr, cout;
+    std::istringstream cin;
+    mpt::MockTerminal mock_terminal;
+};
+
 TEST_F(CLIPrompters, PlainPromptsText)
 {
     auto prompt = mp::PlainPrompter{&term};
@@ -54,17 +66,20 @@ TEST_F(CLIPrompters, PlainReturnsText)
 
 // Note that the following test does not actually test if the terminal echos or not-
 // that is specific to platform terminal types.
-TEST_F(CLIPrompters, passphraseCallsEchoAndReturnsExpectedPassphrase)
+TEST_F(TestPassphrasePrompters, passphraseCallsEchoAndReturnsExpectedPassphrase)
 {
     const std::string expected_output{"Please enter passphrase: \n"};
     const std::string passphrase{"foo"};
-    mpt::MockTerminal mock_terminal;
 
     cin.str(passphrase + "\n");
 
-    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
-    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
-    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
+    {
+        InSequence s;
+
+        EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+        EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+    }
+
     EXPECT_CALL(mock_terminal, cin()).WillOnce(ReturnRef(cin));
 
     mp::PassphrasePrompter prompter{&mock_terminal};
@@ -75,15 +90,19 @@ TEST_F(CLIPrompters, passphraseCallsEchoAndReturnsExpectedPassphrase)
     EXPECT_EQ(input, passphrase);
 }
 
-TEST_F(CLIPrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphrase)
+TEST_F(TestPassphrasePrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphrase)
 {
     const std::string expected_output{"Please enter passphrase: \nPlease re-enter passphrase: \n"};
     const std::string passphrase{"foo"};
-    mpt::MockTerminal mock_terminal;
 
-    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(2);
-    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(2);
-    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
+    {
+        InSequence s;
+
+        EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+        EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+        EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+        EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+    }
 
     EXPECT_CALL(mock_terminal, cin()).Times(2).WillRepeatedly([this, &passphrase]() -> std::istream& {
         cin.str(passphrase + "\n");
@@ -98,14 +117,19 @@ TEST_F(CLIPrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphrase)
     EXPECT_EQ(input, passphrase);
 }
 
-TEST_F(CLIPrompters, newPassPhraseWrongPassphraseThrows)
+TEST_F(TestPassphrasePrompters, newPassPhraseWrongPassphraseThrows)
 {
     const std::string expected_output{"Please enter passphrase: \nPlease re-enter passphrase: \n"};
     const std::string passphrase{"foo"}, wrong_passphrase{"bar"};
-    mpt::MockTerminal mock_terminal;
 
-    EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(2);
-    EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(2);
+    {
+        InSequence s;
+
+        EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+        EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+        EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+        EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+    }
 
     auto good_passphrase = [this, &passphrase]() -> std::istream& {
         cin.str(passphrase + "\n");
@@ -117,7 +141,6 @@ TEST_F(CLIPrompters, newPassPhraseWrongPassphraseThrows)
         return cin;
     };
 
-    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
     EXPECT_CALL(mock_terminal, cin()).WillOnce(Invoke(good_passphrase)).WillOnce(Invoke(bad_passphrase));
 
     mp::NewPassphrasePrompter prompter{&mock_terminal};
