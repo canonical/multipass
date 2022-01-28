@@ -67,12 +67,12 @@ public:
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
     virtual void set_server_socket_restrictions(const std::string& server_address, const bool restricted) const;
-    virtual SettingSpec::Set extra_daemon_settings() const; // TODO@ricab private side
+    virtual QString daemon_config_home() const;             // temporary
+    virtual SettingSpec::Set extra_daemon_settings() const; // TODO@nomerge private side
     virtual SettingSpec::Set
-    extra_client_settings() const;              // TODO@ricab private side (winterm w/ platform::interpret_setting)
-    virtual QString daemon_config_home() const; // temporary // TODO@ricab drop
-    virtual QString default_driver() const;     // TODO@ricab private side
-    virtual QString default_privileged_mounts() const; // TODO@ricab private side
+    extra_client_settings() const;          // TODO@nomerge private side (winterm w/ platform::interpret_setting)
+    virtual QString default_driver() const; // TODO@nomerge private side
+    virtual QString default_privileged_mounts() const; // TODO@nomerge private side
 };
 
 QString interpret_setting(const QString& key, const QString& val);
