@@ -33,7 +33,7 @@ jobs:
   BuildAndTest:
     needs: Lint
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !failure() && !cancelled() }}
+    if: ${{ !failure() && !cancelled() || github.event_name == 'pull_request' }}
 
     outputs:
       label: ${{ steps.build-params.outputs.label }}
