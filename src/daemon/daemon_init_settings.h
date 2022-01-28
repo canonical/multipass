@@ -22,6 +22,6 @@ namespace multipass::daemon
 {
 void monitor_and_quit_on_settings_change(); // temporary
 void register_global_settings_handlers();
-}
+} // namespace multipass::daemon
 
 #endif // MULTIPASS_DAEMON_INIT_SETTINGS_H
