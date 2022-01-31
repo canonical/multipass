@@ -1055,6 +1055,15 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
+
+    try
+    {
+        config->factory->hypervisor_health_check();
+    }
+    catch (const std::runtime_error& e)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("Hypervisor health check failed: {}", e.what()));
+    }
 }
 
 void mp::Daemon::create(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* server,
