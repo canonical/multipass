@@ -39,7 +39,6 @@ namespace mpl = multipass::logging;
 namespace
 {
 const auto client_root = QStringLiteral("client");
-const auto petenv_name = QStringLiteral("primary");
 const auto autostart_default = QStringLiteral("true");
 
 QString default_hotkey()
@@ -165,7 +164,7 @@ void mp::client::register_global_settings_handlers()
 {
     auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
-    settings.insert(std::make_unique<DynamicSettingSpec>(mp::petenv_key, petenv_name, petenv_interpreter));
+    settings.insert(std::make_unique<DynamicSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
     settings.insert(std::make_unique<DynamicSettingSpec>(mp::hotkey_key, default_hotkey(), [](const QString& val) {
         return mp::platform::interpret_setting(mp::hotkey_key, val);
     }));

@@ -327,7 +327,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(bridgedOption))
     {
-        request.mutable_network_options()->Add(net_digest(mp::bridged_network_name));
+        request.mutable_network_options()->Add(net_digest(mp::bridged_interface_default));
     }
 
     try

@@ -394,7 +394,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
     {
         auto net_id = net.id();
 
-        if (net_id == mp::bridged_network_name)
+        if (net_id == mp::bridged_interface_default)
         {
             const auto bridged_id = MP_SETTINGS.get(mp::bridged_interface_key);
             if (bridged_id == "")
@@ -428,7 +428,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
         if (host_net_it == factory_networks->cend())
         {
-            if (net.id() == mp::bridged_network_name)
+            if (net.id() == mp::bridged_interface_default)
                 throw std::runtime_error(
                     fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
                                 "correct. See `multipass networks` for valid names.",
