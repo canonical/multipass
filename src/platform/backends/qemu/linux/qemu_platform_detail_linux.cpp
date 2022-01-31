@@ -125,6 +125,12 @@ mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
 
 mp::QemuPlatformDetail::~QemuPlatformDetail()
 {
+    for (const auto& it : name_to_net_device_map)
+    {
+        const auto& [tap_device_name, hw_addr] = it.second;
+        remove_tap_device(tap_device_name);
+    }
+
     delete_virtual_switch(bridge_name);
 }
 
