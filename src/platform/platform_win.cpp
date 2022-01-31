@@ -20,7 +20,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
@@ -110,11 +110,11 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
 
 QString interpret_winterm_setting(const QString& val)
 {
-    static const auto acceptable = QStringList{"none", "primary"};
+    static const auto acceptable = QStringList{"none", mp::petenv_default};
 
     auto ret = val.toLower();
     if (!acceptable.contains(ret))
-        throw mp::InvalidSettingsException{
+        throw mp::InvalidSettingException{
             mp::winterm_key, val, QStringLiteral("Unknown value. Try one of these: %1.").arg(acceptable.join(", "))};
 
     return ret;
@@ -394,7 +394,7 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
         return mp::platform::interpret_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
-    throw InvalidSettingsException(key, val, "Setting unavailable on Windows");
+    throw InvalidSettingException(key, val, "Setting unavailable on Windows");
 }
 
 void mp::platform::sync_winterm_profiles()
@@ -446,17 +446,17 @@ std::string mp::platform::default_server_address()
     return {"localhost:50051"};
 }
 
-QString mp::platform::default_driver()
+QString mp::platform::Platform::default_driver() const
 {
     return QStringLiteral("hyperv");
 }
 
-QString mp::platform::default_privileged_mounts()
+QString mp::platform::Platform::default_privileged_mounts() const
 {
     return QStringLiteral("false");
 }
 
-QString mp::platform::daemon_config_home() // temporary
+QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = systemprofile_app_data_path();
     ret =
@@ -475,7 +475,7 @@ QString mp::platform::daemon_config_home() // temporary
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
 {
-    const auto driver = utils::get_driver_str();
+    const auto driver = MP_SETTINGS.get(mp::driver_key);
 
     if (driver == QStringLiteral("hyperv"))
         return std::make_unique<HyperVVirtualMachineFactory>();
