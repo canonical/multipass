@@ -20,6 +20,8 @@
 
 #include "basic_setting_spec.h"
 
+#include <functional>
+
 namespace multipass
 {
 class DynamicSettingSpec : public multipass::BasicSettingSpec
