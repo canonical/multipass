@@ -20,6 +20,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/settings/dynamic_setting_spec.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -381,11 +382,6 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& /
 {
 }
 
-std::map<QString, QString> mp::platform::extra_settings_defaults()
-{
-    return {{mp::winterm_key, {"primary"}}};
-}
-
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
     if (key == mp::winterm_key)
@@ -586,6 +582,20 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
 
     if (!QFile::remove(file_path))
         throw std::runtime_error("error removing alias script");
+}
+
+auto mp::platform::Platform::extra_daemon_settings() const -> SettingSpec::Set
+{
+    return {};
+}
+
+auto mp::platform::Platform::extra_client_settings() const -> SettingSpec::Set
+{
+    SettingSpec::Set ret;
+    ret.insert(std::make_unique<DynamicSettingSpec>(
+        winterm_key, petenv_default, [](const QString& val) { return interpret_setting(winterm_key, val); }));
+
+    return ret;
 }
 
 std::string mp::platform::Platform::alias_path_message() const
