@@ -126,12 +126,17 @@ TEST(PlatformWin, test_interpretation_of_unknown_settings_not_supported)
 {
     for (const auto k : {"unimaginable", "katxama", "katxatxa"})
         for (const auto v : {"no", "matter", "what"})
-            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingsException);
+            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingException);
 }
 
-TEST(PlatformWin, winterm_in_extra_settings)
+TEST(PlatformWin, winterm_in_extra_client_settings)
 {
-    EXPECT_THAT(mp::platform::extra_settings_defaults(), Contains(Pair(Eq(mp::winterm_key), _)));
+    auto extras = MP_PLATFORM.extra_client_settings();
+    ASSERT_EQ(extras.size(), 1);
+
+    auto& spec = **extras.begin();
+    MP_EXPECT_THROW_THAT(spec.interpret("wrong"), mp::InvalidSettingException,
+                         mpt::match_what(HasSubstr(mp::winterm_key)));
 }
 
 TEST(PlatformWin, valid_winterm_setting_values)
@@ -153,8 +158,8 @@ TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
 {
     for (const auto x : {"Unsupported", "values", "1", "000", "false", "True", "", "  "})
         MP_EXPECT_THROW_THAT(
-            mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingsException,
-            Property(&mp::InvalidSettingsException::what,
+            mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingException,
+            Property(&mp::InvalidSettingException::what,
                      AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
 }
 
