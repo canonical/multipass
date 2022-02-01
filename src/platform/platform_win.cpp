@@ -111,7 +111,7 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
 
 QString interpret_winterm_setting(const QString& val)
 {
-    static const auto acceptable = QStringList{"none", mp::petenv_default};
+    static const auto acceptable = QStringList{none, mp::petenv_default};
 
     auto ret = val.toLower();
     if (!acceptable.contains(ret))
