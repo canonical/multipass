@@ -28,6 +28,7 @@
 
 #include <src/daemon/daemon_init_settings.h>
 
+#include <QDir>
 #include <QKeySequence>
 
 namespace mp = multipass;
@@ -53,6 +54,8 @@ struct TestGlobalSettingsHandlers : public Test
 
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
+        EXPECT_CALL(*mock_qsettings, fileName)
+            .WillRepeatedly(Return(QDir::temp().absoluteFilePath("missing_file.conf")));
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
             .WillOnce(Return(ByMove(std::move(mock_qsettings))));
     }
@@ -60,7 +63,7 @@ struct TestGlobalSettingsHandlers : public Test
     void inject_default_returning_mock_qsettings()
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings)
-            .WillRepeatedly(InvokeWithoutArgs(make_default_returning_mock_qsettings));
+            .WillRepeatedly(WithArg<0>(Invoke(make_default_returning_mock_qsettings)));
     }
 
     void expect_setting_values(const std::map<QString, QString>& setting_values)
@@ -80,10 +83,11 @@ struct TestGlobalSettingsHandlers : public Test
         }
     }
 
-    static std::unique_ptr<multipass::WrappedQSettings> make_default_returning_mock_qsettings()
+    static std::unique_ptr<multipass::WrappedQSettings> make_default_returning_mock_qsettings(const QString& filename)
     {
         auto mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
         EXPECT_CALL(*mock_qsettings, value_impl).WillRepeatedly(ReturnArg<1>());
+        EXPECT_CALL(*mock_qsettings, fileName).WillRepeatedly(Return(filename));
 
         return mock_qsettings;
     }
@@ -125,7 +129,7 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithClientFil
     mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
-        .WillOnce(InvokeWithoutArgs(make_default_returning_mock_qsettings));
+        .WillOnce(WithArg<0>(Invoke(make_default_returning_mock_qsettings)));
     handler->set(mp::petenv_key, "goo");
 }
 
@@ -230,7 +234,7 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFil
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
-        .WillOnce(InvokeWithoutArgs(make_default_returning_mock_qsettings));
+        .WillOnce(WithArg<0>(Invoke(make_default_returning_mock_qsettings)));
     handler->set(mp::bridged_interface_key, "bridge");
 }
 
