@@ -156,6 +156,10 @@ jobs:
                 ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
                 _run curl --location --output multipass.pkg ${{ matrix.arch == 'arm64' && github.event.inputs.mac-arm-package || github.event.inputs.mac-x86-package }}
                 _run sudo installer -dumplog -target / -pkg multipass.pkg
+                _run sudo launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
+                _run "sudo defaults write /Library/LaunchDaemons/com.canonical.multipassd ProgramArguments \
+                      '(\"/Library/Application Support/com.canonical.multipass/bin/multipassd\", \"--verbosity\", trace)'"
+                _run sudo launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
                 _ps "(New-Object System.Net.WebClient).DownloadFile('${{ github.event.inputs.win-package }}', 'multipass-installer.exe')"
