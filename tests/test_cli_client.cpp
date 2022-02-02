@@ -115,6 +115,7 @@ struct Client : public Test
     void SetUp() override
     {
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(petenv_name));
+        EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
         EXPECT_CALL(mock_daemon, get(_, Property(&mp::GetRequest::key, StrEq(mp::mounts_key)), _))
             .WillRepeatedly(Invoke(make_get_reply("true"))); // Tests assume this default, but platforms may override.
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
