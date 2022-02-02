@@ -1000,19 +1000,6 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    QFileInfo current_file(new_name);
-    QFileInfo current_dir(current_file.path());
-
-    auto new_uid = reverse_uid_for(msg->attr->uid, current_dir.ownerId());
-    auto new_gid = reverse_gid_for(msg->attr->gid, current_dir.groupId());
-
-    if (MP_PLATFORM.chown(new_name, new_uid, new_gid) < 0)
-    {
-        mpl::log(mpl::Level::trace, category,
-                 fmt::format("failed to chown '{}' to owner:{} and group:{}", new_name, new_uid, new_gid));
-        return reply_failure(msg);
-    }
-
     return reply_ok(msg);
 }
 

@@ -807,48 +807,6 @@ TEST_F(SftpServer, symlink_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, symlink_chown_failure_fails)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    auto link_name = temp_dir.path() + "/test-link";
-    mpt::make_file_with_content(file_name);
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-    auto msg = make_msg(SFTP_SYMLINK);
-    auto name = name_as_char_array(file_name.toStdString());
-    msg->filename = name.data();
-    sftp_attributes_struct attr{};
-    attr.permissions = 0777;
-    msg->attr = &attr;
-    msg->attr->uid = 1000;
-    msg->attr->gid = 1000;
-
-    auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-
-    EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_platform, chown(_, _, _)).WillOnce(Return(-1));
-
-    int failure_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
-
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("failed to chown"), HasSubstr(link_name.toStdString())))));
-
-    sftp.run();
-
-    EXPECT_EQ(failure_num_calls, 1);
-}
-
 TEST_F(SftpServer, handles_rename)
 {
     mpt::TempDir temp_dir;
@@ -2361,42 +2319,6 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdir_chown_works_when_ids_are_not_mapped)
     REPLACE(sftp_get_client_message, make_msg_handler());
 
     EXPECT_CALL(*mock_platform, chown(_, -1, -1)).Times(1);
-
-    sftp.run();
-}
-
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(symlink_chown_honors_maps_in_the_host))
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    auto link_name = temp_dir.path() + "/test-link";
-    mpt::make_file_with_content(file_name);
-
-    int host_uid = QFileInfo(temp_dir.path()).ownerId();
-    int host_gid = QFileInfo(temp_dir.path()).groupId();
-    int sftp_uid = 1011;
-    int sftp_gid = 1012;
-
-    mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
-    mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_mappings, uid_mappings);
-    auto msg = make_msg(SFTP_SYMLINK);
-    auto name = name_as_char_array(file_name.toStdString());
-    msg->filename = name.data();
-    sftp_attributes_struct attr{};
-    msg->attr = &attr;
-    msg->attr->uid = sftp_uid;
-    msg->attr->gid = sftp_gid;
-
-    auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-
-    EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
 
     sftp.run();
 }
