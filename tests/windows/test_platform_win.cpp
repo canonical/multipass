@@ -61,11 +61,6 @@ auto expect_only_log(multipass::logging::Level lvl, const std::string& substr)
     return logger_scope;
 }
 
-void mock_winterm_setting(const QString& ret)
-{
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(mp::winterm_key))).WillOnce(Return(ret));
-}
-
 void mock_stdpaths_locate(const QString& ret)
 {
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
@@ -185,7 +180,18 @@ TEST(PlatformWin, workflowsURLOverrideNotSetReturnsEmptyString)
     EXPECT_TRUE(MP_PLATFORM.get_workflows_url_override().isEmpty());
 }
 
-struct TestWinTermSyncLesserLogging : public TestWithParam<std::pair<QString, mpl::Level>>
+struct TestWinTermBase : public Test
+{
+    void mock_winterm_setting(const QString& ret)
+    {
+        EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return(ret));
+    }
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+};
+
+struct TestWinTermSyncLesserLogging : public TestWinTermBase, public WithParamInterface<std::pair<QString, mpl::Level>>
 {
 };
 
@@ -204,7 +210,8 @@ INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncLesserLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::debug),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::warning)));
 
-struct TestWinTermSyncModerateLogging : public TestWithParam<std::pair<QString, mpl::Level>>
+struct TestWinTermSyncModerateLogging : public TestWinTermBase,
+                                        public WithParamInterface<std::pair<QString, mpl::Level>>
 {
 };
 
@@ -245,7 +252,7 @@ INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncModerateLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
-struct TestWinTermSyncGreaterLogging : public TestWithParam<QString>
+struct TestWinTermSyncGreaterLogging : public TestWinTermBase, public WithParamInterface<QString>
 {
 };
 
@@ -269,7 +276,7 @@ TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncGreaterLogging,
                          Values(QStringLiteral("none"), QStringLiteral("primary")));
 
-struct TestWinTermSyncNoLeftovers : public TestWithParam<bool>
+struct TestWinTermSyncNoLeftovers : public TestWinTermBase, public WithParamInterface<bool>
 {
 };
 
@@ -307,7 +314,7 @@ TEST_P(TestWinTermSyncNoLeftovers, no_leftover_files_on_overwriting)
 
 INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncNoLeftovers, Values(true, false));
 
-class TestWinTermSyncJson : public TestWithParam<unsigned char>
+class TestWinTermSyncJson : public TestWinTermBase, public WithParamInterface<unsigned char>
 {
 public:
     struct DressUpFlags
