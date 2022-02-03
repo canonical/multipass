@@ -15,7 +15,7 @@
  *
  */
 
-#include "register.h"
+#include "authenticate.h"
 
 #include "common_cli.h"
 
@@ -26,7 +26,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Register::run(mp::ArgParser* parser)
+mp::ReturnCode cmd::Authenticate::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -42,29 +42,29 @@ mp::ReturnCode cmd::Register::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::authenticate, request, on_success, on_failure);
 }
 
-std::string cmd::Register::name() const
+std::string cmd::Authenticate::name() const
 {
-    return "register";
+    return "authenticate";
 }
 
-std::vector<std::string> cmd::Register::aliases() const
+std::vector<std::string> cmd::Authenticate::aliases() const
 {
-    return {name(), "authenticate"};
+    return {name(), "auth"};
 }
 
-QString cmd::Register::short_help() const
+QString cmd::Authenticate::short_help() const
 {
-    return QStringLiteral("Register client");
+    return QStringLiteral("Authenticate client");
 }
 
-QString cmd::Register::description() const
+QString cmd::Authenticate::description() const
 {
-    return QStringLiteral("Register with the Multipass service.\n"
+    return QStringLiteral("Authenticate with the Multipass service.\n"
                           "A system administrator should provide you with a passphrase\n"
                           "to allow use of the Multipass service.");
 }
 
-mp::ParseCode cmd::Register::parse_args(mp::ArgParser* parser)
+mp::ParseCode cmd::Authenticate::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("passphrase",
                                   "Passphrase to register with the Multipass service. If omitted, a prompt will be "
