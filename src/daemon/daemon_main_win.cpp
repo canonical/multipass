@@ -291,6 +291,8 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
     if (register_console == RegisterConsoleHandler::yes)
         SetConsoleCtrlHandler(windows_console_ctrl_handler, TRUE);
 
+    mp::daemon::register_global_settings_handlers();
+
     auto builder = mp::cli::parse(app);
     auto config = builder.build();
 
