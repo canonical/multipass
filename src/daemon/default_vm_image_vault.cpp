@@ -433,7 +433,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         {
             throw;
         }
-        catch (const std::exception& e)
+        catch (const std::exception&)
         {
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             in_progress_image_fetches.erase(id);
