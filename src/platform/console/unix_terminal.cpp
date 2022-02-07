@@ -24,12 +24,6 @@
 
 namespace mp = multipass;
 
-mp::UnixTerminal::~UnixTerminal()
-{
-    // Ensure echo is always enabled
-    set_cin_echo(true);
-}
-
 int mp::UnixTerminal::cin_fd() const
 {
     return fileno(stdin);

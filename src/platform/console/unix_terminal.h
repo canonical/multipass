@@ -25,8 +25,6 @@ namespace multipass
 class UnixTerminal : public Terminal
 {
 public:
-    virtual ~UnixTerminal();
-
     int cin_fd() const;
     bool cin_is_live() const override;
 
