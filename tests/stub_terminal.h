@@ -56,6 +56,11 @@ public:
     {
         return false;
     }
+
+    void set_cin_echo(const bool enable) override
+    {
+    }
+
 private:
     std::ostream &cout_stream;
     std::ostream& cerr_stream;

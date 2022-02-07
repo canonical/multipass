@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 Canonical, Ltd.
+ * Copyright (C) 2021-2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,26 @@
  *
  */
 
-#ifndef MULTIPASS_UNIX_TERMINAL_H
-#define MULTIPASS_UNIX_TERMINAL_H
+#ifndef MULTIPASS_MOCK_TERMINAL_H
+#define MULTIPASS_MOCK_TERMINAL_H
+
+#include "common.h"
 
 #include <multipass/terminal.h>
 
 namespace multipass
 {
-class UnixTerminal : public Terminal
+namespace test
 {
-public:
-    int cin_fd() const;
-    bool cin_is_live() const override;
-
-    int cout_fd() const;
-    bool cout_is_live() const override;
-
-    void set_cin_echo(const bool enable) override;
+struct MockTerminal : public Terminal
+{
+    MOCK_METHOD0(cin, std::istream&());
+    MOCK_METHOD0(cout, std::ostream&());
+    MOCK_METHOD0(cerr, std::ostream&());
+    MOCK_CONST_METHOD0(cin_is_live, bool());
+    MOCK_CONST_METHOD0(cout_is_live, bool());
+    MOCK_METHOD1(set_cin_echo, void(const bool));
 };
+} // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_UNIX_TERMINAL_H
+#endif // MULTIPASS_MOCK_TERMINAL_H

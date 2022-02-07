@@ -11,7 +11,8 @@ status = [
            "macOS-arm64",
            "CI (macOS, qemu, arm64)",
            "Windows",
-           "CI (Windows, windows-10, hyperv)"
+           "CI (Windows, windows-10, hyperv)",
+           "CI (Windows, windows-11, hyperv)"
          ]
 block-labels = [ "no-merge" ]
 timeout-sec = 12000
