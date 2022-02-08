@@ -38,6 +38,7 @@ public:
     bool cout_is_live() const override;
 
     std::string read_all_cin() override;
+    void set_cin_echo(const bool enable) override;
 
 private:
     const UINT input_code_page;
