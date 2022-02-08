@@ -40,6 +40,7 @@ public:
     bool is_live() const;
 
     virtual std::string read_all_cin();
+    virtual void set_cin_echo(const bool enable) = 0;
 
     using UPtr = std::unique_ptr<Terminal>;
     static UPtr make_terminal();
