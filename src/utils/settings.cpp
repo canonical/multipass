@@ -215,7 +215,10 @@ void multipass::Settings::set_aux(const QString& key, QString val) // work with 
     else if (key == winterm_key || key == hotkey_key)
         val = mp::platform::interpret_setting(key, val);
     else if (key == passphrase_key)
-        val = MP_UTILS.generate_scrypt_hash_for(val);
+    {
+        if (!val.isEmpty())
+            val = MP_UTILS.generate_scrypt_hash_for(val);
+    }
 
     auto settings = persistent_settings(key);
     checked_set(*settings, key, val, mutex);
