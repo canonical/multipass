@@ -129,7 +129,7 @@ public:
         keys_request.set_verbosity_level(verbosity);
 
         auto custom_on_success = [this](mp::KeysReply& reply) {
-            for (const auto& key : *reply.mutable_settings_keys())
+            for (auto& key : *reply.mutable_settings_keys())
                 keys.insert(QString::fromStdString(std::move(key)));
 
             return mp::ReturnCode::Ok;
