@@ -119,3 +119,16 @@ bool mp::operator>=(const MemorySize& a, const MemorySize& b)
 {
     return a.bytes >= b.bytes;
 }
+
+std::string mp::MemorySize::human_readable() const
+{
+    const auto giga = std::pair{gibi, "GiB"};
+    const auto mega = std::pair{mebi, "MiB"};
+    const auto kilo = std::pair{kibi, "KiB"};
+
+    for (auto [unit, suffix] : {giga, mega, kilo})
+        if (auto quotient = bytes / static_cast<float>(unit); quotient >= 1)
+            return fmt::format("{:.1f}{}", quotient, suffix);
+
+    return fmt::format("{}B", bytes);
+}

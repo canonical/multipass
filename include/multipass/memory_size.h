@@ -39,6 +39,8 @@ public:
     long long in_megabytes() const noexcept;
     long long in_gigabytes() const noexcept;
 
+    std::string human_readable() const;
+
 private:
     long long bytes;
 };

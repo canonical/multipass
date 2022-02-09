@@ -230,3 +230,21 @@ TEST(MemorySize, canCompareLessEqual)
     EXPECT_LE(mp::MemorySize{"76"}, mp::MemorySize{"76"});
     EXPECT_LE(mp::MemorySize{"6k"}, mp::MemorySize{"7k"});
 }
+
+using mem_repr = std::tuple<mp::MemorySize, std::string>;
+struct TestHumanReadableSizes : public TestWithParam<mem_repr>
+{
+};
+
+TEST_P(TestHumanReadableSizes, producesProperHumanReadableFormat)
+{
+    const auto& [size, repr] = GetParam();
+    EXPECT_EQ(size.human_readable(), repr);
+}
+
+INSTANTIATE_TEST_SUITE_P(MemorySize, TestHumanReadableSizes,
+                         Values(mem_repr{"0", "0B"}, mem_repr{"42B", "42B"}, mem_repr{"50B", "50B"},
+                                mem_repr{"999", "999B"}, mem_repr{"1023", "1023B"}, mem_repr{"1024", "1.0KiB"},
+                                mem_repr{"1031", "1.0KiB"}, mem_repr{"999K", "999.0KiB"}, mem_repr{"4096K", "4.0MiB"},
+                                mem_repr{"4546K", "4.4MiB"}, mem_repr{"8653K", "8.5MiB"}, mem_repr{"9999M", "9.8GiB"},
+                                mem_repr{"1234567890", "1.1GiB"}, mem_repr{"123456G", "123456.0GiB"}));
