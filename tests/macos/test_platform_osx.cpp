@@ -217,22 +217,27 @@ void simulate_environment(const mpt::MockProcess* process, const mp::ProcessStat
         throw std::runtime_error(fmt::format("Program {} not mocked.", program));
 }
 
-TEST(PlatformOSX, test_no_extra_settings)
+TEST(PlatformOSX, test_no_extra_client_settings)
 {
-    EXPECT_THAT(mp::platform::extra_settings_defaults(), IsEmpty());
+    EXPECT_THAT(MP_PLATFORM.extra_client_settings(), IsEmpty());
+}
+
+TEST(PlatformOSX, test_no_extra_daemon_settings)
+{
+    EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
 }
 
 TEST(PlatformOSX, test_interpretation_of_winterm_setting_not_supported)
 {
     for (const auto x : {"no", "matter", "what"})
-        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingsException);
+        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingException);
 }
 
 TEST(PlatformOSX, test_interpretation_of_unknown_settings_not_supported)
 {
     for (const auto k : {"unimaginable", "katxama", "katxatxa"})
         for (const auto v : {"no", "matter", "what"})
-            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingsException);
+            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingException);
 }
 
 TEST(PlatformOSX, test_empty_sync_winterm_profiles)
