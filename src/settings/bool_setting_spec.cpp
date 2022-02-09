@@ -44,10 +44,21 @@ QString interpret_impl(const QString& key, const QString& val)
 
     return ret;
 }
+
+std::pair<QString, QString> munch_params(QString key, QString default_) // work around use after move
+{
+    auto interpreted_default = interpret_impl(key, default_);
+    return {std::move(key), std::move(interpreted_default)};
+}
 } // namespace
 
 mp::BoolSettingSpec::BoolSettingSpec(QString key, const QString& default_)
-    : BasicSettingSpec(std::move(key), interpret_impl(key, default_))
+    : BoolSettingSpec{munch_params(std::move(key), default_)}
+{
+}
+
+mp::BoolSettingSpec::BoolSettingSpec(std::pair<QString, QString> params)
+    : BasicSettingSpec(std::move(params.first), std::move(params.second))
 {
 }
 

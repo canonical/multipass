@@ -20,6 +20,8 @@
 
 #include "basic_setting_spec.h"
 
+#include <utility>
+
 namespace multipass
 {
 class BoolSettingSpec : public BasicSettingSpec
@@ -27,6 +29,9 @@ class BoolSettingSpec : public BasicSettingSpec
 public:
     BoolSettingSpec(QString key, const QString& default_);
     QString interpret(const QString& val) const override;
+
+private:
+    BoolSettingSpec(std::pair<QString, QString> params);
 };
 } // namespace multipass
 
