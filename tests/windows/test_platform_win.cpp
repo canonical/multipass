@@ -134,6 +134,11 @@ TEST(PlatformWin, winterm_in_extra_client_settings)
                          mpt::match_what(HasSubstr(mp::winterm_key)));
 }
 
+TEST(PlatformWin, no_extra_daemon_settings)
+{
+    EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
+}
+
 TEST(PlatformWin, valid_winterm_setting_values)
 {
     for (const auto x : {"none", "primary"})
