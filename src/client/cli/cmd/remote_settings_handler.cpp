@@ -166,7 +166,7 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     if (key.startsWith(key_prefix))
     {
         assert(term);
-        return std::move(RemoteGet(key, rpc_channel, stub, term, verbosity).got);
+        return RemoteGet{key, rpc_channel, stub, term, verbosity}.got;
     }
 
     throw mp::UnrecognizedSettingException{key};
@@ -188,7 +188,7 @@ std::set<QString> mp::RemoteSettingsHandler::keys() const
     assert(term);
 
     auto fallback = QStringLiteral("%1* \t (need daemon to find out actual keys)").arg(key_prefix);
-    return std::move(RemoteKeys{std::move(fallback), rpc_channel, stub, term, verbosity}.keys);
+    return RemoteKeys{std::move(fallback), rpc_channel, stub, term, verbosity}.keys;
 }
 
 mp::RemoteHandlerException::RemoteHandlerException(grpc::Status status)
