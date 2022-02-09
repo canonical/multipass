@@ -62,7 +62,7 @@ TEST(TestSettingSpec, dynamicSettingSpecCallsGivenInterpreter)
 {
     bool called = false;
     const auto val = "yak";
-    mp::DynamicSettingSpec setting{"a", "b", [&called](const QString& v) {
+    mp::DynamicSettingSpec setting{"a", "b", [&called](QString v) {
                                        called = true;
                                        return v;
                                    }};
@@ -74,7 +74,7 @@ TEST(TestSettingSpec, dynamicSettingSpecCallsGivenInterpreter)
 TEST(TestSettingSpec, dynamicSettingSpecInterpretsGivenDefault)
 {
     const auto interpreted = "real";
-    mp::DynamicSettingSpec setting{"poiu", "lkjh", [interpreted](const auto&) { return interpreted; }};
+    mp::DynamicSettingSpec setting{"poiu", "lkjh", [interpreted](auto) { return interpreted; }};
     EXPECT_EQ(setting.get_default(), interpreted);
 }
 

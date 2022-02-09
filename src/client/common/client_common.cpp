@@ -47,7 +47,7 @@ QString default_hotkey()
     return QKeySequence{mp::hotkey_default}.toString(QKeySequence::NativeText); // outcome depends on platform
 }
 
-QString petenv_interpreter(const QString& val)
+QString petenv_interpreter(QString val)
 {
     if (!val.isEmpty() && !mp::utils::valid_hostname(val.toStdString()))
         throw mp::InvalidSettingException{mp::petenv_key, val, "Invalid hostname"};
@@ -166,7 +166,7 @@ void mp::client::register_global_settings_handlers()
     auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
     settings.insert(std::make_unique<DynamicSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
-    settings.insert(std::make_unique<DynamicSettingSpec>(mp::hotkey_key, default_hotkey(), [](const QString& val) {
+    settings.insert(std::make_unique<DynamicSettingSpec>(mp::hotkey_key, default_hotkey(), [](QString val) {
         return mp::platform::interpret_setting(mp::hotkey_key, val);
     }));
 

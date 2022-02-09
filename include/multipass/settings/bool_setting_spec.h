@@ -27,8 +27,8 @@ namespace multipass
 class BoolSettingSpec : public BasicSettingSpec
 {
 public:
-    BoolSettingSpec(QString key, const QString& default_);
-    QString interpret(const QString& val) const override;
+    BoolSettingSpec(QString key, QString default_);
+    QString interpret(QString val) const override;
 
 private:
     BoolSettingSpec(std::pair<QString, QString> params);

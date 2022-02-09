@@ -35,7 +35,7 @@ QString multipass::BasicSettingSpec::get_default() const
     return default_;
 }
 
-QString multipass::BasicSettingSpec::interpret(const QString& val) const
+QString multipass::BasicSettingSpec::interpret(QString val) const
 {
     return val;
 }

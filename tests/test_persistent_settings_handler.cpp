@@ -43,7 +43,7 @@ public:
     mp::PersistentSettingsHandler
     make_handler(const mp::optional<QString>& specific_key = mp::nullopt,
                  const mp::optional<QString>& specific_val = mp::nullopt,
-                 const mp::optional<std::function<QString(const QString&)>>& specific_interpreter = mp::nullopt)
+                 const mp::optional<std::function<QString(QString)>>& specific_interpreter = mp::nullopt)
     {
         auto setting_set = make_basic_persistent_settings();
 
@@ -247,7 +247,7 @@ TEST_F(TestPersistentSettingsHandler, setRecordsProvidedBasicSetting)
 TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
 {
     const auto key = "k.e.y", given_val = "given", interpreted_val = "interpreted";
-    auto handler = make_handler(key, "default", [&interpreted_val](const QString&) { return interpreted_val; });
+    auto handler = make_handler(key, "default", [&interpreted_val](QString) { return interpreted_val; });
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(interpreted_val)));
 
     inject_mock_qsettings();
@@ -258,7 +258,7 @@ TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
 TEST_F(TestPersistentSettingsHandler, setThrowsInterpreterExceptions)
 {
     const auto key = "clave", default_ = "valid", val = "invalid", error = "nope";
-    auto handler = make_handler(key, default_, [&key, &default_, &val, &error](const QString& v) {
+    auto handler = make_handler(key, default_, [&key, &default_, &val, &error](QString v) {
         if (v == default_)
             return v;
 

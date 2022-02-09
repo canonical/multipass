@@ -28,7 +28,7 @@ public:
     BasicSettingSpec(QString key, QString default_);
     QString get_key() const override;
     QString get_default() const override;
-    QString interpret(const QString& val) const override;
+    QString interpret(QString val) const override;
 
 protected:
     QString key;

@@ -34,7 +34,7 @@ public:
 
     virtual QString get_key() const = 0;
     virtual QString get_default() const = 0;
-    virtual QString interpret(const QString& val) const = 0;
+    virtual QString interpret(QString val) const = 0;
 
 public:
     using UPtr = std::unique_ptr<SettingSpec>;

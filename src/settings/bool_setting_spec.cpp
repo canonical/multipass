@@ -26,34 +26,34 @@ QString interpret_bool(QString val)
 { // constrain accepted values to avoid QVariant::toBool interpreting non-empty strings (such as "nope") as true
     static constexpr auto convert_to_true = {"on", "yes", "1"};
     static constexpr auto convert_to_false = {"off", "no", "0"};
-    val = val.toLower();
+    auto lower_val = val.toLower();
 
-    if (std::find(cbegin(convert_to_true), cend(convert_to_true), val) != cend(convert_to_true))
-        return QStringLiteral("true");
-    else if (std::find(cbegin(convert_to_false), cend(convert_to_false), val) != cend(convert_to_false))
-        return QStringLiteral("false");
-    else
-        return val;
+    if (std::find(cbegin(convert_to_true), cend(convert_to_true), lower_val) != cend(convert_to_true))
+        val = QStringLiteral("true");
+    else if (std::find(cbegin(convert_to_false), cend(convert_to_false), lower_val) != cend(convert_to_false))
+        val = QStringLiteral("false");
+
+    return val;
 }
 
-QString interpret_impl(const QString& key, const QString& val)
+QString interpret_impl(const QString& key, QString val)
 {
-    auto ret = interpret_bool(val);
+    auto ret = interpret_bool(std::move(val));
     if (ret != "true" && ret != "false")
-        throw mp::InvalidSettingException(key, val, "Invalid flag, try \"true\" or \"false\"");
+        throw mp::InvalidSettingException(key, ret, "Invalid flag, try \"true\" or \"false\"");
 
     return ret;
 }
 
 std::pair<QString, QString> munch_params(QString key, QString default_) // work around use after move
 {
-    auto interpreted_default = interpret_impl(key, default_);
+    auto interpreted_default = interpret_impl(key, std::move(default_));
     return {std::move(key), std::move(interpreted_default)};
 }
 } // namespace
 
-mp::BoolSettingSpec::BoolSettingSpec(QString key, const QString& default_)
-    : BoolSettingSpec{munch_params(std::move(key), default_)}
+mp::BoolSettingSpec::BoolSettingSpec(QString key, QString default_)
+    : BoolSettingSpec{munch_params(std::move(key), std::move(default_))}
 {
 }
 
@@ -62,7 +62,7 @@ mp::BoolSettingSpec::BoolSettingSpec(std::pair<QString, QString> params)
 {
 }
 
-QString mp::BoolSettingSpec::interpret(const QString& val) const
+QString mp::BoolSettingSpec::interpret(QString val) const
 {
-    return interpret_impl(key, val);
+    return interpret_impl(key, std::move(val));
 }
