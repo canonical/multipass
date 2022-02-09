@@ -193,6 +193,16 @@ TEST_F(PlatformLinux, test_interpretation_of_unknown_settings_not_supported)
             EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingException);
 }
 
+TEST_F(PlatformLinux, test_no_extra_client_settings)
+{
+    EXPECT_THAT(MP_PLATFORM.extra_client_settings(), IsEmpty());
+}
+
+TEST_F(PlatformLinux, test_no_extra_daemon_settings)
+{
+    EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
+}
+
 TEST_F(PlatformLinux, test_empty_sync_winterm_profiles)
 {
     EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
