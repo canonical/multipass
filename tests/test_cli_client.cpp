@@ -25,6 +25,7 @@
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
+#include "mock_terminal.h"
 #include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
@@ -139,10 +140,8 @@ struct Client : public Test
                                                            being saturated inadvertently */
     }
 
-    int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
-                     std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
+    int setup_client_and_run(const std::vector<std::string>& command, mp::Terminal& term)
     {
-        mpt::StubTerminal term(cout, cerr, cin);
         mp::ClientConfig client_config{server_address, std::move(client_cert_provider), &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
@@ -152,6 +151,13 @@ struct Client : public Test
             args << QString::fromStdString(arg);
         }
         return client.run(args);
+    }
+
+    int send_command(const std::vector<std::string>& command, std::ostream& cout = trash_stream,
+                     std::ostream& cerr = trash_stream, std::istream& cin = trash_stream)
+    {
+        mpt::StubTerminal term(cout, cerr, cin);
+        return setup_client_and_run(command, term);
     }
 
     template <typename Str1, typename Str2>
@@ -2261,15 +2267,62 @@ TEST_F(Client, registerCmdHelpOk)
     EXPECT_EQ(send_command({"register", "--help"}), mp::ReturnCode::Ok);
 }
 
-// TODO: This test will change when the echoless passphrase prompt in working
-TEST_F(Client, registerCmdNoPassphrasFails)
-{
-    EXPECT_EQ(send_command({"register"}), mp::ReturnCode::CommandLineError);
-}
-
 TEST_F(Client, registerCmdTooManyArgsFails)
 {
     EXPECT_EQ(send_command({"register", "foo", "bar"}), mp::ReturnCode::CommandLineError);
+}
+
+struct RegisterCommandClient : public Client
+{
+    RegisterCommandClient()
+    {
+        EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
+        EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
+        EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
+
+        {
+            InSequence s;
+
+            EXPECT_CALL(mock_terminal, set_cin_echo(false)).Times(1);
+            EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
+        }
+    }
+
+    std::ostringstream cerr, cout;
+    std::istringstream cin;
+    mpt::MockTerminal mock_terminal;
+};
+
+TEST_F(RegisterCommandClient, registerCmdAcceptsEnteredPassphrase)
+{
+    const std::string passphrase{"foo"};
+
+    cin.str(passphrase + "\n");
+
+    EXPECT_CALL(mock_daemon, authenticate(_, _, _)).WillOnce([&passphrase](auto, const auto request, auto) {
+        EXPECT_EQ(request->passphrase(), passphrase);
+        return grpc::Status{};
+    });
+
+    EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::Ok);
+}
+
+TEST_F(RegisterCommandClient, registerCmdNoPassphraseEnteredReturnsError)
+{
+    cin.str("\n");
+
+    EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::CommandLineError);
+
+    EXPECT_EQ(cerr.str(), "No passphrase given\n");
+}
+
+TEST_F(RegisterCommandClient, registerCmdNoPassphrasePrompterFailsReturnsError)
+{
+    cin.clear();
+
+    EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::CommandLineError);
+
+    EXPECT_EQ(cerr.str(), "Failed to read value\n");
 }
 
 const std::vector<std::string> timeout_commands{"launch", "start", "restart", "shell"};
