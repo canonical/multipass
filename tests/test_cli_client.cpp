@@ -337,15 +337,23 @@ TEST_F(Client, registersRemoteSettingsHandler)
     send_command({});
 }
 
-TEST_F(Client, honors_verbosity_in_remote_settings_handler)
+struct RemoteHandlerVerbosity : public Client, WithParamInterface<int>
 {
+};
+
+TEST_P(RemoteHandlerVerbosity, honors_verbosity_in_remote_settings_handler)
+{
+    auto num_vs = GetParam();
     EXPECT_CALL(mock_settings, // clang-format hands off...
                 register_handler(match_uptr_to_remote_settings_handler(
-                    Property(&mp::RemoteSettingsHandler::get_verbosity, Eq(4))))) // ... this piece of code
+                    Property(&mp::RemoteSettingsHandler::get_verbosity, Eq(num_vs))))) // ... this piece of code
         .Times(1);
 
-    send_command({"-vvvv"});
+    auto vs = fmt::format("{}{}", num_vs ? "-" : "", std::string(num_vs, 'v'));
+    send_command({vs});
 }
+
+INSTANTIATE_TEST_SUITE_P(Client, RemoteHandlerVerbosity, Range(0, 5));
 
 // transfer cli tests
 TEST_F(Client, transfer_cmd_good_source_remote)
