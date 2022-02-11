@@ -328,32 +328,40 @@ auto match_uptr_to_remote_settings_handler(M&& matcher)
         Address(WhenDynamicCastTo<const mp::RemoteSettingsHandler*>(AllOf(NotNull(), std::forward<M>(matcher)))));
 }
 
-TEST_F(Client, registersRemoteSettingsHandler)
+struct RemoteHandlerTest : public Client, public WithParamInterface<std::string>
+{
+    inline static const auto cmds = Values("", " ", "help", "get");
+};
+
+TEST_P(RemoteHandlerTest, registersRemoteSettingsHandler)
 {
     EXPECT_CALL(mock_settings, // clang-format don't get it
                 register_handler(match_uptr_to_remote_settings_handler(
                     Property(&mp::RemoteSettingsHandler::get_key_prefix, Eq("local.")))))
         .Times(1);
-    send_command({});
+
+    send_command({GetParam()});
 }
 
-struct RemoteHandlerVerbosity : public Client, WithParamInterface<int>
+INSTANTIATE_TEST_SUITE_P(Client, RemoteHandlerTest, RemoteHandlerTest::cmds);
+
+struct RemoteHandlerVerbosity : public Client, WithParamInterface<std::tuple<int, std::string>>
 {
 };
 
 TEST_P(RemoteHandlerVerbosity, honors_verbosity_in_remote_settings_handler)
 {
-    auto num_vs = GetParam();
+    const auto& [num_vs, cmd] = GetParam();
     EXPECT_CALL(mock_settings, // clang-format hands off...
                 register_handler(match_uptr_to_remote_settings_handler(
                     Property(&mp::RemoteSettingsHandler::get_verbosity, Eq(num_vs))))) // ... this piece of code
         .Times(1);
 
     auto vs = fmt::format("{}{}", num_vs ? "-" : "", std::string(num_vs, 'v'));
-    send_command({vs});
+    send_command({vs, cmd});
 }
 
-INSTANTIATE_TEST_SUITE_P(Client, RemoteHandlerVerbosity, Range(0, 5));
+INSTANTIATE_TEST_SUITE_P(Client, RemoteHandlerVerbosity, Combine(Range(0, 5), RemoteHandlerTest::cmds));
 
 // transfer cli tests
 TEST_F(Client, transfer_cmd_good_source_remote)
