@@ -320,13 +320,31 @@ TEST_F(Client, no_command_help_ok)
     EXPECT_THAT(send_command({"-h"}), Eq(mp::ReturnCode::Ok));
 }
 
+// Remote-handler tests
+template <typename M>
+auto match_uptr_to_remote_settings_handler(M&& matcher)
+{
+    return Pointee(
+        Address(WhenDynamicCastTo<const mp::RemoteSettingsHandler*>(AllOf(NotNull(), std::forward<M>(matcher)))));
+}
+
 TEST_F(Client, registersRemoteSettingsHandler)
 {
-    EXPECT_CALL(mock_settings,
-                register_handler(Pointee(Address(WhenDynamicCastTo<const mp::RemoteSettingsHandler*>(
-                    AllOf(NotNull(), Property(&mp::RemoteSettingsHandler::get_key_prefix, Eq("local."))))))))
+    EXPECT_CALL(mock_settings, // clang-format don't get it
+                register_handler(match_uptr_to_remote_settings_handler(
+                    Property(&mp::RemoteSettingsHandler::get_key_prefix, Eq("local.")))))
         .Times(1);
     send_command({});
+}
+
+TEST_F(Client, honors_verbosity_in_remote_settings_handler)
+{
+    EXPECT_CALL(mock_settings, // clang-format hands off...
+                register_handler(match_uptr_to_remote_settings_handler(
+                    Property(&mp::RemoteSettingsHandler::get_verbosity, Eq(4))))) // ... this piece of code
+        .Times(1);
+
+    send_command({"-vvvv"});
 }
 
 // transfer cli tests

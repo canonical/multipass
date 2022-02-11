@@ -35,6 +35,7 @@ public:
 
 public: // accessors for tests
     const QString& get_key_prefix() const;
+    int get_verbosity() const;
 
 private:
     QString key_prefix;
@@ -58,6 +59,11 @@ private:
 inline const QString& multipass::RemoteSettingsHandler::get_key_prefix() const
 {
     return key_prefix;
+}
+
+inline int multipass::RemoteSettingsHandler::get_verbosity() const
+{
+    return verbosity;
 }
 
 #ifndef MULTIPASS_REMOTE_SETTINGS_HANDLER_H
