@@ -33,6 +33,9 @@ public:
     void set(const QString& key, const QString& val) override;
     std::set<QString> keys() const override;
 
+public: // accessors for tests
+    const QString& get_key_prefix() const;
+
 private:
     QString key_prefix;
     grpc::Channel& rpc_channel;
@@ -51,6 +54,11 @@ private:
     grpc::Status status;
 };
 } // namespace multipass
+
+inline const QString& multipass::RemoteSettingsHandler::get_key_prefix() const
+{
+    return key_prefix;
+}
 
 #ifndef MULTIPASS_REMOTE_SETTINGS_HANDLER_H
 #define MULTIPASS_REMOTE_SETTINGS_HANDLER_H

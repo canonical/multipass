@@ -32,6 +32,7 @@
 #include "stub_terminal.h"
 
 #include <src/client/cli/client.h>
+#include <src/client/cli/cmd/remote_settings_handler.h>
 #include <src/daemon/daemon_rpc.h>
 
 #include <multipass/constants.h>
@@ -317,6 +318,15 @@ TEST_F(Client, no_command_is_error)
 TEST_F(Client, no_command_help_ok)
 {
     EXPECT_THAT(send_command({"-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, registersRemoteSettingsHandler)
+{
+    EXPECT_CALL(mock_settings,
+                register_handler(Pointee(Address(WhenDynamicCastTo<const mp::RemoteSettingsHandler*>(
+                    AllOf(NotNull(), Property(&mp::RemoteSettingsHandler::get_key_prefix, Eq("local."))))))))
+        .Times(1);
+    send_command({});
 }
 
 // transfer cli tests
