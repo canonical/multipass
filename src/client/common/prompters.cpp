@@ -20,20 +20,49 @@
 
 #include <iostream>
 
-namespace multipass
-{
+namespace mp = multipass;
 
-std::string PlainPrompter::prompt(const std::string& text) const
+namespace
 {
-    term->cout() << text << ": ";
-
+auto get_input(std::istream& cin)
+{
     std::string value;
-    std::getline(term->cin(), value);
+    std::getline(cin, value);
 
-    if (!term->cin().good())
-        throw PromptException("Failed to read value");
+    if (!cin.good())
+        throw mp::PromptException("Failed to read value");
 
     return value;
 }
+} // namespace
 
-} // namespace multipass
+std::string mp::PlainPrompter::prompt(const std::string& text) const
+{
+    term->cout() << text << ": ";
+
+    return get_input(term->cin());
+}
+
+std::string mp::PassphrasePrompter::prompt(const std::string& text) const
+{
+    ScopedEcholessInput scoped_echoless_input(term);
+
+    auto passphrase = PlainPrompter::prompt(text);
+
+    term->cout() << "\n";
+
+    return passphrase;
+}
+
+std::string mp::NewPassphrasePrompter::prompt(const std::string& text) const
+{
+    auto passphrase = PassphrasePrompter::prompt();
+
+    // Confirm the passphrase is the same by re-entering it
+    if (passphrase != PassphrasePrompter::prompt(text))
+    {
+        throw PromptException("Passphrases do not match");
+    }
+
+    return passphrase;
+}

@@ -55,6 +55,39 @@ public:
     std::string prompt(const std::string&) const override;
 };
 
+class PassphrasePrompter : public PlainPrompter
+{
+public:
+    using PlainPrompter::PlainPrompter;
+
+    std::string prompt(const std::string& text = "Please enter passphrase") const override;
+
+private:
+    class ScopedEcholessInput
+    {
+    public:
+        explicit ScopedEcholessInput(Terminal* term) : term(term)
+        {
+            term->set_cin_echo(false);
+        };
+
+        virtual ~ScopedEcholessInput()
+        {
+            term->set_cin_echo(true);
+        }
+
+    private:
+        Terminal* term;
+    };
+};
+
+class NewPassphrasePrompter : public PassphrasePrompter
+{
+public:
+    using PassphrasePrompter::PassphrasePrompter;
+
+    std::string prompt(const std::string& text = "Please re-enter passphrase") const override;
+};
 } // namespace multipass
 
 #endif // MULTIPASS_CLI_PROMPTERS_H
