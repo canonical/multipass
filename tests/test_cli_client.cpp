@@ -343,6 +343,15 @@ TEST_P(RemoteHandlerTest, registersRemoteSettingsHandler)
     send_command({GetParam()});
 }
 
+TEST_P(RemoteHandlerTest, unregistersRemoteSettingsHandler)
+{
+    auto handler = reinterpret_cast<mp::SettingsHandler*>(0x123123);
+    EXPECT_CALL(mock_settings, register_handler(match_uptr_to_remote_settings_handler(_))).WillOnce(Return(handler));
+    EXPECT_CALL(mock_settings, unregister_handler(handler)).Times(1);
+
+    send_command({GetParam()});
+}
+
 INSTANTIATE_TEST_SUITE_P(Client, RemoteHandlerTest, RemoteHandlerTest::cmds);
 
 struct RemoteHandlerVerbosity : public Client, WithParamInterface<std::tuple<int, std::string>>
