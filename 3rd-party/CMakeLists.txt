@@ -19,6 +19,10 @@ include_directories(${grpc_SOURCE_DIR}/third_party/zlib)
 
 set_property(DIRECTORY ${grpc_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
 
+if (MSVC)
+  add_compile_options(-wd5045) #Disable warning about Spectre mitigation
+endif()
+
 # Generates gRPC and protobuf C++ sources and headers from the given .proto files
 #
 # generate_grpc_cpp (<SRCS> <DEST> [<ARGN>...])
@@ -71,7 +75,9 @@ target_link_libraries(gRPC INTERFACE
   libprotobuf
   zlibstatic)
 
-target_compile_options(gRPC INTERFACE "-Wno-unused-parameter")
+if (NOT MSVC)
+  target_compile_options(gRPC INTERFACE "-Wno-unused-parameter")
+endif ()
 
 # YAML C++
 # Disable tests here to avoid double-including gtest
