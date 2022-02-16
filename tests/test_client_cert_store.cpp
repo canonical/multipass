@@ -60,7 +60,7 @@ struct ClientCertStore : public testing::Test
 {
     ClientCertStore()
     {
-        cert_dir = mp::utils::make_dir(temp_dir.path(), mp::registered_certs_dir);
+        cert_dir = mp::utils::make_dir(temp_dir.path(), mp::authenticated_certs_dir);
     }
     mpt::TempDir temp_dir;
     mp::Path cert_dir;
