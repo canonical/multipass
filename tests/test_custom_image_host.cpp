@@ -112,11 +112,6 @@ INSTANTIATE_TEST_SUITE_P(
            CustomData{std::vector<std::string>{"core18"}, "",
                       "https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/ubuntu-core-18-amd64.img.xz",
                       "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f", "core-18", "Core 18"},
-           CustomData{std::vector<std::string>{"core"}, "snapcraft",
-                      "https://cloud-images.ubuntu.com/minimal/releases/xenial/release/"
-                      "ubuntu-16.04-minimal-cloudimg-amd64-disk1.img",
-                      "a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48", "snapcraft-core16",
-                      "Snapcraft builder for Core 16"},
            CustomData{
                std::vector<std::string>{"core18", "18.04"}, "snapcraft",
                "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/bionic-server-cloudimg-amd64-disk.img",
@@ -133,7 +128,12 @@ TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     auto info = host.info_for(make_query("core16", "snapcraft"));
+    EXPECT_FALSE(info);
 
+    info = host.info_for(make_query("core", "snapcraft"));
+    EXPECT_FALSE(info);
+
+    info = host.info_for(make_query("16.04", "snapcraft"));
     EXPECT_FALSE(info);
 }
 
@@ -145,12 +145,11 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{5};
+    const size_t expected_entries{4};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7"), Eq(1u));
     EXPECT_THAT(ids.count("1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f"), Eq(1u));
-    EXPECT_THAT(ids.count("a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48"), Eq(1u));
     EXPECT_THAT(ids.count("96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c"), Eq(1u));
     EXPECT_THAT(ids.count("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), Eq(1u));
 }
@@ -166,7 +165,7 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{3};
+    const size_t expected_entries{2};
     EXPECT_EQ(ids.size(), expected_entries);
 }
 
@@ -186,17 +185,17 @@ TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
     EXPECT_EQ(ids.size(), expected_entries);
 }
 
-TEST_F(CustomImageHost, all_images_for_snapcraft_returns_three_matches)
+TEST_F(CustomImageHost, all_images_for_snapcraft_returns_appropriate_matches)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
     auto images = host.all_images_for("snapcraft", false);
 
-    const size_t expected_matches{3};
+    const size_t expected_matches{2};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
-TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_matches)
+TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_appropriate_matches)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
     const std::string unsupported_alias{"core18"};
@@ -205,7 +204,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_two_m
 
     auto images = host.all_images_for("snapcraft", false);
 
-    const size_t expected_matches{2};
+    const size_t expected_matches{1};
     EXPECT_EQ(images.size(), expected_matches);
 }
 
@@ -213,7 +212,7 @@ TEST_F(CustomImageHost, all_info_for_snapcraft_returns_one_alias_match)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
-    auto images_info = host.all_info_for(make_query("core", "snapcraft"));
+    auto images_info = host.all_info_for(make_query("core20", "snapcraft"));
 
     const size_t expected_matches{1};
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
@@ -223,7 +222,7 @@ TEST_F(CustomImageHost, all_info_for_unsupported_alias_throws)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
-    const std::string unsupported_alias{"core"};
+    const std::string unsupported_alias{"core20"};
     EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
@@ -270,7 +269,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
     const auto ttl = 1h; // so that updates are only retried when unsuccessful
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, ttl};
 
-    const auto query = make_query("core", "snapcraft");
+    const auto query = make_query("core20", "snapcraft");
     EXPECT_THROW(host.info_for(query), std::runtime_error);
 
     EXPECT_TRUE(host.info_for(query));
@@ -281,7 +280,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
     const auto ttl = 0s; // to ensure updates are always retried
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, ttl};
 
-    const auto query = make_query("core", "snapcraft");
+    const auto query = make_query("core20", "snapcraft");
     EXPECT_TRUE(host.info_for(query));
 
     EXPECT_CALL(mock_url_downloader, last_modified(_))

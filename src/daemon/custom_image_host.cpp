@@ -76,17 +76,7 @@ const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
 
 const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
     {{"x86_64"},
-     {{{"ubuntu-16.04-minimal-cloudimg-amd64-disk1.img"},
-       {"https://cloud-images.ubuntu.com/minimal/releases/xenial/release/",
-        {"core", "16.04"},
-        "",
-        "snapcraft-core16",
-        "Snapcraft builder for Core 16",
-        "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
-        "ubuntu-16.04-server-cloudimg-amd64-vmlinuz-generic",
-        "https://cloud-images.ubuntu.com/releases/xenial/release/unpacked/"
-        "ubuntu-16.04-server-cloudimg-amd64-initrd-generic"}},
-      {{"bionic-server-cloudimg-amd64-disk.img"},
+     {{{"bionic-server-cloudimg-amd64-disk.img"},
        {"https://cloud-images.ubuntu.com/buildd/releases/bionic/release/",
         {"core18", "18.04"},
         "",
