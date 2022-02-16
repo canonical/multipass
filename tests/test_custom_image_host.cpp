@@ -50,7 +50,8 @@ constexpr auto sha256_sums =
     "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f *ubuntu-core-18-amd64.img.xz\n"
     "a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48  ubuntu-16.04-minimal-cloudimg-amd64-disk1.img\n"
     "96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c  bionic-server-cloudimg-amd64-disk.img\n"
-    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  focal-server-cloudimg-amd64-disk.img";
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  focal-server-cloudimg-amd64-disk.img\n"
+    "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c  jammy-server-cloudimg-amd64-disk.img";
 
 struct CustomImageHost : public Test
 {
@@ -121,7 +122,11 @@ INSTANTIATE_TEST_SUITE_P(
                std::vector<std::string>{"core20", "20.04"}, "snapcraft",
                "https://cloud-images.ubuntu.com/buildd/releases/focal/release/focal-server-cloudimg-amd64-disk.img",
                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "snapcraft-core20",
-               "Snapcraft builder for Core 20"}));
+               "Snapcraft builder for Core 20"},
+           CustomData{std::vector<std::string>{"devel"}, "snapcraft",
+                      "https://cloud-images.ubuntu.com/buildd/daily/jammy/current/jammy-server-cloudimg-amd64-disk.img",
+                      "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c", "snapcraft-devel",
+                      "Snapcraft builder for the devel series"}));
 
 TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
 {
@@ -145,13 +150,14 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{4};
+    const size_t expected_entries{5};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7"), Eq(1u));
     EXPECT_THAT(ids.count("1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f"), Eq(1u));
     EXPECT_THAT(ids.count("96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c"), Eq(1u));
     EXPECT_THAT(ids.count("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), Eq(1u));
+    EXPECT_THAT(ids.count("aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c"), Eq(1u));
 }
 
 TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
@@ -165,7 +171,7 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{2};
+    const size_t expected_entries{3};
     EXPECT_EQ(ids.size(), expected_entries);
 }
 
@@ -191,7 +197,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_returns_appropriate_matches)
 
     auto images = host.all_images_for("snapcraft", false);
 
-    const size_t expected_matches{2};
+    const size_t expected_matches{3};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
@@ -204,7 +210,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_appro
 
     auto images = host.all_images_for("snapcraft", false);
 
-    const size_t expected_matches{1};
+    const size_t expected_matches{2};
     EXPECT_EQ(images.size(), expected_matches);
 }
 
