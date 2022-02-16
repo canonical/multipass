@@ -129,6 +129,11 @@ jobs:
           'while [ "$( /snap/bin/lxc exec snapcraft-multipass -- \
              systemctl show --property=ActiveState snapd )" != "ActiveState=active" ]; do sleep 1; done'
 
+        # Wait for LXD container network to be ready like Snapcraft does
+        timeout 40 sh -c \
+          'while /snap/bin/lxc exec snapcraft-multipass -- getent hosts multipass.run ; \
+             [ $? -ne 0 ] ; do sleep 1; done'
+
         # The following 2 commands workaround the issue in 20.04 where the default parsing of the coverage
         # JSON file is extremely slow. This makes is use fast parsing.
         /snap/bin/lxc exec snapcraft-multipass -- \
