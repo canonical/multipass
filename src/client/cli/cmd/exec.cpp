@@ -106,9 +106,10 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
     {
         if (!parser->unknownOptionNames().empty() && !parser->containsArgument("--"))
         {
-            cerr << fmt::format("\nOptions to the inner command should come after \"--\", like this:\nmultipass {} -- "
-                                "<command> <arguments>\n",
-                                parser->executeAlias() ? "<alias>" : "exec <instance>");
+            bool is_alias = parser->executeAlias() != mp::nullopt;
+            cerr << fmt::format("\nOptions to the {} should come after \"--\", like this:\nmultipass {} <arguments>\n",
+                                is_alias ? "alias" : "inner command",
+                                is_alias ? "<alias> --" : "exec <instance> -- <command>");
         }
         return status;
     }
