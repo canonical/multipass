@@ -16,7 +16,7 @@ runs:
         (grep -P $forbidden_regex || true) |
         tee ${HOME}/forbidden_occurrences
       if [ "$( stat --printf='%s' ${HOME}/forbidden_occurrences )" -ne 0 ]; then
-        echo "##[error] Forbidden string(s) found in the diff 👆 (matched \"$forbidden_regex\")"
+        echo "##[error] Forbidden string(s) found in the diff ^ (matched \"$forbidden_regex\")"
         exit 1
       fi
 
