@@ -486,7 +486,7 @@ QString mp::utils::get_driver_str()
 
 QString mp::utils::get_multipass_storage()
 {
-    return QString::fromUtf8(qgetenv("MULTIPASS_STORAGE"));
+    return QString::fromUtf8(qgetenv(mp::multipass_storage_env_var));
 }
 
 QString mp::utils::make_uuid()
