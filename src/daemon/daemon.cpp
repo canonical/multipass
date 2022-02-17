@@ -2072,7 +2072,7 @@ try
 
     auto stored_hash = MP_SETTINGS.get(mp::passphrase_key);
 
-    if (stored_hash.isNull())
+    if (stored_hash.isNull() || stored_hash.isEmpty())
     {
         return status_promise->set_value(
             grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,

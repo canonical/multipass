@@ -18,13 +18,13 @@ jobs:
       with:
         fetch-depth: 2
 
-    - name: Run clang-format through the diff
+    - name: Lint the code
       uses: ./.github/actions/lint
 
   BuildAndTest:
     needs: Lint
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !failure() && !cancelled() }}
+    if: ${{ !failure() && !cancelled() || github.event_name == 'pull_request' }}
 
     outputs:
       label: ${{ steps.build-params.outputs.label }}
