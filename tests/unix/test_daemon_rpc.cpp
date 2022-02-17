@@ -119,7 +119,7 @@ TEST_F(TestDaemonRpc, authenticateCompletesSuccesfully)
         status_promise->set_value(grpc::Status::OK);
     });
 
-    send_command({"register", "foo"});
+    send_command({"authenticate", "foo"});
 }
 
 TEST_F(TestDaemonRpc, authenticateFailsSkipsCertImportCalls)
@@ -134,7 +134,7 @@ TEST_F(TestDaemonRpc, authenticateFailsSkipsCertImportCalls)
         status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, ""));
     });
 
-    send_command({"register", "foo"});
+    send_command({"authenticate", "foo"});
 }
 
 TEST_F(TestDaemonRpc, authenticateAddCertFailsReturnsError)
@@ -152,7 +152,7 @@ TEST_F(TestDaemonRpc, authenticateAddCertFailsReturnsError)
 
     std::stringstream stream;
 
-    send_command({"register", "foo"}, trash_stream, stream);
+    send_command({"authenticate", "foo"}, trash_stream, stream);
 
     EXPECT_THAT(stream.str(), HasSubstr(error_msg));
 }
@@ -236,8 +236,8 @@ TEST_F(TestDaemonRpc, listCertNotVerifiedHasError)
 
     send_command({"list"}, trash_stream, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not registered with the Multipass service."),
-                                    HasSubstr("Please use 'multipass register' to authenticate the client.")));
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not authenticated with the Multipass service."),
+                                    HasSubstr("Please use 'multipass authenticate' before proceeding.")));
 }
 
 TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
@@ -257,8 +257,8 @@ TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
 
     send_command({"list"}, trash_stream, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not registered with the Multipass service."),
-                                    HasSubstr("Please use 'multipass register' to authenticate the client.")));
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not authenticated with the Multipass service."),
+                                    HasSubstr("Please use 'multipass authenticate' before proceeding.")));
 }
 
 TEST_F(TestDaemonRpc, listAcceptCertFailsHasError)

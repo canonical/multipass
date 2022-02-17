@@ -50,7 +50,7 @@ auto load_certs_from_file(const multipass::Path& cert_dir)
 } // namespace
 
 mp::ClientCertStore::ClientCertStore(const multipass::Path& data_dir)
-    : cert_dir{QDir(data_dir).filePath(mp::registered_certs_dir)},
+    : cert_dir{QDir(data_dir).filePath(mp::authenticated_certs_dir)},
       authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
 }
