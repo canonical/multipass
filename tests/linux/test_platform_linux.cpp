@@ -417,16 +417,6 @@ TEST_F(PlatformLinux, test_is_alias_supported_returns_true)
     EXPECT_TRUE(MP_PLATFORM.is_alias_supported("focal", "release"));
 }
 
-TEST_F(PlatformLinux, test_is_alias_supported_lxd)
-{
-    setup_driver_settings("lxd");
-
-    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("focal", "release"));
-    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("core18", "snapcraft"));
-    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("core20", "snapcraft"));
-    EXPECT_FALSE(MP_PLATFORM.is_alias_supported("core", "snapcraft"));
-    EXPECT_FALSE(MP_PLATFORM.is_alias_supported("16.04", "snapcraft"));
-}
 
 struct TestUnsupportedDrivers : public PlatformLinux, WithParamInterface<QString>
 {

@@ -4,6 +4,22 @@ description: Run Linting steps
 runs:
   using: composite
   steps:
+  - name: Check for forbidden tag in code
+    shell: bash
+    run: |
+      set -e -o pipefail
+
+      # On pull requests, HEAD^1 will always be the merge base, so diff against that. Look for forbidden strings,
+      # but exclude legitimate cases.
+      forbidden_regex='(?i)\bno[_-]?merge\b'
+      git diff -U0 --no-color HEAD^1 -- . ':(exclude)bors.toml' |
+        (grep -P $forbidden_regex || true) |
+        tee ${HOME}/forbidden_occurrences
+      if [ "$( stat --printf='%s' ${HOME}/forbidden_occurrences )" -ne 0 ]; then
+        echo "##[error] Forbidden string(s) found in the diff ^ (matched \"$forbidden_regex\")"
+        exit 1
+      fi
+
   - name: Install clang-format
     shell: bash
     run: sudo apt-get install --no-install-recommends --yes clang-format-12

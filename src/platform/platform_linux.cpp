@@ -251,9 +251,7 @@ QString mp::platform::Platform::get_workflows_url_override() const
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
-    // snapcraft:core don't work on LXD yet
-    return !(MP_SETTINGS.get(mp::driver_key) == "lxd" && remote == "snapcraft" &&
-             (alias == "core" || alias == "16.04"));
+    return true;
 }
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote) const

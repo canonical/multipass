@@ -34,7 +34,7 @@ public:
 
     virtual QString get_key() const = 0;
     virtual QString get_default() const = 0;
-    virtual QString interpret(QString val) const = 0;
+    virtual QString interpret(QString val) const = 0; // TODO: replace with marshall/unmarshall
 
 public:
     using UPtr = std::unique_ptr<SettingSpec>;
