@@ -296,7 +296,7 @@ struct Client : public Test
                                           &cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
                                                                               reset at the end of each test */
-    static std::stringstream trash_stream; // this may have contents (that we don't care about)
+    inline static std::stringstream trash_stream{}; // this may have contents (that we don't care about)
 };
 
 struct ClientAlias : public Client, public FakeAliasConfig
@@ -312,8 +312,6 @@ struct ClientAlias : public Client, public FakeAliasConfig
 };
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
-
-std::stringstream Client::trash_stream; // replace with inline in C++17
 
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
