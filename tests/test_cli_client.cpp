@@ -372,6 +372,23 @@ TEST_P(RemoteHandlerVerbosity, honors_verbosity_in_remote_settings_handler)
 
 INSTANTIATE_TEST_SUITE_P(Client, RemoteHandlerVerbosity, Combine(Range(0, 5), RemoteHandlerTest::cmds));
 
+TEST_F(Client, handles_remote_handler_exception)
+{
+    auto cmd = "get";
+    auto key = "nowhere";
+    auto msg = "can't";
+    auto details = "too far";
+
+    EXPECT_CALL(mock_settings, get(QString{key}))
+        .WillOnce(Throw(mp::RemoteHandlerException{grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, msg, details}}));
+
+    std::stringstream fake_cerr;
+    auto got = send_command({cmd, key}, trash_stream, fake_cerr);
+
+    EXPECT_THAT(fake_cerr.str(), AllOf(HasSubstr(cmd), HasSubstr(msg), HasSubstr(details)));
+    EXPECT_EQ(got, mp::CommandFail);
+}
+
 // transfer cli tests
 TEST_F(Client, transfer_cmd_good_source_remote)
 {
