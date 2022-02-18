@@ -123,9 +123,16 @@ jobs:
       windows-url:     ${{ steps.publish-data.outputs.Windows--url }}
       windows-check:   ${{ steps.publish-data.outputs.Windows--check_id }}
 
-    # Need to explicitly continue on Lint getting skipped.
-    # Proceed with testing if Lint failed on pull requests.
-    if: ${{ !cancelled() && ( !failure() || github.event_name == 'pull_request' ) && needs.Checkout.result == 'success' }}
+    # Allow skipped Lint
+    # Let Lint fail on pull requests and outside of bors runs
+    if: |
+      ${{
+        success()
+        || needs.Lint.result == 'skipped'
+        || ( needs.Lint.result == 'failure'
+             && ( github.event_name == 'pull_request'
+                  || github.event.client_payload.dispatch_ci != 'true' ) )
+      }}
 
     runs-on: ${{ matrix.runs-on }}
 
