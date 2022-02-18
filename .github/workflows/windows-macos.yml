@@ -107,6 +107,17 @@ jobs:
   BuildAndTest:
     needs: [Checkout, Lint, GetMatrix]
 
+    # Allow skipped Lint
+    # Let Lint fail on pull requests and outside of bors runs
+    if: |
+      ${{
+        success()
+        || needs.Lint.result == 'skipped'
+        || ( needs.Lint.result == 'failure'
+             && ( github.event_name == 'pull_request'
+                  || github.event.client_payload.dispatch_ci != 'true' ) )
+      }}
+
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
 
@@ -122,17 +133,6 @@ jobs:
       windows-package: ${{ steps.publish-data.outputs.Windows--package }}
       windows-url:     ${{ steps.publish-data.outputs.Windows--url }}
       windows-check:   ${{ steps.publish-data.outputs.Windows--check_id }}
-
-    # Allow skipped Lint
-    # Let Lint fail on pull requests and outside of bors runs
-    if: |
-      ${{
-        success()
-        || needs.Lint.result == 'skipped'
-        || ( needs.Lint.result == 'failure'
-             && ( github.event_name == 'pull_request'
-                  || github.event.client_payload.dispatch_ci != 'true' ) )
-      }}
 
     runs-on: ${{ matrix.runs-on }}
 
