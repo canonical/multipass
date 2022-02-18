@@ -1612,6 +1612,23 @@ TEST_F(Daemon, getReportsException)
     EXPECT_THAT(status.error_message(), HasSubstr("exception"));
 }
 
+TEST_F(Daemon, setSetsSetting)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto key = "foo";
+    const auto val = "bar";
+
+    mp::SetRequest request;
+    request.set_key(key);
+    request.set_val(val);
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).Times(1);
+
+    auto mock_server = StrictMock<mpt::MockServerWriter<mp::SetReply>>{};
+    EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
+}
+
 TEST_F(Daemon, requests_networks)
 {
     auto mock_factory = use_a_mock_vm_factory();
