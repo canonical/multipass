@@ -1629,6 +1629,20 @@ TEST_F(Daemon, setSetsSetting)
     EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
 
+TEST_F(Daemon, setHandlesUnrecognizedSetting)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto key = "foo";
+    EXPECT_CALL(mock_settings, set).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+
+    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::set, mp::SetRequest{},
+                                        StrictMock<mpt::MockServerWriter<mp::SetReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr(key)));
+}
+
 TEST_F(Daemon, requests_networks)
 {
     auto mock_factory = use_a_mock_vm_factory();
