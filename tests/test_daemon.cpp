@@ -128,6 +128,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
 
     EXPECT_CALL(daemon, get)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::GetRequest, mp::GetReply>));
+    EXPECT_CALL(daemon, set)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SetRequest, mp::SetReply>));
     EXPECT_CALL(daemon, create(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
     EXPECT_CALL(daemon, launch(_, _, _))
@@ -166,6 +168,7 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
     send_commands({{"test_get", "foo"},
+                   {"test_set", "foo", "bar"},
                    {"test_create", "foo"},
                    {"launch", "foo"},
                    {"delete", "foo"},
