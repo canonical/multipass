@@ -133,6 +133,9 @@ jobs:
                   [ $RC -eq 0 ] || _run sudo journalctl -u snap.multipass*
                 elif [ '${{ matrix.os }}' == 'macOS' ]; then
                   [ $RC -eq 0 ] || _run sudo cat /Library/Logs/Multipass/multipassd.log
+                  # Authenticate the root user
+                  _run sudo $MP set local.passphrase=foobar || true
+                  _run sudo $MP authenticate foobar || true
                   ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
                   _run sudo rm -rf /Library/Logs/Multipass
                 fi
