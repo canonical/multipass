@@ -1629,19 +1629,38 @@ TEST_F(Daemon, setSetsSetting)
     EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
 
-TEST_F(Daemon, setHandlesUnrecognizedSetting)
+using SetException = std::variant<mp::UnrecognizedSettingException, mp::InvalidSettingException, std::runtime_error>; /*
+  We need to throw an exception of the ultimate type whose handling we're trying to test (to avoid slicing and enter the
+  right catch block). Therefore, we can't just use a base exception type. Parameterized and typed tests don't mix in
+  gtest, so we use a variant parameter. */
+using SetExceptCodeAndMsgMatcher = std::tuple<SetException, grpc::StatusCode, Matcher<std::string>>;
+class DaemonSetExceptions : public Daemon, public WithParamInterface<SetExceptCodeAndMsgMatcher>
+{
+};
+
+TEST_P(DaemonSetExceptions, setHandlesSettingsException)
 {
     mp::Daemon daemon{config_builder.build()};
 
-    const auto key = "foo";
-    EXPECT_CALL(mock_settings, set).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+    const auto& [exception, expected_code, msg_matcher] = GetParam();
+    auto thrower = [](const auto& e) { throw e; };
+    EXPECT_CALL(mock_settings, set).WillOnce(WithoutArgs([&thrower, e = &exception] { std::visit(thrower, *e); })); /*
+                                lambda capture with initializer works around forbidden capture of structured binding */
 
     auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::set, mp::SetRequest{},
                                         StrictMock<mpt::MockServerWriter<mp::SetReply>>{});
 
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
-    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr(key)));
+    EXPECT_EQ(status.error_code(), expected_code);
+    EXPECT_THAT(status.error_message(), msg_matcher);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Daemon, DaemonSetExceptions,
+    Values(std::tuple{mp::UnrecognizedSettingException{"foo"}, grpc::StatusCode::INVALID_ARGUMENT,
+                      AllOf(HasSubstr("Unrecognized"), HasSubstr("foo"))},
+           std::tuple{mp::InvalidSettingException{"foo", "bar", "err"}, grpc::StatusCode::INVALID_ARGUMENT,
+                      AllOf(HasSubstr("Invalid"), HasSubstr("foo"), HasSubstr("bar"), HasSubstr("err"))},
+           std::tuple{std::runtime_error{"Other"}, grpc::StatusCode::INTERNAL, HasSubstr("Other")}));
 
 TEST_F(Daemon, requests_networks)
 {
