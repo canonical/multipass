@@ -23,6 +23,9 @@
 #include <QKeySequence>
 #include <QString>
 
+#include <algorithm>
+#include <memory>
+
 namespace mp = multipass;
 namespace mpt = mp::test;
 using namespace testing;
@@ -70,6 +73,31 @@ TEST_F(TestSettings, returnsKeysFromSingleHandler)
 
     MP_SETTINGS.register_handler(std::move(mock_handler));
     EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(some_keys));
+}
+
+TEST_F(TestSettings, returnsKeysFromMultipleHandlers)
+{
+    std::array<std::unique_ptr<MockSettingsHandler>, 3> mock_handlers;
+    std::generate(std::begin(mock_handlers), std::end(mock_handlers), &std::make_unique<MockSettingsHandler>);
+
+    auto some_keychains =
+        std::array{std::set({QStringLiteral("asdf.fdsa"), QStringLiteral("blah.bleh")}),
+                   std::set({QStringLiteral("qwerty.ytrewq"), QStringLiteral("foo"), QStringLiteral("bar")}),
+                   std::set({QStringLiteral("a.b.c.d")})};
+
+    static_assert(mock_handlers.size() == some_keychains.size());
+    for (auto i = 0u; i < some_keychains.size(); ++i)
+    {
+        EXPECT_CALL(*mock_handlers[i], keys).WillOnce(Return(some_keychains[i])); // copies, so ok to modify below
+        MP_SETTINGS.register_handler(std::move(mock_handlers[i]));
+    }
+
+    auto all_keys = std::reduce(std::begin(some_keychains), std::end(some_keychains), // hands-off clang-format
+                                std::set<QString>{}, [](auto& a, auto& b) {
+                                    a.merge(b);
+                                    return a;
+                                });
+    EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(all_keys));
 }
 
 struct TestSettingsGetAs : public Test
