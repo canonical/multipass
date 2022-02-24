@@ -29,6 +29,24 @@ using namespace testing;
 
 namespace
 {
+class TestSettings : public Test
+{
+public:
+    class SettingsResetter : public mp::Settings
+    {
+    public:
+        static void reset()
+        {
+            mp::Settings::reset();
+        }
+    };
+
+    void TearDown() override
+    {
+        SettingsResetter::reset();
+    }
+};
+
 class MockSettingsHandler : public mp::SettingsHandler
 {
 public:
@@ -39,12 +57,12 @@ public:
     MOCK_METHOD(void, set, (const QString& key, const QString& val), (override));
 };
 
-TEST(TestSettings, returnsNoKeysWhenNoHandler)
+TEST_F(TestSettings, returnsNoKeysWhenNoHandler)
 {
     EXPECT_THAT(MP_SETTINGS.keys(), IsEmpty());
 }
 
-TEST(TestSettings, returnsKeysFromSingleHandler)
+TEST_F(TestSettings, returnsKeysFromSingleHandler)
 {
     auto some_keys = {QStringLiteral("a.b"), QStringLiteral("c.d.e"), QStringLiteral("f")};
     auto mock_handler = std::make_unique<MockSettingsHandler>();
