@@ -183,7 +183,7 @@ _multipass_complete()
     fi
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
-    multipass_cmds="transfer delete exec find help info launch list mount networks \
+    multipass_cmds="authenticate transfer delete exec find help info launch list mount networks \
                     purge recover shell start stop suspend restart umount version get set \
                     alias aliases unalias"
 

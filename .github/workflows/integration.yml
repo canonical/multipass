@@ -60,7 +60,7 @@ jobs:
     runs-on: testflinger
 
     # Windows is pretty slow unfortunately.
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
@@ -133,6 +133,9 @@ jobs:
                   [ $RC -eq 0 ] || _run sudo journalctl -u snap.multipass*
                 elif [ '${{ matrix.os }}' == 'macOS' ]; then
                   [ $RC -eq 0 ] || _run sudo cat /Library/Logs/Multipass/multipassd.log
+                  # Authenticate the root user
+                  _run sudo $MP set local.passphrase=foobar || true
+                  _run sudo $MP authenticate foobar || true
                   ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
                   _run sudo rm -rf /Library/Logs/Multipass
                 fi
@@ -186,18 +189,23 @@ jobs:
 
               _run $MP exec primary -- uname -a
 
-    - name: Submit the job
-      id: submit
-      run: |
-        JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
-        echo "::set-output name=job-id::${JOB_ID}"
+    - name: Run the job
+      id: run
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: ${{ matrix.os == 'Windows' && '60' || '30' }}
+        max_attempts: 2
+        command: |
+          JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
+          echo "${JOB_ID}" > testflinger_job
 
-    - name: Poll the job and get the result
-      run: |
-        testflinger-cli poll "${{ steps.submit.outputs.job-id }}"
-        [ "$( testflinger-cli results ${{ steps.submit.outputs.job-id}} | jq -r .test_status )" -eq 0 ]
+          testflinger-cli poll "${JOB_ID}"
+          [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" -eq 0 ]
+
+        on_retry_command: |
+          testflinger-cli cancel "$( cat testflinger_job )"
 
     - name: Cancel the job
-      if: ${{ cancelled() && steps.submit.outputs.job-id != '' }}
+      if: ${{ cancelled() }}
       run: |
-       testflinger-cli cancel "${{ steps.submit.outputs.job-id }}"
+        if [ -f testflinger_job ]; then testflinger-cli cancel "$( cat testflinger_job )"; fi

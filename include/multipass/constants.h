@@ -57,7 +57,7 @@ constexpr auto hotkey_default = "Ctrl+Alt+U";                         // idem; t
 
 constexpr auto timeout_exit_code = 5;
 
-constexpr auto registered_certs_dir = "registered-certs";
+constexpr auto authenticated_certs_dir = "authenticated-certs";
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H

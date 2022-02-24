@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_REGISTER_H
-#define MULTIPASS_REGISTER_H
+#ifndef MULTIPASS_AUTHENTICATE_H
+#define MULTIPASS_AUTHENTICATE_H
 
 #include <multipass/cli/command.h>
 
@@ -24,7 +24,7 @@ namespace multipass
 {
 namespace cmd
 {
-class Register final : public Command
+class Authenticate final : public Command
 {
 public:
     using Command::Command;
@@ -43,4 +43,4 @@ private:
 } // namespace cmd
 } // namespace multipass
 
-#endif // MULTIPASS_REGISTER_H
+#endif // MULTIPASS_AUTHENTICATE_H

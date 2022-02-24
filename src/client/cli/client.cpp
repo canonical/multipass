@@ -18,6 +18,7 @@
 #include "client.h"
 #include "cmd/alias.h"
 #include "cmd/aliases.h"
+#include "cmd/authenticate.h"
 #include "cmd/delete.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
@@ -30,7 +31,6 @@
 #include "cmd/networks.h"
 #include "cmd/purge.h"
 #include "cmd/recover.h"
-#include "cmd/register.h"
 #include "cmd/restart.h"
 #include "cmd/set.h"
 #include "cmd/shell.h"
@@ -60,6 +60,7 @@ mp::Client::Client(ClientConfig& config)
 {
     add_command<cmd::Alias>(aliases);
     add_command<cmd::Aliases>(aliases);
+    add_command<cmd::Authenticate>();
     add_command<cmd::Launch>();
     add_command<cmd::Purge>(aliases);
     add_command<cmd::Exec>(aliases);
@@ -71,7 +72,6 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Networks>();
     add_command<cmd::Mount>();
     add_command<cmd::Recover>();
-    add_command<cmd::Register>();
     add_command<cmd::Set>();
     add_command<cmd::Shell>();
     add_command<cmd::Start>();

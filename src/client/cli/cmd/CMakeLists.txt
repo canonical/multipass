@@ -16,6 +16,7 @@ add_library(commands STATIC
   alias.cpp
   aliases.cpp
   animated_spinner.cpp
+  authenticate.cpp
   common_cli.cpp
   delete.cpp
   exec.cpp
@@ -29,7 +30,6 @@ add_library(commands STATIC
   networks.cpp
   purge.cpp
   recover.cpp
-  register.cpp
   restart.cpp
   set.cpp
   shell.cpp
