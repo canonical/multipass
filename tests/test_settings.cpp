@@ -18,6 +18,8 @@
 #include "common.h"
 #include "mock_settings.h"
 
+#include <multipass/settings/settings_handler.h>
+
 #include <QKeySequence>
 #include <QString>
 
@@ -27,6 +29,30 @@ using namespace testing;
 
 namespace
 {
+class MockSettingsHandler : public mp::SettingsHandler
+{
+public:
+    using SettingsHandler::SettingsHandler;
+
+    MOCK_METHOD(std::set<QString>, keys, (), (const, override));
+    MOCK_METHOD(QString, get, (const QString&), (const, override));
+    MOCK_METHOD(void, set, (const QString& key, const QString& val), (override));
+};
+
+TEST(TestSettings, returnsNoKeysWhenNoHandler)
+{
+    EXPECT_THAT(MP_SETTINGS.keys(), IsEmpty());
+}
+
+TEST(TestSettings, returnsKeysFromSingleHandler)
+{
+    auto some_keys = {QStringLiteral("a.b"), QStringLiteral("c.d.e"), QStringLiteral("f")};
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, keys).WillOnce(Return(some_keys));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(some_keys));
+}
 
 struct TestSettingsGetAs : public Test
 {
