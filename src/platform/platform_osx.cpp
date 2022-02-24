@@ -239,10 +239,6 @@ bool mp::platform::Platform::is_alias_supported(const std::string& alias, const 
 {
     auto driver = utils::get_driver_str();
 
-    // Minimal image that snapcraft:core is does not work with VirtualBox
-    if (driver == "virtualbox" && remote == "snapcraft" && alias == "core")
-        return false;
-
     // Core images don't work on hyperkit yet
     if (driver == "hyperkit" && remote.empty() && (supported_core_aliases.find(alias) != supported_core_aliases.end()))
         return false;

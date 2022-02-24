@@ -320,10 +320,6 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
-    // snapcraft:core image doesn't work yet
-    if (remote == "snapcraft" && alias == "core")
-        return false;
-
     if (check_unlock_code())
         return true;
 
