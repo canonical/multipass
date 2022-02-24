@@ -289,7 +289,7 @@ struct Client : public Test
                                           &cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
-    static std::stringstream trash_stream; // this may have contents (that we don't care about)
+    inline static std::stringstream trash_stream; // this may have contents (that we don't care about)
     static constexpr char petenv_name[] = "the-petenv";
 };
 
@@ -306,8 +306,6 @@ struct ClientAlias : public Client, public FakeAliasConfig
 };
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
-
-std::stringstream Client::trash_stream; // replace with inline in C++17
 
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
@@ -2320,31 +2318,31 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
     EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
 }
 
-// register cli tests
-TEST_F(Client, registerCmdGoodPassphraseOk)
+// authenticate cli tests
+TEST_F(Client, authenticateCmdGoodPassphraseOk)
 {
     EXPECT_CALL(mock_daemon, authenticate);
-    EXPECT_EQ(send_command({"register", "foo"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"authenticate", "foo"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, registerCmdInvalidOptionFails)
+TEST_F(Client, authenticateCmdInvalidOptionFails)
 {
-    EXPECT_EQ(send_command({"register", "--foo"}), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"authenticate", "--foo"}), mp::ReturnCode::CommandLineError);
 }
 
-TEST_F(Client, registerCmdHelpOk)
+TEST_F(Client, authenticateCmdHelpOk)
 {
-    EXPECT_EQ(send_command({"register", "--help"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"authenticate", "--help"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, registerCmdTooManyArgsFails)
+TEST_F(Client, authenticateCmdTooManyArgsFails)
 {
-    EXPECT_EQ(send_command({"register", "foo", "bar"}), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"authenticate", "foo", "bar"}), mp::ReturnCode::CommandLineError);
 }
 
-struct RegisterCommandClient : public Client
+struct AuthenticateCommandClient : public Client
 {
-    RegisterCommandClient()
+    AuthenticateCommandClient()
     {
         EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
         EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
@@ -2363,7 +2361,7 @@ struct RegisterCommandClient : public Client
     mpt::MockTerminal mock_terminal;
 };
 
-TEST_F(RegisterCommandClient, registerCmdAcceptsEnteredPassphrase)
+TEST_F(AuthenticateCommandClient, authenticateCmdAcceptsEnteredPassphrase)
 {
     const std::string passphrase{"foo"};
 
@@ -2374,23 +2372,23 @@ TEST_F(RegisterCommandClient, registerCmdAcceptsEnteredPassphrase)
         return grpc::Status{};
     });
 
-    EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::Ok);
+    EXPECT_EQ(setup_client_and_run({"authenticate"}, mock_terminal), mp::ReturnCode::Ok);
 }
 
-TEST_F(RegisterCommandClient, registerCmdNoPassphraseEnteredReturnsError)
+TEST_F(AuthenticateCommandClient, authenticateCmdNoPassphraseEnteredReturnsError)
 {
     cin.str("\n");
 
-    EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(setup_client_and_run({"authenticate"}, mock_terminal), mp::ReturnCode::CommandLineError);
 
     EXPECT_EQ(cerr.str(), "No passphrase given\n");
 }
 
-TEST_F(RegisterCommandClient, registerCmdNoPassphrasePrompterFailsReturnsError)
+TEST_F(AuthenticateCommandClient, authenticateCmdNoPassphrasePrompterFailsReturnsError)
 {
     cin.clear();
 
-    EXPECT_EQ(setup_client_and_run({"register"}, mock_terminal), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(setup_client_and_run({"authenticate"}, mock_terminal), mp::ReturnCode::CommandLineError);
 
     EXPECT_EQ(cerr.str(), "Failed to read value\n");
 }

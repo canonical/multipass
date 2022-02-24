@@ -313,8 +313,8 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
     else if (!client_cert_store->verify_cert(client_cert))
     {
         return grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
-                            "The client is not registered with the Multipass service.\n"
-                            "Please use 'multipass register' to authenticate the client."};
+                            "The client is not authenticated with the Multipass service.\n"
+                            "Please use 'multipass authenticate' before proceeding."};
     }
 
     return emit_signal_and_wait_for_result(signal);
