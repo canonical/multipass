@@ -119,7 +119,7 @@ TEST_F(TestSettings, throwsUnrecognizedFromSingleHandler)
 TEST_F(TestSettings, throwsUnrecognizedAfterTryingAllHandlers)
 {
     auto key = "zxcv";
-    std::array<std::unique_ptr<MockSettingsHandler>, 3> mock_handlers;
+    std::array<std::unique_ptr<MockSettingsHandler>, 10> mock_handlers;
     std::generate(std::begin(mock_handlers), std::end(mock_handlers), &std::make_unique<MockSettingsHandler>);
 
     for (auto& mock_handler : mock_handlers)
@@ -129,6 +129,36 @@ TEST_F(TestSettings, throwsUnrecognizedAfterTryingAllHandlers)
     }
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, returnsSettingFromSingleHandler)
+{
+    auto key = "asdf", val = "vvv";
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Return(val));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    EXPECT_EQ(MP_SETTINGS.get(key), val);
+}
+
+TEST_F(TestSettings, returnsSettingFromFirstHandler)
+{
+    auto key = "a", val = "b";
+    std::array<std::unique_ptr<MockSettingsHandler>, 4> further_mock_handlers;
+    std::generate(std::begin(further_mock_handlers), std::end(further_mock_handlers),
+                  &std::make_unique<MockSettingsHandler>);
+
+    auto it = std::begin(further_mock_handlers);
+    EXPECT_CALL(**it, get(Eq(key))).WillOnce(Return(val));
+    MP_SETTINGS.register_handler(std::move(*it));
+
+    while (++it != std::end(further_mock_handlers))
+    {
+        EXPECT_CALL(**it, get).Times(0);
+        MP_SETTINGS.register_handler(std::move(*it));
+    }
+
+    EXPECT_EQ(MP_SETTINGS.get(key), val);
 }
 
 struct TestSettingsGetAs : public Test
