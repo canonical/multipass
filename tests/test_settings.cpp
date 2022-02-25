@@ -141,38 +141,21 @@ TEST_F(TestSettings, returnsSettingFromSingleHandler)
     EXPECT_EQ(MP_SETTINGS.get(key), val);
 }
 
-TEST_F(TestSettings, returnsSettingFromFirstHandler)
+using NumHandlersAndHitIndex = std::tuple<unsigned, unsigned>;
+class TestSettingsGetMultipleHandlers : public TestSettings, public WithParamInterface<NumHandlersAndHitIndex>
 {
-    auto key = "a", val = "b";
-    std::array<std::unique_ptr<MockSettingsHandler>, 4> further_mock_handlers;
-    std::generate(std::begin(further_mock_handlers), std::end(further_mock_handlers),
-                  &std::make_unique<MockSettingsHandler>);
+};
 
-    auto it = std::begin(further_mock_handlers);
-    EXPECT_CALL(**it, get(Eq(key))).WillOnce(Return(val));
-    MP_SETTINGS.register_handler(std::move(*it));
-
-    while (++it != std::end(further_mock_handlers))
-    {
-        EXPECT_CALL(**it, get).Times(0);
-        MP_SETTINGS.register_handler(std::move(*it));
-    }
-
-    EXPECT_EQ(MP_SETTINGS.get(key), val);
-}
-
-TEST_F(TestSettings, returnsSettingFromInnerHandler) // TODO@ricab should probably parameterize this
+TEST_P(TestSettingsGetMultipleHandlers, returnsSettingFromFirstHandlerHit)
 {
     auto key = "τ", val = "2π";
-    auto hit_index = 2u;
+    auto [num_handlers, hit_index] = GetParam();
+    ASSERT_GT(num_handlers, 0u);
+    ASSERT_GT(num_handlers, hit_index);
 
-    std::array<std::unique_ptr<MockSettingsHandler>, 5> further_mock_handlers;
-    std::generate(std::begin(further_mock_handlers), std::end(further_mock_handlers),
-                  &std::make_unique<MockSettingsHandler>);
-
-    for (auto i = 0u; i < further_mock_handlers.size(); ++i)
+    for (auto i = 0u; i < num_handlers; ++i)
     {
-        auto& mock_handler = further_mock_handlers[i];
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
         if (i < hit_index)
         {
             EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
@@ -191,6 +174,8 @@ TEST_F(TestSettings, returnsSettingFromInnerHandler) // TODO@ricab should probab
 
     EXPECT_EQ(MP_SETTINGS.get(key), val);
 }
+
+INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsGetMultipleHandlers, Combine(Values(30u), Range(0u, 30u, 3u)));
 struct TestSettingsGetAs : public Test
 {
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
