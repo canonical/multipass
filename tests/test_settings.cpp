@@ -176,6 +176,48 @@ TEST_P(TestSettingsGetMultipleHandlers, returnsSettingFromFirstHandlerHit)
 }
 
 INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsGetMultipleHandlers, Combine(Values(30u), Range(0u, 30u, 3u)));
+
+TEST_F(TestSettings, returnsSettingsFromDifferentHandlers)
+{
+    std::array keys = {"k1", "k2", "k3"}, vals = {"v1", "v2", "v3"}; // @TODO@ricab pairs
+    std::array<std::unique_ptr<MockSettingsHandler>, 5> mock_handlers;
+    std::generate(std::begin(mock_handlers), std::end(mock_handlers), &std::make_unique<MockSettingsHandler>);
+
+    for (auto i = 0u; i < mock_handlers.size(); ++i)
+    {
+        auto kv_index = std::div(i, 2); // TODO@ricab structured bindings
+        for (auto j = 0u; j < keys.size(); ++j)
+        {
+            auto key = keys[j], val = vals[j];
+            if (j == static_cast<unsigned>(kv_index.quot)) // TODO@ricab cast only once
+            {
+                if (!kv_index.rem)
+                {
+                    EXPECT_CALL(*mock_handlers[i], get(Eq(key))).WillOnce(Return(val)); // TODO@ricab index only once
+                }
+                else
+                {
+                    EXPECT_CALL(*mock_handlers[i], get(Eq(key))).Times(0); // TODO@ricab fold into lesser j
+                }
+            }
+            else if (j < static_cast<unsigned>(kv_index.quot))
+            {
+                EXPECT_CALL(*mock_handlers[i], get(Eq(key))).Times(0);
+            }
+            else
+            {
+                EXPECT_CALL(*mock_handlers[i], get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+            }
+        }
+        MP_SETTINGS.register_handler(std::move(mock_handlers[i]));
+    }
+
+    for (auto i = 0u; i < keys.size(); ++i)
+    {
+        EXPECT_EQ(MP_SETTINGS.get(keys[i]), vals[i]);
+    }
+}
+
 struct TestSettingsGetAs : public Test
 {
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
