@@ -161,6 +161,36 @@ TEST_F(TestSettings, returnsSettingFromFirstHandler)
     EXPECT_EQ(MP_SETTINGS.get(key), val);
 }
 
+TEST_F(TestSettings, returnsSettingFromInnerHandler) // TODO@ricab should probably parameterize this
+{
+    auto key = "τ", val = "2π";
+    auto hit_index = 2u;
+
+    std::array<std::unique_ptr<MockSettingsHandler>, 5> further_mock_handlers;
+    std::generate(std::begin(further_mock_handlers), std::end(further_mock_handlers),
+                  &std::make_unique<MockSettingsHandler>);
+
+    for (auto i = 0u; i < further_mock_handlers.size(); ++i)
+    {
+        auto& mock_handler = further_mock_handlers[i];
+        if (i < hit_index)
+        {
+            EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+        }
+        else if (i == hit_index)
+        {
+            EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Return(val));
+        }
+        else
+        {
+            EXPECT_CALL(*mock_handler, get).Times(0);
+        }
+
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    EXPECT_EQ(MP_SETTINGS.get(key), val);
+}
 struct TestSettingsGetAs : public Test
 {
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
