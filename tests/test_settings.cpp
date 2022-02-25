@@ -100,6 +100,37 @@ TEST_F(TestSettings, returnsKeysFromMultipleHandlers)
     EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(all_keys));
 }
 
+TEST_F(TestSettings, throwsUnrecognizedWhenNoHandler)
+{
+    auto key = "qwer";
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, throwsUnrecognizedFromSingleHandler)
+{
+    auto key = "asdf";
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, throwsUnrecognizedAfterTryingAllHandlers)
+{
+    auto key = "zxcv";
+    std::array<std::unique_ptr<MockSettingsHandler>, 3> mock_handlers;
+    std::generate(std::begin(mock_handlers), std::end(mock_handlers), &std::make_unique<MockSettingsHandler>);
+
+    for (auto& mock_handler : mock_handlers)
+    {
+        EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
 struct TestSettingsGetAs : public Test
 {
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
