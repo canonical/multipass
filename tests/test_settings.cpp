@@ -179,35 +179,41 @@ INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsGetMultipleHandlers, Combine(
 
 TEST_F(TestSettings, returnsSettingsFromDifferentHandlers)
 {
-    std::array keys = {"k1", "k2", "k3"}, vals = {"v1", "v2", "v3"}; // @TODO@ricab pairs
-    std::array<std::unique_ptr<MockSettingsHandler>, 5> mock_handlers;
-    std::generate(std::begin(mock_handlers), std::end(mock_handlers), &std::make_unique<MockSettingsHandler>);
+    constexpr auto num_settings = 3u;
+    constexpr auto num_handlers = num_settings * 2u;
 
-    for (auto i = 0u; i < mock_handlers.size(); ++i)
+    auto make_setting = [](auto index) { return std::pair(QString("k%1").arg(index), QString("v%1").arg(index)); };
+
+    for (auto i = 0u; i < num_handlers; ++i)
     {
-        auto kv_index = std::div(i, 2); // TODO@ricab structured bindings
-        for (auto j = 0u; j < keys.size(); ++j)
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+
+        auto half_i_div = std::div(i, 2); // can't use structured bindings directly: quot/rem order unspecified
+        auto [half_i, odd_i] = std::pair(static_cast<unsigned>(half_i_div.quot), static_cast<bool>(half_i_div.rem));
+
+        for (auto j = 0u; j < num_settings; ++j)
         {
-            auto key = keys[j], val = vals[j];
-            if (j == static_cast<unsigned>(kv_index.quot) && !kv_index.rem) // TODO@ricab cast only once
+            auto [key, val] = make_setting(j);
+            if (j == half_i && !odd_i)
             {
-                EXPECT_CALL(*mock_handlers[i], get(Eq(key))).WillOnce(Return(val)); // TODO@ricab index only once
+                EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Return(val));
             }
-            else if (j <= static_cast<unsigned>(kv_index.quot))
+            else if (j <= half_i)
             {
-                EXPECT_CALL(*mock_handlers[i], get(Eq(key))).Times(0);
+                EXPECT_CALL(*mock_handler, get(Eq(key))).Times(0);
             }
             else
             {
-                EXPECT_CALL(*mock_handlers[i], get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+                EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
             }
         }
-        MP_SETTINGS.register_handler(std::move(mock_handlers[i]));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
-    for (auto i = 0u; i < keys.size(); ++i)
+    for (auto i = 0u; i < num_settings; ++i)
     {
-        EXPECT_EQ(MP_SETTINGS.get(keys[i]), vals[i]);
+        auto [key, val] = make_setting(i);
+        EXPECT_EQ(MP_SETTINGS.get(key), val);
     }
 }
 
