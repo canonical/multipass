@@ -189,18 +189,11 @@ TEST_F(TestSettings, returnsSettingsFromDifferentHandlers)
         for (auto j = 0u; j < keys.size(); ++j)
         {
             auto key = keys[j], val = vals[j];
-            if (j == static_cast<unsigned>(kv_index.quot)) // TODO@ricab cast only once
+            if (j == static_cast<unsigned>(kv_index.quot) && !kv_index.rem) // TODO@ricab cast only once
             {
-                if (!kv_index.rem)
-                {
-                    EXPECT_CALL(*mock_handlers[i], get(Eq(key))).WillOnce(Return(val)); // TODO@ricab index only once
-                }
-                else
-                {
-                    EXPECT_CALL(*mock_handlers[i], get(Eq(key))).Times(0); // TODO@ricab fold into lesser j
-                }
+                EXPECT_CALL(*mock_handlers[i], get(Eq(key))).WillOnce(Return(val)); // TODO@ricab index only once
             }
-            else if (j < static_cast<unsigned>(kv_index.quot))
+            else if (j <= static_cast<unsigned>(kv_index.quot))
             {
                 EXPECT_CALL(*mock_handlers[i], get(Eq(key))).Times(0);
             }
