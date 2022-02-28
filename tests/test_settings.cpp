@@ -271,6 +271,46 @@ TEST_F(TestSettings, setDelegatesOnAllHandlers)
 
     EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
 }
+
+using Indices = std::initializer_list<unsigned>;
+using NumHandlersAndHitIndices = std::tuple<unsigned, Indices>;
+class TestSettingsSetMultipleHandlers : public TestSettings, public WithParamInterface<NumHandlersAndHitIndices>
+{
+};
+
+TEST_P(TestSettingsSetMultipleHandlers, setDelegatesOnMultipleHandlers)
+{
+    auto key = "boo", val = "far";
+    auto [num_handlers, hit_indices] = GetParam();
+    ASSERT_GT(num_handlers, 0u);
+    ASSERT_GT(hit_indices.size(), 0u);
+    ASSERT_THAT(hit_indices, Each(Lt(num_handlers)));
+
+    for (auto i = 0u; i < num_handlers; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+
+        if (std::find(hit_indices.begin(), hit_indices.end(), i) == hit_indices.end())
+            expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+}
+
+constexpr auto test_indices = std::initializer_list<Indices>{{0u},
+                                                             {9u},
+                                                             {7u},
+                                                             {0u, 4u},
+                                                             {0u, 4u, 9u},
+                                                             {1u, 2u, 3u},
+                                                             {5u, 6u, 7u, 8u},
+                                                             {1u, 3u, 5u, 7u},
+                                                             {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u}};
+INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsSetMultipleHandlers, Combine(Values(10u), ValuesIn(test_indices)));
+
 struct TestSettingsGetAs : public Test
 {
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
