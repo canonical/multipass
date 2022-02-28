@@ -247,6 +247,30 @@ TEST_F(TestSettings, setThrowsUnrecognizedAfterTryingAllHandlers)
 
     MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
 }
+
+TEST_F(TestSettings, setDelegatesOnSingleHandler)
+{
+    auto key = "xyz", val = "zyx";
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+}
+
+TEST_F(TestSettings, setDelegatesOnAllHandlers)
+{
+    auto key = "boo", val = "far";
+
+    for (auto i = 0; i < 5; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+}
 struct TestSettingsGetAs : public Test
 {
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
