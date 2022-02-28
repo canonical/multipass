@@ -154,7 +154,7 @@ class TestSettingsGetMultipleHandlers : public TestSettings, public WithParamInt
 
 TEST_P(TestSettingsGetMultipleHandlers, getReturnsSettingFromFirstHandlerHit)
 {
-    auto key = "τ", val = "2π";
+    constexpr auto key = "τ", val = "2π";
     auto [num_handlers, hit_index] = GetParam();
     ASSERT_GT(num_handlers, 0u);
     ASSERT_GT(num_handlers, hit_index);
@@ -197,18 +197,14 @@ TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
         for (auto j = 0u; j < num_settings; ++j)
         {
             auto [key, val] = make_setting(j);
+            auto& expectation = EXPECT_CALL(*mock_handler, get(Eq(key)));
+
             if (j == half_i && !odd_i)
-            {
-                EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Return(val));
-            }
+                expectation.WillOnce(Return(val));
             else if (j <= half_i)
-            {
-                EXPECT_CALL(*mock_handler, get(Eq(key))).Times(0);
-            }
+                expectation.Times(0);
             else
-            {
-                EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
-            }
+                expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
         }
 
         EXPECT_CALL(*mock_handler, get(Eq(unknown_key))).WillOnce(Throw(mp::UnrecognizedSettingException{unknown_key}));
@@ -333,15 +329,10 @@ TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
         for (auto j = 0u; j < num_settings; ++j)
         {
             auto [key, val] = make_setting(j);
+            auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
             if (j < half_i || odd_i)
             {
-                EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)))
-                    .WillOnce(
-                        Throw(mp::UnrecognizedSettingException{key})); // TODO@ricab extract expect, here and there
-            }
-            else
-            {
-                EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+                expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
             }
         }
 
