@@ -360,6 +360,46 @@ TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
                          mpt::match_what(HasSubstr(unknown_key)));
 }
 
+using SetException = std::variant<mp::UnrecognizedSettingException, mp::InvalidSettingException, std::runtime_error>; /*
+  We need to throw an exception of the ultimate type whose handling we're trying to test (to avoid slicing and enter the
+  right catch block). Therefore, we can't just use a base exception type. Parameterized and typed tests don't mix in
+  gtest, so we use a variant parameter. */
+using SetExceptNumHandlersAndThrowerIdx = std::tuple<SetException, unsigned, unsigned>;
+class TestSettingSetOtherExceptions : public TestSettings, public WithParamInterface<SetExceptNumHandlersAndThrowerIdx>
+{
+};
+
+TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
+{
+    constexpr auto key = "F", val = "X";
+    constexpr auto thrower = [](const auto& e) { throw e; };
+
+    auto [except, num_handlers, thrower_idx] = GetParam();
+    ASSERT_GT(num_handlers, 0u);
+    ASSERT_GT(num_handlers, thrower_idx);
+
+    for (auto i = 0u; i < num_handlers; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+        if (i == thrower_idx)
+            expectation.WillOnce(WithoutArgs([&thrower, e = &except] { std::visit(thrower, *e); })); /* lambda capture
+                                                with initializer works around forbidden capture of structured binding */
+        else if (i > thrower_idx)
+            expectation.Times(0);
+
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    auto get_what = [](const auto& e) { return e.what(); };
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), std::exception, mpt::match_what(std::visit(get_what, except)));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingSetOtherExceptions,
+                         Combine(Values(mp::InvalidSettingException{"foo", "bar", "err"},
+                                        std::runtime_error{"something else"}),
+                                 Values(8u), Range(0u, 8u, 2u)));
+
 struct TestSettingsGetAs : public Test
 {
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
