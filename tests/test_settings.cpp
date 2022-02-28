@@ -48,6 +48,17 @@ public:
     {
         SettingsResetter::reset(); // expectations on MockHandlers verified here (unless manually unregistered earlier)
     }
+
+    std::pair<QString, QString> make_setting(unsigned index)
+    {
+        return std::pair(QString("k%1").arg(index), QString("v%1").arg(index));
+    };
+
+    std::pair<unsigned, bool> half_and_is_odd(unsigned i)
+    {
+        auto half_i_div = std::div(i, 2); // can't use structured bindings directly: quot/rem order unspecified
+        return std::pair(static_cast<unsigned>(half_i_div.quot), static_cast<bool>(half_i_div.rem));
+    }
 };
 
 class MockSettingsHandler : public mp::SettingsHandler
@@ -178,15 +189,11 @@ TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
     constexpr auto num_handlers = num_settings * 2u;
     constexpr auto unknown_key = "?";
 
-    auto make_setting = [](auto index) { return std::pair(QString("k%1").arg(index), QString("v%1").arg(index)); };
-
     for (auto i = 0u; i < num_handlers; ++i)
     {
         auto mock_handler = std::make_unique<MockSettingsHandler>();
 
-        auto half_i_div = std::div(i, 2); // can't use structured bindings directly: quot/rem order unspecified
-        auto [half_i, odd_i] = std::pair(static_cast<unsigned>(half_i_div.quot), static_cast<bool>(half_i_div.rem));
-
+        auto [half_i, odd_i] = half_and_is_odd(i);
         for (auto j = 0u; j < num_settings; ++j)
         {
             auto [key, val] = make_setting(j);
@@ -203,6 +210,7 @@ TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
                 EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
             }
         }
+
         EXPECT_CALL(*mock_handler, get(Eq(unknown_key))).WillOnce(Throw(mp::UnrecognizedSettingException{unknown_key}));
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
@@ -310,6 +318,47 @@ constexpr auto test_indices = std::initializer_list<Indices>{{0u},
                                                              {1u, 3u, 5u, 7u},
                                                              {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u}};
 INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsSetMultipleHandlers, Combine(Values(10u), ValuesIn(test_indices)));
+
+TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
+{
+    constexpr auto num_settings = 5u;
+    constexpr auto num_handlers = num_settings * 2u;
+    constexpr auto unknown_key = "hhhh";
+
+    for (auto i = 0u; i < num_handlers; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+
+        auto [half_i, odd_i] = half_and_is_odd(i);
+        for (auto j = 0u; j < num_settings; ++j)
+        {
+            auto [key, val] = make_setting(j);
+            if (j < half_i || odd_i)
+            {
+                EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)))
+                    .WillOnce(
+                        Throw(mp::UnrecognizedSettingException{key})); // TODO@ricab extract expect, here and there
+            }
+            else
+            {
+                EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+            }
+        }
+
+        EXPECT_CALL(*mock_handler, set(Eq(unknown_key), _))
+            .WillOnce(Throw(mp::UnrecognizedSettingException{unknown_key}));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    for (auto i = 0u; i < num_settings; ++i)
+    {
+        auto [key, val] = make_setting(i);
+        EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+    }
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(unknown_key, "asdf"), mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(unknown_key)));
+}
 
 struct TestSettingsGetAs : public Test
 {
