@@ -77,19 +77,16 @@ TEST_F(TestSettings, keysReturnsKeysFromSingleHandler)
 
 TEST_F(TestSettings, keysReturnsKeysFromMultipleHandlers)
 {
-    std::array<std::unique_ptr<MockSettingsHandler>, 3> mock_handlers;
-    std::generate(std::begin(mock_handlers), std::end(mock_handlers), &std::make_unique<MockSettingsHandler>);
-
     auto some_keychains =
         std::array{std::set({QStringLiteral("asdf.fdsa"), QStringLiteral("blah.bleh")}),
                    std::set({QStringLiteral("qwerty.ytrewq"), QStringLiteral("foo"), QStringLiteral("bar")}),
                    std::set({QStringLiteral("a.b.c.d")})};
 
-    static_assert(mock_handlers.size() == some_keychains.size());
     for (auto i = 0u; i < some_keychains.size(); ++i)
     {
-        EXPECT_CALL(*mock_handlers[i], keys).WillOnce(Return(some_keychains[i])); // copies, so ok to modify below
-        MP_SETTINGS.register_handler(std::move(mock_handlers[i]));
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        EXPECT_CALL(*mock_handler, keys).WillOnce(Return(some_keychains[i])); // copies, so ok to modify below
+        MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
     auto all_keys = std::reduce(std::begin(some_keychains), std::end(some_keychains), // hands-off clang-format
@@ -119,11 +116,9 @@ TEST_F(TestSettings, getThrowsUnrecognizedFromSingleHandler)
 TEST_F(TestSettings, getThrowsUnrecognizedAfterTryingAllHandlers)
 {
     auto key = "zxcv";
-    std::array<std::unique_ptr<MockSettingsHandler>, 10> mock_handlers;
-    std::generate(std::begin(mock_handlers), std::end(mock_handlers), &std::make_unique<MockSettingsHandler>);
-
-    for (auto& mock_handler : mock_handlers)
+    for (auto i = 0; i < 10; ++i)
     {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
         EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
