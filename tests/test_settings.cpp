@@ -60,12 +60,12 @@ public:
     MOCK_METHOD(void, set, (const QString& key, const QString& val), (override));
 };
 
-TEST_F(TestSettings, returnsNoKeysWhenNoHandler)
+TEST_F(TestSettings, keysReturnsNoKeysWhenNoHandler)
 {
     EXPECT_THAT(MP_SETTINGS.keys(), IsEmpty());
 }
 
-TEST_F(TestSettings, returnsKeysFromSingleHandler)
+TEST_F(TestSettings, keysReturnsKeysFromSingleHandler)
 {
     auto some_keys = {QStringLiteral("a.b"), QStringLiteral("c.d.e"), QStringLiteral("f")};
     auto mock_handler = std::make_unique<MockSettingsHandler>();
@@ -75,7 +75,7 @@ TEST_F(TestSettings, returnsKeysFromSingleHandler)
     EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(some_keys));
 }
 
-TEST_F(TestSettings, returnsKeysFromMultipleHandlers)
+TEST_F(TestSettings, keysReturnsKeysFromMultipleHandlers)
 {
     std::array<std::unique_ptr<MockSettingsHandler>, 3> mock_handlers;
     std::generate(std::begin(mock_handlers), std::end(mock_handlers), &std::make_unique<MockSettingsHandler>);
@@ -100,13 +100,13 @@ TEST_F(TestSettings, returnsKeysFromMultipleHandlers)
     EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(all_keys));
 }
 
-TEST_F(TestSettings, throwsUnrecognizedWhenNoHandler)
+TEST_F(TestSettings, getThrowsUnrecognizedWhenNoHandler)
 {
     auto key = "qwer";
     MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
 }
 
-TEST_F(TestSettings, throwsUnrecognizedFromSingleHandler)
+TEST_F(TestSettings, getThrowsUnrecognizedFromSingleHandler)
 {
     auto key = "asdf";
     auto mock_handler = std::make_unique<MockSettingsHandler>();
@@ -116,7 +116,7 @@ TEST_F(TestSettings, throwsUnrecognizedFromSingleHandler)
     MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
 }
 
-TEST_F(TestSettings, throwsUnrecognizedAfterTryingAllHandlers)
+TEST_F(TestSettings, getThrowsUnrecognizedAfterTryingAllHandlers)
 {
     auto key = "zxcv";
     std::array<std::unique_ptr<MockSettingsHandler>, 10> mock_handlers;
@@ -131,7 +131,7 @@ TEST_F(TestSettings, throwsUnrecognizedAfterTryingAllHandlers)
     MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
 }
 
-TEST_F(TestSettings, returnsSettingFromSingleHandler)
+TEST_F(TestSettings, getReturnsSettingFromSingleHandler)
 {
     auto key = "asdf", val = "vvv";
     auto mock_handler = std::make_unique<MockSettingsHandler>();
@@ -146,7 +146,7 @@ class TestSettingsGetMultipleHandlers : public TestSettings, public WithParamInt
 {
 };
 
-TEST_P(TestSettingsGetMultipleHandlers, returnsSettingFromFirstHandlerHit)
+TEST_P(TestSettingsGetMultipleHandlers, getReturnsSettingFromFirstHandlerHit)
 {
     auto key = "τ", val = "2π";
     auto [num_handlers, hit_index] = GetParam();
@@ -177,7 +177,7 @@ TEST_P(TestSettingsGetMultipleHandlers, returnsSettingFromFirstHandlerHit)
 
 INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsGetMultipleHandlers, Combine(Values(30u), Range(0u, 30u, 3u)));
 
-TEST_F(TestSettings, returnsSettingsFromDifferentHandlers)
+TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
 {
     constexpr auto num_settings = 3u;
     constexpr auto num_handlers = num_settings * 2u;
