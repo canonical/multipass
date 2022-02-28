@@ -46,7 +46,7 @@ public:
 
     void TearDown() override
     {
-        SettingsResetter::reset();
+        SettingsResetter::reset(); // expectations on MockHandlers verified here (unless manually unregistered earlier)
     }
 };
 
@@ -222,6 +222,36 @@ TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
                          mpt::match_what(HasSubstr(unknown_key)));
 }
 
+TEST_F(TestSettings, setThrowsUnrecognizedWhenNoHandler)
+{
+    auto key = "poiu";
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, "qwer"), mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, setThrowsUnrecognizedFromSingleHandler)
+{
+    auto key = "lkjh", val = "asdf";
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, setThrowsUnrecognizedAfterTryingAllHandlers)
+{
+    auto key = "mnbv", val = "zxcv";
+
+    for (auto i = 0u; i < 10; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val))).WillRepeatedly(Throw(mp::UnrecognizedSettingException{key}));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
 struct TestSettingsGetAs : public Test
 {
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
