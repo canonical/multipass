@@ -34,6 +34,7 @@ public:
     MOCK_METHOD1(unregister_handler, void(SettingsHandler* handler));
     MOCK_CONST_METHOD1(get, QString(const QString&));
     MOCK_METHOD2(set, void(const QString&, const QString&));
+    MOCK_METHOD(std::set<QString>, keys, (), (const, override)); // TODO@ricab homogenize all
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockSettings, Settings);
 };

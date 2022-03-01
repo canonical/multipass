@@ -46,7 +46,7 @@ public:
      * in get/set as actual keys (e.g. <tt>local.@<instance@>.cpus</tt>).
      * @return The set of keys, key templates, or key descriptions that this Settings singleton knows about.
      */
-    std::set<QString> keys() const;
+    virtual std::set<QString> keys() const;
 
     /**
      * Get the value of the setting specified by @c key, as returned by the first registered handler that handles it.

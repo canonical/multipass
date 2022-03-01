@@ -1548,6 +1548,21 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
+TEST_F(Daemon, keysReturnsSettingsKeys)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto keys = std::set{"some", "config.keys", "of.various.kinds"};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Return(std::set<QString>{keys.begin(), keys.end()}));
+
+    StrictMock<mpt::MockServerWriter<mp::KeysReply>> mock_server;
+    EXPECT_CALL(mock_server, Write(Property(&mp::KeysReply::settings_keys, UnorderedElementsAreArray(keys)), _))
+        .WillOnce(Return(true));
+
+    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{}, mock_server);
+    EXPECT_TRUE(status.ok());
+}
+
 TEST_F(Daemon, getReturnsSetting)
 {
     mp::Daemon daemon{config_builder.build()};
