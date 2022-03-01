@@ -127,7 +127,7 @@ TEST_F(TestQemuPlatformDetail, vm_platform_args_returns_expected_arguments)
 {
     std::vector<QStringList> expected_args{
         {"-accel", "hvf"},
-        {"-nic", QString("vmnet-macos,mode=shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
+        {"-nic", QString("vmnet-shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
         {"-cpu", (host_arch == "aarch64" ? "cortex-a72" : "host")}};
     mp::VirtualMachineDescription vm_desc;
     vm_desc.vm_name = "foo";
