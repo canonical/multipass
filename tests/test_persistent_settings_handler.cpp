@@ -104,6 +104,25 @@ private:
     }
 };
 
+TEST_F(TestPersistentSettingsHandler, keysReturnsEmptyWhenNoSettingsSpec)
+{
+    mp::PersistentSettingsHandler handler{fake_filename, {}};
+
+    EXPECT_THAT(handler.keys(), IsEmpty());
+}
+
+TEST_F(TestPersistentSettingsHandler, keysReturnsSpecsKey)
+{
+    auto handler = make_handler();
+
+    std::vector<QString> expected;
+    expected.reserve(defaults.size());
+    for (const auto& item : defaults)
+        expected.push_back(item.first);
+
+    EXPECT_THAT(handler.keys(), UnorderedPointwise(Eq(), expected));
+}
+
 TEST_F(TestPersistentSettingsHandler, getReadsUtf8)
 {
     const auto key = "asdf";
