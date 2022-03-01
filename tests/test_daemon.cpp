@@ -1563,6 +1563,19 @@ TEST_F(Daemon, keysReturnsSettingsKeys)
     EXPECT_TRUE(status.ok());
 }
 
+TEST_F(Daemon, keysReportsException)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto e = std::runtime_error{"some error"};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Throw(e));
+
+    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{},
+                                        StrictMock<mpt::MockServerWriter<mp::KeysReply>>{});
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
+    EXPECT_THAT(status.error_message(), HasSubstr(e.what()));
+}
+
 TEST_F(Daemon, getReturnsSetting)
 {
     mp::Daemon daemon{config_builder.build()};
