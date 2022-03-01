@@ -77,7 +77,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
               // Set up the network related args
               << "-nic"
               << QString::fromStdString(
-                     fmt::format("vmnet-macos,mode=shared,model=virtio-net-pci,mac={}", vm_desc.default_mac_address))
+                     fmt::format("vmnet-shared,model=virtio-net-pci,mac={}", vm_desc.default_mac_address))
               << "-cpu" << (host_arch == "aarch64" ? "cortex-a72" : "host");
 
     return qemu_args;
