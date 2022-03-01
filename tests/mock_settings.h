@@ -30,11 +30,11 @@ class MockSettings : public Settings
 public:
     using Settings::Settings;
 
-    MOCK_METHOD1(register_handler, SettingsHandler*(std::unique_ptr<SettingsHandler>));
-    MOCK_METHOD1(unregister_handler, void(SettingsHandler* handler));
-    MOCK_CONST_METHOD1(get, QString(const QString&));
-    MOCK_METHOD2(set, void(const QString&, const QString&));
-    MOCK_METHOD(std::set<QString>, keys, (), (const, override)); // TODO@ricab homogenize all
+    MOCK_METHOD(SettingsHandler*, register_handler, (std::unique_ptr<SettingsHandler>), (override));
+    MOCK_METHOD(void, unregister_handler, (SettingsHandler * handler), (override));
+    MOCK_METHOD(QString, get, (const QString&), (const, override));
+    MOCK_METHOD(void, set, (const QString&, const QString&), (override));
+    MOCK_METHOD(std::set<QString>, keys, (), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockSettings, Settings);
 };
