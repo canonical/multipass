@@ -41,13 +41,11 @@ class Command : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<Command>;
-    Command(grpc::Channel& channel, Rpc::Stub& stub, std::ostream& cout, std::ostream& cerr)
-        : rpc_channel{&channel}, stub{&stub}, cout{cout}, cerr{cerr}
+    Command(Rpc::Stub& stub, std::ostream& cout, std::ostream& cerr) : stub{&stub}, cout{cout}, cerr{cerr}
     {
     }
 
-    Command(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term)
-        : rpc_channel{&channel}, stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
+    Command(Rpc::Stub& stub, Terminal* term) : stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
     {
     }
     virtual ~Command() = default;
@@ -136,7 +134,6 @@ protected:
         });
     }
 
-    grpc::Channel* rpc_channel;
     Rpc::Stub* stub;
     Terminal* term;
     std::ostream& cout;

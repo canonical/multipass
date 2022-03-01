@@ -34,8 +34,7 @@ class Aliases final : public Command
 public:
     using Command::Command;
 
-    Aliases(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, AliasDict& dict)
-        : Command(channel, stub, term), aliases(dict)
+    Aliases(Rpc::Stub& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
     {
     }
 

@@ -32,8 +32,7 @@ class Exec final : public Command
 public:
     using Command::Command;
 
-    Exec(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, AliasDict& dict)
-        : Command(channel, stub, term), aliases(dict)
+    Exec(Rpc::Stub& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
     {
     }
 
