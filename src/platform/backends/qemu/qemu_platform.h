@@ -54,7 +54,7 @@ public:
     {
         return {};
     };
-    virtual std::vector<NetworkInterfaceInfo> networks()
+    virtual std::vector<NetworkInterfaceInfo> networks() const
     {
         throw NotImplementedOnThisBackendException("networks");
     };
