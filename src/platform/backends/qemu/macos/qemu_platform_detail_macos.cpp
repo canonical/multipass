@@ -18,6 +18,7 @@
 #include "qemu_platform_detail.h"
 
 #include <multipass/format.h>
+#include <multipass/platform.h>
 
 #include <shared/macos/backend_utils.h>
 
@@ -74,11 +75,19 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
               << QString("file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
                      .arg(QCoreApplication::applicationDirPath())
                      .arg(host_arch)
+              << "-cpu"
+              << (host_arch == "aarch64" ? "cortex-a72" : "host")
               // Set up the network related args
               << "-nic"
               << QString::fromStdString(
-                     fmt::format("vmnet-shared,model=virtio-net-pci,mac={}", vm_desc.default_mac_address))
-              << "-cpu" << (host_arch == "aarch64" ? "cortex-a72" : "host");
+                     fmt::format("vmnet-shared,model=virtio-net-pci,mac={}", vm_desc.default_mac_address));
+
+    for (const auto& extra_interface : vm_desc.extra_interfaces)
+    {
+        qemu_args << "-nic"
+                  << QString::fromStdString(fmt::format("vmnet-bridged,ifname={},model=virtio-net-pci,mac={}",
+                                                        extra_interface.id, extra_interface.mac_address));
+    }
 
     return qemu_args;
 }
@@ -86,6 +95,20 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 QString mp::QemuPlatformDetail::get_directory_name()
 {
     return "qemu";
+}
+
+std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
+{
+    auto platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
+
+    std::vector<NetworkInterfaceInfo> networks;
+
+    for (const auto& ifs_info : platform_ifs_info)
+    {
+        networks.push_back(ifs_info.second);
+    }
+
+    return networks;
 }
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
