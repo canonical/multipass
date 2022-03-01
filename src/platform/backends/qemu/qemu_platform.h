@@ -19,7 +19,9 @@
 #define MULTIPASS_QEMU_PLATFORM_H
 
 #include <multipass/disabled_copy_move.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/ip_address.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/optional.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
@@ -51,6 +53,10 @@ public:
     virtual QString get_directory_name()
     {
         return {};
+    };
+    virtual std::vector<NetworkInterfaceInfo> networks()
+    {
+        throw NotImplementedOnThisBackendException("networks");
     };
 
 protected:
