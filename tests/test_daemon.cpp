@@ -126,6 +126,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
 {
     mpt::MockDaemon daemon{config_builder.build()};
 
+    EXPECT_CALL(daemon, keys)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::KeysRequest, mp::KeysReply>));
     EXPECT_CALL(daemon, get)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::GetRequest, mp::GetReply>));
     EXPECT_CALL(daemon, set)
@@ -167,7 +169,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
 
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
-    send_commands({{"test_get", "foo"},
+    send_commands({{"test_keys"},
+                   {"test_get", "foo"},
                    {"test_set", "foo", "bar"},
                    {"test_create", "foo"},
                    {"launch", "foo"},

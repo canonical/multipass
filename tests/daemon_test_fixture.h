@@ -247,12 +247,55 @@ private:
     mp::SetRequest request;
 };
 
+class TestKeys final : public mp::cmd::Command
+{
+public:
+    using Command::Command;
+
+    mp::ReturnCode run(mp::ArgParser* parser) override
+    {
+        auto on_success = [](mp::KeysReply&) { return mp::ReturnCode::Ok; };
+        auto on_failure = [this](grpc::Status& status) {
+            return mp::cmd::standard_failure_handler_for(name(), cerr, status);
+        };
+
+        if (auto parse_result = parse_args(parser); parse_result == mp::ParseCode::Ok)
+            return dispatch(&mp::Rpc::Stub::keys, request, on_success, on_failure);
+        else
+            return parser->returnCodeFrom(parse_result);
+    }
+
+    std::string name() const override
+    {
+        return "test_keys";
+    }
+
+    QString short_help() const override
+    {
+        return {};
+    }
+
+    QString description() const override
+    {
+        return {};
+    }
+
+private:
+    mp::ParseCode parse_args(mp::ArgParser* parser)
+    {
+        return parser->commandParse(this) == mp::ParseCode::Ok ? mp::ParseCode::Ok : mp::ParseCode::CommandLineError;
+    }
+
+    mp::KeysRequest request;
+};
+
 class TestClient : public multipass::Client
 {
 public:
     explicit TestClient(multipass::ClientConfig& context) : multipass::Client{context}
     {
         add_command<TestCreate>();
+        add_command<TestKeys>();
         add_command<TestGet>();
         add_command<TestSet>();
         sort_commands();

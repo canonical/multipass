@@ -60,6 +60,7 @@ struct MockDaemon : public Daemon
                  void(const UmountRequest*, grpc::ServerWriterInterface<UmountReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(version,
                  void(const VersionRequest*, grpc::ServerWriterInterface<VersionReply>*, std::promise<grpc::Status>*));
+    MOCK_METHOD3(keys, void(const KeysRequest*, grpc::ServerWriterInterface<KeysReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(get, void(const GetRequest*, grpc::ServerWriterInterface<GetReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(set, void(const SetRequest*, grpc::ServerWriterInterface<SetReply>*, std::promise<grpc::Status>*));
     MOCK_METHOD3(networks, void(const NetworksRequest*, grpc::ServerWriterInterface<NetworksReply>*,
