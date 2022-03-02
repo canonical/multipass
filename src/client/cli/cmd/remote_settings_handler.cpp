@@ -82,8 +82,8 @@ protected:
 class RemoteGet : public RemoteSettingsCmd
 {
 public:
-    RemoteGet(const QString& key, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
-        : RemoteSettingsCmd{channel, stub, term} // need to ensure refs outlive this
+    RemoteGet(const QString& key, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
+        : RemoteSettingsCmd{stub, term} // need to ensure refs outlive this
     {
         mp::GetRequest get_request;
         get_request.set_verbosity_level(verbosity);
@@ -105,9 +105,8 @@ public:
 class RemoteSet : public RemoteSettingsCmd
 {
 public:
-    RemoteSet(const QString& key, const QString& val, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term,
-              int verbosity)
-        : RemoteSettingsCmd{channel, stub, term} // need to ensure refs outlive this
+    RemoteSet(const QString& key, const QString& val, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
+        : RemoteSettingsCmd{stub, term} // need to ensure refs outlive this
     {
         mp::SetRequest set_request;
         set_request.set_verbosity_level(verbosity);
@@ -122,8 +121,7 @@ public:
 class RemoteKeys : public RemoteSettingsCmd
 {
 public:
-    RemoteKeys(QString fallback, grpc::Channel& channel, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
-        : RemoteSettingsCmd{channel, stub, term}
+    RemoteKeys(QString fallback, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity) : RemoteSettingsCmd{stub, term}
     {
         mp::KeysRequest keys_request;
         keys_request.set_verbosity_level(verbosity);
@@ -154,9 +152,9 @@ public:
 };
 } // namespace
 
-mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix, grpc::Channel& channel, mp::Rpc::Stub& stub,
-                                                 multipass::Terminal* term, int verbosity)
-    : key_prefix{std::move(key_prefix)}, rpc_channel{channel}, stub{stub}, term{term}, verbosity{verbosity}
+mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix, mp::Rpc::Stub& stub, multipass::Terminal* term,
+                                                 int verbosity)
+    : key_prefix{std::move(key_prefix)}, stub{stub}, term{term}, verbosity{verbosity}
 {
     assert(term);
 }
@@ -166,7 +164,7 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     if (key.startsWith(key_prefix))
     {
         assert(term);
-        return RemoteGet{key, rpc_channel, stub, term, verbosity}.got;
+        return RemoteGet{key, stub, term, verbosity}.got;
     }
 
     throw mp::UnrecognizedSettingException{key};
@@ -177,7 +175,7 @@ void mp::RemoteSettingsHandler::set(const QString& key, const QString& val)
     if (key.startsWith(key_prefix))
     {
         assert(term);
-        RemoteSet(key, val, rpc_channel, stub, term, verbosity);
+        RemoteSet(key, val, stub, term, verbosity);
     }
     else
         throw mp::UnrecognizedSettingException{key};
@@ -188,7 +186,7 @@ std::set<QString> mp::RemoteSettingsHandler::keys() const
     assert(term);
 
     auto fallback = QStringLiteral("%1* \t (need daemon to find out actual keys)").arg(key_prefix);
-    return RemoteKeys{std::move(fallback), rpc_channel, stub, term, verbosity}.keys;
+    return RemoteKeys{std::move(fallback), stub, term, verbosity}.keys;
 }
 
 mp::RemoteHandlerException::RemoteHandlerException(grpc::Status status)

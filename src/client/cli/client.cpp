@@ -129,8 +129,8 @@ int mp::Client::run(const QStringList& arguments)
 
     {
         auto daemon_settings_prefix = QString{daemon_settings_root} + ".";
-        auto* handler = MP_SETTINGS.register_handler(std::make_unique<RemoteSettingsHandler>(
-            std::move(daemon_settings_prefix), *rpc_channel, *stub, term, verbosity));
+        auto* handler = MP_SETTINGS.register_handler(
+            std::make_unique<RemoteSettingsHandler>(std::move(daemon_settings_prefix), *stub, term, verbosity));
         auto handler_unregisterer = make_handler_unregisterer(handler); // remove handler before its dependencies expire
 
         try
