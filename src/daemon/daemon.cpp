@@ -81,8 +81,6 @@ using error_string = std::string;
 
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
-constexpr auto uuid_file_name = "multipass-unique-id";
-constexpr auto metrics_opt_in_file = "multipassd-send-metrics.yaml";
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
@@ -553,71 +551,6 @@ auto grpc_status_for(fmt::memory_buffer& errors)
                         fmt::format("The following errors occurred:\n{}", error_string), "");
 }
 
-auto get_unique_id(const mp::Path& data_path)
-{
-    QFile id_file{QDir(data_path).filePath(uuid_file_name)};
-    QString id;
-
-    if (!id_file.exists())
-    {
-        id = mp::utils::make_uuid();
-        id_file.open(QIODevice::WriteOnly);
-        id_file.write(id.toUtf8());
-    }
-    else
-    {
-        id_file.open(QIODevice::ReadOnly);
-        id = QString(id_file.readAll());
-    }
-
-    id_file.close();
-    return id;
-}
-
-void persist_metrics_opt_in_data(const mp::MetricsOptInData& opt_in_data, const mp::Path& data_path)
-{
-    YAML::Node opt_in;
-    opt_in["status"] = static_cast<int>(opt_in_data.opt_in_status);
-    opt_in["delay_count"] = opt_in_data.delay_opt_in_count;
-
-    YAML::Emitter emitter;
-    emitter << opt_in << YAML::Newline;
-
-    QFile opt_in_file{QDir(data_path).filePath(metrics_opt_in_file)};
-    opt_in_file.open(QIODevice::WriteOnly);
-    opt_in_file.write(emitter.c_str());
-}
-
-auto get_metrics_opt_in(const mp::Path& data_path)
-{
-    YAML::Node config;
-    try
-    {
-        config = YAML::LoadFile(QDir(data_path).filePath(metrics_opt_in_file).toStdString());
-    }
-    catch (const std::exception& e)
-    {
-        // Ignore exceptions in this case
-    }
-
-    mp::MetricsOptInData opt_in_data;
-
-    if (config.IsNull())
-    {
-        opt_in_data.opt_in_status = mp::OptInStatus::UNKNOWN;
-        opt_in_data.delay_opt_in_count = 0;
-
-        persist_metrics_opt_in_data(opt_in_data, data_path);
-    }
-    else
-    {
-        opt_in_data.opt_in_status = static_cast<mp::OptInStatus::Status>(config["status"].as<int>());
-        opt_in_data.delay_opt_in_count = config["delay_count"].as<int>();
-    }
-
-    return opt_in_data;
-}
-
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
     QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create);
@@ -915,9 +848,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      metrics_provider{"https://api.jujucharms.com/omnibus/v4/multipass/metrics", get_unique_id(config->data_directory),
-                       config->data_directory},
-      metrics_opt_in{get_metrics_opt_in(config->data_directory)},
       instance_mounts{*config->ssh_key_provider}
 {
     connect_rpc(daemon_rpc, *this);
@@ -1081,36 +1011,6 @@ void mp::Daemon::launch(const LaunchRequest* request, grpc::ServerWriterInterfac
 try // clang-format on
 {
     mpl::ClientLogger<LaunchReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-    if (metrics_opt_in.opt_in_status == OptInStatus::UNKNOWN || metrics_opt_in.opt_in_status == OptInStatus::LATER)
-    {
-        if (++metrics_opt_in.delay_opt_in_count % 3 == 0)
-        {
-            metrics_opt_in.opt_in_status = OptInStatus::PENDING;
-            persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
-
-            LaunchReply reply;
-            reply.set_metrics_pending(true);
-            server->Write(reply);
-
-            return status_promise->set_value(grpc::Status::OK);
-        }
-
-        persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
-    }
-    else if (metrics_opt_in.opt_in_status == OptInStatus::PENDING)
-    {
-        if (request->opt_in_reply().opt_in_status() != OptInStatus::UNKNOWN)
-        {
-            metrics_opt_in.opt_in_status = request->opt_in_reply().opt_in_status();
-            persist_metrics_opt_in_data(metrics_opt_in, config->data_directory);
-
-            if (metrics_opt_in.opt_in_status == OptInStatus::DENIED)
-                metrics_provider.send_denied();
-        }
-    }
-
-    if (metrics_opt_in.opt_in_status == OptInStatus::ACCEPTED)
-        metrics_provider.send_metrics();
 
     return create_vm(request, server, status_promise, /*start=*/true);
 }
