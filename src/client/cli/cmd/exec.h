@@ -32,7 +32,7 @@ class Exec final : public Command
 public:
     using Command::Command;
 
-    Exec(Rpc::Stub& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Exec(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
     {
     }
 

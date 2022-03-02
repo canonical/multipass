@@ -32,7 +32,7 @@ class Alias final : public Command
 public:
     using Command::Command;
 
-    Alias(Rpc::Stub& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Alias(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
     {
     }
 

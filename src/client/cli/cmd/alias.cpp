@@ -26,7 +26,6 @@
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
-using RpcMethod = mp::Rpc::Stub;
 
 mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
 {
