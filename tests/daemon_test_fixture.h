@@ -202,7 +202,7 @@ public:
         };
 
         if (auto parse_result = parse_args(parser); parse_result == mp::ParseCode::Ok)
-            return dispatch(&mp::Rpc::Stub::set, request, on_success, on_failure);
+            return dispatch(&mp::Rpc::StubInterface::set, request, on_success, on_failure);
         else
             return parser->returnCodeFrom(parse_result);
     }
@@ -260,7 +260,7 @@ public:
         };
 
         if (auto parse_result = parse_args(parser); parse_result == mp::ParseCode::Ok)
-            return dispatch(&mp::Rpc::Stub::keys, request, on_success, on_failure);
+            return dispatch(&mp::Rpc::StubInterface::keys, request, on_success, on_failure);
         else
             return parser->returnCodeFrom(parse_result);
     }

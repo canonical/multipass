@@ -27,7 +27,7 @@ class RemoteSettingsHandler : public SettingsHandler
 {
 public:
     // need to ensure refs outlive this
-    RemoteSettingsHandler(QString key_prefix, Rpc::Stub& stub, Terminal* term, int verbosity);
+    RemoteSettingsHandler(QString key_prefix, Rpc::StubInterface& stub, Terminal* term, int verbosity);
 
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) override;
@@ -39,7 +39,7 @@ public: // accessors for tests
 
 private:
     QString key_prefix;
-    Rpc::Stub& stub;
+    Rpc::StubInterface& stub;
     Terminal* term;
     int verbosity;
 };

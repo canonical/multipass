@@ -82,7 +82,7 @@ protected:
 class RemoteGet : public RemoteSettingsCmd
 {
 public:
-    RemoteGet(const QString& key, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
+    RemoteGet(const QString& key, mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity)
         : RemoteSettingsCmd{stub, term} // need to ensure refs outlive this
     {
         mp::GetRequest get_request;
@@ -105,7 +105,7 @@ public:
 class RemoteSet : public RemoteSettingsCmd
 {
 public:
-    RemoteSet(const QString& key, const QString& val, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity)
+    RemoteSet(const QString& key, const QString& val, mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity)
         : RemoteSettingsCmd{stub, term} // need to ensure refs outlive this
     {
         mp::SetRequest set_request;
@@ -121,7 +121,8 @@ public:
 class RemoteKeys : public RemoteSettingsCmd
 {
 public:
-    RemoteKeys(QString fallback, mp::Rpc::Stub& stub, mp::Terminal* term, int verbosity) : RemoteSettingsCmd{stub, term}
+    RemoteKeys(QString fallback, mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity)
+        : RemoteSettingsCmd{stub, term}
     {
         mp::KeysRequest keys_request;
         keys_request.set_verbosity_level(verbosity);
@@ -152,8 +153,8 @@ public:
 };
 } // namespace
 
-mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix, mp::Rpc::Stub& stub, multipass::Terminal* term,
-                                                 int verbosity)
+mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix, mp::Rpc::StubInterface& stub,
+                                                 multipass::Terminal* term, int verbosity)
     : key_prefix{std::move(key_prefix)}, stub{stub}, term{term}, verbosity{verbosity}
 {
     assert(term);
