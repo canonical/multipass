@@ -81,6 +81,7 @@ add_executable(multipass_tests
   test_private_pass_provider.cpp
   test_mock_standard_paths.cpp
   test_qemuimg_process_spec.cpp
+  test_remote_settings_handler.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_singleton.cpp
