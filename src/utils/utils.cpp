@@ -484,6 +484,11 @@ QString mp::utils::get_driver_str()
     return MP_SETTINGS.get(mp::driver_key);
 }
 
+QString mp::utils::get_multipass_storage()
+{
+    return QString::fromUtf8(qgetenv(mp::multipass_storage_env_var));
+}
+
 QString mp::utils::make_uuid()
 {
     auto uuid = QUuid::createUuid().toString();
