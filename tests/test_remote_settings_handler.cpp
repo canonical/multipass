@@ -29,40 +29,46 @@ using namespace testing;
 
 namespace
 {
-TEST(RemoteSettingsTest, savesProvidedKeyPrefix)
+class RemoteSettingsTest : public Test
+{
+public:
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_term, cout).WillRepeatedly(ReturnRef(fake_cout));
+        EXPECT_CALL(mock_term, cerr).WillRepeatedly(ReturnRef(fake_cerr));
+    }
+
+public:
+    std::ostringstream fake_cout;
+    std::ostringstream fake_cerr;
+    mpt::MockTerminal mock_term;
+    StrictMock<mpt::MockRpcStub> mock_stub{};
+};
+
+TEST_F(RemoteSettingsTest, savesProvidedKeyPrefix)
 {
     constexpr auto prefix = "my.prefix";
-    auto mock_stub = StrictMock<mpt::MockRpcStub>{};
-    auto mock_term = mpt::MockTerminal{};
-
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 1};
+
     EXPECT_EQ(handler.get_key_prefix(), prefix);
 }
 
-TEST(RemoteSettingsTest, savesProvidedVerbosity)
+TEST_F(RemoteSettingsTest, savesProvidedVerbosity)
 {
     constexpr auto verbosity = 42;
-    auto mock_stub = StrictMock<mpt::MockRpcStub>{};
-    auto mock_term = mpt::MockTerminal{};
-
     mp::RemoteSettingsHandler handler{"prefix", mock_stub, &mock_term, verbosity};
+
     EXPECT_EQ(handler.get_verbosity(), verbosity);
 }
 
-TEST(RemoteSettingsTest, keysEmptyByDefault)
-{
-    auto fake_cout = std::ostringstream{};
-    auto fake_cerr = std::ostringstream{};
-    auto mock_term = mpt::MockTerminal{};
-    EXPECT_CALL(mock_term, cout).WillOnce(ReturnRef(fake_cout));
-    EXPECT_CALL(mock_term, cerr).WillOnce(ReturnRef(fake_cerr));
 
+TEST_F(RemoteSettingsTest, keysEmptyByDefault)
+{
     auto mock_client_reader = std::make_unique<StrictMock<mpt::MockClientReader<mp::KeysReply>>>(); /* use unique_ptr to
     avoid leaking on any exception until we transfer ownership (hopefully none, but just to be sure) */
     EXPECT_CALL(*mock_client_reader, Read).WillOnce(Return(false));
     EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status::OK));
 
-    auto mock_stub = StrictMock<mpt::MockRpcStub>{};
     EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); /*
     transfer ownership - we can't just `Return(mock_client_reader.release())` because that would release the ptr right
     away, to be adopted only if and when the mock was called */
