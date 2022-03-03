@@ -64,14 +64,9 @@ TEST_F(RemoteSettingsTest, savesProvidedVerbosity)
 
 TEST_F(RemoteSettingsTest, keysEmptyByDefault)
 {
-    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>(); /* use unique_ptr to
-    avoid leaking on any exception until we transfer ownership (hopefully none, but just to be sure) */
-
-    EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); /*
-    transfer ownership - we can't just `Return(mock_client_reader.release())` because that would release the ptr right
-    away, to be adopted only if and when the mock was called */
-
+    EXPECT_CALL(mock_stub, keysRaw).WillOnce(ReturnNew<mpt::MockClientReader<mp::KeysReply>>());
     mp::RemoteSettingsHandler handler{"prefix", mock_stub, &mock_term, 31};
+
     EXPECT_THAT(handler.keys(), IsEmpty());
 }
 } // namespace
