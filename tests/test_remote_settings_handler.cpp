@@ -61,6 +61,15 @@ TEST_F(RemoteSettingsTest, savesProvidedVerbosity)
     EXPECT_EQ(handler.get_verbosity(), verbosity);
 }
 
+TEST_F(RemoteSettingsTest, honorsVerbosityInKeysRequest)
+{
+    constexpr auto verbosity = 5;
+    EXPECT_CALL(mock_stub, keysRaw(_, Property(&mp::KeysRequest::verbosity_level, Eq(verbosity))))
+        .WillOnce(ReturnNew<mpt::MockClientReader<mp::KeysReply>>());
+
+    mp::RemoteSettingsHandler handler{"prefix", mock_stub, &mock_term, verbosity};
+    handler.keys();
+}
 
 TEST_F(RemoteSettingsTest, keysEmptyByDefault)
 {
