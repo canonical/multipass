@@ -44,6 +44,7 @@ public:
                 (override));
 
     // originally private
+    // NB: we're sort of relying on gRPC implementation here... but it's only for tests and we can update as needed
     MOCK_METHOD(grpc::ClientReaderInterface<multipass::LaunchReply>*, createRaw,
                 (grpc::ClientContext * context, const multipass::LaunchRequest& request), (override));
     MOCK_METHOD(grpc::ClientAsyncReaderInterface<multipass::LaunchReply>*, AsynccreateRaw,
