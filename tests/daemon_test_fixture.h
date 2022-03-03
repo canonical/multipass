@@ -85,7 +85,7 @@ public:
 
         auto ret = parse_args(parser);
         return ret == multipass::ParseCode::Ok
-                   ? dispatch(&multipass::Rpc::Stub::create, request, on_success, on_failure, streaming_callback)
+                   ? dispatch(&mp::Rpc::StubInterface::create, request, on_success, on_failure, streaming_callback)
                    : parser->returnCodeFrom(ret);
     }
 
@@ -145,7 +145,7 @@ public:
 
         if (auto parse_result = parse_args(parser); parse_result == mp::ParseCode::Ok)
         {
-            auto ret = dispatch(&mp::Rpc::Stub::get, request, on_success, on_failure);
+            auto ret = dispatch(&mp::Rpc::StubInterface::get, request, on_success, on_failure);
             cout << fmt::format("{}={}", request.key(), val);
             return ret;
         }

@@ -27,7 +27,6 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
-using RpcMethod = mp::Rpc::Stub;
 
 namespace
 {
