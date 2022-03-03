@@ -41,13 +41,11 @@ class Command : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<Command>;
-    Command(grpc::Channel& channel, Rpc::Stub& stub, std::ostream& cout, std::ostream& cerr)
-        : rpc_channel{&channel}, stub{&stub}, cout{cout}, cerr{cerr}
+    Command(Rpc::StubInterface& stub, std::ostream& cout, std::ostream& cerr) : stub{&stub}, cout{cout}, cerr{cerr}
     {
     }
 
-    Command(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term)
-        : rpc_channel{&channel}, stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
+    Command(Rpc::StubInterface& stub, Terminal* term) : stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
     {
     }
     virtual ~Command() = default;
@@ -78,7 +76,7 @@ protected:
         auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2);
 
         grpc::ClientContext context;
-        std::unique_ptr<grpc::ClientReader<ReplyType>> reader = rpc_method(&context, request);
+        std::unique_ptr<grpc::ClientReaderInterface<ReplyType>> reader = rpc_method(&context, request);
 
         while (reader->Read(&reply))
         {
@@ -136,8 +134,7 @@ protected:
         });
     }
 
-    grpc::Channel* rpc_channel;
-    Rpc::Stub* stub;
+    Rpc::StubInterface* stub;
     Terminal* term;
     std::ostream& cout;
     std::ostream& cerr;
