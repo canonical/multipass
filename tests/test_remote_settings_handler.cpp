@@ -21,10 +21,14 @@
 
 #include <src/client/cli/cmd/remote_settings_handler.h>
 
+#include <sstream>
+
 namespace mp = multipass;
 namespace mpt = mp::test;
 using namespace testing;
 
+namespace
+{
 TEST(RemoteSettingsTest, savesProvidedKeyPrefix)
 {
     constexpr auto prefix = "my.prefix";
@@ -44,3 +48,36 @@ TEST(RemoteSettingsTest, savesProvidedVerbosity)
     mp::RemoteSettingsHandler handler{"prefix", mock_stub, &mock_term, verbosity};
     EXPECT_EQ(handler.get_verbosity(), verbosity);
 }
+
+template <class R>
+class MockClientReader : public grpc::ClientReaderInterface<R>
+{
+public:
+    MOCK_METHOD(grpc::Status, Finish, (), (override));
+    MOCK_METHOD(bool, NextMessageSize, (uint32_t * sz), (override));
+    MOCK_METHOD(bool, Read, (R * msg), (override));
+    MOCK_METHOD(void, WaitForInitialMetadata, (), (override));
+};
+
+TEST(RemoteSettingsTest, keysEmptyByDefault)
+{
+    auto fake_cout = std::ostringstream{};
+    auto fake_cerr = std::ostringstream{};
+    auto mock_term = mpt::MockTerminal{};
+    EXPECT_CALL(mock_term, cout).WillOnce(ReturnRef(fake_cout));
+    EXPECT_CALL(mock_term, cerr).WillOnce(ReturnRef(fake_cerr));
+
+    auto mock_client_reader = std::make_unique<StrictMock<MockClientReader<mp::KeysReply>>>(); /* use unique_ptr to
+                    avoid leaking on any exception until we transfer ownership (hopefully none, but just to be sure) */
+    EXPECT_CALL(*mock_client_reader, Read).WillOnce(Return(false));
+    EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status::OK));
+
+    auto mock_stub = StrictMock<mpt::MockRpcStub>{};
+    EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); /*
+    transfer ownership - we can't just `Return(mock_client_reader.release())` because that would release the ptr right
+    away, to be adopted only if and when the mock was called */
+
+    mp::RemoteSettingsHandler handler{"prefix", mock_stub, &mock_term, 31};
+    EXPECT_THAT(handler.keys(), IsEmpty());
+}
+} // namespace
