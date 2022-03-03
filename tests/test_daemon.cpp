@@ -259,7 +259,7 @@ TEST_F(Daemon, data_path_with_storage_valid)
 {
     QTemporaryDir storage_dir;
 
-    mpt::SetEnvScope storage("MULTIPASS_STORAGE", storage_dir.path().toUtf8());
+    mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_)).Times(0);
 
     config_builder.data_directory = "";

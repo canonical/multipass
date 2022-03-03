@@ -33,7 +33,7 @@
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
-using RpcMethod = mp::Rpc::Stub;
+using RpcMethod = mp::Rpc::StubInterface;
 using namespace std::chrono_literals;
 
 namespace

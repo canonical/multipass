@@ -72,8 +72,7 @@ auto make_handler_unregisterer(mp::SettingsHandler* handler)
 } // namespace
 
 mp::Client::Client(ClientConfig& config)
-    : rpc_channel{mp::client::make_channel(config.server_address, config.cert_provider.get())},
-      stub{mp::Rpc::NewStub(rpc_channel)},
+    : stub{mp::Rpc::NewStub(mp::client::make_channel(config.server_address, config.cert_provider.get()))},
       term{config.term},
       aliases{config.term}
 {

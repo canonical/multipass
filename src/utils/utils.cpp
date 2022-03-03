@@ -471,6 +471,11 @@ QString mp::utils::backend_directory_path(const mp::Path& path, const QString& s
     return mp::Path("%1/%2").arg(path).arg(subdirectory);
 }
 
+QString mp::utils::get_multipass_storage()
+{
+    return QString::fromUtf8(qgetenv(mp::multipass_storage_env_var));
+}
+
 QString mp::utils::make_uuid()
 {
     auto uuid = QUuid::createUuid().toString();

@@ -26,7 +26,7 @@
 
 #include <QString>
 
-using RpcMethod = multipass::Rpc::Stub;
+using RpcMethod = multipass::Rpc::StubInterface;
 
 namespace multipass
 {
