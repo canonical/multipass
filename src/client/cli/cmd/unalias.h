@@ -32,8 +32,7 @@ class Unalias final : public Command
 public:
     using Command::Command;
 
-    Unalias(grpc::Channel& channel, Rpc::Stub& stub, Terminal* term, AliasDict& dict)
-        : Command(channel, stub, term), aliases(dict)
+    Unalias(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
     {
     }
 
