@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_RPC_STUB_H
-#define MULTIPASS_MOCK_RPC_STUB_H
+#ifndef MULTIPASS_MOCK_CLIENT_RPC_H
+#define MULTIPASS_MOCK_CLIENT_RPC_H
 
 #include "common.h"
 
@@ -24,6 +24,16 @@
 
 namespace multipass::test
 {
+template <class R>
+class MockClientReader : public grpc::ClientReaderInterface<R>
+{
+public:
+    MOCK_METHOD(grpc::Status, Finish, (), (override));
+    MOCK_METHOD(bool, NextMessageSize, (uint32_t * sz), (override));
+    MOCK_METHOD(bool, Read, (R * msg), (override));
+    MOCK_METHOD(void, WaitForInitialMetadata, (), (override));
+};
+
 class MockRpcStub : public multipass::Rpc::StubInterface
 {
 public:
@@ -233,4 +243,4 @@ public:
 };
 } // namespace multipass::test
 
-#endif // MULTIPASS_MOCK_RPC_STUB_H
+#endif // MULTIPASS_MOCK_CLIENT_RPC_H

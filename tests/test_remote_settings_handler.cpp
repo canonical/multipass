@@ -16,7 +16,7 @@
  */
 
 #include "common.h"
-#include "mock_rpc_stub.h"
+#include "mock_client_rpc.h"
 #include "mock_terminal.h"
 
 #include <src/client/cli/cmd/remote_settings_handler.h>
@@ -49,16 +49,6 @@ TEST(RemoteSettingsTest, savesProvidedVerbosity)
     EXPECT_EQ(handler.get_verbosity(), verbosity);
 }
 
-template <class R>
-class MockClientReader : public grpc::ClientReaderInterface<R>
-{
-public:
-    MOCK_METHOD(grpc::Status, Finish, (), (override));
-    MOCK_METHOD(bool, NextMessageSize, (uint32_t * sz), (override));
-    MOCK_METHOD(bool, Read, (R * msg), (override));
-    MOCK_METHOD(void, WaitForInitialMetadata, (), (override));
-};
-
 TEST(RemoteSettingsTest, keysEmptyByDefault)
 {
     auto fake_cout = std::ostringstream{};
@@ -67,8 +57,8 @@ TEST(RemoteSettingsTest, keysEmptyByDefault)
     EXPECT_CALL(mock_term, cout).WillOnce(ReturnRef(fake_cout));
     EXPECT_CALL(mock_term, cerr).WillOnce(ReturnRef(fake_cerr));
 
-    auto mock_client_reader = std::make_unique<StrictMock<MockClientReader<mp::KeysReply>>>(); /* use unique_ptr to
-                    avoid leaking on any exception until we transfer ownership (hopefully none, but just to be sure) */
+    auto mock_client_reader = std::make_unique<StrictMock<mpt::MockClientReader<mp::KeysReply>>>(); /* use unique_ptr to
+    avoid leaking on any exception until we transfer ownership (hopefully none, but just to be sure) */
     EXPECT_CALL(*mock_client_reader, Read).WillOnce(Return(false));
     EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status::OK));
 
