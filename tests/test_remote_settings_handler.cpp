@@ -64,10 +64,8 @@ TEST_F(RemoteSettingsTest, savesProvidedVerbosity)
 
 TEST_F(RemoteSettingsTest, keysEmptyByDefault)
 {
-    auto mock_client_reader = std::make_unique<StrictMock<mpt::MockClientReader<mp::KeysReply>>>(); /* use unique_ptr to
+    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>(); /* use unique_ptr to
     avoid leaking on any exception until we transfer ownership (hopefully none, but just to be sure) */
-    EXPECT_CALL(*mock_client_reader, Read).WillOnce(Return(false));
-    EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status::OK));
 
     EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); /*
     transfer ownership - we can't just `Return(mock_client_reader.release())` because that would release the ptr right
