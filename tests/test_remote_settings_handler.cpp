@@ -71,6 +71,26 @@ TEST_F(RemoteSettingsTest, honorsVerbosityInKeysRequest)
     handler.keys();
 }
 
+TEST_F(RemoteSettingsTest, honorsVerbosityInGetRequest)
+{
+    constexpr auto verbosity = 6;
+    EXPECT_CALL(mock_stub, getRaw(_, Property(&mp::GetRequest::verbosity_level, Eq(verbosity))))
+        .WillOnce(ReturnNew<mpt::MockClientReader<mp::GetReply>>());
+
+    mp::RemoteSettingsHandler handler{"", mock_stub, &mock_term, verbosity};
+    handler.get("whatever");
+}
+
+TEST_F(RemoteSettingsTest, honorsVerbosityInSetRequest)
+{
+    constexpr auto verbosity = 7;
+    EXPECT_CALL(mock_stub, setRaw(_, Property(&mp::SetRequest::verbosity_level, Eq(verbosity))))
+        .WillOnce(ReturnNew<mpt::MockClientReader<mp::SetReply>>());
+
+    mp::RemoteSettingsHandler handler{"", mock_stub, &mock_term, verbosity};
+    handler.set("whatever", "works");
+}
+
 TEST_F(RemoteSettingsTest, keysEmptyByDefault)
 {
     EXPECT_CALL(mock_stub, keysRaw).WillOnce(ReturnNew<mpt::MockClientReader<mp::KeysReply>>());
