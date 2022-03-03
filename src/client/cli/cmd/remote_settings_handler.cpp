@@ -134,14 +134,14 @@ public:
             return mp::ReturnCode::Ok;
         };
 
-        auto custom_on_failure = [this, fallback = std::move(fallback)](grpc::Status& status) {
+        auto custom_on_failure = [this, fallback = std::move(fallback)](grpc::Status& status) mutable {
             if (status.error_code() == grpc::StatusCode::NOT_FOUND)
             {
                 keys.insert(std::move(fallback));
                 return mp::ReturnCode::Ok;
             }
 
-            return on_failure(status);
+            return on_failure(status); // return in all branches, even though this (currently) throws
         };
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);

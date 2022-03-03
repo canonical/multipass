@@ -48,6 +48,11 @@ struct callable_traits<ReturnType (ClassType::*)(Args...) const> : public callab
 {
 };
 
+template <typename ClassType, typename ReturnType, typename... Args>
+struct callable_traits<ReturnType (ClassType::*)(Args...)> : public callable_traits<ReturnType(Args...)>
+{
+};
+
 // Finally, the most basic function type, where all others will drain
 template <typename ReturnType, typename... Args>
 struct callable_traits<ReturnType(Args...)>
