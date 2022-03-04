@@ -113,7 +113,8 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
         {
             mpl::log(mpl::Level::warning, category,
                      fmt::format("Error getting {}: {} - trying cache.", url.toString(), msg));
-            return ::download(manager, timeout, url, on_progress, on_download, on_error, abort_download, true);
+            return ::download(manager, timeout, url, on_progress, on_download, on_error, abort_download,
+                              abort_downloads, true);
         }
     }
 
