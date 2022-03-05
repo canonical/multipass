@@ -124,10 +124,6 @@ QString checked_get(const mp::WrappedQSettings& settings, const QString& key, co
     auto ret = settings.value(key, fallback).toString();
 
     check_status(settings, QStringLiteral("read"));
-
-    if (key == mp::passphrase_key)
-        ret = ret.isEmpty() ? QStringLiteral("false") : QStringLiteral("true");
-
     return ret;
 }
 
