@@ -213,4 +213,17 @@ TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
     MP_EXPECT_THROW_THAT(handler.set(key, "val"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
 }
+
+TEST_F(RemoteSettingsTest, setRequestsSpecifiedSettingKeyAndValue)
+{
+    constexpr auto prefix = "remote-", val = "setting-value";
+    const auto key = QString{prefix} + "setting-key";
+
+    EXPECT_CALL(mock_stub, setRaw(_, AllOf(Property(&mp::SetRequest::key, Eq(key.toStdString())),
+                                           Property(&mp::SetRequest::val, Eq(val)))))
+        .WillOnce(ReturnNew<mpt::MockClientReader<mp::SetReply>>());
+
+    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 22};
+    handler.set(key, val);
+}
 } // namespace
