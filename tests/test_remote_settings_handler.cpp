@@ -118,7 +118,7 @@ TEST_F(RemoteSettingsTest, keysEmptyByDefault)
     EXPECT_THAT(handler.keys(), IsEmpty());
 }
 
-TEST_F(RemoteSettingsTest, returnsRemoteKeys)
+TEST_F(RemoteSettingsTest, keysReturnsRemoteKeys)
 {
     constexpr auto some_keys = std::array{"a.b", "c.d.e", "f"};
     auto mock_client_reader = make_mock_reader<mp::KeysReply>();
@@ -135,7 +135,7 @@ TEST_F(RemoteSettingsTest, returnsRemoteKeys)
     EXPECT_THAT(handler.keys(), UnorderedElementsAreArray(some_keys));
 }
 
-TEST_F(RemoteSettingsTest, returnsPlaceholderKeysWhenDaemonNotFound)
+TEST_F(RemoteSettingsTest, keysReturnsPlaceholderKeysWhenDaemonNotFound)
 {
     auto mock_client_reader = make_mock_reader<mp::KeysReply>();
     EXPECT_CALL(*mock_client_reader, Finish)
@@ -149,7 +149,7 @@ TEST_F(RemoteSettingsTest, returnsPlaceholderKeysWhenDaemonNotFound)
     EXPECT_THAT(handler.keys(), ElementsAre(mpt::match_qstring(StartsWith(std::string{prefix} + "*"))));
 }
 
-TEST_F(RemoteSettingsTest, throwsOnOtherErrorContactingRemote)
+TEST_F(RemoteSettingsTest, keysThrowsOnOtherErrorContactingRemote)
 {
     constexpr auto error_code = grpc::StatusCode::INTERNAL;
     constexpr auto error_msg = "unexpected";
@@ -180,7 +180,7 @@ TEST_F(RemoteSettingsTest, getRequestsSoughtSetting)
     handler.get(key);
 }
 
-TEST_F(RemoteSettingsTest, getReturnsRemoteProvidedValue)
+TEST_F(RemoteSettingsTest, getReturnsObtainedValue)
 {
     constexpr auto prefix = "local.", val = "asdf";
 
