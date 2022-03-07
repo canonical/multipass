@@ -131,4 +131,18 @@ TEST_F(RemoteSettingsTest, returnsPlaceholderKeysWhenDaemonNotFound)
 
     EXPECT_THAT(handler.keys(), ElementsAre(mpt::match_qstring(StartsWith(std::string{prefix} + "*"))));
 }
+
+TEST_F(RemoteSettingsTest, throwsOnOtherErrorContactingRemote)
+{
+    constexpr auto code = grpc::StatusCode::INTERNAL;
+    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>(); // idem
+    EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status{code, "unexpected"}));
+
+    EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); // idem
+
+    mp::RemoteSettingsHandler handler{"prefix.", mock_stub, &mock_term, 789};
+    MP_EXPECT_THROW_THAT(
+        handler.keys(), mp::RemoteHandlerException,
+        Property(&mp::RemoteHandlerException::get_status, Property(&grpc::Status::error_code, Eq(code))));
+}
 } // namespace
