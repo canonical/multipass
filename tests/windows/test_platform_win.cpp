@@ -139,6 +139,11 @@ TEST(PlatformWin, no_extra_daemon_settings)
     EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
 }
 
+TEST(PlatformOSX, test_default_driver)
+{
+    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("hyperv", "virtualbox"));
+}
+
 TEST(PlatformWin, valid_winterm_setting_values)
 {
     for (const auto x : {"none", "primary"})
