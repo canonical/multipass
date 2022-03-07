@@ -167,4 +167,32 @@ TEST_F(RemoteSettingsTest, throwsOnOtherErrorContactingRemote)
                                         Property(&grpc::Status::error_message, Eq(error_msg)),
                                         Property(&grpc::Status::error_details, Eq(error_details)))));
 }
+
+TEST_F(RemoteSettingsTest, getRequestsSoughtSetting)
+{
+    constexpr auto prefix = "a.";
+    const auto key = QString{prefix} + "key";
+
+    EXPECT_CALL(mock_stub, getRaw(_, Property(&mp::GetRequest::key, Eq(key.toStdString()))))
+        .WillOnce(ReturnNew<mpt::MockClientReader<mp::GetReply>>());
+
+    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 1};
+    handler.get(key);
+}
+
+TEST_F(RemoteSettingsTest, getReturnsRemoteProvidedValue)
+{
+    constexpr auto prefix = "local.", val = "asdf";
+
+    auto mock_client_reader = make_mock_reader<mp::GetReply>();
+    EXPECT_CALL(*mock_client_reader, Read).WillOnce([val](mp::GetReply* reply) {
+        reply->set_value(val);
+        return false;
+    });
+
+    EXPECT_CALL(mock_stub, getRaw).WillOnce(make_releaser(mock_client_reader));
+
+    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 11};
+    EXPECT_THAT(handler.get(QString{prefix} + "key"), Eq(val));
+}
 } // namespace
