@@ -227,14 +227,6 @@ TEST_F(RemoteSettingsTest, getThrowsOnOtherErrorFromRemote)
         Property(&mp::RemoteHandlerException::get_status, make_status_matcher(error_code, error_msg, error_details)));
 }
 
-TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
-{
-    constexpr auto prefix = "local.", key = "client.gui.something";
-
-    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
-    MP_EXPECT_THROW_THAT(handler.set(key, "val"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
-}
-
 TEST_F(RemoteSettingsTest, setRequestsSpecifiedSettingKeyAndValue)
 {
     constexpr auto prefix = "remote-", val = "setting-value";
@@ -247,4 +239,30 @@ TEST_F(RemoteSettingsTest, setRequestsSpecifiedSettingKeyAndValue)
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 22};
     handler.set(key, val);
 }
+
+TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
+{
+    constexpr auto prefix = "local.", key = "client.gui.something";
+
+    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
+    MP_EXPECT_THROW_THAT(handler.set(key, "val"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(RemoteSettingsTest, setThrowsOnOtherErrorFromRemote)
+{
+    constexpr auto error_code = grpc::StatusCode::FAILED_PRECONDITION;
+    constexpr auto error_msg = "no worky";
+    constexpr auto error_details = "because";
+
+    auto mock_client_reader = make_mock_reader<mp::SetReply>();
+    EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
+
+    EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client_reader));
+
+    mp::RemoteSettingsHandler handler{"a", mock_stub, &mock_term, 33};
+    MP_EXPECT_THROW_THAT(
+        handler.set("a.ongajgsiffsgu", "dfoinig"), mp::RemoteHandlerException,
+        Property(&mp::RemoteHandlerException::get_status, make_status_matcher(error_code, error_msg, error_details)));
+}
+
 } // namespace
