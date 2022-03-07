@@ -38,6 +38,19 @@ public:
         EXPECT_CALL(mock_term, cerr).WillRepeatedly(ReturnRef(fake_cerr));
     }
 
+    // Create a callable that returns an owning plain pointer (as expected by grpc), but spares ownership until called.
+    // This is useful in mock actions for grpc functions that return ownership-transferring ptrs.
+    // Note that we'd better not just `EXPECT_CALL(...).Return(uptr.release())` because that would release the ptr right
+    // away, to be adopted only if and when the mock was called.
+    template <typename T>
+    static auto make_releaser(std::unique_ptr<T>& uptr) // uptr avoids leaking on exceptions until ownership transfer
+    {
+        return [&uptr] // we capture by reference - no leaks if uptr is destroyed before lambda called
+        {
+            return uptr.release(); /* transfer ownership */
+        };
+    }
+
 public:
     std::ostringstream fake_cout;
     std::ostringstream fake_cerr;
@@ -102,17 +115,15 @@ TEST_F(RemoteSettingsTest, keysEmptyByDefault)
 TEST_F(RemoteSettingsTest, returnsRemoteKeys)
 {
     constexpr auto some_keys = std::array{"a.b", "c.d.e", "f"};
-    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>(); /* use unique_ptr to
-         avoid leaking on any exception (hopefully none, but just to be sure) until we transfer ownership */
+    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>();
 
     EXPECT_CALL(*mock_client_reader, Read).WillOnce([&some_keys](mp::KeysReply* reply) {
         reply->mutable_settings_keys()->Add(some_keys.begin(), some_keys.end());
         return false;
     });
 
-    EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); /*
-    transfer ownership - we can't just `Return(mock_client_reader.release())` because that would release the ptr right
-    away, to be adopted only if and when the mock was called */
+    EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client_reader)); /* grpc code claims ownership of the
+                                                                                    ptr that keysRaw() returns */
 
     mp::RemoteSettingsHandler handler{"prefix", mock_stub, &mock_term, 99};
     EXPECT_THAT(handler.keys(), UnorderedElementsAreArray(some_keys));
@@ -120,11 +131,11 @@ TEST_F(RemoteSettingsTest, returnsRemoteKeys)
 
 TEST_F(RemoteSettingsTest, returnsPlaceholderKeysWhenDaemonNotFound)
 {
-    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>(); // idem
+    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>();
     EXPECT_CALL(*mock_client_reader, Finish)
         .WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "remote not around"}));
 
-    EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); // idem
+    EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client_reader));
 
     auto prefix = "remote.";
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 0};
@@ -138,7 +149,7 @@ TEST_F(RemoteSettingsTest, throwsOnOtherErrorContactingRemote)
     auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>(); // idem
     EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status{code, "unexpected"}));
 
-    EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); // idem
+    EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client_reader));
 
     mp::RemoteSettingsHandler handler{"prefix.", mock_stub, &mock_term, 789};
     MP_EXPECT_THROW_THAT(
