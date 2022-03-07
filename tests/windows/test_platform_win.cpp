@@ -144,6 +144,11 @@ TEST(PlatformOSX, test_default_driver)
     EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("hyperv", "virtualbox"));
 }
 
+TEST(PlatformOSX, test_default_privileged_mounts)
+{
+    EXPECT_EQ(MP_PLATFORM.default_privileged_mounts(), "false");
+}
+
 TEST(PlatformWin, valid_winterm_setting_values)
 {
     for (const auto x : {"none", "primary"})

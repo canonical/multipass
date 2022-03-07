@@ -313,6 +313,11 @@ TEST(PlatformOSX, test_default_driver)
     EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "hyperkit", "virtualbox"));
 }
 
+TEST(PlatformOSX, test_default_privileged_mounts)
+{
+    EXPECT_EQ(MP_PLATFORM.default_privileged_mounts(), "true");
+}
+
 TEST(PlatformOSX, test_network_interfaces)
 {
     std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
