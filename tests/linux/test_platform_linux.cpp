@@ -208,12 +208,12 @@ TEST_F(PlatformLinux, test_empty_sync_winterm_profiles)
     EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
 }
 
-TEST_F(PlatformLinux, test_default_driver) // TODO@nomerge private side
+TEST_F(PlatformLinux, test_default_driver)
 {
     EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "lxd"));
 }
 
-TEST_F(PlatformLinux, test_default_privileged_mounts) // TODO@nomerge private side
+TEST_F(PlatformLinux, test_default_privileged_mounts)
 {
     EXPECT_EQ(MP_PLATFORM.default_privileged_mounts(), "true");
 }
