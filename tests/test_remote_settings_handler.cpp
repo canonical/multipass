@@ -145,15 +145,20 @@ TEST_F(RemoteSettingsTest, returnsPlaceholderKeysWhenDaemonNotFound)
 
 TEST_F(RemoteSettingsTest, throwsOnOtherErrorContactingRemote)
 {
-    constexpr auto code = grpc::StatusCode::INTERNAL;
-    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>(); // idem
-    EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status{code, "unexpected"}));
+    constexpr auto error_code = grpc::StatusCode::INTERNAL;
+    constexpr auto error_msg = "unexpected";
+    constexpr auto error_details = "details";
+
+    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>();
+    EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
 
     EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client_reader));
 
     mp::RemoteSettingsHandler handler{"prefix.", mock_stub, &mock_term, 789};
-    MP_EXPECT_THROW_THAT(
-        handler.keys(), mp::RemoteHandlerException,
-        Property(&mp::RemoteHandlerException::get_status, Property(&grpc::Status::error_code, Eq(code))));
+    MP_EXPECT_THROW_THAT(handler.keys(), mp::RemoteHandlerException,
+                         Property(&mp::RemoteHandlerException::get_status,
+                                  AllOf(Property(&grpc::Status::error_code, Eq(error_code)),
+                                        Property(&grpc::Status::error_message, Eq(error_msg)),
+                                        Property(&grpc::Status::error_details, Eq(error_details)))));
 }
 } // namespace
