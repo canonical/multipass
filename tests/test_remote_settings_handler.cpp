@@ -205,4 +205,12 @@ TEST_F(RemoteSettingsTest, getReturnsObtainedValue)
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 11};
     EXPECT_THAT(handler.get(QString{prefix} + "key"), Eq(val));
 }
+
+TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
+{
+    constexpr auto prefix = "local.", key = "client.gui.something";
+
+    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
+    MP_EXPECT_THROW_THAT(handler.set(key, "val"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
 } // namespace
