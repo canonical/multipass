@@ -38,6 +38,12 @@ public:
         EXPECT_CALL(mock_term, cerr).WillRepeatedly(ReturnRef(fake_cerr));
     }
 
+    template <typename ReplyType>
+    static std::unique_ptr<mpt::MockClientReader<ReplyType>> make_mock_reader() // just a helper to minimize boilerplate
+    {
+        return std::make_unique<mpt::MockClientReader<ReplyType>>();
+    }
+
     // Create a callable that returns an owning plain pointer (as expected by grpc), but spares ownership until called.
     // This is useful in mock actions for grpc functions that return ownership-transferring ptrs.
     // Note that we'd better not just `EXPECT_CALL(...).Return(uptr.release())` because that would release the ptr right
@@ -115,7 +121,7 @@ TEST_F(RemoteSettingsTest, keysEmptyByDefault)
 TEST_F(RemoteSettingsTest, returnsRemoteKeys)
 {
     constexpr auto some_keys = std::array{"a.b", "c.d.e", "f"};
-    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>();
+    auto mock_client_reader = make_mock_reader<mp::KeysReply>();
 
     EXPECT_CALL(*mock_client_reader, Read).WillOnce([&some_keys](mp::KeysReply* reply) {
         reply->mutable_settings_keys()->Add(some_keys.begin(), some_keys.end());
@@ -131,7 +137,7 @@ TEST_F(RemoteSettingsTest, returnsRemoteKeys)
 
 TEST_F(RemoteSettingsTest, returnsPlaceholderKeysWhenDaemonNotFound)
 {
-    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>();
+    auto mock_client_reader = make_mock_reader<mp::KeysReply>();
     EXPECT_CALL(*mock_client_reader, Finish)
         .WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "remote not around"}));
 
@@ -149,7 +155,7 @@ TEST_F(RemoteSettingsTest, throwsOnOtherErrorContactingRemote)
     constexpr auto error_msg = "unexpected";
     constexpr auto error_details = "details";
 
-    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>();
+    auto mock_client_reader = make_mock_reader<mp::KeysReply>();
     EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
 
     EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client_reader));
