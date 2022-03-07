@@ -117,4 +117,18 @@ TEST_F(RemoteSettingsTest, returnsRemoteKeys)
     mp::RemoteSettingsHandler handler{"prefix", mock_stub, &mock_term, 99};
     EXPECT_THAT(handler.keys(), UnorderedElementsAreArray(some_keys));
 }
+
+TEST_F(RemoteSettingsTest, returnsPlaceholderKeysWhenDaemonNotFound)
+{
+    auto mock_client_reader = std::make_unique<mpt::MockClientReader<mp::KeysReply>>(); // idem
+    EXPECT_CALL(*mock_client_reader, Finish)
+        .WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "remote not around"}));
+
+    EXPECT_CALL(mock_stub, keysRaw).WillOnce([&mock_client_reader] { return mock_client_reader.release(); }); // idem
+
+    auto prefix = "remote.";
+    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 0};
+
+    EXPECT_THAT(handler.keys(), ElementsAre(mpt::match_qstring(StartsWith(std::string{prefix} + "*"))));
+}
 } // namespace
