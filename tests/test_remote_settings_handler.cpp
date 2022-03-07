@@ -59,6 +59,12 @@ public:
         };
     }
 
+    static auto make_status_matcher(grpc::StatusCode code, const std::string& msg, const std::string& details)
+    {
+        return AllOf(Property(&grpc::Status::error_code, Eq(code)), Property(&grpc::Status::error_message, Eq(msg)),
+                     Property(&grpc::Status::error_details, Eq(details)));
+    }
+
 public:
     std::ostringstream fake_cout;
     std::ostringstream fake_cerr;
@@ -151,7 +157,7 @@ TEST_F(RemoteSettingsTest, keysReturnsPlaceholderKeysWhenDaemonNotFound)
     EXPECT_THAT(handler.keys(), ElementsAre(mpt::match_qstring(StartsWith(std::string{prefix} + "*"))));
 }
 
-TEST_F(RemoteSettingsTest, keysThrowsOnOtherErrorContactingRemote)
+TEST_F(RemoteSettingsTest, keysThrowsOnOtherErrorFromRemote)
 {
     constexpr auto error_code = grpc::StatusCode::INTERNAL;
     constexpr auto error_msg = "unexpected";
@@ -163,19 +169,9 @@ TEST_F(RemoteSettingsTest, keysThrowsOnOtherErrorContactingRemote)
     EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client_reader));
 
     mp::RemoteSettingsHandler handler{"prefix.", mock_stub, &mock_term, 789};
-    MP_EXPECT_THROW_THAT(handler.keys(), mp::RemoteHandlerException,
-                         Property(&mp::RemoteHandlerException::get_status,
-                                  AllOf(Property(&grpc::Status::error_code, Eq(error_code)),
-                                        Property(&grpc::Status::error_message, Eq(error_msg)),
-                                        Property(&grpc::Status::error_details, Eq(error_details)))));
-}
-
-TEST_F(RemoteSettingsTest, getThrowsOnWrongPrefix)
-{
-    constexpr auto prefix = "local.", key = "client.gui.something";
-
-    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
-    MP_EXPECT_THROW_THAT(handler.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(
+        handler.keys(), mp::RemoteHandlerException,
+        Property(&mp::RemoteHandlerException::get_status, make_status_matcher(error_code, error_msg, error_details)));
 }
 
 TEST_F(RemoteSettingsTest, getRequestsSoughtSetting)
@@ -204,6 +200,31 @@ TEST_F(RemoteSettingsTest, getReturnsObtainedValue)
 
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 11};
     EXPECT_THAT(handler.get(QString{prefix} + "key"), Eq(val));
+}
+
+TEST_F(RemoteSettingsTest, getThrowsOnWrongPrefix)
+{
+    constexpr auto prefix = "local.", key = "client.gui.something";
+
+    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
+    MP_EXPECT_THROW_THAT(handler.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(RemoteSettingsTest, getThrowsOnOtherErrorFromRemote)
+{
+    constexpr auto error_code = grpc::StatusCode::INVALID_ARGUMENT;
+    constexpr auto error_msg = "an error";
+    constexpr auto error_details = "whatever";
+
+    auto mock_client_reader = make_mock_reader<mp::GetReply>();
+    EXPECT_CALL(*mock_client_reader, Finish).WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
+
+    EXPECT_CALL(mock_stub, getRaw).WillOnce(make_releaser(mock_client_reader));
+
+    mp::RemoteSettingsHandler handler{"asdf", mock_stub, &mock_term, 3};
+    MP_EXPECT_THROW_THAT(
+        handler.get("asdf.asdf"), mp::RemoteHandlerException,
+        Property(&mp::RemoteHandlerException::get_status, make_status_matcher(error_code, error_msg, error_details)));
 }
 
 TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
