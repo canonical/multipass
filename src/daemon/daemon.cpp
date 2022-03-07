@@ -145,6 +145,7 @@ auto make_cloud_init_meta_config(const std::string& name)
 
     meta_data["instance-id"] = name;
     meta_data["local-hostname"] = name;
+    meta_data["cloud-name"] = "multipass";
 
     return meta_data;
 }
