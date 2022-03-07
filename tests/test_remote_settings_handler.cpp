@@ -21,6 +21,8 @@
 
 #include <src/client/cli/cmd/remote_settings_handler.h>
 
+#include <multipass/exceptions/settings_exceptions.h>
+
 #include <sstream>
 
 namespace mp = multipass;
@@ -166,6 +168,14 @@ TEST_F(RemoteSettingsTest, keysThrowsOnOtherErrorContactingRemote)
                                   AllOf(Property(&grpc::Status::error_code, Eq(error_code)),
                                         Property(&grpc::Status::error_message, Eq(error_msg)),
                                         Property(&grpc::Status::error_details, Eq(error_details)))));
+}
+
+TEST_F(RemoteSettingsTest, getThrowsOnWrongPrefix)
+{
+    constexpr auto prefix = "local.", key = "client.gui.something";
+
+    mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
+    MP_EXPECT_THROW_THAT(handler.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(RemoteSettingsTest, getRequestsSoughtSetting)
