@@ -431,7 +431,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         }
         catch (const AbortedDownloadException&)
         {
-            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
+            std::lock_guard lock{fetch_mutex};
             in_progress_image_fetches.erase(id);
             throw;
         }
