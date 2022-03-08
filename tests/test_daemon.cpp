@@ -56,6 +56,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <variant>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

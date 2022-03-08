@@ -24,7 +24,9 @@
 #include <QString>
 
 #include <algorithm>
+#include <array>
 #include <memory>
+#include <variant>
 
 namespace mp = multipass;
 namespace mpt = mp::test;
