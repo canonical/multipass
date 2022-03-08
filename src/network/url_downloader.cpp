@@ -189,15 +189,17 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
             bytes_total = size;
 
         auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
-        if (abort_downloads || !monitor(download_type, progress))
+
+        abort_download = abort_downloads || !monitor(download_type, progress);
+
+        if (abort_download)
         {
-            abort_download = true;
             reply->abort();
         }
     };
 
     auto on_download = [this, &abort_download, &file](QNetworkReply* reply, QTimer& download_timeout) {
-        abort_download |= abort_downloads;
+        abort_download = abort_download || abort_downloads;
 
         if (abort_download)
         {
