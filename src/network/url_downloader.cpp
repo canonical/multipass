@@ -197,7 +197,9 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
     };
 
     auto on_download = [this, &abort_download, &file](QNetworkReply* reply, QTimer& download_timeout) {
-        if (abort_download || abort_downloads)
+        abort_download |= abort_downloads;
+
+        if (abort_download)
         {
             reply->abort();
             return;
