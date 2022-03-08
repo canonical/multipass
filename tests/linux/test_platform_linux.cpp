@@ -417,7 +417,6 @@ TEST_F(PlatformLinux, test_is_alias_supported_returns_true)
     EXPECT_TRUE(MP_PLATFORM.is_alias_supported("focal", "release"));
 }
 
-
 struct TestUnsupportedDrivers : public PlatformLinux, WithParamInterface<QString>
 {
 };
