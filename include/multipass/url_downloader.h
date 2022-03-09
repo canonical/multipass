@@ -57,7 +57,7 @@ public:
     virtual void abort_all_downloads();
 
 protected:
-    std::atomic_bool abort_download{false};
+    std::atomic_bool abort_downloads{false};
 
 private:
     const Path cache_dir_path;
