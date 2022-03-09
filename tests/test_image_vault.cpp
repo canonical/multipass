@@ -100,7 +100,7 @@ struct RunningURLDownloader : public mp::URLDownloader
     void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                      const mp::ProgressMonitor&) override
     {
-        while (!abort_download)
+        while (!abort_downloads)
             QThread::yieldCurrentThread();
 
         throw mp::AbortedDownloadException("Aborted!");
