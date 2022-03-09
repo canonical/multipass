@@ -385,7 +385,8 @@ TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
     }
 
     auto get_what = [](const auto& e) { return e.what(); };
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), std::exception, mpt::match_what(std::visit(get_what, except)));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), std::exception,
+                         mpt::match_what(StrEq(std::visit(get_what, except))));
 }
 
 INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingSetOtherExceptions,
