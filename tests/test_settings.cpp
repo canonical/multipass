@@ -306,15 +306,15 @@ TEST_P(TestSettingsSetMultipleHandlers, setDelegatesOnMultipleHandlers)
     EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
 }
 
-constexpr auto test_indices = std::initializer_list<Indices>{{0u},
-                                                             {9u},
-                                                             {7u},
-                                                             {0u, 4u},
-                                                             {0u, 4u, 9u},
-                                                             {1u, 2u, 3u},
-                                                             {5u, 6u, 7u, 8u},
-                                                             {1u, 3u, 5u, 7u},
-                                                             {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u}};
+const auto test_indices = std::initializer_list<Indices>{{0u},
+                                                         {9u},
+                                                         {7u},
+                                                         {0u, 4u},
+                                                         {0u, 4u, 9u},
+                                                         {1u, 2u, 3u},
+                                                         {5u, 6u, 7u, 8u},
+                                                         {1u, 3u, 5u, 7u},
+                                                         {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u}};
 INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsSetMultipleHandlers, Combine(Values(10u), ValuesIn(test_indices)));
 
 TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
