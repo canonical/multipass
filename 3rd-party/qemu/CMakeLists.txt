@@ -26,7 +26,7 @@ set(QEMU_SOURCE_DIR "${CMAKE_BINARY_DIR}/3rd-party/qemu")
 FetchContent_Declare(qemu
   SOURCE_DIR ${QEMU_SOURCE_DIR}
   GIT_REPOSITORY https://github.com/canonical/qemu.git
-  GIT_TAG multipass
+  GIT_TAG v6.2.0+m1fix+vmnet
   GIT_SHALLOW TRUE
   GIT_SUBMODULES ""
   GIT_PROGRESS TRUE
