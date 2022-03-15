@@ -67,13 +67,15 @@ QString cmd::Get::short_help() const
 
 QString cmd::Get::description() const
 {
-    auto desc = QStringLiteral("Get the configuration setting corresponding to the given key.");
+    auto desc = QStringLiteral("Get the configuration setting corresponding to the given key(s), or all settings if no "
+                               "key is specified.");
     return desc + "\n\n" + describe_settings_keys();
 }
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("key", "Path to the setting whose configured value should be obtained.", "<key>");
+    parser->addPositionalArgument("key", "Path(s) to the setting(s) whose configured value(s) should be obtained.",
+                                  "[<key> ...]");
 
     QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
                                          "values (i.e. \"\" instead of \"<empty>\").");
@@ -89,7 +91,7 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
         }
         else
         {
-            cerr << "Need exactly one setting key.\n";
+            cerr << "Multiple settings not implemented yet. Please try again with one single settings key for now.\n";
             status = ParseCode::CommandLineError;
         }
 
