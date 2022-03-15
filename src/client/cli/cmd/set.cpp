@@ -112,7 +112,7 @@ mp::ParseCode cmd::Set::checked_prompt(const QString& key)
 {
     try
     {
-        if (key == passphrase_key)
+        if (key == passphrase_key) // TODO integrate into setting handlers
         {
             mp::NewPassphrasePrompter prompter(term);
             val = QString::fromStdString(prompter.prompt());
