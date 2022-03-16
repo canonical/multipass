@@ -42,8 +42,8 @@ private:
     void print_keys() const;
 
     QString arg;
-    bool raw = false;
-    bool keys = false;
+    bool raw_opt = false;
+    bool keys_opt = false;
 };
 } // namespace cmd
 } // namespace multipass

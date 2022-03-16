@@ -38,7 +38,7 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     {
         try
         {
-            if (keys)
+            if (keys_opt)
                 print_keys();
             else
                 print_settings();
@@ -85,15 +85,15 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
     auto status = parser->commandParse(this);
     if (status == ParseCode::Ok)
     {
-        keys = parser->isSet(keys_option);
-        raw = parser->isSet(raw_option);
+        keys_opt = parser->isSet(keys_option);
+        raw_opt = parser->isSet(raw_option);
 
         const auto args = parser->positionalArguments();
         if (args.count() == 1)
         {
             arg = args.at(0);
         }
-        else if (!keys)
+        else if (!keys_opt)
         {
             cerr << "Multiple settings values not implemented yet. Please try again with one single settings key for "
                     "now.\n";
@@ -110,7 +110,7 @@ void cmd::Get::print_settings() const
 
     if (const auto val = MP_SETTINGS.get(arg); arg == passphrase_key) // TODO integrate into setting specs
         cout << (val.isEmpty() ? "false" : "true");
-    else if (val.isEmpty() && !raw)
+    else if (val.isEmpty() && !raw_opt)
         cout << "<empty>";
     else
         cout << qUtf8Printable(val);
