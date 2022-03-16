@@ -143,7 +143,7 @@ TEST_F(RemoteSettingsTest, keysReturnsRemoteKeys)
     EXPECT_THAT(handler.keys(), UnorderedElementsAreArray(some_keys));
 }
 
-TEST_F(RemoteSettingsTest, keysReturnsPlaceholderKeysWhenDaemonNotFound)
+TEST_F(RemoteSettingsTest, keysReturnsNoKeysWhenDaemonNotAround)
 {
     auto mock_client_reader = make_mock_reader<mp::KeysReply>();
     EXPECT_CALL(*mock_client_reader, Finish)
@@ -154,7 +154,7 @@ TEST_F(RemoteSettingsTest, keysReturnsPlaceholderKeysWhenDaemonNotFound)
     auto prefix = "remote.";
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 0};
 
-    EXPECT_THAT(handler.keys(), ElementsAre(mpt::match_qstring(StartsWith(std::string{prefix} + "*"))));
+    EXPECT_THAT(handler.keys(), IsEmpty());
 }
 
 TEST_F(RemoteSettingsTest, keysThrowsOnOtherErrorFromRemote)
