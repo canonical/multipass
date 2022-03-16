@@ -65,19 +65,22 @@ QString cmd::Get::short_help() const
 
 QString cmd::Get::description() const
 {
-    auto desc = QStringLiteral("Get the configuration setting corresponding to the given key(s), or all settings if no "
-                               "key is specified.");
+    auto desc = QStringLiteral("Get the configuration setting(s) corresponding to the given key(s), or all settings if "
+                               "no key is specified.");
     return desc + "\n\n" + describe_common_settings_keys();
 }
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("arg", "Path(s) to the setting(s) whose configured value(s) should be obtained.",
-                                  "[<arg> ...]");
+    parser->addPositionalArgument(
+        "arg", "Setting(s) key(s), i.e. path(s) to the setting(s) whose configured value(s) should be obtained.",
+        "[<arg> ...]");
 
     QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
                                          "values (i.e. \"\" instead of \"<empty>\").");
-    QCommandLineOption keys_option("keys", "List available settings keys.");
+    QCommandLineOption keys_option("keys", "List available settings keys. This outputs the whole list of currently "
+                                           "available settings keys, or a matching subset when <arg>... is(are) "
+                                           "provided");
 
     parser->addOption(raw_option);
     parser->addOption(keys_option);
