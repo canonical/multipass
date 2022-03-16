@@ -24,7 +24,6 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/settings/settings.h>
 
 #include <QCommandLineOption>
 #include <QString>
@@ -139,11 +138,12 @@ auto cmd::return_code_from(const mp::SettingsException& e) -> mp::ReturnCode
     return ReturnCode::CommandFail;
 }
 
-QString multipass::cmd::describe_settings_keys()
+QString multipass::cmd::describe_common_settings_keys()
 {
-    const auto keys = MP_SETTINGS.keys();
-    return std::accumulate(cbegin(keys), cend(keys), QStringLiteral("Keys:"),
-                           [](const auto& a, const auto& b) { return a + "\n  " + b; });
+    return std::accumulate(cbegin(mp::key_examples), cend(mp::key_examples),
+                           QStringLiteral("Some common settings keys are:"),
+                           [](const auto& a, const auto& b) { return a + "\n  - " + b; }) +
+           "\n\nUse `multipass get --keys` to obtain the full list of available settings at any given time.";
 }
 
 void multipass::cmd::add_timeout(multipass::ArgParser* parser)

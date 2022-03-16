@@ -67,7 +67,7 @@ QString cmd::Get::description() const
 {
     auto desc = QStringLiteral("Get the configuration setting corresponding to the given key(s), or all settings if no "
                                "key is specified.");
-    return desc + "\n\n" + describe_settings_keys();
+    return desc + "\n\n" + describe_common_settings_keys();
 }
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
