@@ -25,6 +25,8 @@
 
 #include <QtGlobal>
 
+#include <cassert>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
@@ -38,8 +40,10 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
         {
             if (keys)
                 print_keys();
-            else if (!arg.isEmpty())
+            else
             {
+                assert(!arg.isEmpty() && "Need single arg until we implement multiple settings");
+
                 if (const auto val = MP_SETTINGS.get(arg);
                     arg == mp::passphrase_key) // TODO integrate into setting specs
                     cout << (val.isEmpty() ? "false" : "true");
