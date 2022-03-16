@@ -43,7 +43,7 @@ jobs:
           echo "::set-output name=ref::${{ github.event.client_payload.head_ref }}"
         else
           # Otherwise fetch the triggering commit.
-          git -c protocol.version=2 fetch --prune --progress --no-recurse-submodules ${{ github.event.client_payload.repositoryUrl }} ${{ github.event.client_payload.sha }}
+          git -c protocol.version=2 fetch --prune --progress --no-recurse-submodules https://github.com/${{ github.event.client_payload.repository }}.git ${{ github.event.client_payload.sha }}
           echo "::set-output name=ref::${{ github.event.client_payload.ref }}"
         fi
 
