@@ -38,6 +38,7 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
+    void print_settings() const;
     void print_keys() const;
 
     QString arg;

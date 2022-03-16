@@ -41,19 +41,7 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
             if (keys)
                 print_keys();
             else
-            {
-                assert(!arg.isEmpty() && "Need single arg until we implement multiple settings");
-
-                if (const auto val = MP_SETTINGS.get(arg);
-                    arg == mp::passphrase_key) // TODO integrate into setting specs
-                    cout << (val.isEmpty() ? "false" : "true");
-                else if (val.isEmpty() && !raw)
-                    cout << "<empty>";
-                else
-                    cout << qUtf8Printable(val);
-
-                cout << "\n";
-            }
+                print_settings();
         }
         catch (const SettingsException& e)
         {
@@ -114,6 +102,20 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
     }
 
     return status;
+}
+
+void cmd::Get::print_settings() const
+{
+    assert(!arg.isEmpty() && "Need single arg until we implement multiple settings");
+
+    if (const auto val = MP_SETTINGS.get(arg); arg == passphrase_key) // TODO integrate into setting specs
+        cout << (val.isEmpty() ? "false" : "true");
+    else if (val.isEmpty() && !raw)
+        cout << "<empty>";
+    else
+        cout << qUtf8Printable(val);
+
+    cout << "\n";
 }
 
 void multipass::cmd::Get::print_keys() const
