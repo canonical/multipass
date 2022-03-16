@@ -40,7 +40,7 @@ private:
     ParseCode parse_args(ArgParser* parser);
     void print_keys() const;
 
-    QString key;
+    QString arg;
     bool raw = false;
     bool keys = false;
 };

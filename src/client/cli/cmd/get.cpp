@@ -38,10 +38,10 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
         {
             if (keys)
                 print_keys();
-            else if (!key.isEmpty())
+            else if (!arg.isEmpty())
             {
-                if (const auto val = MP_SETTINGS.get(key);
-                    key == mp::passphrase_key) // TODO integrate into setting specs
+                if (const auto val = MP_SETTINGS.get(arg);
+                    arg == mp::passphrase_key) // TODO integrate into setting specs
                     cout << (val.isEmpty() ? "false" : "true");
                 else if (val.isEmpty() && !raw)
                     cout << "<empty>";
@@ -80,8 +80,8 @@ QString cmd::Get::description() const
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("key", "Path(s) to the setting(s) whose configured value(s) should be obtained.",
-                                  "[<key> ...]");
+    parser->addPositionalArgument("arg", "Path(s) to the setting(s) whose configured value(s) should be obtained.",
+                                  "[<arg> ...]");
 
     QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
                                          "values (i.e. \"\" instead of \"<empty>\").");
@@ -99,7 +99,7 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
         const auto args = parser->positionalArguments();
         if (args.count() == 1)
         {
-            key = args.at(0);
+            arg = args.at(0);
         }
         else if (!keys)
         {
