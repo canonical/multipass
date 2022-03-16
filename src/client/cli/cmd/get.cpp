@@ -96,10 +96,10 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
         {
             arg = args.at(0);
         }
-        else if (!keys_opt)
+        else if (!keys_opt || args.count()) // support 0 or 1 positional arg when --keys is given
         {
-            cerr << "Multiple settings values not implemented yet. Please try again with one single settings key for "
-                    "now.\n";
+            cerr << "Multiple settings not implemented yet. Please try again with either a single key or just the "
+                    "`--keys` flag for now.\n";
             status = ParseCode::CommandLineError;
         }
     }
