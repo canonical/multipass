@@ -38,9 +38,11 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
+    void print_keys() const;
 
     QString key;
     bool raw = false;
+    bool keys = false;
 };
 } // namespace cmd
 } // namespace multipass

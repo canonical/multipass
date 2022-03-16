@@ -36,14 +36,20 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     {
         try
         {
-            if (const auto val = MP_SETTINGS.get(key); key == mp::passphrase_key) // TODO integrate into setting specs
-                cout << (val.isEmpty() ? "false" : "true");
-            else if (val.isEmpty() && !raw)
-                cout << "<empty>";
-            else
-                cout << qUtf8Printable(val);
+            if (keys)
+                print_keys();
+            else if (!key.isEmpty())
+            {
+                if (const auto val = MP_SETTINGS.get(key);
+                    key == mp::passphrase_key) // TODO integrate into setting specs
+                    cout << (val.isEmpty() ? "false" : "true");
+                else if (val.isEmpty() && !raw)
+                    cout << "<empty>";
+                else
+                    cout << qUtf8Printable(val);
 
-            cout << "\n";
+                cout << "\n";
+            }
         }
         catch (const SettingsException& e)
         {
@@ -79,24 +85,33 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 
     QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
                                          "values (i.e. \"\" instead of \"<empty>\").");
+    QCommandLineOption keys_option("keys", "List available settings keys.");
+
     parser->addOption(raw_option);
+    parser->addOption(keys_option);
 
     auto status = parser->commandParse(this);
     if (status == ParseCode::Ok)
     {
+        keys = parser->isSet(keys_option);
+        raw = parser->isSet(raw_option);
+
         const auto args = parser->positionalArguments();
         if (args.count() == 1)
         {
             key = args.at(0);
         }
-        else
+        else if (!keys)
         {
-            cerr << "Multiple settings not implemented yet. Please try again with one single settings key for now.\n";
+            cerr << "Multiple settings values not implemented yet. Please try again with one single settings key for "
+                    "now.\n";
             status = ParseCode::CommandLineError;
         }
-
-        raw = parser->isSet(raw_option);
     }
 
     return status;
+}
+
+void multipass::cmd::Get::print_keys() const
+{
 }
