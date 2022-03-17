@@ -2238,6 +2238,15 @@ TEST_F(Client, get_keeps_other_values_untouched_with_raw_option)
     }
 }
 
+TEST_F(Client, getKeysNoArgReturnsAllSettingsKeys)
+{
+    const auto key_set = std::set<QString>{"asdf", "sdfg", "dfgh"};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Return(key_set));
+
+    auto got_keys = QString::fromStdString(get_setting("--keys")).split('\n');
+    EXPECT_THAT(got_keys, UnorderedElementsAreArray(key_set));
+}
+
 TEST_F(Client, set_handles_persistent_settings_errors)
 {
     const auto key = mp::petenv_key;
