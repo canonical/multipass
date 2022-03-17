@@ -2247,6 +2247,28 @@ TEST_F(Client, getKeysNoArgReturnsAllSettingsKeys)
     EXPECT_THAT(got_keys, UnorderedElementsAreArray(key_set));
 }
 
+TEST_F(Client, getKeysWithValidKeyReturnsThatKey)
+{
+    constexpr auto key = "foo";
+    const auto key_set = std::set<QString>{"asdf", "sdfg", "dfgh", key};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Return(key_set));
+
+    EXPECT_THAT(get_setting({"--keys", key}), StrEq(key));
+}
+
+TEST_F(Client, getKeysWithUnrecognizedKeyFails)
+{
+    constexpr auto wildcard = "*not*yet*";
+    const auto key_set = std::set<QString>{"asdf", "sdfg", "dfgh"};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Return(key_set));
+
+    std::ostringstream cout, cerr;
+    EXPECT_THAT(send_command({"get", "--keys", wildcard}, cout, cerr), Eq(mp::ReturnCode::CommandLineError));
+
+    EXPECT_THAT(cerr.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr(wildcard)));
+    EXPECT_THAT(cout.str(), IsEmpty());
+}
+
 TEST_F(Client, set_handles_persistent_settings_errors)
 {
     const auto key = mp::petenv_key;
