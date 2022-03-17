@@ -2080,6 +2080,20 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 }
 
 // get/set cli tests
+struct TestGetSetHelp : Client, WithParamInterface<std::string>
+{
+};
+
+TEST_P(TestGetSetHelp, helpIncludesKeyExamplesAndHowToGetFullList)
+{
+    std::ostringstream cout;
+
+    EXPECT_THAT(send_command({GetParam(), "--help"}, cout), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cout.str(), AllOf(HasSubstr("local."), HasSubstr("client."), HasSubstr("get --keys")));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, TestGetSetHelp, Values("get", "set"));
+
 struct TestBasicGetSetOptions : Client, WithParamInterface<const char*>
 {
 };
