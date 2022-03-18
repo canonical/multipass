@@ -143,7 +143,8 @@ QString multipass::cmd::describe_common_settings_keys()
     return std::accumulate(cbegin(mp::key_examples), cend(mp::key_examples),
                            QStringLiteral("Some common settings keys are:"),
                            [](const auto& a, const auto& b) { return a + "\n  - " + b; }) +
-           "\n\nUse `multipass get --keys` to obtain the full list of available settings at any given time.";
+           "\n\nUse `" + mp::client_name +
+           " get --keys` to obtain the full list of available settings at any given time.";
 }
 
 void multipass::cmd::add_timeout(multipass::ArgParser* parser)
