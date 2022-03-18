@@ -173,15 +173,12 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
 
 std::set<QString> mp::InstanceSettingsHandler::keys() const
 {
-    static constexpr auto instance_placeholder = "<instance-name>"; // actual instances would bloat help text
-    static const auto ret = [] {
-        std::set<QString> ret;
-        const auto key_template = QStringLiteral("%1.%2.%3").arg(daemon_settings_root);
-        for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix})
-            ret.insert(key_template.arg(instance_placeholder).arg(suffix));
+    static const auto key_template = QStringLiteral("%1.%2.%3").arg(daemon_settings_root);
 
-        return ret;
-    }();
+    std::set<QString> ret;
+    for (const auto& item : vm_instance_specs)
+        for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix})
+            ret.insert(key_template.arg(item.first.c_str()).arg(suffix));
 
     return ret;
 }
