@@ -19,7 +19,6 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
-#include <multipass/format.h>
 
 #include <QRegularExpression>
 #include <QStringList>
