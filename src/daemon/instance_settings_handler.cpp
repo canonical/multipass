@@ -44,16 +44,15 @@ std::string operation_msg(Operation op)
 
 QRegularExpression make_key_regex()
 {
-    auto instance_pattern = QStringLiteral("(?<instance>.+)");
-
+    const auto instance_pattern = QStringLiteral("(?<instance>.+)");
     const auto prop_template = QStringLiteral("(?<property>%1)");
-    auto either_prop = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
-    auto prop_pattern = prop_template.arg(std::move(either_prop));
+    const auto either_prop = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
+    const auto prop_pattern = prop_template.arg(either_prop);
 
     const auto key_template = QStringLiteral(R"(%1\.%2\.%3)");
-    auto key_pattern = key_template.arg(mp::daemon_settings_root, std::move(instance_pattern), std::move(prop_pattern));
+    const auto key_pattern = key_template.arg(mp::daemon_settings_root, instance_pattern, prop_pattern);
 
-    return QRegularExpression{QRegularExpression::anchoredPattern(std::move(key_pattern))};
+    return QRegularExpression{QRegularExpression::anchoredPattern(key_pattern)};
 }
 
 std::pair<std::string, std::string> parse_key(const QString& key)
