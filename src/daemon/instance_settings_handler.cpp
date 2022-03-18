@@ -186,8 +186,8 @@ std::set<QString> mp::InstanceSettingsHandler::keys() const
 QString mp::InstanceSettingsHandler::get(const QString& key) const
 {
     auto [instance_name, property] = parse_key(key);
-
     const auto& spec = find_spec(instance_name);
+
     if (property == cpus_suffix)
         return QString::number(spec.num_cores);
     if (property == mem_suffix)
@@ -205,7 +205,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     if (preparing_instances.find(instance_name) != preparing_instances.end())
         throw InstanceSettingsException{operation_msg(Operation::Modify), instance_name, "Instance is being prepared"};
 
-    auto& instance = modify_instance(instance_name);
+    auto& instance = modify_instance(instance_name); // we need this first, to refuse updating deleted instances
     auto& spec = modify_spec(instance_name);
     check_state_for_update(instance);
 
