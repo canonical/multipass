@@ -402,9 +402,20 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
     }
 }
 
-void mp::LXDVirtualMachine::update_cpus(int num_cores)
+void multipass::LXDVirtualMachine::update_cpus(int num_cores)
 {
-    throw NotImplementedOnThisBackendException{"Update CPUs"}; // TODO@no-merge implement
+    assert(num_cores > 0);
+    assert(manager);
+
+    /*
+     * similar to:
+     * $ curl -s -w "%{http_code}" -X PATCH -H "Content-Type: application/json" \
+     *        -d '{"config": {"limits.cpu": "3"}}' \
+     *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
+     *        lxd/1.0/virtual-machines/asdf?project=multipass
+     */
+    QJsonObject patch_json{{"config", QJsonObject{{"limits.cpu", QString::number(num_cores)}}}};
+    auto reply = lxd_request(manager, "PATCH", url(), patch_json);
 }
 
 void mp::LXDVirtualMachine::resize_memory(const MemorySize& new_size)
