@@ -425,5 +425,20 @@ void mp::LXDVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Resize disk"}; // TODO@no-merge implement
+    assert(new_size.in_bytes() > 0);
+    assert(manager);
+
+    /*
+     * similar to:
+     * $ curl -s -w "%{http_code}\n" -X PATCH -H "Content-Type: application/json" \
+     *        -d '{"devices": {"root": {"size": "10737418245B"}}}' \
+     *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
+     *        lxd/1.0/virtual-machines/asdf?project=multipass
+     */
+    QJsonObject root_json{{"path", "/"},
+                          {"pool", "default"}, // TODO@no-merge this needs to get the pool from the factory
+                          {"size", QString::number(new_size.in_bytes())},
+                          {"type", "disk"}};
+    QJsonObject patch_json{{"devices", QJsonObject{{"root", root_json}}}};
+    lxd_request(manager, "PATCH", url(), patch_json);
 }
