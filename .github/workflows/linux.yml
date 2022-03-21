@@ -271,7 +271,6 @@ jobs:
         client-payload: |
           {
             "repository": "${{ github.repository }}",
-            "repositoryUrl": "${{ github.repositoryUrl }}",
             "head_ref": "${{ steps.dispatch-params.outputs.head_ref }}",
             "head_sha": "${{ steps.dispatch-params.outputs.head_sha }}",
             "ref": "${{ github.ref }}",
