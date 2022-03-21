@@ -578,6 +578,20 @@ std::string mp::platform::Platform::alias_path_message() const
                        get_alias_scripts_folder().absolutePath());
 }
 
+QString mp::platform::Platform::multipass_storage_location() const
+{
+    auto storage_location = mp::utils::get_multipass_storage();
+
+    if (storage_location.isEmpty())
+    {
+        auto program_data_path{qEnvironmentVariable("ProgramData", "C:\\ProgramData")};
+
+        storage_location = program_data_path + "\\Multipass";
+    }
+
+    return storage_location;
+}
+
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
 {
     WIN32_FILE_ATTRIBUTE_DATA data;
