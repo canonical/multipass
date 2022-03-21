@@ -420,7 +420,18 @@ void multipass::LXDVirtualMachine::update_cpus(int num_cores)
 
 void mp::LXDVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Resize memory"}; // TODO@no-merge implement
+    assert(new_size.in_bytes() > 0);
+    assert(manager);
+
+    /*
+     * similar to:
+     * $ curl -s -w "%{http_code}" -X PATCH -H "Content-Type: application/json" \
+     *        -d '{"config": {"limits.memory": "1572864000"}}' \
+     *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
+     *        lxd/1.0/virtual-machines/asdf?project=multipass
+     */
+    QJsonObject patch_json{{"config", QJsonObject{{"limits.memory", QString::number(new_size.in_bytes())}}}};
+    auto reply = lxd_request(manager, "PATCH", url(), patch_json);
 }
 
 void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
