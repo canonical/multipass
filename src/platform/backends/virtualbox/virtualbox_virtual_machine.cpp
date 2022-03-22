@@ -146,6 +146,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
     : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
+      image_path{desc.image.image_path},
       monitor{&monitor}
 {
     if (desc.extra_interfaces.size() > 7)
@@ -354,5 +355,9 @@ void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+    assert(new_size.in_bytes() > 0);
+
+    mpu::process_throw_on_error("VBoxManage",
+                                {"modifyhd", image_path, "--resizebyte", QString::number(new_size.in_bytes())},
+                                "Could not resize image: {}", name);
 }
