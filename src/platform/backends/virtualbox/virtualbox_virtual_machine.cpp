@@ -345,12 +345,18 @@ void mp::VirtualBoxVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds t
 
 void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
 {
-    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+    assert(num_cores > 0);
+
+    mpu::process_throw_on_error("VBoxManage", {"modifyvm", name, "--cpus", QString::number(num_cores)},
+                                "Could not update CPUs: {}", name);
 }
 
 void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+    assert(new_size.in_bytes() > 0);
+
+    mpu::process_throw_on_error("VBoxManage", {"modifyvm", name, "--memory", QString::number(new_size.in_megabytes())},
+                                "Could not update memory: {}", name);
 }
 
 void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
