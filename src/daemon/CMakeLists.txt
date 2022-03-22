@@ -33,7 +33,6 @@ target_link_libraries(daemon
   delayed_shutdown
   fmt
   logger
-  metrics
   petname
   platform
   rpc

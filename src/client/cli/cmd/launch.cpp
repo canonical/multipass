@@ -365,16 +365,10 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         timer->start();
     }
 
-    auto on_success = [this, &parser](mp::LaunchReply& reply) {
+    auto on_success = [this](mp::LaunchReply& reply) {
         spinner->stop();
         if (timer)
             timer->pause();
-
-        if (reply.metrics_pending())
-        {
-            request.mutable_opt_in_reply()->set_opt_in_status(ask_metrics_permission(reply));
-            return request_launch(parser);
-        }
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
 
@@ -511,53 +505,6 @@ auto cmd::Launch::request_mounts_setting_from_daemon(const ArgParser* parser) ->
     auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
 
     return {ret, mounts_value};
-}
-
-auto cmd::Launch::ask_metrics_permission(const mp::LaunchReply& reply) -> OptInStatus::Status
-{
-    if (term->is_live())
-    {
-        cout << "One quick question before we launch … Would you like to help\n"
-             << "the Multipass developers, by sending anonymous usage data?\n"
-             << "This includes your operating system, which images you use,\n"
-             << "the number of instances, their properties and how long you use them.\n"
-             << "We’d also like to measure Multipass’s speed.\n\n"
-             << (reply.metrics_show_info().has_host_info() ? "Choose “show” to see an example usage report.\n\n"
-                                                             "Send usage data (yes/no/Later/show)? "
-                                                           : "Send usage data (yes/no/Later)? ");
-
-        while (true)
-        {
-            std::string answer;
-            std::getline(term->cin(), answer);
-            if (std::regex_match(answer, yes))
-            {
-                cout << "Thank you!\n";
-                return OptInStatus::ACCEPTED;
-            }
-            else if (std::regex_match(answer, no))
-            {
-                return OptInStatus::DENIED;
-            }
-            else if (answer.empty() || std::regex_match(answer, later))
-            {
-                return OptInStatus::LATER;
-            }
-            else if (reply.metrics_show_info().has_host_info() && std::regex_match(answer, show))
-            {
-                // TODO: Display actual metrics data here provided by daemon
-                cout << "Show metrics example here\n\n"
-                     << "Send usage data (yes/no/Later/show)? ";
-            }
-            else
-            {
-                cout << (reply.metrics_show_info().has_host_info() ? "Please answer yes/no/Later/show: "
-                                                                   : "Please answer yes/no/Later: ");
-            }
-        }
-    }
-
-    return OptInStatus::UNKNOWN;
 }
 
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
