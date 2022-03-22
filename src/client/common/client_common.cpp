@@ -147,7 +147,7 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
                 if (auto rpc_channel{
                         create_channel_and_validate(server_address, get_ssl_credentials_opts_from(cert_dir))})
                 {
-                    mpl::log(mpl::Level::trace, "client", "found!");
+                    mpl::log(mpl::Level::trace, "client", fmt::format("Client cert(s) found in {}", cert_dir));
                     copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
                     mp::utils::remove_directories(cert_dirs);
 
