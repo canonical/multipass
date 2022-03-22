@@ -72,7 +72,6 @@ add_executable(multipass_tests
   test_image_vault.cpp
   test_ip_address.cpp
   test_memory_size.cpp
-  test_metrics_provider.cpp
   test_new_release_monitor.cpp
   test_petname.cpp
   test_platform_shared.cpp
@@ -130,7 +129,6 @@ target_link_libraries(multipass_tests
   gtest_main
   ip_address
   iso
-  metrics
   network
   petname
   poco_utils
