@@ -24,7 +24,6 @@
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/id_mappings.h>
 #include <multipass/memory_size.h>
-#include <multipass/metrics_provider.h>
 #include <multipass/network_interface.h>
 #include <multipass/sshfs_mount/sshfs_mounts.h>
 #include <multipass/virtual_machine.h>
@@ -61,12 +60,6 @@ struct VMSpecs
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
     QJsonObject metadata;
-};
-
-struct MetricsOptInData
-{
-    OptInStatus::Status opt_in_status;
-    int delay_opt_in_count;
 };
 
 struct DaemonConfig;
@@ -183,8 +176,6 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
-    MetricsProvider metrics_provider;
-    MetricsOptInData metrics_opt_in;
     SSHFSMounts instance_mounts;
     std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
