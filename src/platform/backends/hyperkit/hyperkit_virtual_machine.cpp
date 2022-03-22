@@ -19,6 +19,7 @@
 
 #include "vmprocess.h"
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/ip_address.h>
@@ -181,4 +182,19 @@ std::string mp::HyperkitVirtualMachine::ipv6()
 void mp::HyperkitVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     mp::utils::wait_until_ssh_up(this, timeout, std::bind(&HyperkitVirtualMachine::ensure_vm_is_running, this));
+}
+
+void mp::HyperkitVirtualMachine::update_cpus(int num_cores)
+{
+    throw NotImplementedOnThisBackendException{"Instance modification"};
+}
+
+void mp::HyperkitVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Instance modification"};
+}
+
+void mp::HyperkitVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Instance modification"};
 }

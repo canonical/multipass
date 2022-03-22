@@ -17,6 +17,7 @@
 
 #include "hyperv_virtual_machine.h"
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@no-merge remove
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
@@ -283,4 +284,19 @@ std::string mp::HyperVVirtualMachine::ipv6()
 void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     mp::utils::wait_until_ssh_up(this, timeout, std::bind(&HyperVVirtualMachine::ensure_vm_is_running, this));
+}
+
+void mp::HyperVVirtualMachine::update_cpus(int num_cores)
+{
+    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+}
+
+void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+}
+
+void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
 }

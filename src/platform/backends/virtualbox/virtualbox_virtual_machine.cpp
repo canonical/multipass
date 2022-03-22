@@ -17,6 +17,7 @@
 
 #include "virtualbox_virtual_machine.h"
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@no-merge remove
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_interface.h>
@@ -339,4 +340,19 @@ std::string mp::VirtualBoxVirtualMachine::ipv6()
 void mp::VirtualBoxVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     mpu::wait_until_ssh_up(this, timeout, std::bind(&VirtualBoxVirtualMachine::ensure_vm_is_running, this));
+}
+
+void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
+{
+    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+}
+
+void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+}
+
+void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
 }
