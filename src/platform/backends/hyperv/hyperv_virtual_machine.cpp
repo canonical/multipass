@@ -297,7 +297,10 @@ void mp::HyperVVirtualMachine::update_cpus(int num_cores)
 
 void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+    assert(new_size.in_bytes() > 0);
+
+    QStringList resize_cmd = {"Set-VMMemory", "-VMName", name, "-StartupBytes", QString::number(new_size.in_bytes())};
+    checked_ps_run(*power_shell, resize_cmd, "Could not resize memory");
 }
 
 void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
