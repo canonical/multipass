@@ -288,7 +288,10 @@ void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeo
 
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)
 {
-    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+    assert(num_cores > 0);
+
+    checked_ps_run(*power_shell, {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(num_cores)},
+                   "Could not update CPUs");
 }
 
 void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
