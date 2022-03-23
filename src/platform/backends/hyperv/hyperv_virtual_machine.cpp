@@ -118,6 +118,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                        "Could not configure VM processor");
         checked_ps_run(*power_shell, {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
                        "Could not setup cloud-init drive");
+        checked_ps_run(*power_shell, {"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
+                       "Could not disable dynamic memory");
 
         setup_network_interfaces(desc.default_mac_address, desc.extra_interfaces);
 
