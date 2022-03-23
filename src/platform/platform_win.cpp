@@ -584,9 +584,7 @@ QString mp::platform::Platform::multipass_storage_location() const
 
     if (storage_location.isEmpty() && !QFile::exists(MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation)))
     {
-        auto program_data_path{qEnvironmentVariable("ProgramData", "C:\\ProgramData")};
-
-        storage_location = program_data_path + "\\Multipass";
+        storage_location = QDir{qEnvironmentVariable("ProgramData", "C:\\ProgramData"}.absoluteFilePath("Multipass");
     }
 
     return storage_location;
