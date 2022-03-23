@@ -100,6 +100,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
+      image_path{desc.image.image_path},
       power_shell{std::make_unique<PowerShell>(vm_name)},
       monitor{&monitor}
 {
@@ -301,5 +302,8 @@ void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    throw NotImplementedOnThisBackendException{"Instance mod - TODO"}; // TODO@no-merge
+    assert(new_size.in_bytes() > 0);
+
+    QStringList resize_cmd = {"Resize-VHD", "-Path", image_path, "-SizeBytes", QString::number(new_size.in_bytes())};
+    checked_ps_run(*power_shell, resize_cmd, "Could not resize disk");
 }

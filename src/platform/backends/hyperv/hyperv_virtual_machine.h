@@ -20,8 +20,9 @@
 
 #include <shared/base_virtual_machine.h>
 
-#include <multipass/optional.h>
 #include <multipass/ip_address.h>
+#include <multipass/optional.h>
+#include <multipass/path.h>
 
 #include <QString>
 
@@ -62,8 +63,10 @@ private:
     void setup_network_interfaces(const std::string& default_mac_address,
                                   const std::vector<NetworkInterface>& extra_interfaces);
 
+    // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
     const QString name;
     const std::string username;
+    const Path image_path;
     multipass::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;
