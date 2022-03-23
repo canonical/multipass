@@ -283,6 +283,11 @@ QString get_alias_script_path(const std::string& alias)
 
     return aliases_folder.absoluteFilePath(QString::fromStdString(alias)) + ".bat";
 }
+
+QString program_data_multipass_path()
+{
+    return QDir{qEnvironmentVariable("ProgramData", "C:\\ProgramData")}.absoluteFilePath("Multipass");
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -451,7 +456,14 @@ QString mp::platform::daemon_config_home() // temporary
         QDir{ret}.absoluteFilePath("Local"); // what LOCALAPPDATA would point to under the system account, at this point
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
 
-    return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
+    if (QFile::exists(ret))
+    {
+        return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
+    }
+    else
+    {
+        return MP_PLATFORM.multipass_storage_location();
+    }
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
@@ -584,7 +596,7 @@ QString mp::platform::Platform::multipass_storage_location() const
 
     if (storage_location.isEmpty() && !QFile::exists(MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation)))
     {
-        storage_location = QDir{qEnvironmentVariable("ProgramData", "C:\\ProgramData"}.absoluteFilePath("Multipass");
+        storage_location = program_data_multipass_path();
     }
 
     return storage_location;
