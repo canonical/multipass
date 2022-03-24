@@ -164,7 +164,8 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
       manager{manager},
       base_url{base_url},
       bridge_name{bridge_name},
-      mac_addr{QString::fromStdString(desc.default_mac_address)}
+      mac_addr{QString::fromStdString(desc.default_mac_address)},
+      storage_pool{storage_pool}
 {
     try
     {
@@ -445,10 +446,8 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
      *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
      *        lxd/1.0/virtual-machines/asdf?project=multipass
      */
-    QJsonObject root_json{{"path", "/"},
-                          {"pool", "default"}, // TODO@no-merge this needs to get the pool from the factory
-                          {"size", QString::number(new_size.in_bytes())},
-                          {"type", "disk"}};
+    QJsonObject root_json{
+        {"path", "/"}, {"pool", storage_pool}, {"size", QString::number(new_size.in_bytes())}, {"type", "disk"}};
     QJsonObject patch_json{{"devices", QJsonObject{{"root", root_json}}}};
     lxd_request(manager, "PATCH", url(), patch_json);
 }
