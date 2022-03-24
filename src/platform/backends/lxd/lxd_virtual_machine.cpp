@@ -22,7 +22,6 @@
 #include <QJsonDocument>
 
 #include <multipass/exceptions/local_socket_connection_exception.h>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@no-merge remove
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
