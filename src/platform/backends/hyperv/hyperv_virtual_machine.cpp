@@ -17,7 +17,6 @@
 
 #include "hyperv_virtual_machine.h"
 
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@no-merge remove
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
