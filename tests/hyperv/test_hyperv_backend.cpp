@@ -252,6 +252,48 @@ TEST_F(HyperVBackend, createBridgeIncludesErrorMsgInException)
                          std::runtime_error, mpt::match_what(HasSubstr(error)));
 }
 
+struct CheckFineSuite : public HyperVBackend, public WithParamInterface<std::vector<mpt::PowerShellTestHelper::RunSpec>>
+{
+};
+
+TEST_P(CheckFineSuite, CheckDoesntThrow)
+{
+    ps_helper.setup_mocked_run_sequence(GetParam());
+    EXPECT_NO_THROW(backend.hypervisor_health_check());
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    HyperVBackend, CheckFineSuite,
+    Values(std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
+                                                           {"ReleaseId", "1803"},
+                                                           {"HypervisorPresent", "True"},
+                                                           {"Microsoft-Hyper-V", "Enabled"},
+                                                           {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
+                                                           {"vmms", "Running"}},
+           std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
+                                                           {"ReleaseId", "1803"},
+                                                           {"HypervisorPresent", "True"},
+                                                           {"Microsoft-Hyper-V", "Enabled"},
+                                                           {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
+                                                           {"vmms", "Stopped"},
+                                                           {"Get-Service", "Automatic"},
+                                                           {"Start-Service"}}));
+
+struct CheckBadSuite : public HyperVBackend, public WithParamInterface<std::vector<mpt::PowerShellTestHelper::RunSpec>>
+{
+};
+
+TEST_P(CheckBadSuite, CheckThrows)
+{
+    ps_helper.setup_mocked_run_sequence(GetParam());
+    EXPECT_THROW(backend.hypervisor_health_check(), std::runtime_error);
+}
+
+INSTANTIATE_TEST_SUITE_P(HyperVBackend, CheckBadSuite,
+                         Values(std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "7"}},
+                                std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
+                                                                                {"ReleaseId", "1802"}}));
+
 struct HyperVNetworks : public Test
 {
     void SetUp() override
