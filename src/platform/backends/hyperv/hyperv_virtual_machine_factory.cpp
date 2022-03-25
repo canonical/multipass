@@ -143,13 +143,15 @@ void check_hyperv_support()
 
     // Check for Windows 10
     power_shell.run(QStringList() << get_reg_version_info << expand_property << "CurrentMajorVersionNumber", ps_output);
-    if (ps_output != "10")
-        throw std::runtime_error("Multipass support for Hyper-V requires Windows 10");
-
-    // Check if it's a version less than 1803
-    power_shell.run(QStringList() << get_reg_version_info << expand_property << "ReleaseId", ps_output);
-    if (ps_output.toInt() < 1803)
-        throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
+    if (ps_output.toInt() < 10)
+        throw std::runtime_error("Multipass support for Hyper-V requires Windows 10 or newer");
+    else if (ps_output == "10")
+    {
+        // Check if it's a version less than 1803
+        power_shell.run(QStringList() << get_reg_version_info << expand_property << "ReleaseId", ps_output);
+        if (ps_output < "1803")
+            throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
+    }
 
     // Check if HypervisorPresent is true- implies either Hyper-V is running or running under a
     //   different virtualized environment like VirtualBox or QEMU.
