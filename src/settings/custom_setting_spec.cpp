@@ -15,16 +15,16 @@
  *
  */
 
-#include <multipass/settings/dynamic_setting_spec.h>
+#include <multipass/settings/custom_setting_spec.h>
 
 namespace mp = multipass;
 
-mp::DynamicSettingSpec::DynamicSettingSpec(QString key, QString default_, std::function<QString(QString)> interpreter)
+mp::CustomSettingSpec::CustomSettingSpec(QString key, QString default_, std::function<QString(QString)> interpreter)
     : multipass::BasicSettingSpec(std::move(key), interpreter(std::move(default_))), interpreter{std::move(interpreter)}
 {
 }
 
-QString mp::DynamicSettingSpec::interpret(QString val) const
+QString mp::CustomSettingSpec::interpret(QString val) const
 {
     return interpreter(std::move(val));
 }

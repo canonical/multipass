@@ -20,7 +20,7 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings/basic_setting_spec.h>
 #include <multipass/settings/bool_setting_spec.h>
-#include <multipass/settings/dynamic_setting_spec.h>
+#include <multipass/settings/custom_setting_spec.h>
 
 namespace mp = multipass;
 namespace mpt = mp::test;
@@ -33,14 +33,14 @@ struct TestPlainKeyAndDefault : public Test
 {
 };
 
-using PlainKeyAndDefaultTypes = Types<mp::BasicSettingSpec, mp::BoolSettingSpec, mp::DynamicSettingSpec>;
+using PlainKeyAndDefaultTypes = Types<mp::BasicSettingSpec, mp::BoolSettingSpec, mp::CustomSettingSpec>;
 MP_TYPED_TEST_SUITE(TestPlainKeyAndDefault, PlainKeyAndDefaultTypes);
 
 TYPED_TEST(TestPlainKeyAndDefault, basicSettingSpecReturnsProvidedKeyAndDefault)
 {
     const auto key = "foo", default_ = "true";
     const auto setting = [key, default_]() {
-        if constexpr (std::is_same_v<TypeParam, mp::DynamicSettingSpec>)
+        if constexpr (std::is_same_v<TypeParam, mp::CustomSettingSpec>)
             return TypeParam{key, default_, [](const auto& v) { return v; }};
         else
             return TypeParam{key, default_};
@@ -58,23 +58,23 @@ TEST(TestSettingSpec, basicSettingSpecImplementsInterpretAsIdentity)
     EXPECT_EQ(setting.interpret(val), val);
 }
 
-TEST(TestSettingSpec, dynamicSettingSpecCallsGivenInterpreter)
+TEST(TestSettingSpec, customSettingSpecCallsGivenInterpreter)
 {
     bool called = false;
     const auto val = "yak";
-    mp::DynamicSettingSpec setting{"a", "b", [&called](QString v) {
-                                       called = true;
-                                       return v;
-                                   }};
+    mp::CustomSettingSpec setting{"a", "b", [&called](QString v) {
+                                      called = true;
+                                      return v;
+                                  }};
 
     EXPECT_EQ(setting.interpret(val), val);
     EXPECT_TRUE(called);
 }
 
-TEST(TestSettingSpec, dynamicSettingSpecInterpretsGivenDefault)
+TEST(TestSettingSpec, customSettingSpecInterpretsGivenDefault)
 {
     const auto interpreted = "real";
-    mp::DynamicSettingSpec setting{"poiu", "lkjh", [interpreted](auto) { return interpreted; }};
+    mp::CustomSettingSpec setting{"poiu", "lkjh", [interpreted](auto) { return interpreted; }};
     EXPECT_EQ(setting.get_default(), interpreted);
 }
 

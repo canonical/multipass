@@ -24,7 +24,7 @@
 #include <multipass/platform.h>
 #include <multipass/settings/basic_setting_spec.h>
 #include <multipass/settings/bool_setting_spec.h>
-#include <multipass/settings/dynamic_setting_spec.h>
+#include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
@@ -165,8 +165,8 @@ void mp::client::register_global_settings_handlers()
 {
     auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
-    settings.insert(std::make_unique<DynamicSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
-    settings.insert(std::make_unique<DynamicSettingSpec>(mp::hotkey_key, default_hotkey(), [](QString val) {
+    settings.insert(std::make_unique<CustomSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
+    settings.insert(std::make_unique<CustomSettingSpec>(mp::hotkey_key, default_hotkey(), [](QString val) {
         return mp::platform::interpret_setting(mp::hotkey_key, val);
     }));
 

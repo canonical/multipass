@@ -23,7 +23,7 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/optional.h>
 #include <multipass/settings/basic_setting_spec.h>
-#include <multipass/settings/dynamic_setting_spec.h>
+#include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
 
 #include <QString>
@@ -52,7 +52,7 @@ public:
             auto val = specific_val.value_or("banana");
 
             if (specific_interpreter)
-                setting_set.insert(std::make_unique<mp::DynamicSettingSpec>(*specific_key, val, *specific_interpreter));
+                setting_set.insert(std::make_unique<mp::CustomSettingSpec>(*specific_key, val, *specific_interpreter));
             else
                 setting_set.insert(std::make_unique<mp::BasicSettingSpec>(*specific_key, val));
         }

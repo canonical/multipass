@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_DYNAMIC_SETTING_SPEC_H
-#define MULTIPASS_DYNAMIC_SETTING_SPEC_H
+#ifndef MULTIPASS_CUSTOM_SETTING_SPEC_H
+#define MULTIPASS_CUSTOM_SETTING_SPEC_H
 
 #include "basic_setting_spec.h"
 
@@ -24,10 +24,10 @@
 
 namespace multipass
 {
-class DynamicSettingSpec : public multipass::BasicSettingSpec
+class CustomSettingSpec : public multipass::BasicSettingSpec
 {
 public:
-    DynamicSettingSpec(QString key, QString default_, std::function<QString(QString)> interpreter);
+    CustomSettingSpec(QString key, QString default_, std::function<QString(QString)> interpreter);
     QString interpret(QString val) const override;
 
 protected:
@@ -35,4 +35,4 @@ protected:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_DYNAMIC_SETTING_SPEC_H
+#endif // MULTIPASS_CUSTOM_SETTING_SPEC_H

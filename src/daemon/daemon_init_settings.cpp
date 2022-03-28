@@ -21,7 +21,7 @@
 #include <multipass/platform.h>
 #include <multipass/settings/basic_setting_spec.h>
 #include <multipass/settings/bool_setting_spec.h>
-#include <multipass/settings/dynamic_setting_spec.h>
+#include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
 #include <multipass/settings/settings.h>
 #include <multipass/utils.h>
@@ -75,8 +75,8 @@ void mp::daemon::register_global_settings_handlers()
     auto settings = MP_PLATFORM.extra_daemon_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
     settings.insert(std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
-    settings.insert(std::make_unique<DynamicSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
-    settings.insert(std::make_unique<DynamicSettingSpec>(
+    settings.insert(std::make_unique<CustomSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
+    settings.insert(std::make_unique<CustomSettingSpec>(
         mp::passphrase_key, "", [](QString val) { return MP_UTILS.generate_scrypt_hash_for(val); }));
 
     MP_SETTINGS.register_handler(
