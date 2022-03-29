@@ -252,6 +252,79 @@ TEST_F(HyperVBackend, createBridgeIncludesErrorMsgInException)
                          std::runtime_error, mpt::match_what(HasSubstr(error)));
 }
 
+struct CheckFineSuite : public HyperVBackend, public WithParamInterface<std::vector<mpt::PowerShellTestHelper::RunSpec>>
+{
+};
+
+TEST_P(CheckFineSuite, CheckDoesntThrow)
+{
+    ps_helper.setup_mocked_run_sequence(GetParam());
+    EXPECT_NO_THROW(backend.hypervisor_health_check());
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    HyperVBackend, CheckFineSuite,
+    // Common case, vmms running
+    Values(std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
+                                                           {"ReleaseId", "1803"},
+                                                           {"HypervisorPresent", "True"},
+                                                           {"Microsoft-Hyper-V", "Enabled"},
+                                                           {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
+                                                           {"vmms", "Running"}},
+           // Common case, vmms needs to be started
+           std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
+                                                           {"ReleaseId", "1803"},
+                                                           {"HypervisorPresent", "True"},
+                                                           {"Microsoft-Hyper-V", "Enabled"},
+                                                           {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
+                                                           {"vmms", "Stopped"},
+                                                           {"Get-Service", "Automatic"},
+                                                           {"Start-Service"}},
+           // New ReleaseId format
+           std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
+                                                           {"ReleaseId", "21H2"},
+                                                           {"HypervisorPresent", "True"},
+                                                           {"Microsoft-Hyper-V", "Enabled"},
+                                                           {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
+                                                           {"vmms", "Running"}},
+           // Windows 11, no need to check ReleaseId
+           std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "11"},
+                                                           {"HypervisorPresent", "True"},
+                                                           {"Microsoft-Hyper-V", "Enabled"},
+                                                           {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
+                                                           {"vmms", "Running"}}));
+
+struct CheckBadSuite : public HyperVBackend, public WithParamInterface<std::vector<mpt::PowerShellTestHelper::RunSpec>>
+{
+};
+
+TEST_P(CheckBadSuite, CheckThrows)
+{
+    ps_helper.setup_mocked_run_sequence(GetParam());
+    EXPECT_THROW(backend.hypervisor_health_check(), std::runtime_error);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    HyperVBackend, CheckBadSuite,
+    // Windows 7
+    Values(std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "7"}},
+           // Windows 10, too old
+           std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"}, {"ReleaseId", "1802"}},
+           // vmms service fails to start
+           std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "11"},
+                                                           {"HypervisorPresent", "True"},
+                                                           {"Microsoft-Hyper-V", "Enabled"},
+                                                           {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
+                                                           {"vmms", "Stopped"},
+                                                           {"Get-Service", "Automatic"},
+                                                           {"Start-Service", "", false}},
+           // vmms service disabled
+           std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "11"},
+                                                           {"HypervisorPresent", "True"},
+                                                           {"Microsoft-Hyper-V", "Enabled"},
+                                                           {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
+                                                           {"vmms", "Stopped"},
+                                                           {"Get-Service", "Disabled"}}));
 struct HyperVNetworks : public Test
 {
     void SetUp() override
