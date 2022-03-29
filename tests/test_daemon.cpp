@@ -1664,6 +1664,6 @@ TEST_F(Daemon, launch_fails_with_incompatible_workflow)
 
     std::stringstream err_stream;
     send_command({"launch", "foo"}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("The \"foo\" workflow is not compatible with this host."));
+    EXPECT_THAT(err_stream.str(), HasSubstr("The \"foo\" Blueprint is not compatible with this host."));
 }
 } // namespace
