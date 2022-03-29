@@ -18,6 +18,8 @@
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
 #include <QDir>
@@ -27,10 +29,12 @@
 #include <stdexcept>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
 constexpr auto chain_name = "multipass_client_certs.pem";
+constexpr auto category = "client cert store";
 
 auto load_certs_from_file(const multipass::Path& cert_dir)
 {
@@ -53,10 +57,13 @@ mp::ClientCertStore::ClientCertStore(const multipass::Path& data_dir)
     : cert_dir{QDir(data_dir).filePath(mp::authenticated_certs_dir)},
       authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
+    mpl::log(mpl::Level::trace, category, fmt::format("Loading client certs from {}", cert_dir));
 }
 
 void mp::ClientCertStore::add_cert(const std::string& pem_cert)
 {
+    mpl::log(mpl::Level::trace, category, fmt::format("Adding cert:\n{}", pem_cert));
+
     QSslCertificate cert(QByteArray::fromStdString(pem_cert));
 
     if (cert.isNull())
@@ -98,6 +105,8 @@ std::string mp::ClientCertStore::PEM_cert_chain() const
 
 bool mp::ClientCertStore::verify_cert(const std::string& pem_cert)
 {
+    mpl::log(mpl::Level::trace, category, fmt::format("Verifying cert:\n{}", pem_cert));
+
     return verify_cert(QSslCertificate(QByteArray::fromStdString(pem_cert)));
 }
 

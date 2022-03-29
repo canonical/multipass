@@ -144,7 +144,7 @@ TEST_F(TestSimpleStreamsManifest, info_has_kernel_and_initrd_paths)
     EXPECT_FALSE(info->initrd_location.isEmpty());
 }
 
-TEST_F(TestSimpleStreamsManifest, lxd_driver_returns_expected_data)
+TEST_F(TestSimpleStreamsManifest, LXDDriverReturnsExpectedData)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("lxd"));
 
@@ -159,10 +159,10 @@ TEST_F(TestSimpleStreamsManifest, lxd_driver_returns_expected_data)
     const QString expected_xenial_id{"09d24fab15c6e1c86a47d3de2e7fb6d01a10f9ff2655a43f0959a672e03e7674"};
     EXPECT_EQ(xenial_info->id, expected_xenial_id);
 
-    // combined_disk-kvm-img_sha256 for bionic product
+    // combined_disk-img_sha256 despite -kvm being available (canonical/multipass#2491)
     const auto bionic_info = manifest->image_records["bionic"];
 
-    const QString expected_bionic_id{"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"};
+    const QString expected_bionic_id{"09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674"};
     EXPECT_EQ(bionic_info->id, expected_bionic_id);
 }
 

@@ -2734,7 +2734,8 @@ TEST_F(ClientAlias, fails_executing_alias_without_separator)
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"some_alias", "--some-option"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("<alias> --"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Options to the alias should come after \"--\", like this:\n"
+                                             "multipass <alias> -- <arguments>\n"));
 }
 
 TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)

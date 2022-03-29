@@ -46,6 +46,7 @@
 
 #include <scope_guard.hpp>
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QNetworkProxyFactory>
 #include <QStorageInfo>

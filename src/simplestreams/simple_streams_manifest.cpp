@@ -130,19 +130,13 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
             {
                 image = items["lxd.tar.xz"].toObject();
 
-                if (image.contains("combined_disk-kvm-img_sha256"))
-                {
-                    sha256 = image["combined_disk-kvm-img_sha256"].toString();
-                }
-                else if (image.contains("combined_disk1-img_sha256"))
+                // Avoid kvm image due to canonical/multipass#2491
+                if (image.contains("combined_disk1-img_sha256"))
                 {
                     sha256 = image["combined_disk1-img_sha256"].toString();
                 }
-
-                if (sha256.isEmpty())
-                {
+                else
                     continue;
-                }
             }
             else
             {

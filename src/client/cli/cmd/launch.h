@@ -48,7 +48,6 @@ private:
     ReturnCode request_launch(const ArgParser* parser);
     ReturnCode mount_home(const ArgParser* parser);
     std::pair<ReturnCode, std::string> request_mounts_setting_from_daemon(const ArgParser* parser);
-    OptInStatus::Status ask_metrics_permission(const LaunchReply& reply);
     bool ask_bridge_permission(multipass::LaunchReply& reply);
 
     LaunchRequest request;

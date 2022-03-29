@@ -41,17 +41,6 @@ service Rpc {
     rpc authenticate (AuthenticateRequest) returns (stream AuthenticateReply);
 }
 
-message OptInStatus {
-    enum Status {
-        UNKNOWN = 0;
-        PENDING = 1;
-        LATER = 2;
-        ACCEPTED = 3;
-        DENIED = 4;
-    }
-    Status opt_in_status = 1;
-}
-
 message LaunchRequest {
     string instance_name = 1;
     string image = 2;
@@ -62,7 +51,6 @@ message LaunchRequest {
     string time_zone = 7;
     string cloud_init_user_data = 8;
     string remote_name = 9;
-    OptInStatus opt_in_reply = 10;
     int32 verbosity_level = 11;
 
     message NetworkOptions {
@@ -105,19 +93,6 @@ message LaunchProgress {
     string percent_complete = 2;
 }
 
-message MetricsShowInfo {
-    // TODO: Place holder for real host data
-    message HostInfo {
-        string release = 1;
-    }
-    // TODO: Place holder for real instance data
-    message InstanceInfo {
-        string release = 1;
-    }
-    HostInfo host_info = 1;
-    repeated InstanceInfo instances_info = 2;
-}
-
 message UpdateInfo {
     string version = 1;
     string url = 2;
@@ -131,8 +106,6 @@ message LaunchReply {
         LaunchProgress launch_progress = 2;
         string create_message = 3;
     }
-    bool metrics_pending = 4;
-    MetricsShowInfo metrics_show_info = 5;
     string log_line = 6;
     UpdateInfo update_info = 7;
     string reply_message = 8;
