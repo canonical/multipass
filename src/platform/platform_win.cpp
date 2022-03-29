@@ -20,7 +20,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/settings/dynamic_setting_spec.h>
+#include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -592,7 +592,7 @@ auto mp::platform::Platform::extra_daemon_settings() const -> SettingSpec::Set
 auto mp::platform::Platform::extra_client_settings() const -> SettingSpec::Set
 {
     SettingSpec::Set ret;
-    ret.insert(std::make_unique<DynamicSettingSpec>(
+    ret.insert(std::make_unique<CustomSettingSpec>(
         winterm_key, petenv_default, [](const QString& val) { return interpret_setting(winterm_key, val); }));
 
     return ret;
