@@ -159,6 +159,8 @@ parts:
     - on arm64: [qemu-system-arm]
     - qemu-utils
     - libslang2
+    stage:
+    - -usr/lib/*/libssh*
     organize:
       usr/lib/*/pulseaudio/libpulsecommon-*.so: usr/lib/
       usr/share/seabios/*: qemu/
