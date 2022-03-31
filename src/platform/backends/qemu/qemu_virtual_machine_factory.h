@@ -41,6 +41,7 @@ public:
     void hypervisor_health_check() override;
     QString get_backend_version_string() override;
     QString get_backend_directory_name() override;
+    std::vector<NetworkInterfaceInfo> networks() const override;
 
 private:
     QemuPlatform::UPtr qemu_platform;
