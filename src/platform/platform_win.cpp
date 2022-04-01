@@ -600,19 +600,26 @@ std::string mp::platform::Platform::alias_path_message() const
 QString mp::platform::Platform::multipass_storage_location() const
 {
     auto storage_location = mp::utils::get_multipass_storage();
-    auto program_data_path = program_data_multipass_path();
-    auto roaming_path = QDir{systemprofile_app_data_path()}.absoluteFilePath("Roaming");
 
+    // If MULTIPASS_STORAGE env var is set, use that
     if (!storage_location.isEmpty())
     {
         return storage_location;
     }
 
-    if (QFile::exists(program_data_path) || !QFile::exists(QDir{roaming_path}.absoluteFilePath("multipassd")))
+    auto program_data_path = program_data_multipass_path();
+    auto systemprofile_roaming_path = QDir{systemprofile_app_data_path()}.absoluteFilePath("Roaming");
+
+    // If %PROGRAMDATA%\Multipass exists or if %SYSTEMROOT%\system32\config\AppData\Roaming\multipassd doesn't
+    // exist, use %PROGRAMDATA%\Multipass
+    if (QFile::exists(program_data_path) ||
+        !QFile::exists(QDir{systemprofile_roaming_path}.absoluteFilePath("multipassd")))
     {
         return program_data_path;
     }
 
+    // If %SYSTEMROOT%\system32\config\AppData\Roaming\multipassd exists, return empty and let the
+    // caller use Qt's StandardPaths to figure it out (legacy)
     return QString();
 }
 
