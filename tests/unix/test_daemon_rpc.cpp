@@ -55,6 +55,7 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(*mock_cert_provider, PEM_certificate()).WillOnce(Return(cert_data));
         EXPECT_CALL(*mock_cert_provider, PEM_signing_key()).WillOnce(Return(key_data));
+        EXPECT_CALL(*mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
     }
 
     mp::Rpc::Stub make_secure_stub()

@@ -101,6 +101,7 @@ struct Daemon : public mpt::DaemonTestFixture
         });
 
         EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
+        EXPECT_CALL(*mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
     }
 
     void SetUp() override
