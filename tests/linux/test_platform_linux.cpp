@@ -702,6 +702,7 @@ TEST_F(PlatformLinux, read_os_release_from_file_not_found)
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_file_ops, is_open(_)).WillOnce(Return(false));
 
     auto output = multipass::platform::detail::read_os_release();
 
