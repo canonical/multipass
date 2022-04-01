@@ -600,14 +600,20 @@ std::string mp::platform::Platform::alias_path_message() const
 QString mp::platform::Platform::multipass_storage_location() const
 {
     auto storage_location = mp::utils::get_multipass_storage();
+    auto program_data_path = program_data_multipass_path();
     auto roaming_path = QDir{systemprofile_app_data_path()}.absoluteFilePath("Roaming");
 
-    if (storage_location.isEmpty() && !QFile::exists(QDir{roaming_path}.absoluteFilePath("multipassd")))
+    if (!storage_location.isEmpty())
     {
-        storage_location = program_data_multipass_path();
+        return storage_location;
     }
 
-    return storage_location;
+    if (QFile::exists(program_data_path) || !QFile::exists(QDir{roaming_path}.absoluteFilePath("multipassd")))
+    {
+        return program_data_path;
+    }
+
+    return QString();
 }
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
