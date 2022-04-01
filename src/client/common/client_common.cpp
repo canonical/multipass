@@ -193,7 +193,6 @@ std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
 
     if (client_certs_exist(common_client_cert_dir_path))
     {
-        mpl::log(mpl::Level::trace, "client", fmt::format("Found cert provider at {}", common_client_cert_dir_path));
         return std::make_unique<mp::SSLCertProvider>(common_client_cert_dir_path);
     }
 
