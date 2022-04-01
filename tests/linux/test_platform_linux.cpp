@@ -342,7 +342,7 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 TEST_F(PlatformLinux, workflowsURLOverrideSetReturnsExpectedData)
 {
     const QString fake_url{"https://a.fake.url"};
-    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", fake_url.toUtf8());
+    mpt::SetEnvScope workflows_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
 
     EXPECT_EQ(MP_PLATFORM.get_workflows_url_override(), fake_url);
 }

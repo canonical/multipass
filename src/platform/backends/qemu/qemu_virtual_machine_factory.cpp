@@ -113,3 +113,8 @@ QString mp::QemuVirtualMachineFactory::get_backend_directory_name()
 {
     return qemu_platform->get_directory_name();
 }
+
+auto mp::QemuVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
+{
+    return qemu_platform->networks();
+}

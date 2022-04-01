@@ -94,6 +94,13 @@ apps:
       - system-observe
 
 parts:
+  libvirt:
+    plugin: nil
+    stage-packages:
+    - libvirt0
+    stage:
+    - -usr/lib/*/libssh*  # this avoids extra libssh libs in the snap
+
   multipass:
     plugin: cmake
     build-snaps:
@@ -126,7 +133,6 @@ parts:
     - libqt5x11extras5
     - libssl1.1
     - libxml2
-    - libvirt0
     - dnsmasq-base
     - dnsmasq-utils
     source: .
@@ -159,6 +165,8 @@ parts:
     - on arm64: [qemu-system-arm]
     - qemu-utils
     - libslang2
+    stage:
+    - -usr/lib/*/libssh*
     organize:
       usr/lib/*/pulseaudio/libpulsecommon-*.so: usr/lib/
       usr/share/seabios/*: qemu/
