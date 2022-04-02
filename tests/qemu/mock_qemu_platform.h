@@ -29,7 +29,12 @@ namespace test
 {
 struct MockQemuPlatform : public QemuPlatform
 {
-    using QemuPlatform::QemuPlatform; // ctor
+    MockQemuPlatform()
+    {
+        EXPECT_CALL(*this, vmstate_platform_args())
+            .Times(testing::AnyNumber())
+            .WillRepeatedly(testing::Return(QStringList()));
+    }
 
     MOCK_METHOD1(get_ip_for, optional<IPAddress>(const std::string&));
     MOCK_METHOD1(remove_resources_for, void(const std::string&));
