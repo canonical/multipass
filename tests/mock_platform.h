@@ -48,6 +48,7 @@ public:
     MOCK_CONST_METHOD2(create_alias_script, void(const std::string&, const AliasDefinition&));
     MOCK_CONST_METHOD1(remove_alias_script, void(const std::string&));
     MOCK_CONST_METHOD2(set_server_socket_restrictions, void(const std::string&, const bool));
+    MOCK_CONST_METHOD0(multipass_storage_location, QString());
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };

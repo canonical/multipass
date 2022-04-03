@@ -39,8 +39,8 @@ struct TestClientCommon : public mpt::DaemonTestFixture
 {
     TestClientCommon()
     {
-        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericDataLocation))
-            .WillRepeatedly(Return(temp_dir.path()));
+        ON_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericDataLocation))
+            .WillByDefault(Return(temp_dir.path()));
     }
 
     mpt::MockDaemon make_secure_server()
