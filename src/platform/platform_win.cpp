@@ -283,6 +283,22 @@ QString get_alias_script_path(const std::string& alias)
 
     return aliases_folder.absoluteFilePath(QString::fromStdString(alias)) + ".bat";
 }
+
+QString program_data_multipass_path()
+{
+    return QDir{qEnvironmentVariable("ProgramData", "C:\\ProgramData")}.absoluteFilePath("Multipass");
+}
+
+QString systemprofile_app_data_path()
+{
+    auto ret = QString{qgetenv("SYSTEMROOT")};
+    ret = QDir{ret}.absoluteFilePath("system32");
+    ret = QDir{ret}.absoluteFilePath("config");
+    ret = QDir{ret}.absoluteFilePath("systemprofile");
+    ret = QDir{ret}.absoluteFilePath("AppData");
+
+    return ret;
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -442,16 +458,19 @@ QString mp::platform::default_privileged_mounts()
 
 QString mp::platform::daemon_config_home() // temporary
 {
-    auto ret = QString{qgetenv("SYSTEMROOT")};
-    ret = QDir{ret}.absoluteFilePath("system32");
-    ret = QDir{ret}.absoluteFilePath("config");
-    ret = QDir{ret}.absoluteFilePath("systemprofile");
-    ret = QDir{ret}.absoluteFilePath("AppData");
+    auto ret = systemprofile_app_data_path();
     ret =
         QDir{ret}.absoluteFilePath("Local"); // what LOCALAPPDATA would point to under the system account, at this point
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
 
-    return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
+    if (QFile::exists(ret))
+    {
+        return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
+    }
+    else
+    {
+        return MP_PLATFORM.multipass_storage_location();
+    }
 }
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
@@ -576,6 +595,32 @@ std::string mp::platform::Platform::alias_path_message() const
                        "In PowerShell:\n$ENV:PATH=\"$ENV:PATH;{0}\"\n\n"
                        "Or in Command Prompt:\nPATH=%PATH%;{0}\n",
                        get_alias_scripts_folder().absolutePath());
+}
+
+QString mp::platform::Platform::multipass_storage_location() const
+{
+    auto storage_location = mp::utils::get_multipass_storage();
+
+    // If MULTIPASS_STORAGE env var is set, use that
+    if (!storage_location.isEmpty())
+    {
+        return storage_location;
+    }
+
+    auto program_data_path = program_data_multipass_path();
+    auto systemprofile_roaming_path = QDir{systemprofile_app_data_path()}.absoluteFilePath("Roaming");
+
+    // If %PROGRAMDATA%\Multipass exists or if %SYSTEMROOT%\system32\config\AppData\Roaming\multipassd doesn't
+    // exist, use %PROGRAMDATA%\Multipass
+    if (QFile::exists(program_data_path) ||
+        !QFile::exists(QDir{systemprofile_roaming_path}.absoluteFilePath("multipassd")))
+    {
+        return program_data_path;
+    }
+
+    // If %SYSTEMROOT%\system32\config\AppData\Roaming\multipassd exists, return empty and let the
+    // caller use Qt's StandardPaths to figure it out (legacy)
+    return QString();
 }
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)

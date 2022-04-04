@@ -260,7 +260,7 @@ void create_client_cert_if_necessary()
 {
     TCHAR infoBuf[BUFF_SZ];
     GetSystemDirectory(infoBuf, BUFF_SZ);
-    auto storage_path = mp::utils::get_multipass_storage();
+    auto storage_path = MP_PLATFORM.multipass_storage_location();
 
     const QString multipassd_data_dir_path{
         storage_path.isEmpty() ? QString("%1\\config\\systemprofile\\AppData\\Roaming\\multipassd\\").arg(infoBuf)
