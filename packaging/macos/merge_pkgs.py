@@ -42,7 +42,8 @@ with tempfile.TemporaryDirectory() as workdir:
         # Unpack payload
         unpacked = payload.with_suffix(".unpacked")
         unpacked.mkdir()
-        subprocess.check_call(["tar", "-xzf", payload, "-C", unpacked])
+        # need to use system tar for deprecated cpio support
+        subprocess.check_call(["/usr/bin/tar", "-xzf", payload, "-C", unpacked])
 
     for path in x86_work.glob("*.pkg/Payload.unpacked/**/*"):
         if path.is_dir():
