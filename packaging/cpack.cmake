@@ -178,8 +178,10 @@ if (MSVC)
     StrCmp $REMOVE_SETTINGS_AND_CACHE \\\"0\\\" done_uninst
     !include \\\"x64.nsh\\\"
     \\\${DisableX64FSRedirection}
+    SetShellVarContext all
     RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Local\\\\multipassd\\\"
     RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Roaming\\\\multipassd\\\"
+    RMDIR /r \\\"$LOCALAPPDATA\\\\Multipass\\\"
     \\\${EnableX64FSRedirection}
     done_uninst:
     "
