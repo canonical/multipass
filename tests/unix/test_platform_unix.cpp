@@ -16,11 +16,13 @@
  */
 
 #include <tests/common.h>
+#include <tests/mock_environment_helpers.h>
 #include <tests/mock_platform.h>
 #include <tests/temp_file.h>
 
 #include "mock_libc_functions.h"
 
+#include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
@@ -123,4 +125,20 @@ TEST_F(TestPlatformUnix, chmodSetsFileModsAndReturns)
 
     EXPECT_EQ(perms, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser | QFileDevice::WriteUser |
                          QFileDevice::ReadGroup | QFileDevice::WriteGroup);
+}
+
+TEST_F(TestPlatformUnix, multipassStorageLocationReturnsExpectedPath)
+{
+    mpt::SetEnvScope e(mp::multipass_storage_env_var, file.name().toUtf8());
+
+    auto storage_path = MP_PLATFORM.multipass_storage_location();
+
+    EXPECT_EQ(storage_path, file.name());
+}
+
+TEST_F(TestPlatformUnix, multipassStorageLocationNotSetReturnsEmpty)
+{
+    auto storage_path = MP_PLATFORM.multipass_storage_location();
+
+    EXPECT_TRUE(storage_path.isEmpty());
 }

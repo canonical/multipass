@@ -126,6 +126,11 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
             fmt::format("Could not set permissions for the multipass socket: {}", strerror(errno)));
 }
 
+QString mp::platform::Platform::multipass_storage_location() const
+{
+    return mp::utils::get_multipass_storage();
+}
+
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
 {
     struct stat st

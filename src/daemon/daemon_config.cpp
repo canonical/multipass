@@ -107,7 +107,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
-    auto storage_path = mp::utils::get_multipass_storage();
+    auto storage_path = MP_PLATFORM.multipass_storage_location();
 
     if (cache_directory.isEmpty())
     {
