@@ -151,10 +151,22 @@ TEST_F(TestInstanceSettingsHandler, getFetchesInstanceCPUs)
 {
     constexpr auto target_instance_name = "foo";
     specs.insert({{target_instance_name, {}}, {"bar", {}}, {"baz", {}}});
-
     specs[target_instance_name].num_cores = 78;
 
     auto got = make_handler().get(make_key(target_instance_name, "cpus"));
     EXPECT_EQ(got, QString::number(specs[target_instance_name].num_cores));
+}
+
+TEST_F(TestInstanceSettingsHandler, getFetchesInstanceMemory)
+{
+    constexpr auto target_instance_name = "elsa";
+    specs.insert({{"hugo", {}}, {target_instance_name, {}}, {"flint", {}}});
+    specs[target_instance_name].mem_size = mp::MemorySize{"789MiB"};
+
+    auto got = make_handler().get(make_key(target_instance_name, "memory"));
+    got.remove(".0"); // TODO drop decimal removal once MemorySize accepts it as input
+    EXPECT_EQ(mp::MemorySize{got.toStdString()}, specs[target_instance_name].mem_size); /* note that this doesn't work
+    for all values, because the value is returned in human readable format, which approximates (unless and until --raw
+    is used/implemented) */
 }
 } // namespace
