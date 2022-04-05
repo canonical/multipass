@@ -24,6 +24,7 @@
 #include <multipass/virtual_machine.h>
 
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
@@ -51,6 +52,20 @@ struct VMSpecs
     bool deleted;
     QJsonObject metadata;
 };
+
+inline bool operator==(const VMMount& a, const VMMount& b)
+{
+    return std::tie(a.source_path, a.gid_mappings, a.uid_mappings) ==
+           std::tie(b.source_path, b.gid_mappings, b.uid_mappings);
+}
+
+inline bool operator==(const VMSpecs& a, const VMSpecs& b)
+{
+    return std::tie(a.num_cores, a.mem_size, a.disk_space, a.default_mac_address, a.extra_interfaces, a.ssh_username,
+                    a.state, a.mounts, a.deleted, a.metadata) ==
+           std::tie(b.num_cores, b.mem_size, b.disk_space, b.default_mac_address, b.extra_interfaces, b.ssh_username,
+                    b.state, b.mounts, b.deleted, b.metadata);
+}
 } // namespace multipass
 
 #endif // MULTIPASS_VM_SPECS_H

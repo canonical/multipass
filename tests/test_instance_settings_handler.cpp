@@ -107,7 +107,7 @@ INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsKeysMultiple, TestInstanceSettingsK
                                                  {"bar", SpecialInstanceState::none},
                                                  {"baz", SpecialInstanceState::preparing}}}));
 
-TEST_F(TestInstanceSettingsHandler, keysDoesntPersistInstances)
+TEST_F(TestInstanceSettingsHandler, keysDoesNotPersistInstances)
 {
     specs.insert({{"abc", {}}, {"xyz", {}}, {"blah", {}}});
     deleted_vms["blah"];
@@ -117,5 +117,27 @@ TEST_F(TestInstanceSettingsHandler, keysDoesntPersistInstances)
     make_handler([&persisted] { persisted = true; }).keys();
 
     EXPECT_FALSE(persisted);
+}
+
+TEST_F(TestInstanceSettingsHandler, keysDoesNotModifyInstances)
+{
+    mp::VMSpecs spec;
+    spec.num_cores = 3;
+    spec.ssh_username = "hugo";
+
+    for (const auto& name : {"toto", "tata", "fuzz"})
+    {
+        vms.insert({name, {}});
+        specs.insert({name, spec});
+        ++spec.num_cores;
+    }
+
+    auto specs_copy = specs;
+    auto vms_copy = vms;
+
+    make_handler().keys();
+
+    EXPECT_EQ(specs, specs_copy);
+    EXPECT_EQ(vms, vms_copy);
 }
 } // namespace
