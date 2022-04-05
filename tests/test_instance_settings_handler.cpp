@@ -49,6 +49,11 @@ struct TestInstanceSettingsHandler : public Test
     std::unordered_set<std::string> preparing_vms;
 };
 
+QString make_key(const QString& instance_name, const QString& property)
+{
+    return QString("%1.%2.%3").arg(mp::daemon_settings_root, instance_name, property);
+}
+
 enum class SpecialInstanceState
 {
     none,
@@ -80,7 +85,7 @@ TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
             deleted_vms[name];
 
         for (const auto& prop : props)
-            expected_keys.push_back(QString{"%1.%2.%3"}.arg(mp::daemon_settings_root, name, prop));
+            expected_keys.push_back(make_key(name, prop));
     }
 
     EXPECT_THAT(make_handler().keys(), UnorderedElementsAreArray(expected_keys));
@@ -154,10 +159,7 @@ TEST_F(TestInstanceSettingsHandler, getFetchesInstanceCPUs)
 
     specs[target_instance_name].num_cores = 78;
 
-    auto got = make_handler().get(
-        QString("%1.%2.%3")
-            .arg(mp::daemon_settings_root, target_instance_name, "cpus")); // TODO@ricab extract formatting
-
+    auto got = make_handler().get(make_key(target_instance_name, "cpus"));
     EXPECT_EQ(got, QString::number(specs[target_instance_name].num_cores));
 }
 } // namespace
