@@ -17,4 +17,41 @@
 
 #include "common.h"
 
+#include <multipass/virtual_machine.h>
+
 #include <src/daemon/instance_settings_handler.h>
+#include <src/daemon/vm_specs.h>
+
+#include <QString>
+
+#include <string>
+#include <unordered_map>
+
+namespace mp = multipass;
+namespace mpt = mp::test;
+using namespace testing;
+
+namespace
+{
+TEST(TestInstanceSettingsHandler, keysCoversAllPropertiesForAllInstances)
+{
+    constexpr auto names = std::array{"foo", "bar", "morning-light-mountain"};
+    constexpr auto props = std::array{"cpus", "disk", "memory"};
+
+    auto vms = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>{};
+    auto specs = std::unordered_map<std::string, mp::VMSpecs>{};
+    auto expected_keys = std::vector<QString>{};
+
+    for (const auto& name : names)
+    {
+        specs[name] = {};
+        for (const auto& prop : props)
+            expected_keys.push_back(QString{"local.%1.%2"}.arg(name, prop));
+    }
+
+    auto handler = mp::InstanceSettingsHandler{specs, vms, /*deleted_instances=*/{}, /*preparing_instances=*/{},
+                                               /*instance_persister=*/[] {}};
+
+    EXPECT_THAT(handler.keys(), UnorderedElementsAreArray(expected_keys));
+}
+} // namespace
