@@ -150,12 +150,7 @@ TEST_F(TestInstanceSettingsHandler, keysDoesNotModifyInstances)
 TEST_F(TestInstanceSettingsHandler, getFetchesInstanceCPUs)
 {
     constexpr auto target_instance_name = "foo";
-
-    for (const auto& name : {target_instance_name, "bar", "baz"})
-    {
-        specs.insert({name, {}});
-        vms.insert({name, {}});
-    }
+    specs.insert({{target_instance_name, {}}, {"bar", {}}, {"baz", {}}});
 
     specs[target_instance_name].num_cores = 78;
 
