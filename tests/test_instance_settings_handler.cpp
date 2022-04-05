@@ -106,4 +106,16 @@ INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsKeysMultiple, TestInstanceSettingsK
                                                 {{"foo", SpecialInstanceState::none},
                                                  {"bar", SpecialInstanceState::none},
                                                  {"baz", SpecialInstanceState::preparing}}}));
+
+TEST_F(TestInstanceSettingsHandler, keysDoesntPersistInstances)
+{
+    specs.insert({{"abc", {}}, {"xyz", {}}, {"blah", {}}});
+    deleted_vms["blah"];
+    preparing_vms.emplace("xyz");
+
+    bool persisted = false;
+    make_handler([&persisted] { persisted = true; }).keys();
+
+    EXPECT_FALSE(persisted);
+}
 } // namespace
