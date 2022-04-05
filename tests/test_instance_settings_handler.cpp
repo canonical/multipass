@@ -34,6 +34,20 @@ using namespace testing;
 
 namespace
 {
+struct TestInstanceSettingsHandler : public Test
+{
+    mp::InstanceSettingsHandler make_handler(std::function<void()> instance_persister = [] {})
+    {
+        return mp::InstanceSettingsHandler{specs, vms, deleted_vms, preparing_vms, instance_persister};
+    }
+
+    // empty components to fill before creating handler
+    std::unordered_map<std::string, mp::VMSpecs> specs;
+    std::unordered_map<std::string, mp::VirtualMachine::ShPtr> vms;
+    std::unordered_map<std::string, mp::VirtualMachine::ShPtr> deleted_vms;
+    std::unordered_set<std::string> preparing_vms;
+};
+
 enum class SpecialInstanceState
 {
     none,
@@ -45,7 +59,7 @@ using Instance = std::tuple<InstanceName, SpecialInstanceState>;
 using Instances = std::vector<Instance>;
 using InstanceLists = std::vector<Instances>;
 
-struct TestInstanceSettingsKeys : public TestWithParam<Instances>
+struct TestInstanceSettingsKeys : public TestInstanceSettingsHandler, public WithParamInterface<Instances>
 {
 };
 
@@ -53,11 +67,6 @@ TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
 {
     constexpr auto props = std::array{"cpus", "disk", "memory"};
     const auto intended_instances = GetParam();
-
-    auto specs = std::unordered_map<std::string, mp::VMSpecs>{};
-    auto vms = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>{};
-    auto deleted_vms = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>{};
-    auto preparing_vms = std::unordered_set<std::string>{};
     auto expected_keys = std::vector<QString>{};
 
     for (const auto& [name, special_state] : intended_instances)
@@ -73,9 +82,7 @@ TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
             expected_keys.push_back(QString{"local.%1.%2"}.arg(name, prop));
     }
 
-    auto handler = mp::InstanceSettingsHandler{specs, vms, deleted_vms, preparing_vms, /*instance_persister=*/[] {}};
-
-    EXPECT_THAT(handler.keys(), UnorderedElementsAreArray(expected_keys));
+    EXPECT_THAT(make_handler().keys(), UnorderedElementsAreArray(expected_keys));
 }
 
 INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsKeysEmpty, TestInstanceSettingsKeys, Values(Instances{}));
