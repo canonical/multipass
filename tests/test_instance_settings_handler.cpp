@@ -17,6 +17,7 @@
 
 #include "common.h"
 
+#include <multipass/constants.h>
 #include <multipass/virtual_machine.h>
 
 #include <src/daemon/instance_settings_handler.h>
@@ -79,7 +80,7 @@ TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
             deleted_vms[name];
 
         for (const auto& prop : props)
-            expected_keys.push_back(QString{"local.%1.%2"}.arg(name, prop));
+            expected_keys.push_back(QString{"%1.%2.%3"}.arg(mp::daemon_settings_root, name, prop));
     }
 
     EXPECT_THAT(make_handler().keys(), UnorderedElementsAreArray(expected_keys));
