@@ -33,10 +33,14 @@ using namespace testing;
 
 namespace
 {
-TEST(TestInstanceSettingsHandler, keysCoversAllPropertiesForAllInstances)
+struct TestInstanceSettingsKeys : public TestWithParam<std::vector<const char*>>
 {
-    constexpr auto names = std::array{"foo", "bar", "morning-light-mountain"};
+};
+
+TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
+{
     constexpr auto props = std::array{"cpus", "disk", "memory"};
+    const auto names = GetParam();
 
     auto vms = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>{};
     auto specs = std::unordered_map<std::string, mp::VMSpecs>{};
@@ -54,4 +58,10 @@ TEST(TestInstanceSettingsHandler, keysCoversAllPropertiesForAllInstances)
 
     EXPECT_THAT(handler.keys(), UnorderedElementsAreArray(expected_keys));
 }
+
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsKeys,
+                         ValuesIn(std::vector<std::vector<const char*>>{{},
+                                                                        {"morning-light-mountain"},
+                                                                        {"foo", "bar", "MORNING-LIGHT-MOUNTAIN"},
+                                                                        {"a", "b", "c", "d", "e", "f", "g"}}));
 } // namespace
