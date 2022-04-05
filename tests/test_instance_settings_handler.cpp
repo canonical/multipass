@@ -141,4 +141,23 @@ TEST_F(TestInstanceSettingsHandler, keysDoesNotModifyInstances)
     EXPECT_EQ(specs, specs_copy);
     EXPECT_EQ(vms, vms_copy);
 }
+
+TEST_F(TestInstanceSettingsHandler, getFetchesInstanceCPUs)
+{
+    constexpr auto target_instance_name = "foo";
+
+    for (const auto& name : {target_instance_name, "bar", "baz"})
+    {
+        specs.insert({name, {}});
+        vms.insert({name, {}});
+    }
+
+    specs[target_instance_name].num_cores = 78;
+
+    auto got = make_handler().get(
+        QString("%1.%2.%3")
+            .arg(mp::daemon_settings_root, target_instance_name, "cpus")); // TODO@ricab extract formatting
+
+    EXPECT_EQ(got, QString::number(specs[target_instance_name].num_cores));
+}
 } // namespace
