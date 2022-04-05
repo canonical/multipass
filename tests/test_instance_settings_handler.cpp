@@ -169,4 +169,15 @@ TEST_F(TestInstanceSettingsHandler, getFetchesInstanceMemory)
     for all values, because the value is returned in human readable format, which approximates (unless and until --raw
     is used/implemented) */
 }
+
+TEST_F(TestInstanceSettingsHandler, getFetchesInstanceDisk)
+{
+    constexpr auto target_instance_name = "blue";
+    specs.insert({{"rhapsody", {}}, {"in", {}}, {target_instance_name, {}}});
+    specs[target_instance_name].disk_space = mp::MemorySize{"123G"};
+
+    auto got = make_handler().get(make_key(target_instance_name, "disk"));
+    got.remove(".0");                                                                     // TODO idem
+    EXPECT_EQ(mp::MemorySize{got.toStdString()}, specs[target_instance_name].disk_space); // idem
+}
 } // namespace
