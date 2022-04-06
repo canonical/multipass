@@ -180,4 +180,17 @@ TEST_F(TestInstanceSettingsHandler, getFetchesInstanceDisk)
     got.remove(".0");                                                                     // TODO idem
     EXPECT_EQ(mp::MemorySize{got.toStdString()}, specs[target_instance_name].disk_space); // idem
 }
+
+TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
+{
+    constexpr auto target_instance_name = "tinkerbell-hates-goatees";
+    specs[target_instance_name].disk_space = mp::MemorySize{"12345KiB"};
+    specs[target_instance_name].mem_size = mp::MemorySize{"345678"};
+
+    const auto handler = make_handler();
+
+    EXPECT_EQ(handler.get(make_key(target_instance_name, "disk")), "12.1MiB");
+    EXPECT_EQ(handler.get(make_key(target_instance_name, "memory")), "337.6KiB");
+}
+
 } // namespace
