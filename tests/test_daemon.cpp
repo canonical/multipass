@@ -102,6 +102,7 @@ struct Daemon : public mpt::DaemonTestFixture
         });
 
         EXPECT_CALL(mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
+        EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
     }
 
     void SetUp() override
@@ -245,16 +246,17 @@ TEST_F(Daemon, data_path_valid)
 
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::CacheLocation))
         .WillOnce(Return(cache_dir.path()));
-
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppDataLocation))
         .WillOnce(Return(data_dir.path()));
+
+    EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(QString()));
 
     config_builder.data_directory = "";
     config_builder.cache_directory = "";
     auto config = config_builder.build();
 
-    EXPECT_EQ(config->data_directory.toStdString(), data_dir.path().toStdString());
-    EXPECT_EQ(config->cache_directory.toStdString(), cache_dir.path().toStdString());
+    EXPECT_EQ(config->data_directory, data_dir.path());
+    EXPECT_EQ(config->cache_directory, cache_dir.path());
 }
 
 TEST_F(Daemon, data_path_with_storage_valid)
@@ -264,12 +266,14 @@ TEST_F(Daemon, data_path_with_storage_valid)
     mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_)).Times(0);
 
+    EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(mp::utils::get_multipass_storage()));
+
     config_builder.data_directory = "";
     config_builder.cache_directory = "";
     auto config = config_builder.build();
 
-    EXPECT_EQ(config->data_directory.toStdString(), storage_dir.filePath("data").toStdString());
-    EXPECT_EQ(config->cache_directory.toStdString(), storage_dir.filePath("cache").toStdString());
+    EXPECT_EQ(config->data_directory, storage_dir.filePath("data"));
+    EXPECT_EQ(config->cache_directory, storage_dir.filePath("cache"));
 }
 
 TEST_F(Daemon, workflowsDownloadsFromCorrectURL)
@@ -1761,6 +1765,6 @@ TEST_F(Daemon, launch_fails_with_incompatible_workflow)
 
     std::stringstream err_stream;
     send_command({"launch", "foo"}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("The \"foo\" workflow is not compatible with this host."));
+    EXPECT_THAT(err_stream.str(), HasSubstr("The \"foo\" Blueprint is not compatible with this host."));
 }
 } // namespace

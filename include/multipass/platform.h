@@ -67,6 +67,7 @@ public:
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
     virtual void set_server_socket_restrictions(const std::string& server_address, const bool restricted) const;
+    virtual QString multipass_storage_location() const;
     virtual QString daemon_config_home() const; // temporary
     virtual SettingSpec::Set extra_daemon_settings() const;
     virtual SettingSpec::Set extra_client_settings() const;

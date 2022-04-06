@@ -30,7 +30,9 @@ class MockPlatform : public platform::Platform
 public:
     MockPlatform(const PrivatePass& pass) : platform::Platform(pass)
     {
-        ON_CALL(*this, set_server_socket_restrictions).WillByDefault(testing::Return());
+        EXPECT_CALL(*this, set_server_socket_restrictions)
+            .Times(testing::AnyNumber())
+            .WillRepeatedly(testing::Return());
     };
 
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
@@ -46,6 +48,7 @@ public:
     MOCK_CONST_METHOD2(create_alias_script, void(const std::string&, const AliasDefinition&));
     MOCK_CONST_METHOD1(remove_alias_script, void(const std::string&));
     MOCK_CONST_METHOD2(set_server_socket_restrictions, void(const std::string&, const bool));
+    MOCK_CONST_METHOD0(multipass_storage_location, QString());
     MOCK_CONST_METHOD0(extra_daemon_settings, SettingSpec::Set());
     MOCK_CONST_METHOD0(extra_client_settings, SettingSpec::Set());
     MOCK_CONST_METHOD0(daemon_config_home, QString());

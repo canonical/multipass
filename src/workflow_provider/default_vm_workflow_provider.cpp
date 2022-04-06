@@ -64,7 +64,7 @@ auto workflows_map_for(const std::string& archive_file_path, bool& needs_update)
                 {
                     mpl::log(
                         mpl::Level::error, category,
-                        fmt::format("Invalid workflow name \'{}\': must be a valid host name", file_info.baseName()));
+                        fmt::format("Invalid Blueprint name \'{}\': must be a valid host name", file_info.baseName()));
                     needs_update = true;
 
                     continue;
@@ -132,7 +132,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         else
         {
             needs_update = true;
-            throw InvalidWorkflowException("Unsupported image scheme in Workflow");
+            throw InvalidWorkflowException("Unsupported image scheme in Blueprint");
         }
     }
 
@@ -154,7 +154,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         catch (const YAML::BadConversion&)
         {
             needs_update = true;
-            throw InvalidWorkflowException(fmt::format("Minimum CPU value in workflow is invalid"));
+            throw InvalidWorkflowException(fmt::format("Minimum CPU value in Blueprint is invalid"));
         }
     }
 
@@ -178,7 +178,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         catch (const InvalidMemorySizeException&)
         {
             needs_update = true;
-            throw InvalidWorkflowException(fmt::format("Minimum memory size value in workflow is invalid"));
+            throw InvalidWorkflowException(fmt::format("Minimum memory size value in Blueprint is invalid"));
         }
     }
 
@@ -202,7 +202,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         catch (const InvalidMemorySizeException&)
         {
             needs_update = true;
-            throw InvalidWorkflowException(fmt::format("Minimum disk space value in workflow is invalid"));
+            throw InvalidWorkflowException(fmt::format("Minimum disk space value in Blueprint is invalid"));
         }
     }
 
@@ -224,7 +224,7 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         {
             needs_update = true;
             throw InvalidWorkflowException(
-                fmt::format("Cannot convert cloud-init data for the {} workflow", workflow_name));
+                fmt::format("Cannot convert cloud-init data for the {} Blueprint", workflow_name));
         }
     }
 
@@ -235,8 +235,8 @@ mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workf
 {
     update_workflows();
 
-    static constexpr auto missing_key_template{"The \'{}\' key is required for the {} workflow"};
-    static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the {} workflow"};
+    static constexpr auto missing_key_template{"The \'{}\' key is required for the {} Blueprint"};
+    static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the {} Blueprint"};
     auto& workflow_config = workflow_map.at(workflow_name);
 
     VMImageInfo image_info;
@@ -316,11 +316,11 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
             // finish iterating.
             needs_update = false;
             will_need_update = true;
-            mpl::log(mpl::Level::error, category, fmt::format("Invalid workflow: {}", e.what()));
+            mpl::log(mpl::Level::error, category, fmt::format("Invalid Blueprint: {}", e.what()));
         }
         catch (const IncompatibleWorkflowException& e)
         {
-            mpl::log(mpl::Level::trace, category, fmt::format("Skipping incompatible workflow: {}", e.what()));
+            mpl::log(mpl::Level::trace, category, fmt::format("Skipping incompatible Blueprint: {}", e.what()));
         }
     }
 
@@ -359,7 +359,7 @@ int mp::DefaultVMWorkflowProvider::workflow_timeout(const std::string& workflow_
             catch (const YAML::BadConversion&)
             {
                 needs_update = true;
-                throw InvalidWorkflowException(fmt::format("Invalid timeout given in workflow"));
+                throw InvalidWorkflowException(fmt::format("Invalid timeout given in Blueprint"));
             }
         }
     }
@@ -392,11 +392,11 @@ void mp::DefaultVMWorkflowProvider::update_workflows()
         catch (const Poco::Exception& e)
         {
             mpl::log(mpl::Level::error, category,
-                     fmt::format("Error extracting Workflows zip file: {}", e.displayText()));
+                     fmt::format("Error extracting Blueprints zip file: {}", e.displayText()));
         }
         catch (const DownloadException& e)
         {
-            mpl::log(mpl::Level::error, category, fmt::format("Error fetching workflows: {}", e.what()));
+            mpl::log(mpl::Level::error, category, fmt::format("Error fetching Blueprints: {}", e.what()));
         }
     }
 }

@@ -170,7 +170,7 @@ TEST_F(DaemonFind, unknownQueryReturnsError)
     send_command({"find", phony_name}, trash_stream, stream);
 
     EXPECT_THAT(stream.str(),
-                HasSubstr(fmt::format("Unable to find an image or workflow matching \"{}\"", phony_name)));
+                HasSubstr(fmt::format("Unable to find an image or Blueprint matching \"{}\"", phony_name)));
 }
 
 TEST_F(DaemonFind, forByRemoteReturnsExpectedData)

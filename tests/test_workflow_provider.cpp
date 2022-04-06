@@ -91,7 +91,7 @@ TEST_F(VMWorkflowProvider, invalidImageSchemeThrows)
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-image-workflow", vm_desc),
-                         mp::InvalidWorkflowException, mpt::match_what(StrEq("Unsupported image scheme in Workflow")));
+                         mp::InvalidWorkflowException, mpt::match_what(StrEq("Unsupported image scheme in Blueprint")));
 }
 
 TEST_F(VMWorkflowProvider, invalidMinCoresThrows)
@@ -102,7 +102,7 @@ TEST_F(VMWorkflowProvider, invalidMinCoresThrows)
 
     MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-cpu-workflow", vm_desc),
                          mp::InvalidWorkflowException,
-                         mpt::match_what(StrEq("Minimum CPU value in workflow is invalid")));
+                         mpt::match_what(StrEq("Minimum CPU value in Blueprint is invalid")));
 }
 
 TEST_F(VMWorkflowProvider, invalidMinMemorySizeThrows)
@@ -113,7 +113,7 @@ TEST_F(VMWorkflowProvider, invalidMinMemorySizeThrows)
 
     MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-memory-size-workflow", vm_desc),
                          mp::InvalidWorkflowException,
-                         mpt::match_what(StrEq("Minimum memory size value in workflow is invalid")));
+                         mpt::match_what(StrEq("Minimum memory size value in Blueprint is invalid")));
 }
 
 TEST_F(VMWorkflowProvider, invalidMinDiskSpaceThrows)
@@ -124,7 +124,7 @@ TEST_F(VMWorkflowProvider, invalidMinDiskSpaceThrows)
 
     MP_EXPECT_THROW_THAT(workflow_provider.fetch_workflow_for("invalid-disk-space-workflow", vm_desc),
                          mp::InvalidWorkflowException,
-                         mpt::match_what(StrEq("Minimum disk space value in workflow is invalid")));
+                         mpt::match_what(StrEq("Minimum disk space value in Blueprint is invalid")));
 }
 
 TEST_F(VMWorkflowProvider, fetchTestWorkflow1ReturnsExpectedInfo)
@@ -167,7 +167,7 @@ TEST_F(VMWorkflowProvider, missingDescriptionThrows)
     const std::string workflow{"missing-description-workflow"};
     MP_EXPECT_THROW_THAT(
         workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
-        mpt::match_what(StrEq(fmt::format("The \'description\' key is required for the {} workflow", workflow))));
+        mpt::match_what(StrEq(fmt::format("The \'description\' key is required for the {} Blueprint", workflow))));
 }
 
 TEST_F(VMWorkflowProvider, missingVersionThrows)
@@ -177,7 +177,7 @@ TEST_F(VMWorkflowProvider, missingVersionThrows)
     const std::string workflow{"missing-version-workflow"};
     MP_EXPECT_THROW_THAT(
         workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
-        mpt::match_what(StrEq(fmt::format("The \'version\' key is required for the {} workflow", workflow))));
+        mpt::match_what(StrEq(fmt::format("The \'version\' key is required for the {} Blueprint", workflow))));
 }
 
 TEST_F(VMWorkflowProvider, invalidDescriptionThrows)
@@ -187,7 +187,7 @@ TEST_F(VMWorkflowProvider, invalidDescriptionThrows)
     const std::string workflow{"invalid-description-workflow"};
     MP_EXPECT_THROW_THAT(
         workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
-        mpt::match_what(StrEq(fmt::format("Cannot convert \'description\' key for the {} workflow", workflow))));
+        mpt::match_what(StrEq(fmt::format("Cannot convert \'description\' key for the {} Blueprint", workflow))));
 }
 
 TEST_F(VMWorkflowProvider, invalidVersionThrows)
@@ -197,7 +197,7 @@ TEST_F(VMWorkflowProvider, invalidVersionThrows)
     const std::string workflow{"invalid-version-workflow"};
     MP_EXPECT_THROW_THAT(
         workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
-        mpt::match_what(StrEq(fmt::format("Cannot convert \'version\' key for the {} workflow", workflow))));
+        mpt::match_what(StrEq(fmt::format("Cannot convert \'version\' key for the {} Blueprint", workflow))));
 }
 
 TEST_F(VMWorkflowProvider, invalidCloudInitThrows)
@@ -210,7 +210,7 @@ TEST_F(VMWorkflowProvider, invalidCloudInitThrows)
 
     MP_EXPECT_THROW_THAT(
         workflow_provider.fetch_workflow_for(workflow, vm_desc), mp::InvalidWorkflowException,
-        mpt::match_what(StrEq(fmt::format("Cannot convert cloud-init data for the {} workflow", workflow))));
+        mpt::match_what(StrEq(fmt::format("Cannot convert cloud-init data for the {} Blueprint", workflow))));
 }
 
 TEST_F(VMWorkflowProvider, givenCoresLessThanMinimumThrows)
@@ -274,18 +274,20 @@ TEST_F(VMWorkflowProvider, allWorkflowsReturnsExpectedInfo)
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(
         mpl::Level::error,
-        "Invalid workflow: Cannot convert 'description' key for the invalid-description-workflow workflow");
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::error, "Invalid workflow: Cannot convert 'version' key for the invalid-version-workflow workflow");
+        "Invalid Blueprint: Cannot convert 'description' key for the invalid-description-workflow Blueprint");
     logger_scope.mock_logger->expect_log(
         mpl::Level::error,
-        "Invalid workflow: The 'description' key is required for the missing-description-workflow workflow");
+        "Invalid Blueprint: Cannot convert 'version' key for the invalid-version-workflow Blueprint");
     logger_scope.mock_logger->expect_log(
-        mpl::Level::error, "Invalid workflow: The 'version' key is required for the missing-version-workflow workflow");
+        mpl::Level::error,
+        "Invalid Blueprint: The 'description' key is required for the missing-description-workflow Blueprint");
     logger_scope.mock_logger->expect_log(
-        mpl::Level::error, "Invalid workflow name \'42-invalid-hostname-workflow\': must be a valid host name");
+        mpl::Level::error,
+        "Invalid Blueprint: The 'version' key is required for the missing-version-workflow Blueprint");
     logger_scope.mock_logger->expect_log(
-        mpl::Level::error, "Invalid workflow: Cannot convert 'runs-on' key for the invalid-arch workflow");
+        mpl::Level::error, "Invalid Blueprint name \'42-invalid-hostname-workflow\': must be a valid host name");
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error, "Invalid Blueprint: Cannot convert 'runs-on' key for the invalid-arch Blueprint");
 
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
@@ -349,7 +351,7 @@ TEST_F(VMWorkflowProvider, downloadFailureOnStartupLogsErrorAndDoesNotThrow)
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(
-        mpl::Level::error, fmt::format("Error fetching workflows: failed to download from '{}': {}", url, error_msg));
+        mpl::Level::error, fmt::format("Error fetching Blueprints: failed to download from '{}': {}", url, error_msg));
 
     EXPECT_NO_THROW(
         mp::DefaultVMWorkflowProvider(workflows_zip_url, &mock_url_downloader, cache_dir.path(), default_ttl));
@@ -371,7 +373,7 @@ TEST_F(VMWorkflowProvider, downloadFailureDuringUpdateLogsErrorAndDoesNotThrow)
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(
-        mpl::Level::error, fmt::format("Error fetching workflows: failed to download from '{}': {}", url, error_msg));
+        mpl::Level::error, fmt::format("Error fetching Blueprints: failed to download from '{}': {}", url, error_msg));
 
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &mock_url_downloader, cache_dir.path(),
                                                     std::chrono::milliseconds(0)};
@@ -389,7 +391,7 @@ TEST_F(VMWorkflowProvider, zipArchivePocoExceptionLogsErrorAndDoesNotThrow)
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(
-        mpl::Level::error, fmt::format("Error extracting Workflows zip file: Illegal state: {}", error_msg));
+        mpl::Level::error, fmt::format("Error extracting Blueprints zip file: Illegal state: {}", error_msg));
 
     EXPECT_NO_THROW(mp::DefaultVMWorkflowProvider(workflows_zip_url, &url_downloader, cache_dir.path(),
                                                   std::chrono::milliseconds(0)));
@@ -472,7 +474,7 @@ TEST_F(VMWorkflowProvider, invalidTimeoutThrows)
     mp::DefaultVMWorkflowProvider workflow_provider{workflows_zip_url, &url_downloader, cache_dir.path(), default_ttl};
 
     MP_EXPECT_THROW_THAT(workflow_provider.workflow_timeout("invalid-timeout-workflow"), mp::InvalidWorkflowException,
-                         mpt::match_what(StrEq(fmt::format("Invalid timeout given in workflow"))));
+                         mpt::match_what(StrEq(fmt::format("Invalid timeout given in Blueprint"))));
 }
 
 TEST_F(VMWorkflowProvider, noImageDefinedReturnsDefault)
@@ -493,7 +495,7 @@ TEST_F(VMWorkflowProvider, invalidRunsOnThrows)
     const std::string workflow{"invalid-description-workflow"};
     MP_EXPECT_THROW_THAT(
         workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
-        mpt::match_what(StrEq(fmt::format("Cannot convert \'description\' key for the {} workflow", workflow))));
+        mpt::match_what(StrEq(fmt::format("Cannot convert \'description\' key for the {} Blueprint", workflow))));
 }
 
 TEST_F(VMWorkflowProvider, fetchInvalidRunsOnThrows)
@@ -503,7 +505,7 @@ TEST_F(VMWorkflowProvider, fetchInvalidRunsOnThrows)
     const std::string workflow{"invalid-arch"};
     MP_EXPECT_THROW_THAT(
         workflow_provider.info_for(workflow), mp::InvalidWorkflowException,
-        mpt::match_what(StrEq(fmt::format("Cannot convert \'runs-on\' key for the {} workflow", workflow))));
+        mpt::match_what(StrEq(fmt::format("Cannot convert \'runs-on\' key for the {} Blueprint", workflow))));
 }
 
 TEST_F(VMWorkflowProvider, infoForIncompatibleThrows)

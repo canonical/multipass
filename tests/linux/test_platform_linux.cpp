@@ -361,7 +361,7 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
 TEST_F(PlatformLinux, workflowsURLOverrideSetReturnsExpectedData)
 {
     const QString fake_url{"https://a.fake.url"};
-    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", fake_url.toUtf8());
+    mpt::SetEnvScope workflows_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
 
     EXPECT_EQ(MP_PLATFORM.get_workflows_url_override(), fake_url);
 }
@@ -720,6 +720,7 @@ TEST_F(PlatformLinux, read_os_release_from_file_not_found)
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_file_ops, is_open(_)).WillOnce(Return(false));
 
     auto output = multipass::platform::detail::read_os_release();
 

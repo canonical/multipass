@@ -466,7 +466,7 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     catch (const mp::IncompatibleWorkflowException&)
     {
         throw std::runtime_error(
-            fmt::format("The \"{}\" workflow is not compatible with this host.", request->image()));
+            fmt::format("The \"{}\" Blueprint is not compatible with this host.", request->image()));
     }
     catch (const std::out_of_range&)
     {
@@ -1082,7 +1082,7 @@ try // clang-format on
             catch (const std::exception&)
             {
                 throw std::runtime_error(
-                    fmt::format("Unable to find an image or workflow matching \"{}\"", request->search_string()));
+                    fmt::format("Unable to find an image or Blueprint matching \"{}\"", request->search_string()));
             }
         }
 

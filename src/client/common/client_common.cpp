@@ -195,13 +195,11 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
         const std::vector<QString> cert_dirs{data_location + gui_client_cert_dir, data_location + cli_client_cert_dir};
         for (const auto& cert_dir : cert_dirs)
         {
-            mpl::log(mpl::Level::trace, "client", fmt::format("Searching for client certs in {}…", cert_dir));
             if (client_certs_exist(cert_dir))
             {
                 if (auto rpc_channel{
                         create_channel_and_validate(server_address, get_ssl_credentials_opts_from(cert_dir))})
                 {
-                    mpl::log(mpl::Level::trace, "client", fmt::format("Client cert(s) found in {}", cert_dir));
                     copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
                     mp::utils::remove_directories(cert_dirs);
 
@@ -209,9 +207,6 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
                 }
             }
         }
-
-        mpl::log(mpl::Level::trace, "client",
-                 fmt::format("No existing certs exist. Using {}", common_client_cert_dir_path));
 
         mp::utils::remove_directories(cert_dirs);
         mp::utils::make_dir(common_client_cert_dir_path);
@@ -247,7 +242,6 @@ std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
 
     if (client_certs_exist(common_client_cert_dir_path))
     {
-        mpl::log(mpl::Level::trace, "client", fmt::format("Found cert provider at {}", common_client_cert_dir_path));
         return std::make_unique<mp::SSLCertProvider>(common_client_cert_dir_path);
     }
 
