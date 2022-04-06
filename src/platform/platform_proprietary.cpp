@@ -27,7 +27,7 @@ QString mp::platform::Platform::get_workflows_url_override() const
 
     if (check_unlock_code())
     {
-        return QString::fromUtf8(qgetenv("MULTIPASS_WORKFLOWS_URL"));
+        return QString::fromUtf8(qgetenv("MULTIPASS_BLUEPRINTS_URL"));
     }
 
     return {};
