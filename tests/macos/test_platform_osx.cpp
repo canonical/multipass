@@ -327,7 +327,7 @@ TEST(PlatformOSX, test_network_interfaces)
 TEST(PlatformOSX, workflowsURLOverrideSetUnlockSetReturnsExpectedData)
 {
     const QString fake_url{"https://a.fake.url"};
-    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", fake_url.toUtf8());
+    mpt::SetEnvScope workflows_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
     mpt::SetEnvScope unlock{"MULTIPASS_UNLOCK", mp::platform::unlock_code};
 
     EXPECT_EQ(MP_PLATFORM.get_workflows_url_override(), fake_url);
@@ -336,7 +336,7 @@ TEST(PlatformOSX, workflowsURLOverrideSetUnlockSetReturnsExpectedData)
 TEST(PlatformOSX, workflowsURLOverrideSetUnlockiNotSetReturnsEmptyString)
 {
     const QString fake_url{"https://a.fake.url"};
-    mpt::SetEnvScope workflows_url("MULTIPASS_WORKFLOWS_URL", fake_url.toUtf8());
+    mpt::SetEnvScope workflows_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
 
     EXPECT_TRUE(MP_PLATFORM.get_workflows_url_override().isEmpty());
 }
