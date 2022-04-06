@@ -35,11 +35,27 @@ using namespace testing;
 
 namespace
 {
+enum class SpecialInstanceState
+{
+    none,
+    preparing,
+    deleted
+};
+using InstanceName = const char*;
+
 struct TestInstanceSettingsHandler : public Test
 {
     mp::InstanceSettingsHandler make_handler(std::function<void()> instance_persister = [] {})
     {
         return mp::InstanceSettingsHandler{specs, vms, deleted_vms, preparing_vms, instance_persister};
+    }
+
+    void fake_instance_state(const char* name, SpecialInstanceState special_state)
+    {
+        if (special_state == SpecialInstanceState::preparing)
+            preparing_vms.emplace(name);
+        else if (special_state == SpecialInstanceState::deleted)
+            deleted_vms[name];
     }
 
     // empty components to fill before creating handler
@@ -54,13 +70,6 @@ QString make_key(const QString& instance_name, const QString& property)
     return QString("%1.%2.%3").arg(mp::daemon_settings_root, instance_name, property);
 }
 
-enum class SpecialInstanceState
-{
-    none,
-    preparing,
-    deleted
-};
-using InstanceName = const char*;
 using Instance = std::tuple<InstanceName, SpecialInstanceState>;
 using Instances = std::vector<Instance>;
 using InstanceLists = std::vector<Instances>;
@@ -78,11 +87,7 @@ TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
     for (const auto& [name, special_state] : intended_instances)
     {
         specs[name];
-
-        if (special_state == SpecialInstanceState::preparing)
-            preparing_vms.emplace(name);
-        else if (special_state == SpecialInstanceState::deleted)
-            deleted_vms[name];
+        fake_instance_state(name, special_state);
 
         for (const auto& prop : props)
             expected_keys.push_back(make_key(name, prop));
@@ -193,4 +198,23 @@ TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
     EXPECT_EQ(handler.get(make_key(target_instance_name, "memory")), "337.6KiB");
 }
 
+TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState)
+{
+    constexpr auto preparing_instance = "nouvelle", deleted_instance = "vague";
+    specs[preparing_instance];
+    specs[deleted_instance];
+
+    fake_instance_state(preparing_instance, SpecialInstanceState::preparing);
+    fake_instance_state(deleted_instance, SpecialInstanceState::deleted);
+
+    const auto handler = make_handler();
+
+    for (const auto& instance : {preparing_instance, deleted_instance})
+    {
+        for (const auto& item : {"cpus", "disk", "memory"})
+        {
+            EXPECT_NO_THROW(handler.get(make_key(instance, item)));
+        }
+    }
+}
 } // namespace
