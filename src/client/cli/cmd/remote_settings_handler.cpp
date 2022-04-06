@@ -191,7 +191,7 @@ std::set<QString> mp::RemoteSettingsHandler::keys() const
 }
 
 mp::RemoteHandlerException::RemoteHandlerException(grpc::Status status)
-    : std::runtime_error{"Error reaching remote setting"}, status{std::move(status)}
+    : std::runtime_error{"Error accessing remote setting"}, status{std::move(status)}
 {
 }
 

@@ -40,7 +40,7 @@ QString interpret_impl(const QString& key, QString val)
 {
     auto ret = interpret_bool(std::move(val));
     if (ret != "true" && ret != "false")
-        throw mp::InvalidSettingException(key, ret, "Invalid flag, try \"true\" or \"false\"");
+        throw mp::InvalidSettingException(key, ret, "Invalid value, try \"true\" or \"false\"");
 
     return ret;
 }
