@@ -79,7 +79,7 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
     QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
                                          "values (i.e. \"\" instead of \"<empty>\").");
     QCommandLineOption keys_option("keys", "List available settings keys. This outputs the whole list of currently "
-                                           "available settings keys, or a matching subset when <arg>... is(are) "
+                                           "available settings keys, or a matching subset when any <arg> are "
                                            "provided");
 
     parser->addOption(raw_option);
@@ -99,7 +99,7 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
         else if (!keys_opt || args.count()) // support 0 or 1 positional arg when --keys is given
         {
             cerr << "Multiple settings not implemented yet. Please try again with either a single key or just the "
-                    "`--keys` flag for now.\n";
+                    "`--keys` option for now.\n";
             status = ParseCode::CommandLineError;
         }
     }
