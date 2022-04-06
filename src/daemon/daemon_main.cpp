@@ -82,7 +82,7 @@ int main_impl(int argc, char* argv[])
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    mp::daemon::monitor_and_quit_on_settings_change();
+    mp::daemon::monitor_and_quit_on_settings_change(); // TODO replace with async restart in relevant settings handlers
     mp::Daemon daemon(std::move(config));
 
     mpl::log(mpl::Level::info, "daemon", fmt::format("Starting Multipass {}", mp::version_string));
