@@ -23,9 +23,9 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/constants.h>
-#include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/settings.h>
 #include <multipass/format.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/settings/settings.h>
 
 #include <locale>
 
@@ -356,23 +356,24 @@ auto construct_version_info_multipassd_up_to_date()
     return reply;
 }
 
-class LocaleSettingTest : public testing::Test
+class BaseFormatterSuite : public testing::Test
 {
 public:
-    LocaleSettingTest() : saved_locale{std::locale()}
+    BaseFormatterSuite() : saved_locale{std::locale()}
     {
         // The tests expected output are for the default C locale
         std::locale::global(std::locale("C"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet"));
     }
 
-    ~LocaleSettingTest()
+    ~BaseFormatterSuite()
     {
         std::locale::global(saved_locale);
     }
 
 protected:
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
-                                                                              reset at the end of each test */
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
 private:
     std::locale saved_locale;
@@ -382,7 +383,7 @@ typedef std::tuple<const mp::Formatter*, const ::google::protobuf::Message*, std
                    std::string /* test name */>
     FormatterParamType;
 
-struct FormatterSuite : public LocaleSettingTest, public WithParamInterface<FormatterParamType>
+struct FormatterSuite : public BaseFormatterSuite, public WithParamInterface<FormatterParamType>
 {
 };
 
@@ -391,7 +392,7 @@ auto print_param_name(const testing::TestParamInfo<FormatterSuite::ParamType>& i
     return std::get<3>(info.param);
 }
 
-struct PetenvFormatterSuite : public LocaleSettingTest,
+struct PetenvFormatterSuite : public BaseFormatterSuite,
                               public WithParamInterface<std::tuple<QString, bool, FormatterParamType>>
 {
 };

@@ -22,7 +22,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/format.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/version.h>
 
@@ -140,7 +140,7 @@ void cmd::GuiCmd::update_hotkey()
 
 void cmd::GuiCmd::create_actions()
 {
-    auto client_config_path = Settings::get_client_settings_file_path();
+    auto client_config_path = mp::client::persistent_settings_filename();
 
     mp::utils::check_and_create_config_file(client_config_path);
     config_watcher.addPath(client_config_path);

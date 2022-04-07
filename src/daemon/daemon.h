@@ -136,6 +136,12 @@ public slots:
     virtual void get(const GetRequest* request, grpc::ServerWriterInterface<GetReply>* response,
                      std::promise<grpc::Status>* status_promise);
 
+    virtual void set(const SetRequest* request, grpc::ServerWriterInterface<SetReply>* response,
+                     std::promise<grpc::Status>* status_promise);
+
+    virtual void keys(const KeysRequest* request, grpc::ServerWriterInterface<KeysReply>* response,
+                      std::promise<grpc::Status>* status_promise);
+
     virtual void authenticate(const AuthenticateRequest* request,
                               grpc::ServerWriterInterface<AuthenticateReply>* response,
                               std::promise<grpc::Status>* status_promise);

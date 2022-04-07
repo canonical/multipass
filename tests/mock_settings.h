@@ -21,30 +21,23 @@
 #include "common.h"
 #include "mock_singleton_helpers.h"
 
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
-{
-class MockSettings : public Settings // This will automatically verify expectations set upon it at the end of each test
+class MockSettings : public Settings
 {
 public:
-    using Settings::get_default; // promote visibility
-    using Settings::Settings;    // ctor
+    using Settings::Settings;
 
-    static void mockit();
-    static MockSettings& mock_instance();
+    MOCK_METHOD(SettingsHandler*, register_handler, (std::unique_ptr<SettingsHandler>), (override));
+    MOCK_METHOD(void, unregister_handler, (SettingsHandler * handler), (override));
+    MOCK_METHOD(QString, get, (const QString&), (const, override));
+    MOCK_METHOD(void, set, (const QString&, const QString&), (override));
+    MOCK_METHOD(std::set<QString>, keys, (), (const, override));
 
-    MOCK_CONST_METHOD1(get, QString(const QString&));
-    MOCK_METHOD2(set, void(const QString&, const QString&));
-
-private:
-    void setup_mock_defaults();
-
-    friend class MockSingletonHelper<MockSettings, ::testing::NiceMock>;
+    MP_MOCK_SINGLETON_BOILERPLATE(MockSettings, Settings);
 };
-} // namespace test
-} // namespace multipass
+} // namespace multipass::test
 
 #endif // MULTIPASS_MOCK_SETTINGS_H

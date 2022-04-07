@@ -55,6 +55,7 @@ function(add_target TARGET_NAME)
 
   target_link_libraries(${TARGET_NAME}
     daemon
+    settings
     shared
     update)
 endfunction()

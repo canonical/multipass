@@ -23,6 +23,7 @@ target_link_libraries(formatter
   client_common
   fmt
   rpc
-  yaml
+  settings
   utils
+  yaml
   Qt5::Core)

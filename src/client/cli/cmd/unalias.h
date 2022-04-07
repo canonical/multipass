@@ -42,7 +42,7 @@ public:
     QString description() const override;
 
 private:
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
 
     AliasDict aliases;
     std::string alias_to_remove;

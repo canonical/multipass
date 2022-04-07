@@ -37,7 +37,7 @@ public:
     QString description() const override;
 
 private:
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
 
     QString key;
     bool raw = false;

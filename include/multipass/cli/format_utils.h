@@ -20,7 +20,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 
 #include <fmt/format.h>
 

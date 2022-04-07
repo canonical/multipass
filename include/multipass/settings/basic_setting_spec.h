@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2022 Canonical, Ltd.
+ * Copyright (C) 2021-2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,12 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_DAEMON_MONITOR_SETTINGS_H
-#define MULTIPASS_DAEMON_MONITOR_SETTINGS_H
+#ifndef MULTIPASS_BASIC_SETTING_SPEC_H
+#define MULTIPASS_BASIC_SETTING_SPEC_H
+
+#include "setting_spec.h"
 
 namespace multipass
 {
-void monitor_and_quit_on_settings_change(); // temporary
-}
+class BasicSettingSpec : public SettingSpec
+{
+public:
+    BasicSettingSpec(QString key, QString default_);
+    QString get_key() const override;
+    QString get_default() const override;
+    QString interpret(QString val) const override;
 
-#endif // MULTIPASS_DAEMON_MONITOR_SETTINGS_H
+protected:
+    QString key;
+    QString default_;
+};
+} // namespace multipass
+
+#endif // MULTIPASS_BASIC_SETTING_SPEC_H

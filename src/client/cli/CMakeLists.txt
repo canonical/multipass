@@ -21,6 +21,7 @@ target_link_libraries(client
   fmt
   formatter
   rpc
+  scope_guard
   shared
   Qt5::Core)
 
