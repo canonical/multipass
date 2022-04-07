@@ -76,8 +76,9 @@ void mp::daemon::register_global_settings_handlers()
     settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
     settings.insert(std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
     settings.insert(std::make_unique<CustomSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
-    settings.insert(std::make_unique<CustomSettingSpec>(
-        mp::passphrase_key, "", [](QString val) { return MP_UTILS.generate_scrypt_hash_for(val); }));
+    settings.insert(std::make_unique<CustomSettingSpec>(mp::passphrase_key, "", [](QString val) {
+        return val.isEmpty() ? val : MP_UTILS.generate_scrypt_hash_for(val);
+    }));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
