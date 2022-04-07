@@ -20,6 +20,7 @@
 #include "mock_qsettings.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
+#include "mock_utils.h"
 
 #include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
@@ -325,6 +326,34 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsBrigedInterf
     inject_mock_qsettings();
 
     ASSERT_NO_THROW(handler->set(mp::bridged_interface_key, val));
+}
+
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatHashesNonEmptyPassword)
+{
+    const auto val = "correct horse battery staple";
+    const auto hash = "xkcd";
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject<StrictMock>();
+    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(val))).WillOnce(Return(hash));
+
+    mp::daemon::register_global_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::passphrase_key), Eq(hash)));
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(mp::passphrase_key, val));
+}
+
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatResetsHashWhenPasswordIsEmpty)
+{
+    const auto val = "";
+
+    mp::daemon::register_global_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::passphrase_key), Eq(val)));
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(mp::passphrase_key, val));
 }
 
 } // namespace
