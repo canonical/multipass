@@ -23,6 +23,7 @@
 #include <multipass/optional.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
+#include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
@@ -237,7 +238,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
-    auto driver = utils::get_driver_str();
+    auto driver = MP_SETTINGS.get(mp::driver_key);
 
     // Core images don't work on hyperkit yet
     if (driver == "hyperkit" && remote.empty() && (supported_core_aliases.find(alias) != supported_core_aliases.end()))
@@ -290,7 +291,12 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
            (backend == "virtualbox" && VIRTUALBOX_ENABLED);
 }
 
-std::map<QString, QString> mp::platform::extra_settings_defaults()
+auto mp::platform::Platform::extra_daemon_settings() const -> SettingSpec::Set
+{
+    return {};
+}
+
+auto mp::platform::Platform::extra_client_settings() const -> SettingSpec::Set
 {
     return {};
 }
@@ -301,7 +307,7 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
         return interpret_macos_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
-    throw InvalidSettingsException(key, val, "Setting unavailable on macOS");
+    throw InvalidSettingException(key, val, "Setting unavailable on macOS");
 }
 
 void mp::platform::sync_winterm_profiles()
@@ -326,7 +332,7 @@ std::string mp::platform::default_server_address()
     return {"unix:/var/run/multipass_socket"};
 }
 
-QString mp::platform::default_driver()
+QString mp::platform::Platform::default_driver() const
 {
     assert(HYPERKIT_ENABLED || QEMU_ENABLED);
 
@@ -336,12 +342,12 @@ QString mp::platform::default_driver()
         return QStringLiteral("qemu");
 }
 
-QString mp::platform::default_privileged_mounts()
+QString mp::platform::Platform::default_privileged_mounts() const
 {
     return QStringLiteral("true");
 }
 
-QString mp::platform::daemon_config_home() // temporary
+QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = QStringLiteral("/var/root/Library/Preferences/");
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
@@ -351,7 +357,7 @@ QString mp::platform::daemon_config_home() // temporary
 
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    auto driver = utils::get_driver_str();
+    auto driver = MP_SETTINGS.get(mp::driver_key);
 
     if (driver == QStringLiteral("hyperkit"))
     {
@@ -451,9 +457,7 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
 
 bool mp::platform::is_image_url_supported()
 {
-    auto driver = utils::get_driver_str();
-
-    if (driver == "virtualbox")
+    if (MP_SETTINGS.get(mp::driver_key) == "virtualbox")
         return check_unlock_code();
 
     return false;

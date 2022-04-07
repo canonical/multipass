@@ -21,19 +21,41 @@
 #define MULTIPASS_CALLABLE_TRAITS_H
 
 #include <tuple>
-#include <type_traits>
 
 namespace multipass
 {
-// For lambdas, look at it's functor operator
+// For lambdas, look at their function operator
+// For functors, look at their function-call operator
 template <typename T>
-struct callable_traits
-    : public callable_traits<decltype(&std::remove_reference<T>::type::operator())>
+struct callable_traits : public callable_traits<decltype(&T::operator())>
+{
+};
+
+// Deal with references and pointers
+template <typename T>
+struct callable_traits<T&> : public callable_traits<T>
+{
+};
+
+template <typename T>
+struct callable_traits<T*> : public callable_traits<T>
+{
+};
+
+// Deal with member functions
+template <typename ClassType, typename ReturnType, typename... Args>
+struct callable_traits<ReturnType (ClassType::*)(Args...) const> : public callable_traits<ReturnType(Args...)>
 {
 };
 
 template <typename ClassType, typename ReturnType, typename... Args>
-struct callable_traits<ReturnType (ClassType::*)(Args...) const>
+struct callable_traits<ReturnType (ClassType::*)(Args...)> : public callable_traits<ReturnType(Args...)>
+{
+};
+
+// Finally, the most basic function type, where all others will drain
+template <typename ReturnType, typename... Args>
+struct callable_traits<ReturnType(Args...)>
 {
     using return_type = ReturnType;
     static constexpr std::size_t num_args = sizeof...(Args);

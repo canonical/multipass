@@ -44,7 +44,7 @@ private:
     std::pair<std::string, std::string> destination;
     bool streaming_enabled;
 
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
     ParseCode parse_sources(ArgParser* parser);
     ParseCode parse_destination(ArgParser* parser);
 };

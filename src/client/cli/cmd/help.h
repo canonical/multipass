@@ -37,7 +37,7 @@ public:
 private:
     QString command;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser);
 };
 }
 }

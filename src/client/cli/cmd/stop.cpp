@@ -22,7 +22,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;

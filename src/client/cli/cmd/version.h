@@ -39,7 +39,7 @@ public:
     QString description() const override;
 
 private:
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser);
 
     Formatter* chosen_formatter;
 };

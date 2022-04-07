@@ -16,7 +16,6 @@
  */
 
 #include "common.h"
-#include "mock_settings.h"
 #include "mock_standard_paths.h"
 
 #include <QCoreApplication>
@@ -32,7 +31,6 @@ int main(int argc, char* argv[])
 
     ::testing::InitGoogleTest(&argc, argv);
     mp::test::MockStandardPaths::mockit();
-    mp::test::MockSettings::mockit();
 
     return RUN_ALL_TESTS();
 }

@@ -37,7 +37,7 @@ public:
 private:
     MountRequest request;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser);
 };
 }
 }

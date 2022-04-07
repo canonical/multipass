@@ -39,7 +39,7 @@ TEST(PlatformShared, hotkey_interpretation_throws_on_invalid_hotkey)
                              "alt+,x"}; // multiple not allowed either
     for (const auto& bad_sequence : bad_sequences)
     {
-        MP_EXPECT_THROW_THAT(mp::platform::interpret_hotkey(bad_sequence), mp::InvalidSettingsException,
+        MP_EXPECT_THROW_THAT(mp::platform::interpret_hotkey(bad_sequence), mp::InvalidSettingException,
                              mpt::match_what(AllOf(HasSubstr(mp::hotkey_key), HasSubstr(bad_sequence.toStdString()))));
     }
 }

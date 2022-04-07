@@ -21,7 +21,7 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
 #include <multipass/platform.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

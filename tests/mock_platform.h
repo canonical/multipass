@@ -49,6 +49,11 @@ public:
     MOCK_CONST_METHOD1(remove_alias_script, void(const std::string&));
     MOCK_CONST_METHOD2(set_server_socket_restrictions, void(const std::string&, const bool));
     MOCK_CONST_METHOD0(multipass_storage_location, QString());
+    MOCK_CONST_METHOD0(extra_daemon_settings, SettingSpec::Set());
+    MOCK_CONST_METHOD0(extra_client_settings, SettingSpec::Set());
+    MOCK_CONST_METHOD0(daemon_config_home, QString());
+    MOCK_CONST_METHOD0(default_driver, QString());
+    MOCK_CONST_METHOD0(default_privileged_mounts, QString());
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };
