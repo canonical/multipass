@@ -267,4 +267,14 @@ TEST_F(TestInstanceSettingsHandler, getThrowsOnMissingInstance)
                              mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
     }
 }
+
+TEST_F(TestInstanceSettingsHandler, getThrowsOnWrongProperty)
+{
+    constexpr auto target_instance_name = "asdf";
+    constexpr auto wrong_property = "wrong";
+    specs[target_instance_name];
+
+    MP_EXPECT_THROW_THAT(make_handler().get(make_key(target_instance_name, wrong_property)),
+                         mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(wrong_property)));
+}
 } // namespace
