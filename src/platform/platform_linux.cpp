@@ -24,6 +24,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -320,6 +321,39 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
         throw std::runtime_error(strerror(errno));
 }
 
+auto mp::platform::Platform::extra_daemon_settings() const -> SettingSpec::Set
+{
+    return {};
+}
+
+auto mp::platform::Platform::extra_client_settings() const -> SettingSpec::Set
+{
+    return {};
+}
+
+QString mp::platform::Platform::daemon_config_home() const // temporary
+{
+    auto ret = QString{qgetenv("DAEMON_CONFIG_HOME")};
+    if (ret.isEmpty())
+        ret = QStringLiteral("/root/.config");
+
+    ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
+    return ret;
+}
+
+QString mp::platform::Platform::default_driver() const
+{
+    if (QEMU_ENABLED)
+        return QStringLiteral("qemu");
+    else
+        return QStringLiteral("lxd");
+}
+
+QString mp::platform::Platform::default_privileged_mounts() const
+{
+    return QStringLiteral("true");
+}
+
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>
 {
@@ -338,18 +372,13 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     return ifaces_info;
 }
 
-std::map<QString, QString> mp::platform::extra_settings_defaults()
-{
-    return {};
-}
-
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
     if (key == hotkey_key)
         return mp::platform::interpret_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
-    throw InvalidSettingsException(key, val, "Setting unavailable on Linux");
+    throw InvalidSettingException(key, val, "Setting unavailable on Linux");
 }
 
 void mp::platform::sync_winterm_profiles()
@@ -385,32 +414,9 @@ std::string mp::platform::default_server_address()
     return "unix:" + base_dir + "/multipass_socket";
 }
 
-QString mp::platform::default_driver()
-{
-    if (QEMU_ENABLED)
-        return QStringLiteral("qemu");
-    else
-        return QStringLiteral("lxd");
-}
-
-QString mp::platform::default_privileged_mounts()
-{
-    return QStringLiteral("true");
-}
-
-QString mp::platform::daemon_config_home() // temporary
-{
-    auto ret = QString{qgetenv("DAEMON_CONFIG_HOME")};
-    if (ret.isEmpty())
-        ret = QStringLiteral("/root/.config");
-
-    ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
-    return ret;
-}
-
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
-    const auto& driver = utils::get_driver_str();
+    const auto& driver = MP_SETTINGS.get(mp::driver_key);
 #if QEMU_ENABLED
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);

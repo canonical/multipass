@@ -44,7 +44,7 @@ public:
     QString description() const override;
 
 private:
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
     ReturnCode request_launch(const ArgParser* parser);
     ReturnCode mount_home(const ArgParser* parser);
     std::pair<ReturnCode, std::string> request_mounts_setting_from_daemon(const ArgParser* parser);

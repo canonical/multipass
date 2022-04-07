@@ -16,21 +16,46 @@
  */
 
 #include <multipass/cli/client_common.h>
+#include <multipass/constants.h>
+#include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
+#include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
+#include <multipass/settings/basic_setting_spec.h>
+#include <multipass/settings/bool_setting_spec.h>
+#include <multipass/settings/custom_setting_spec.h>
+#include <multipass/settings/persistent_settings_handler.h>
+#include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
 #include <fmt/ostream.h>
-#include <multipass/exceptions/autostart_setup_exception.h>
-#include <multipass/logging/log.h>
-#include <multipass/logging/standard_logger.h>
+
+#include <QKeySequence>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
+const auto client_root = QStringLiteral("client");
+const auto autostart_default = QStringLiteral("true");
+
+QString default_hotkey()
+{
+    return QKeySequence{mp::hotkey_default}.toString(QKeySequence::NativeText); // outcome depends on platform
+}
+
+QString petenv_interpreter(QString val)
+{
+    if (!val.isEmpty() && !mp::utils::valid_hostname(val.toStdString()))
+        throw mp::InvalidSettingException{mp::petenv_key, val, "Invalid hostname"};
+
+    return val;
+}
+
 mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 {
     return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
@@ -119,6 +144,35 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
 {
     return ::message_box(fmt::format("{}\n{}\n\nGo here for more information: {}", update_info.title(),
                                      update_info.description(), update_info.url()));
+}
+
+/*
+ * We make up our own file name to
+ *   a) avoid unknown org/domain in path;
+ *   b) keep settings-file locations consistent among daemon and client
+ * Example: ${HOME}/.config/multipass/multipass.conf
+ */
+QString mp::client::persistent_settings_filename()
+{
+    static const auto file_pattern = QStringLiteral("%2%1").arg(mp::settings_extension); // note the order
+    static const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
+    static const auto dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
+    static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
+
+    return path;
+}
+
+void mp::client::register_global_settings_handlers()
+{
+    auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
+    settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
+    settings.insert(std::make_unique<CustomSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
+    settings.insert(std::make_unique<CustomSettingSpec>(mp::hotkey_key, default_hotkey(), [](QString val) {
+        return mp::platform::interpret_setting(mp::hotkey_key, val);
+    }));
+
+    MP_SETTINGS.register_handler(
+        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,

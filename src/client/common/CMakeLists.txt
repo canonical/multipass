@@ -22,4 +22,5 @@ target_link_libraries(client_common
   fmt
   platform
   rpc
+  settings
   Qt5::Core)

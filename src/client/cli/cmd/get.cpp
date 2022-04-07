@@ -19,9 +19,9 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
-#include <multipass/constants.h>
+#include <multipass/constants.h> // TODO remove (only for keys ATTOW and we shouldn't care for particular settings here)
 #include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 
 #include <QtGlobal>
 
@@ -36,7 +36,7 @@ mp::ReturnCode cmd::Get::run(mp::ArgParser* parser)
     {
         try
         {
-            if (auto val = MP_SETTINGS.get(key); key == mp::passphrase_key)
+            if (const auto val = MP_SETTINGS.get(key); key == mp::passphrase_key) // TODO integrate into setting specs
                 cout << (val.isEmpty() ? "false" : "true");
             else if (val.isEmpty() && !raw)
                 cout << "<empty>";

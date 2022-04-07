@@ -19,11 +19,13 @@
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
 #include "mock_platform.h"
+#include "mock_settings.h"
 #include "mock_vm_image_vault.h"
 #include "mock_vm_workflow_provider.h"
 
 #include <src/daemon/daemon.h>
 
+#include <multipass/constants.h>
 #include <multipass/format.h>
 
 namespace mp = multipass;
@@ -40,8 +42,18 @@ auto workflow_description_for(const std::string& workflow_name)
 
 struct DaemonFind : public mpt::DaemonTestFixture
 {
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
+    }
+
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 
 TEST_F(DaemonFind, blankQueryReturnsAllData)

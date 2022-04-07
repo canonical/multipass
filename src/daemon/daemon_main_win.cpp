@@ -18,7 +18,7 @@
 #include "cli.h"
 #include "daemon.h"
 #include "daemon_config.h"
-#include "daemon_monitor_settings.h" // temporary
+#include "daemon_init_settings.h"
 
 #include <multipass/client_cert_store.h>
 #include <multipass/cli/client_common.h>
@@ -291,10 +291,12 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
     if (register_console == RegisterConsoleHandler::yes)
         SetConsoleCtrlHandler(windows_console_ctrl_handler, TRUE);
 
+    mp::daemon::register_global_settings_handlers();
+
     auto builder = mp::cli::parse(app);
     auto config = builder.build();
 
-    mp::monitor_and_quit_on_settings_change(); // temporary
+    mp::daemon::monitor_and_quit_on_settings_change();
     mp::Daemon daemon(std::move(config));
 
     mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));

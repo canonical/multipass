@@ -122,7 +122,6 @@ template <typename RegisteredQtEnum>
 std::string qenum_to_string(RegisteredQtEnum val);
 
 // other helpers
-QString get_driver_str();
 QString get_multipass_storage();
 QString make_uuid();
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>

@@ -16,20 +16,17 @@
  */
 
 #include "common.h"
-#include "mock_file_ops.h"
-#include "mock_platform.h"
 #include "mock_settings.h"
-#include "mock_singleton_helpers.h"
 
-#include <src/utils/wrapped_qsettings.h>
-
-#include <multipass/constants.h>
-#include <multipass/platform.h>
+#include <multipass/settings/settings_handler.h>
 
 #include <QKeySequence>
 #include <QString>
 
-#include <fstream>
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <variant>
 
 namespace mp = multipass;
 namespace mpt = mp::test;
@@ -37,311 +34,371 @@ using namespace testing;
 
 namespace
 {
-class MockQSettings : public mp::WrappedQSettings
+class TestSettings : public Test
 {
 public:
-    using WrappedQSettings::WrappedQSettings; // promote visibility
-    MOCK_CONST_METHOD0(status, QSettings::Status());
-    MOCK_CONST_METHOD0(fileName, QString());
-    MOCK_CONST_METHOD2(value_impl, QVariant(const QString& key, const QVariant& default_value)); // promote visibility
-    MOCK_METHOD1(setIniCodec, void(const char* codec_name));
-    MOCK_METHOD0(sync, void());
-    MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
+    class SettingsResetter : public mp::Settings
+    {
+    public:
+        static void reset()
+        {
+            mp::Settings::reset();
+        }
+    };
+
+    void TearDown() override
+    {
+        SettingsResetter::reset(); // expectations on MockHandlers verified here (unless manually unregistered earlier)
+    }
+
+    std::pair<QString, QString> make_setting(unsigned index)
+    {
+        return std::pair(QString("k%1").arg(index), QString("v%1").arg(index));
+    };
+
+    std::pair<unsigned, bool> half_and_is_odd(unsigned i)
+    {
+        auto half_i_div = std::div(i, 2); // can't use structured bindings directly: quot/rem order unspecified
+        return std::pair(static_cast<unsigned>(half_i_div.quot), static_cast<bool>(half_i_div.rem));
+    }
 };
 
-class MockQSettingsProvider : public mp::WrappedQSettingsFactory
+class MockSettingsHandler : public mp::SettingsHandler
 {
 public:
-    using WrappedQSettingsFactory::WrappedQSettingsFactory;
-    MOCK_CONST_METHOD2(make_wrapped_qsettings,
-                       std::unique_ptr<mp::WrappedQSettings>(const QString&, QSettings::Format));
+    using SettingsHandler::SettingsHandler;
 
-    MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, WrappedQSettingsFactory);
+    MOCK_METHOD(std::set<QString>, keys, (), (const, override));
+    MOCK_METHOD(QString, get, (const QString&), (const, override));
+    MOCK_METHOD(void, set, (const QString& key, const QString& val), (override));
 };
 
-struct TestSettings : public Test
+TEST_F(TestSettings, keysReturnsNoKeysWhenNoHandler)
 {
-    void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
-    {
-        EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, Eq(QSettings::IniFormat)))
-            .WillOnce(Return(ByMove(std::move(mock_qsettings))));
-    }
-
-    void inject_real_settings_get(const QString& key)
-    {
-        EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(call_real_settings_get);
-    }
-
-    void inject_real_settings_set(const QString& key, const QString& val)
-    {
-        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).WillOnce(call_real_settings_set);
-    }
-
-    void mock_unreadable_settings_file(const char* filename)
-    {
-        std::fstream fstream{};
-        fstream.setstate(std::ios_base::failbit);
-
-        EXPECT_CALL(*mock_file_ops, open(_, StrEq(filename), Eq(std::ios_base::in)))
-            .WillOnce(DoAll(WithArg<0>([](auto& stream) { stream.setstate(std::ios_base::failbit); }),
-                            Assign(&errno, EACCES)));
-
-        EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(filename));
-    }
-
-public:
-    mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject<NiceMock>();
-    mpt::MockFileOps* mock_file_ops = mock_file_ops_injection.first;
-
-    MockQSettingsProvider::GuardedMock mock_qsettings_injection = MockQSettingsProvider::inject<StrictMock>(); /* this
-    is made strict to ensure that, other than explicitly injected, no QSettings are used; that's particularly important
-    when injecting real get and set behavior (don't want tests to be affected, nor themselves affect, disk state) */
-    MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
-
-    std::unique_ptr<NiceMock<MockQSettings>> mock_qsettings = std::make_unique<NiceMock<MockQSettings>>();
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
-
-private:
-    static QString call_real_settings_get(const QString& key)
-    {
-        return MP_SETTINGS.Settings::get(key); // invoke the base
-    }
-
-    static void call_real_settings_set(const QString& key, const QString& val)
-    {
-        MP_SETTINGS.Settings::set(key, val); // invoke the base
-    }
-};
-
-TEST_F(TestSettings, getReadsUtf8)
-{
-    const auto key = mp::petenv_key;
-    EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_get(key);
-
-    MP_SETTINGS.get(key);
+    EXPECT_THAT(MP_SETTINGS.keys(), IsEmpty());
 }
 
-TEST_F(TestSettings, setWritesUtf8)
+TEST_F(TestSettings, keysReturnsKeysFromSingleHandler)
 {
-    const auto key = mp::bridged_interface_key, val = "foo";
-    EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8"))).Times(1);
+    auto some_keys = {QStringLiteral("a.b"), QStringLiteral("c.d.e"), QStringLiteral("f")};
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, keys).WillOnce(Return(some_keys));
 
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    MP_SETTINGS.set(key, val);
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(some_keys));
 }
 
-TEST_F(TestSettings, getThrowsOnUnreadableFile)
+TEST_F(TestSettings, keysReturnsKeysFromMultipleHandlers)
 {
-    const auto key = mp::hotkey_key;
+    auto some_keychains =
+        std::array{std::set({QStringLiteral("asdf.fdsa"), QStringLiteral("blah.bleh")}),
+                   std::set({QStringLiteral("qwerty.ytrewq"), QStringLiteral("foo"), QStringLiteral("bar")}),
+                   std::set({QStringLiteral("a.b.c.d")})};
 
-    mock_unreadable_settings_file("/an/unreadable/file");
-    inject_mock_qsettings();
-    inject_real_settings_get(key);
+    for (auto i = 0u; i < some_keychains.size(); ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        EXPECT_CALL(*mock_handler, keys).WillOnce(Return(some_keychains[i])); // copies, so ok to modify below
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
 
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
+    auto all_keys = std::reduce(std::begin(some_keychains), std::end(some_keychains), // hands-off clang-format
+                                std::set<QString>{}, [](auto&& a, auto&& b) {
+                                    a.merge(std::forward<decltype(b)>(b));
+                                    return std::forward<decltype(a)>(a);
+                                });
+    EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(all_keys));
 }
 
-TEST_F(TestSettings, setThrowsOnUnreadableFile)
+TEST_F(TestSettings, getThrowsUnrecognizedWhenNoHandler)
 {
-    const auto key = mp::mounts_key, val = "yes";
-
-    mock_unreadable_settings_file("unreadable");
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
+    auto key = "qwer";
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
 }
 
-using DescribedQSettingsStatus = std::tuple<QSettings::Status, std::string>;
-struct TestSettingsReadWriteError : public TestSettings, public WithParamInterface<DescribedQSettingsStatus>
+TEST_F(TestSettings, getThrowsUnrecognizedFromSingleHandler)
+{
+    auto key = "asdf";
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, getThrowsUnrecognizedAfterTryingAllHandlers)
+{
+    auto key = "zxcv";
+    for (auto i = 0; i < 10; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, getReturnsSettingFromSingleHandler)
+{
+    auto key = "asdf", val = "vvv";
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Return(val));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    EXPECT_EQ(MP_SETTINGS.get(key), val);
+}
+
+using NumHandlersAndHitIndex = std::tuple<unsigned, unsigned>;
+class TestSettingsGetMultipleHandlers : public TestSettings, public WithParamInterface<NumHandlersAndHitIndex>
 {
 };
 
-TEST_P(TestSettingsReadWriteError, getThrowsOnFileReadError)
+TEST_P(TestSettingsGetMultipleHandlers, getReturnsSettingFromFirstHandlerHit)
 {
-    const auto& [status, desc] = GetParam();
-    const auto key = multipass::driver_key;
-    EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
+    constexpr auto key = "τ", val = "2π";
+    auto [num_handlers, hit_index] = GetParam();
+    ASSERT_GT(num_handlers, 0u);
+    ASSERT_GT(num_handlers, hit_index);
 
-    inject_mock_qsettings();
-    inject_real_settings_get(key);
-
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("read"), HasSubstr(desc))));
-}
-
-TEST_P(TestSettingsReadWriteError, setThrowsOnFileWriteError)
-{
-    const auto& [status, desc] = GetParam();
-    const auto key = mp::hotkey_key, val = "Esc";
-
+    for (auto i = 0u; i < num_handlers; ++i)
     {
-        InSequence seq;
-        EXPECT_CALL(*mock_qsettings, sync).Times(1); // needs to flush to ensure failure to write
-        EXPECT_CALL(*mock_qsettings, status).WillOnce(Return(status));
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        if (i < hit_index)
+        {
+            EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+        }
+        else if (i == hit_index)
+        {
+            EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Return(val));
+        }
+        else
+        {
+            EXPECT_CALL(*mock_handler, get).Times(0);
+        }
+
+        MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::PersistentSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("write"), HasSubstr(desc))));
+    EXPECT_EQ(MP_SETTINGS.get(key), val);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestSettingsReadWriteError,
-                         Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
-                                DescribedQSettingsStatus{QSettings::AccessError, "access"}));
+INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsGetMultipleHandlers, Combine(Values(30u), Range(0u, 30u, 3u)));
 
-struct TestSettingsGetRegularKeys : public TestSettings, public WithParamInterface<QString>
+TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
+{
+    constexpr auto num_settings = 3u;
+    constexpr auto num_handlers = num_settings * 2u;
+    constexpr auto unknown_key = "?";
+
+    for (auto i = 0u; i < num_handlers; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+
+        auto [half_i, odd_i] = half_and_is_odd(i);
+        for (auto j = 0u; j < num_settings; ++j)
+        {
+            auto [key, val] = make_setting(j);
+            auto& expectation = EXPECT_CALL(*mock_handler, get(Eq(key)));
+
+            if (j == half_i && !odd_i)
+                expectation.WillOnce(Return(val));
+            else if (j <= half_i)
+                expectation.Times(0);
+            else
+                expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+        }
+
+        EXPECT_CALL(*mock_handler, get(Eq(unknown_key))).WillOnce(Throw(mp::UnrecognizedSettingException{unknown_key}));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    for (auto i = 0u; i < num_settings; ++i)
+    {
+        auto [key, val] = make_setting(i);
+        EXPECT_EQ(MP_SETTINGS.get(key), val);
+    }
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(unknown_key), mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(unknown_key)));
+}
+
+TEST_F(TestSettings, setThrowsUnrecognizedWhenNoHandler)
+{
+    auto key = "poiu";
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, "qwer"), mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, setThrowsUnrecognizedFromSingleHandler)
+{
+    auto key = "lkjh", val = "asdf";
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, setThrowsUnrecognizedAfterTryingAllHandlers)
+{
+    auto key = "mnbv", val = "zxcv";
+
+    for (auto i = 0u; i < 10; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val))).WillRepeatedly(Throw(mp::UnrecognizedSettingException{key}));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+}
+
+TEST_F(TestSettings, setDelegatesOnSingleHandler)
+{
+    auto key = "xyz", val = "zyx";
+    auto mock_handler = std::make_unique<MockSettingsHandler>();
+    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+
+    MP_SETTINGS.register_handler(std::move(mock_handler));
+    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+}
+
+TEST_F(TestSettings, setDelegatesOnAllHandlers)
+{
+    auto key = "boo", val = "far";
+
+    for (auto i = 0; i < 5; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+}
+
+using Indices = std::initializer_list<unsigned>;
+using NumHandlersAndHitIndices = std::tuple<unsigned, Indices>;
+class TestSettingsSetMultipleHandlers : public TestSettings, public WithParamInterface<NumHandlersAndHitIndices>
 {
 };
 
-TEST_P(TestSettingsGetRegularKeys, getReturnsRecordedSetting)
+TEST_P(TestSettingsSetMultipleHandlers, setDelegatesOnMultipleHandlers)
 {
-    const auto key = GetParam();
-    const auto val = "asdf";
-    EXPECT_CALL(*mock_qsettings, value_impl(Eq(key), _)).WillOnce(Return(val));
+    auto key = "boo", val = "far";
+    auto [num_handlers, hit_indices] = GetParam();
+    ASSERT_GT(num_handlers, 0u);
+    ASSERT_GT(hit_indices.size(), 0u);
+    ASSERT_THAT(hit_indices, Each(Lt(num_handlers)));
 
-    inject_mock_qsettings();
-    inject_real_settings_get(key);
+    for (auto i = 0u; i < num_handlers; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
 
-    ASSERT_NE(val, mpt::MockSettings::mock_instance().get_default(key));
-    EXPECT_EQ(MP_SETTINGS.get(key), QString{val});
+        if (std::find(hit_indices.begin(), hit_indices.end(), i) == hit_indices.end())
+            expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsGetRegularKeys, TestSettingsGetRegularKeys, ValuesIn([] {
-                             std::vector<QString> ret{mp::petenv_key,
-                                                      mp::driver_key,
-                                                      mp::autostart_key,
-                                                      mp::hotkey_key,
-                                                      mp::bridged_interface_key,
-                                                      mp::mounts_key};
+const auto test_indices = std::initializer_list<Indices>{{0u},
+                                                         {9u},
+                                                         {7u},
+                                                         {0u, 4u},
+                                                         {0u, 4u, 9u},
+                                                         {1u, 2u, 3u},
+                                                         {5u, 6u, 7u, 8u},
+                                                         {1u, 3u, 5u, 7u},
+                                                         {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u}};
+INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsSetMultipleHandlers, Combine(Values(10u), ValuesIn(test_indices)));
 
-                             for (const auto& item : mp::platform::extra_settings_defaults())
-                                 ret.push_back(item.first);
+TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
+{
+    constexpr auto num_settings = 5u;
+    constexpr auto num_handlers = num_settings * 2u;
+    constexpr auto unknown_key = "hhhh";
 
-                             return ret;
-                         }()));
+    for (auto i = 0u; i < num_handlers; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
 
-using KeyVal = std::tuple<QString, QString>;
-struct TestSettingsSetRegularKeys : public TestSettings, public WithParamInterface<KeyVal>
+        auto [half_i, odd_i] = half_and_is_odd(i);
+        for (auto j = 0u; j < num_settings; ++j)
+        {
+            auto [key, val] = make_setting(j);
+            auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+            if (j < half_i || odd_i)
+            {
+                expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+            }
+        }
+
+        EXPECT_CALL(*mock_handler, set(Eq(unknown_key), _))
+            .WillOnce(Throw(mp::UnrecognizedSettingException{unknown_key}));
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    for (auto i = 0u; i < num_settings; ++i)
+    {
+        auto [key, val] = make_setting(i);
+        EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+    }
+
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(unknown_key, "asdf"), mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(unknown_key)));
+}
+
+using SetException = std::variant<mp::UnrecognizedSettingException, mp::InvalidSettingException, std::runtime_error>; /*
+  We need to throw an exception of the ultimate type whose handling we're trying to test (to avoid slicing and enter the
+  right catch block). Therefore, we can't just use a base exception type. Parameterized and typed tests don't mix in
+  gtest, so we use a variant parameter. */
+using SetExceptNumHandlersAndThrowerIdx = std::tuple<SetException, unsigned, unsigned>;
+class TestSettingSetOtherExceptions : public TestSettings, public WithParamInterface<SetExceptNumHandlersAndThrowerIdx>
 {
 };
 
-TEST_P(TestSettingsSetRegularKeys, setRecordsProvidedSetting)
+TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
 {
-    const auto& [key, val] = GetParam();
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
+    constexpr auto key = "F", val = "X";
+    constexpr auto thrower = [](const auto& e) { throw e; };
 
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
+    auto [except, num_handlers, thrower_idx] = GetParam();
+    ASSERT_GT(num_handlers, 0u);
+    ASSERT_GT(num_handlers, thrower_idx);
 
-    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
+    for (auto i = 0u; i < num_handlers; ++i)
+    {
+        auto mock_handler = std::make_unique<MockSettingsHandler>();
+        auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+        if (i == thrower_idx)
+            expectation.WillOnce(WithoutArgs([&thrower, e = &except] { std::visit(thrower, *e); })); /* lambda capture
+                                                with initializer works around forbidden capture of structured binding */
+        else if (i > thrower_idx)
+            expectation.Times(0);
+
+        MP_SETTINGS.register_handler(std::move(mock_handler));
+    }
+
+    auto get_what = [](const auto& e) { return e.what(); };
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), std::exception,
+                         mpt::match_what(StrEq(std::visit(get_what, except))));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsSetRegularKeys, TestSettingsSetRegularKeys,
-                         Values(KeyVal{mp::petenv_key, "instance-name"}, KeyVal{mp::petenv_key, ""},
-                                KeyVal{mp::autostart_key, "false"}, KeyVal{mp::bridged_interface_key, "iface"},
-                                KeyVal{mp::mounts_key, "true"}));
+INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingSetOtherExceptions,
+                         Combine(Values(mp::InvalidSettingException{"foo", "bar", "err"},
+                                        std::runtime_error{"something else"}),
+                                 Values(8u), Range(0u, 8u, 2u)));
 
-TEST_F(TestSettings, setTranslatesHotkey)
+struct TestSettingsGetAs : public Test
 {
-    const auto key = mp::hotkey_key;
-    const auto val = "Alt+X";
-    const auto native_val = mp::platform::interpret_setting(key, val);
-
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
-}
-
-TEST_F(TestSettings, setAcceptsValidBackend)
-{
-    auto key = mp::driver_key, val = "good driver";
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(true));
-
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, val);
-
-    ASSERT_NO_THROW(MP_SETTINGS.set(key, val));
-}
-
-TEST_F(TestSettings, setRejectsInvalidBackend)
-{
-    auto key = mp::driver_key, val = "bad driver";
-
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
-
-    inject_real_settings_set(key, val);
-
-    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingsException,
-                         mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
-}
-
-using KeyReprVal = std::tuple<QString, QString, QString>;
-struct TestSettingsGoodBoolConversion : public TestSettings, public WithParamInterface<KeyReprVal>
-{
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
-
-TEST_P(TestSettingsGoodBoolConversion, setConvertsAcceptableBoolRepresentations)
-{
-    const auto& [key, repr, val] = GetParam();
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val))).Times(1);
-
-    inject_mock_qsettings();
-    inject_real_settings_set(key, repr);
-
-    ASSERT_NO_THROW(MP_SETTINGS.set(key, repr));
-}
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsGoodBool, TestSettingsGoodBoolConversion, ValuesIn([] {
-                             std::vector<KeyReprVal> ret;
-                             for (const auto& key : {mp::autostart_key, mp::mounts_key})
-                             {
-                                 for (const auto& repr : {"yes", "on", "1", "true"})
-                                     ret.emplace_back(key, repr, "true");
-                                 for (const auto& repr : {"no", "off", "0", "false"})
-                                     ret.emplace_back(key, repr, "false");
-                             }
-
-                             return ret;
-                         }()));
-
-struct TestSettingsBadValue : public TestSettings, WithParamInterface<KeyVal>
-{
-};
-
-TEST_P(TestSettingsBadValue, setThrowsOnInvalidSettingValue)
-{
-    const auto& [key, val] = GetParam();
-
-    inject_real_settings_set(key, val);
-
-    MP_ASSERT_THROW_THAT(MP_SETTINGS.set(key, val), mp::InvalidSettingsException,
-                         mpt::match_what(AllOf(HasSubstr(key.toStdString()), HasSubstr(val.toStdString()))));
-}
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsBadBool, TestSettingsBadValue,
-                         Combine(Values(mp::autostart_key, mp::mounts_key),
-                                 Values("nonsense", "invalid", "", "bool", "representations", "-", "null")));
-
-INSTANTIATE_TEST_SUITE_P(TestSettingsBadPetEnv, TestSettingsBadValue,
-                         Combine(Values(mp::petenv_key), Values("-", "-a-b-", "_asd", "_1", "1-2-3")));
 
 template <typename T>
 struct SettingValueRepresentation
@@ -374,7 +431,7 @@ std::vector<SettingValueRepresentation<QKeySequence>> setting_val_reprs()
 }
 
 template <typename T>
-struct TestSuccessfulSettingsGetAs : public TestSettings
+struct TestSuccessfulSettingsGetAs : public TestSettingsGetAs
 {
 };
 
@@ -389,43 +446,27 @@ TYPED_TEST(TestSuccessfulSettingsGetAs, getAsConvertsValues)
     {
         for (const auto& repr : reprs)
         {
-            EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(repr));
+            EXPECT_CALL(this->mock_settings, get(Eq(key))).WillOnce(Return(repr)); // needs `this` ¯\_(ツ)_/¯
             EXPECT_EQ(MP_SETTINGS.get_as<TypeParam>(key), val);
         }
     }
 }
 
-TEST_F(TestSettings, getAsThrowsOnUnsupportedTypeConversion)
+TEST_F(TestSettingsGetAs, getAsThrowsOnUnsupportedTypeConversion)
 {
     const auto key = "the.key";
     const auto bad_repr = "#$%!@";
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(bad_repr));
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(bad_repr));
     MP_ASSERT_THROW_THAT(MP_SETTINGS.get_as<QVariant>(key), mp::UnsupportedSettingValueType<QVariant>,
                          mpt::match_what(HasSubstr(key)));
 }
 
-TEST_F(TestSettings, getAsReturnsDefaultOnBadValue)
+TEST_F(TestSettingsGetAs, getAsReturnsDefaultOnBadValue)
 {
     const auto key = "a.key";
     const auto bad_int = "ceci n'est pas une int";
-    EXPECT_CALL(mpt::MockSettings::mock_instance(), get(Eq(key))).WillOnce(Return(bad_int));
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(bad_int));
     EXPECT_EQ(MP_SETTINGS.get_as<int>(key), 0);
-}
-
-// Tests for mock settings
-TEST(MockSettings, providesGetDefaultAsGetByDefault)
-{
-    const auto& key = mp::driver_key;
-    ASSERT_EQ(MP_SETTINGS.get(key), mpt::MockSettings::mock_instance().get_default(key));
-}
-
-TEST(MockSettings, canHaveGetMocked)
-{
-    const auto test = QStringLiteral("abc"), proof = QStringLiteral("xyz");
-    const auto& mock = mpt::MockSettings::mock_instance();
-
-    EXPECT_CALL(mock, get(test)).WillOnce(Return(proof));
-    ASSERT_EQ(MP_SETTINGS.get(test), proof);
 }
 
 } // namespace

@@ -30,6 +30,7 @@ add_library(commands STATIC
   networks.cpp
   purge.cpp
   recover.cpp
+  remote_settings_handler.cpp
   restart.cpp
   set.cpp
   shell.cpp
@@ -48,6 +49,7 @@ target_link_libraries(commands
   sftp_client
   ssh_client
   rpc
+  settings
   Qt5::Core
   Qt5::Network
   utils

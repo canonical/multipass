@@ -37,14 +37,13 @@ add_executable(multipass_tests
   main.cpp
   mischievous_url_downloader.cpp
   mock_logger.cpp
-  mock_process_factory.cpp
   mock_openssl_syscalls.cpp
-  mock_settings.cpp
-  mock_standard_paths.cpp
+  mock_process_factory.cpp
   mock_sftp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp
   mock_ssh_client.cpp
+  mock_standard_paths.cpp
   path.cpp
   reset_process_factory.cpp
   stub_process_factory.cpp
@@ -68,30 +67,34 @@ add_executable(multipass_tests
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
   test_format_utils.cpp
-  test_output_formatter.cpp
+  test_global_settings_handlers.cpp
   test_image_vault.cpp
   test_ip_address.cpp
   test_memory_size.cpp
+  test_mock_standard_paths.cpp
   test_new_release_monitor.cpp
+  test_output_formatter.cpp
+  test_persistent_settings_handler.cpp
   test_petname.cpp
   test_platform_shared.cpp
   test_private_pass_provider.cpp
-  test_mock_standard_paths.cpp
   test_qemuimg_process_spec.cpp
-  test_simple_streams_index.cpp
-  test_simple_streams_manifest.cpp
-  test_singleton.cpp
+  test_remote_settings_handler.cpp
+  test_setting_specs.cpp
   test_settings.cpp
   test_sftp_client.cpp
   test_sftpserver.cpp
-  test_ssl_cert_provider.cpp
-  test_sshfs_server_process_spec.cpp
-  test_sshfsmount.cpp
-  test_sshfsmounts.cpp
+  test_simple_streams_index.cpp
+  test_simple_streams_manifest.cpp
+  test_singleton.cpp
   test_ssh_client.cpp
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
   test_ssh_session.cpp
+  test_sshfs_server_process_spec.cpp
+  test_sshfsmount.cpp
+  test_sshfsmounts.cpp
+  test_ssl_cert_provider.cpp
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
@@ -132,6 +135,7 @@ target_link_libraries(multipass_tests
   network
   petname
   poco_utils
+  settings
   simplestreams
   sftp_test
   ssh_test

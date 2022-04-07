@@ -217,22 +217,27 @@ void simulate_environment(const mpt::MockProcess* process, const mp::ProcessStat
         throw std::runtime_error(fmt::format("Program {} not mocked.", program));
 }
 
-TEST(PlatformOSX, test_no_extra_settings)
+TEST(PlatformOSX, test_no_extra_client_settings)
 {
-    EXPECT_THAT(mp::platform::extra_settings_defaults(), IsEmpty());
+    EXPECT_THAT(MP_PLATFORM.extra_client_settings(), IsEmpty());
+}
+
+TEST(PlatformOSX, test_no_extra_daemon_settings)
+{
+    EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
 }
 
 TEST(PlatformOSX, test_interpretation_of_winterm_setting_not_supported)
 {
     for (const auto x : {"no", "matter", "what"})
-        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingsException);
+        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingException);
 }
 
 TEST(PlatformOSX, test_interpretation_of_unknown_settings_not_supported)
 {
     for (const auto k : {"unimaginable", "katxama", "katxatxa"})
         for (const auto v : {"no", "matter", "what"})
-            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingsException);
+            EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingException);
 }
 
 TEST(PlatformOSX, test_empty_sync_winterm_profiles)
@@ -301,6 +306,16 @@ TEST(PlatformOSX, test_mixed_hotkey_interpretation)
 
     EXPECT_THAT(mp::platform::interpret_setting(mp::hotkey_key, QString{"Control+"} + shift + "opt+" + tab),
                 UnorderedElementsAreArray(ctrl + shift + opt + tab));
+}
+
+TEST(PlatformOSX, test_default_driver)
+{
+    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "hyperkit", "virtualbox"));
+}
+
+TEST(PlatformOSX, test_default_privileged_mounts)
+{
+    EXPECT_EQ(MP_PLATFORM.default_privileged_mounts(), "true");
 }
 
 TEST(PlatformOSX, test_network_interfaces)
