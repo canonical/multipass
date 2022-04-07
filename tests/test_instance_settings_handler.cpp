@@ -63,6 +63,7 @@ struct TestInstanceSettingsHandler : public Test
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr> vms;
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr> deleted_vms;
     std::unordered_set<std::string> preparing_vms;
+    inline static constexpr auto properties = std::array{"cpus", "disk", "memory"};
 };
 
 QString make_key(const QString& instance_name, const QString& property)
@@ -80,7 +81,6 @@ struct TestInstanceSettingsKeys : public TestInstanceSettingsHandler, public Wit
 
 TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
 {
-    constexpr auto props = std::array{"cpus", "disk", "memory"};
     const auto intended_instances = GetParam();
     auto expected_keys = std::vector<QString>{};
 
@@ -89,7 +89,7 @@ TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
         specs[name];
         fake_instance_state(name, special_state);
 
-        for (const auto& prop : props)
+        for (const auto& prop : properties)
             expected_keys.push_back(make_key(name, prop));
     }
 
@@ -196,6 +196,19 @@ TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
 
     EXPECT_EQ(handler.get(make_key(target_instance_name, "disk")), "12.1MiB");
     EXPECT_EQ(handler.get(make_key(target_instance_name, "memory")), "337.6KiB");
+}
+
+TEST_F(TestInstanceSettingsHandler, getThrowsOnMissingInstance)
+{
+    constexpr auto instance = "missing-instance";
+
+    const auto handler = make_handler();
+
+    for (const auto& prop : properties)
+    {
+        MP_EXPECT_THROW_THAT(handler.get(make_key(instance, prop)), mp::InstanceSettingsException,
+                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
+    }
 }
 
 TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState)
