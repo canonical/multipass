@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 Canonical, Ltd.
+ * Copyright (C) 2021-2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,24 @@
  *
  */
 
-#include "mock_settings.h"
+#ifndef MULTIPASS_BOOL_SETTING_SPEC_H
+#define MULTIPASS_BOOL_SETTING_SPEC_H
 
-namespace mpt = multipass::test;
+#include "basic_setting_spec.h"
 
-using namespace testing;
+#include <utility>
 
-void mpt::MockSettings::mockit()
+namespace multipass
 {
-    mpt::MockSingletonHelper<MockSettings, NiceMock>::mockit();
-}
-
-auto mpt::MockSettings::mock_instance() -> MockSettings&
+class BoolSettingSpec : public BasicSettingSpec
 {
-    return dynamic_cast<MockSettings&>(instance());
-}
+public:
+    BoolSettingSpec(QString key, QString default_);
+    QString interpret(QString val) const override;
 
-void mpt::MockSettings::setup_mock_defaults()
-{
-    ON_CALL(*this, get(_)).WillByDefault([this](const auto& a) { return get_default(a); });
-    ON_CALL(*this, set(_, _)).WillByDefault([this](const auto& a, const auto& /*ignored*/) { get_default(a); });
-}
+private:
+    BoolSettingSpec(std::pair<QString, QString> params);
+};
+} // namespace multipass
+
+#endif // MULTIPASS_BOOL_SETTING_SPEC_H

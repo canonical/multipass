@@ -25,7 +25,7 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h> // temporary
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/settings.h>
+#include <multipass/settings/settings.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -112,7 +112,7 @@ mp::ParseCode cmd::Set::checked_prompt(const QString& key)
 {
     try
     {
-        if (key == passphrase_key)
+        if (key == passphrase_key) // TODO integrate into setting handlers
         {
             mp::NewPassphrasePrompter prompter(term);
             val = QString::fromStdString(prompter.prompt());

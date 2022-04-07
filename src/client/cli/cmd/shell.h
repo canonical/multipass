@@ -41,7 +41,7 @@ private:
     SSHInfoRequest request;
     QString petenv_name;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser);
 };
 }
 }

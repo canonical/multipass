@@ -45,15 +45,21 @@ constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
 constexpr auto winterm_profile_guid =
     "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the primary Multipass profile in Windows Terminal
 
+constexpr auto bridged_network_name = "bridged";
+
+constexpr auto settings_extension = ".conf";
+constexpr auto daemon_settings_root = "local";
+
 constexpr auto petenv_key = "client.primary-name";     // This will eventually be moved to some dynamic settings schema
 constexpr auto driver_key = "local.driver";            // idem
 constexpr auto passphrase_key = "local.passphrase";    // idem
 constexpr auto bridged_interface_key = "local.bridged-network"; // idem
-constexpr auto bridged_network_name = "bridged";
 constexpr auto mounts_key = "local.privileged-mounts"; // idem
 constexpr auto autostart_key = "client.gui.autostart"; // idem
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
 constexpr auto hotkey_key = "client.gui.hotkey";                      // idem
+
+constexpr auto petenv_default = "primary";
 constexpr auto hotkey_default = "Ctrl+Alt+U";                         // idem; translates to Cmd+Opt+U on macOS
 
 constexpr auto timeout_exit_code = 5;

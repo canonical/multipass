@@ -45,7 +45,7 @@ public:
 
 private:
     ParseCode set_formatter(ArgParser* parser);
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
 
     AliasDict aliases;
     Formatter* chosen_formatter;

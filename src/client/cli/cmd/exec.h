@@ -47,7 +47,7 @@ private:
     SSHInfoRequest request;
     AliasDict aliases;
 
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
 };
 } // namespace cmd
 } // namespace multipass

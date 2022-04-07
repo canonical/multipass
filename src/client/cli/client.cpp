@@ -31,6 +31,7 @@
 #include "cmd/networks.h"
 #include "cmd/purge.h"
 #include "cmd/recover.h"
+#include "cmd/remote_settings_handler.h"
 #include "cmd/restart.h"
 #include "cmd/set.h"
 #include "cmd/shell.h"
@@ -42,15 +43,33 @@
 #include "cmd/unalias.h"
 #include "cmd/version.h"
 
-#include <algorithm>
-
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
+#include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/settings/settings.h>
+#include <multipass/top_catch_all.h>
+
+#include <scope_guard.hpp>
+
+#include <algorithm>
+#include <memory>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+namespace
+{
+auto make_handler_unregisterer(mp::SettingsHandler* handler)
+{
+    return sg::make_scope_guard([handler]() noexcept {
+        mp::top_catch_all("client", [handler] {
+            MP_SETTINGS.unregister_handler(handler); // trust me clang-format
+        });
+    });
+}
+} // namespace
 
 mp::Client::Client(ClientConfig& config)
     : stub{mp::Rpc::NewStub(mp::client::make_channel(config.server_address, config.cert_provider.get()))},
@@ -101,14 +120,31 @@ int mp::Client::run(const QStringList& arguments)
     ArgParser parser(arguments, commands, term->cout(), term->cerr());
     parser.setApplicationDescription(description);
 
+    mp::ReturnCode ret = mp::ReturnCode::Ok;
     ParseCode parse_status = parser.parse(aliases);
 
+    auto verbosity = parser.verbosityLevel(); // try to respect requested verbosity, even if parsing failed
     if (!mpl::get_logger())
-        mp::client::set_logger(mpl::level_from(parser.verbosityLevel())); // we need logging for...
-    mp::client::pre_setup(); // ... something we want to do even if the command was wrong
+        mp::client::set_logger(mpl::level_from(verbosity));
 
-    const auto ret =
-        parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser) : parser.returnCodeFrom(parse_status);
+    {
+        auto daemon_settings_prefix = QString{daemon_settings_root} + ".";
+        auto* handler = MP_SETTINGS.register_handler(
+            std::make_unique<RemoteSettingsHandler>(std::move(daemon_settings_prefix), *stub, term, verbosity));
+        auto handler_unregisterer = make_handler_unregisterer(handler); // remove handler before its dependencies expire
+
+        try
+        {
+            mp::client::pre_setup();
+
+            ret = parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser)
+                                                : parser.returnCodeFrom(parse_status);
+        }
+        catch (const RemoteHandlerException& e)
+        {
+            ret = mp::cmd::standard_failure_handler_for(parser.chosenCommand()->name(), term->cerr(), e.get_status());
+        }
+    }
 
     mp::client::post_setup();
 

@@ -42,7 +42,7 @@ private:
     InfoRequest request;
     Formatter* chosen_formatter;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser);
 };
 }
 }

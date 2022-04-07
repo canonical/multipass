@@ -37,7 +37,7 @@ public:
 private:
     SuspendRequest request;
 
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
 };
 } // namespace cmd
 } // namespace multipass
