@@ -58,11 +58,17 @@ struct TestInstanceSettingsHandler : public Test
             deleted_vms[name];
     }
 
+    std::function<void()> make_fake_persister()
+    {
+        return [this] { fake_persister_called = true; };
+    }
+
     // empty components to fill before creating handler
     std::unordered_map<std::string, mp::VMSpecs> specs;
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr> vms;
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr> deleted_vms;
     std::unordered_set<std::string> preparing_vms;
+    bool fake_persister_called = false;
     inline static constexpr auto properties = std::array{"cpus", "disk", "memory"};
 };
 
@@ -124,10 +130,8 @@ TEST_F(TestInstanceSettingsHandler, keysDoesNotPersistInstances)
     deleted_vms["blah"];
     preparing_vms.emplace("xyz");
 
-    bool persisted = false;
-    make_handler([&persisted] { persisted = true; }).keys();
-
-    EXPECT_FALSE(persisted);
+    make_handler(make_fake_persister()).keys();
+    EXPECT_FALSE(fake_persister_called);
 }
 
 TEST_F(TestInstanceSettingsHandler, keysDoesNotModifyInstances)
@@ -229,5 +233,28 @@ TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState
             EXPECT_NO_THROW(handler.get(make_key(instance, item)));
         }
     }
+}
+
+TEST_F(TestInstanceSettingsHandler, getDoesNotPersistInstances)
+{
+    constexpr auto ready_instance = "asdf", preparing_instance = "sdfg", deleted_instance = "dfgh";
+    constexpr auto instances = std::array{ready_instance, preparing_instance, deleted_instance};
+
+    for (const auto& instance : instances)
+        specs[instance];
+
+    fake_instance_state(preparing_instance, SpecialInstanceState::preparing);
+    fake_instance_state(deleted_instance, SpecialInstanceState::deleted);
+
+    const auto handler = make_handler(make_fake_persister());
+
+    auto property_it = std::begin(properties);
+    for (const auto& instance : instances)
+    {
+        assert(property_it != std::end(properties));
+        handler.get(make_key(instance, *property_it++));
+    }
+
+    EXPECT_FALSE(fake_persister_called);
 }
 } // namespace
