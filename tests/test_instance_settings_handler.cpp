@@ -277,4 +277,11 @@ TEST_F(TestInstanceSettingsHandler, getThrowsOnWrongProperty)
     MP_EXPECT_THROW_THAT(make_handler().get(make_key(target_instance_name, wrong_property)),
                          mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(wrong_property)));
 }
+
+TEST_F(TestInstanceSettingsHandler, getThrowsOnBadKey)
+{
+    constexpr auto bad_key = ".#^&nonsense-.-$-$";
+    MP_EXPECT_THROW_THAT(make_handler().get(bad_key), mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(bad_key)));
+}
 } // namespace
