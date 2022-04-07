@@ -180,19 +180,6 @@ TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
     EXPECT_EQ(handler.get(make_key(target_instance_name, "memory")), "337.6KiB");
 }
 
-TEST_F(TestInstanceSettingsHandler, getThrowsOnMissingInstance)
-{
-    constexpr auto instance = "missing-instance";
-
-    const auto handler = make_handler();
-
-    for (const auto& prop : properties)
-    {
-        MP_EXPECT_THROW_THAT(handler.get(make_key(instance, prop)), mp::InstanceSettingsException,
-                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
-    }
-}
-
 TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState)
 {
     constexpr auto preparing_instance = "nouvelle", deleted_instance = "vague";
@@ -266,5 +253,18 @@ there) */
 
     EXPECT_EQ(specs, specs_copy);
     EXPECT_EQ(vms, vms_copy);
+}
+
+TEST_F(TestInstanceSettingsHandler, getThrowsOnMissingInstance)
+{
+    constexpr auto instance = "missing-instance";
+
+    const auto handler = make_handler();
+
+    for (const auto& prop : properties)
+    {
+        MP_EXPECT_THROW_THAT(handler.get(make_key(instance, prop)), mp::InstanceSettingsException,
+                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
+    }
 }
 } // namespace
