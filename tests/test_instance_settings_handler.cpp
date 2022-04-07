@@ -228,9 +228,9 @@ TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState
 
     for (const auto& instance : {preparing_instance, deleted_instance})
     {
-        for (const auto& item : {"cpus", "disk", "memory"})
+        for (const auto& property : properties)
         {
-            EXPECT_NO_THROW(handler.get(make_key(instance, item)));
+            EXPECT_NO_THROW(handler.get(make_key(instance, property)));
         }
     }
 }
