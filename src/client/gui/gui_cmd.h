@@ -63,11 +63,6 @@ public:
     };
 
 private:
-    ParseCode parse_args(ArgParser* parser) override
-    {
-        return ParseCode::Ok;
-    };
-
     void create_actions();
     void create_menu();
     void update_menu();

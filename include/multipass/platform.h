@@ -24,6 +24,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/process/process.h>
 #include <multipass/process/process_spec.h>
+#include <multipass/settings/setting_spec.h>
 #include <multipass/singleton.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
@@ -67,9 +68,12 @@ public:
     virtual std::string alias_path_message() const;
     virtual void set_server_socket_restrictions(const std::string& server_address, const bool restricted) const;
     virtual QString multipass_storage_location() const;
+    virtual QString daemon_config_home() const; // temporary
+    virtual SettingSpec::Set extra_daemon_settings() const;
+    virtual SettingSpec::Set extra_client_settings() const;
+    virtual QString default_driver() const;
+    virtual QString default_privileged_mounts() const;
 };
-
-std::map<QString, QString> extra_settings_defaults();
 
 QString interpret_setting(const QString& key, const QString& val);
 void sync_winterm_profiles();
@@ -78,10 +82,6 @@ QString autostart_test_data(); // returns a platform-specific string, for testin
 void setup_gui_autostart_prerequisites();
 
 std::string default_server_address();
-QString default_driver();
-QString default_privileged_mounts();
-
-QString daemon_config_home(); // temporary
 
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
 logging::Logger::UPtr make_logger(logging::Level level);

@@ -20,6 +20,7 @@
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
+#include <multipass/constants.h>
 
 #include "common.h"
 #include "daemon_test_fixture.h"
@@ -28,6 +29,7 @@
 #include "json_utils.h"
 #include "mock_file_ops.h"
 #include "mock_platform.h"
+#include "mock_settings.h"
 #include "mock_vm_image_vault.h"
 #include "stub_terminal.h"
 
@@ -317,6 +319,15 @@ struct DaemonAliasTestsuite
       public WithParamInterface<std::tuple<CmdList, std::string, std::vector<std::string> /* removed aliases */,
                                            std::vector<std::string> /* failed removal aliases */>>
 {
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
+    }
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 
 TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)

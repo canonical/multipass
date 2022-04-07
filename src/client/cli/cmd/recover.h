@@ -39,7 +39,7 @@ public:
 private:
     RecoverRequest request;
 
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser);
 };
 }
 }

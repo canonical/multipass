@@ -57,6 +57,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <variant>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -96,35 +97,44 @@ struct Daemon : public mpt::DaemonTestFixture
 {
     Daemon()
     {
-        ON_CALL(*mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
-            return mock_utils->Utils::filesystem_bytes_available(data_directory);
+        ON_CALL(mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
+            return mock_utils.Utils::filesystem_bytes_available(data_directory);
         });
 
-        EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
-        EXPECT_CALL(*mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
+        EXPECT_CALL(mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
+        EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
     }
 
     void SetUp() override
     {
-        EXPECT_CALL(mock_settings, get(_))
-            .Times(AnyNumber()); /* Admit get calls beyond explicitly expected in tests. */
+        EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet-instance"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true")); /* TODO should probably add
+                             a few more tests for `false`, since there are different portions of code depending on it */
+        EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
     }
 
-    mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
-    mpt::MockUtils* mock_utils = attr.first;
+    mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils& mock_utils = *mock_utils_injection.first;
 
-    mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
-    mpt::MockPlatform* mock_platform = platform_attr.first;
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance(); /* although this is shared, expectations are
-                                                                              reset at the end of each test */
+    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject()};
+    mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 
 TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
 {
     mpt::MockDaemon daemon{config_builder.build()};
 
+    EXPECT_CALL(daemon, keys)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::KeysRequest, mp::KeysReply>));
     EXPECT_CALL(daemon, get)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::GetRequest, mp::GetReply>));
+    EXPECT_CALL(daemon, set)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SetRequest, mp::SetReply>));
     EXPECT_CALL(daemon, create(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
     EXPECT_CALL(daemon, launch(_, _, _))
@@ -160,7 +170,11 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
     EXPECT_CALL(daemon, networks(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::NetworksRequest, mp::NetworksReply>));
 
-    send_commands({{"test_get", "foo"},
+    EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
+
+    send_commands({{"test_keys"},
+                   {"test_get", "foo"},
+                   {"test_set", "foo", "bar"},
                    {"test_create", "foo"},
                    {"launch", "foo"},
                    {"delete", "foo"},
@@ -235,7 +249,7 @@ TEST_F(Daemon, data_path_valid)
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppDataLocation))
         .WillOnce(Return(data_dir.path()));
 
-    EXPECT_CALL(*mock_platform, multipass_storage_location()).WillOnce(Return(QString()));
+    EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(QString()));
 
     config_builder.data_directory = "";
     config_builder.cache_directory = "";
@@ -252,7 +266,7 @@ TEST_F(Daemon, data_path_with_storage_valid)
     mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_)).Times(0);
 
-    EXPECT_CALL(*mock_platform, multipass_storage_location()).WillOnce(Return(mp::utils::get_multipass_storage()));
+    EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(mp::utils::get_multipass_storage()));
 
     config_builder.data_directory = "";
     config_builder.cache_directory = "";
@@ -284,7 +298,7 @@ TEST_F(Daemon, workflowsURLOverrideIsCorrect)
     auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
     const QString test_workflows_zip{mpt::test_data_path() + "test-workflows.zip"};
 
-    EXPECT_CALL(*mock_platform, get_workflows_url_override()).WillOnce([&test_workflows_zip] {
+    EXPECT_CALL(mock_platform, get_workflows_url_override()).WillOnce([&test_workflows_zip] {
         return QUrl::fromLocalFile(test_workflows_zip).toEncoded();
     });
 
@@ -821,7 +835,7 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
         return mp::MemorySize{img_size_str};
     });
 
-    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(default_total_bytes));
+    EXPECT_CALL(mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(default_total_bytes));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
@@ -849,7 +863,7 @@ TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
@@ -873,7 +887,7 @@ TEST_P(LaunchStorageCheckSuite, launch_fails_when_space_less_than_image)
 
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
@@ -1458,7 +1472,7 @@ TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
                                    std::chrono::seconds(expected_timeout))))
         .WillRepeatedly(Return());
     EXPECT_CALL(
-        *mock_utils,
+        mock_utils,
         wait_for_cloud_init(
             _, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout)), _))
         .WillRepeatedly(Return());
@@ -1500,6 +1514,7 @@ TEST_F(Daemon, refuses_launch_bridged_without_setting)
 
     mp::Daemon daemon{config_builder.build()};
 
+    EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillOnce(Return(""));
     EXPECT_CALL(*mock_factory, networks()).Times(0);
 
     std::stringstream err_stream;
@@ -1539,6 +1554,34 @@ TEST_F(Daemon, refusesDisabledMount)
     EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
+TEST_F(Daemon, keysReturnsSettingsKeys)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto keys = std::set{"some", "config.keys", "of.various.kinds"};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Return(std::set<QString>{keys.begin(), keys.end()}));
+
+    StrictMock<mpt::MockServerWriter<mp::KeysReply>> mock_server;
+    EXPECT_CALL(mock_server, Write(Property(&mp::KeysReply::settings_keys, UnorderedElementsAreArray(keys)), _))
+        .WillOnce(Return(true));
+
+    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{}, mock_server);
+    EXPECT_TRUE(status.ok());
+}
+
+TEST_F(Daemon, keysReportsException)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto e = std::runtime_error{"some error"};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Throw(e));
+
+    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{},
+                                        StrictMock<mpt::MockServerWriter<mp::KeysReply>>{});
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
+    EXPECT_THAT(status.error_message(), HasSubstr(e.what()));
+}
+
 TEST_F(Daemon, getReturnsSetting)
 {
     mp::Daemon daemon{config_builder.build()};
@@ -1561,9 +1604,11 @@ TEST_F(Daemon, getHandlesEmptyKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
+    const auto key = "";
     mp::GetRequest request;
-    request.set_key("");
+    request.set_key(key);
 
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     auto status =
         mpt::call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
 
@@ -1575,9 +1620,11 @@ TEST_F(Daemon, getHandlesInvalidKey)
 {
     mp::Daemon daemon{config_builder.build()};
 
+    const auto key = "bad";
     mp::GetRequest request;
-    request.set_key("bad");
+    request.set_key(key);
 
+    EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     auto status =
         mpt::call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
 
@@ -1601,6 +1648,56 @@ TEST_F(Daemon, getReportsException)
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr("exception"));
 }
+
+TEST_F(Daemon, setSetsSetting)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto key = "foo";
+    const auto val = "bar";
+
+    mp::SetRequest request;
+    request.set_key(key);
+    request.set_val(val);
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).Times(1);
+
+    auto mock_server = StrictMock<mpt::MockServerWriter<mp::SetReply>>{};
+    EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
+}
+
+using SetException = std::variant<mp::UnrecognizedSettingException, mp::InvalidSettingException, std::runtime_error>; /*
+  We need to throw an exception of the ultimate type whose handling we're trying to test (to avoid slicing and enter the
+  right catch block). Therefore, we can't just use a base exception type. Parameterized and typed tests don't mix in
+  gtest, so we use a variant parameter. */
+using SetExceptCodeAndMsgMatcher = std::tuple<SetException, grpc::StatusCode, Matcher<std::string>>;
+class DaemonSetExceptions : public Daemon, public WithParamInterface<SetExceptCodeAndMsgMatcher>
+{
+};
+
+TEST_P(DaemonSetExceptions, setHandlesSettingsException)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto& [exception, expected_code, msg_matcher] = GetParam();
+    auto thrower = [](const auto& e) { throw e; };
+    EXPECT_CALL(mock_settings, set).WillOnce(WithoutArgs([&thrower, e = &exception] { std::visit(thrower, *e); })); /*
+                                lambda capture with initializer works around forbidden capture of structured binding */
+
+    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::set, mp::SetRequest{},
+                                        StrictMock<mpt::MockServerWriter<mp::SetReply>>{});
+
+    EXPECT_EQ(status.error_code(), expected_code);
+    EXPECT_THAT(status.error_message(), msg_matcher);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Daemon, DaemonSetExceptions,
+    Values(std::tuple{mp::UnrecognizedSettingException{"foo"}, grpc::StatusCode::INVALID_ARGUMENT,
+                      AllOf(HasSubstr("Unrecognized"), HasSubstr("foo"))},
+           std::tuple{mp::InvalidSettingException{"foo", "bar", "err"}, grpc::StatusCode::INVALID_ARGUMENT,
+                      AllOf(HasSubstr("Invalid"), HasSubstr("foo"), HasSubstr("bar"), HasSubstr("err"))},
+           std::tuple{std::runtime_error{"Other"}, grpc::StatusCode::INTERNAL, HasSubstr("Other")}));
 
 TEST_F(Daemon, requests_networks)
 {

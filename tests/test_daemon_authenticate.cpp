@@ -41,7 +41,8 @@ struct TestDaemonAuthenticate : public mpt::DaemonTestFixture
     mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = platform_attr.first;
 
-    mpt::MockSettings& mock_settings = mpt::MockSettings::mock_instance();
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 } // namespace
 

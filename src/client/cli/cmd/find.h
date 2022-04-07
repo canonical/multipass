@@ -39,7 +39,7 @@ public:
 private:
     FindRequest request;
 
-    ParseCode parse_args(ArgParser* parser) override;
+    ParseCode parse_args(ArgParser* parser);
 
     Formatter* chosen_formatter;
 };

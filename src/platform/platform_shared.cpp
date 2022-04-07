@@ -43,9 +43,9 @@ QString mpp::interpret_hotkey(const QString& val)
     auto ret = sequence.toString(QKeySequence::NativeText);
 
     if (ret.isEmpty() && !sequence.isEmpty())
-        throw InvalidSettingsException(mp::hotkey_key, val, "Invalid key sequence");
+        throw InvalidSettingException(mp::hotkey_key, val, "Invalid key sequence");
     if (sequence.count() > 1)
-        throw InvalidSettingsException(mp::hotkey_key, val, "Multiple key sequences are not supported");
+        throw InvalidSettingException(mp::hotkey_key, val, "Multiple key sequences are not supported");
 
     return ret;
 }

@@ -20,6 +20,7 @@ add_library(simplestreams STATIC
 
 target_link_libraries(simplestreams
   network
+  settings
   utils
   Qt5::Core
   Qt5::Network)

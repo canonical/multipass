@@ -38,7 +38,7 @@ public:
     QString description() const override;
 
 private:
-    ParseCode parse_args(ArgParser *parser) override;
+    ParseCode parse_args(ArgParser* parser);
 
     ListRequest request;
     Formatter* chosen_formatter;
