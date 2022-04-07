@@ -134,28 +134,6 @@ TEST_F(TestInstanceSettingsHandler, keysDoesNotPersistInstances)
     EXPECT_FALSE(fake_persister_called);
 }
 
-TEST_F(TestInstanceSettingsHandler, keysDoesNotModifyInstances)
-{
-    mp::VMSpecs spec;
-    spec.num_cores = 3;
-    spec.ssh_username = "hugo";
-
-    for (const auto& name : {"toto", "tata", "fuzz"})
-    {
-        vms.insert({name, {}});
-        specs.insert({name, spec});
-        ++spec.num_cores;
-    }
-
-    auto specs_copy = specs;
-    auto vms_copy = vms;
-
-    make_handler().keys();
-
-    EXPECT_EQ(specs, specs_copy);
-    EXPECT_EQ(vms, vms_copy);
-}
-
 TEST_F(TestInstanceSettingsHandler, getFetchesInstanceCPUs)
 {
     constexpr auto target_instance_name = "foo";
@@ -256,5 +234,37 @@ TEST_F(TestInstanceSettingsHandler, getDoesNotPersistInstances)
     }
 
     EXPECT_FALSE(fake_persister_called);
+}
+
+TEST_F(TestInstanceSettingsHandler, constOperationsDoNotModifyInstances) /* note that `const` on the respective methods
+isn't enough for the compiler to catch changes to vms and specs, which live outside of the handler (only references held
+there) */
+{
+    constexpr auto make_mem_size = [](int gigs) { return mp::MemorySize{fmt::format("{}GiB", gigs)}; };
+    auto gigs = 1;
+
+    mp::VMSpecs spec;
+    spec.num_cores = 3;
+    spec.mem_size = make_mem_size(gigs);
+    spec.ssh_username = "hugo";
+    spec.default_mac_address = "+++++";
+
+    for (const auto& name : {"toto", "tata", "fuzz"})
+    {
+        vms.insert({name, {}});
+        specs.insert({name, spec});
+        spec.mem_size = make_mem_size(++gigs);
+        ++spec.num_cores;
+    }
+
+    auto specs_copy = specs;
+    auto vms_copy = vms;
+
+    auto handler = make_handler();
+    for (const auto& key : handler.keys())
+        handler.get(key);
+
+    EXPECT_EQ(specs, specs_copy);
+    EXPECT_EQ(vms, vms_copy);
 }
 } // namespace
