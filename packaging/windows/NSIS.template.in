@@ -921,11 +921,24 @@ Section "-Enable Hypervisor"
     ${EndIf}
   ${EndIf}
 
+  Var /GLOBAL driver
   ${If} $USE_HYPERV == ${BST_CHECKED}
-    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=hyperv'
+    StrCpy $driver "hyperv"
   ${ElseIf} $USE_VBOX == ${BST_CHECKED}
-    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=virtualbox'
+    StrCpy $driver "virtualbox"
   ${EndIf}
+
+  StrCpy $R1 0
+  ${While} $R1 < 60
+    nsExec::Exec '"$INSTDIR\bin\multipass.exe" set local.driver=$driver'
+    Pop $0
+    ${If} $0 != 0
+      IntOp $R1 $R1 + 1
+      sleep 1000
+    ${Else}
+      ${Break}
+    ${Endif}
+  ${EndWhile}
 SectionEnd
 
 ;--------------------------------
