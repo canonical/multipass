@@ -19,15 +19,19 @@
 
 #include <multipass/cli/command.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/logging/log.h>
 
 #include <cassert>
 #include <stdexcept>
 #include <utility>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "remote settings";
+
 class InternalCmd : public mp::cmd::Command // TODO feels hacky, better untangle dispatch from commands
 {
 public:
@@ -134,7 +138,13 @@ public:
         };
 
         auto custom_on_failure = [](grpc::Status& status) {
-            return status.error_code() == grpc::StatusCode::NOT_FOUND ? mp::ReturnCode::Ok : on_failure(status);
+            if (auto code = status.error_code(); code == grpc::NOT_FOUND)
+            {
+                mpl::log(mpl::Level::warning, category, "Could not reach daemon.");
+                return mp::ReturnCode::Ok;
+            }
+
+            return on_failure(status);
         };
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
