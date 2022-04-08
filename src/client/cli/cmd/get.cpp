@@ -65,20 +65,19 @@ QString cmd::Get::short_help() const
 
 QString cmd::Get::description() const
 {
-    auto desc = QStringLiteral("Get the configuration setting(s) corresponding to the given key(s), or all settings if "
-                               "no key is specified.");
+    auto desc = QStringLiteral("Get the configuration setting corresponding to the given key, or all settings if "
+                               "no key is specified.\n(Support for multiple keys and wildcards coming...)");
     return desc + "\n\n" + describe_common_settings_keys();
 }
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("arg", "Setting(s) key(s), i.e. path(s) to the intended setting(s).", "[<arg> ...]");
+    parser->addPositionalArgument("arg", "Setting key, i.e. path to the intended setting.", "[<arg>]");
 
     QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
                                          "values (i.e. \"\" instead of \"<empty>\").");
     QCommandLineOption keys_option("keys", "List available settings keys. This outputs the whole list of currently "
-                                           "available settings keys, or a matching subset when any <arg> are "
-                                           "provided");
+                                           "available settings keys, or just <arg>, if provided and a valid key.");
 
     parser->addOption(raw_option);
     parser->addOption(keys_option);
@@ -94,9 +93,14 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
         {
             arg = args.at(0);
         }
-        else if (!keys_opt || args.count()) // support 0 or 1 positional arg when --keys is given
+        else if (args.count() > 1)
         {
-            cerr << "Multiple settings not implemented yet. Please try again with either a single key or just the "
+            cerr << "Need at most one setting key.\n";
+            status = ParseCode::CommandLineError;
+        }
+        else if (!keys_opt) // support 0 or 1 positional arg when --keys is given
+        {
+            cerr << "Multiple settings not implemented yet. Please try again with one setting key or just the "
                     "`--keys` option for now.\n";
             status = ParseCode::CommandLineError;
         }
