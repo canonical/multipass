@@ -72,9 +72,7 @@ QString cmd::Get::description() const
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument(
-        "arg", "Setting(s) key(s), i.e. path(s) to the setting(s) whose configured value(s) should be obtained.",
-        "[<arg> ...]");
+    parser->addPositionalArgument("arg", "Setting(s) key(s), i.e. path(s) to the intended setting(s).", "[<arg> ...]");
 
     QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
                                          "values (i.e. \"\" instead of \"<empty>\").");
