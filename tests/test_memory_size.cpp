@@ -108,7 +108,9 @@ TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
 }
 
 INSTANTIATE_TEST_SUITE_P(MemorySize, TestGoodMemorySizeFormats, ValuesIn(TestGoodMemorySizeFormats::generate_args()));
-INSTANTIATE_TEST_SUITE_P(MemorySize, TestBadMemorySizeFormats, Values("321BB", "321BK", "1024MM", "1024KM", "1024GK", "K", "", "123.321K", "123.321"));
+INSTANTIATE_TEST_SUITE_P(MemorySize, TestBadMemorySizeFormats,
+                         Values("321BB", "321BK", "1024MM", "1024KM", "1024GK", "K", "", "123.321K", "123.321", "6868i",
+                                "555iB", "486ki", "54Mi", "8i33", "4M2", "-2345", "-5MiB", "K", "4GM"));
 
 TEST(MemorySize, defaultConstructsToZero)
 {
@@ -231,7 +233,7 @@ TEST(MemorySize, canCompareLessEqual)
     EXPECT_LE(mp::MemorySize{"6k"}, mp::MemorySize{"7k"});
 }
 
-using mem_repr = std::tuple<mp::MemorySize, std::string>;
+using mem_repr = std::tuple<std::string, std::string>;
 struct TestHumanReadableSizes : public TestWithParam<mem_repr>
 {
 };
@@ -239,12 +241,14 @@ struct TestHumanReadableSizes : public TestWithParam<mem_repr>
 TEST_P(TestHumanReadableSizes, producesProperHumanReadableFormat)
 {
     const auto& [size, repr] = GetParam();
-    EXPECT_EQ(size.human_readable(), repr);
+    EXPECT_EQ(mp::MemorySize{size}.human_readable(), repr);
 }
 
 INSTANTIATE_TEST_SUITE_P(MemorySize, TestHumanReadableSizes,
-                         Values(mem_repr{"0", "0B"}, mem_repr{"42B", "42B"}, mem_repr{"50B", "50B"},
-                                mem_repr{"999", "999B"}, mem_repr{"1023", "1023B"}, mem_repr{"1024", "1.0KiB"},
-                                mem_repr{"1031", "1.0KiB"}, mem_repr{"999K", "999.0KiB"}, mem_repr{"4096K", "4.0MiB"},
-                                mem_repr{"4546K", "4.4MiB"}, mem_repr{"8653K", "8.5MiB"}, mem_repr{"9999M", "9.8GiB"},
-                                mem_repr{"1234567890", "1.1GiB"}, mem_repr{"123456G", "123456.0GiB"}));
+                         Values(mem_repr{"0", "0B"}, mem_repr{"42B", "42B"}, mem_repr{"31", "31B"},
+                                mem_repr{"50B", "50B"}, mem_repr{"999", "999B"}, mem_repr{"1023", "1023B"},
+                                mem_repr{"876b", "876B"}, mem_repr{"9k", "9.0KiB"}, mem_repr{"98kib", "98.0KiB"},
+                                mem_repr{"1024", "1.0KiB"}, mem_repr{"1031", "1.0KiB"}, mem_repr{"999K", "999.0KiB"},
+                                mem_repr{"4096K", "4.0MiB"}, mem_repr{"4546K", "4.4MiB"}, mem_repr{"8653K", "8.5MiB"},
+                                mem_repr{"9999M", "9.8GiB"}, mem_repr{"1234567890", "1.1GiB"},
+                                mem_repr{"123456G", "123456.0GiB"}));
