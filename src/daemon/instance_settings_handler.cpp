@@ -114,7 +114,7 @@ void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& ins
 {
     bool converted_ok = false;
     if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < 1)
-        throw mp::InvalidSettingException{key, val, "Need a positive decimal integer"};
+        throw mp::InvalidSettingException{key, val, "Need a positive integer (in decimal format)"};
     else if (cpus < spec.num_cores)
         throw mp::InvalidSettingException{key, val, "The number of cores can only be increased"};
     else if (cpus > spec.num_cores) // NOOP if equal
