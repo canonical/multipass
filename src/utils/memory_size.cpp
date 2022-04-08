@@ -31,7 +31,7 @@ constexpr auto gibi = mebi * kibi;
 
 long long in_bytes(const std::string& mem_value)
 {
-    QRegExp matcher("(\\d+)([KMG])?i?B?", Qt::CaseInsensitive); // TODO accept decimals
+    QRegExp matcher("(\\d+)(?:([KMG])(?:i?B)?|B)?", Qt::CaseInsensitive); // TODO accept decimals
 
     if (matcher.exactMatch(QString::fromStdString(mem_value)))
     {
