@@ -2088,6 +2088,20 @@ TEST_F(Client, find_cmd_unsupported_option_ok)
 }
 
 // get/set cli tests
+struct TestGetSetHelp : Client, WithParamInterface<std::string>
+{
+};
+
+TEST_P(TestGetSetHelp, helpIncludesKeyExamplesAndHowToGetFullList)
+{
+    std::ostringstream cout;
+
+    EXPECT_THAT(send_command({GetParam(), "--help"}, cout), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cout.str(), AllOf(HasSubstr("local."), HasSubstr("client."), HasSubstr("get --keys")));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, TestGetSetHelp, Values("get", "set"));
+
 struct TestBasicGetSetOptions : Client, WithParamInterface<const char*>
 {
 };
@@ -2244,6 +2258,37 @@ TEST_F(Client, get_keeps_other_values_untouched_with_raw_option)
         EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
         EXPECT_THAT(get_setting({key, "--raw"}), Eq(val.toStdString()));
     }
+}
+
+TEST_F(Client, getKeysNoArgReturnsAllSettingsKeys)
+{
+    const auto key_set = std::set<QString>{"asdf", "sdfg", "dfgh"};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Return(key_set));
+
+    auto got_keys = QString::fromStdString(get_setting("--keys")).split('\n');
+    EXPECT_THAT(got_keys, UnorderedElementsAreArray(key_set));
+}
+
+TEST_F(Client, getKeysWithValidKeyReturnsThatKey)
+{
+    constexpr auto key = "foo";
+    const auto key_set = std::set<QString>{"asdf", "sdfg", "dfgh", key};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Return(key_set));
+
+    EXPECT_THAT(get_setting({"--keys", key}), StrEq(key));
+}
+
+TEST_F(Client, getKeysWithUnrecognizedKeyFails)
+{
+    constexpr auto wildcard = "*not*yet*";
+    const auto key_set = std::set<QString>{"asdf", "sdfg", "dfgh"};
+    EXPECT_CALL(mock_settings, keys).WillOnce(Return(key_set));
+
+    std::ostringstream cout, cerr;
+    EXPECT_THAT(send_command({"get", "--keys", wildcard}, cout, cerr), Eq(mp::ReturnCode::CommandLineError));
+
+    EXPECT_THAT(cerr.str(), AllOf(HasSubstr("Unrecognized"), HasSubstr(wildcard)));
+    EXPECT_THAT(cout.str(), IsEmpty());
 }
 
 TEST_F(Client, set_handles_persistent_settings_errors)
