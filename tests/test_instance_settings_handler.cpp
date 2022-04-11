@@ -302,4 +302,19 @@ TEST_F(TestInstanceSettingsHandler, setIncreasesInstanceCPUs)
     make_handler().set(make_key(target_instance_name, "cpus"), QString::number(more_cpus));
     EXPECT_EQ(actual_cpus, more_cpus);
 }
+
+TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceCPUsUntouchedIfSameButSucceeds)
+{
+    constexpr auto target_instance_name = "asdf";
+    constexpr auto request_cpus = 42;
+    const auto& actual_cpus = specs[target_instance_name].num_cores = request_cpus;
+
+    auto target_vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(target_instance_name);
+    vms.insert({target_instance_name, target_vm});
+
+    EXPECT_CALL(*target_vm, update_cpus).Times(0);
+
+    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(request_cpus)));
+    EXPECT_EQ(actual_cpus, request_cpus);
+}
 } // namespace
