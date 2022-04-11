@@ -114,6 +114,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                        {"New-VM", "-Name", name, "-Generation", "2", "-VHDPath", '"' + desc.image.image_path + '"',
                         "-BootDevice", "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size},
                        "Could not create VM");
+        checked_ps_run(*power_shell, {"Set-VMFirmware", "-VMName", name, "-EnableSecureBoot", "Off"},
+                       "Could not disable secure boot");
         checked_ps_run(*power_shell, {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
                        "Could not configure VM processor");
         checked_ps_run(*power_shell, {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
