@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_virtual_machine.h"
 
 #include <multipass/constants.h>
 #include <multipass/virtual_machine.h>
@@ -25,6 +26,7 @@
 
 #include <QString>
 
+#include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -283,5 +285,21 @@ TEST_F(TestInstanceSettingsHandler, getThrowsOnBadKey)
     constexpr auto bad_key = ".#^&nonsense-.-$-$";
     MP_EXPECT_THROW_THAT(make_handler().get(bad_key), mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(bad_key)));
+}
+
+TEST_F(TestInstanceSettingsHandler, setIncreasesInstanceCPUs)
+{
+    constexpr auto target_instance_name = "foo";
+    constexpr auto more_cpus = 6;
+    specs.insert({{"bar", {}}, {target_instance_name, {}}});
+    const auto& actual_cpus = specs[target_instance_name].num_cores = 4;
+
+    auto target_vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(target_instance_name);
+    vms.insert({target_instance_name, target_vm});
+
+    EXPECT_CALL(*target_vm, update_cpus(more_cpus)).Times(1);
+
+    make_handler().set(make_key(target_instance_name, "cpus"), QString::number(more_cpus));
+    EXPECT_EQ(actual_cpus, more_cpus);
 }
 } // namespace
