@@ -64,7 +64,7 @@ QString cmd::Set::short_help() const
 QString cmd::Set::description() const
 {
     auto desc = QStringLiteral("Set, to the given value, the configuration setting corresponding to the given key.");
-    return desc + "\n\n" + describe_settings_keys();
+    return desc + "\n\n" + describe_common_settings_keys();
 }
 
 mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)

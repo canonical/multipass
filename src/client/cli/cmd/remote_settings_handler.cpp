@@ -19,15 +19,19 @@
 
 #include <multipass/cli/command.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/logging/log.h>
 
 #include <cassert>
 #include <stdexcept>
 #include <utility>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "remote settings";
+
 class InternalCmd : public mp::cmd::Command // TODO feels hacky, better untangle dispatch from commands
 {
 public:
@@ -121,27 +125,26 @@ public:
 class RemoteKeys : public RemoteSettingsCmd
 {
 public:
-    RemoteKeys(QString fallback, mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity)
-        : RemoteSettingsCmd{stub, term}
+    RemoteKeys(mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity) : RemoteSettingsCmd{stub, term}
     {
         mp::KeysRequest keys_request;
         keys_request.set_verbosity_level(verbosity);
 
         auto custom_on_success = [this](mp::KeysReply& reply) {
             for (auto& key : *reply.mutable_settings_keys())
-                keys.insert(QString::fromStdString(std::move(key)));
+                keys.insert(QString::fromStdString(std::move(key))); // no actual move until QString supports it
 
             return mp::ReturnCode::Ok;
         };
 
-        auto custom_on_failure = [this, fallback = std::move(fallback)](grpc::Status& status) mutable {
-            if (status.error_code() == grpc::StatusCode::NOT_FOUND)
+        auto custom_on_failure = [](grpc::Status& status) {
+            if (auto code = status.error_code(); code == grpc::NOT_FOUND)
             {
-                keys.insert(std::move(fallback));
+                mpl::log(mpl::Level::error, category, "Could not reach daemon.");
                 return mp::ReturnCode::Ok;
             }
 
-            return on_failure(status); // return in all branches, even though this (currently) throws
+            return on_failure(status);
         };
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
@@ -185,9 +188,7 @@ void mp::RemoteSettingsHandler::set(const QString& key, const QString& val)
 std::set<QString> mp::RemoteSettingsHandler::keys() const
 {
     assert(term);
-
-    auto fallback = QStringLiteral("%1* \t (need daemon to find out actual keys)").arg(key_prefix);
-    return RemoteKeys{std::move(fallback), stub, term, verbosity}.keys;
+    return RemoteKeys{stub, term, verbosity}.keys;
 }
 
 mp::RemoteHandlerException::RemoteHandlerException(grpc::Status status)

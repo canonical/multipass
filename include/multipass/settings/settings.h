@@ -41,10 +41,8 @@ public:
     virtual void unregister_handler(SettingsHandler* handler); // no-op if handler isn't registered
 
     /**
-     * Obtain the keys, or key templates, that this Settings singleton knows about.
-     * @warning These are meant for human interpretation and may include templates and descriptions that cannot be used
-     * in get/set as actual keys (e.g. <tt>local.@<instance@>.cpus</tt>).
-     * @return The set of keys, key templates, or key descriptions that this Settings singleton knows about.
+     * Obtain the keys that this Settings singleton knows about.
+     * @return The set of keys that this Settings singleton knows about.
      */
     virtual std::set<QString> keys() const;
 
