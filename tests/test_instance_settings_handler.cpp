@@ -317,4 +317,21 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceCPUsUntouchedIfSameButSu
     EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(request_cpus)));
     EXPECT_EQ(actual_cpus, request_cpus);
 }
+
+TEST_F(TestInstanceSettingsHandler, setRefusesToDecreaseInstanceCPUs)
+{
+    constexpr auto target_instance_name = "sdfg";
+    constexpr auto less_cpus = 2;
+    const auto& actual_cpus = specs[target_instance_name].num_cores = 3;
+    auto original_cpus = actual_cpus;
+
+    auto target_vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(target_instance_name);
+    vms.insert({target_instance_name, target_vm});
+
+    EXPECT_CALL(*target_vm, update_cpus).Times(0);
+
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(less_cpus)),
+                         mp::InvalidSettingException, mpt::match_what(HasSubstr("can only be increased")));
+    EXPECT_EQ(actual_cpus, original_cpus);
+}
 } // namespace
