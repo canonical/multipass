@@ -111,7 +111,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                        "Could not find the default switch");
 
         checked_ps_run(*power_shell,
-                       {"New-VM", "-Name", name, "-Generation", "1", "-VHDPath", '"' + desc.image.image_path + '"',
+                       {"New-VM", "-Name", name, "-Generation", "2", "-VHDPath", '"' + desc.image.image_path + '"',
                         "-BootDevice", "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size},
                        "Could not create VM");
         checked_ps_run(*power_shell, {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
