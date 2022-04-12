@@ -354,6 +354,48 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToShrinkInstanceMemory)
 
     EXPECT_EQ(actual_mem, original_mem);
 }
+
+TEST_F(TestInstanceSettingsHandler, setExpandsInstanceDisk)
+{
+    constexpr auto target_instance_name = "Rimsky-Korsakov";
+    constexpr auto more_disk_str = "20G";
+    const auto more_disk = mp::MemorySize{more_disk_str};
+    const auto& actual_disk = specs[target_instance_name].disk_space = mp::MemorySize{"5G"};
+
+    EXPECT_CALL(mock_vm(target_instance_name), resize_disk(Eq(more_disk))).Times(1);
+
+    make_handler().set(make_key(target_instance_name, "disk"), more_disk_str);
+    EXPECT_EQ(actual_disk, more_disk);
+}
+
+TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceDiskUntouchedIfSameButSucceeds)
+{
+    constexpr auto target_instance_name = "Gershwin";
+    constexpr auto same_disk_str = "888999777K";
+    const auto same_disk = mp::MemorySize{same_disk_str};
+    const auto& actual_disk = specs[target_instance_name].disk_space = same_disk;
+
+    EXPECT_CALL(mock_vm(target_instance_name), resize_disk).Times(0);
+
+    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "disk"), same_disk_str));
+    EXPECT_EQ(actual_disk, same_disk);
+}
+
+TEST_F(TestInstanceSettingsHandler, setResusesToShrinkInstanceDisk)
+{
+    constexpr auto target_instance_name = "Chopin";
+    constexpr auto less_disk_str = "7Mb";
+    const auto& actual_disk = specs[target_instance_name].disk_space = mp::MemorySize{"2Gb"};
+    const auto original_disk = actual_disk;
+
+    EXPECT_CALL(mock_vm(target_instance_name), resize_disk).Times(0);
+
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "disk"), less_disk_str),
+                         mp::InvalidSettingException, mpt::match_what(HasSubstr("can only be expanded")));
+
+    EXPECT_EQ(actual_disk, original_disk);
+}
+
 TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
 {
     constexpr auto target_instance_name = "desmond";
