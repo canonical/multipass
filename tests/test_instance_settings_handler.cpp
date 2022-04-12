@@ -264,21 +264,6 @@ there) */
     EXPECT_EQ(vms, vms_copy);
 }
 
-TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnMissingInstance)
-{
-    constexpr auto instance = "missing-instance";
-
-    auto handler = make_handler();
-
-    for (const auto& prop : properties)
-    {
-        MP_EXPECT_THROW_THAT(handler.get(make_key(instance, prop)), mp::InstanceSettingsException,
-                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
-        MP_EXPECT_THROW_THAT(handler.set(make_key(instance, prop), "1"), mp::InstanceSettingsException,
-                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
-    }
-}
-
 TEST_F(TestInstanceSettingsHandler, getThrowsOnWrongProperty)
 {
     constexpr auto target_instance_name = "asdf";
@@ -287,15 +272,6 @@ TEST_F(TestInstanceSettingsHandler, getThrowsOnWrongProperty)
 
     MP_EXPECT_THROW_THAT(make_handler().get(make_key(target_instance_name, wrong_property)),
                          mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(wrong_property)));
-}
-
-TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnBadKey)
-{
-    constexpr auto bad_key = ".#^&nonsense-.-$-$";
-    MP_EXPECT_THROW_THAT(make_handler().get(bad_key), mp::UnrecognizedSettingException,
-                         mpt::match_what(HasSubstr(bad_key)));
-    MP_EXPECT_THROW_THAT(make_handler().set(bad_key, "1"), mp::UnrecognizedSettingException,
-                         mpt::match_what(HasSubstr(bad_key)));
 }
 
 TEST_F(TestInstanceSettingsHandler, setIncreasesInstanceCPUs)
@@ -338,6 +314,45 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToDecreaseInstanceCPUs)
     EXPECT_EQ(actual_cpus, original_cpus);
 }
 
+TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
+{
+    constexpr auto target_instance_name = "desmond";
+    constexpr auto wrong_property = "nuts";
+
+    const auto original_specs = specs[target_instance_name];
+    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
+
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, wrong_property), "1"),
+                         mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(wrong_property)));
+
+    EXPECT_EQ(original_specs, specs[target_instance_name]);
+}
+
+
+TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnMissingInstance)
+{
+    constexpr auto instance = "missing-instance";
+
+    auto handler = make_handler();
+
+    for (const auto& prop : properties)
+    {
+        MP_EXPECT_THROW_THAT(handler.get(make_key(instance, prop)), mp::InstanceSettingsException,
+                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
+        MP_EXPECT_THROW_THAT(handler.set(make_key(instance, prop), "1"), mp::InstanceSettingsException,
+                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
+    }
+}
+
+TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnBadKey)
+{
+    constexpr auto bad_key = ".#^&nonsense-.-$-$";
+    MP_EXPECT_THROW_THAT(make_handler().get(bad_key), mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(bad_key)));
+    MP_EXPECT_THROW_THAT(make_handler().set(bad_key, "1"), mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(bad_key)));
+}
+
 struct TestInstanceSettingsHandlerBadValues : public TestInstanceSettingsHandler,
                                               public WithParamInterface<std::tuple<const char*, const char*>>
 {
@@ -362,18 +377,4 @@ INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandle
                          Combine(ValuesIn(TestInstanceSettingsHandler::properties),
                                  Values("0", "2u", "1.5f", "2.0", "0xa", "0x8", "-4", "-1", "rubbish", "  123nonsense ",
                                         "¤9", "\n", "\t", "^", "")));
-
-TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
-{
-    constexpr auto target_instance_name = "desmond";
-    constexpr auto wrong_property = "nuts";
-
-    const auto original_specs = specs[target_instance_name];
-    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
-
-    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, wrong_property), "1"),
-                         mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(wrong_property)));
-
-    EXPECT_EQ(original_specs, specs[target_instance_name]);
-}
 } // namespace
