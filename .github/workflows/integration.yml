@@ -227,10 +227,9 @@ jobs:
               # Ensure primary running after upgrade
               _retry_grep 12 5 "multipassd" _run $MP version
 
+              _retry_grep 60 5 "Running" _run $MP list
+
               _run $MP list
-
-              _run $MP start primary --timeout 1200
-
               _run $MP exec primary -- uname -a
 
               # Ensure primary running after daemon restart
@@ -247,10 +246,9 @@ jobs:
 
               _retry_grep 12 5 "multipassd" _run $MP version
 
+              _retry_grep 60 5 "Running" _run $MP list
+
               _run $MP list
-
-              _run $MP start primary --timeout 1200
-
               _run $MP exec primary -- uname -a
 
               # Launch another instance with the version under test
