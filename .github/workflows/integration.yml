@@ -260,7 +260,7 @@ jobs:
       id: run
       uses: nick-fields/retry@v2
       with:
-        timeout_minutes: ${{ matrix.os == 'Windows' && '60' || '30' }}
+        timeout_minutes: 60
         max_attempts: 2
         command: |
           JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
