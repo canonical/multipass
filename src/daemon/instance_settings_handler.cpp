@@ -102,7 +102,11 @@ mp::MemorySize get_memory_size(const QString& key, const QString& val)
 {
     try
     {
-        return mp::MemorySize{val.toStdString()};
+        auto ret = mp::MemorySize{val.toStdString()};
+        if (ret.in_bytes() == 0)
+            throw mp::InvalidSettingException{key, val, "Need a positive size."};
+
+        return ret;
     }
     catch (const mp::InvalidMemorySizeException& e)
     {
