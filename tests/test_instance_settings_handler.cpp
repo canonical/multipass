@@ -233,7 +233,7 @@ TEST_F(TestInstanceSettingsHandler, getDoesNotPersistInstances)
 }
 
 TEST_F(TestInstanceSettingsHandler, constOperationsDoNotModifyInstances) /* note that `const` on the respective methods
-isn't enough for the compiler to catch changes to vms and specs, which live outside of the handler (only references held
+isn't enough for the compiler to catch changes to vms and specs, which live outside the handler (only references held
 there) */
 {
     constexpr auto make_mem_size = [](int gigs) { return mp::MemorySize{fmt::format("{}GiB", gigs)}; };
