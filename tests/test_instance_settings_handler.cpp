@@ -68,7 +68,7 @@ struct TestInstanceSettingsHandler : public Test
     mpt::MockVirtualMachine& mock_vm(const std::string& name)
     {
         auto ret = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(name);
-        vms.emplace(name, ret); // TODO@ricab replace similar single inserts
+        vms.emplace(name, ret);
         return *ret;
     }
 
@@ -247,8 +247,8 @@ there) */
 
     for (const auto& name : {"toto", "tata", "fuzz"})
     {
-        vms.insert({name, {}});
-        specs.insert({name, spec});
+        vms[name];
+        specs.emplace(name, spec);
         spec.mem_size = make_mem_size(++gigs);
         ++spec.num_cores;
     }
