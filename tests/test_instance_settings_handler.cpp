@@ -358,4 +358,18 @@ TEST_P(TestInstanceSettingsHandlerBadCPUs, setRefusesBadCPUsValue)
 INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandlerBadCPUs,
                          Values("0", "2u", "1.5f", "2.0", "0xa", "0x8", "-4", "-1", "rubbish", "  123nonsense ", "¤9",
                                 "\n", "\t", "^", ""));
+
+TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
+{
+    constexpr auto target_instance_name = "desmond";
+    constexpr auto wrong_property = "nuts";
+
+    const auto original_specs = specs[target_instance_name];
+    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
+
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, wrong_property), "1"),
+                         mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(wrong_property)));
+
+    EXPECT_EQ(original_specs, specs[target_instance_name]);
+}
 } // namespace
