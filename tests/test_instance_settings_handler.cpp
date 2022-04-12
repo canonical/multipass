@@ -314,6 +314,46 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToDecreaseInstanceCPUs)
     EXPECT_EQ(actual_cpus, original_cpus);
 }
 
+TEST_F(TestInstanceSettingsHandler, setExpandsInstanceMemory)
+{
+    constexpr auto target_instance_name = "desmond";
+    constexpr auto more_mem_str = "64G";
+    const auto more_mem = mp::MemorySize{more_mem_str};
+    const auto& actual_mem = specs[target_instance_name].mem_size = mp::MemorySize{"512M"};
+
+    EXPECT_CALL(mock_vm(target_instance_name), resize_memory(Eq(more_mem))).Times(1);
+
+    make_handler().set(make_key(target_instance_name, "memory"), more_mem_str);
+    EXPECT_EQ(actual_mem, more_mem);
+}
+
+TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceMemoryUntouchedIfSameButSucceeds)
+{
+    constexpr auto target_instance_name = "Liszt";
+    constexpr auto same_mem_str = "1234567890";
+    const auto same_mem = mp::MemorySize{same_mem_str};
+    const auto& actual_mem = specs[target_instance_name].mem_size = same_mem;
+
+    EXPECT_CALL(mock_vm(target_instance_name), resize_memory).Times(0);
+
+    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "memory"), same_mem_str));
+    EXPECT_EQ(actual_mem, same_mem);
+}
+
+TEST_F(TestInstanceSettingsHandler, setRefusesToShrinkInstanceMemory)
+{
+    constexpr auto target_instance_name = "Dvořák";
+    constexpr auto less_mem_str = "32b";
+    const auto& actual_mem = specs[target_instance_name].mem_size = mp::MemorySize{"32KiB"};
+    const auto original_mem = actual_mem;
+
+    EXPECT_CALL(mock_vm(target_instance_name), resize_memory).Times(0);
+
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "memory"), less_mem_str),
+                         mp::InvalidSettingException, mpt::match_what(HasSubstr("can only be expanded")));
+
+    EXPECT_EQ(actual_mem, original_mem);
+}
 TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
 {
     constexpr auto target_instance_name = "desmond";
