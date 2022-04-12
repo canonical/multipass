@@ -65,6 +65,13 @@ struct TestInstanceSettingsHandler : public Test
         return [this] { fake_persister_called = true; };
     }
 
+    mpt::MockVirtualMachine& mock_vm(const std::string& name)
+    {
+        auto ret = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(name);
+        vms.emplace(name, ret); // TODO@ricab replace similar single inserts
+        return *ret;
+    }
+
     // empty components to fill before creating handler
     std::unordered_map<std::string, mp::VMSpecs> specs;
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr> vms;
@@ -294,10 +301,7 @@ TEST_F(TestInstanceSettingsHandler, setIncreasesInstanceCPUs)
     specs.insert({{"bar", {}}, {target_instance_name, {}}});
     const auto& actual_cpus = specs[target_instance_name].num_cores = 4;
 
-    auto target_vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(target_instance_name);
-    vms.insert({target_instance_name, target_vm});
-
-    EXPECT_CALL(*target_vm, update_cpus(more_cpus)).Times(1);
+    EXPECT_CALL(mock_vm(target_instance_name), update_cpus(more_cpus)).Times(1);
 
     make_handler().set(make_key(target_instance_name, "cpus"), QString::number(more_cpus));
     EXPECT_EQ(actual_cpus, more_cpus);
@@ -309,10 +313,7 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceCPUsUntouchedIfSameButSu
     constexpr auto request_cpus = 42;
     const auto& actual_cpus = specs[target_instance_name].num_cores = request_cpus;
 
-    auto target_vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(target_instance_name);
-    vms.insert({target_instance_name, target_vm});
-
-    EXPECT_CALL(*target_vm, update_cpus).Times(0);
+    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
     EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(request_cpus)));
     EXPECT_EQ(actual_cpus, request_cpus);
@@ -325,13 +326,11 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToDecreaseInstanceCPUs)
     const auto& actual_cpus = specs[target_instance_name].num_cores = 3;
     auto original_cpus = actual_cpus;
 
-    auto target_vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(target_instance_name);
-    vms.insert({target_instance_name, target_vm});
-
-    EXPECT_CALL(*target_vm, update_cpus).Times(0);
+    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
     MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(less_cpus)),
                          mp::InvalidSettingException, mpt::match_what(HasSubstr("can only be increased")));
+
     EXPECT_EQ(actual_cpus, original_cpus);
 }
 } // namespace
