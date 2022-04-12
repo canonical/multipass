@@ -324,7 +324,7 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToDecreaseInstanceCPUs)
     constexpr auto target_instance_name = "sdfg";
     constexpr auto less_cpus = 2;
     const auto& actual_cpus = specs[target_instance_name].num_cores = 3;
-    auto original_cpus = actual_cpus;
+    const auto original_cpus = actual_cpus;
 
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
