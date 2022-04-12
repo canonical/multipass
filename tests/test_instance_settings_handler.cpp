@@ -290,13 +290,13 @@ TEST_F(TestInstanceSettingsHandler, setIncreasesInstanceCPUs)
 TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceCPUsUntouchedIfSameButSucceeds)
 {
     constexpr auto target_instance_name = "asdf";
-    constexpr auto request_cpus = 42;
-    const auto& actual_cpus = specs[target_instance_name].num_cores = request_cpus;
+    constexpr auto same_cpus = 42;
+    const auto& actual_cpus = specs[target_instance_name].num_cores = same_cpus;
 
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
-    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(request_cpus)));
-    EXPECT_EQ(actual_cpus, request_cpus);
+    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(same_cpus)));
+    EXPECT_EQ(actual_cpus, same_cpus);
 }
 
 TEST_F(TestInstanceSettingsHandler, setRefusesToDecreaseInstanceCPUs)
