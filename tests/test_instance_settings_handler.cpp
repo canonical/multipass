@@ -264,15 +264,17 @@ there) */
     EXPECT_EQ(vms, vms_copy);
 }
 
-TEST_F(TestInstanceSettingsHandler, getThrowsOnMissingInstance)
+TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnMissingInstance)
 {
     constexpr auto instance = "missing-instance";
 
-    const auto handler = make_handler();
+    auto handler = make_handler();
 
     for (const auto& prop : properties)
     {
         MP_EXPECT_THROW_THAT(handler.get(make_key(instance, prop)), mp::InstanceSettingsException,
+                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
+        MP_EXPECT_THROW_THAT(handler.set(make_key(instance, prop), "1"), mp::InstanceSettingsException,
                              mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
     }
 }
