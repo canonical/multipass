@@ -336,28 +336,30 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToDecreaseInstanceCPUs)
     EXPECT_EQ(actual_cpus, original_cpus);
 }
 
-struct TestInstanceSettingsHandlerBadCPUs : public TestInstanceSettingsHandler, public WithParamInterface<const char*>
+struct TestInstanceSettingsHandlerBadValues : public TestInstanceSettingsHandler,
+                                              public WithParamInterface<std::tuple<const char*, const char*>>
 {
 };
 
-TEST_P(TestInstanceSettingsHandlerBadCPUs, setRefusesBadCPUsValue)
+TEST_P(TestInstanceSettingsHandlerBadValues, setRefusesBadValues)
 {
     constexpr auto target_instance_name = "xanana";
-    const auto bad_val = GetParam();
+    const auto& [property, bad_val] = GetParam();
 
     const auto original_specs = specs[target_instance_name];
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
-    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "cpus"), bad_val),
-                         mp::InvalidSettingException,
-                         mpt::match_what(AllOf(HasSubstr(bad_val), HasSubstr("positive integer"))));
+    MP_EXPECT_THROW_THAT(
+        make_handler().set(make_key(target_instance_name, property), bad_val), mp::InvalidSettingException,
+        mpt::match_what(AllOf(HasSubstr(bad_val), AnyOf(HasSubstr("positive"), HasSubstr("non-negative")))));
 
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandlerBadCPUs,
-                         Values("0", "2u", "1.5f", "2.0", "0xa", "0x8", "-4", "-1", "rubbish", "  123nonsense ", "¤9",
-                                "\n", "\t", "^", ""));
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandlerBadValues,
+                         Combine(ValuesIn(TestInstanceSettingsHandler::properties),
+                                 Values("0", "2u", "1.5f", "2.0", "0xa", "0x8", "-4", "-1", "rubbish", "  123nonsense ",
+                                        "¤9", "\n", "\t", "^", "")));
 
 TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
 {
