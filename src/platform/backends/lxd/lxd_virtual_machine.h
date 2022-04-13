@@ -50,6 +50,9 @@ public:
     void ensure_vm_is_running(const std::chrono::milliseconds& timeout);
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
+    void update_cpus(int num_cores) override;
+    void resize_memory(const MemorySize& new_size) override;
+    void resize_disk(const MemorySize& new_size) override;
 
 private:
     const QString name;
@@ -61,6 +64,7 @@ private:
     const QUrl base_url;
     const QString bridge_name;
     const QString mac_addr;
+    const QString storage_pool;
 
     const QUrl url();
     const QUrl state_url();

@@ -52,15 +52,19 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void ensure_vm_is_running() override;
     void update_state() override;
+    void update_cpus(int num_cores) override;
+    void resize_memory(const MemorySize& new_size) override;
+    void resize_disk(const MemorySize& new_size) override;
 
     static ConnectionUPtr open_libvirt_connection(const LibvirtWrapper::UPtr& libvirt_wrapper);
 
 private:
     DomainUPtr initialize_domain_info(virConnectPtr connection);
+    DomainUPtr checked_vm_domain() const;
 
     std::string mac_addr;
     const std::string username;
-    const VirtualMachineDescription desc;
+    VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
     // Make this a reference since LibVirtVirtualMachineFactory can modify the name later
     const std::string& bridge_name;

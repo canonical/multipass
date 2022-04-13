@@ -20,15 +20,16 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/memory_size.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <shared/linux/backend_utils.h>
+#include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
 
 #include <QXmlStreamReader>
-
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -236,6 +237,23 @@ bool domain_is_running(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& libv
         return false;
 
     return true;
+}
+
+template <typename Updater, typename Integer>
+void update_max_and_property(virDomainPtr domain_ptr, Updater* fun_ptr, Integer new_value, unsigned int max_flag,
+                             const std::string& property_name)
+{
+    assert(domain_ptr);
+
+    int twice = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CONFIG | max_flag;
+    do
+    {
+        if (fun_ptr(domain_ptr, new_value, flags) < 0)
+            throw std::runtime_error(fmt::format("Could not update property: {}", property_name));
+
+        flags &= ~max_flag;
+    } while (!twice++); // first set the maximum, then actual
 }
 } // namespace
 
@@ -471,6 +489,19 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
     return domain;
 }
 
+mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::checked_vm_domain() const
+{
+    auto connection = open_libvirt_connection(libvirt_wrapper);
+    assert(connection && "should have thrown otherwise");
+
+    auto domain = domain_by_name_for(vm_name, connection.get(), libvirt_wrapper);
+    if (!domain)
+        throw std::runtime_error{
+            fmt::format("Could not obtain libvirt domain: {}", libvirt_wrapper->virGetLastErrorMessage())};
+
+    return domain;
+}
+
 mp::LibVirtVirtualMachine::ConnectionUPtr
 mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
@@ -487,4 +518,30 @@ mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPt
     }
 
     return connection;
+}
+
+void mp::LibVirtVirtualMachine::update_cpus(int num_cores)
+{
+    assert(num_cores > 0);
+    update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetVcpusFlags, num_cores,
+                            VIR_DOMAIN_VCPU_MAXIMUM, "CPUs");
+
+    desc.num_cores = num_cores;
+}
+
+void mp::LibVirtVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    auto new_size_kb = new_size.in_kilobytes(); /* floored here */
+    update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetMemoryFlags, new_size_kb,
+                            VIR_DOMAIN_MEM_MAXIMUM, "memory");
+
+    desc.mem_size = new_size;
+}
+
+void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    assert(new_size > desc.disk_space);
+
+    mp::backend::resize_instance_image(new_size, desc.image.image_path);
+    desc.disk_space = new_size;
 }

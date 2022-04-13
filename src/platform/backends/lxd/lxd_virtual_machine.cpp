@@ -26,6 +26,7 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/memory_size.h>
 #include <multipass/network_access_manager.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
@@ -163,7 +164,8 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, 
       manager{manager},
       base_url{base_url},
       bridge_name{bridge_name},
-      mac_addr{QString::fromStdString(desc.default_mac_address)}
+      mac_addr{QString::fromStdString(desc.default_mac_address)},
+      storage_pool{storage_pool}
 {
     try
     {
@@ -398,4 +400,54 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
     {
         // Implies the task doesn't exist, move on...
     }
+}
+
+void multipass::LXDVirtualMachine::update_cpus(int num_cores)
+{
+    assert(num_cores > 0);
+    assert(manager);
+
+    /*
+     * similar to:
+     * $ curl -s -w "%{http_code}" -X PATCH -H "Content-Type: application/json" \
+     *        -d '{"config": {"limits.cpu": "3"}}' \
+     *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
+     *        lxd/1.0/virtual-machines/asdf?project=multipass
+     */
+    QJsonObject patch_json{{"config", QJsonObject{{"limits.cpu", QString::number(num_cores)}}}};
+    auto reply = lxd_request(manager, "PATCH", url(), patch_json);
+}
+
+void mp::LXDVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+    assert(manager);
+
+    /*
+     * similar to:
+     * $ curl -s -w "%{http_code}" -X PATCH -H "Content-Type: application/json" \
+     *        -d '{"config": {"limits.memory": "1572864000"}}' \
+     *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
+     *        lxd/1.0/virtual-machines/asdf?project=multipass
+     */
+    QJsonObject patch_json{{"config", QJsonObject{{"limits.memory", QString::number(new_size.in_bytes())}}}};
+    auto reply = lxd_request(manager, "PATCH", url(), patch_json);
+}
+
+void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+    assert(manager);
+
+    /*
+     * similar to:
+     * $ curl -s -w "%{http_code}\n" -X PATCH -H "Content-Type: application/json" \
+     *        -d '{"devices": {"root": {"size": "10737418245B"}}}' \
+     *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
+     *        lxd/1.0/virtual-machines/asdf?project=multipass
+     */
+    QJsonObject root_json{
+        {"path", "/"}, {"pool", storage_pool}, {"size", QString::number(new_size.in_bytes())}, {"type", "disk"}};
+    QJsonObject patch_json{{"devices", QJsonObject{{"root", root_json}}}};
+    lxd_request(manager, "PATCH", url(), patch_json);
 }
