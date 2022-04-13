@@ -1,5 +1,5 @@
 ### Multipass
-Copyright © 2017-2021, Canonical Ltd.
+Copyright © 2017-2022, Canonical Ltd.
 
 The open source portion is available at https://github.com/CanonicalLtd/multipass/
 
