@@ -517,6 +517,7 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToModifyInstancesInSpecialState)
 
     EXPECT_EQ(specs, original_specs);
 }
+
 TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnMissingInstance)
 {
     constexpr auto instance = "missing-instance";
