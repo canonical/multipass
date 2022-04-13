@@ -47,9 +47,9 @@ using InstanceName = const char*;
 
 struct TestInstanceSettingsHandler : public Test
 {
-    mp::InstanceSettingsHandler make_handler(std::function<void()> instance_persister = [] {})
+    mp::InstanceSettingsHandler make_handler()
     {
-        return mp::InstanceSettingsHandler{specs, vms, deleted_vms, preparing_vms, instance_persister};
+        return mp::InstanceSettingsHandler{specs, vms, deleted_vms, preparing_vms, make_fake_persister()};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)
@@ -143,7 +143,7 @@ TEST_F(TestInstanceSettingsHandler, keysDoesNotPersistInstances)
     deleted_vms["blah"];
     preparing_vms.emplace("xyz");
 
-    make_handler(make_fake_persister()).keys();
+    make_handler().keys();
     EXPECT_FALSE(fake_persister_called);
 }
 
@@ -224,7 +224,7 @@ TEST_F(TestInstanceSettingsHandler, getDoesNotPersistInstances)
     fake_instance_state(preparing_instance, SpecialInstanceState::preparing);
     fake_instance_state(deleted_instance, SpecialInstanceState::deleted);
 
-    const auto handler = make_handler(make_fake_persister());
+    const auto handler = make_handler();
 
     auto property_it = std::begin(properties);
     for (const auto& instance : instances)
@@ -481,7 +481,7 @@ TEST_P(TestInstanceModPersists, setPersistsInstances)
     specs[target_instance_name];
     mock_vm(target_instance_name);
 
-    make_handler(make_fake_persister()).set(make_key(target_instance_name, property), val);
+    make_handler().set(make_key(target_instance_name, property), val);
     EXPECT_TRUE(fake_persister_called);
 }
 
