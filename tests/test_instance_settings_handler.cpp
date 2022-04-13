@@ -415,7 +415,8 @@ TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
 }
 
 using VMSt = mp::VirtualMachine::State;
-using PropertyAndState = std::tuple<const char*, VMSt>; // no subliminal political msg intended :)
+using Property = const char*;
+using PropertyAndState = std::tuple<Property, VMSt>; // no subliminal political msg intended :)
 struct TestInstanceModOnNonStoppedInstance : public TestInstanceSettingsHandler,
                                              public WithParamInterface<PropertyAndState>
 {
@@ -520,8 +521,10 @@ TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnBadKey)
                          mpt::match_what(HasSubstr(bad_key)));
 }
 
+using PlainValue = const char*;
+using PropertyValue = std::tuple<Property, PlainValue>;
 struct TestInstanceSettingsHandlerBadValues : public TestInstanceSettingsHandler,
-                                              public WithParamInterface<std::tuple<const char*, const char*>>
+                                              public WithParamInterface<PropertyValue>
 {
 };
 
