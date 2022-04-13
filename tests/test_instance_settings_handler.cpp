@@ -468,6 +468,26 @@ TEST_P(TestInstanceModOnStoppedInstance, setWorksOnOtherStates)
 INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceModOnStoppedInstance,
                          Combine(ValuesIn(TestInstanceSettingsHandler::properties), Values(VMSt::off, VMSt::stopped)));
 
+struct TestInstanceModPersists : public TestInstanceSettingsHandler, public WithParamInterface<Property>
+{
+};
+
+TEST_P(TestInstanceModPersists, setPersistsInstances)
+{
+    constexpr auto target_instance_name = "Tchaikovsky";
+    constexpr auto val = "70";
+    const auto property = GetParam();
+
+    specs[target_instance_name];
+    mock_vm(target_instance_name);
+
+    make_handler(make_fake_persister()).set(make_key(target_instance_name, property), val);
+    EXPECT_TRUE(fake_persister_called);
+}
+
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceModPersists,
+                         ValuesIn(TestInstanceSettingsHandler::properties));
+
 TEST_F(TestInstanceSettingsHandler, setRefusesToModifyInstancesInSpecialState)
 {
     constexpr auto preparing_instance_name = "Yann", deleted_instance_name = "Tiersen";
