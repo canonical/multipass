@@ -85,6 +85,7 @@ pick_instance(InstanceMap& instances, const std::string& instance_name, Operatio
     {
         const auto is_deleted = deleted.find(instance_name) != deleted.end();
         const auto reason = is_deleted ? "Instance is deleted" : "No such instance";
+        assert(!is_deleted || operation == Operation::Modify); // obtaining info from deleted instances is fine
 
         throw mp::InstanceSettingsException{operation_msg(operation), instance_name, reason};
     }
