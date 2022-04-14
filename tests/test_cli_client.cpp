@@ -524,11 +524,11 @@ TEST_F(Client, shellCmdSkipsAutomountWhenDisabled)
 {
     std::stringstream cout_stream;
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"};
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillOnce(Return("false"));
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(notfound));
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillOnce(Return("false"));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"shell", petenv_name}, cout_stream), Eq(mp::ReturnCode::Ok));
@@ -1448,11 +1448,11 @@ TEST_F(Client, startCmdSkipsAutomountWhenDisabled)
 {
     std::stringstream cout_stream;
     const grpc::Status ok{}, aborted = aborted_start_status({petenv_name});
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillOnce(Return("false"));
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillOnce(Return("false"));
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", petenv_name}, cout_stream), Eq(mp::ReturnCode::Ok));
