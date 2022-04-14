@@ -126,7 +126,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     }
 
     auto ret = request_launch(parser);
-    if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
+    if (ret == ReturnCode::Ok && !petenv_name.isEmpty() && request.instance_name() == petenv_name.toStdString())
     {
         std::string mounts_value;
         if (std::tie(ret, mounts_value) = request_mounts_setting_from_daemon(parser); ret == ReturnCode::Ok)
