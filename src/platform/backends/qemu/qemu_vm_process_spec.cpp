@@ -54,6 +54,10 @@ QStringList mp::QemuVMProcessSpec::arguments() const
             mpl::log(mpl::Level::info, desc.vm_name,
                      fmt::format("Cannot determine QEMU machine type. Falling back to system default."));
         }
+
+        // need to fix old-style vmnet arguments
+        // TODO: remove in due time
+        args.replaceInStrings("vmnet-macos,mode=shared,", "vmnet-shared,");
     }
     else
     {

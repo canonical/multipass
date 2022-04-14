@@ -94,6 +94,17 @@ TEST_F(TestQemuVMProcessSpec, resume_with_missing_machine_type_guesses_correctly
     EXPECT_EQ(spec.arguments(), QStringList({"-args", "-loadvm", "suspend_tag"}));
 }
 
+TEST_F(TestQemuVMProcessSpec, ResumeFixesVmnetFormat)
+{
+    const mp::QemuVMProcessSpec::ResumeData resume_data{
+        "suspend_tag", "machine_type", false, {"vmnet-macos,mode=shared,foo"}};
+
+    mp::QemuVMProcessSpec spec(desc, platform_args, resume_data);
+
+    EXPECT_EQ(spec.arguments(),
+              QStringList({"vmnet-shared,foo", "-loadvm", "suspend_tag", "-machine", "machine_type"}));
+}
+
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_has_correct_name)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mp::nullopt);
