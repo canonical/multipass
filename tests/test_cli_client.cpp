@@ -569,11 +569,12 @@ TEST_F(Client, shell_cmd_forwards_timeout_to_subcommands)
 TEST_F(Client, shellCmdFailsWhenUnableToRetrieveAutomountSetting)
 {
     const grpc::Status ok{}, notfound{grpc::StatusCode::NOT_FOUND, "msg"}, error{grpc::StatusCode::INTERNAL, "oops"};
+    const auto except = mp::RemoteHandlerException{error};
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, ssh_info).WillOnce(Return(notfound));
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
-    EXPECT_CALL(mock_daemon, get).WillOnce(Return(error));
+    EXPECT_CALL(mock_settings, get).WillOnce(Throw(except));
     EXPECT_CALL(mock_daemon, mount).Times(0);
     EXPECT_THAT(send_command({"shell", petenv_name}), Eq(mp::ReturnCode::CommandFail));
 }
@@ -861,11 +862,11 @@ TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
 TEST_F(Client, launchCmdFailsWhenUnableToRetrieveAutomountSetting)
 {
     const auto ok = grpc::Status{};
-    const auto error = grpc::Status{grpc::StatusCode::INTERNAL, "oops"};
+    const auto except = mp::RemoteHandlerException{grpc::Status{grpc::StatusCode::INTERNAL, "oops"}};
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
-    EXPECT_CALL(mock_daemon, get).WillOnce(Return(error));
+    EXPECT_CALL(mock_settings, get).WillOnce(Throw(except));
     EXPECT_CALL(mock_daemon, mount).Times(0);
     EXPECT_THAT(send_command({"launch", "--name", petenv_name}), Eq(mp::ReturnCode::CommandFail));
 }
@@ -1494,12 +1495,12 @@ TEST_F(Client, startCmdFailsWhenUnableToRetrieveAutomountSetting)
 {
     const auto ok = grpc::Status{};
     const auto aborted = aborted_start_status({petenv_name});
-    const auto error = grpc::Status{grpc::StatusCode::INTERNAL, "oops"};
+    const auto except = mp::RemoteHandlerException{grpc::Status{grpc::StatusCode::INTERNAL, "oops"}};
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, start).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
-    EXPECT_CALL(mock_daemon, get).WillOnce(Return(error));
+    EXPECT_CALL(mock_settings, get).WillOnce(Throw(except));
     EXPECT_CALL(mock_daemon, mount).Times(0);
     EXPECT_THAT(send_command({"start", petenv_name}), Eq(mp::ReturnCode::CommandFail));
 }
