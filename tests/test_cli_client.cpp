@@ -574,7 +574,7 @@ TEST_F(Client, shellCmdFailsWhenUnableToRetrieveAutomountSetting)
     InSequence seq;
     EXPECT_CALL(mock_daemon, ssh_info).WillOnce(Return(notfound));
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
-    EXPECT_CALL(mock_settings, get).WillOnce(Throw(except));
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillOnce(Throw(except));
     EXPECT_CALL(mock_daemon, mount).Times(0);
     EXPECT_THAT(send_command({"shell", petenv_name}), Eq(mp::ReturnCode::CommandFail));
 }
@@ -866,7 +866,7 @@ TEST_F(Client, launchCmdFailsWhenUnableToRetrieveAutomountSetting)
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
-    EXPECT_CALL(mock_settings, get).WillOnce(Throw(except));
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillOnce(Throw(except));
     EXPECT_CALL(mock_daemon, mount).Times(0);
     EXPECT_THAT(send_command({"launch", "--name", petenv_name}), Eq(mp::ReturnCode::CommandFail));
 }
@@ -1500,7 +1500,7 @@ TEST_F(Client, startCmdFailsWhenUnableToRetrieveAutomountSetting)
     InSequence seq;
     EXPECT_CALL(mock_daemon, start).WillOnce(Return(aborted));
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
-    EXPECT_CALL(mock_settings, get).WillOnce(Throw(except));
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillOnce(Throw(except));
     EXPECT_CALL(mock_daemon, mount).Times(0);
     EXPECT_THAT(send_command({"start", petenv_name}), Eq(mp::ReturnCode::CommandFail));
 }
