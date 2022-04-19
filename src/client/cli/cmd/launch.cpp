@@ -126,7 +126,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     }
 
     auto ret = request_launch(parser);
-    if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
+    if (ret == ReturnCode::Ok && !petenv_name.isEmpty() && request.instance_name() == petenv_name.toStdString())
     {
         if (MP_SETTINGS.get_as<bool>(mounts_key))
             ret = mount_home(parser);
