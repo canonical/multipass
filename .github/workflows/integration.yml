@@ -82,7 +82,6 @@ jobs:
             snapshot: Testflinger
             ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/impish/release/ubuntu-21.10-server-cloudimg-amd64.img' || '' }}
             vmx_config:
-              ${{ matrix.os == 'Linux' && 'memsize: 2048' || '' }}
               memsize: 2048
               vhv.enable: true
               vpmc.enable: true
