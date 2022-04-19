@@ -134,7 +134,7 @@ jobs:
                 elif [ '${{ matrix.os }}' == 'macOS' ]; then
                   [ $RC -eq 0 ] || _run sudo cat /Library/Logs/Multipass/multipassd.log
                   # Authenticate the root user
-                  _run sudo $MP set local.passphrase=foobar || true
+                  _run $MP set local.passphrase=foobar || true
                   _run sudo $MP authenticate foobar || true
                   ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
                   _run sudo rm -rf /Library/Logs/Multipass
@@ -177,7 +177,7 @@ jobs:
               fi
 
               _retry_grep 12 5 "multipassd" _run $MP version
-              _run ${{ matrix.os != 'Windows' && 'sudo' || '' }} $MP set local.driver=${{ matrix.driver }}
+              _run $MP set local.driver=${{ matrix.driver }}
 
               # Give multipassd time to settle (#1995)
               _retry_grep 12 5 "\w,lts\W" _run $MP find

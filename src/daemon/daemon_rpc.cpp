@@ -323,13 +323,13 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
 grpc::Status mp::DaemonRpc::set(grpc::ServerContext* context, const SetRequest* request,
                                 grpc::ServerWriter<SetReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_set, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_set, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::keys(grpc::ServerContext* context, const KeysRequest* request,
                                  grpc::ServerWriter<KeysReply>* response)
 {
-    return emit_signal_and_wait_for_result(
-        std::bind(&DaemonRpc::on_keys, this, request, response, std::placeholders::_1));
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_keys, this, request, response, std::placeholders::_1), client_cert_from(context));
 }
