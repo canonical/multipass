@@ -31,6 +31,9 @@
 #include <QDir>
 #include <QFile>
 
+#include <sys/types.h>
+#include <unistd.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -1006,6 +1009,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 int mp::SftpServer::handle_write(sftp_client_message msg)
 {
     auto file = handle_from(msg, open_file_handles);
+
     if (file == nullptr)
     {
         mpl::log(mpl::Level::trace, category, fmt::format("{}: bad handle requested", __FUNCTION__));
@@ -1014,16 +1018,21 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
 
     auto len = ssh_string_len(msg->data);
     auto data_ptr = ssh_string_get_char(msg->data);
-    if (!MP_FILEOPS.seek(*file, msg->offset))
+
+    auto fd = file->handle();
+    auto seek_ret = lseek(fd, msg->offset, SEEK_DATA);
+
+    if (seek_ret != (off_t)-1)
     {
         mpl::log(mpl::Level::trace, category,
-                 fmt::format("{}: cannot seek to position {} in \'{}\'", __FUNCTION__, msg->offset, file->fileName()));
+                 fmt::format("{}: cannot seek to position {} in \'{}\' ({})", __FUNCTION__, msg->offset,
+                             file->fileName(), std::strerror(seek_ret)));
         return reply_failure(msg);
     }
 
     do
     {
-        auto r = MP_FILEOPS.write(*file, data_ptr, len);
+        auto r = write(fd, data_ptr, len);
         if (r < 0)
         {
             mpl::log(
@@ -1031,8 +1040,13 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
                 fmt::format("{}: write failed for \'{}\': {}", __FUNCTION__, file->fileName(), file->errorString()));
             return reply_failure(msg);
         }
+        else
+        {
+            mpl::log(mpl::Level::trace, category,
+                     fmt::format("{}: write ok for \'{}\': {} bytes written", __FUNCTION__, file->fileName(), r));
+        }
 
-        file->flush();
+        // fdatasync(fd); // not needed?
 
         data_ptr += r;
         len -= r;
