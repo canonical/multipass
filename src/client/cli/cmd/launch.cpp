@@ -126,16 +126,12 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     }
 
     auto ret = request_launch(parser);
-    if (ret == ReturnCode::Ok && request.instance_name() == petenv_name.toStdString())
+    if (ret == ReturnCode::Ok && !petenv_name.isEmpty() && request.instance_name() == petenv_name.toStdString())
     {
-        std::string mounts_value;
-        if (std::tie(ret, mounts_value) = request_mounts_setting_from_daemon(parser); ret == ReturnCode::Ok)
-        {
-            if (mounts_value != "true")
-                cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
-            else
-                ret = mount_home(parser);
-        }
+        if (MP_SETTINGS.get_as<bool>(mounts_key))
+            ret = mount_home(parser);
+        else
+            cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
     }
 
     return ret;
@@ -484,26 +480,6 @@ auto cmd::Launch::mount_home(const mp::ArgParser* parser) -> ReturnCode
         cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
 
     return ret;
-}
-
-auto cmd::Launch::request_mounts_setting_from_daemon(const ArgParser* parser) -> std::pair<ReturnCode, std::string>
-{
-    // TODO: This needs wrapping in mp::Settings
-    std::string mounts_value = "false";
-    mp::GetRequest get_request;
-
-    auto on_success = [&mounts_value](mp::GetReply& reply) {
-        mounts_value = reply.value();
-        return ReturnCode::Ok;
-    };
-
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
-
-    get_request.set_key(mp::mounts_key);
-    get_request.set_verbosity_level(parser->verbosityLevel());
-    auto ret = dispatch(&RpcMethod::get, get_request, on_success, on_failure);
-
-    return {ret, mounts_value};
 }
 
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
