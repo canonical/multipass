@@ -51,20 +51,27 @@ mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_crea
 
 void mp::SSHClient::connect()
 {
-    exec({});
+    exec(std::vector<std::string>{});
 }
 
 int mp::SSHClient::exec(const std::vector<std::string>& args)
 {
-    if (args.empty())
-        SSH::throw_on_error(channel, *ssh_session, "[ssh client] shell request failed", ssh_channel_request_shell);
-    else
-        SSH::throw_on_error(channel, *ssh_session, "[ssh client] exec request failed", ssh_channel_request_exec,
-                            utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg).c_str());
+    return exec_string(utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg));
+}
 
-    handle_ssh_events();
+int mp::SSHClient::exec(const std::vector<std::vector<std::string>>& argss)
+{
+    std::string cmd_line;
 
-    return ssh_channel_get_exit_status(channel.get());
+    if (argss.size())
+    {
+        auto args_it = argss.begin();
+        cmd_line = utils::to_cmd(*args_it++, mp::utils::QuoteType::quote_every_arg);
+        for (; args_it != argss.end(); ++args_it)
+            cmd_line += ";" + utils::to_cmd(*args_it, mp::utils::QuoteType::quote_every_arg);
+    }
+
+    return exec_string(cmd_line);
 }
 
 void mp::SSHClient::handle_ssh_events()
@@ -98,4 +105,17 @@ void mp::SSHClient::handle_ssh_events()
     ssh_event_remove_connector(event.get(), connector_in.get());
     ssh_event_remove_connector(event.get(), connector_out.get());
     ssh_event_remove_connector(event.get(), connector_err.get());
+}
+
+int mp::SSHClient::exec_string(const std::string& cmd_line)
+{
+    if (cmd_line.empty())
+        SSH::throw_on_error(channel, *ssh_session, "[ssh client] shell request failed", ssh_channel_request_shell);
+    else
+        SSH::throw_on_error(channel, *ssh_session, "[ssh client] exec request failed", ssh_channel_request_exec,
+                            cmd_line.c_str());
+
+    handle_ssh_events();
+
+    return ssh_channel_get_exit_status(channel.get());
 }
