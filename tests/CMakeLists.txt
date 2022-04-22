@@ -69,6 +69,7 @@ add_executable(multipass_tests
   test_format_utils.cpp
   test_global_settings_handlers.cpp
   test_image_vault.cpp
+  test_instance_settings_handler.cpp
   test_ip_address.cpp
   test_memory_size.cpp
   test_mock_standard_paths.cpp

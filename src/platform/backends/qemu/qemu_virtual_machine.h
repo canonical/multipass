@@ -53,6 +53,9 @@ public:
     void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
+    void update_cpus(int num_cores) override;
+    void resize_memory(const MemorySize& new_size) override;
+    void resize_disk(const MemorySize& new_size) override;
 
 signals:
     void on_delete_memory_snapshot();
@@ -66,7 +69,7 @@ private:
     void on_restart();
     void initialize_vm_process();
 
-    const VirtualMachineDescription desc;
+    VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
     const std::string mac_addr;
     const std::string username;

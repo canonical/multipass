@@ -19,10 +19,12 @@
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
+#include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
@@ -36,6 +38,8 @@
 #include <QString>
 #include <QStringList>
 #include <QTemporaryFile>
+
+#include <cassert>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -558,4 +562,23 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             on_shutdown();
         }
     });
+}
+
+void mp::QemuVirtualMachine::update_cpus(int num_cores)
+{
+    assert(num_cores > 0);
+    desc.num_cores = num_cores;
+}
+
+void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    desc.mem_size = new_size;
+}
+
+void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    assert(new_size > desc.disk_space);
+
+    mp::backend::resize_instance_image(new_size, desc.image.image_path);
+    desc.disk_space = new_size;
 }
