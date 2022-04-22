@@ -22,6 +22,7 @@
 
 #include <multipass/ip_address.h>
 #include <multipass/optional.h>
+#include <multipass/path.h>
 
 #include <QString>
 
@@ -51,10 +52,14 @@ public:
     void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
+    void update_cpus(int num_cores) override;
+    void resize_memory(const MemorySize& new_size) override;
+    void resize_disk(const MemorySize& new_size) override;
 
-private:
+private: // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
     const QString name;
     const std::string username;
+    const Path image_path;
     multipass::optional<int> port;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};

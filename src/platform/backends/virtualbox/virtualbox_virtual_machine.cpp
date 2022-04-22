@@ -145,6 +145,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
     : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
+      image_path{desc.image.image_path},
       monitor{&monitor}
 {
     if (desc.extra_interfaces.size() > 7)
@@ -339,4 +340,29 @@ std::string mp::VirtualBoxVirtualMachine::ipv6()
 void mp::VirtualBoxVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     mpu::wait_until_ssh_up(this, timeout, std::bind(&VirtualBoxVirtualMachine::ensure_vm_is_running, this));
+}
+
+void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
+{
+    assert(num_cores > 0);
+
+    mpu::process_throw_on_error("VBoxManage", {"modifyvm", name, "--cpus", QString::number(num_cores)},
+                                "Could not update CPUs: {}", name);
+}
+
+void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+
+    mpu::process_throw_on_error("VBoxManage", {"modifyvm", name, "--memory", QString::number(new_size.in_megabytes())},
+                                "Could not update memory: {}", name);
+}
+
+void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+
+    mpu::process_throw_on_error("VBoxManage",
+                                {"modifyhd", image_path, "--resizebyte", QString::number(new_size.in_bytes())},
+                                "Could not resize image: {}", name);
 }

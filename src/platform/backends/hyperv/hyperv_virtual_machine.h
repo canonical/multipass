@@ -20,8 +20,9 @@
 
 #include <shared/base_virtual_machine.h>
 
-#include <multipass/optional.h>
 #include <multipass/ip_address.h>
+#include <multipass/optional.h>
+#include <multipass/path.h>
 
 #include <QString>
 
@@ -54,13 +55,18 @@ public:
     void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
+    void update_cpus(int num_cores) override;
+    void resize_memory(const MemorySize& new_size) override;
+    void resize_disk(const MemorySize& new_size) override;
 
 private:
     void setup_network_interfaces(const std::string& default_mac_address,
                                   const std::vector<NetworkInterface>& extra_interfaces);
 
+    // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
     const QString name;
     const std::string username;
+    const Path image_path;
     multipass::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;

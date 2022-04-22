@@ -99,6 +99,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     : BaseVirtualMachine{desc.vm_name},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
+      image_path{desc.image.image_path},
       power_shell{std::make_unique<PowerShell>(vm_name)},
       monitor{&monitor}
 {
@@ -287,4 +288,28 @@ std::string mp::HyperVVirtualMachine::ipv6()
 void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     mp::utils::wait_until_ssh_up(this, timeout, std::bind(&HyperVVirtualMachine::ensure_vm_is_running, this));
+}
+
+void mp::HyperVVirtualMachine::update_cpus(int num_cores)
+{
+    assert(num_cores > 0);
+
+    checked_ps_run(*power_shell, {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(num_cores)},
+                   "Could not update CPUs");
+}
+
+void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+
+    QStringList resize_cmd = {"Set-VMMemory", "-VMName", name, "-StartupBytes", QString::number(new_size.in_bytes())};
+    checked_ps_run(*power_shell, resize_cmd, "Could not resize memory");
+}
+
+void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+
+    QStringList resize_cmd = {"Resize-VHD", "-Path", image_path, "-SizeBytes", QString::number(new_size.in_bytes())};
+    checked_ps_run(*power_shell, resize_cmd, "Could not resize disk");
 }
