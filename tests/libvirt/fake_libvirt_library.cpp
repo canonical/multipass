@@ -161,3 +161,13 @@ const char* virGetLastErrorMessage()
     static char fake_error[64] = "";
     return fake_error;
 }
+
+int virDomainSetVcpusFlags(virDomainPtr /*domain*/, unsigned int /*nvcpus*/, unsigned int /*flags*/)
+{
+    return 1;
+}
+
+int virDomainSetMemoryFlags(virDomainPtr /*domain*/, unsigned long /*memory*/, unsigned int /*flags*/)
+{
+    return 1;
+}
