@@ -22,6 +22,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
+#include <multipass/optional.h>
 
 namespace multipass
 {
@@ -41,7 +42,8 @@ public:
     QString short_help() const override;
     QString description() const override;
 
-    static ReturnCode exec_success(const SSHInfoReply& reply, const std::vector<std::string>& args, Terminal* term);
+    static ReturnCode exec_success(const SSHInfoReply& reply, const multipass::optional<std::string>& dir,
+                                   const std::vector<std::string>& args, Terminal* term);
 
 private:
     SSHInfoRequest request;

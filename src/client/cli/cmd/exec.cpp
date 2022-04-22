@@ -24,6 +24,11 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+namespace
+{
+const QString work_dir_option_name{"working-directory"};
+}
+
 mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -36,7 +41,13 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
     for (int i = 1; i < parser->positionalArguments().size(); ++i)
         args.push_back(parser->positionalArguments().at(i).toStdString());
 
-    auto on_success = [this, &args](mp::SSHInfoReply& reply) { return exec_success(reply, args, term); };
+    std::optional<std::string> work_dir;
+    if (parser->isSet(work_dir_option_name))
+        work_dir = parser->value(work_dir_option_name).toStdString();
+
+    auto on_success = [this, &args, &work_dir](mp::SSHInfoReply& reply) {
+        return exec_success(reply, work_dir, args, term);
+    };
 
     auto on_failure = [this, parser](grpc::Status& status) {
         if (status.error_code() == grpc::StatusCode::ABORTED)
@@ -69,8 +80,8 @@ QString cmd::Exec::description() const
     return QStringLiteral("Run a command on an instance");
 }
 
-mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std::vector<std::string>& args,
-                                       mp::Terminal* term)
+mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const mp::optional<std::string>& dir,
+                                       const std::vector<std::string>& args, mp::Terminal* term)
 {
     // TODO: mainly for testing - need a better way to test parsing
     if (reply.ssh_info().empty())
@@ -86,7 +97,14 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
     {
         auto console_creator = [&term](auto channel) { return Console::make_console(channel, term); };
         mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
-        return static_cast<mp::ReturnCode>(ssh_client.exec(args));
+
+        std::vector<std::vector<std::string>> all_args;
+        if (dir)
+            all_args = {{"cd", *dir}, {args}};
+        else
+            all_args = {{args}};
+
+        return static_cast<mp::ReturnCode>(ssh_client.exec(all_args));
     }
     catch (const std::exception& e)
     {
@@ -99,6 +117,10 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Name of instance to execute the command on", "<name>");
     parser->addPositionalArgument("command", "Command to execute on the instance", "[--] <command>");
+
+    QCommandLineOption workDirOption({"w", work_dir_option_name}, "Change to <dir> before execution", "dir");
+
+    parser->addOptions({workDirOption});
 
     auto status = parser->commandParse(this);
 
