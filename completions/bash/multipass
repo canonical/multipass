@@ -194,7 +194,7 @@ _multipass_complete()
 
     case "${cmd}" in
         "exec")
-            opts="${opts} --working-dir"
+            opts="${opts} --working-directory"
         ;;
         "info")
             opts="${opts} --all --format"
