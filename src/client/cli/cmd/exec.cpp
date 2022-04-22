@@ -118,7 +118,7 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument("name", "Name of instance to execute the command on", "<name>");
     parser->addPositionalArgument("command", "Command to execute on the instance", "[--] <command>");
 
-    QCommandLineOption workDirOption({"w", work_dir_option_name}, "Change to <dir> before execution", "dir");
+    QCommandLineOption workDirOption({"d", work_dir_option_name}, "Change to <dir> before execution", "dir");
 
     parser->addOptions({workDirOption});
 
