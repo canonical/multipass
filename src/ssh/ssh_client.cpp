@@ -68,7 +68,7 @@ int mp::SSHClient::exec(const std::vector<std::vector<std::string>>& argss)
         auto args_it = argss.begin();
         cmd_line = utils::to_cmd(*args_it++, mp::utils::QuoteType::quote_every_arg);
         for (; args_it != argss.end(); ++args_it)
-            cmd_line += ";" + utils::to_cmd(*args_it, mp::utils::QuoteType::quote_every_arg);
+            cmd_line += "&&" + utils::to_cmd(*args_it, mp::utils::QuoteType::quote_every_arg);
     }
 
     return exec_string(cmd_line);
