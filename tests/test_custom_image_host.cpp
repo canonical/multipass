@@ -51,7 +51,8 @@ constexpr auto sha256_sums =
     "a6e6db185f53763d9d6607b186f1e6ae2dc02f8da8ea25e58d92c0c0c6dc4e48  ubuntu-16.04-minimal-cloudimg-amd64-disk1.img\n"
     "96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c  bionic-server-cloudimg-amd64-disk.img\n"
     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  focal-server-cloudimg-amd64-disk.img\n"
-    "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c  jammy-server-cloudimg-amd64-disk.img";
+    "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c  jammy-server-cloudimg-amd64-disk.img\n"
+    "872e3f03b57300260c3f982f07183a8480d724d566c686fddc1a2fde0d411ec5  kinetic-server-cloudimg-amd64-disk.img";
 
 struct CustomImageHost : public Test
 {
@@ -107,26 +108,31 @@ TEST_P(ExpectedDataSuite, returns_expected_data)
 
 INSTANTIATE_TEST_SUITE_P(
     CustomImageHost, ExpectedDataSuite,
-    Values(CustomData{std::vector<std::string>{"core", "core16"}, "",
-                      "https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/ubuntu-core-16-amd64.img.xz",
-                      "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7", "core-16", "Core 16"},
-           CustomData{std::vector<std::string>{"core18"}, "",
-                      "https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/ubuntu-core-18-amd64.img.xz",
-                      "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f", "core-18", "Core 18"},
-           CustomData{
-               std::vector<std::string>{"core18", "18.04"}, "snapcraft",
-               "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/bionic-server-cloudimg-amd64-disk.img",
-               "96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c", "snapcraft-core18",
-               "Snapcraft builder for Core 18"},
-           CustomData{
-               std::vector<std::string>{"core20", "20.04"}, "snapcraft",
-               "https://cloud-images.ubuntu.com/buildd/releases/focal/release/focal-server-cloudimg-amd64-disk.img",
-               "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "snapcraft-core20",
-               "Snapcraft builder for Core 20"},
-           CustomData{std::vector<std::string>{"devel"}, "snapcraft",
-                      "https://cloud-images.ubuntu.com/buildd/daily/jammy/current/jammy-server-cloudimg-amd64-disk.img",
-                      "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c", "snapcraft-devel",
-                      "Snapcraft builder for the devel series"}));
+    Values(
+        CustomData{std::vector<std::string>{"core", "core16"}, "",
+                   "https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/ubuntu-core-16-amd64.img.xz",
+                   "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7", "core-16", "Core 16"},
+        CustomData{std::vector<std::string>{"core18"}, "",
+                   "https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/ubuntu-core-18-amd64.img.xz",
+                   "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f", "core-18", "Core 18"},
+        CustomData{
+            std::vector<std::string>{"core18", "18.04"}, "snapcraft",
+            "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/bionic-server-cloudimg-amd64-disk.img",
+            "96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c", "snapcraft-core18",
+            "Snapcraft builder for Core 18"},
+        CustomData{std::vector<std::string>{"core20", "20.04"}, "snapcraft",
+                   "https://cloud-images.ubuntu.com/buildd/releases/focal/release/focal-server-cloudimg-amd64-disk.img",
+                   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "snapcraft-core20",
+                   "Snapcraft builder for Core 20"},
+        CustomData{std::vector<std::string>{"core22", "22.04"}, "snapcraft",
+                   "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/jammy-server-cloudimg-amd64-disk.img",
+                   "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c", "snapcraft-core22",
+                   "Snapcraft builder for Core 22"},
+        CustomData{
+            std::vector<std::string>{"devel"}, "snapcraft",
+            "https://cloud-images.ubuntu.com/buildd/daily/kinetic/current/kinetic-server-cloudimg-amd64-disk.img",
+            "872e3f03b57300260c3f982f07183a8480d724d566c686fddc1a2fde0d411ec5", "snapcraft-devel",
+            "Snapcraft builder for the devel series"}));
 
 TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
 {
