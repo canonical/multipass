@@ -13,3 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 file(REMOVE_RECURSE "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/multipassd${CPACK_PACKAGING_INSTALL_PREFIX}/lib/pkgconfig")
+file(REMOVE "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/multipassd${CPACK_PACKAGING_INSTALL_PREFIX}/lib/libgtest.a")
+file(REMOVE "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/multipassd${CPACK_PACKAGING_INSTALL_PREFIX}/lib/libgtest_main.a")
+file(REMOVE "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/multipassd${CPACK_PACKAGING_INSTALL_PREFIX}/lib/libgmock.a")
+file(REMOVE "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/multipassd${CPACK_PACKAGING_INSTALL_PREFIX}/lib/libgmock_main.a")
