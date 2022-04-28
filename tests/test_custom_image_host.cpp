@@ -156,7 +156,7 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{5};
+    const size_t expected_entries{6};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7"), Eq(1u));
@@ -164,6 +164,7 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     EXPECT_THAT(ids.count("96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c"), Eq(1u));
     EXPECT_THAT(ids.count("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), Eq(1u));
     EXPECT_THAT(ids.count("aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c"), Eq(1u));
+    EXPECT_THAT(ids.count("872e3f03b57300260c3f982f07183a8480d724d566c686fddc1a2fde0d411ec5"), Eq(1u));
 }
 
 TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
@@ -177,7 +178,7 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{3};
+    const size_t expected_entries{4};
     EXPECT_EQ(ids.size(), expected_entries);
 }
 
@@ -203,7 +204,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_returns_appropriate_matches)
 
     auto images = host.all_images_for("snapcraft", false);
 
-    const size_t expected_matches{3};
+    const size_t expected_matches{4};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
@@ -216,7 +217,7 @@ TEST_F(CustomImageHost, all_images_for_snapcraft_unsupported_alias_returns_appro
 
     auto images = host.all_images_for("snapcraft", false);
 
-    const size_t expected_matches{2};
+    const size_t expected_matches{3};
     EXPECT_EQ(images.size(), expected_matches);
 }
 
