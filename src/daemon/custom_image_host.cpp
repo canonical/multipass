@@ -97,6 +97,16 @@ const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
         "https://cloud-images.ubuntu.com/buildd/releases/focal/release/unpacked/"
         "focal-server-cloudimg-amd64-initrd-generic"}},
       {{"jammy-server-cloudimg-amd64-disk.img"},
+       {"https://cloud-images.ubuntu.com/buildd/releases/jammy/release/",
+        {"core22", "22.04"},
+        "",
+        "snapcraft-core22",
+        "Snapcraft builder for Core 22",
+        "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/unpacked/"
+        "jammy-server-cloudimg-amd64-vmlinuz-generic",
+        "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/unpacked/"
+        "jammy-server-cloudimg-amd64-initrd-generic"}},
+      {{"jammy-server-cloudimg-amd64-disk.img"},
        {"https://cloud-images.ubuntu.com/buildd/daily/jammy/current/",
         {"devel"},
         "",
