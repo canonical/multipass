@@ -106,16 +106,16 @@ const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
         "jammy-server-cloudimg-amd64-vmlinuz-generic",
         "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/unpacked/"
         "jammy-server-cloudimg-amd64-initrd-generic"}},
-      {{"jammy-server-cloudimg-amd64-disk.img"},
-       {"https://cloud-images.ubuntu.com/buildd/daily/jammy/current/",
+      {{"kinetic-server-cloudimg-amd64-disk.img"},
+       {"https://cloud-images.ubuntu.com/buildd/daily/kinetic/current/",
         {"devel"},
         "",
         "snapcraft-devel",
         "Snapcraft builder for the devel series",
-        "https://cloud-images.ubuntu.com/buildd/daily/jammy/current/unpacked/"
-        "jammy-server-cloudimg-amd64-vmlinuz-generic",
-        "https://cloud-images.ubuntu.com/buildd/daily/jammy/current/unpacked/"
-        "jammy-server-cloudimg-amd64-initrd-generic"}}}}};
+        "https://cloud-images.ubuntu.com/buildd/daily/kinetic/current/unpacked/"
+        "kinetic-server-cloudimg-amd64-vmlinuz-generic",
+        "https://cloud-images.ubuntu.com/buildd/daily/kinetic/current/unpacked/"
+        "kinetic-server-cloudimg-amd64-initrd-generic"}}}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
