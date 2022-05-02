@@ -1171,7 +1171,6 @@ std::vector<std::string> old_remoteless_rels{"core", "core16"};
 
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease, RefuseBridging,
                          Combine(Values("release", "daily", ""), ValuesIn(old_releases)));
-INSTANTIATE_TEST_SUITE_P(DaemonRefuseSnapcraft, RefuseBridging, Values(std::make_tuple("snapcraft", "core")));
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless, RefuseBridging, Combine(Values(""), ValuesIn(old_remoteless_rels)));
 
 TEST_F(Daemon, fails_with_image_not_found_also_if_image_is_also_non_bridgeable)

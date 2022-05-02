@@ -92,7 +92,7 @@ const std::unordered_set<std::string> no_bridging_release = { // images to check
     "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
     "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
     "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
-const std::unordered_set<std::string> no_bridging_remote = {"snapcraft:core"};     // images with other remote specified
+const std::unordered_set<std::string> no_bridging_remote = {};                     // images with other remote specified
 const std::unordered_set<std::string> no_bridging_remoteless = {"core", "core16"}; // images which do not use remote
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
