@@ -457,7 +457,9 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
 
 bool mp::platform::is_image_url_supported()
 {
-    if (MP_SETTINGS.get(mp::driver_key) == "virtualbox")
+    const auto driver = MP_SETTINGS.get(mp::driver_key);
+
+    if (driver == "virtualbox" || driver == "qemu")
         return check_unlock_code();
 
     return false;
