@@ -2318,7 +2318,9 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdir_chown_works_when_ids_are_not_mapped)
 
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    EXPECT_CALL(*mock_platform, chown(_, -1, -1)).Times(1);
+    QFileInfo parent_dir(temp_dir.path());
+
+    EXPECT_CALL(*mock_platform, chown(_, parent_dir.ownerId(), parent_dir.groupId())).Times(1);
 
     sftp.run();
 }
