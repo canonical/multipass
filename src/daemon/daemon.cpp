@@ -1466,27 +1466,27 @@ try // clang-format on
     for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
     {
         auto map_pair = mount_maps.uid_mappings(i);
-
         auto host_uid = map_pair.host_id();
-        if (0 == host_uid)
-            return status_promise->set_value(
-                grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                             fmt::format("host UID or GID cannot be zero in maps", request->source_path()), ""));
+        auto instance_uid = map_pair.instance_id();
 
-        uid_mappings.push_back({host_uid, map_pair.instance_id()});
+        if (host_uid == 0 && instance_uid != -1)
+            return status_promise->set_value(
+                grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "host UID or GID cannot be zero in maps"));
+
+        uid_mappings.push_back({host_uid, instance_uid});
     }
 
     for (auto i = 0; i < mount_maps.gid_mappings_size(); ++i)
     {
         auto map_pair = mount_maps.gid_mappings(i);
-
         auto host_gid = map_pair.host_id();
-        if (0 == host_gid)
-            return status_promise->set_value(
-                grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                             fmt::format("host UID or GID cannot be zero in maps", request->source_path()), ""));
+        auto instance_gid = map_pair.instance_id();
 
-        gid_mappings.push_back({host_gid, map_pair.instance_id()});
+        if (host_gid == 0 && instance_gid != -1)
+            return status_promise->set_value(
+                grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "host UID or GID cannot be zero in maps"));
+
+        gid_mappings.push_back({host_gid, instance_gid});
     }
 
     fmt::memory_buffer errors;
