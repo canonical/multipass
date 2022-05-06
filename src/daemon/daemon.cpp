@@ -1466,13 +1466,27 @@ try // clang-format on
     for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
     {
         auto map_pair = mount_maps.uid_mappings(i);
-        uid_mappings.push_back({map_pair.host_id(), map_pair.instance_id()});
+
+        auto host_uid = map_pair.host_id();
+        if (0 == host_uid)
+            return status_promise->set_value(
+                grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             fmt::format("host UID or GID cannot be zero in maps", request->source_path()), ""));
+
+        uid_mappings.push_back({host_uid, map_pair.instance_id()});
     }
 
     for (auto i = 0; i < mount_maps.gid_mappings_size(); ++i)
     {
         auto map_pair = mount_maps.gid_mappings(i);
-        gid_mappings.push_back({map_pair.host_id(), map_pair.instance_id()});
+
+        auto host_gid = map_pair.host_id();
+        if (0 == host_gid)
+            return status_promise->set_value(
+                grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             fmt::format("host UID or GID cannot be zero in maps", request->source_path()), ""));
+
+        gid_mappings.push_back({host_gid, map_pair.instance_id()});
     }
 
     fmt::memory_buffer errors;
