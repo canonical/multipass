@@ -46,6 +46,7 @@
 
 #include <scope_guard.hpp>
 
+#include <QDir>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QNetworkProxyFactory>
@@ -1551,6 +1552,70 @@ TEST_F(Daemon, refusesDisabledMount)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
+}
+
+TEST_F(Daemon, refusesMountWithEvilUidMap)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string fake_mac{"01:02:03:04:05:07"};
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(fake_mac, {}));
+    config_builder.data_directory = temp_dir->path();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream err_stream;
+    send_command({"mount", QDir::currentPath().toStdString(), "real-zebraphant:folder", "--uid-map=0:1007"},
+                 trash_stream, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("host UID or GID cannot be zero in maps"));
+}
+
+TEST_F(Daemon, refusesMountWithEvilGidMap)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string fake_mac{"01:02:03:04:05:08"};
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(fake_mac, {}));
+    config_builder.data_directory = temp_dir->path();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream err_stream;
+    send_command({"mount", QDir::currentPath().toStdString(), "real-zebraphant:folder", "--gid-map=0:1008"},
+                 trash_stream, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("host UID or GID cannot be zero in maps"));
+}
+
+TEST_F(Daemon, mountsWithDefaultMaps)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string fake_mac{"01:02:03:04:05:09"};
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(fake_mac, {}));
+    config_builder.data_directory = temp_dir->path();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream err_stream;
+    send_command({"mount", QDir::currentPath().toStdString(), "real-zebraphant:folder"}, trash_stream, err_stream);
+    EXPECT_EQ(err_stream.str(), "");
+}
+
+TEST_F(Daemon, mountsWithNonEvilMaps)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string fake_mac{"01:02:03:04:05:10"};
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(fake_mac, {}));
+    config_builder.data_directory = temp_dir->path();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream err_stream;
+    send_command({"mount", QDir::currentPath().toStdString(), "real-zebraphant:folder", "--uid-map=510:1010",
+                  "--gid-map=710:1110"},
+                 trash_stream, err_stream);
+    EXPECT_EQ(err_stream.str(), "");
 }
 
 TEST_F(Daemon, keysReturnsSettingsKeys)
