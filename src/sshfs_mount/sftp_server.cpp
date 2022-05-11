@@ -930,8 +930,8 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     }
 
     if ((msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID) &&
-        (MP_PLATFORM.chown(filename.toStdString().c_str(), reverse_uid_for(msg->attr->uid),
-                           reverse_gid_for(msg->attr->gid)) < 0))
+        (MP_PLATFORM.chown(filename.toStdString().c_str(), reverse_uid_for(msg->attr->uid, msg->attr->uid),
+                           reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0))
     {
         mpl::log(mpl::Level::trace, category,
                  fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
