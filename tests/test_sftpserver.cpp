@@ -2396,4 +2396,37 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_honors_maps_in_the_host))
     sftp.run();
 }
 
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_works_when_ids_are_not_mapped))
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+
+    int sftp_uid = 1026;
+    int sftp_gid = 1027;
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
+    auto msg = make_msg(SFTP_SETSTAT);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    const int expected_size = 7777;
+    attr.size = expected_size;
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+    attr.permissions = 0777;
+
+    msg->filename = name.data();
+    msg->attr = &attr;
+    msg->flags = SSH_FXF_WRITE;
+    msg->attr->uid = sftp_uid;
+    msg->attr->gid = sftp_gid;
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(1);
+
+    sftp.run();
+}
 } // namespace
