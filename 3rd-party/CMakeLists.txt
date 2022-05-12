@@ -197,10 +197,13 @@ option(ENABLE_UTIL OFF)
 option(ENABLE_NET OFF)
 option(ENABLE_PAGECOMPILER OFF)
 option(ENABLE_PAGECOMPILER_FILE2PAGE OFF)
+option(ENABLE_ACTIVERECORD_COMPILER OFF)
+option(ENABLE_ACTIVERECORD OFF)
+option(ENABLE_DATA OFF)
 
 add_subdirectory(poco EXCLUDE_FROM_ALL)
 
-install(TARGETS Foundation Util XML Zip LIBRARY COMPONENT multipassd)
+install(TARGETS Foundation Zip LIBRARY COMPONENT multipassd)
 
 # Undo some settings that POCO sets to avoid polluting the rest of our build
 set(CMAKE_DEBUG_POSTFIX "" CACHE STRING "Set Debug library postfix" FORCE)

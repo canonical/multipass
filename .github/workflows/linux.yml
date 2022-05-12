@@ -21,8 +21,30 @@ jobs:
     - name: Lint the code
       uses: ./.github/actions/lint
 
+  GetMatrix:
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+    - name: Determine job matrix
+      id: set-matrix
+      run: |
+        set -euo pipefail
+
+        MATRIX='{"build-type": "Debug"}
+                {"build-type": "Clang"}
+                {"build-type": "Release"}'
+
+        if ! ${{ env.BORS_RUN }}; then
+            MATRIX+='{"build-type": "Coverage" }'
+        fi
+
+        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
+
   BuildAndTest:
-    needs: Lint
+    needs: [Lint, GetMatrix]
 
     # Allow skipped Lint
     # Let Lint fail on pull requests
@@ -40,8 +62,7 @@ jobs:
       snap-file: ${{ steps.build-snap.outputs.snap-file }}
 
     strategy:
-      matrix:
-        build-type: [Debug, Clang, Release, Coverage]
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
 
     runs-on: ubuntu-latest
 
