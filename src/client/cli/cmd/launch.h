@@ -46,13 +46,16 @@ public:
 private:
     ParseCode parse_args(ArgParser* parser);
     ReturnCode request_launch(const ArgParser* parser);
-    ReturnCode mount_home(const ArgParser* parser);
+    ReturnCode mount(const ArgParser* parser, QString mount_source, QString mount_target);
     bool ask_bridge_permission(multipass::LaunchReply& reply);
 
     LaunchRequest request;
     QString petenv_name;
     std::unique_ptr<multipass::AnimatedSpinner> spinner;
     std::unique_ptr<multipass::utils::Timer> timer;
+
+    std::map<QString, QString> mount_routes;
+    QString instance_name;
 };
 } // namespace cmd
 } // namespace multipass

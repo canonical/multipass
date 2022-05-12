@@ -126,12 +126,38 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     }
 
     auto ret = request_launch(parser);
-    if (ret == ReturnCode::Ok && !petenv_name.isEmpty() && request.instance_name() == petenv_name.toStdString())
+
+    if (ret != ReturnCode::Ok)
+        return ret;
+
+    if (request.instance_name() == petenv_name.toStdString())
     {
-        if (MP_SETTINGS.get_as<bool>(mounts_key))
-            ret = mount_home(parser);
-        else
-            cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
+        QString mount_source;
+        try
+        {
+            mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
+        }
+        catch (const SnapEnvironmentException&)
+        {
+            mount_source = QDir::toNativeSeparators(QDir::homePath());
+        }
+
+        if (!mount_routes.count(home_automount_dir))
+        {
+            mount_routes.insert({home_automount_dir, mount_source});
+        }
+    }
+
+    if (MP_SETTINGS.get_as<bool>(mounts_key))
+    {
+        for (const auto& [target, source] : mount_routes)
+        {
+            ret = mount(parser, source, target);
+        }
+    }
+    else
+    {
+        cout << "Skipping mount due to disabled mounts feature\n";
     }
 
     return ret;
@@ -203,8 +229,13 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
+    QCommandLineOption mountOption("mount",
+                                   "Mount a local directory inside the instance. If <instance-path> is omitted, the "
+                                   "mount point will be the same as the absolute path of <local-path>",
+                                   "local-path>:<instance-path");
 
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption});
+    parser->addOptions(
+        {cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption, mountOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -289,6 +320,17 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         request.set_disk_space(arg_disk_size);
     }
 
+    if (parser->isSet(mountOption))
+    {
+        for (const auto& value : parser->values(mountOption))
+        {
+            auto mount_values = value.split(':');
+            auto mount_source = mount_values.first();
+            auto mount_target = mount_values.size() == 1 ? mount_source : mount_values.at(1);
+            mount_routes.insert({mount_target, mount_source});
+        }
+    }
+
     if (parser->isSet(cloudInitOption))
     {
         try
@@ -366,6 +408,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             timer->pause();
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
+        instance_name = QString::fromStdString(reply.vm_instance_name());
 
         if (term->is_live() && update_available(reply.update_info()))
         {
@@ -461,19 +504,9 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
 }
 
-auto cmd::Launch::mount_home(const mp::ArgParser* parser) -> ReturnCode
+auto cmd::Launch::mount(const mp::ArgParser* parser, QString mount_source, QString mount_target) -> ReturnCode
 {
-    QString mount_source{};
-    try
-    {
-        mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
-    }
-    catch (const SnapEnvironmentException&)
-    {
-        mount_source = QDir::toNativeSeparators(QDir::homePath());
-    }
-
-    const auto mount_target = QString{"%1:%2"}.arg(petenv_name, home_automount_dir);
+    mount_target = QString{"%1:%2"}.arg(instance_name, mount_target);
 
     auto ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
     if (ret == Ok)

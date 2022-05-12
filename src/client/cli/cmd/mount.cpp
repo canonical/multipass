@@ -58,14 +58,17 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 
     mp::AnimatedSpinner spinner{cout};
 
-    auto on_success = [&spinner](mp::MountReply& reply) {
+    auto on_success = [this, &spinner](mp::MountReply& reply) {
         spinner.stop();
+        this->request.clear_target_paths();
+        this->request.clear_mount_maps();
         return ReturnCode::Ok;
     };
 
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-
+        this->request.clear_target_paths();
+        this->request.clear_mount_maps();
         return standard_failure_handler_for(name(), cerr, status);
     };
 
