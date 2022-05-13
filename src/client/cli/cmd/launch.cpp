@@ -408,7 +408,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             timer->pause();
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
-        instance_name = QString::fromStdString(reply.vm_instance_name());
+        instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
+                                                                               : request.instance_name());
 
         if (term->is_live() && update_available(reply.update_info()))
         {

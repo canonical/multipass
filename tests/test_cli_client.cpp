@@ -532,7 +532,7 @@ TEST_F(Client, shellCmdSkipsAutomountWhenDisabled)
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"shell", petenv_name}, cout_stream), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping mount due to disabled mounts feature\n"));
 }
 
 TEST_F(Client, shell_cmd_forwards_verbosity_to_subcommands)
@@ -845,7 +845,7 @@ TEST_F(Client, launchCmdSkipsAutomountWhenDisabled)
     EXPECT_CALL(mock_daemon, mount).Times(0);
 
     EXPECT_THAT(send_command({"launch", "--name", petenv_name}, cout_stream), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping mount due to disabled mounts feature\n"));
 }
 
 TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
@@ -856,7 +856,7 @@ TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(invalid_argument));
 
     EXPECT_THAT(send_command({"launch", "--name", ".asdf"}, cout_stream), Eq(mp::ReturnCode::CommandFail));
-    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n")));
+    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping mount due to disabled mounts feature\n")));
 }
 
 TEST_F(Client, launchCmdFailsWhenUnableToRetrieveAutomountSetting)
@@ -1456,7 +1456,7 @@ TEST_F(Client, startCmdSkipsAutomountWhenDisabled)
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", petenv_name}, cout_stream), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping mount due to disabled mounts feature\n"));
 }
 
 TEST_F(Client, start_cmd_forwards_verbosity_to_subcommands)
