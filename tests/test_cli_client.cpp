@@ -176,13 +176,13 @@ struct Client : public Test
         return get_setting({key});
     }
 
-    auto make_automount_matcher(const QTemporaryDir& fake_home) const
+    static auto make_mount_matcher(const std::string_view fake_source, const std::string_view fake_target,
+                                   const std::string_view instance_name)
     {
-        const auto automount_source_matcher =
-            Property(&mp::MountRequest::source_path, StrEq(fake_home.path().toStdString()));
+        const auto automount_source_matcher = Property(&mp::MountRequest::source_path, StrEq(fake_source));
 
-        const auto target_instance_matcher = Property(&mp::TargetPathInfo::instance_name, StrEq(petenv_name));
-        const auto target_path_matcher = Property(&mp::TargetPathInfo::target_path, StrEq(mp::home_automount_dir));
+        const auto target_instance_matcher = Property(&mp::TargetPathInfo::instance_name, StrEq(instance_name));
+        const auto target_path_matcher = Property(&mp::TargetPathInfo::target_path, StrEq(fake_target));
         const auto target_info_matcher = AllOf(target_instance_matcher, target_path_matcher);
         const auto automount_target_matcher =
             Property(&mp::MountRequest::target_paths, AllOf(Contains(target_info_matcher), SizeIs(1)));
@@ -824,7 +824,8 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
 {
     const auto fake_home = QTemporaryDir{}; // the client checks the mount source exists
     const auto env_scope = mpt::SetEnvScope{"HOME", fake_home.path().toUtf8()};
-    const auto home_automount_matcher = make_automount_matcher(fake_home);
+    const auto home_automount_matcher =
+        make_mount_matcher(fake_home.path().toStdString(), mp::home_automount_dir, petenv_name);
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name);
     const auto ok = grpc::Status{};
 
@@ -910,6 +911,70 @@ TEST_F(Client, launch_cmd_disabled_petenv_passes)
     EXPECT_CALL(mock_daemon, launch(_, petenv_matcher, _));
 
     EXPECT_THAT(send_command({"launch", "--name", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_multiple_mount_options)
+{
+    const grpc::Status ok{};
+    const QTemporaryDir fake_directory1{};
+    const QTemporaryDir fake_directory2{};
+
+    const auto fake_source1 = fake_directory1.path().toStdString();
+    const auto fake_target1 = fake_source1;
+    const auto fake_source2 = fake_directory2.path().toStdString();
+    const auto fake_target2 = "fake_target2";
+    const auto instance_name = "some_instance";
+
+    const auto mount_matcher1 = make_mount_matcher(fake_source1, fake_target1, instance_name);
+    const auto mount_matcher2 = make_mount_matcher(fake_source2, fake_target2, instance_name);
+    const auto launch_matcher = make_launch_instance_matcher(instance_name);
+
+    EXPECT_CALL(mock_daemon, launch(_, launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, mount_matcher1, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, mount_matcher2, _)).WillOnce(Return(ok));
+    EXPECT_EQ(send_command({"launch", "--mount", fake_source1, "--mount",
+                            fmt::format("{}:{}", fake_source2, fake_target2), "-n", instance_name}),
+              mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launch_cmd_petenv_mount_option)
+{
+    const grpc::Status ok{};
+    const QTemporaryDir fake_home{};
+    const QTemporaryDir fake_directory{};
+
+    const mpt::SetEnvScope env_scope{"HOME", fake_home.path().toUtf8()};
+    const auto fake_source1 = fake_home.path().toStdString();
+    const auto fake_target1 = mp::home_automount_dir;
+    const auto fake_source2 = fake_directory.path().toStdString();
+    const auto fake_target2 = "fake_target";
+
+    const auto mount_matcher1 = make_mount_matcher(fake_source1, fake_target1, petenv_name);
+    const auto mount_matcher2 = make_mount_matcher(fake_source2, fake_target2, petenv_name);
+    const auto launch_matcher = make_launch_instance_matcher(petenv_name);
+
+    EXPECT_CALL(mock_daemon, launch(_, launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, mount_matcher1, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, mount_matcher2, _)).WillOnce(Return(ok));
+    EXPECT_EQ(send_command({"launch", "--mount", fmt::format("{}:{}", fake_source2, fake_target2), "-n", petenv_name}),
+              mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launch_cmd_petenv_mount_option_override_home)
+{
+    const grpc::Status ok{};
+    const QTemporaryDir fake_directory{};
+
+    const auto fake_source = fake_directory.path().toStdString();
+    const auto fake_target = mp::home_automount_dir;
+
+    const auto mount_matcher = make_mount_matcher(fake_source, fake_target, petenv_name);
+    const auto launch_matcher = make_launch_instance_matcher(petenv_name);
+
+    EXPECT_CALL(mock_daemon, launch(_, launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, mount_matcher, _)).WillOnce(Return(ok));
+    EXPECT_EQ(send_command({"launch", "--mount", fmt::format("{}:{}", fake_source, fake_target), "-n", petenv_name}),
+              mp::ReturnCode::Ok);
 }
 
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
