@@ -104,7 +104,24 @@ std::shared_ptr<grpc::Channel> create_channel_and_validate(const std::string& se
     mp::PingReply reply;
     auto status = stub.ping(&context, request, &reply);
 
-    return status.ok() ? rpc_channel : nullptr;
+    if (status.ok())
+    {
+        return rpc_channel;
+    }
+    else if (status.error_code() == grpc::StatusCode::UNAUTHENTICATED)
+    {
+        return nullptr;
+    }
+    // Throw for other error status as we don't want the client to process any further.  It will show up
+    // as an "unhandled exception" in the client, but this is fine in this case since this is just covering
+    // errors when the client is trying to determine the valid cert when upgrading from 1.8.
+    // This whole function will be deprecated in the future.
+    else
+    {
+        throw std::runtime_error(
+            fmt::format("Error connecting to the Multipass daemon: {}\nPlease try again in a few moments.",
+                        status.error_message()));
+    }
 }
 
 bool client_certs_exist(const QString& cert_dir_path)
