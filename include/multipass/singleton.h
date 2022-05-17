@@ -38,16 +38,18 @@ public:
 
     constexpr Singleton(const PrivatePass&) noexcept;
     virtual ~Singleton() noexcept = default;
-    static T& instance() noexcept(noexcept(T(Base::pass)));
+    template <typename... Args>
+    static T& instance(Args&&... args) noexcept(noexcept(T(Base::pass, args...)));
 
 protected:
-    template <typename U, typename = std::enable_if_t<std::is_base_of<T, U>::value>>
-    static void mock() noexcept(noexcept(U(Base::pass))); // only works if instance not called yet, or after reset
+    template <typename U, typename... Args, typename = std::enable_if_t<std::is_base_of<T, U>::value>>
+    static void mock(Args&&... args) noexcept(
+        noexcept(U(Base::pass, args...))); // only works if instance not called yet, or after reset
     static void reset() noexcept; // not thread-safe, make sure no other threads using this singleton anymore!
 
 private:
-    template <typename U>
-    static void init() noexcept(noexcept(U(Base::pass)));
+    template <typename U, typename... Args>
+    static void init(Args&&... args) noexcept(noexcept(U(Base::pass, args...)));
 
     static std::unique_ptr<std::once_flag> once;
     static std::unique_ptr<T> single;
@@ -67,16 +69,17 @@ template <typename T>
 std::unique_ptr<T> multipass::Singleton<T>::single = nullptr;
 
 template <typename T>
-template <typename U, typename>
-inline void multipass::Singleton<T>::mock() noexcept(noexcept(U(Base::pass)))
+template <typename U, typename... Args, typename>
+inline void multipass::Singleton<T>::mock(Args&&... args) noexcept(noexcept(U(Base::pass, args...)))
 {
-    init<U>();
+    init<U>(std::forward<Args>(args)...);
 }
 
 template <typename T>
-inline T& multipass::Singleton<T>::instance() noexcept(noexcept(T(Base::pass)))
+template <typename... Args>
+inline T& multipass::Singleton<T>::instance(Args&&... args) noexcept(noexcept(T(Base::pass, args...)))
 {
-    init<T>();
+    init<T>(std::forward<Args>(args)...);
     return *single;
 }
 
@@ -88,10 +91,10 @@ inline void multipass::Singleton<T>::reset() noexcept
 }
 
 template <typename T>
-template <typename U>
-inline void multipass::Singleton<T>::init() noexcept(noexcept(U(Base::pass)))
+template <typename U, typename... Args>
+inline void multipass::Singleton<T>::init(Args&&... args) noexcept(noexcept(U(Base::pass, args...)))
 {
-    std::call_once(*once, [] { single = std::make_unique<U>(Base::pass); });
+    std::call_once(*once, [&args...] { single = std::make_unique<U>(Base::pass, std::forward<Args>(args)...); });
 }
 
 #endif // MULTIPASS_SINGLETON_H
