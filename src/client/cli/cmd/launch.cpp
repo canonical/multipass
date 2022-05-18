@@ -130,30 +130,22 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     if (ret != ReturnCode::Ok)
         return ret;
 
-    if (request.instance_name() == petenv_name.toStdString())
-    {
-        QString mount_source;
-        try
-        {
-            mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
-        }
-        catch (const SnapEnvironmentException&)
-        {
-            mount_source = QDir::toNativeSeparators(QDir::homePath());
-        }
-
-        if (!mount_routes.count(home_automount_dir))
-        {
-            mount_routes.insert({home_automount_dir, mount_source});
-        }
-    }
-
     if (MP_SETTINGS.get_as<bool>(mounts_key))
     {
-        for (const auto& [target, source] : mount_routes)
+        if (request.instance_name() == petenv_name.toStdString() && !mount_routes.count(home_automount_dir))
         {
-            ret = mount(parser, source, target);
+            try
+            {
+                mount_routes.insert({home_automount_dir, QString::fromLocal8Bit(mpu::snap_real_home_dir())});
+            }
+            catch (const SnapEnvironmentException&)
+            {
+                mount_routes.insert({home_automount_dir, QDir::toNativeSeparators(QDir::homePath())});
+            }
         }
+
+        for (const auto& [target, source] : mount_routes)
+            ret = mount(parser, source, target);
     }
     else
     {

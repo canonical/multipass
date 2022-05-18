@@ -913,51 +913,21 @@ TEST_F(Client, launch_cmd_disabled_petenv_passes)
     EXPECT_THAT(send_command({"launch", "--name", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, launch_cmd_multiple_mount_options)
+TEST_F(Client, launch_cmd_mount_option)
 {
     const grpc::Status ok{};
-    const QTemporaryDir fake_directory1{};
-    const QTemporaryDir fake_directory2{};
+    const QTemporaryDir fake_directory{};
 
-    const auto fake_source1 = fake_directory1.path().toStdString();
-    const auto fake_target1 = fake_source1;
-    const auto fake_source2 = fake_directory2.path().toStdString();
-    const auto fake_target2 = "fake_target2";
+    const auto fake_source = fake_directory.path().toStdString();
+    const auto fake_target = fake_source;
     const auto instance_name = "some_instance";
 
-    const auto mount_matcher1 = make_mount_matcher(fake_source1, fake_target1, instance_name);
-    const auto mount_matcher2 = make_mount_matcher(fake_source2, fake_target2, instance_name);
+    const auto mount_matcher = make_mount_matcher(fake_source, fake_target, instance_name);
     const auto launch_matcher = make_launch_instance_matcher(instance_name);
 
     EXPECT_CALL(mock_daemon, launch(_, launch_matcher, _)).WillOnce(Return(ok));
-    EXPECT_CALL(mock_daemon, mount(_, mount_matcher1, _)).WillOnce(Return(ok));
-    EXPECT_CALL(mock_daemon, mount(_, mount_matcher2, _)).WillOnce(Return(ok));
-    EXPECT_EQ(send_command({"launch", "--mount", fake_source1, "--mount",
-                            fmt::format("{}:{}", fake_source2, fake_target2), "-n", instance_name}),
-              mp::ReturnCode::Ok);
-}
-
-TEST_F(Client, launch_cmd_petenv_mount_option)
-{
-    const grpc::Status ok{};
-    const QTemporaryDir fake_home{};
-    const QTemporaryDir fake_directory{};
-
-    const mpt::SetEnvScope env_scope{"HOME", fake_home.path().toUtf8()};
-    const auto fake_source1 = fake_home.path().toStdString();
-    const auto fake_target1 = mp::home_automount_dir;
-    const auto fake_source2 = fake_directory.path().toStdString();
-    const auto fake_target2 = "fake_target";
-
-    const auto mount_matcher1 = make_mount_matcher(fake_source1, fake_target1, petenv_name);
-    const auto mount_matcher2 = make_mount_matcher(fake_source2, fake_target2, petenv_name);
-    const auto launch_matcher = make_launch_instance_matcher(petenv_name);
-
-    EXPECT_CALL(mock_daemon, launch(_, launch_matcher, _)).WillOnce(Return(ok));
-    EXPECT_CALL(mock_daemon, mount(_, mount_matcher1, _)).WillOnce(Return(ok));
-    EXPECT_CALL(mock_daemon, mount(_, mount_matcher2, _)).WillOnce(Return(ok));
-    EXPECT_EQ(send_command({"launch", "--mount", fmt::format("{}:{}", fake_source2, fake_target2), "-n", petenv_name}),
-              mp::ReturnCode::Ok);
+    EXPECT_CALL(mock_daemon, mount(_, mount_matcher, _)).WillOnce(Return(ok));
+    EXPECT_EQ(send_command({"launch", "--name", instance_name, "--mount", fake_source}), mp::ReturnCode::Ok);
 }
 
 TEST_F(Client, launch_cmd_petenv_mount_option_override_home)
@@ -973,8 +943,9 @@ TEST_F(Client, launch_cmd_petenv_mount_option_override_home)
 
     EXPECT_CALL(mock_daemon, launch(_, launch_matcher, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, mount(_, mount_matcher, _)).WillOnce(Return(ok));
-    EXPECT_EQ(send_command({"launch", "--mount", fmt::format("{}:{}", fake_source, fake_target), "-n", petenv_name}),
-              mp::ReturnCode::Ok);
+    EXPECT_EQ(
+        send_command({"launch", "--name", petenv_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)}),
+        mp::ReturnCode::Ok);
 }
 
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
