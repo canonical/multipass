@@ -40,6 +40,42 @@ struct SSHClient : public testing::Test
 };
 }
 
+TEST_F(SSHClient, execReturnsOKNoFailure)
+{
+    auto client = make_ssh_client();
+
+    EXPECT_EQ(client.exec({"foo"}), SSH_OK);
+}
+
+TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
+{
+    const int failure_code{127};
+    auto client = make_ssh_client();
+
+    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
+
+    EXPECT_EQ(client.exec({"foo"}), failure_code);
+}
+
+TEST_F(SSHClient, execPollingWorksAsExpected)
+{
+    int poll_count{0};
+    auto client = make_ssh_client();
+
+    mock_ssh_test_fixture.is_eof.returnValue(0);
+
+    auto event_dopoll = [this, &poll_count](auto...) {
+        ++poll_count;
+        mock_ssh_test_fixture.is_eof.returnValue(true);
+        return SSH_OK;
+    };
+
+    REPLACE(ssh_event_dopoll, event_dopoll);
+
+    EXPECT_EQ(client.exec({"foo"}), SSH_OK);
+    EXPECT_EQ(poll_count, 1);
+}
+
 TEST_F(SSHClient, throws_when_unable_to_open_session)
 {
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_ERROR; });
