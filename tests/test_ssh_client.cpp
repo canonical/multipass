@@ -16,8 +16,8 @@
  */
 
 #include "common.h"
-#include "mock_ssh.h"
 #include "mock_ssh_client.h"
+#include "mock_ssh_test_fixture.h"
 #include "stub_console.h"
 
 #include <multipass/ssh/ssh_client.h>
@@ -30,22 +30,13 @@ namespace
 {
 struct SSHClient : public testing::Test
 {
-    SSHClient()
-    {
-        connect.returnValue(SSH_OK);
-        is_connected.returnValue(true);
-        open_session.returnValue(SSH_OK);
-    }
-
     mp::SSHClient make_ssh_client()
     {
         auto console_creator = [](auto /*channel*/) { return std::make_unique<mpt::StubConsole>(); };
         return {std::make_unique<mp::SSHSession>("a", 42), console_creator};
     }
 
-    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
-    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
-    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
 };
 }
 
