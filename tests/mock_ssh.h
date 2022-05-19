@@ -28,6 +28,7 @@ DECL_MOCK(ssh_connect);
 DECL_MOCK(ssh_is_connected);
 DECL_MOCK(ssh_options_set);
 DECL_MOCK(ssh_userauth_publickey);
+DECL_MOCK(ssh_channel_is_eof);
 DECL_MOCK(ssh_channel_is_closed);
 DECL_MOCK(ssh_channel_new);
 DECL_MOCK(ssh_channel_open_session);
