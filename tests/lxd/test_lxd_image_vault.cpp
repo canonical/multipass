@@ -232,7 +232,7 @@ TEST_F(LXDImageVault, does_not_download_if_image_exists)
     EXPECT_NO_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor));
 }
 
-TEST_F(LXDImageVault, instance_exists_missing_image_downloads_image)
+TEST_F(LXDImageVault, instance_exists_missing_image_does_not_download_image)
 {
     bool download_requested{false};
 
@@ -267,7 +267,8 @@ TEST_F(LXDImageVault, instance_exists_missing_image_downloads_image)
     mp::VMImage image;
     EXPECT_NO_THROW(image =
                         image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor));
-    EXPECT_TRUE(download_requested);
+    EXPECT_FALSE(download_requested);
+    EXPECT_EQ(image.original_release, mpt::default_release_info);
 }
 
 TEST_F(LXDImageVault, requests_download_if_image_does_not_exist)
