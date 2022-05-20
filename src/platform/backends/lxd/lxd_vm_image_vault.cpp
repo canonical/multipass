@@ -180,7 +180,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
         }
 
         Query image_query;
-        image_query.release = config["volatile.base_image"].toString().toStdString();
+        image_query.release = config["image.release"].toString().toStdString();
 
         const auto info = info_for(image_query);
 
