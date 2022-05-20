@@ -71,14 +71,14 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         {
             // The host directory on which the user is executing the command.
             QString clean_exec_dir = QDir::cleanPath(QDir::current().canonicalPath());
-            QStringList split_exec_dir = clean_exec_dir.split('/', Qt::SkipEmptyParts, Qt::CaseSensitive);
+            QStringList split_exec_dir = clean_exec_dir.split('/');
 
-            auto on_info_success = [this, &work_dir, &split_exec_dir](mp::InfoReply& reply) {
+            auto on_info_success = [&work_dir, &split_exec_dir](mp::InfoReply& reply) {
                 for (const auto& mount : reply.info(0).mount_info().mount_paths())
                 {
                     auto source_dir = QDir(QString::fromStdString(mount.source_path()));
                     auto clean_source_dir = QDir::cleanPath(source_dir.canonicalPath());
-                    QStringList split_source_dir = clean_source_dir.split('/', Qt::SkipEmptyParts, Qt::CaseSensitive);
+                    QStringList split_source_dir = clean_source_dir.split('/');
 
                     // If the directory is mounted, we need to `cd` to it in the instance before executing the command.
                     if (is_dir_mounted(split_exec_dir, split_source_dir))
