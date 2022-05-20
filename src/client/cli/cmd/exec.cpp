@@ -102,6 +102,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
             auto info_instance_name = instance_names.add_instance_name();
             info_instance_name->append(instance_name);
             info_request.mutable_instance_names()->CopyFrom(instance_names);
+            info_request.set_no_runtime_information(true);
 
             dispatch(&RpcMethod::info, info_request, on_info_success, on_info_failure);
             // TODO: what to do with the returned value?
