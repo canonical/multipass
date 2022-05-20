@@ -41,7 +41,7 @@ bool is_dir_mounted(const QStringList& split_exec_dir, const QStringList& split_
 
     return true;
 }
-}
+} // namespace
 
 mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
 {
