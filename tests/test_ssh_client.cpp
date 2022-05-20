@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "disabling_macros.h"
 #include "mock_ssh_client.h"
 #include "mock_ssh_test_fixture.h"
 #include "stub_console.h"
@@ -92,7 +93,7 @@ TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
     EXPECT_EQ(client.exec({"foo"}), failure_code);
 }
 
-TEST_F(SSHClient, execPollingWorksAsExpected)
+TEST_F(SSHClient, DISABLE_ON_WINDOWS(execPollingWorksAsExpected))
 {
     int poll_count{0};
     auto client = make_ssh_client();
