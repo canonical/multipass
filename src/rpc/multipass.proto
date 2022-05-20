@@ -150,6 +150,7 @@ message InstanceNames {
 message InfoRequest {
     InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
+    bool no_runtime_information = 3;
 }
 
 message IdMap {

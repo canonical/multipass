@@ -63,6 +63,12 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     QCommandLineOption all_option(all_option_name, "Display info for all instances");
     parser->addOption(all_option);
 
+    QCommandLineOption noRuntimeInfoOption(
+        "no-runtime-information",
+        "Retrieve from the daemon only the information obtained without running commands on the instance");
+    noRuntimeInfoOption.setFlags(QCommandLineOption::HiddenFromHelp);
+    parser->addOption(noRuntimeInfoOption);
+
     QCommandLineOption formatOption(
         "format", "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
         "format", "table");
@@ -80,6 +86,7 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         return parse_code;
 
     request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
+    request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
 
