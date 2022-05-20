@@ -46,7 +46,8 @@ public:
                                    const std::vector<std::string>& args, Terminal* term);
 
 private:
-    SSHInfoRequest request;
+    SSHInfoRequest ssh_info_request;
+    InfoRequest info_request;
     AliasDict aliases;
 
     ParseCode parse_args(ArgParser* parser);
