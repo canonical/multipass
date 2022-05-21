@@ -34,6 +34,8 @@ add_c_mocks(
   ssh_options_set
   ssh_userauth_publickey
   ssh_channel_is_closed
+  ssh_channel_is_eof
+  ssh_channel_is_open
   ssh_channel_new
   ssh_channel_open_session
   ssh_channel_request_exec
@@ -69,15 +71,4 @@ add_c_mocks(
   sftp_free
   sftp_get_error
   sftp_close
-  ssh_scp_new
-  ssh_scp_free
-  ssh_scp_init
-  ssh_scp_push_file
-  ssh_scp_write
-  ssh_scp_pull_request
-  ssh_scp_request_get_size
-  ssh_scp_request_get_filename
-  ssh_scp_accept_request
-  ssh_scp_read
-  ssh_scp_close
 )

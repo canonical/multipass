@@ -17,7 +17,7 @@
 
 #include "common.h"
 #include "dummy_ssh_key_provider.h"
-#include "mock_ssh.h"
+#include "mock_ssh_test_fixture.h"
 
 #include <shared/base_virtual_machine.h>
 
@@ -116,22 +116,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
 struct BaseVM : public Test
 {
-    BaseVM()
-    {
-        connect.returnValue(SSH_OK);
-        is_connected.returnValue(true);
-        open_session.returnValue(SSH_OK);
-        request_exec.returnValue(SSH_OK);
-        userauth_publickey.returnValue(SSH_OK);
-        channel_is_closed.returnValue(0);
-    }
-
-    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
-    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
-    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
-    decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
-    decltype(MOCK(ssh_userauth_publickey)) userauth_publickey{MOCK(ssh_userauth_publickey)};
-    decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
 };
 
@@ -150,7 +135,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
     StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
 
     // Make SSH throw when trying to execute something.
-    request_exec.returnValue(SSH_ERROR);
+    mock_ssh_test_fixture.request_exec.returnValue(SSH_ERROR);
 
     auto ip_list = base_vm.get_all_ipv4(key_provider);
     EXPECT_EQ(ip_list.size(), 0u);
@@ -180,8 +165,6 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 
     auto test_params = GetParam();
     auto remaining = test_params.output.size();
-
-    REPLACE(ssh_channel_get_exit_status, [](auto...) { return SSH_OK; });
 
     ssh_channel_callbacks callbacks{nullptr};
     auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) {

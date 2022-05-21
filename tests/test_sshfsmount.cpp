@@ -46,12 +46,6 @@ namespace
 {
 struct SshfsMount : public mp::test::SftpServerTest
 {
-    SshfsMount()
-    {
-        channel_read.returnValue(0);
-        channel_is_closed.returnValue(0);
-    }
-
     mp::SshfsMount make_sshfsmount(mp::optional<std::string> target = mp::nullopt)
     {
         mp::SSHSession session{"a", 42};
@@ -181,8 +175,6 @@ struct SshfsMount : public mp::test::SftpServerTest
     }
 
     mpt::ExitStatusMock exit_status_mock;
-    decltype(MOCK(ssh_channel_read_timeout)) channel_read{MOCK(ssh_channel_read_timeout)};
-    decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
 
     std::string default_source{"source"};
     std::string default_target{"target"};

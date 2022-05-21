@@ -22,6 +22,7 @@
 #include "mock_openssl_syscalls.h"
 #include "mock_ssh.h"
 #include "mock_ssh_process_exit_status.h"
+#include "mock_ssh_test_fixture.h"
 #include "mock_virtual_machine.h"
 #include "stub_ssh_key_provider.h"
 #include "temp_dir.h"
@@ -679,12 +680,7 @@ TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
 
 TEST(Utils, wait_for_cloud_init_no_errors_and_done_does_not_throw)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_is_connected, [](auto...) { return true; });
-    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_OK; });
-
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
     exit_status_mock.return_exit_code(SSH_OK);
 
@@ -699,12 +695,7 @@ TEST(Utils, wait_for_cloud_init_no_errors_and_done_does_not_throw)
 
 TEST(Utils, wait_for_cloud_init_error_times_out_throws)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_is_connected, [](auto...) { return true; });
-    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_OK; });
-
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
     exit_status_mock.return_exit_code(SSH_ERROR);
 
@@ -720,9 +711,8 @@ TEST(Utils, wait_for_cloud_init_error_times_out_throws)
 
 TEST(Utils, wait_for_cloud_init_cannot_connect_times_out)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
     REPLACE(ssh_is_connected, [](auto...) { return false; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_OK; });
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);

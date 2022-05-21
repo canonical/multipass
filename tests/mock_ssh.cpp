@@ -23,7 +23,9 @@ extern "C"
     IMPL_MOCK_DEFAULT(1, ssh_is_connected);
     IMPL_MOCK_DEFAULT(3, ssh_options_set);
     IMPL_MOCK_DEFAULT(3, ssh_userauth_publickey);
+    IMPL_MOCK_DEFAULT(1, ssh_channel_is_eof);
     IMPL_MOCK_DEFAULT(1, ssh_channel_is_closed);
+    IMPL_MOCK_DEFAULT(1, ssh_channel_is_open);
     IMPL_MOCK_DEFAULT(1, ssh_channel_new);
     IMPL_MOCK_DEFAULT(1, ssh_channel_open_session);
     IMPL_MOCK_DEFAULT(2, ssh_channel_request_exec);

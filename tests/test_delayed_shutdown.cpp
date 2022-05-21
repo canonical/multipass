@@ -16,7 +16,7 @@
  */
 
 #include "common.h"
-#include "mock_ssh.h"
+#include "mock_ssh_test_fixture.h"
 #include "signal.h"
 #include "stub_virtual_machine.h"
 
@@ -35,20 +35,11 @@ struct DelayedShutdown : public Test
 {
     DelayedShutdown()
     {
-        connect.returnValue(SSH_OK);
-        is_connected.returnValue(true);
-        open_session.returnValue(SSH_OK);
-        request_exec.returnValue(SSH_OK);
-
         vm = std::make_unique<mpt::StubVirtualMachine>();
         vm->state = mp::VirtualMachine::State::running;
     }
 
-    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
-    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
-    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
-    decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
-
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mp::VirtualMachine::UPtr vm;
     mp::SSHSession session{"a", 42};
     QEventLoop loop;

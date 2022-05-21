@@ -21,7 +21,7 @@
 #include "common.h"
 #include "mock_sftp.h"
 #include "mock_sftpserver.h"
-#include "mock_ssh.h"
+#include "mock_ssh_test_fixture.h"
 
 namespace multipass
 {
@@ -35,26 +35,20 @@ struct SftpServerTest : public testing::Test
                         std::free(sftp);
                     }}
     {
-        connect.returnValue(SSH_OK);
-        is_connected.returnValue(true);
-        open_session.returnValue(SSH_OK);
-        request_exec.returnValue(SSH_OK);
         init_sftp.returnValue(SSH_OK);
         reply_status.returnValue(SSH_OK);
         get_client_msg.returnValue(nullptr);
         handle_sftp.returnValue(nullptr);
     }
 
-    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
-    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
-    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
-    decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
     decltype(MOCK(sftp_server_init)) init_sftp{MOCK(sftp_server_init)};
     decltype(MOCK(sftp_reply_status)) reply_status{MOCK(sftp_reply_status)};
     decltype(MOCK(sftp_get_client_message)) get_client_msg{MOCK(sftp_get_client_message)};
     decltype(MOCK(sftp_client_message_free)) msg_free{MOCK(sftp_client_message_free)};
     decltype(MOCK(sftp_handle)) handle_sftp{MOCK(sftp_handle)};
     MockScope<decltype(mock_sftp_free)> free_sftp;
+
+    MockSSHTestFixture mock_ssh_test_fixture;
 };
 } // namespace test
 } // namespace multipass
