@@ -36,7 +36,7 @@
 #include <QFileInfo>
 #include <QTimeZone>
 
-#include <cstdlib>
+#include <QRegularExpression>
 #include <regex>
 #include <unordered_map>
 
@@ -316,9 +316,13 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         for (const auto& value : parser->values(mountOption))
         {
-            auto mount_values = value.split(':');
-            auto mount_source = mount_values.first();
-            auto mount_target = mount_values.size() == 1 ? mount_source : mount_values.at(1);
+            auto colon_split = 0;
+#ifdef WIN32
+            QRegularExpression absolutePathRegex{R"(^[A-Za-z]:[\\/].*)"};
+            colon_split = absolutePathRegex.match(value).hasMatch();
+#endif
+            auto mount_source = value.section(':', 0, colon_split);
+            auto mount_target = value.section(':', colon_split + 1);
             mount_routes.insert({mount_target, mount_source});
         }
     }
