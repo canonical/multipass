@@ -15,25 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_VM_WORKFLOW_PROVIDER_H
-#define MULTIPASS_MOCK_VM_WORKFLOW_PROVIDER_H
+#ifndef MULTIPASS_MOCK_VM_BLUEPRINT_PROVIDER_H
+#define MULTIPASS_MOCK_VM_BLUEPRINT_PROVIDER_H
 
 #include "common.h"
 
-#include <multipass/vm_workflow_provider.h>
+#include <multipass/vm_blueprint_provider.h>
 
 namespace multipass
 {
 namespace test
 {
-struct MockVMWorkflowProvider : public VMWorkflowProvider
+struct MockVMBlueprintProvider : public VMBlueprintProvider
 {
-    MOCK_METHOD2(fetch_workflow_for, Query(const std::string&, VirtualMachineDescription&));
+    MOCK_METHOD2(fetch_blueprint_for, Query(const std::string&, VirtualMachineDescription&));
     MOCK_METHOD1(info_for, VMImageInfo(const std::string&));
-    MOCK_METHOD0(all_workflows, std::vector<VMImageInfo>());
-    MOCK_METHOD1(name_from_workflow, std::string(const std::string&));
-    MOCK_METHOD1(workflow_timeout, int(const std::string&));
+    MOCK_METHOD0(all_blueprints, std::vector<VMImageInfo>());
+    MOCK_METHOD1(name_from_blueprint, std::string(const std::string&));
+    MOCK_METHOD1(blueprint_timeout, int(const std::string&));
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_VM_WORKFLOW_PROVIDER_H
+#endif // MULTIPASS_MOCK_VM_BLUEPRINT_PROVIDER_H

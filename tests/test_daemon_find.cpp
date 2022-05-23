@@ -20,8 +20,8 @@
 #include "mock_image_host.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
+#include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
-#include "mock_vm_workflow_provider.h"
 
 #include <src/daemon/daemon.h>
 
@@ -34,9 +34,9 @@ using namespace testing;
 
 namespace
 {
-auto workflow_description_for(const std::string& workflow_name)
+auto blueprint_description_for(const std::string& blueprint_name)
 {
-    return fmt::format("This is the {} workflow", workflow_name);
+    return fmt::format("This is the {} blueprint", blueprint_name);
 }
 } // namespace
 
@@ -59,29 +59,29 @@ struct DaemonFind : public mpt::DaemonTestFixture
 TEST_F(DaemonFind, blankQueryReturnsAllData)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
-    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
-    static constexpr auto workflow1_name = "foo";
-    static constexpr auto workflow2_name = "bar";
+    static constexpr auto blueprint1_name = "foo";
+    static constexpr auto blueprint2_name = "bar";
 
-    EXPECT_CALL(*mock_workflow_provider, all_workflows()).WillOnce([] {
-        std::vector<mp::VMImageInfo> workflow_info;
+    EXPECT_CALL(*mock_blueprint_provider, all_blueprints()).WillOnce([] {
+        std::vector<mp::VMImageInfo> blueprint_info;
         mp::VMImageInfo info1, info2;
 
-        info1.aliases.append(workflow1_name);
-        info1.release_title = QString::fromStdString(workflow_description_for(workflow1_name));
-        workflow_info.push_back(info1);
+        info1.aliases.append(blueprint1_name);
+        info1.release_title = QString::fromStdString(blueprint_description_for(blueprint1_name));
+        blueprint_info.push_back(info1);
 
-        info2.aliases.append(workflow2_name);
-        info2.release_title = QString::fromStdString(workflow_description_for(workflow2_name));
-        workflow_info.push_back(info2);
+        info2.aliases.append(blueprint2_name);
+        info2.release_title = QString::fromStdString(blueprint_description_for(blueprint2_name));
+        blueprint_info.push_back(info2);
 
-        return workflow_info;
+        return blueprint_info;
     });
 
     config_builder.image_hosts.clear();
     config_builder.image_hosts.push_back(std::move(mock_image_host));
-    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -92,9 +92,9 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
                                     HasSubstr(fmt::format("{}:{}", mpt::snapcraft_remote, mpt::snapcraft_alias)),
                                     HasSubstr(mpt::snapcraft_release_info),
                                     HasSubstr(fmt::format("{}:{}", mpt::custom_remote, mpt::custom_alias)),
-                                    HasSubstr(mpt::custom_release_info), HasSubstr(workflow1_name),
-                                    HasSubstr(workflow_description_for(workflow1_name)), HasSubstr(workflow2_name),
-                                    HasSubstr(workflow_description_for(workflow2_name))));
+                                    HasSubstr(mpt::custom_release_info), HasSubstr(blueprint1_name),
+                                    HasSubstr(blueprint_description_for(blueprint1_name)), HasSubstr(blueprint2_name),
+                                    HasSubstr(blueprint_description_for(blueprint2_name))));
 
     EXPECT_EQ(total_lines_of_output(stream), 7);
 }
@@ -122,32 +122,32 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
     EXPECT_EQ(total_lines_of_output(stream), 2);
 }
 
-TEST_F(DaemonFind, queryForWorkflowReturnsExpectedData)
+TEST_F(DaemonFind, queryForBlueprintReturnsExpectedData)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
-    static constexpr auto workflow_name = "foo";
+    static constexpr auto blueprint_name = "foo";
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
 
-    EXPECT_CALL(*mock_workflow_provider, info_for(_)).WillOnce([](auto...) {
+    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce([](auto...) {
         mp::VMImageInfo info;
 
-        info.aliases.append(workflow_name);
-        info.release_title = QString::fromStdString(workflow_description_for(workflow_name));
+        info.aliases.append(blueprint_name);
+        info.release_title = QString::fromStdString(blueprint_description_for(blueprint_name));
 
         return info;
     });
 
     config_builder.vault = std::move(mock_image_vault);
-    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
-    send_command({"find", workflow_name}, stream);
+    send_command({"find", blueprint_name}, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr(workflow_name), HasSubstr(workflow_description_for(workflow_name))));
+    EXPECT_THAT(stream.str(), AllOf(HasSubstr(blueprint_name), HasSubstr(blueprint_description_for(blueprint_name))));
 
     EXPECT_EQ(total_lines_of_output(stream), 2);
 }
@@ -155,14 +155,14 @@ TEST_F(DaemonFind, queryForWorkflowReturnsExpectedData)
 TEST_F(DaemonFind, unknownQueryReturnsError)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
 
-    EXPECT_CALL(*mock_workflow_provider, info_for(_)).WillOnce(Throw(std::out_of_range("")));
+    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce(Throw(std::out_of_range("")));
 
     config_builder.vault = std::move(mock_image_vault);
-    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     mp::Daemon daemon{config_builder.build()};
 
     constexpr auto phony_name = "phony";

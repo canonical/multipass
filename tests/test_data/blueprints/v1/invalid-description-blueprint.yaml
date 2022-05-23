@@ -1,9 +1,9 @@
-description: Invalid version
-version:
-  - 0.1
+description:
+  - Invalid description blueprint
+version: 0.1
 
 instances:
-  invalid-version-workflow:
+  invalid-description-blueprint:
     image: "default"
     limits:
       min-cpu: 2

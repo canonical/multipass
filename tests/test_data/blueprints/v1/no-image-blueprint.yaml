@@ -1,8 +1,8 @@
-description: Workflow with no image
+description: Blueprint with no image
 version: 0.1
 
 instances:
-  no-image-workflow:
+  no-image-blueprint:
     limits:
       min-cpu: 2
       min-mem: 2G

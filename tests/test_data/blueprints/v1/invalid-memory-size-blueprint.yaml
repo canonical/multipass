@@ -2,7 +2,7 @@ description: Bad Memory Size
 version: 0.1
 
 instances:
-  invalid-memory-size-workflow:
+  invalid-memory-size-blueprint:
     image: "default"
     limits:
       min-cpu: 2

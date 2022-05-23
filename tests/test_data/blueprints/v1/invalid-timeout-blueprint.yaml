@@ -1,9 +1,12 @@
-description: Missing version
+description: Invalid timeout
+version: 0.1
 
 instances:
-  missing-version-workflow:
+  invalid-timeout-blueprint:
     image: "default"
     limits:
       min-cpu: 2
       min-mem: 2G
       min-disk: 25G
+    timeout:
+    - Messed up
