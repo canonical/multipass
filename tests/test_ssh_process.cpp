@@ -16,7 +16,7 @@
  */
 
 #include "common.h"
-#include "mock_ssh.h"
+#include "mock_ssh_test_fixture.h"
 
 #include <multipass/ssh/ssh_session.h>
 
@@ -24,25 +24,15 @@
 #include <thread>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
+
 using namespace testing;
 
 namespace
 {
 struct SSHProcess : public Test
 {
-    SSHProcess()
-    {
-        connect.returnValue(SSH_OK);
-        is_connected.returnValue(true);
-        open_session.returnValue(SSH_OK);
-        request_exec.returnValue(SSH_OK);
-        channel_is_closed.returnValue(0);
-    }
-    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
-    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
-    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
-    decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
-    decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mp::SSHSession session{"theanswertoeverything", 42};
 };
 } // namespace

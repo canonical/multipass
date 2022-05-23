@@ -18,7 +18,7 @@
 #include "common.h"
 #include "file_operations.h"
 #include "mock_sftp.h"
-#include "mock_ssh.h"
+#include "mock_ssh_test_fixture.h"
 #include "path.h"
 #include "temp_dir.h"
 
@@ -46,9 +46,6 @@ struct SFTPClient : public testing::Test
                    }},
           free_sftp{mock_sftp_free, [](sftp_session sftp) { std::free(sftp); }}
     {
-        connect.returnValue(SSH_OK);
-        is_connected.returnValue(true);
-        open_session.returnValue(SSH_OK);
         close.returnValue(SSH_OK);
     }
 
@@ -57,13 +54,11 @@ struct SFTPClient : public testing::Test
         return {std::make_unique<mp::SSHSession>("b", 43)};
     }
 
-    decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
-    decltype(MOCK(ssh_is_connected)) is_connected{MOCK(ssh_is_connected)};
-    decltype(MOCK(ssh_channel_open_session)) open_session{MOCK(ssh_channel_open_session)};
     decltype(MOCK(sftp_close)) close{MOCK(sftp_close)};
     MockScope<decltype(mock_sftp_new)> sftp_new;
     MockScope<decltype(mock_sftp_free)> free_sftp;
 
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
     std::stringstream test_stream{"testing stream :-)"};
 };
 } // namespace
