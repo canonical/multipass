@@ -76,11 +76,19 @@ TEST_F(SSHClient, standardCtorDoesNotThrow)
     EXPECT_NO_THROW(mp::SSHClient("a", 42, "foo", key_data, console_creator));
 }
 
-TEST_F(SSHClient, execReturnsOKNoFailure)
+TEST_F(SSHClient, execSingleCommandReturnsOKNoFailure)
 {
     auto client = make_ssh_client();
 
     EXPECT_EQ(client.exec({"foo"}), SSH_OK);
+}
+
+TEST_F(SSHClient, execMultipleCommandsReturnsOKNoFailure)
+{
+    auto client = make_ssh_client();
+
+    std::vector<std::vector<std::string>> commands{{"ls", "-la"}, {"pwd"}};
+    EXPECT_EQ(client.exec(commands), SSH_OK);
 }
 
 TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
