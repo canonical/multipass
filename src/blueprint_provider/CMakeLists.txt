@@ -12,10 +12,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_library(workflow_provider STATIC
-  default_vm_workflow_provider.cpp)
+add_library(blueprint_provider STATIC
+  default_vm_blueprint_provider.cpp)
 
-target_link_libraries(workflow_provider PRIVATE
+target_link_libraries(blueprint_provider PRIVATE
   poco_utils
   network
   Qt5::Core

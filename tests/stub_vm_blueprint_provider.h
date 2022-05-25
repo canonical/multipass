@@ -17,35 +17,35 @@
 #ifndef MULTIPASS_STUB_WORKFLOW_PROVIDER
 #define MULTIPASS_STUB_WORKFLOW_PROVIDER
 
-#include <multipass/vm_workflow_provider.h>
+#include <multipass/vm_blueprint_provider.h>
 
 namespace multipass
 {
 namespace test
 {
-struct StubVMWorkflowProvider final : public VMWorkflowProvider
+struct StubVMBlueprintProvider final : public VMBlueprintProvider
 {
-    Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) override
+    Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc) override
     {
         throw std::out_of_range("");
     }
 
-    VMImageInfo info_for(const std::string& workflow_name) override
+    VMImageInfo info_for(const std::string& blueprint_name) override
     {
         return VMImageInfo();
     }
 
-    std::vector<VMImageInfo> all_workflows() override
+    std::vector<VMImageInfo> all_blueprints() override
     {
         return {};
     }
 
-    std::string name_from_workflow(const std::string& workflow_name) override
+    std::string name_from_blueprint(const std::string& blueprint_name) override
     {
         return {};
     }
 
-    int workflow_timeout(const std::string& workflow_name) override
+    int blueprint_timeout(const std::string& blueprint_name) override
     {
         return 0;
     }

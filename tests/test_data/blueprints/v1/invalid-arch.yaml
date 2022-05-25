@@ -1,8 +1,7 @@
-description: An arch-only workflow
+description: An invalid arch blueprint
 version: 0.1
 
-runs-on:
-- arch
+runs-on: arch
 
 instances:
   arch-only:

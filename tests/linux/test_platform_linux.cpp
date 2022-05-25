@@ -358,17 +358,17 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
     aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
 }
 
-TEST_F(PlatformLinux, workflowsURLOverrideSetReturnsExpectedData)
+TEST_F(PlatformLinux, blueprintsURLOverrideSetReturnsExpectedData)
 {
     const QString fake_url{"https://a.fake.url"};
-    mpt::SetEnvScope workflows_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
+    mpt::SetEnvScope blueprints_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
 
-    EXPECT_EQ(MP_PLATFORM.get_workflows_url_override(), fake_url);
+    EXPECT_EQ(MP_PLATFORM.get_blueprints_url_override(), fake_url);
 }
 
-TEST_F(PlatformLinux, workflowsURLOverrideNotSetReturnsEmptyString)
+TEST_F(PlatformLinux, blueprintsURLOverrideNotSetReturnsEmptyString)
 {
-    EXPECT_TRUE(MP_PLATFORM.get_workflows_url_override().isEmpty());
+    EXPECT_TRUE(MP_PLATFORM.get_blueprints_url_override().isEmpty());
 }
 
 TEST_F(PlatformLinux, test_is_remote_supported_returns_true)

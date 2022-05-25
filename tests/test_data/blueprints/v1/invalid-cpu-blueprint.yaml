@@ -1,9 +1,10 @@
+description: Bad CPU
 version: 0.1
 
 instances:
-  missing-description-workflow:
+  invalid-cpu-blueprint:
     image: "default"
     limits:
-      min-cpu: 2
+      min-cpu: The most
       min-mem: 2G
       min-disk: 25G

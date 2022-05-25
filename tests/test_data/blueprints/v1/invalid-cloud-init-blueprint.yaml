@@ -2,7 +2,7 @@ description: Invalid cloud-init
 version: 0.1
 
 instances:
-  invalid-cloud-init-workflow:
+  invalid-cloud-init-blueprint:
     image: "default"
     limits:
       min-cpu: 2

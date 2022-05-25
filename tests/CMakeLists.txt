@@ -102,7 +102,7 @@ add_executable(multipass_tests
   test_url_downloader.cpp
   test_utils.cpp
   test_with_mocked_bin_path.cpp
-  test_workflow_provider.cpp
+  test_blueprint_provider.cpp
 )
 
 target_include_directories(multipass_tests

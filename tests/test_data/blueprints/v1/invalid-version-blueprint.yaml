@@ -1,8 +1,9 @@
-description: Invalid host name workflow
-version: 0.1
+description: Invalid version
+version:
+  - 0.1
 
 instances:
-  42-invalid-hostname-workflow:
+  invalid-version-blueprint:
     image: "default"
     limits:
       min-cpu: 2

@@ -1,8 +1,8 @@
-description: Another test workflow
+description: Another test blueprint
 version: 0.1
 
 instances:
-  test-workflow2:
+  test-blueprint2:
     image: "daily:bionic"
     limits:
       min-cpu: 4

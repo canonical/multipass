@@ -36,7 +36,7 @@ public:
     };
 
     MOCK_CONST_METHOD0(get_network_interfaces_info, std::map<std::string, NetworkInterfaceInfo>());
-    MOCK_CONST_METHOD0(get_workflows_url_override, QString());
+    MOCK_CONST_METHOD0(get_blueprints_url_override, QString());
     MOCK_CONST_METHOD1(is_remote_supported, bool(const std::string&));
     MOCK_CONST_METHOD1(is_backend_supported, bool(const QString&));
     MOCK_CONST_METHOD2(is_alias_supported, bool(const std::string&, const std::string&));

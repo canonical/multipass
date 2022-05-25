@@ -1,10 +1,9 @@
-description: Bad Disk Space
 version: 0.1
 
 instances:
-  invalid-disk-space-workflow:
+  missing-description-blueprint:
     image: "default"
     limits:
       min-cpu: 2
       min-mem: 2G
-      min-disk: A bunch of space
+      min-disk: 25G

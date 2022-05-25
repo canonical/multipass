@@ -28,14 +28,14 @@
 #include "mock_settings.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
+#include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
-#include "mock_vm_workflow_provider.h"
 #include "path.h"
 #include "tracking_url_downloader.h"
 
 #include <multipass/constants.h>
-#include <multipass/default_vm_workflow_provider.h>
-#include <multipass/exceptions/workflow_exceptions.h>
+#include <multipass/default_vm_blueprint_provider.h>
+#include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/version.h>
@@ -101,7 +101,7 @@ struct Daemon : public mpt::DaemonTestFixture
             return mock_utils.Utils::filesystem_bytes_available(data_directory);
         });
 
-        EXPECT_CALL(mock_platform, get_workflows_url_override()).WillRepeatedly([] { return QString{}; });
+        EXPECT_CALL(mock_platform, get_blueprints_url_override()).WillRepeatedly([] { return QString{}; });
         EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
     }
 
@@ -276,41 +276,41 @@ TEST_F(Daemon, data_path_with_storage_valid)
     EXPECT_EQ(config->cache_directory, storage_dir.filePath("cache"));
 }
 
-TEST_F(Daemon, workflowsDownloadsFromCorrectURL)
+TEST_F(Daemon, blueprintsDownloadsFromCorrectURL)
 {
     mpt::TempDir cache_dir;
     auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
 
     config_builder.cache_directory = cache_dir.path();
     config_builder.url_downloader = std::move(url_downloader);
-    config_builder.workflow_provider.reset();
+    config_builder.blueprint_provider.reset();
 
     auto config = config_builder.build();
 
     mpt::TrackingURLDownloader* downloader = static_cast<mpt::TrackingURLDownloader*>(config->url_downloader.get());
     EXPECT_EQ(downloader->downloaded_urls.size(), 1);
-    EXPECT_EQ(downloader->downloaded_urls.front(), mp::default_workflow_url);
+    EXPECT_EQ(downloader->downloaded_urls.front(), mp::default_blueprint_url);
 }
 
-TEST_F(Daemon, workflowsURLOverrideIsCorrect)
+TEST_F(Daemon, blueprintsURLOverrideIsCorrect)
 {
     mpt::TempDir cache_dir;
     auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
-    const QString test_workflows_zip{mpt::test_data_path() + "test-workflows.zip"};
+    const QString test_blueprints_zip{mpt::test_data_path() + "test-blueprints.zip"};
 
-    EXPECT_CALL(mock_platform, get_workflows_url_override()).WillOnce([&test_workflows_zip] {
-        return QUrl::fromLocalFile(test_workflows_zip).toEncoded();
+    EXPECT_CALL(mock_platform, get_blueprints_url_override()).WillOnce([&test_blueprints_zip] {
+        return QUrl::fromLocalFile(test_blueprints_zip).toEncoded();
     });
 
     config_builder.cache_directory = cache_dir.path();
     config_builder.url_downloader = std::move(url_downloader);
-    config_builder.workflow_provider.reset();
+    config_builder.blueprint_provider.reset();
 
     auto config = config_builder.build();
 
     mpt::TrackingURLDownloader* downloader = static_cast<mpt::TrackingURLDownloader*>(config->url_downloader.get());
     EXPECT_EQ(downloader->downloaded_urls.size(), 1);
-    EXPECT_EQ(downloader->downloaded_urls.front(), QUrl::fromLocalFile(test_workflows_zip).toString());
+    EXPECT_EQ(downloader->downloaded_urls.front(), QUrl::fromLocalFile(test_blueprints_zip).toString());
 }
 
 namespace
@@ -604,18 +604,18 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
+TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
 {
     auto mock_factory = use_a_mock_vm_factory();
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
     static constexpr int num_cores = 4;
     const mp::MemorySize mem_size{"4G"};
     const mp::MemorySize disk_space{"25G"};
     const std::string release{"focal"};
     const std::string remote{"release"};
-    const std::string name{"ultimo-workflow"};
+    const std::string name{"ultimo-blueprint"};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce([&mem_size, &disk_space, &name](const mp::VirtualMachineDescription& vm_desc, auto&) {
@@ -637,7 +637,7 @@ TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
             return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
         });
 
-    EXPECT_CALL(*mock_workflow_provider, fetch_workflow_for(_, _))
+    EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _))
         .WillOnce([&mem_size, &disk_space, &release, &remote](const auto&,
                                                               mp::VirtualMachineDescription& vm_desc) -> mp::Query {
             vm_desc.num_cores = num_cores;
@@ -647,16 +647,16 @@ TEST_P(DaemonCreateLaunchTestSuite, workflow_found_passes_expected_data)
             return {"", release, false, remote, mp::Query::Type::Alias};
         });
 
-    EXPECT_CALL(*mock_workflow_provider, name_from_workflow(_)).WillOnce(Return(name));
+    EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
 
-    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, workflow_not_found_passes_expected_data)
+TEST_P(DaemonCreateLaunchTestSuite, blueprint_not_found_passes_expected_data)
 {
     auto mock_factory = use_a_mock_vm_factory();
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -1191,11 +1191,11 @@ TEST_F(Daemon, fails_with_image_not_found_also_if_image_is_also_non_bridgeable)
         return default_vault.all_info_for(query);
     });
 
-    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
-    EXPECT_CALL(*mock_workflow_provider, info_for(_)).WillOnce(Throw(std::out_of_range("")));
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
+    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce(Throw(std::out_of_range("")));
 
     config_builder.vault = std::move(mock_image_vault);
-    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -1456,16 +1456,16 @@ TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
 TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock");
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
         return std::move(instance_ptr);
     });
 
     // Timeouts are given in seconds
-    const auto [client_timeout, workflow_timeout, expected_timeout] = GetParam();
+    const auto [client_timeout, blueprint_timeout, expected_timeout] = GetParam();
 
-    EXPECT_CALL(*mock_workflow_provider, workflow_timeout(_)).WillOnce(Return(workflow_timeout));
+    EXPECT_CALL(*mock_blueprint_provider, blueprint_timeout(_)).WillOnce(Return(blueprint_timeout));
 
     EXPECT_CALL(*instance_ptr, wait_until_ssh_up(std::chrono::duration_cast<std::chrono::milliseconds>(
                                    std::chrono::seconds(expected_timeout))))
@@ -1476,7 +1476,7 @@ TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
             _, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout)), _))
         .WillRepeatedly(Return());
 
-    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -1491,7 +1491,7 @@ TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
 }
 
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonLaunchTimeoutValueTestSuite,
-                         Values(std::make_tuple(0, 600, 600), // client_timeout, workflow_timeout, expected_timeout
+                         Values(std::make_tuple(0, 600, 600), // client_timeout, blueprint_timeout, expected_timeout
                                 std::make_tuple(1000, 600, 1000), std::make_tuple(1000, 0, 1000),
                                 std::make_tuple(0, 0, 300)));
 
@@ -1753,12 +1753,12 @@ TEST_F(Daemon, purgePersistsInstances)
     EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
 }
 
-TEST_F(Daemon, launch_fails_with_incompatible_workflow)
+TEST_F(Daemon, launch_fails_with_incompatible_blueprint)
 {
-    auto mock_workflow_provider = std::make_unique<NiceMock<mpt::MockVMWorkflowProvider>>();
-    EXPECT_CALL(*mock_workflow_provider, info_for(_)).WillOnce(Throw(mp::IncompatibleWorkflowException("")));
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
+    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce(Throw(mp::IncompatibleBlueprintException("")));
 
-    config_builder.workflow_provider = std::move(mock_workflow_provider);
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
 
     mp::Daemon daemon{config_builder.build()};
 

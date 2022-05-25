@@ -20,13 +20,13 @@
 #include "instance_settings_handler.h"
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
-#include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_writer.h>
 #include <multipass/logging/client_logger.h>
@@ -194,16 +194,16 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 template <typename T>
-auto name_from(const std::string& requested_name, const std::string& workflow_name, mp::NameGenerator& name_gen,
+auto name_from(const std::string& requested_name, const std::string& blueprint_name, mp::NameGenerator& name_gen,
                const T& currently_used_names)
 {
     if (!requested_name.empty())
     {
         return requested_name;
     }
-    else if (!workflow_name.empty())
+    else if (!blueprint_name.empty())
     {
-        return workflow_name;
+        return blueprint_name;
     }
     else
     {
@@ -456,15 +456,15 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 }
 
 void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& vault,
-                    mp::VMWorkflowProvider& workflow_provider)
+                    mp::VMBlueprintProvider& blueprint_provider)
 {
     // TODO: Refactor this in such a way that we can use info returned here instead of ignoring it to avoid calls
     //       later that accomplish the same thing.
     try
     {
-        workflow_provider.info_for(request->image());
+        blueprint_provider.info_for(request->image());
     }
-    catch (const mp::IncompatibleWorkflowException&)
+    catch (const mp::IncompatibleBlueprintException&)
     {
         throw std::runtime_error(
             fmt::format("The \"{}\" Blueprint is not compatible with this host.", request->image()));
@@ -479,8 +479,8 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
 {
-    assert(config && config->factory && config->workflow_provider && config->vault && "null ptr somewhere...");
-    validate_image(request, *config->vault, *config->workflow_provider);
+    assert(config && config->factory && config->blueprint_provider && config->vault && "null ptr somewhere...");
+    validate_image(request, *config->vault, *config->blueprint_provider);
 
     static const auto min_mem = try_mem_size(mp::min_memory_size);
     static const auto min_disk = try_mem_size(mp::min_disk_size);
@@ -833,13 +833,13 @@ void add_aliases(mp::FindReply& response, const std::string& remote_name, const 
     }
 }
 
-auto timeout_for(const int requested_timeout, const int workflow_timeout)
+auto timeout_for(const int requested_timeout, const int blueprint_timeout)
 {
     if (requested_timeout > 0)
         return std::chrono::seconds(requested_timeout);
 
-    if (workflow_timeout > 0)
-        return std::chrono::seconds(workflow_timeout);
+    if (blueprint_timeout > 0)
+        return std::chrono::seconds(blueprint_timeout);
 
     return mp::default_timeout;
 }
@@ -1096,7 +1096,7 @@ try // clang-format on
             try
             {
                 vm_images_info.push_back(
-                    std::make_pair("", config->workflow_provider->info_for(request->search_string())));
+                    std::make_pair("", config->blueprint_provider->info_for(request->search_string())));
             }
             catch (const std::exception&)
             {
@@ -1149,9 +1149,9 @@ try // clang-format on
             image_host->for_each_entry_do(action);
         }
 
-        auto vm_workflows_info = config->workflow_provider->all_workflows();
+        auto vm_blueprints_info = config->blueprint_provider->all_blueprints();
 
-        for (const auto& info : vm_workflows_info)
+        for (const auto& info : vm_blueprints_info)
         {
             add_aliases(response, "", info, "");
         }
@@ -2248,9 +2248,9 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
             grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Missing bridges", create_error.SerializeAsString()});
     }
 
-    // TODO: We should only need to query the Workflow Provider once for all info, so this (and timeout below) will
+    // TODO: We should only need to query the Blueprint Provider once for all info, so this (and timeout below) will
     //       need a refactoring to do so.
-    auto name = name_from(checked_args.instance_name, config->workflow_provider->name_from_workflow(request->image()),
+    auto name = name_from(checked_args.instance_name, config->blueprint_provider->name_from_blueprint(request->image()),
                           *config->name_generator, vm_instances);
 
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
@@ -2276,9 +2276,9 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
     if (!instances_running(vm_instances))
         config->factory->hypervisor_health_check();
 
-    // TODO: We should only need to query the Workflow Provider once for all info, so this (and name above) will
+    // TODO: We should only need to query the Blueprint Provider once for all info, so this (and name above) will
     //       need a refactoring to do so.
-    auto timeout = timeout_for(request->timeout(), config->workflow_provider->workflow_timeout(name));
+    auto timeout = timeout_for(request->timeout(), config->blueprint_provider->blueprint_timeout(name));
 
     preparing_instances.insert(name);
 
@@ -2374,12 +2374,12 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
 
             try
             {
-                query = config->workflow_provider->fetch_workflow_for(request->image(), vm_desc);
+                query = config->blueprint_provider->fetch_blueprint_for(request->image(), vm_desc);
                 query.name = name;
             }
             catch (const std::out_of_range&)
             {
-                // Workflow not found, move on
+                // Blueprint not found, move on
                 query = query_from(request, name);
                 vm_desc.mem_size = checked_args.mem_size;
             }
