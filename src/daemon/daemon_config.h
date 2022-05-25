@@ -30,9 +30,9 @@
 #include <multipass/update_prompt.h>
 #include <multipass/url_downloader.h>
 #include <multipass/virtual_machine_factory.h>
+#include <multipass/vm_blueprint_provider.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
-#include <multipass/vm_workflow_provider.h>
 
 #include <QNetworkProxy>
 
@@ -55,7 +55,7 @@ struct DaemonConfig
     const std::unique_ptr<UpdatePrompt> update_prompt;
     const std::shared_ptr<logging::MultiplexingLogger> logger;
     const std::unique_ptr<QNetworkProxy> network_proxy;
-    const std::unique_ptr<VMWorkflowProvider> workflow_provider;
+    const std::unique_ptr<VMBlueprintProvider> blueprint_provider;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
@@ -76,7 +76,7 @@ struct DaemonConfigBuilder
     std::unique_ptr<UpdatePrompt> update_prompt;
     std::unique_ptr<logging::Logger> logger;
     std::unique_ptr<QNetworkProxy> network_proxy;
-    std::unique_ptr<VMWorkflowProvider> workflow_provider;
+    std::unique_ptr<VMBlueprintProvider> blueprint_provider;
     multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;

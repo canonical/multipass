@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_VM_WORKFLOW_PROVIDER_H
-#define MULTIPASS_VM_WORKFLOW_PROVIDER_H
+#ifndef MULTIPASS_VM_BLUEPRINT_PROVIDER_H
+#define MULTIPASS_VM_BLUEPRINT_PROVIDER_H
 
 #include "disabled_copy_move.h"
 #include "query.h"
@@ -28,19 +28,19 @@
 
 namespace multipass
 {
-class VMWorkflowProvider : private DisabledCopyMove
+class VMBlueprintProvider : private DisabledCopyMove
 {
 public:
-    virtual ~VMWorkflowProvider() = default;
+    virtual ~VMBlueprintProvider() = default;
 
-    virtual Query fetch_workflow_for(const std::string& workflow_name, VirtualMachineDescription& vm_desc) = 0;
-    virtual VMImageInfo info_for(const std::string& workflow_name) = 0;
-    virtual std::vector<VMImageInfo> all_workflows() = 0;
-    virtual std::string name_from_workflow(const std::string& workflow_name) = 0;
-    virtual int workflow_timeout(const std::string& workflow_name) = 0;
+    virtual Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc) = 0;
+    virtual VMImageInfo info_for(const std::string& blueprint_name) = 0;
+    virtual std::vector<VMImageInfo> all_blueprints() = 0;
+    virtual std::string name_from_blueprint(const std::string& blueprint_name) = 0;
+    virtual int blueprint_timeout(const std::string& blueprint_name) = 0;
 
 protected:
-    VMWorkflowProvider() = default;
+    VMBlueprintProvider() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_VM_WORKFLOW_PROVIDER_H
+#endif // MULTIPASS_VM_BLUEPRINT_PROVIDER_H

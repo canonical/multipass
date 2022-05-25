@@ -244,7 +244,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return detail::get_network_interfaces_from(sysfs);
 }
 
-QString mp::platform::Platform::get_workflows_url_override() const
+QString mp::platform::Platform::get_blueprints_url_override() const
 {
     return QString::fromUtf8(qgetenv("MULTIPASS_BLUEPRINTS_URL"));
 }

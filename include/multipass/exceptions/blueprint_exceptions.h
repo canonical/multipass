@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_WORKFLOW_EXCEPTIONS_H
-#define MULTIPASS_WORKFLOW_EXCEPTIONS_H
+#ifndef MULTIPASS_BLUEPRINT_EXCEPTIONS_H
+#define MULTIPASS_BLUEPRINT_EXCEPTIONS_H
 
 #include <multipass/format.h>
 
@@ -25,25 +25,25 @@
 
 namespace multipass
 {
-class WorkflowMinimumException : public std::runtime_error
+class BlueprintMinimumException : public std::runtime_error
 {
 public:
-    WorkflowMinimumException(const std::string& type, const std::string& min_val)
-        : runtime_error(fmt::format("Requested {} is less than workflow minimum of {}", type, min_val))
+    BlueprintMinimumException(const std::string& type, const std::string& min_val)
+        : runtime_error(fmt::format("Requested {} is less than Blueprint minimum of {}", type, min_val))
     {
     }
 };
 
-class InvalidWorkflowException : public std::runtime_error
+class InvalidBlueprintException : public std::runtime_error
 {
 public:
     using std::runtime_error::runtime_error;
 };
 
-class IncompatibleWorkflowException : public std::runtime_error
+class IncompatibleBlueprintException : public std::runtime_error
 {
 public:
     using std::runtime_error::runtime_error;
 };
 } // namespace multipass
-#endif // MULTIPASS_WORKFLOW_EXCEPTIONS_H
+#endif // MULTIPASS_BLUEPRINT_EXCEPTIONS_H

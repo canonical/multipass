@@ -1,8 +1,8 @@
-description: A Workflow without limits
+description: A Blueprint without limits
 version: 0.1
 
 instances:
-  no-limits-workflow:
+  no-limits-blueprint:
     image: "default"
     timeout: 600
     cloud-init:

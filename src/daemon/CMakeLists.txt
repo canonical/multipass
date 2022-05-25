@@ -44,7 +44,7 @@ target_link_libraries(daemon
   utils
   Qt5::Core
   Qt5::Network
-  workflow_provider
+  blueprint_provider
   xz_image_decoder
   yaml)
 

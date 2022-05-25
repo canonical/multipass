@@ -2,7 +2,7 @@ description: Bad image scheme
 version: 0.1
 
 instances:
-  invalid-image-workflow:
+  invalid-image-blueprint:
     image: "foo:bar:default"
     limits:
       min-cpu: 2

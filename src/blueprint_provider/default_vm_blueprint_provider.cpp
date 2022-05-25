@@ -15,10 +15,10 @@
  *
  */
 
-#include <multipass/default_vm_workflow_provider.h>
+#include <multipass/default_vm_blueprint_provider.h>
+#include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
-#include <multipass/exceptions/workflow_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/poco_zip_utils.h>
@@ -40,13 +40,13 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-const QString github_workflows_archive_name{"multipass-workflows.zip"};
-const QString workflow_dir_version{"v1"};
-constexpr auto category = "workflow provider";
+const QString github_blueprints_archive_name{"multipass-blueprints.zip"};
+const QString blueprint_dir_version{"v1"};
+constexpr auto category = "blueprint provider";
 
-auto workflows_map_for(const std::string& archive_file_path, bool& needs_update)
+auto blueprints_map_for(const std::string& archive_file_path, bool& needs_update)
 {
-    std::map<std::string, YAML::Node> workflows_map;
+    std::map<std::string, YAML::Node> blueprints_map;
     std::ifstream zip_stream{archive_file_path, std::ios::binary};
     auto zip_archive = MP_POCOZIPUTILS.zip_archive_for(zip_stream);
 
@@ -57,7 +57,7 @@ auto workflows_map_for(const std::string& archive_file_path, bool& needs_update)
             auto file_name = it->second.getFileName();
             QFileInfo file_info{QString::fromStdString(file_name)};
 
-            if (file_info.dir().dirName() == workflow_dir_version &&
+            if (file_info.dir().dirName() == blueprint_dir_version &&
                 (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
             {
                 if (!mp::utils::valid_hostname(file_info.baseName().toStdString()))
@@ -73,51 +73,51 @@ auto workflows_map_for(const std::string& archive_file_path, bool& needs_update)
                 Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
                 std::ostringstream out(std::ios::binary);
                 Poco::StreamCopier::copyStream(zip_input_stream, out);
-                workflows_map[file_info.baseName().toStdString()] = YAML::Load(out.str());
+                blueprints_map[file_info.baseName().toStdString()] = YAML::Load(out.str());
             }
         }
     }
 
-    return workflows_map;
+    return blueprints_map;
 }
 } // namespace
 
-mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(const QUrl& workflows_url, URLDownloader* downloader,
-                                                         const QDir& archive_dir,
-                                                         const std::chrono::milliseconds& workflows_ttl,
-                                                         const QString& arch)
-    : workflows_url{workflows_url},
+mp::DefaultVMBlueprintProvider::DefaultVMBlueprintProvider(const QUrl& blueprints_url, URLDownloader* downloader,
+                                                           const QDir& archive_dir,
+                                                           const std::chrono::milliseconds& blueprints_ttl,
+                                                           const QString& arch)
+    : blueprints_url{blueprints_url},
       url_downloader{downloader},
-      archive_file_path{archive_dir.filePath(github_workflows_archive_name)},
-      workflows_ttl{workflows_ttl},
+      archive_file_path{archive_dir.filePath(github_blueprints_archive_name)},
+      blueprints_ttl{blueprints_ttl},
       arch{arch}
 {
-    update_workflows();
+    update_blueprints();
 }
 
-mp::DefaultVMWorkflowProvider::DefaultVMWorkflowProvider(URLDownloader* downloader, const QDir& archive_dir,
-                                                         const std::chrono::milliseconds& workflows_ttl,
-                                                         const QString& arch)
-    : DefaultVMWorkflowProvider(default_workflow_url, downloader, archive_dir, workflows_ttl, arch)
+mp::DefaultVMBlueprintProvider::DefaultVMBlueprintProvider(URLDownloader* downloader, const QDir& archive_dir,
+                                                           const std::chrono::milliseconds& blueprints_ttl,
+                                                           const QString& arch)
+    : DefaultVMBlueprintProvider(default_blueprint_url, downloader, archive_dir, blueprints_ttl, arch)
 {
 }
 
-mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& workflow_name,
-                                                            VirtualMachineDescription& vm_desc)
+mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string& blueprint_name,
+                                                              VirtualMachineDescription& vm_desc)
 {
-    update_workflows();
+    update_blueprints();
 
     Query query{"", "default", false, "", Query::Type::Alias};
-    auto& workflow_config = workflow_map.at(workflow_name);
+    auto& blueprint_config = blueprint_map.at(blueprint_name);
 
-    auto workflow_instance = workflow_config["instances"][workflow_name];
+    auto blueprint_instance = blueprint_config["instances"][blueprint_name];
 
     // TODO: Abstract all of the following YAML schema boilerplate
-    if (workflow_instance["image"])
+    if (blueprint_instance["image"])
     {
         // TODO: Support http later.
         // This only supports the "alias" and "remote:alias" scheme at this time
-        auto image_str{workflow_config["instances"][workflow_name]["image"].as<std::string>()};
+        auto image_str{blueprint_config["instances"][blueprint_name]["image"].as<std::string>()};
         auto tokens = mp::utils::split(image_str, ":");
 
         if (tokens.size() == 2)
@@ -132,15 +132,15 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         else
         {
             needs_update = true;
-            throw InvalidWorkflowException("Unsupported image scheme in Blueprint");
+            throw InvalidBlueprintException("Unsupported image scheme in Blueprint");
         }
     }
 
-    if (workflow_instance["limits"]["min-cpu"])
+    if (blueprint_instance["limits"]["min-cpu"])
     {
         try
         {
-            auto min_cpus = workflow_instance["limits"]["min-cpu"].as<int>();
+            auto min_cpus = blueprint_instance["limits"]["min-cpu"].as<int>();
 
             if (vm_desc.num_cores == 0)
             {
@@ -148,19 +148,19 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
             }
             else if (vm_desc.num_cores < min_cpus)
             {
-                throw WorkflowMinimumException("Number of CPUs", std::to_string(min_cpus));
+                throw BlueprintMinimumException("Number of CPUs", std::to_string(min_cpus));
             }
         }
         catch (const YAML::BadConversion&)
         {
             needs_update = true;
-            throw InvalidWorkflowException(fmt::format("Minimum CPU value in Blueprint is invalid"));
+            throw InvalidBlueprintException(fmt::format("Minimum CPU value in Blueprint is invalid"));
         }
     }
 
-    if (workflow_instance["limits"]["min-mem"])
+    if (blueprint_instance["limits"]["min-mem"])
     {
-        auto min_mem_size_str{workflow_instance["limits"]["min-mem"].as<std::string>()};
+        auto min_mem_size_str{blueprint_instance["limits"]["min-mem"].as<std::string>()};
 
         try
         {
@@ -172,19 +172,19 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
             }
             else if (vm_desc.mem_size < min_mem_size)
             {
-                throw WorkflowMinimumException("Memory size", min_mem_size_str);
+                throw BlueprintMinimumException("Memory size", min_mem_size_str);
             }
         }
         catch (const InvalidMemorySizeException&)
         {
             needs_update = true;
-            throw InvalidWorkflowException(fmt::format("Minimum memory size value in Blueprint is invalid"));
+            throw InvalidBlueprintException(fmt::format("Minimum memory size value in Blueprint is invalid"));
         }
     }
 
-    if (workflow_instance["limits"]["min-disk"])
+    if (blueprint_instance["limits"]["min-disk"])
     {
-        auto min_disk_space_str{workflow_instance["limits"]["min-disk"].as<std::string>()};
+        auto min_disk_space_str{blueprint_instance["limits"]["min-disk"].as<std::string>()};
 
         try
         {
@@ -196,21 +196,21 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
             }
             else if (vm_desc.disk_space < min_disk_space)
             {
-                throw WorkflowMinimumException("Disk space", min_disk_space_str);
+                throw BlueprintMinimumException("Disk space", min_disk_space_str);
             }
         }
         catch (const InvalidMemorySizeException&)
         {
             needs_update = true;
-            throw InvalidWorkflowException(fmt::format("Minimum disk space value in Blueprint is invalid"));
+            throw InvalidBlueprintException(fmt::format("Minimum disk space value in Blueprint is invalid"));
         }
     }
 
-    if (workflow_instance["cloud-init"]["vendor-data"])
+    if (blueprint_instance["cloud-init"]["vendor-data"])
     {
         try
         {
-            auto cloud_init_config = YAML::Load(workflow_instance["cloud-init"]["vendor-data"].as<std::string>());
+            auto cloud_init_config = YAML::Load(blueprint_instance["cloud-init"]["vendor-data"].as<std::string>());
 
             for (const auto& config : cloud_init_config)
             {
@@ -223,94 +223,94 @@ mp::Query mp::DefaultVMWorkflowProvider::fetch_workflow_for(const std::string& w
         catch (const YAML::BadConversion&)
         {
             needs_update = true;
-            throw InvalidWorkflowException(
-                fmt::format("Cannot convert cloud-init data for the {} Blueprint", workflow_name));
+            throw InvalidBlueprintException(
+                fmt::format("Cannot convert cloud-init data for the {} Blueprint", blueprint_name));
         }
     }
 
     return query;
 }
 
-mp::VMImageInfo mp::DefaultVMWorkflowProvider::info_for(const std::string& workflow_name)
+mp::VMImageInfo mp::DefaultVMBlueprintProvider::info_for(const std::string& blueprint_name)
 {
-    update_workflows();
+    update_blueprints();
 
     static constexpr auto missing_key_template{"The \'{}\' key is required for the {} Blueprint"};
     static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the {} Blueprint"};
-    auto& workflow_config = workflow_map.at(workflow_name);
+    auto& blueprint_config = blueprint_map.at(blueprint_name);
 
     VMImageInfo image_info;
-    image_info.aliases.append(QString::fromStdString(workflow_name));
+    image_info.aliases.append(QString::fromStdString(blueprint_name));
 
     const auto description_key{"description"};
     const auto version_key{"version"};
     const auto runs_on_key{"runs-on"};
 
-    if (workflow_config[runs_on_key])
+    if (blueprint_config[runs_on_key])
     {
         try
         {
-            auto runs_on = workflow_config[runs_on_key].as<std::vector<std::string>>();
+            auto runs_on = blueprint_config[runs_on_key].as<std::vector<std::string>>();
             if (std::find(runs_on.cbegin(), runs_on.cend(), arch.toStdString()) == runs_on.cend())
             {
-                throw IncompatibleWorkflowException(workflow_name);
+                throw IncompatibleBlueprintException(blueprint_name);
             }
         }
         catch (const YAML::BadConversion&)
         {
-            throw InvalidWorkflowException(fmt::format(bad_conversion_template, runs_on_key, workflow_name));
+            throw InvalidBlueprintException(fmt::format(bad_conversion_template, runs_on_key, blueprint_name));
         }
     }
 
-    if (!workflow_config[description_key])
+    if (!blueprint_config[description_key])
     {
         needs_update = true;
-        throw InvalidWorkflowException(fmt::format(missing_key_template, description_key, workflow_name));
+        throw InvalidBlueprintException(fmt::format(missing_key_template, description_key, blueprint_name));
     }
 
-    if (!workflow_config[version_key])
+    if (!blueprint_config[version_key])
     {
         needs_update = true;
-        throw InvalidWorkflowException(fmt::format(missing_key_template, version_key, workflow_name));
-    }
-
-    try
-    {
-        image_info.release_title = QString::fromStdString(workflow_config[description_key].as<std::string>());
-    }
-    catch (const YAML::BadConversion&)
-    {
-        needs_update = true;
-        throw InvalidWorkflowException(fmt::format(bad_conversion_template, description_key, workflow_name));
+        throw InvalidBlueprintException(fmt::format(missing_key_template, version_key, blueprint_name));
     }
 
     try
     {
-        image_info.version = QString::fromStdString(workflow_config["version"].as<std::string>());
+        image_info.release_title = QString::fromStdString(blueprint_config[description_key].as<std::string>());
     }
     catch (const YAML::BadConversion&)
     {
         needs_update = true;
-        throw InvalidWorkflowException(fmt::format(bad_conversion_template, version_key, workflow_name));
+        throw InvalidBlueprintException(fmt::format(bad_conversion_template, description_key, blueprint_name));
+    }
+
+    try
+    {
+        image_info.version = QString::fromStdString(blueprint_config["version"].as<std::string>());
+    }
+    catch (const YAML::BadConversion&)
+    {
+        needs_update = true;
+        throw InvalidBlueprintException(fmt::format(bad_conversion_template, version_key, blueprint_name));
     }
 
     return image_info;
 }
 
-std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
+std::vector<mp::VMImageInfo> mp::DefaultVMBlueprintProvider::all_blueprints()
 {
-    update_workflows();
+    update_blueprints();
 
     bool will_need_update{false};
-    std::vector<VMImageInfo> workflow_info;
+    std::vector<VMImageInfo> blueprint_info;
 
-    for (const auto& [key, config] : workflow_map)
+    for (const auto& [key, config] : blueprint_map)
     {
         try
         {
-            workflow_info.push_back(info_for(key));
+            blueprint_info.push_back(info_for(key));
         }
-        catch (const InvalidWorkflowException& e)
+        catch (const InvalidBlueprintException& e)
         {
             // Don't force updates in info_for() since we are looping and only force the update once we
             // finish iterating.
@@ -318,7 +318,7 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
             will_need_update = true;
             mpl::log(mpl::Level::error, category, fmt::format("Invalid Blueprint: {}", e.what()));
         }
-        catch (const IncompatibleWorkflowException& e)
+        catch (const IncompatibleBlueprintException& e)
         {
             mpl::log(mpl::Level::trace, category, fmt::format("Skipping incompatible Blueprint: {}", e.what()));
         }
@@ -327,39 +327,39 @@ std::vector<mp::VMImageInfo> mp::DefaultVMWorkflowProvider::all_workflows()
     if (will_need_update)
         needs_update = true;
 
-    return workflow_info;
+    return blueprint_info;
 }
 
-std::string mp::DefaultVMWorkflowProvider::name_from_workflow(const std::string& workflow_name)
+std::string mp::DefaultVMBlueprintProvider::name_from_blueprint(const std::string& blueprint_name)
 {
-    if (workflow_map.count(workflow_name) == 1)
-        return workflow_name;
+    if (blueprint_map.count(blueprint_name) == 1)
+        return blueprint_name;
 
     return {};
 }
 
-int mp::DefaultVMWorkflowProvider::workflow_timeout(const std::string& workflow_name)
+int mp::DefaultVMBlueprintProvider::blueprint_timeout(const std::string& blueprint_name)
 {
     auto timeout_seconds{0};
 
     try
     {
-        workflow_map.at(workflow_name);
+        blueprint_map.at(blueprint_name);
 
-        auto& workflow_config = workflow_map.at(workflow_name);
+        auto& blueprint_config = blueprint_map.at(blueprint_name);
 
-        auto workflow_instance = workflow_config["instances"][workflow_name];
+        auto blueprint_instance = blueprint_config["instances"][blueprint_name];
 
-        if (workflow_instance["timeout"])
+        if (blueprint_instance["timeout"])
         {
             try
             {
-                timeout_seconds = workflow_instance["timeout"].as<int>();
+                timeout_seconds = blueprint_instance["timeout"].as<int>();
             }
             catch (const YAML::BadConversion&)
             {
                 needs_update = true;
-                throw InvalidWorkflowException(fmt::format("Invalid timeout given in Blueprint"));
+                throw InvalidBlueprintException(fmt::format("Invalid timeout given in Blueprint"));
             }
         }
     }
@@ -371,21 +371,21 @@ int mp::DefaultVMWorkflowProvider::workflow_timeout(const std::string& workflow_
     return timeout_seconds;
 }
 
-void mp::DefaultVMWorkflowProvider::fetch_workflows()
+void mp::DefaultVMBlueprintProvider::fetch_blueprints()
 {
-    url_downloader->download_to(workflows_url, archive_file_path, -1, -1, [](auto...) { return true; });
+    url_downloader->download_to(blueprints_url, archive_file_path, -1, -1, [](auto...) { return true; });
 
-    workflow_map = workflows_map_for(archive_file_path.toStdString(), needs_update);
+    blueprint_map = blueprints_map_for(archive_file_path.toStdString(), needs_update);
 }
 
-void mp::DefaultVMWorkflowProvider::update_workflows()
+void mp::DefaultVMBlueprintProvider::update_blueprints()
 {
     const auto now = std::chrono::steady_clock::now();
-    if ((now - last_update) > workflows_ttl || needs_update)
+    if ((now - last_update) > blueprints_ttl || needs_update)
     {
         try
         {
-            fetch_workflows();
+            fetch_blueprints();
             last_update = now;
             needs_update = false;
         }
