@@ -106,7 +106,7 @@ const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
         "jammy-server-cloudimg-amd64-vmlinuz-generic",
         "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/unpacked/"
         "jammy-server-cloudimg-amd64-initrd-generic"}},
-      {{"kinetic-server-cloudimg-amd64-disk.img"},
+      {{"kinetic-server-cloudimg-amd64-disk1.img"},
        {"https://cloud-images.ubuntu.com/buildd/daily/kinetic/current/",
         {"devel"},
         "",
