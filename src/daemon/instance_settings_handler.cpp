@@ -118,7 +118,7 @@ mp::MemorySize get_memory_size(const QString& key, const QString& val)
 void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec)
 {
     bool converted_ok = false;
-    if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < 1)
+    if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < std::stoi(mp::min_cpu_cores))
         throw mp::InvalidSettingException{key, val, "Need a positive integer (in decimal format)"};
     else if (cpus != spec.num_cores) // NOOP if equal
     {
