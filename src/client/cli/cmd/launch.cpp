@@ -145,7 +145,13 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
         }
 
         for (const auto& [target, source] : mount_routes)
-            ret = mount(parser, source, target);
+        {
+            auto mount_ret = mount(parser, source, target);
+            if (ret == ReturnCode::Ok)
+            {
+                ret = mount_ret;
+            }
+        }
     }
     else
     {
@@ -316,13 +322,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         for (const auto& value : parser->values(mountOption))
         {
-            auto colon_split = 0;
-#ifdef WIN32
-            QRegularExpression absolutePathRegex{R"(^[A-Za-z]:[\\/].*)"};
-            colon_split = absolutePathRegex.match(value).hasMatch();
-#endif
+            // this is needed so that Windows absolute paths are not split at the colon following the drive letter
+            auto colon_split = QRegularExpression{R"(^[A-Za-z]:[\\/].*)"}.match(value).hasMatch();
             auto mount_source = value.section(':', 0, colon_split);
             auto mount_target = value.section(':', colon_split + 1);
+            mount_target = mount_target.isEmpty() ? mount_source : mount_target;
             mount_routes.insert({mount_target, mount_source});
         }
     }
@@ -501,11 +505,11 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
 }
 
-auto cmd::Launch::mount(const mp::ArgParser* parser, QString mount_source, QString mount_target) -> ReturnCode
+auto cmd::Launch::mount(const mp::ArgParser* parser, const QString& mount_source, const QString& mount_target)
+    -> ReturnCode
 {
-    mount_target = QString{"%1:%2"}.arg(instance_name, mount_target);
-
-    auto ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+    const auto full_mount_target = QString{"%1:%2"}.arg(instance_name, mount_target);
+    auto ret = run_cmd({"multipass", "mount", mount_source, full_mount_target}, parser, cout, cerr);
     if (ret == Ok)
         cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
 
