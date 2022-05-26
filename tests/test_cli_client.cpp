@@ -1210,6 +1210,32 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
 
 INSTANTIATE_TEST_SUITE_P(Client, SSHClientReturnTest, Values(0, -1, 1, 127));
 
+TEST_F(Client, execCmdWithDirPrependsCd)
+{
+    std::string dir{"/home/ubuntu/"};
+    std::string cmd{"pwd"};
+
+    REPLACE(ssh_channel_request_exec, ([&dir, &cmd](ssh_channel, const char* raw_cmd) {
+                EXPECT_THAT(raw_cmd, StartsWith("'cd' '" + dir + "'"));
+                EXPECT_THAT(raw_cmd, HasSubstr("&&"));
+                EXPECT_THAT(raw_cmd, EndsWith("'" + cmd + "'"));
+
+                return SSH_OK;
+            }));
+
+    std::string instance_name{"instance"};
+    mp::SSHInfoReply response = make_fake_response(instance_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
+        .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                              grpc::ServerWriter<multipass::SSHInfoReply>* server) {
+            server->Write(response);
+            return grpc::Status{};
+        });
+
+    EXPECT_EQ(send_command({"exec", instance_name, "--working-directory", dir, "--", cmd}), mp::ReturnCode::Ok);
+}
+
 // help cli tests
 TEST_F(Client, help_cmd_ok_with_valid_single_arg)
 {
