@@ -24,6 +24,7 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 
+#include "multipass/url_downloader.h"
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -34,7 +35,25 @@ struct ClientConfig
 {
     const std::string server_address;
     std::unique_ptr<CertProvider> cert_provider;
-    Terminal *term;
+    Terminal* term;
+    URLDownloader& url_downloader;
+
+    ClientConfig(std::string _server_address, std::unique_ptr<CertProvider> _cert_provider, Terminal* _term,
+                 URLDownloader& _url_downloader)
+        : server_address{std::move(_server_address)},
+          cert_provider{std::move(_cert_provider)},
+          term{_term},
+          url_downloader{_url_downloader}
+    {
+    }
+
+    ClientConfig(std::string _server_address, std::unique_ptr<CertProvider> _cert_provider, Terminal* _term)
+        : ClientConfig{std::move(_server_address), std::move(_cert_provider), _term, default_url_downloader}
+    {
+    }
+
+private:
+    URLDownloader default_url_downloader{std::chrono::minutes{1}};
 };
 
 class Client

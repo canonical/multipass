@@ -79,7 +79,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Alias>(aliases);
     add_command<cmd::Aliases>(aliases);
     add_command<cmd::Authenticate>();
-    add_command<cmd::Launch>();
+    add_command<cmd::Launch>(config.url_downloader);
     add_command<cmd::Purge>(aliases);
     add_command<cmd::Exec>(aliases);
     add_command<cmd::Find>();
