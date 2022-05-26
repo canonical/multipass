@@ -120,9 +120,7 @@ void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& ins
     bool converted_ok = false;
     if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < 1)
         throw mp::InvalidSettingException{key, val, "Need a positive integer (in decimal format)"};
-    else if (cpus < spec.num_cores)
-        throw mp::InvalidSettingException{key, val, "The number of cores can only be increased"};
-    else if (cpus > spec.num_cores) // NOOP if equal
+    else if (cpus != spec.num_cores) // NOOP if equal
     {
         instance.update_cpus(cpus);
         spec.num_cores = cpus;
@@ -132,9 +130,10 @@ void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& ins
 void update_mem(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec,
                 const mp::MemorySize& size)
 {
-    if (size < spec.mem_size)
-        throw mp::InvalidSettingException{key, val, "Memory can only be expanded"};
-    else if (size > spec.mem_size) // NOOP if equal
+    if (size < mp::MemorySize{mp::min_memory_size})
+        throw mp::InvalidSettingException{key, val,
+                                          QString("Memory less than %1 minimum not allowed").arg(mp::min_memory_size)};
+    else if (size != spec.mem_size) // NOOP if equal
     {
         instance.resize_memory(size);
         spec.mem_size = size;
