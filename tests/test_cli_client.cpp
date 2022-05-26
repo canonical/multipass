@@ -26,6 +26,7 @@
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
 #include "mock_terminal.h"
+#include "mock_url_downloader.h"
 #include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
@@ -129,7 +130,7 @@ struct Client : public Test
 
     int setup_client_and_run(const std::vector<std::string>& command, mp::Terminal& term)
     {
-        mp::ClientConfig client_config{server_address, std::move(client_cert_provider), &term};
+        mp::ClientConfig client_config{server_address, std::move(client_cert_provider), &term, mock_url_downloader};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -275,6 +276,7 @@ struct Client : public Test
                                           &cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+    mpt::MockURLDownloader mock_url_downloader{};
     inline static std::stringstream trash_stream; // this may have contents (that we don't care about)
     static constexpr char petenv_name[] = "the-petenv";
 };
@@ -946,6 +948,17 @@ TEST_F(Client, launch_cmd_petenv_mount_option_override_home)
     EXPECT_EQ(
         send_command({"launch", "--name", petenv_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)}),
         mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launch_cmd_cloudinit_url)
+{
+    const grpc::Status ok{};
+    const auto fake_url = QStringLiteral("https://example.com");
+    const auto fake_downloaded_yaml = QByteArrayLiteral("password: passw0rd");
+
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_CALL(mock_url_downloader, download(Eq(fake_url))).WillOnce(Return(fake_downloaded_yaml));
+    EXPECT_EQ(send_command({"launch", "--cloud-init", fake_url.toStdString()}), mp::ReturnCode::Ok);
 }
 
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
