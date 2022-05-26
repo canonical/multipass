@@ -15,9 +15,12 @@
  *
  */
 
+#include "mock_ssh_test_fixture.h"
+
 #include "common.h"
 #include "disabling_macros.h"
 #include "fake_alias_config.h"
+#include "fake_key_data.h"
 #include "mock_cert_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
@@ -30,6 +33,7 @@
 #include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
+#include "stub_console.h"
 #include "stub_terminal.h"
 
 #include <src/client/cli/client.h>
@@ -56,7 +60,6 @@ using namespace testing;
 
 namespace
 {
-
 struct MockDaemonRpc : public mp::DaemonRpc
 {
     using mp::DaemonRpc::DaemonRpc; // ctor
@@ -122,11 +125,11 @@ struct Client : public Test
 
     void TearDown() override
     {
-        Mock::VerifyAndClearExpectations(&mock_daemon); /* We got away without this before because, being a strict mock
-                                                           every call to mock_daemon had to be explicitly "expected".
-                                                           Being the best match for incoming calls, each expectation
-                                                           took precedence over the previous ones, preventing them from
-                                                           being saturated inadvertently */
+        testing::Mock::VerifyAndClearExpectations(&mock_daemon); /* We got away without this before because, being a
+                                                           strict mock every call to mock_daemon had to be explicitly
+                                                           "expected". Being the best match for incoming calls, each
+                                                           expectation took precedence over the previous ones,
+                                                           preventing them from being saturated inadvertently */
     }
 
     int setup_client_and_run(const std::vector<std::string>& command, mp::Terminal& term)
@@ -279,6 +282,8 @@ struct Client : public Test
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
     inline static std::stringstream trash_stream; // this may have contents (that we don't care about)
     static constexpr char petenv_name[] = "the-petenv";
+
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
 };
 
 struct ClientAlias : public Client, public FakeAliasConfig
@@ -1139,6 +1144,71 @@ TEST_F(Client, exec_cmd_fails_on_other_absent_instance)
     EXPECT_CALL(mock_daemon, ssh_info(_, instance_matcher, _)).WillOnce(Return(notfound));
     EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::CommandFail));
 }
+
+mp::SSHInfo make_ssh_info(const std::string& host = "222.222.222.222", int port = 22,
+                          const std::string& priv_key = mpt::fake_key_data, const std::string& username = "user")
+{
+    mp::SSHInfo ssh_info;
+
+    ssh_info.set_host(host);
+    ssh_info.set_port(port);
+    ssh_info.set_priv_key_base64(priv_key);
+    ssh_info.set_username(username);
+
+    return ssh_info;
+}
+
+mp::SSHInfoReply make_fake_response(const std::string& instance_name)
+{
+    mp::SSHInfoReply response;
+    (*response.mutable_ssh_info())[instance_name] = make_ssh_info();
+
+    return response;
+}
+
+struct SSHClientReturnTest : Client, WithParamInterface<int>
+{
+};
+
+TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
+{
+    const int failure_code{GetParam()};
+
+    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
+
+    std::string instance_name{"instance"};
+    mp::SSHInfoReply response = make_fake_response(instance_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
+        .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                              grpc::ServerWriter<multipass::SSHInfoReply>* server) {
+            server->Write(response);
+            return grpc::Status{};
+        });
+
+    EXPECT_EQ(send_command({"exec", instance_name, "--", "cmd"}), failure_code);
+}
+
+TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
+{
+    const int failure_code{GetParam()};
+
+    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
+
+    std::string instance_name{"instance"};
+    mp::SSHInfoReply response = make_fake_response(instance_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
+        .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                              grpc::ServerWriter<multipass::SSHInfoReply>* server) {
+            server->Write(response);
+            return grpc::Status{};
+        });
+
+    EXPECT_EQ(send_command({"exec", instance_name, "--working-directory", "/home/ubuntu/", "--", "cmd"}), failure_code);
+}
+
+INSTANTIATE_TEST_SUITE_P(Client, SSHClientReturnTest, Values(0, -1, 1, 127));
 
 // help cli tests
 TEST_F(Client, help_cmd_ok_with_valid_single_arg)
