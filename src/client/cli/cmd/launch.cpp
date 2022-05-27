@@ -132,19 +132,22 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 
     if (MP_SETTINGS.get_as<bool>(mounts_key))
     {
-        if (request.instance_name() == petenv_name.toStdString() && !mount_routes.count(home_automount_dir))
+        auto has_home_mount = std::count_if(mount_routes.begin(), mount_routes.end(),
+                                            [](const auto& route) { return route.second == home_automount_dir; });
+
+        if (request.instance_name() == petenv_name.toStdString() && !has_home_mount)
         {
             try
             {
-                mount_routes.insert({home_automount_dir, QString::fromLocal8Bit(mpu::snap_real_home_dir())});
+                mount_routes.emplace_back(QString::fromLocal8Bit(mpu::snap_real_home_dir()), home_automount_dir);
             }
             catch (const SnapEnvironmentException&)
             {
-                mount_routes.insert({home_automount_dir, QDir::toNativeSeparators(QDir::homePath())});
+                mount_routes.emplace_back(QDir::toNativeSeparators(QDir::homePath()), home_automount_dir);
             }
         }
 
-        for (const auto& [target, source] : mount_routes)
+        for (const auto& [source, target] : mount_routes)
         {
             auto mount_ret = mount(parser, source, target);
             if (ret == ReturnCode::Ok)
@@ -327,7 +330,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             auto mount_source = value.section(':', 0, colon_split);
             auto mount_target = value.section(':', colon_split + 1);
             mount_target = mount_target.isEmpty() ? mount_source : mount_target;
-            mount_routes.insert({mount_target, mount_source});
+            mount_routes.emplace_back(mount_source, mount_target);
         }
     }
 
@@ -511,7 +514,7 @@ auto cmd::Launch::mount(const mp::ArgParser* parser, const QString& mount_source
     const auto full_mount_target = QString{"%1:%2"}.arg(instance_name, mount_target);
     auto ret = run_cmd({"multipass", "mount", mount_source, full_mount_target}, parser, cout, cerr);
     if (ret == Ok)
-        cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
+        cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, full_mount_target);
 
     return ret;
 }

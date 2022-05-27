@@ -54,7 +54,7 @@ private:
     std::unique_ptr<multipass::AnimatedSpinner> spinner;
     std::unique_ptr<multipass::utils::Timer> timer;
 
-    std::map<QString, QString> mount_routes;
+    std::vector<std::pair<QString, QString>> mount_routes;
     QString instance_name;
 };
 } // namespace cmd
