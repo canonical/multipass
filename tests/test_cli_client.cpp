@@ -42,6 +42,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/exceptions/ssh_exception.h>
 
 #include <QStringList>
 #include <QTemporaryFile>
@@ -1234,6 +1235,31 @@ TEST_F(Client, execCmdWithDirPrependsCd)
         });
 
     EXPECT_EQ(send_command({"exec", instance_name, "--working-directory", dir, "--", cmd}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, execCmdFailsIfSshExecThrows)
+{
+    std::string dir{"/home/ubuntu/"};
+    std::string cmd{"pwd"};
+
+    REPLACE(ssh_channel_request_exec, ([](ssh_channel, const char* raw_cmd) {
+                throw mp::SSHException("some exception");
+                return SSH_OK;
+            }));
+
+    std::string instance_name{"instance"};
+    mp::SSHInfoReply response = make_fake_response(instance_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
+        .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                              grpc::ServerWriter<multipass::SSHInfoReply>* server) {
+            server->Write(response);
+            return grpc::Status{};
+        });
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"exec", instance_name, "--", cmd}, trash_stream, cerr_stream), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(cerr_stream.str(), "exec failed: some exception\n");
 }
 
 // help cli tests
