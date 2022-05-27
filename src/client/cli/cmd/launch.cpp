@@ -36,7 +36,7 @@
 #include <QFileInfo>
 #include <QTimeZone>
 
-#include <cstdlib>
+#include <QRegularExpression>
 #include <regex>
 #include <unordered_map>
 
@@ -126,12 +126,39 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     }
 
     auto ret = request_launch(parser);
-    if (ret == ReturnCode::Ok && !petenv_name.isEmpty() && request.instance_name() == petenv_name.toStdString())
+
+    if (ret != ReturnCode::Ok)
+        return ret;
+
+    if (MP_SETTINGS.get_as<bool>(mounts_key))
     {
-        if (MP_SETTINGS.get_as<bool>(mounts_key))
-            ret = mount_home(parser);
-        else
-            cout << fmt::format("Skipping '{}' mount due to disabled mounts feature\n", mp::home_automount_dir);
+        auto has_home_mount = std::count_if(mount_routes.begin(), mount_routes.end(),
+                                            [](const auto& route) { return route.second == home_automount_dir; });
+
+        if (request.instance_name() == petenv_name.toStdString() && !has_home_mount)
+        {
+            try
+            {
+                mount_routes.emplace_back(QString::fromLocal8Bit(mpu::snap_real_home_dir()), home_automount_dir);
+            }
+            catch (const SnapEnvironmentException&)
+            {
+                mount_routes.emplace_back(QDir::toNativeSeparators(QDir::homePath()), home_automount_dir);
+            }
+        }
+
+        for (const auto& [source, target] : mount_routes)
+        {
+            auto mount_ret = mount(parser, source, target);
+            if (ret == ReturnCode::Ok)
+            {
+                ret = mount_ret;
+            }
+        }
+    }
+    else
+    {
+        cout << "Skipping mount due to disabled mounts feature\n";
     }
 
     return ret;
@@ -203,8 +230,13 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
+    QCommandLineOption mountOption("mount",
+                                   "Mount a local directory inside the instance. If <instance-path> is omitted, the "
+                                   "mount point will be the same as the absolute path of <local-path>",
+                                   "local-path>:<instance-path");
 
-    parser->addOptions({cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption});
+    parser->addOptions(
+        {cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption, mountOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -289,6 +321,19 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         request.set_disk_space(arg_disk_size);
     }
 
+    if (parser->isSet(mountOption))
+    {
+        for (const auto& value : parser->values(mountOption))
+        {
+            // this is needed so that Windows absolute paths are not split at the colon following the drive letter
+            auto colon_split = QRegularExpression{R"(^[A-Za-z]:[\\/].*)"}.match(value).hasMatch();
+            auto mount_source = value.section(':', 0, colon_split);
+            auto mount_target = value.section(':', colon_split + 1);
+            mount_target = mount_target.isEmpty() ? mount_source : mount_target;
+            mount_routes.emplace_back(mount_source, mount_target);
+        }
+    }
+
     if (parser->isSet(cloudInitOption))
     {
         try
@@ -366,6 +411,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             timer->pause();
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
+        instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
+                                                                               : request.instance_name());
 
         if (term->is_live() && update_available(reply.update_info()))
         {
@@ -461,23 +508,13 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
 }
 
-auto cmd::Launch::mount_home(const mp::ArgParser* parser) -> ReturnCode
+auto cmd::Launch::mount(const mp::ArgParser* parser, const QString& mount_source, const QString& mount_target)
+    -> ReturnCode
 {
-    QString mount_source{};
-    try
-    {
-        mount_source = QString::fromLocal8Bit(mpu::snap_real_home_dir());
-    }
-    catch (const SnapEnvironmentException&)
-    {
-        mount_source = QDir::toNativeSeparators(QDir::homePath());
-    }
-
-    const auto mount_target = QString{"%1:%2"}.arg(petenv_name, home_automount_dir);
-
-    auto ret = run_cmd({"multipass", "mount", mount_source, mount_target}, parser, cout, cerr);
+    const auto full_mount_target = QString{"%1:%2"}.arg(instance_name, mount_target);
+    auto ret = run_cmd({"multipass", "mount", mount_source, full_mount_target}, parser, cout, cerr);
     if (ret == Ok)
-        cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, mount_target);
+        cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, full_mount_target);
 
     return ret;
 }
