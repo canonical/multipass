@@ -39,6 +39,7 @@ public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
     // QDir operations
+    virtual QDir current() const;
     virtual bool isReadable(const QDir& dir) const;
     virtual bool mkpath(const QDir& dir, const QString& dirName) const;
     virtual bool rmdir(QDir& dir, const QString& dirName) const;
