@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/file_ops.h>
 #include <multipass/ssh/ssh_client.h>
 
 namespace mp = multipass;
@@ -70,7 +71,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         if (parser->executeAlias())
         {
             // The host directory on which the user is executing the command.
-            QString clean_exec_dir = QDir::cleanPath(QDir::current().canonicalPath());
+            QString clean_exec_dir = QDir::cleanPath(MP_FILEOPS.current().canonicalPath());
             QStringList split_exec_dir = clean_exec_dir.split('/');
 
             auto on_info_success = [&work_dir, &split_exec_dir](mp::InfoReply& reply) {
