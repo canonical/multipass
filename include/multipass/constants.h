@@ -51,14 +51,15 @@ constexpr auto bridged_network_name = "bridged";
 constexpr auto settings_extension = ".conf";
 constexpr auto daemon_settings_root = "local";
 
-constexpr auto petenv_key = "client.primary-name";     // This will eventually be moved to some dynamic settings schema
-constexpr auto driver_key = "local.driver";            // idem
-constexpr auto passphrase_key = "local.passphrase";    // idem
-constexpr auto bridged_interface_key = "local.bridged-network"; // idem
-constexpr auto mounts_key = "local.privileged-mounts"; // idem
-constexpr auto autostart_key = "client.gui.autostart"; // idem
+constexpr auto petenv_key = "client.primary-name";  // This will eventually be moved to some dynamic settings schema
+constexpr auto driver_key = "local.driver";         // idem
+constexpr auto passphrase_key = "local.passphrase"; // idem
+constexpr auto bridged_interface_key = "local.bridged-network";       // idem
+constexpr auto mounts_key = "local.privileged-mounts";                // idem
+constexpr auto autostart_key = "client.gui.autostart";                // idem
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
 constexpr auto hotkey_key = "client.gui.hotkey";                      // idem
+constexpr auto mirror_key = "local.image.mirror";                     // idem; this defines the mirror of simple streams
 
 [[maybe_unused]] // hands off clang-format
 constexpr auto key_examples = {autostart_key, driver_key, mounts_key};

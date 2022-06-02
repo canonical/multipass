@@ -18,6 +18,7 @@
  */
 
 #include "path.h"
+#include <multipass/format.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -37,6 +38,14 @@ QString mpt::test_data_path_for(const char* file_name)
 {
     QDir dir{test_data_path()};
     return dir.filePath(file_name);
+}
+
+QString mpt::test_data_sub_dir_path(const char* dir_name)
+{
+    QDir dir{test_data_path()};
+    if (!dir.cd(dir_name))
+        throw std::runtime_error(fmt::format("could not find sub dir '{}' under test_data directory", dir_name));
+    return QDir::toNativeSeparators(dir.path()) + QDir::separator();
 }
 
 std::string mpt::mock_bin_path()

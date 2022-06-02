@@ -17,8 +17,10 @@
 
 #include "ubuntu_image_host.h"
 
+#include <multipass/constants.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
+#include <multipass/settings/settings.h>
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
 
@@ -27,6 +29,8 @@
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/exceptions/unsupported_remote_exception.h>
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QUrl>
 
 #include <algorithm>
@@ -44,7 +48,7 @@ auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloade
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
     auto json_manifest = url_downloader->download({host_url + index.manifest_path});
-    return mp::SimpleStreamsManifest::fromJson(json_manifest, host_url);
+    return json_manifest;
 }
 
 mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::VMImageInfo& info)
@@ -73,7 +77,7 @@ auto key_from(const std::string& search_string)
 }
 } // namespace
 
-mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes,
+mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
                                          URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
     : CommonVMImageHost{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
 {
@@ -220,9 +224,9 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
 {
     std::vector<std::string> supported_remotes;
 
-    for (const auto& remote : remotes)
+    for (const auto& [remote_name, _] : remotes)
     {
-        supported_remotes.push_back(remote.first);
+        supported_remotes.push_back(remote_name);
     }
 
     return supported_remotes;
@@ -230,18 +234,29 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
 
 void mp::UbuntuVMImageHost::fetch_manifests()
 {
-    for (const auto& remote : remotes)
+    for (const auto& [remote_name, remote_info] : remotes)
     {
         try
         {
-            check_remote_is_supported(remote.first);
+            check_remote_is_supported(remote_name);
+            auto official_site = remote_info.get_official_url();
+            auto manifest_bytes_from_official = download_manifest(official_site, url_downloader);
 
-            manifests.emplace_back(
-                std::make_pair(remote.first, download_manifest(QString::fromStdString(remote.second), url_downloader)));
+            auto mirror_site = remote_info.get_mirror_url();
+            std::optional<QByteArray> manifest_bytes_from_mirror = std::nullopt;
+            if (mirror_site)
+            {
+                auto bytes = download_manifest(mirror_site.value(), url_downloader);
+                manifest_bytes_from_mirror = std::make_optional(bytes);
+            }
+
+            auto manifest = mp::SimpleStreamsManifest::fromJson(
+                manifest_bytes_from_official, manifest_bytes_from_mirror, mirror_site.value_or(official_site));
+            manifests.emplace_back(std::make_pair(remote_name, std::move(manifest)));
         }
         catch (mp::EmptyManifestException& /* e */)
         {
-            on_manifest_empty(fmt::format("Did not find any supported products in \"{}\"", remote.first));
+            on_manifest_empty(fmt::format("Did not find any supported products in \"{}\"", remote_name));
         }
         catch (mp::GenericManifestException& e)
         {
@@ -275,7 +290,9 @@ mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::strin
                            });
 
     if (it == manifests.cend())
-        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote));
+        throw std::runtime_error(fmt::format(
+            "Remote \"{}\" is unknown or unreachable. If image mirror is enabled, please confirm it is valid.",
+            remote));
 
     return it->second.get();
 }
@@ -296,12 +313,48 @@ std::string mp::UbuntuVMImageHost::remote_url_from(const std::string& remote_nam
 {
     std::string url;
 
-    auto it = std::find_if(
-        remotes.cbegin(), remotes.cend(),
-        [&remote_name](const std::pair<std::string, std::string>& element) { return element.first == remote_name; });
+    auto it = std::find_if(remotes.cbegin(), remotes.cend(),
+                           [&remote_name](const std::pair<std::string, UbuntuVMImageRemote>& element) {
+                               return element.first == remote_name;
+                           });
 
     if (it != remotes.cend())
-        url = it->second;
+    {
+        url = it->second.get_url().toStdString();
+    }
 
     return url;
+}
+
+mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host, std::string uri, std::optional<QString> mirror_key)
+    : official_host(std::move(official_host)), uri(std::move(uri)), mirror_key(std::move(mirror_key))
+{
+}
+
+const QString mp::UbuntuVMImageRemote::get_url() const
+{
+    return get_mirror_url().value_or(get_official_url());
+}
+
+const QString mp::UbuntuVMImageRemote::get_official_url() const
+{
+    auto host = official_host;
+    host.append(uri);
+    return QString::fromStdString(host);
+}
+
+const std::optional<QString> mp::UbuntuVMImageRemote::get_mirror_url() const
+{
+    if (mirror_key)
+    {
+        auto mirror = MP_SETTINGS.get(mirror_key.value());
+        if (!mirror.isEmpty())
+        {
+            auto url = mirror.toStdString();
+            url.append(uri);
+            return std::make_optional(QString::fromStdString(url));
+        }
+    }
+
+    return std::nullopt;
 }

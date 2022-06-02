@@ -74,16 +74,17 @@ QString derive_unpacked_file_path_prefix_from(const QString& image_location)
 
     return prefix;
 }
-}
+} // namespace
 
-std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(const QByteArray& json,
-                                                                               const QString& host_url)
+std::unique_ptr<mp::SimpleStreamsManifest>
+mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
+                                    const std::optional<QByteArray>& json_from_mirror, const QString& host_url)
 {
-    const auto manifest = parse_manifest(json);
-    const auto updated = manifest["updated"].toString();
+    const auto manifest_from_official = parse_manifest(json_from_official);
+    const auto updated = manifest_from_official["updated"].toString();
 
-    const auto manifest_products = manifest["products"].toObject();
-    if (manifest_products.isEmpty())
+    const auto manifest_products_from_official = manifest_from_official["products"].toObject();
+    if (manifest_products_from_official.isEmpty())
         throw mp::GenericManifestException("No products found");
 
     auto arch = arch_to_manifest.value(QSysInfo::currentCpuArchitecture());
@@ -91,10 +92,21 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
     if (arch.isEmpty())
         throw mp::GenericManifestException("Unsupported cloud image architecture");
 
-    std::vector<VMImageInfo> products;
-    for (const auto& value : manifest_products)
+    std::optional<QJsonObject> manifest_products_from_mirror = std::nullopt;
+    if (json_from_mirror)
     {
-        const auto product = value.toObject();
+        const auto manifest_from_mirror = parse_manifest(json_from_mirror.value());
+        const auto products_from_mirror = manifest_from_mirror["products"].toObject();
+        manifest_products_from_mirror = std::make_optional(products_from_mirror);
+    }
+
+    const QJsonObject manifest_products = manifest_products_from_mirror.value_or(manifest_products_from_official);
+
+    std::vector<VMImageInfo> products;
+    for (auto it = manifest_products.constBegin(); it != manifest_products.constEnd(); ++it)
+    {
+        const auto product_key = it.key();
+        const auto product = it.value();
 
         if (product["arch"].toString() != arch)
             continue;
@@ -115,6 +127,14 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(c
         {
             const auto version_string = it.key();
             const auto version = versions[version_string].toObject();
+            const auto version_from_official = manifest_products_from_official[product_key]
+                                                   .toObject()["versions"]
+                                                   .toObject()[version_string]
+                                                   .toObject();
+
+            if (version != version_from_official)
+                continue;
+
             const auto items = version["items"].toObject();
             if (items.isEmpty())
                 continue;
