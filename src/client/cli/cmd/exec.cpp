@@ -28,6 +28,7 @@ namespace cmd = multipass::cmd;
 namespace
 {
 const QString work_dir_option_name{"working-directory"};
+const QString no_dir_mapping_option{"no-map-working-directory"};
 
 bool is_dir_mounted(const QStringList& split_current_dir, const QStringList& split_source_dir)
 {
@@ -67,8 +68,8 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
     else
     {
         // If we are executing an alias and the current working directory is mounted in the instance, then prepend the
-        // appropriate `cd` to the command to be ran.
-        if (parser->executeAlias())
+        // appropriate `cd` to the command to be ran (unless the user specified the non-mapping option).
+        if (parser->executeAlias() && !parser->isSet(no_dir_mapping_option))
         {
             // The host directory on which the user is executing the command.
             QString clean_exec_dir = QDir::cleanPath(MP_FILEOPS.current().canonicalPath());
@@ -186,8 +187,12 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument("command", "Command to execute on the instance", "[--] <command>");
 
     QCommandLineOption workDirOption({"d", work_dir_option_name}, "Change to <dir> before execution", "dir");
+    QCommandLineOption noDirMappingOption({"n", no_dir_mapping_option},
+                                          "Do not map the host execution path to a mounted path");
+    noIpv4Option.setFlags(QCommandLineOption::HiddenFromHelp);
 
     parser->addOptions({workDirOption});
+    parser->addOptions({noDirMappingOption});
 
     auto status = parser->commandParse(this);
 
