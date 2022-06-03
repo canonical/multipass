@@ -3199,4 +3199,39 @@ TEST_F(ClientAlias, execAliasRewritesMountedDir)
 
     EXPECT_EQ(send_command({alias_name}), mp::ReturnCode::Ok);
 }
+
+TEST_F(ClientAlias, execAliasDoesNotRewriteMountedDir)
+{
+    std::string alias_name{"an_alias"};
+    std::string instance_name{"primary"};
+    std::string cmd{"pwd"};
+
+    QDir current_dir{QDir::current()};
+    std::string source_dir{(current_dir.canonicalPath()).toStdString()};
+    std::string target_dir{"/home/ubuntu/dir"};
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function(source_dir, target_dir));
+
+    populate_db_file(AliasesVector{{alias_name, {instance_name, cmd}}});
+
+    REPLACE(ssh_channel_request_exec, ([&target_dir, &cmd](ssh_channel, const char* raw_cmd) {
+                EXPECT_THAT(raw_cmd, Not(StartsWith("'cd' '")));
+                EXPECT_THAT(raw_cmd, Not(HasSubstr("&&")));
+                EXPECT_THAT(raw_cmd, EndsWith("'" + cmd + "'"));
+
+                return SSH_OK;
+            }));
+
+    mp::SSHInfoReply ssh_info_response = make_fake_ssh_info_response(instance_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
+        .WillOnce([&ssh_info_response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                                       grpc::ServerWriter<multipass::SSHInfoReply>* server) {
+            server->Write(ssh_info_response);
+
+            return grpc::Status{};
+        });
+
+    EXPECT_EQ(send_command({alias_name, "--no-map-working-directory"}), mp::ReturnCode::Ok);
+}
 } // namespace
