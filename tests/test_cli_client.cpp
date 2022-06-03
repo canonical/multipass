@@ -299,6 +299,43 @@ struct ClientAlias : public Client, public FakeAliasConfig
     }
 };
 
+auto make_info_function(const std::string& source_path = "", const std::string& target_path = "")
+{
+    auto info_function = [&source_path, &target_path](grpc::ServerContext*, const mp::InfoRequest* request,
+                                                      grpc::ServerWriter<mp::InfoReply>* response) {
+        mp::InfoReply info_reply;
+
+        if (request->instance_names().instance_name(0) == "primary")
+        {
+            auto vm_info = info_reply.add_info();
+            vm_info->set_name("primary");
+            vm_info->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+
+            if (!source_path.empty() && !target_path.empty())
+            {
+                auto mount_info = vm_info->mutable_mount_info();
+
+                auto entry = mount_info->add_mount_paths();
+                entry->set_source_path(source_path);
+                entry->set_target_path(target_path);
+
+                if (source_path.size() > target_path.size())
+                    mount_info->set_longest_path_len(source_path.size());
+                else
+                    mount_info->set_longest_path_len(target_path.size());
+            }
+
+            response->Write(info_reply);
+
+            return grpc::Status{};
+        }
+        else
+            return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+    };
+
+    return info_function;
+}
+
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
 // Tests for no postional args given
@@ -1159,7 +1196,7 @@ mp::SSHInfo make_ssh_info(const std::string& host = "222.222.222.222", int port 
     return ssh_info;
 }
 
-mp::SSHInfoReply make_fake_response(const std::string& instance_name)
+mp::SSHInfoReply make_fake_ssh_info_response(const std::string& instance_name)
 {
     mp::SSHInfoReply response;
     (*response.mutable_ssh_info())[instance_name] = make_ssh_info();
@@ -1178,7 +1215,7 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
     REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
 
     std::string instance_name{"instance"};
-    mp::SSHInfoReply response = make_fake_response(instance_name);
+    mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
         .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
@@ -1197,7 +1234,7 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
     REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
 
     std::string instance_name{"instance"};
-    mp::SSHInfoReply response = make_fake_response(instance_name);
+    mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
         .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
@@ -1225,7 +1262,7 @@ TEST_F(Client, execCmdWithDirPrependsCd)
             }));
 
     std::string instance_name{"instance"};
-    mp::SSHInfoReply response = make_fake_response(instance_name);
+    mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
         .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
@@ -1248,7 +1285,7 @@ TEST_F(Client, execCmdFailsIfSshExecThrows)
             }));
 
     std::string instance_name{"instance"};
-    mp::SSHInfoReply response = make_fake_response(instance_name);
+    mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
         .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
@@ -1579,8 +1616,6 @@ TEST_F(Client, version_info_on_failure)
     EXPECT_THAT(send_command({"version", "--format=yaml"}), Eq(mp::ReturnCode::Ok));
 }
 
-namespace
-{
 grpc::Status aborted_start_status(const std::vector<std::string>& absent_instances = {},
                                   const std::vector<std::string>& deleted_instances = {})
 {
@@ -1603,7 +1638,6 @@ std::vector<std::string> concat(const std::vector<std::string>& v1, const std::v
 
     return ret;
 }
-} // namespace
 
 TEST_F(Client, start_cmd_launches_petenv_if_absent)
 {
@@ -2749,27 +2783,9 @@ INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
                                 std::vector<std::string>{"mount", "..", "test-vm:test"},
                                 std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
 
-auto info_function = [](grpc::ServerContext*, const mp::InfoRequest* request,
-                        grpc::ServerWriter<mp::InfoReply>* response) {
-    mp::InfoReply info_reply;
-
-    if (request->instance_names().instance_name(0) == "primary")
-    {
-        auto vm_info = info_reply.add_info();
-        vm_info->set_name("primary");
-        vm_info->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-
-        response->Write(info_reply);
-
-        return grpc::Status{};
-    }
-    else
-        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
-};
-
 TEST_F(ClientAlias, alias_creates_alias)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
@@ -2791,7 +2807,7 @@ TEST_P(ClientAliasNameSuite, creates_correct_default_alias_name)
 {
     const auto& [command, path] = GetParam();
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::vector<std::string> arguments{"alias"};
     arguments.push_back(fmt::format("primary:{}{}", path, command));
@@ -2814,7 +2830,7 @@ TEST_F(ClientAlias, fails_if_cannot_write_script)
 {
     EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("aaa")));
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"alias", "primary:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
@@ -2828,7 +2844,7 @@ TEST_F(ClientAlias, fails_if_cannot_write_script)
 
 TEST_F(ClientAlias, alias_does_not_overwrite_alias)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
@@ -2853,7 +2869,7 @@ TEST_P(ArgumentCheckTestsuite, answers_correctly)
 {
     auto [arguments, expected_return_code, expected_cout, expected_cerr] = GetParam();
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::stringstream cout_stream, cerr_stream;
     EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream), expected_return_code);
@@ -2917,7 +2933,7 @@ TEST_F(ClientAlias, execute_existing_alias)
 {
     populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
 
     EXPECT_EQ(send_command({"some_alias"}), mp::ReturnCode::Ok);
@@ -2938,7 +2954,7 @@ TEST_F(ClientAlias, execute_alias_with_arguments)
 {
     populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
 
     EXPECT_EQ(send_command({"some_alias", "some_argument"}), mp::ReturnCode::Ok);
@@ -2959,7 +2975,7 @@ TEST_F(ClientAlias, fails_executing_alias_without_separator)
 
 TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}}});
 
@@ -3056,7 +3072,7 @@ TEST_F(ClientAlias, fails_when_remove_backup_alias_file_fails)
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, remove(_)).WillOnce(Return(false));
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::stringstream cerr_stream;
     send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
@@ -3074,7 +3090,7 @@ TEST_F(ClientAlias, fails_renaming_alias_file_fails)
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::stringstream cerr_stream;
     send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
@@ -3092,7 +3108,7 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::stringstream cerr_stream;
     send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
@@ -3102,7 +3118,7 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
 
 TEST_F(ClientAlias, creating_first_alias_displays_message)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
 
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"alias", "primary:a_command", "an_alias"}, cout_stream), mp::ReturnCode::Ok);
@@ -3112,7 +3128,7 @@ TEST_F(ClientAlias, creating_first_alias_displays_message)
 
 TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
 
     auto path = qgetenv("PATH");
 #ifdef MULTIPASS_PLATFORM_WINDOWS
@@ -3131,7 +3147,7 @@ TEST_F(ClientAlias, creating_first_alias_does_not_display_message_if_path_is_set
 
 TEST_F(ClientAlias, fails_when_name_clashes_with_command_alias)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::stringstream cerr_stream;
     send_command({"alias", "primary:command", "ls"}, trash_stream, cerr_stream);
@@ -3141,11 +3157,46 @@ TEST_F(ClientAlias, fails_when_name_clashes_with_command_alias)
 
 TEST_F(ClientAlias, fails_when_name_clashes_with_command_name)
 {
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(info_function);
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::stringstream cerr_stream;
     send_command({"alias", "primary:command", "list"}, trash_stream, cerr_stream);
 
     ASSERT_THAT(cerr_stream.str(), Eq("Alias name 'list' clashes with a command name\n"));
+}
+
+TEST_F(ClientAlias, execAliasRewritesMountedDir)
+{
+    std::string alias_name{"an_alias"};
+    std::string instance_name{"primary"};
+    std::string cmd{"pwd"};
+
+    QDir current_dir{QDir::current()};
+    std::string source_dir{(current_dir.canonicalPath()).toStdString()};
+    std::string target_dir{"/home/ubuntu/dir"};
+
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function(source_dir, target_dir));
+
+    populate_db_file(AliasesVector{{alias_name, {instance_name, cmd}}});
+
+    REPLACE(ssh_channel_request_exec, ([&target_dir, &cmd](ssh_channel, const char* raw_cmd) {
+                EXPECT_THAT(raw_cmd, StartsWith("'cd' '" + target_dir + "/'"));
+                EXPECT_THAT(raw_cmd, HasSubstr("&&"));
+                EXPECT_THAT(raw_cmd, EndsWith("'" + cmd + "'"));
+
+                return SSH_OK;
+            }));
+
+    mp::SSHInfoReply ssh_info_response = make_fake_ssh_info_response(instance_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
+        .WillOnce([&ssh_info_response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                                       grpc::ServerWriter<multipass::SSHInfoReply>* server) {
+            server->Write(ssh_info_response);
+
+            return grpc::Status{};
+        });
+
+    EXPECT_EQ(send_command({alias_name}), mp::ReturnCode::Ok);
 }
 } // namespace
