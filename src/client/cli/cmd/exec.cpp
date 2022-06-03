@@ -29,15 +29,15 @@ namespace
 {
 const QString work_dir_option_name{"working-directory"};
 
-bool is_dir_mounted(const QStringList& split_exec_dir, const QStringList& split_source_dir)
+bool is_dir_mounted(const QStringList& split_current_dir, const QStringList& split_source_dir)
 {
-    int exec_dir_size = split_exec_dir.size();
+    int source_dir_size = split_source_dir.size();
 
-    if (exec_dir_size < split_source_dir.size())
+    if (split_current_dir.size() < source_dir_size)
         return false;
 
-    for (int i = 0; i < exec_dir_size; ++i)
-        if (split_exec_dir[i] != split_source_dir[i])
+    for (int i = 0; i < source_dir_size; ++i)
+        if (split_current_dir[i] != split_source_dir[i])
             return false;
 
     return true;
@@ -78,7 +78,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
                 for (const auto& mount : reply.info(0).mount_info().mount_paths())
                 {
                     auto source_dir = QDir(QString::fromStdString(mount.source_path()));
-                    auto clean_source_dir = QDir::cleanPath(source_dir.canonicalPath());
+                    auto clean_source_dir = QDir::cleanPath(source_dir.absolutePath());
                     QStringList split_source_dir = clean_source_dir.split('/');
 
                     // If the directory is mounted, we need to `cd` to it in the instance before executing the command.
@@ -165,7 +165,9 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const mp::
 
         std::vector<std::vector<std::string>> all_args;
         if (dir)
+        {
             all_args = {{"cd", *dir}, {args}};
+        }
         else
             all_args = {{args}};
 
