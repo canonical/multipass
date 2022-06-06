@@ -1090,12 +1090,14 @@ TEST_F(Client, purge_cmd_help_ok)
 TEST_F(Client, exec_cmd_double_dash_ok_cmd_arg)
 {
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
     EXPECT_THAT(send_command({"exec", "foo", "--", "cmd"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, exec_cmd_double_dash_ok_cmd_arg_with_opts)
 {
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
     EXPECT_THAT(send_command({"exec", "foo", "--", "cmd", "--foo", "--bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -1107,12 +1109,14 @@ TEST_F(Client, exec_cmd_double_dash_fails_missing_cmd_arg)
 TEST_F(Client, exec_cmd_no_double_dash_ok_cmd_arg)
 {
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
     EXPECT_THAT(send_command({"exec", "foo", "cmd"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, exec_cmd_no_double_dash_ok_multiple_args)
 {
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
     EXPECT_THAT(send_command({"exec", "foo", "cmd", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -1170,7 +1174,8 @@ TEST_F(Client, exec_cmd_starts_instance_if_stopped_or_suspended)
     EXPECT_CALL(mock_daemon, start(_, start_matcher, _)).WillOnce(Return(ok));
     EXPECT_CALL(mock_daemon, ssh_info(_, ssh_info_matcher, _)).WillOnce(Return(ok));
 
-    EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"exec", instance, "--no-map-working-directory", "--", "command"}),
+                Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, exec_cmd_fails_on_other_absent_instance)
@@ -1180,7 +1185,8 @@ TEST_F(Client, exec_cmd_fails_on_other_absent_instance)
     const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
 
     EXPECT_CALL(mock_daemon, ssh_info(_, instance_matcher, _)).WillOnce(Return(notfound));
-    EXPECT_THAT(send_command({"exec", instance, "--", "command"}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"exec", instance, "--no-map-working-directory", "--", "command"}),
+                Eq(mp::ReturnCode::CommandFail));
 }
 
 mp::SSHInfo make_ssh_info(const std::string& host = "222.222.222.222", int port = 22,
@@ -1286,6 +1292,8 @@ TEST_F(Client, execCmdFailsIfSshExecThrows)
                 return SSH_OK;
             }));
 
+    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
+
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
@@ -1298,7 +1306,7 @@ TEST_F(Client, execCmdFailsIfSshExecThrows)
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"exec", instance_name, "--", cmd}, trash_stream, cerr_stream), mp::ReturnCode::CommandFail);
-    EXPECT_EQ(cerr_stream.str(), "exec failed: some exception\n");
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("exec failed: some exception\n"));
 }
 
 TEST_F(Client, execFailsOnArgumentClash)
