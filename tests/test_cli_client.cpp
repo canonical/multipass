@@ -1301,6 +1301,18 @@ TEST_F(Client, execCmdFailsIfSshExecThrows)
     EXPECT_EQ(cerr_stream.str(), "exec failed: some exception\n");
 }
 
+TEST_F(Client, execFailsOnArgumentClash)
+{
+    std::stringstream cerr_stream;
+
+    EXPECT_THAT(send_command({"exec", "instance", "--working-directory", "/home/ubuntu/", "--no-map-working-directory",
+                              "--", "cmd"},
+                             trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandLineError));
+
+    EXPECT_THAT(cerr_stream.str(), Eq("Options --working-directory and --no-map-working-directory clash\n"));
+}
+
 // help cli tests
 TEST_F(Client, help_cmd_ok_with_valid_single_arg)
 {
