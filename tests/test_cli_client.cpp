@@ -1224,6 +1224,8 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
             return grpc::Status{};
         });
 
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function());
+
     EXPECT_EQ(send_command({"exec", instance_name, "--", "cmd"}), failure_code);
 }
 
