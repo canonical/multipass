@@ -21,12 +21,12 @@
 #include "mock_cert_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
+#include "mock_network.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
 #include "mock_terminal.h"
-#include "mock_url_downloader.h"
 #include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
@@ -41,6 +41,7 @@
 
 #include <QStringList>
 #include <QTemporaryFile>
+#include <QTimer>
 #include <QtCore/QTemporaryDir>
 #include <QtGlobal>
 
@@ -130,7 +131,7 @@ struct Client : public Test
 
     int setup_client_and_run(const std::vector<std::string>& command, mp::Terminal& term)
     {
-        mp::ClientConfig client_config{server_address, std::move(client_cert_provider), &term, mock_url_downloader};
+        mp::ClientConfig client_config{server_address, std::move(client_cert_provider), &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -276,7 +277,6 @@ struct Client : public Test
                                           &cert_store}; // strict to fail on unexpected calls and play well with sharing
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
-    mpt::MockURLDownloader mock_url_downloader{};
     inline static std::stringstream trash_stream; // this may have contents (that we don't care about)
     static constexpr char petenv_name[] = "the-petenv";
 };
@@ -956,8 +956,25 @@ TEST_F(Client, launch_cmd_cloudinit_url)
     const auto fake_url = QStringLiteral("https://example.com");
     const auto fake_downloaded_yaml = QByteArrayLiteral("password: passw0rd");
 
+    auto [mock_network_manager_factory, guard] = mpt::MockNetworkManagerFactory::inject();
+    auto mock_network_access_manager = std::make_unique<NiceMock<mpt::MockQNetworkAccessManager>>();
+    auto mock_reply = new mpt::MockQNetworkReply();
+
+    EXPECT_CALL(*mock_network_manager_factory, make_network_manager).WillOnce([&mock_network_access_manager](auto...) {
+        return std::move(mock_network_access_manager);
+    });
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest).WillOnce(Return(mock_reply));
+    EXPECT_CALL(*mock_reply, readData)
+        .WillOnce([&fake_downloaded_yaml](char* data, auto) {
+            auto data_size = fake_downloaded_yaml.size();
+            memcpy(data, fake_downloaded_yaml.constData(), data_size);
+            return data_size;
+        })
+        .WillOnce(Return(0));
+
+    QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
-    EXPECT_CALL(mock_url_downloader, download(Eq(fake_url))).WillOnce(Return(fake_downloaded_yaml));
     EXPECT_EQ(send_command({"launch", "--cloud-init", fake_url.toStdString()}), mp::ReturnCode::Ok);
 }
 

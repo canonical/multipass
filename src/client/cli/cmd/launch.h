@@ -19,7 +19,6 @@
 #define MULTIPASS_LAUNCH_H
 
 #include "animated_spinner.h"
-#include "multipass/url_downloader.h"
 
 #include <multipass/cli/command.h>
 #include <multipass/timer.h>
@@ -38,12 +37,6 @@ class Launch final : public Command
 {
 public:
     using Command::Command;
-
-    Launch(Rpc::StubInterface& stub, Terminal* term, URLDownloader& url_downloader)
-        : Command{stub, term}, downloader{url_downloader}
-    {
-    }
-
     ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
@@ -63,7 +56,6 @@ private:
 
     std::vector<std::pair<QString, QString>> mount_routes;
     QString instance_name;
-    URLDownloader& downloader;
 };
 } // namespace cmd
 } // namespace multipass

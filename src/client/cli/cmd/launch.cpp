@@ -28,6 +28,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
+#include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 
 #include <yaml-cpp/yaml.h>
@@ -347,6 +348,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             }
             else if (cloudInitFile.startsWith("http://") || cloudInitFile.startsWith("https://"))
             {
+                URLDownloader downloader{std::chrono::minutes{1}};
                 auto downloaded_yaml = downloader.download(QUrl(cloudInitFile));
                 node = YAML::Load(downloaded_yaml.toStdString());
             }
