@@ -67,9 +67,9 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
     }
     else
     {
-        // If we are executing an alias and the current working directory is mounted in the instance, then prepend the
-        // appropriate `cd` to the command to be ran (unless the user specified the non-mapping option).
-        if (parser->executeAlias() && !parser->isSet(no_dir_mapping_option))
+        // If the current working directory is mounted in the instance, then prepend the appropriate `cd` to the
+        // command to be ran (unless the user specified the non-mapping option).
+        if (!parser->isSet(no_dir_mapping_option))
         {
             // The host directory on which the user is executing the command.
             QString clean_exec_dir = QDir::cleanPath(MP_FILEOPS.current().canonicalPath());
@@ -189,7 +189,6 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
     QCommandLineOption workDirOption({"d", work_dir_option_name}, "Change to <dir> before execution", "dir");
     QCommandLineOption noDirMappingOption({"n", no_dir_mapping_option},
                                           "Do not map the host execution path to a mounted path");
-    noIpv4Option.setFlags(QCommandLineOption::HiddenFromHelp);
 
     parser->addOptions({workDirOption});
     parser->addOptions({noDirMappingOption});
@@ -208,7 +207,12 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    if (parser->positionalArguments().count() < 2)
+    if (parser->isSet(work_dir_option_name) && parser->isSet(no_dir_mapping_option))
+    {
+        cerr << fmt::format("Options --{} and --{} clash\n", work_dir_option_name, no_dir_mapping_option);
+        status = ParseCode::CommandLineError;
+    }
+    else if (parser->positionalArguments().count() < 2)
     {
         cerr << "Wrong number of arguments\n";
         status = ParseCode::CommandLineError;
