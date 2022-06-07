@@ -21,6 +21,7 @@
 #include "mock_cert_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
+#include "mock_network.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
@@ -40,6 +41,7 @@
 
 #include <QStringList>
 #include <QTemporaryFile>
+#include <QTimer>
 #include <QtCore/QTemporaryDir>
 #include <QtGlobal>
 
@@ -946,6 +948,34 @@ TEST_F(Client, launch_cmd_petenv_mount_option_override_home)
     EXPECT_EQ(
         send_command({"launch", "--name", petenv_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)}),
         mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launch_cmd_cloudinit_url)
+{
+    const grpc::Status ok{};
+    const auto fake_url = QStringLiteral("https://example.com");
+    const auto fake_downloaded_yaml = QByteArrayLiteral("password: passw0rd");
+
+    auto [mock_network_manager_factory, guard] = mpt::MockNetworkManagerFactory::inject();
+    auto mock_network_access_manager = std::make_unique<NiceMock<mpt::MockQNetworkAccessManager>>();
+    auto mock_reply = new mpt::MockQNetworkReply();
+
+    EXPECT_CALL(*mock_network_manager_factory, make_network_manager).WillOnce([&mock_network_access_manager](auto...) {
+        return std::move(mock_network_access_manager);
+    });
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest).WillOnce(Return(mock_reply));
+    EXPECT_CALL(*mock_reply, readData)
+        .WillOnce([&fake_downloaded_yaml](char* data, auto) {
+            auto data_size = fake_downloaded_yaml.size();
+            memcpy(data, fake_downloaded_yaml.constData(), data_size);
+            return data_size;
+        })
+        .WillOnce(Return(0));
+
+    QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_EQ(send_command({"launch", "--cloud-init", fake_url.toStdString()}), mp::ReturnCode::Ok);
 }
 
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
