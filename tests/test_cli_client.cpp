@@ -3236,7 +3236,7 @@ TEST_F(ClientAlias, execAliasDoesNotRewriteMountedDir)
 
     populate_db_file(AliasesVector{{alias_name, {instance_name, cmd}}});
 
-    REPLACE(ssh_channel_request_exec, ([&target_dir, &cmd](ssh_channel, const char* raw_cmd) {
+    REPLACE(ssh_channel_request_exec, ([&cmd](ssh_channel, const char* raw_cmd) {
                 EXPECT_THAT(raw_cmd, Not(StartsWith("'cd' '")));
                 EXPECT_THAT(raw_cmd, Not(HasSubstr("&&")));
                 EXPECT_THAT(raw_cmd, EndsWith("'" + cmd + "'"));
