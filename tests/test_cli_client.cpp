@@ -3222,14 +3222,20 @@ TEST_F(ClientAlias, execAliasRewritesMountedDir)
     EXPECT_EQ(send_command({alias_name}), mp::ReturnCode::Ok);
 }
 
-TEST_F(ClientAlias, execAliasDoesNotRewriteMountedDir)
+struct NotDirRewriteTestsuite : public ClientAlias, public WithParamInterface<std::pair<bool, QString>>
 {
+};
+
+TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
+{
+    auto [use_no_map_argument, source_qdir] = GetParam();
+
     std::string alias_name{"an_alias"};
     std::string instance_name{"primary"};
     std::string cmd{"pwd"};
 
     QDir current_dir{QDir::current()};
-    std::string source_dir{(current_dir.canonicalPath()).toStdString()};
+    std::string source_dir{source_qdir.toStdString()};
     std::string target_dir{"/home/ubuntu/dir"};
 
     EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function(source_dir, target_dir));
@@ -3254,6 +3260,23 @@ TEST_F(ClientAlias, execAliasDoesNotRewriteMountedDir)
             return grpc::Status{};
         });
 
-    EXPECT_EQ(send_command({alias_name, "--no-map-working-directory"}), mp::ReturnCode::Ok);
+    std::vector<std::string> arguments{alias_name};
+    if (use_no_map_argument)
+        arguments.emplace_back("--no-map-working-directory");
+
+    EXPECT_EQ(send_command(arguments), mp::ReturnCode::Ok);
 }
+
+QString current_cdup()
+{
+    QDir cur{QDir::current()};
+    cur.cdUp();
+
+    return cur.canonicalPath();
+}
+
+INSTANTIATE_TEST_SUITE_P(ClientAlias, NotDirRewriteTestsuite,
+                         Values(std::make_pair(true, QDir{QDir::current()}.canonicalPath()),
+                                std::make_pair(false, QDir{QDir::current()}.canonicalPath() + "/0/1/2/3/4/5/6/7/8/9"),
+                                std::make_pair(false, current_cdup() + "/different_name")));
 } // namespace
