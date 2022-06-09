@@ -256,17 +256,21 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
         aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.first.length(); }, 7);
     const auto instance_width = mp::format::column_width(
         aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.second.instance.length(); }, 10);
+    const auto command_width = mp::format::column_width(
+        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.second.command.length(); }, 9);
 
-    const auto row_format = "{:<{}}{:<{}}{:<}\n";
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
 
-    fmt::format_to(buf, row_format, "Alias", alias_width, "Instance", instance_width, "Command");
+    fmt::format_to(buf, row_format, "Alias", alias_width, "Instance", instance_width, "Command", command_width,
+                   "Map working directory");
 
     for (const auto& elt : sort_dict(aliases))
     {
         const auto& name = elt.first;
         const auto& def = elt.second;
 
-        fmt::format_to(buf, row_format, name, alias_width, def.instance, instance_width, def.command);
+        fmt::format_to(buf, row_format, name, alias_width, def.instance, instance_width, def.command, command_width,
+                       def.map_working_directory);
     }
 
     return fmt::to_string(buf);
