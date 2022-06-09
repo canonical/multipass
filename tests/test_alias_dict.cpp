@@ -154,9 +154,9 @@ TEST_P(WriteReadTeststuite, writes_and_reads_files)
 }
 
 INSTANTIATE_TEST_SUITE_P(AliasDictionary, WriteReadTeststuite,
-                         Values(AliasesVector{}, AliasesVector{{"w", {"fake", "w"}}},
-                                AliasesVector{{"ipf", {"instance", "ip"}}},
-                                AliasesVector{{"lsp", {"primary", "ls"}}, {"llp", {"primary", "ls"}}}));
+                         Values(AliasesVector{}, AliasesVector{{"w", {"fake", "w", true}}},
+                                AliasesVector{{"ipf", {"instance", "ip", true}}},
+                                AliasesVector{{"lsp", {"primary", "ls", true}}, {"llp", {"primary", "ls", true}}}));
 
 TEST_F(AliasDictionary, correctly_removes_alias)
 {
@@ -164,7 +164,7 @@ TEST_F(AliasDictionary, correctly_removes_alias)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    dict.add_alias("alias", mp::AliasDefinition{"instance", "command"});
+    dict.add_alias("alias", mp::AliasDefinition{"instance", "command", true});
     ASSERT_FALSE(dict.empty());
 
     ASSERT_TRUE(dict.remove_alias("alias"));
@@ -177,7 +177,7 @@ TEST_F(AliasDictionary, works_when_removing_unexisting_alias)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    dict.add_alias("alias", mp::AliasDefinition{"instance", "command"});
+    dict.add_alias("alias", mp::AliasDefinition{"instance", "command", true});
     ASSERT_FALSE(dict.empty());
 
     ASSERT_FALSE(dict.remove_alias("unexisting"));
@@ -191,7 +191,7 @@ TEST_F(AliasDictionary, correctly_gets_alias)
     mp::AliasDict dict(&trash_term);
 
     std::string alias_name{"alias"};
-    mp::AliasDefinition alias_def{"instance", "command"};
+    mp::AliasDefinition alias_def{"instance", "command", true};
 
     dict.add_alias(alias_name, alias_def);
     ASSERT_FALSE(dict.empty());
@@ -212,12 +212,12 @@ TEST_F(AliasDictionary, get_unexisting_alias_returns_nullopt)
 
 TEST_F(AliasDictionary, creates_backup_db)
 {
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command"}}});
+    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", true}}});
 
     QString bak_filename = QString::fromStdString(db_filename() + ".bak");
     ASSERT_FALSE(QFile::exists(bak_filename));
 
-    populate_db_file(AliasesVector{{"another_alias", {"an_instance", "a_command"}}});
+    populate_db_file(AliasesVector{{"another_alias", {"an_instance", "a_command", true}}});
     ASSERT_TRUE(QFile::exists(bak_filename));
 }
 
@@ -262,7 +262,8 @@ std::string csv_head{"Alias,Instance,Command\n"};
 INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTeststuite,
                          Values(std::make_tuple(AliasesVector{}, csv_head, "{\n    \"aliases\": [\n    ]\n}\n",
                                                 "No aliases defined.\n", "aliases: ~\n"),
-                                std::make_tuple(AliasesVector{{"lsp", {"primary", "ls"}}, {"llp", {"primary", "ls"}}},
+                                std::make_tuple(AliasesVector{{"lsp", {"primary", "ls", true}},
+                                                              {"llp", {"primary", "ls", true}}},
                                                 csv_head + "llp,primary,ls\nlsp,primary,ls\n",
                                                 "{\n    \"aliases\": [\n        {\n"
                                                 "            \"alias\": \"llp\",\n"
@@ -303,13 +304,14 @@ TEST_P(RemoveInstanceTestsuite, removes_instance_aliases)
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary, RemoveInstanceTestsuite,
-    Values(std::make_pair(AliasesVector{{"some_alias", {"instance_to_remove", "some_command"}},
-                                        {"other_alias", {"other_instance", "other_command"}},
-                                        {"another_alias", {"instance_to_remove", "another_command"}},
-                                        {"yet_another_alias", {"yet_another_instance", "yet_another_command"}}},
+    Values(std::make_pair(AliasesVector{{"some_alias", {"instance_to_remove", "some_command", true}},
+                                        {"other_alias", {"other_instance", "other_command", true}},
+                                        {"another_alias", {"instance_to_remove", "another_command", true}},
+                                        {"yet_another_alias", {"yet_another_instance", "yet_another_command", true}}},
                           std::vector<std::string>{"other_alias", "yet_another_alias"}),
-           std::make_pair(AliasesVector{{"alias", {"instance", "command"}}}, std::vector<std::string>{"alias"}),
-           std::make_pair(AliasesVector{{"alias", {"instance_to_remove", "command"}}}, std::vector<std::string>{})));
+           std::make_pair(AliasesVector{{"alias", {"instance", "command", true}}}, std::vector<std::string>{"alias"}),
+           std::make_pair(AliasesVector{{"alias", {"instance_to_remove", "command", true}}},
+                          std::vector<std::string>{})));
 
 typedef std::vector<std::vector<std::string>> CmdList;
 
@@ -345,7 +347,7 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 
     std::string json_contents = make_instance_json(mp::nullopt, {}, {"primary"});
 
-    AliasesVector fake_aliases{{"lsp", {"primary", "ls"}}, {"lsz", {"real-zebraphant", "ls"}}};
+    AliasesVector fake_aliases{{"lsp", {"primary", "ls", true}}, {"lsz", {"real-zebraphant", "ls", true}}};
 
     populate_db_file(fake_aliases);
 
