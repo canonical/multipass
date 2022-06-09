@@ -30,5 +30,6 @@ DECL_MOCK(sftp_write);
 DECL_MOCK(sftp_read);
 DECL_MOCK(sftp_get_error);
 DECL_MOCK(sftp_close);
+DECL_MOCK(sftp_stat);
 
 #endif // MULTIPASS_MOCK_SFTP_H
