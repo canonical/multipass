@@ -27,6 +27,11 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+namespace
+{
+const QString no_alias_dir_mapping_option{"no-map-working-directory"};
+} // namespace
+
 mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -86,10 +91,16 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument("definition", "Alias definition in the form <instance>:<command>", "<definition>");
     parser->addPositionalArgument("name", "Name given to the alias being defined, defaults to <command>", "[<name>]");
 
+    QCommandLineOption noAliasDirMappingOption({"n", no_alias_dir_mapping_option},
+                                               "Do not automatically map the host execution path to a mounted path");
+
+    parser->addOptions({noAliasDirMappingOption});
+
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
+    // The number of arguments
     if (parser->positionalArguments().count() != 1 && parser->positionalArguments().count() != 2)
     {
         cerr << "Wrong number of arguments given\n";
@@ -130,6 +141,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
     }
 
     auto instance = definition.left(colon_pos).toStdString();
+    bool map_working_directory(!parser->isSet(no_alias_dir_mapping_option));
 
     info_request.mutable_instance_names()->add_instance_name(instance);
     info_request.set_verbosity_level(0);
@@ -167,7 +179,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    alias_definition = AliasDefinition{instance, command};
+    alias_definition = AliasDefinition{instance, command, map_working_directory};
 
     return ParseCode::Ok;
 }
