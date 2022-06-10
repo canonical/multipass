@@ -35,6 +35,11 @@ sftp_file get_dummy_sftp_file()
     return static_cast<sftp_file_struct*>(calloc(1, sizeof(struct sftp_file_struct)));
 }
 
+sftp_attributes get_dummy_sftp_attr()
+{
+    return static_cast<sftp_attributes_struct*>(calloc(1, sizeof(struct sftp_attributes_struct)));
+}
+
 struct SFTPClient : public testing::Test
 {
     SFTPClient()
@@ -84,6 +89,11 @@ TEST_F(SFTPClient, throws_when_failed_to_init)
 TEST_F(SFTPClient, push_throws_on_sftp_open_failed)
 {
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_stat, [](auto...) {
+        auto attr = get_dummy_sftp_attr();
+        attr->type = SSH_FILEXFER_TYPE_REGULAR;
+        return attr;
+    });
     REPLACE(sftp_open, [](sftp_session session, auto...) {
         session->errnum = SSH_ERROR;
         return nullptr;
@@ -126,6 +136,68 @@ TEST_F(SFTPClient, push_throws_on_sftp_write_error)
     EXPECT_THROW(sftp.push_file(file_name.toStdString(), "bar"), std::runtime_error);
 }
 
+TEST_F(SFTPClient, push_throws_on_overwrite_directory_with_file)
+{
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_stat, [](auto, const char* path) {
+        auto attr = get_dummy_sftp_attr();
+        attr->type = (strcmp(path, "bar") == 0 || strcmp(path, "bar/foo") == 0) ? SSH_FILEXFER_TYPE_DIRECTORY
+                                                                                : SSH_FILEXFER_TYPE_REGULAR;
+        return attr;
+    });
+
+    auto sftp = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(
+        sftp.push_file("foo", "bar"), std::runtime_error,
+        mpt::match_what(testing::StrEq("[sftp] cannot overwrite remote directory 'bar/foo' with non-directory")));
+}
+
+TEST_F(SFTPClient, push_throws_on_target_not_exists)
+{
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_stat, [](auto...) { return nullptr; });
+
+    auto sftp = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(sftp.push_file("foo", "bar"), std::runtime_error,
+                         mpt::match_what(testing::StrEq("[sftp] remote target does not exist")));
+}
+
+TEST_F(SFTPClient, push_success)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/foo";
+    auto file_size = mpt::make_file_with_content(file_name);
+
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_stat, [](auto, const char* path) {
+        auto attr = get_dummy_sftp_attr();
+        if (strcmp(path, "bar") == 0)
+        {
+            attr->type = SSH_FILEXFER_TYPE_DIRECTORY;
+        }
+        else if (strcmp(path, "bar/foo") == 0 || strcmp(path, "baz") == 0)
+        {
+            attr->type = SSH_FILEXFER_TYPE_REGULAR;
+        }
+        return attr;
+    });
+
+    REPLACE(sftp_open, [](auto sftp, auto...) {
+        auto file = get_dummy_sftp_file();
+        file->sftp = sftp;
+        return file;
+    });
+
+    REPLACE(sftp_write, [file_size](auto...) { return file_size; });
+
+    auto sftp = make_sftp_client();
+
+    EXPECT_NO_THROW(sftp.push_file(file_name.toStdString(), "bar"));
+    EXPECT_NO_THROW(sftp.push_file(file_name.toStdString(), "baz"));
+}
+
 TEST_F(SFTPClient, pull_throws_on_sftp_open_failed)
 {
     const std::string source_path{"foo"};
@@ -161,11 +233,85 @@ TEST_F(SFTPClient, pull_throws_on_sftp_read_failed)
     EXPECT_THROW(sftp.pull_file(source_path, "bar"), std::runtime_error);
 }
 
+TEST_F(SFTPClient, pull_throws_on_overwrite_directory_with_file)
+{
+    QTemporaryDir temp_dir{};
+    QDir dir{temp_dir.path()};
+    dir.mkdir("foo");
+    dir.cd("foo");
+
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    auto sftp = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(sftp.pull_file("foo", temp_dir.path().toStdString()), std::runtime_error,
+                         mpt::match_what(testing::StrEq(fmt::format(
+                             "[sftp] cannot overwrite local directory '{}' with non-directory", dir.path()))));
+}
+
+TEST_F(SFTPClient, pull_throws_on_target_not_exists)
+{
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    auto sftp = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(sftp.pull_file("foo", "/non/existent/path/bar"), std::runtime_error,
+                         mpt::match_what(testing::StrEq("[sftp] local target does not exist")));
+}
+
+TEST_F(SFTPClient, pull_success)
+{
+    QTemporaryDir temp_dir;
+    const auto file_path1 = temp_dir.filePath("bar").toStdString();
+    const auto file_path2 = temp_dir.path().toStdString();
+    const auto test_data = "test";
+
+    REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_open, [](auto sftp, auto...) {
+        auto file = get_dummy_sftp_file();
+        file->sftp = sftp;
+        return file;
+    });
+
+    auto allow_read = true;
+    REPLACE(sftp_read, [&](auto, void* buf, auto) mutable {
+        if (allow_read)
+        {
+            int size = strlen(test_data);
+            memcpy(buf, test_data, size);
+            allow_read = false;
+            return size;
+        }
+        else
+        {
+            return 0;
+        }
+    });
+
+    auto sftp = make_sftp_client();
+
+    EXPECT_NO_THROW(sftp.pull_file("foo", file_path1));
+    QFile test_file1{file_path1.c_str()};
+    ASSERT_TRUE(test_file1.exists());
+    test_file1.open(QIODevice::ReadOnly);
+    EXPECT_EQ(test_data, test_file1.readAll());
+
+    allow_read = true;
+    EXPECT_NO_THROW(sftp.pull_file("foo", file_path2));
+    QFile test_file2{(file_path2 + "/foo").c_str()};
+    ASSERT_TRUE(test_file2.exists());
+    test_file2.open(QIODevice::ReadOnly);
+    EXPECT_EQ(test_data, test_file2.readAll());
+}
+
 // testing stream method
 
 TEST_F(SFTPClient, in_steam_throws_on_sftp_open_failed)
 {
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_stat, [](auto...) {
+        auto attr = get_dummy_sftp_attr();
+        attr->type = SSH_FILEXFER_TYPE_REGULAR;
+        return attr;
+    });
     REPLACE(sftp_open, [](sftp_session session, auto...) {
         session->errnum = SSH_ERROR;
         return nullptr;
