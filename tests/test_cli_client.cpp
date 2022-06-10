@@ -1378,6 +1378,24 @@ TEST_F(Client, info_cmd_fails_with_names_and_all)
     EXPECT_THAT(send_command({"info", "--all", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, infoCmdDoesNotDefaultToNoRuntimeInformationAndSucceeds)
+{
+    EXPECT_CALL(mock_daemon, info(_, Property(&mp::InfoRequest::no_runtime_information, IsFalse()), _));
+    EXPECT_THAT(send_command({"info", "name1", "name2"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, infoCmdSucceedsWithInstanceNamesAndNoRuntimeInformation)
+{
+    EXPECT_CALL(mock_daemon, info(_, Property(&mp::InfoRequest::no_runtime_information, IsTrue()), _));
+    EXPECT_THAT(send_command({"info", "name3", "name4", "--no-runtime-information"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, infoCmdSucceedsWithAllAndNoRuntimeInformation)
+{
+    EXPECT_CALL(mock_daemon, info(_, Property(&mp::InfoRequest::no_runtime_information, IsTrue()), _));
+    EXPECT_THAT(send_command({"info", "name5", "--no-runtime-information"}), Eq(mp::ReturnCode::Ok));
+}
+
 // list cli tests
 TEST_F(Client, list_cmd_ok_no_args)
 {
