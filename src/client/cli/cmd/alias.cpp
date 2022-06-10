@@ -145,6 +145,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
 
     info_request.mutable_instance_names()->add_instance_name(instance);
     info_request.set_verbosity_level(0);
+    info_request.set_no_runtime_information(true);
 
     auto on_success = [](InfoReply&) { return ReturnCode::Ok; };
 
