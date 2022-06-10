@@ -125,11 +125,11 @@ TEST_F(AliasDictionary, skips_correctly_broken_entries)
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
-struct WriteReadTeststuite : public AliasDictionary, public WithParamInterface<AliasesVector>
+struct WriteReadTestsuite : public AliasDictionary, public WithParamInterface<AliasesVector>
 {
 };
 
-TEST_P(WriteReadTeststuite, writes_and_reads_files)
+TEST_P(WriteReadTestsuite, writes_and_reads_files)
 {
     auto aliases_vector = GetParam();
 
@@ -153,7 +153,7 @@ TEST_P(WriteReadTeststuite, writes_and_reads_files)
     ASSERT_EQ(reader.size(), aliases_vector.size());
 }
 
-INSTANTIATE_TEST_SUITE_P(AliasDictionary, WriteReadTeststuite,
+INSTANTIATE_TEST_SUITE_P(AliasDictionary, WriteReadTestsuite,
                          Values(AliasesVector{}, AliasesVector{{"w", {"fake", "w", true}}},
                                 AliasesVector{{"ipf", {"instance", "ip", true}}},
                                 AliasesVector{{"lsp", {"primary", "ls", true}}, {"llp", {"primary", "ls", true}}}));
@@ -234,13 +234,13 @@ TEST_F(AliasDictionary, throws_when_open_alias_file_fails)
                          mpt::match_what(HasSubstr("Error opening file '")));
 }
 
-struct FormatterTeststuite
+struct FormatterTestsuite
     : public AliasDictionary,
       public WithParamInterface<std::tuple<AliasesVector, std::string, std::string, std::string, std::string>>
 {
 };
 
-TEST_P(FormatterTeststuite, table)
+TEST_P(FormatterTestsuite, table)
 {
     auto [aliases, csv_output, json_output, table_output, yaml_output] = GetParam();
 
@@ -257,27 +257,32 @@ TEST_P(FormatterTeststuite, table)
     ASSERT_EQ(mp::YamlFormatter().format(dict), yaml_output);
 }
 
-std::string csv_head{"Alias,Instance,Command\n"};
+const std::string csv_head{"Alias,Instance,Command,Map working directory\n"};
 
-INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTeststuite,
+INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTestsuite,
                          Values(std::make_tuple(AliasesVector{}, csv_head, "{\n    \"aliases\": [\n    ]\n}\n",
                                                 "No aliases defined.\n", "aliases: ~\n"),
                                 std::make_tuple(AliasesVector{{"lsp", {"primary", "ls", true}},
                                                               {"llp", {"primary", "ls", true}}},
-                                                csv_head + "llp,primary,ls\nlsp,primary,ls\n",
+                                                csv_head + "llp,primary,ls,true\nlsp,primary,ls,true\n",
                                                 "{\n    \"aliases\": [\n        {\n"
                                                 "            \"alias\": \"llp\",\n"
                                                 "            \"command\": \"ls\",\n"
-                                                "            \"instance\": \"primary\"\n"
+                                                "            \"instance\": \"primary\",\n"
+                                                "            \"map-working-directory\": true\n"
                                                 "        },\n"
                                                 "        {\n"
                                                 "            \"alias\": \"lsp\",\n"
                                                 "            \"command\": \"ls\",\n"
-                                                "            \"instance\": \"primary\"\n"
+                                                "            \"instance\": \"primary\",\n"
+                                                "            \"map-working-directory\": true\n"
                                                 "        }\n    ]\n}\n",
-                                                "Alias  Instance  Command\nllp    primary   ls\nlsp    primary   ls\n",
+                                                "Alias  Instance  Command  Map working directory\n"
+                                                "llp    primary   ls       true\n"
+                                                "lsp    primary   ls       true\n",
                                                 "aliases:\n  - alias: llp\n    command: ls\n    instance: primary\n"
-                                                "  - alias: lsp\n    command: ls\n    instance: primary\n")));
+                                                "    map-working-directory: true\n  - alias: lsp\n    command: ls\n"
+                                                "    instance: primary\n    map-working-directory: true\n")));
 
 struct RemoveInstanceTestsuite : public AliasDictionary,
                                  public WithParamInterface<std::pair<AliasesVector, std::vector<std::string>>>
@@ -383,25 +388,18 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary, DaemonAliasTestsuite,
-    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
-                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"},
-                           std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}},
-                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{"lsz"},
-                           std::vector<std::string>{}),
+    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,true\n",
+                           std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
+           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}}, csv_head + "lsp,primary,ls,true\n",
+                           std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
-                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp", "lsz"},
-                           std::vector<std::string>{}),
+                           csv_head, std::vector<std::string>{"lsp", "lsz"}, std::vector<std::string>{}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
-                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{},
-                           std::vector<std::string>{"lsp", "lsz"}),
+                           csv_head, std::vector<std::string>{}, std::vector<std::string>{"lsp", "lsz"}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
-                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{"lsp"},
-                           std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
-                           std::string{"Alias,Instance,Command\nlsp,primary,ls\n"}, std::vector<std::string>{},
-                           std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}},
-                           std::string{"Alias,Instance,Command\n"}, std::vector<std::string>{},
-                           std::vector<std::string>{"lsz", "lsp"})));
+                           csv_head, std::vector<std::string>{"lsp"}, std::vector<std::string>{"lsz"}),
+           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,true\n",
+                           std::vector<std::string>{}, std::vector<std::string>{"lsz"}),
+           std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}}, csv_head,
+                           std::vector<std::string>{}, std::vector<std::string>{"lsz", "lsp"})));
 } // namespace

@@ -338,6 +338,8 @@ auto make_info_function(const std::string& source_path = "", const std::string& 
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
+const std::string csv_header{"Alias,Instance,Command,Map working directory\n"};
+
 // Tests for no postional args given
 TEST_F(Client, no_command_is_error)
 {
@@ -2811,13 +2813,14 @@ TEST_F(ClientAlias, alias_creates_alias)
 
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", true}}});
 
-    EXPECT_EQ(send_command({"alias", "primary:another_command", "another_alias"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"alias", "primary:another_command", "another_alias", "--no-map-working-directory"}),
+              mp::ReturnCode::Ok);
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
-                                   "primary,another_command\n");
+    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,true\n"
+                                                "another_alias,primary,another_command,false\n");
 }
 
 struct ClientAliasNameSuite : public ClientAlias,
@@ -2833,15 +2836,14 @@ TEST_P(ClientAliasNameSuite, creates_correct_default_alias_name)
 
     std::vector<std::string> arguments{"alias"};
     arguments.push_back(fmt::format("primary:{}{}", path, command));
+    arguments.push_back("--no-map-working-directory");
 
     EXPECT_EQ(send_command(arguments), mp::ReturnCode::Ok);
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), fmt::format("Alias,Instance,Command\n"
-                                               "{},primary,{}{}\n",
-                                               command, path, command));
+    EXPECT_THAT(cout_stream.str(), fmt::format(csv_header + "{},primary,{}{},false\n", command, path, command));
 }
 
 INSTANTIATE_TEST_SUITE_P(ClientAlias, ClientAliasNameSuite,
@@ -2861,7 +2863,7 @@ TEST_F(ClientAlias, fails_if_cannot_write_script)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\n");
+    EXPECT_THAT(cout_stream.str(), csv_header);
 }
 
 TEST_F(ClientAlias, alias_does_not_overwrite_alias)
@@ -2878,7 +2880,7 @@ TEST_F(ClientAlias, alias_does_not_overwrite_alias)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,true\n");
 }
 
 struct ArgumentCheckTestsuite
@@ -3009,7 +3011,7 @@ TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)
 
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,true\n");
 }
 
 TEST_F(ClientAlias, alias_refuses_creation_rpc_error)
@@ -3026,12 +3028,12 @@ TEST_F(ClientAlias, alias_refuses_creation_rpc_error)
 
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,true\n");
 }
 
 TEST_F(ClientAlias, unalias_removes_existing_alias)
 {
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", true}},
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", false}},
                                    {"another_alias", {"another_instance", "another_command", true}}});
 
     EXPECT_EQ(send_command({"unalias", "another_alias"}), mp::ReturnCode::Ok);
@@ -3039,14 +3041,14 @@ TEST_F(ClientAlias, unalias_removes_existing_alias)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,false\n");
 }
 
 TEST_F(ClientAlias, unalias_succeeds_even_if_script_cannot_be_removed)
 {
     EXPECT_CALL(*mock_platform, remove_alias_script(_)).Times(1).WillRepeatedly(Throw(std::runtime_error("bbb")));
 
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", true}},
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", false}},
                                    {"another_alias", {"another_instance", "another_command", true}}});
 
     std::stringstream cerr_stream;
@@ -3056,13 +3058,13 @@ TEST_F(ClientAlias, unalias_succeeds_even_if_script_cannot_be_removed)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\n");
+    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,false\n");
 }
 
 TEST_F(ClientAlias, unalias_does_not_remove_unexisting_alias)
 {
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", true}},
-                                   {"another_alias", {"another_instance", "another_command", true}}});
+                                   {"another_alias", {"another_instance", "another_command", false}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "unexisting_alias"}, trash_stream, cerr_stream),
@@ -3072,8 +3074,9 @@ TEST_F(ClientAlias, unalias_does_not_remove_unexisting_alias)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
-                                 "another_instance,another_command\n");
+    EXPECT_EQ(cout_stream.str(),
+              csv_header +
+                  "an_alias,an_instance,a_command,true\nanother_alias,another_instance,another_command,false\n");
 }
 
 TEST_F(ClientAlias, too_many_unalias_arguments)
