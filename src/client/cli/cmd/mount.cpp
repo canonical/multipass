@@ -65,7 +65,6 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-
         return standard_failure_handler_for(name(), cerr, status);
     };
 
@@ -157,25 +156,29 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     source_path = QDir(source_path).absolutePath();
     request.set_source_path(source_path.toStdString());
 
+    request.clear_target_paths();
     for (auto i = 1; i < parser->positionalArguments().count(); ++i)
     {
-        auto parsed_target = QString(parser->positionalArguments().at(i)).split(":", QString::SkipEmptyParts);
+        auto argument = parser->positionalArguments().at(i);
+        auto instance_name = argument.section(':', 0, 0, QString::SectionSkipEmpty);
+        auto target_path = argument.section(':', 1, -1, QString::SectionSkipEmpty);
 
         auto entry = request.add_target_paths();
-        entry->set_instance_name(parsed_target.at(0).toStdString());
+        entry->set_instance_name(instance_name.toStdString());
 
-        if (parsed_target.count() == 1)
+        if (target_path.isEmpty())
         {
             entry->set_target_path(source_path.toStdString());
         }
         else
         {
-            entry->set_target_path(parsed_target.at(1).toStdString());
+            entry->set_target_path(target_path.toStdString());
         }
     }
 
     QRegExp map_matcher("^([0-9]+[:][0-9]+)$");
 
+    request.clear_mount_maps();
     auto mount_maps = request.mutable_mount_maps();
 
     if (parser->isSet(uid_mappings))

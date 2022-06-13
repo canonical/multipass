@@ -21,6 +21,7 @@
 #include "mock_cert_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
+#include "mock_network.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
@@ -40,6 +41,7 @@
 
 #include <QStringList>
 #include <QTemporaryFile>
+#include <QTimer>
 #include <QtCore/QTemporaryDir>
 #include <QtGlobal>
 
@@ -176,13 +178,13 @@ struct Client : public Test
         return get_setting({key});
     }
 
-    auto make_automount_matcher(const QTemporaryDir& fake_home) const
+    static auto make_mount_matcher(const std::string_view fake_source, const std::string_view fake_target,
+                                   const std::string_view instance_name)
     {
-        const auto automount_source_matcher =
-            Property(&mp::MountRequest::source_path, StrEq(fake_home.path().toStdString()));
+        const auto automount_source_matcher = Property(&mp::MountRequest::source_path, StrEq(fake_source));
 
-        const auto target_instance_matcher = Property(&mp::TargetPathInfo::instance_name, StrEq(petenv_name));
-        const auto target_path_matcher = Property(&mp::TargetPathInfo::target_path, StrEq(mp::home_automount_dir));
+        const auto target_instance_matcher = Property(&mp::TargetPathInfo::instance_name, StrEq(instance_name));
+        const auto target_path_matcher = Property(&mp::TargetPathInfo::target_path, StrEq(fake_target));
         const auto target_info_matcher = AllOf(target_instance_matcher, target_path_matcher);
         const auto automount_target_matcher =
             Property(&mp::MountRequest::target_paths, AllOf(Contains(target_info_matcher), SizeIs(1)));
@@ -532,7 +534,7 @@ TEST_F(Client, shellCmdSkipsAutomountWhenDisabled)
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, ssh_info(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"shell", petenv_name}, cout_stream), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping mount due to disabled mounts feature\n"));
 }
 
 TEST_F(Client, shell_cmd_forwards_verbosity_to_subcommands)
@@ -832,7 +834,8 @@ TEST_F(Client, launch_cmd_automounts_home_in_petenv)
 {
     const auto fake_home = QTemporaryDir{}; // the client checks the mount source exists
     const auto env_scope = mpt::SetEnvScope{"HOME", fake_home.path().toUtf8()};
-    const auto home_automount_matcher = make_automount_matcher(fake_home);
+    const auto home_automount_matcher =
+        make_mount_matcher(fake_home.path().toStdString(), mp::home_automount_dir, petenv_name);
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name);
     const auto ok = grpc::Status{};
 
@@ -853,7 +856,7 @@ TEST_F(Client, launchCmdSkipsAutomountWhenDisabled)
     EXPECT_CALL(mock_daemon, mount).Times(0);
 
     EXPECT_THAT(send_command({"launch", "--name", petenv_name}, cout_stream), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping mount due to disabled mounts feature\n"));
 }
 
 TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
@@ -864,7 +867,7 @@ TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
     EXPECT_CALL(mock_daemon, launch(_, _, _)).WillOnce(Return(invalid_argument));
 
     EXPECT_THAT(send_command({"launch", "--name", ".asdf"}, cout_stream), Eq(mp::ReturnCode::CommandFail));
-    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n")));
+    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("Skipping mount due to disabled mounts feature\n")));
 }
 
 TEST_F(Client, launchCmdFailsWhenUnableToRetrieveAutomountSetting)
@@ -918,6 +921,69 @@ TEST_F(Client, launch_cmd_disabled_petenv_passes)
     EXPECT_CALL(mock_daemon, launch(_, petenv_matcher, _));
 
     EXPECT_THAT(send_command({"launch", "--name", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_mount_option)
+{
+    const grpc::Status ok{};
+    const QTemporaryDir fake_directory{};
+
+    const auto fake_source = fake_directory.path().toStdString();
+    const auto fake_target = fake_source;
+    const auto instance_name = "some_instance";
+
+    const auto mount_matcher = make_mount_matcher(fake_source, fake_target, instance_name);
+    const auto launch_matcher = make_launch_instance_matcher(instance_name);
+
+    EXPECT_CALL(mock_daemon, launch(_, launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, mount_matcher, _)).WillOnce(Return(ok));
+    EXPECT_EQ(send_command({"launch", "--name", instance_name, "--mount", fake_source}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launch_cmd_petenv_mount_option_override_home)
+{
+    const grpc::Status ok{};
+    const QTemporaryDir fake_directory{};
+
+    const auto fake_source = fake_directory.path().toStdString();
+    const auto fake_target = mp::home_automount_dir;
+
+    const auto mount_matcher = make_mount_matcher(fake_source, fake_target, petenv_name);
+    const auto launch_matcher = make_launch_instance_matcher(petenv_name);
+
+    EXPECT_CALL(mock_daemon, launch(_, launch_matcher, _)).WillOnce(Return(ok));
+    EXPECT_CALL(mock_daemon, mount(_, mount_matcher, _)).WillOnce(Return(ok));
+    EXPECT_EQ(
+        send_command({"launch", "--name", petenv_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)}),
+        mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launch_cmd_cloudinit_url)
+{
+    const grpc::Status ok{};
+    const auto fake_url = QStringLiteral("https://example.com");
+    const auto fake_downloaded_yaml = QByteArrayLiteral("password: passw0rd");
+
+    auto [mock_network_manager_factory, guard] = mpt::MockNetworkManagerFactory::inject();
+    auto mock_network_access_manager = std::make_unique<NiceMock<mpt::MockQNetworkAccessManager>>();
+    auto mock_reply = new mpt::MockQNetworkReply();
+
+    EXPECT_CALL(*mock_network_manager_factory, make_network_manager).WillOnce([&mock_network_access_manager](auto...) {
+        return std::move(mock_network_access_manager);
+    });
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest).WillOnce(Return(mock_reply));
+    EXPECT_CALL(*mock_reply, readData)
+        .WillOnce([&fake_downloaded_yaml](char* data, auto) {
+            auto data_size = fake_downloaded_yaml.size();
+            memcpy(data, fake_downloaded_yaml.constData(), data_size);
+            return data_size;
+        })
+        .WillOnce(Return(0));
+
+    QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_EQ(send_command({"launch", "--cloud-init", fake_url.toStdString()}), mp::ReturnCode::Ok);
 }
 
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
@@ -1464,7 +1530,7 @@ TEST_F(Client, startCmdSkipsAutomountWhenDisabled)
     EXPECT_CALL(mock_daemon, mount(_, _, _)).Times(0);
     EXPECT_CALL(mock_daemon, start(_, _, _)).WillOnce(Return(ok));
     EXPECT_THAT(send_command({"start", petenv_name}, cout_stream), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping 'Home' mount due to disabled mounts feature\n"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Skipping mount due to disabled mounts feature\n"));
 }
 
 TEST_F(Client, start_cmd_forwards_verbosity_to_subcommands)

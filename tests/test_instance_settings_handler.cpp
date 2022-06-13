@@ -303,19 +303,16 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceCPUsUntouchedIfSameButSu
     EXPECT_EQ(actual_cpus, same_cpus);
 }
 
-TEST_F(TestInstanceSettingsHandler, setRefusesToDecreaseInstanceCPUs)
+TEST_F(TestInstanceSettingsHandler, setAllowsDecreaseInstanceCPUs)
 {
     constexpr auto target_instance_name = "sdfg";
     constexpr auto less_cpus = 2;
     const auto& actual_cpus = specs[target_instance_name].num_cores = 3;
-    const auto original_cpus = actual_cpus;
 
-    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
+    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(1);
 
-    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(less_cpus)),
-                         mp::InvalidSettingException, mpt::match_what(HasSubstr("can only be increased")));
-
-    EXPECT_EQ(actual_cpus, original_cpus);
+    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(less_cpus)));
+    EXPECT_EQ(actual_cpus, less_cpus);
 }
 
 TEST_F(TestInstanceSettingsHandler, setExpandsInstanceMemory)
@@ -344,17 +341,30 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceMemoryUntouchedIfSameBut
     EXPECT_EQ(actual_mem, same_mem);
 }
 
-TEST_F(TestInstanceSettingsHandler, setRefusesToShrinkInstanceMemory)
+TEST_F(TestInstanceSettingsHandler, setAllowsDecreaseInstanceMemory)
 {
     constexpr auto target_instance_name = "Dvořák";
-    constexpr auto less_mem_str = "32b";
-    const auto& actual_mem = specs[target_instance_name].mem_size = mp::MemorySize{"32KiB"};
+    constexpr auto less_mem_str = "256MiB";
+    const auto less_mem = mp::MemorySize{less_mem_str};
+    const auto& actual_mem = specs[target_instance_name].mem_size = mp::MemorySize{"1024MiB"};
+
+    EXPECT_CALL(mock_vm(target_instance_name), resize_memory).Times(1);
+
+    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "memory"), less_mem_str));
+    EXPECT_EQ(actual_mem, less_mem);
+}
+
+TEST_F(TestInstanceSettingsHandler, setRefusesDecreaseBelowMinimumMemory)
+{
+    constexpr auto target_instance_name = "Ravel";
+    constexpr auto mem_str = "96MiB";
+    const auto& actual_mem = specs[target_instance_name].mem_size = mp::MemorySize{"1024MiB"};
     const auto original_mem = actual_mem;
 
     EXPECT_CALL(mock_vm(target_instance_name), resize_memory).Times(0);
 
-    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "memory"), less_mem_str),
-                         mp::InvalidSettingException, mpt::match_what(HasSubstr("can only be expanded")));
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "memory"), mem_str),
+                         mp::InvalidSettingException, mpt::match_what(HasSubstr("minimum not allowed")));
 
     EXPECT_EQ(actual_mem, original_mem);
 }
@@ -452,7 +462,7 @@ struct TestInstanceModOnStoppedInstance : public TestInstanceSettingsHandler,
 TEST_P(TestInstanceModOnStoppedInstance, setWorksOnOtherStates)
 {
     constexpr auto target_instance_name = "Beethoven";
-    constexpr auto val = "456";
+    constexpr auto val = "134217728"; // To work with the 128M minimum allowed for memory
     const auto [property, state] = GetParam();
     const auto& target_specs = specs[target_instance_name];
 
@@ -475,7 +485,7 @@ struct TestInstanceModPersists : public TestInstanceSettingsHandler, public With
 TEST_P(TestInstanceModPersists, setPersistsInstances)
 {
     constexpr auto target_instance_name = "Tchaikovsky";
-    constexpr auto val = "70";
+    constexpr auto val = "134217728"; // To work with the 128M minimum allowed for memory
     const auto property = GetParam();
 
     specs[target_instance_name];
