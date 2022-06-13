@@ -219,8 +219,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                   .arg(petenv_name, mp::home_automount_dir);
 
     QCommandLineOption nameOption({"n", "name"}, name_option_desc, "name");
-    QCommandLineOption cloudInitOption("cloud-init", "Path to a user-data cloud-init configuration, or '-' for stdin",
-                                       "file");
+    QCommandLineOption cloudInitOption(
+        "cloud-init", "Path or URL to a user-data cloud-init configuration, or '-' for stdin", "file> | <url");
     QCommandLineOption networkOption("network",
                                      "Add a network interface to the instance, where <spec> is in the "
                                      "\"key=value,key=value\" format, with the following keys available:\n"
