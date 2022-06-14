@@ -18,7 +18,6 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
-#include "file_operations.h"
 #include "json_utils.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
@@ -919,99 +918,6 @@ INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
                                  Values(std::vector<std::string>{}, std::vector<std::string>{"--disk", "4G"}),
                                  Values("1G", mp::default_disk_size, "10G")));
 INSTANTIATE_TEST_SUITE_P(Daemon, LaunchStorageCheckSuite, Values("test_create", "launch"));
-
-std::string fake_json_contents(const std::string& default_mac, const std::vector<mp::NetworkInterface>& extra_ifaces,
-                               const mp::optional<mp::VMMount>& mount = mp::nullopt)
-{
-    QString contents("{\n"
-                     "    \"real-zebraphant\": {\n"
-                     "        \"deleted\": false,\n"
-                     "        \"disk_space\": \"5368709120\",\n"
-                     "        \"extra_interfaces\": [\n");
-
-    QStringList array_elements;
-    for (auto extra_interface : extra_ifaces)
-    {
-        array_elements += QString::fromStdString(fmt::format("            {{\n"
-                                                             "                \"auto_mode\": {},\n"
-                                                             "                \"id\": \"{}\",\n"
-                                                             "                \"mac_address\": \"{}\"\n"
-                                                             "            }}\n",
-                                                             extra_interface.auto_mode, extra_interface.id,
-                                                             extra_interface.mac_address));
-    }
-    contents += array_elements.join(',');
-
-    contents += QString::fromStdString(fmt::format("        ],\n"
-                                                   "        \"mac_addr\": \"{}\",\n"
-                                                   "        \"mem_size\": \"1073741824\",\n"
-                                                   "        \"metadata\": {{\n"
-                                                   "            \"arguments\": [\n"
-                                                   "                \"many\",\n"
-                                                   "                \"arguments\"\n"
-                                                   "            ],\n"
-                                                   "            \"machine_type\": \"dmc-de-lorean\"\n"
-                                                   "        }},\n"
-                                                   "        \"mounts\": [\n",
-                                                   default_mac));
-
-    if (mount)
-    {
-        contents += QString::fromStdString(fmt::format("            {{\n"
-                                                       "                \"gid_mappings\": ["));
-
-        array_elements.clear();
-        for (const auto& gid_pair : mount->gid_mappings)
-        {
-            array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
-                                                                 "                        \"host_gid\": {},\n"
-                                                                 "                        \"instance_gid\": {}\n"
-                                                                 "                    }}",
-                                                                 gid_pair.first, gid_pair.second));
-        }
-        contents += array_elements.join(',');
-
-        contents += QString::fromStdString(fmt::format("\n                ],\n"
-                                                       "                \"source_path\": \"{}\",\n"
-                                                       "                \"target_path\": \"Home\",\n"
-                                                       "                \"uid_mappings\": [",
-                                                       mount->source_path));
-
-        array_elements.clear();
-        for (const auto& uid_pair : mount->uid_mappings)
-        {
-            array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
-                                                                 "                        \"host_uid\": {},\n"
-                                                                 "                        \"instance_uid\": {}\n"
-                                                                 "                    }}",
-                                                                 uid_pair.first, uid_pair.second));
-        }
-        contents += array_elements.join(',');
-
-        contents += QString::fromStdString(fmt::format("\n                ]\n"
-                                                       "            }}\n"));
-    }
-
-    contents += QString::fromStdString(fmt::format("        ],\n"
-                                                   "        \"num_cores\": 1,\n"
-                                                   "        \"ssh_username\": \"ubuntu\",\n"
-                                                   "        \"state\": 2\n"
-                                                   "    }}\n"
-                                                   "}}"));
-
-    return contents.toStdString();
-}
-
-std::pair<std::unique_ptr<mpt::TempDir>, QString> // unique_ptr bypasses missing move ctor
-plant_instance_json(const std::string& contents)
-{
-    auto temp_dir = std::make_unique<mpt::TempDir>();
-    QString filename(temp_dir->path() + "/multipassd-vm-instances.json");
-
-    mpt::make_file_with_content(filename, contents);
-
-    return {std::move(temp_dir), filename};
-}
 
 void check_maps_in_json(const QString& file, const mp::id_mappings& expected_gid_mappings,
                         const mp::id_mappings& expected_uid_mappings)
