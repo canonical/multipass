@@ -45,7 +45,7 @@ private:
     ParseCode parse_args(ArgParser* parser);
 
     AliasDict aliases;
-    std::string alias_to_remove;
+    std::vector<std::string> aliases_to_remove;
 };
 } // namespace cmd
 } // namespace multipass
