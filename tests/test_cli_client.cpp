@@ -3079,7 +3079,7 @@ TEST_F(ClientAlias, unalias_succeeds_even_if_script_cannot_be_removed)
     EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map\n");
 }
 
-TEST_F(ClientAlias, unalias_does_not_remove_unexisting_alias)
+TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAlias)
 {
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}},
                                    {"another_alias", {"another_instance", "another_command", "default"}}});
@@ -3087,7 +3087,7 @@ TEST_F(ClientAlias, unalias_does_not_remove_unexisting_alias)
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "unexisting_alias"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
-    EXPECT_EQ(cerr_stream.str(), "Alias 'unexisting_alias' does not exist\n");
+    EXPECT_EQ(cerr_stream.str(), "Unexisting alias: unexisting_alias.\n");
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
@@ -3097,12 +3097,52 @@ TEST_F(ClientAlias, unalias_does_not_remove_unexisting_alias)
                   "an_alias,an_instance,a_command,map\nanother_alias,another_instance,another_command,default\n");
 }
 
-TEST_F(ClientAlias, too_many_unalias_arguments)
+TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAliases)
 {
-    std::stringstream cerr_stream;
-    send_command({"unalias", "alias_name", "other_argument"}, trash_stream, cerr_stream);
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
+                                   {"another_alias", {"another_instance", "another_command"}}});
 
-    EXPECT_EQ(cerr_stream.str(), "Wrong number of arguments given\n");
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"unalias", "unexisting_alias", "another_unexisting_alias"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(cerr_stream.str(), "Unexisting aliases: unexisting_alias, another_unexisting_alias.\n");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
+                                 "another_instance,another_command\n");
+}
+
+TEST_F(ClientAlias, unaliasDashDashAllWorks)
+{
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
+                                   {"another_alias", {"another_instance", "another_command"}}});
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"unalias", "--all"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
+    EXPECT_EQ(cerr_stream.str(), "");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command\n");
+}
+
+TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
+{
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
+                                   {"another_alias", {"another_instance", "another_command"}}});
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"unalias", "arg", "--all"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(cerr_stream.str(), "Cannot specify name when --all option set\n");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
+                                 "another_instance,another_command\n");
 }
 
 TEST_F(ClientAlias, fails_when_remove_backup_alias_file_fails)
