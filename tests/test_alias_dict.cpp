@@ -229,6 +229,26 @@ INSTANTIATE_TEST_SUITE_P(AliasDictionary, WriteReadTestsuite,
                                 AliasesVector{{"ipf", {"instance", "ip", "map"}}},
                                 AliasesVector{{"lsp", {"primary", "ls", "map"}}, {"llp", {"primary", "ls", "map"}}}));
 
+TEST_F(AliasDictionary, existsAliasWorksWithExistingAlias)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    dict.add_alias("existing", mp::AliasDefinition{"instance", "command"});
+
+    ASSERT_TRUE(dict.exists_alias("existing"));
+}
+
+TEST_F(AliasDictionary, existsAliasWorksWithUnexistingAlias)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    ASSERT_FALSE(dict.exists_alias("unexisting"));
+}
+
 TEST_F(AliasDictionary, correctly_removes_alias)
 {
     std::stringstream trash_stream;
@@ -253,6 +273,19 @@ TEST_F(AliasDictionary, works_when_removing_unexisting_alias)
 
     ASSERT_FALSE(dict.remove_alias("unexisting"));
     ASSERT_FALSE(dict.empty());
+}
+
+TEST_F(AliasDictionary, clearWorks)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    dict.add_alias("first", mp::AliasDefinition{"instance", "command"});
+    dict.add_alias("second", mp::AliasDefinition{"other_instance", "other_command"});
+    dict.clear();
+
+    ASSERT_TRUE(dict.empty());
 }
 
 TEST_F(AliasDictionary, correctly_gets_alias)
