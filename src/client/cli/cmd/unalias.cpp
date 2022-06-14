@@ -87,17 +87,17 @@ std::string cmd::Unalias::name() const
 
 QString cmd::Unalias::short_help() const
 {
-    return QStringLiteral("Remove an alias");
+    return QStringLiteral("Remove aliases");
 }
 
 QString cmd::Unalias::description() const
 {
-    return QStringLiteral("Remove an alias");
+    return QStringLiteral("Remove aliases");
 }
 
 mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Name of aliases to remove, can be --all to remove all the aliases\n");
+    parser->addPositionalArgument("name", "Names of aliases to remove", "<name> [<name> ...]");
 
     QCommandLineOption all_option(all_option_name, "Remove all aliases");
     parser->addOption(all_option);

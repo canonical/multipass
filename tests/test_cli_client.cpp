@@ -2586,7 +2586,7 @@ INSTANTIATE_TEST_SUITE_P(Client, HelpTestsuite,
                          Values(std::make_pair(std::string{"alias"},
                                                "Create an alias to be executed on a given instance.\n"),
                                 std::make_pair(std::string{"aliases"}, "List available aliases\n"),
-                                std::make_pair(std::string{"unalias"}, "Remove an alias\n")));
+                                std::make_pair(std::string{"unalias"}, "Remove aliases\n")));
 
 TEST_F(Client, command_help_is_different_than_general_help)
 {
