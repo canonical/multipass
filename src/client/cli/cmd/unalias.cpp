@@ -32,14 +32,7 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    if (parser->isSet(all_option_name))
-    {
-        aliases.clear();
-
-        QDir alias_dir = MP_PLATFORM.get_alias_scripts_folder();
-        alias_dir.removeRecursively();
-    }
-    else
+    if (!parser->isSet(all_option_name))
     {
         std::vector<std::string> bad_aliases;
 
@@ -62,18 +55,18 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
 
             return ReturnCode::CommandLineError;
         }
+    }
 
-        for (const auto& alias_to_remove : aliases_to_remove)
+    for (const auto& alias_to_remove : aliases_to_remove)
+    {
+        aliases.remove_alias(alias_to_remove); // We know removal won't fail because the alias exists.
+        try
         {
-            aliases.remove_alias(alias_to_remove); // We know removal won't fail because the alias exists.
-            try
-            {
-                MP_PLATFORM.remove_alias_script(alias_to_remove);
-            }
-            catch (std::runtime_error& e)
-            {
-                cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), alias_to_remove);
-            }
+            MP_PLATFORM.remove_alias_script(alias_to_remove);
+        }
+        catch (std::runtime_error& e)
+        {
+            cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), alias_to_remove);
         }
     }
 
@@ -110,9 +103,16 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    if (!parser->isSet(all_option_name))
+    if (parser->isSet(all_option_name))
+    {
+        for (auto definition_it = aliases.cbegin(); definition_it != aliases.cend(); ++definition_it)
+            aliases_to_remove.push_back(definition_it->first);
+    }
+    else
+    {
         for (const auto& arg : parser->positionalArguments())
             aliases_to_remove.push_back(arg.toStdString());
+    }
 
     return ParseCode::Ok;
 }
