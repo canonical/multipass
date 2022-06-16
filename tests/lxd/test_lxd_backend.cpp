@@ -1433,29 +1433,6 @@ TEST_F(LXDBackend, unsupported_suspend_throws)
                          mpt::match_what(StrEq("suspend is currently not supported")));
 }
 
-TEST_F(LXDBackend, start_while_suspending_throws)
-{
-    mpt::StubVMStatusMonitor stub_monitor;
-
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillRepeatedly([](auto, auto request, auto) {
-        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-        auto url = request.url().toString();
-
-        if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
-        {
-            return new mpt::MockLocalSocketReply(mpt::vm_state_freezing_data);
-        }
-
-        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-    });
-
-    mp::LXDVirtualMachine machine{default_description, stub_monitor,        mock_network_access_manager.get(), base_url,
-                                  bridge_name,         default_storage_pool};
-
-    MP_EXPECT_THROW_THAT(machine.start(), std::runtime_error,
-                         mpt::match_what(StrEq("cannot start the instance while suspending")));
-}
-
 TEST_F(LXDBackend, start_while_frozen_unfreezes)
 {
     mpt::StubVMStatusMonitor stub_monitor;
@@ -1492,50 +1469,6 @@ TEST_F(LXDBackend, start_while_frozen_unfreezes)
     machine.start();
 
     EXPECT_TRUE(unfreeze_called);
-}
-
-TEST_F(LXDBackend, start_while_running_does_nothing)
-{
-    mpt::StubVMStatusMonitor stub_monitor;
-
-    bool put_called{false};
-
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
-        .WillRepeatedly([&put_called](auto, auto request, auto outgoingData) {
-            outgoingData->open(QIODevice::ReadOnly);
-            auto data = outgoingData->readAll();
-            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-            auto url = request.url().toString();
-
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
-            {
-                return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
-            }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
-            {
-                if (data.contains("start"))
-                {
-                    put_called = true;
-                    return new mpt::MockLocalSocketReply(mpt::start_vm_data);
-                }
-                else if (data.contains("stop"))
-                {
-                    return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
-                }
-            }
-
-            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-        });
-
-    mp::LXDVirtualMachine machine{default_description, stub_monitor,        mock_network_access_manager.get(), base_url,
-                                  bridge_name,         default_storage_pool};
-
-    ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::running);
-
-    machine.start();
-
-    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::running);
-    EXPECT_FALSE(put_called);
 }
 
 TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
