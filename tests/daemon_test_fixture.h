@@ -45,6 +45,8 @@
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include <QThread>
+
 #include <chrono>
 #include <memory>
 
@@ -349,9 +351,18 @@ grpc::Status call_daemon_slot(Daemon& daemon, DaemonSlotPtr slot, const Request&
     std::promise<grpc::Status> status_promise;
     auto status_future = status_promise.get_future();
 
-    (daemon.*slot)(&request, &server, &status_promise);
+    auto thread = QThread::create([&daemon, slot, &request, &server, &status_promise] {
+        QEventLoop loop;
+        (daemon.*slot)(&request, &server, &status_promise);
+        loop.exec();
+    });
+
+    thread->start();
 
     EXPECT_TRUE(is_ready(status_future));
+
+    thread->quit();
+
     return status_future.get();
 }
 
