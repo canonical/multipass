@@ -314,7 +314,8 @@ namespace test
 template <typename R>
 bool is_ready(std::future<R> const& f)
 {
-    return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+    // 5 seconds should be plenty of time for the work to be complete
+    return f.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
 }
 
 template <typename W>
