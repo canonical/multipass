@@ -296,8 +296,6 @@ void mp::LibVirtVirtualMachine::start()
         domain = domain_by_name_for(vm_name, connection.get(), libvirt_wrapper);
 
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
-    if (state == State::running)
-        return;
 
     if (state == State::suspended)
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
