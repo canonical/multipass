@@ -150,7 +150,7 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
     EXPECT_CALL(daemon, list(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ListRequest, mp::ListReply>));
     EXPECT_CALL(daemon, recover(_, _, _))
-        .WillRepeatedly(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::RecoverRequest, mp::RecoverReply>));
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::RecoverRequest, mp::RecoverReply>));
     EXPECT_CALL(daemon, start(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::StartRequest, mp::StartReply>));
     EXPECT_CALL(daemon, stop(_, _, _))

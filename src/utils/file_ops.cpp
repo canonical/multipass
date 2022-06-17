@@ -23,11 +23,6 @@ mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Sin
 {
 }
 
-QDir mp::FileOps::current() const
-{
-    return QDir::current();
-}
-
 bool mp::FileOps::isReadable(const QDir& dir) const
 {
     return dir.isReadable();

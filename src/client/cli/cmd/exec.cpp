@@ -72,7 +72,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         if (!parser->isSet(no_dir_mapping_option))
         {
             // The host directory on which the user is executing the command.
-            QString clean_exec_dir = QDir::cleanPath(MP_FILEOPS.current().canonicalPath());
+            QString clean_exec_dir = QDir::cleanPath(QDir::current().canonicalPath());
             QStringList split_exec_dir = clean_exec_dir.split('/');
 
             auto on_info_success = [&work_dir, &split_exec_dir](mp::InfoReply& reply) {

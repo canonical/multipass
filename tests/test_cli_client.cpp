@@ -3218,7 +3218,7 @@ TEST_F(ClientAlias, execAliasRewritesMountedDir)
     std::string source_dir{(current_dir.canonicalPath()).toStdString()};
     std::string target_dir{"/home/ubuntu/dir"};
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function(source_dir, target_dir));
+    EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function(source_dir, target_dir));
 
     populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, true}}});
 
@@ -3259,7 +3259,10 @@ TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
     std::string source_dir{source_qdir.toStdString()};
     std::string target_dir{"/home/ubuntu/dir"};
 
-    EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function(source_dir, target_dir));
+    if (use_no_map_argument)
+        EXPECT_CALL(mock_daemon, info(_, _, _)).Times(0);
+    else
+        EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function(source_dir, target_dir));
 
     populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, true}}});
 
