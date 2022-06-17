@@ -206,7 +206,7 @@ _multipass_complete()
             opts="${opts} --all --purge"
         ;;
         "launch")
-            opts="${opts} --cpus --disk --mem --name --cloud-init --network --bridged"
+            opts="${opts} --cpus --disk --mem --name --cloud-init --network --bridged --mount"
         ;;
         "mount")
             opts="${opts} --gid-map --uid-map"
@@ -236,6 +236,10 @@ _multipass_complete()
                 prev_opts=true
             ;;
             "--cloud-init")
+                _filedir
+                return
+            ;;
+            "--mount")
                 _filedir
                 return
             ;;
