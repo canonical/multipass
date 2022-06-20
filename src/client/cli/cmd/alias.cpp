@@ -141,7 +141,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
     }
 
     auto instance = definition.left(colon_pos).toStdString();
-    bool map_working_directory(!parser->isSet(no_alias_dir_mapping_option));
+    bool working_directory(!parser->isSet(no_alias_dir_mapping_option));
 
     info_request.mutable_instance_names()->add_instance_name(instance);
     info_request.set_verbosity_level(0);
@@ -180,7 +180,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    alias_definition = AliasDefinition{instance, command, map_working_directory};
+    alias_definition = AliasDefinition{instance, command, working_directory};
 
     return ParseCode::Ok;
 }

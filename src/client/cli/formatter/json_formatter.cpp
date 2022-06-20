@@ -237,7 +237,7 @@ std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
         alias_obj.insert("alias", QString::fromStdString(alias));
         alias_obj.insert("instance", QString::fromStdString(def.instance));
         alias_obj.insert("command", QString::fromStdString(def.command));
-        alias_obj.insert("map-working-directory", def.map_working_directory);
+        alias_obj.insert("working-directory", def.working_directory);
 
         aliases_array.append(alias_obj);
     }

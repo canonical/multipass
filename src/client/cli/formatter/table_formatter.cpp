@@ -268,7 +268,7 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     {
         const auto& name = elt.first;
         const auto& def = elt.second;
-        std::string work_dir = def.map_working_directory ? "map" : "default";
+        std::string work_dir = def.working_directory ? "map" : "default";
 
         fmt::format_to(buf, row_format, name, alias_width, def.instance, instance_width, def.command, command_width,
                        work_dir);

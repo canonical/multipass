@@ -142,9 +142,9 @@ void mp::AliasDict::load_dict()
 
         auto instance = record["instance"].toString().toStdString();
         auto command = record["command"].toString().toStdString();
-        auto map_working_directory = record["map-working-directory"].toBool(); // Defaults to false if not present.
+        auto working_directory = record["working-directory"].toBool(); // Defaults to false if not present.
 
-        aliases.emplace(alias, mp::AliasDefinition{instance, command, map_working_directory});
+        aliases.emplace(alias, mp::AliasDefinition{instance, command, working_directory});
     }
 
     db_file.close();
@@ -156,7 +156,7 @@ void mp::AliasDict::save_dict()
         QJsonObject json;
         json.insert("instance", QString::fromStdString(alias.instance));
         json.insert("command", QString::fromStdString(alias.command));
-        json.insert("map-working-directory", alias.map_working_directory);
+        json.insert("working-directory", alias.working_directory);
 
         return json;
     };

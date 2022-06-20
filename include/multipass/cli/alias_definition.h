@@ -26,7 +26,7 @@ struct AliasDefinition
 {
     std::string instance;
     std::string command;
-    bool map_working_directory;
+    bool working_directory;
 };
 
 inline bool operator==(const AliasDefinition& a, const AliasDefinition& b)
