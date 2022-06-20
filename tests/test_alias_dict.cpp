@@ -286,14 +286,14 @@ TEST_P(FormatterTestsuite, table)
     ASSERT_EQ(mp::YamlFormatter().format(dict), yaml_output);
 }
 
-const std::string csv_head{"Alias,Instance,Command,Map working directory\n"};
+const std::string csv_head{"Alias,Instance,Command,Working directory\n"};
 
 INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTestsuite,
                          Values(std::make_tuple(AliasesVector{}, csv_head, "{\n    \"aliases\": [\n    ]\n}\n",
                                                 "No aliases defined.\n", "aliases: ~\n"),
                                 std::make_tuple(AliasesVector{{"lsp", {"primary", "ls", true}},
                                                               {"llp", {"primary", "ls", true}}},
-                                                csv_head + "llp,primary,ls,true\nlsp,primary,ls,true\n",
+                                                csv_head + "llp,primary,ls,map\nlsp,primary,ls,map\n",
                                                 "{\n    \"aliases\": [\n        {\n"
                                                 "            \"alias\": \"llp\",\n"
                                                 "            \"command\": \"ls\",\n"
@@ -306,9 +306,9 @@ INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTestsuite,
                                                 "            \"instance\": \"primary\",\n"
                                                 "            \"map-working-directory\": true\n"
                                                 "        }\n    ]\n}\n",
-                                                "Alias  Instance  Command  Map working directory\n"
-                                                "llp    primary   ls       true\n"
-                                                "lsp    primary   ls       true\n",
+                                                "Alias  Instance  Command  Working directory\n"
+                                                "llp    primary   ls       map\n"
+                                                "lsp    primary   ls       map\n",
                                                 "aliases:\n  - alias: llp\n    command: ls\n    instance: primary\n"
                                                 "    map-working-directory: true\n  - alias: lsp\n    command: ls\n"
                                                 "    instance: primary\n    map-working-directory: true\n")));
@@ -417,9 +417,9 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary, DaemonAliasTestsuite,
-    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,true\n",
+    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,map\n",
                            std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}}, csv_head + "lsp,primary,ls,true\n",
+           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}}, csv_head + "lsp,primary,ls,map\n",
                            std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
                            csv_head, std::vector<std::string>{"lsp", "lsz"}, std::vector<std::string>{}),
@@ -427,7 +427,7 @@ INSTANTIATE_TEST_SUITE_P(
                            csv_head, std::vector<std::string>{}, std::vector<std::string>{"lsp", "lsz"}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
                            csv_head, std::vector<std::string>{"lsp"}, std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,true\n",
+           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,map\n",
                            std::vector<std::string>{}, std::vector<std::string>{"lsz"}),
            std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}}, csv_head,
                            std::vector<std::string>{}, std::vector<std::string>{"lsz", "lsp"})));

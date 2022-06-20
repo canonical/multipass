@@ -262,15 +262,16 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
 
     fmt::format_to(buf, row_format, "Alias", alias_width, "Instance", instance_width, "Command", command_width,
-                   "Map working directory");
+                   "Working directory");
 
     for (const auto& elt : sort_dict(aliases))
     {
         const auto& name = elt.first;
         const auto& def = elt.second;
+        std::string work_dir = def.map_working_directory ? "map" : "default";
 
         fmt::format_to(buf, row_format, name, alias_width, def.instance, instance_width, def.command, command_width,
-                       def.map_working_directory);
+                       work_dir);
     }
 
     return fmt::to_string(buf);
