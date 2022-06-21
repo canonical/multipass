@@ -1281,7 +1281,7 @@ try // clang-format on
             }
         }
 
-        if (mp::utils::is_running(present_state))
+        if (!request->no_runtime_information() && mp::utils::is_running(present_state))
         {
             mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
                                    *config->ssh_key_provider};

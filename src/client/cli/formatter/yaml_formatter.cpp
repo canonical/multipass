@@ -225,6 +225,7 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
         alias_node["alias"] = alias;
         alias_node["command"] = def.command;
         alias_node["instance"] = def.instance;
+        alias_node["working-directory"] = def.working_directory;
 
         aliases_node.push_back(alias_node);
     }

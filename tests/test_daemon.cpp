@@ -178,7 +178,7 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
                    {"test_create", "foo"},
                    {"launch", "foo"},
                    {"delete", "foo"},
-                   {"exec", "foo", "--", "cmd"},
+                   {"exec", "foo", "--no-map-working-directory", "--", "cmd"},
                    {"info", "foo"},
                    {"list"},
                    {"purge"},

@@ -215,6 +215,9 @@ QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_tem
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
 {
+    if (args.empty())
+        return "";
+
     fmt::memory_buffer buf;
     for (auto const& arg : args)
     {

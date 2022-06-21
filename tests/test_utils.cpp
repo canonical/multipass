@@ -355,6 +355,13 @@ TEST(Utils, generateScryptHashErrorThrows)
                          mpt::match_what(StrEq("Cannot generate passphrase hash")));
 }
 
+TEST(Utils, to_cmd_returns_empty_string_on_empty_input)
+{
+    std::vector<std::string> args{};
+    auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
+    EXPECT_THAT(output, ::testing::StrEq(""));
+}
+
 TEST(Utils, to_cmd_output_has_no_quotes)
 {
     std::vector<std::string> args{"hello", "world"};
