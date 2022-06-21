@@ -175,6 +175,25 @@ TEST_F(AliasDictionary, mapDirEmptyStringTraslatesToDefault)
     ASSERT_EQ(a4->working_directory, "default");
 }
 
+TEST_F(AliasDictionary, mapDirWrongThrows)
+{
+    std::string file_contents{"{\n"
+                              "    \"alias5\": {\n"
+                              "        \"command\": \"fifth_command\",\n"
+                              "        \"instance\": \"fifth_instance\",\n"
+                              "        \"working-directory\": \"wrong string\"\n"
+                              "    }\n"
+                              "}\n"};
+
+    mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
+
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+
+    MP_ASSERT_THROW_THAT(mp::AliasDict dict(&trash_term), std::runtime_error,
+                         mpt::match_what(HasSubstr("invalid working_directory string \"wrong string\"")));
+}
+
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
 struct WriteReadTestsuite : public AliasDictionary, public WithParamInterface<AliasesVector>
