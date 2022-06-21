@@ -29,9 +29,9 @@ namespace
 const QString work_dir_option_name{"working-directory"};
 const QString no_dir_mapping_option{"no-map-working-directory"};
 
-bool is_dir_mounted(const QStringList& split_current_dir, const QStringList& split_source_dir)
+auto is_dir_mounted(const QStringList& split_current_dir, const QStringList& split_source_dir)
 {
-    int source_dir_size = split_source_dir.size();
+    auto source_dir_size = split_source_dir.size();
 
     if (split_current_dir.size() < source_dir_size)
         return false;
