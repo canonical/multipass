@@ -59,15 +59,15 @@ int mp::SSHClient::exec(const std::vector<std::string>& args)
     return exec_string(utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg));
 }
 
-int mp::SSHClient::exec(const std::vector<std::vector<std::string>>& argss)
+int mp::SSHClient::exec(const std::vector<std::vector<std::string>>& args_list)
 {
     std::string cmd_line;
 
-    if (argss.size())
+    if (args_list.size())
     {
-        auto args_it = argss.begin();
+        auto args_it = args_list.begin();
         cmd_line = utils::to_cmd(*args_it++, mp::utils::QuoteType::quote_every_arg);
-        for (; args_it != argss.end(); ++args_it)
+        for (; args_it != args_list.end(); ++args_it)
             cmd_line += "&&" + utils::to_cmd(*args_it, mp::utils::QuoteType::quote_every_arg);
     }
 

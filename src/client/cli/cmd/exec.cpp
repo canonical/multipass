@@ -19,7 +19,6 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
-#include <multipass/file_ops.h>
 #include <multipass/ssh/ssh_client.h>
 
 namespace mp = multipass;
@@ -53,13 +52,13 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    std::string instance_name = ssh_info_request.instance_name(0);
+    auto instance_name = ssh_info_request.instance_name(0);
 
     std::vector<std::string> args;
     for (int i = 1; i < parser->positionalArguments().size(); ++i)
         args.push_back(parser->positionalArguments().at(i).toStdString());
 
-    std::optional<std::string> work_dir;
+    mp::optional<std::string> work_dir;
     if (parser->isSet(work_dir_option_name))
     {
         // If the user asked for a working directory, prepend the appropriate `cd`.

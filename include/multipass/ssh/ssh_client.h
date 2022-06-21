@@ -43,7 +43,7 @@ public:
     SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_creator);
 
     int exec(const std::vector<std::string>& args);
-    int exec(const std::vector<std::vector<std::string>>& argss);
+    int exec(const std::vector<std::vector<std::string>>& args_list);
     void connect();
 
 private:
