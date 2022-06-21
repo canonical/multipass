@@ -34,6 +34,15 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
+namespace
+{
+void check_working_directory_string(const std::string& dir)
+{
+    if (dir != "map" && dir != "default")
+        throw std::runtime_error(fmt::format("invalid working_directory string \"{}\"", dir));
+}
+} // namespace
+
 mp::AliasDict::AliasDict(mp::Terminal* term) : cout(term->cout()), cerr(term->cerr())
 {
     const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
@@ -142,7 +151,16 @@ void mp::AliasDict::load_dict()
 
         auto instance = record["instance"].toString().toStdString();
         auto command = record["command"].toString().toStdString();
-        auto working_directory = record["working-directory"].toBool(); // Defaults to false if not present.
+
+        auto read_working_directory = record["working-directory"];
+        std::string working_directory;
+
+        if (read_working_directory.isString() && !read_working_directory.toString().isEmpty())
+            working_directory = read_working_directory.toString().toStdString();
+        else
+            working_directory = "default";
+
+        check_working_directory_string(working_directory);
 
         aliases.emplace(alias, mp::AliasDefinition{instance, command, working_directory});
     }
@@ -154,9 +172,12 @@ void mp::AliasDict::save_dict()
 {
     auto alias_to_json = [](const mp::AliasDefinition& alias) -> QJsonObject {
         QJsonObject json;
+
+        check_working_directory_string(alias.working_directory);
+
         json.insert("instance", QString::fromStdString(alias.instance));
         json.insert("command", QString::fromStdString(alias.command));
-        json.insert("working-directory", alias.working_directory);
+        json.insert("working-directory", QString::fromStdString(alias.working_directory));
 
         return json;
     };

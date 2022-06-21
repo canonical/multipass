@@ -122,9 +122,8 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
     {
         const auto& name = elt.first;
         const auto& def = elt.second;
-        std::string work_dir = def.working_directory ? "map" : "default";
 
-        fmt::format_to(buf, "{},{},{},{}\n", name, def.instance, def.command, work_dir);
+        fmt::format_to(buf, "{},{},{},{}\n", name, def.instance, def.command, def.working_directory);
     }
 
     return fmt::to_string(buf);
