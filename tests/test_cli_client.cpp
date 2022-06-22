@@ -3249,7 +3249,7 @@ struct NotDirRewriteTestsuite : public ClientAlias, public WithParamInterface<st
 
 TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
 {
-    auto [use_no_map_argument, source_qdir] = GetParam();
+    auto [map_dir, source_qdir] = GetParam();
 
     std::string alias_name{"an_alias"};
     std::string instance_name{"primary"};
@@ -3259,12 +3259,12 @@ TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
     std::string source_dir{source_qdir.toStdString()};
     std::string target_dir{"/home/ubuntu/dir"};
 
-    if (use_no_map_argument)
-        EXPECT_CALL(mock_daemon, info(_, _, _)).Times(0);
-    else
+    if (map_dir)
         EXPECT_CALL(mock_daemon, info(_, _, _)).WillOnce(make_info_function(source_dir, target_dir));
+    else
+        EXPECT_CALL(mock_daemon, info(_, _, _)).Times(0);
 
-    populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, "map"}}});
+    populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, map_dir ? "map" : "default"}}});
 
     REPLACE(ssh_channel_request_exec, ([&cmd](ssh_channel, const char* raw_cmd) {
                 EXPECT_THAT(raw_cmd, Not(StartsWith("'cd' '")));
@@ -3285,8 +3285,6 @@ TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
         });
 
     std::vector<std::string> arguments{alias_name};
-    if (use_no_map_argument)
-        arguments.emplace_back("--no-map-working-directory");
 
     EXPECT_EQ(send_command(arguments), mp::ReturnCode::Ok);
 }
@@ -3300,7 +3298,7 @@ QString current_cdup()
 }
 
 INSTANTIATE_TEST_SUITE_P(ClientAlias, NotDirRewriteTestsuite,
-                         Values(std::make_pair(true, QDir{QDir::current()}.canonicalPath()),
-                                std::make_pair(false, QDir{QDir::current()}.canonicalPath() + "/0/1/2/3/4/5/6/7/8/9"),
-                                std::make_pair(false, current_cdup() + "/different_name")));
+                         Values(std::make_pair(false, QDir{QDir::current()}.canonicalPath()),
+                                std::make_pair(true, QDir{QDir::current()}.canonicalPath() + "/0/1/2/3/4/5/6/7/8/9"),
+                                std::make_pair(true, current_cdup() + "/different_name")));
 } // namespace
