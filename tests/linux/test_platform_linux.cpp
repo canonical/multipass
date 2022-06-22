@@ -763,7 +763,7 @@ TEST_F(PlatformLinux, create_alias_script_works_unconfined)
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
     checked_script.open(QFile::ReadOnly);
@@ -788,7 +788,7 @@ TEST_F(PlatformLinux, create_alias_script_works_confined)
 
     qputenv("SNAP_NAME", QByteArray{"multipass"});
     qputenv("SNAP_USER_COMMON", tmp_dir.path().toUtf8());
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
     checked_script.open(QFile::ReadOnly);
@@ -816,7 +816,8 @@ TEST_F(PlatformLinux, create_alias_script_overwrites)
     EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
     EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(true));
 
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command"}));
+    EXPECT_NO_THROW(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command", "map"}));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
@@ -825,8 +826,9 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
 
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error, mpt::match_what(HasSubstr("failed to create dir '")));
+    MP_EXPECT_THROW_THAT(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
+        std::runtime_error, mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
@@ -837,8 +839,9 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce(Return(747));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error, mpt::match_what(HasSubstr("failed to write to file '")));
+    MP_EXPECT_THROW_THAT(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
+        std::runtime_error, mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
@@ -850,8 +853,9 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
     EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
     EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error, mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
+    MP_EXPECT_THROW_THAT(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
+        std::runtime_error, mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
 }
 
 TEST_F(PlatformLinux, remove_alias_script_works)

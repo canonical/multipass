@@ -147,9 +147,10 @@ private:
     std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
                                                         grpc::ServerWriterInterface<Reply>* server);
     template <typename Reply>
-    AsyncOperationStatus
-    async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server, const std::vector<std::string>& vms,
-                             const std::chrono::seconds& timeout, std::promise<grpc::Status>* status_promise);
+    AsyncOperationStatus async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server,
+                                                  const std::vector<std::string>& vms,
+                                                  const std::chrono::seconds& timeout,
+                                                  std::promise<grpc::Status>* status_promise, const bool start_vm);
     void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
 

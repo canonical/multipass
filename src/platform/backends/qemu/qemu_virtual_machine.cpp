@@ -244,12 +244,6 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
 
 void mp::QemuVirtualMachine::start()
 {
-    if (state == State::running)
-        return;
-
-    if (state == State::suspending)
-        throw std::runtime_error("cannot start the instance while suspending");
-
     initialize_vm_process();
 
     if (state == State::suspended)
