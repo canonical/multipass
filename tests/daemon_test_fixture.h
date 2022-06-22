@@ -19,6 +19,7 @@
 #define MULTIPASS_DAEMON_TEST_FIXTURE_H
 
 #include "common.h"
+#include "file_operations.h"
 #include "mock_cert_provider.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
@@ -43,6 +44,8 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/command.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+
+#include <QThread>
 
 #include <chrono>
 #include <memory>
@@ -311,7 +314,8 @@ namespace test
 template <typename R>
 bool is_ready(std::future<R> const& f)
 {
-    return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+    // 5 seconds should be plenty of time for the work to be complete
+    return f.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
 }
 
 template <typename W>
@@ -348,9 +352,18 @@ grpc::Status call_daemon_slot(Daemon& daemon, DaemonSlotPtr slot, const Request&
     std::promise<grpc::Status> status_promise;
     auto status_future = status_promise.get_future();
 
-    (daemon.*slot)(&request, &server, &status_promise);
+    auto thread = QThread::create([&daemon, slot, &request, &server, &status_promise] {
+        QEventLoop loop;
+        (daemon.*slot)(&request, &server, &status_promise);
+        loop.exec();
+    });
+
+    thread->start();
 
     EXPECT_TRUE(is_ready(status_future));
+
+    thread->quit();
+
     return status_future.get();
 }
 
@@ -459,6 +472,100 @@ struct DaemonTestFixture : public ::Test
         }
 
         return count;
+    }
+
+    std::string fake_json_contents(const std::string& default_mac,
+                                   const std::vector<mp::NetworkInterface>& extra_ifaces,
+                                   const mp::optional<mp::VMMount>& mount = mp::nullopt)
+    {
+        QString contents("{\n"
+                         "    \"real-zebraphant\": {\n"
+                         "        \"deleted\": false,\n"
+                         "        \"disk_space\": \"5368709120\",\n"
+                         "        \"extra_interfaces\": [\n");
+
+        QStringList array_elements;
+        for (auto extra_interface : extra_ifaces)
+        {
+            array_elements += QString::fromStdString(fmt::format("            {{\n"
+                                                                 "                \"auto_mode\": {},\n"
+                                                                 "                \"id\": \"{}\",\n"
+                                                                 "                \"mac_address\": \"{}\"\n"
+                                                                 "            }}\n",
+                                                                 extra_interface.auto_mode, extra_interface.id,
+                                                                 extra_interface.mac_address));
+        }
+        contents += array_elements.join(',');
+
+        contents += QString::fromStdString(fmt::format("        ],\n"
+                                                       "        \"mac_addr\": \"{}\",\n"
+                                                       "        \"mem_size\": \"1073741824\",\n"
+                                                       "        \"metadata\": {{\n"
+                                                       "            \"arguments\": [\n"
+                                                       "                \"many\",\n"
+                                                       "                \"arguments\"\n"
+                                                       "            ],\n"
+                                                       "            \"machine_type\": \"dmc-de-lorean\"\n"
+                                                       "        }},\n"
+                                                       "        \"mounts\": [\n",
+                                                       default_mac));
+
+        if (mount)
+        {
+            contents += QString::fromStdString(fmt::format("            {{\n"
+                                                           "                \"gid_mappings\": ["));
+
+            array_elements.clear();
+            for (const auto& gid_pair : mount->gid_mappings)
+            {
+                array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
+                                                                     "                        \"host_gid\": {},\n"
+                                                                     "                        \"instance_gid\": {}\n"
+                                                                     "                    }}",
+                                                                     gid_pair.first, gid_pair.second));
+            }
+            contents += array_elements.join(',');
+
+            contents += QString::fromStdString(fmt::format("\n                ],\n"
+                                                           "                \"source_path\": \"{}\",\n"
+                                                           "                \"target_path\": \"Home\",\n"
+                                                           "                \"uid_mappings\": [",
+                                                           mount->source_path));
+
+            array_elements.clear();
+            for (const auto& uid_pair : mount->uid_mappings)
+            {
+                array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
+                                                                     "                        \"host_uid\": {},\n"
+                                                                     "                        \"instance_uid\": {}\n"
+                                                                     "                    }}",
+                                                                     uid_pair.first, uid_pair.second));
+            }
+            contents += array_elements.join(',');
+
+            contents += QString::fromStdString(fmt::format("\n                ]\n"
+                                                           "            }}\n"));
+        }
+
+        contents += QString::fromStdString(fmt::format("        ],\n"
+                                                       "        \"num_cores\": 1,\n"
+                                                       "        \"ssh_username\": \"ubuntu\",\n"
+                                                       "        \"state\": 2\n"
+                                                       "    }}\n"
+                                                       "}}"));
+
+        return contents.toStdString();
+    }
+
+    std::pair<std::unique_ptr<TempDir>, QString> // unique_ptr bypasses missing move ctor
+    plant_instance_json(const std::string& contents)
+    {
+        auto temp_dir = std::make_unique<TempDir>();
+        QString filename(temp_dir->path() + "/multipassd-vm-instances.json");
+
+        make_file_with_content(filename, contents);
+
+        return {std::move(temp_dir), filename};
     }
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS

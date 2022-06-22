@@ -246,22 +246,6 @@ TEST_F(QemuBackend, machine_start_suspend_sends_monitoring_event)
     machine->suspend();
 }
 
-TEST_F(QemuBackend, throws_when_starting_while_suspending)
-{
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
-        return std::move(mock_qemu_platform);
-    });
-
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
-
-    auto machine = backend.create_virtual_machine(default_description, mock_monitor);
-
-    machine->state = mp::VirtualMachine::State::suspending;
-
-    EXPECT_THROW(machine->start(), std::runtime_error);
-}
-
 TEST_F(QemuBackend, throws_when_shutdown_while_starting)
 {
     mpt::MockProcess* vmproc = nullptr;

@@ -212,14 +212,6 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
 
 void mp::LXDVirtualMachine::start()
 {
-    auto present_state = current_state();
-
-    if (present_state == State::running)
-        return;
-
-    if (present_state == State::suspending)
-        throw std::runtime_error("cannot start the instance while suspending");
-
     if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
