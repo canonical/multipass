@@ -3099,8 +3099,8 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAlias)
 
 TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAliases)
 {
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
-                                   {"another_alias", {"another_instance", "another_command"}}});
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "default"}},
+                                   {"another_alias", {"another_instance", "another_command", "map"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "unexisting_alias", "another_unexisting_alias"}, trash_stream, cerr_stream),
@@ -3110,14 +3110,14 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAliases)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
-                                 "another_instance,another_command\n");
+    EXPECT_EQ(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,default\n"
+                                              "another_alias,another_instance,another_command,map\n");
 }
 
 TEST_F(ClientAlias, unaliasDashDashAllWorks)
 {
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
-                                   {"another_alias", {"another_instance", "another_command"}}});
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}},
+                                   {"another_alias", {"another_instance", "another_command", "default"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "--all"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
@@ -3126,13 +3126,13 @@ TEST_F(ClientAlias, unaliasDashDashAllWorks)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command\n");
+    EXPECT_EQ(cout_stream.str(), csv_header);
 }
 
 TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
 {
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command"}},
-                                   {"another_alias", {"another_instance", "another_command"}}});
+    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}},
+                                   {"another_alias", {"another_instance", "another_command", "default"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "arg", "--all"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
@@ -3141,8 +3141,8 @@ TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_EQ(cout_stream.str(), "Alias,Instance,Command\nan_alias,an_instance,a_command\nanother_alias,"
-                                 "another_instance,another_command\n");
+    EXPECT_EQ(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map\n"
+                                              "another_alias,another_instance,another_command,default\n");
 }
 
 TEST_F(ClientAlias, fails_when_remove_backup_alias_file_fails)

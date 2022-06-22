@@ -235,7 +235,7 @@ TEST_F(AliasDictionary, existsAliasWorksWithExistingAlias)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    dict.add_alias("existing", mp::AliasDefinition{"instance", "command"});
+    dict.add_alias("existing", mp::AliasDefinition{"instance", "command", "map"});
 
     ASSERT_TRUE(dict.exists_alias("existing"));
 }
@@ -281,8 +281,8 @@ TEST_F(AliasDictionary, clearWorks)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    dict.add_alias("first", mp::AliasDefinition{"instance", "command"});
-    dict.add_alias("second", mp::AliasDefinition{"other_instance", "other_command"});
+    dict.add_alias("first", mp::AliasDefinition{"instance", "command", "default"});
+    dict.add_alias("second", mp::AliasDefinition{"other_instance", "other_command", "map"});
     dict.clear();
 
     ASSERT_TRUE(dict.empty());
