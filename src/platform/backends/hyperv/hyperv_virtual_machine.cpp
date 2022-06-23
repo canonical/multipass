@@ -164,11 +164,6 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 
 void mp::HyperVVirtualMachine::start()
 {
-    auto present_state = current_state();
-
-    if (present_state == State::running)
-        return;
-
     state = State::starting;
     update_state();
 
