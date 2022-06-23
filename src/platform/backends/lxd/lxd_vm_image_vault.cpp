@@ -181,18 +181,25 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
         source_image.id = config["volatile.base_image"].toString().toStdString();
 
-        Query image_query;
-        image_query.release = config["image.release"].toString().toStdString();
-
-        try
+        if (config.contains("image.release_title"))
         {
-            const auto info = info_for(image_query);
-
-            source_image.original_release = info.release_title.toStdString();
+            source_image.original_release = config["image.release_title"].toString().toStdString();
         }
-        catch (const std::exception&)
+        else
         {
-            // do nothing
+            Query image_query;
+            image_query.release = config["image.release"].toString().toStdString();
+
+            try
+            {
+                const auto info = info_for(image_query);
+
+                source_image.original_release = info.release_title.toStdString();
+            }
+            catch (const std::exception&)
+            {
+                // do nothing
+            }
         }
 
         return source_image;
@@ -265,7 +272,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
         }
         else if (!info.stream_location.isEmpty())
         {
-            lxd_download_image(id, info.stream_location, query, monitor);
+            lxd_download_image(info, query, monitor);
         }
         else if (!info.image_location.isEmpty())
         {
@@ -405,8 +412,7 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const Prepa
                     mpl::log(mpl::Level::info, category,
                              fmt::format("Updating {} source image to latest", query.release));
 
-                    lxd_download_image(info.id, info.stream_location, query, monitor,
-                                       image_info["last_used_at"].toString());
+                    lxd_download_image(info, query, monitor, image_info["last_used_at"].toString());
 
                     lxd_request(manager, "DELETE", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
                 }
@@ -443,14 +449,15 @@ mp::MemorySize mp::LXDVMImageVault::minimum_image_size_for(const std::string& id
     return lxd_image_size;
 }
 
-void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& stream_location, const Query& query,
+void mp::LXDVMImageVault::lxd_download_image(const VMImageInfo& info, const Query& query,
                                              const ProgressMonitor& monitor, const QString& last_used)
 {
+    const auto id = info.id;
     QJsonObject source_object;
 
     source_object.insert("type", "image");
     source_object.insert("mode", "pull");
-    source_object.insert("server", stream_location);
+    source_object.insert("server", info.stream_location);
     source_object.insert("protocol", "simplestreams");
     source_object.insert("image_type", "virtual-machine");
     source_object.insert("fingerprint", id);
@@ -462,7 +469,8 @@ void mp::LXDVMImageVault::lxd_download_image(const QString& id, const QString& s
     if (!id.startsWith(release))
     {
         QJsonObject properties_object{{"query.release", release},
-                                      {"query.remote", QString::fromStdString(query.remote_name)}};
+                                      {"query.remote", QString::fromStdString(query.remote_name)},
+                                      {"release_title", info.release_title}};
 
         // Need to save the original image's last_used_at as a property since there is no way to modify the
         // new image's last_used_at field.
