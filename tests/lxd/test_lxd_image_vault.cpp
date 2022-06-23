@@ -129,6 +129,64 @@ TEST_F(LXDImageVault, instance_exists_custom_image_returns_expected_image_info)
     EXPECT_EQ(image.release_date, "20200923");
 }
 
+TEST_F(LXDImageVault, instance_exists_uses_cached_release_title)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET")
+        {
+            if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::vm_info_data_with_image_release);
+            }
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    mp::VMImage image;
+    EXPECT_NO_THROW(image =
+                        image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor));
+
+    EXPECT_EQ(image.id, mpt::default_id);
+    EXPECT_EQ(image.original_release, "Fake Title");
+}
+
+TEST_F(LXDImageVault, instance_exists_no_cached_release_title_info_for_fails)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET")
+        {
+            if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::vm_info_data);
+            }
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    EXPECT_CALL(host, info_for(_)).WillRepeatedly(Throw(std::runtime_error("foo")));
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    mp::VMImage image;
+    EXPECT_NO_THROW(image =
+                        image_vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor));
+
+    EXPECT_EQ(image.id, mpt::default_id);
+    EXPECT_EQ(image.original_release, "");
+}
+
 TEST_F(LXDImageVault, returns_expected_info_with_valid_remote)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
