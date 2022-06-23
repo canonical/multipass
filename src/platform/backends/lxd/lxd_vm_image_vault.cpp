@@ -162,6 +162,8 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
     // Look for an already existing instance and get its image info
     try
     {
+        VMImage source_image;
+
         auto instance_info = lxd_request(
             manager, "GET",
             QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(QString::fromStdString(query.name))));
@@ -170,8 +172,6 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
         if (config.contains("image.original_hash"))
         {
-            VMImage source_image;
-
             source_image.id = config["image.original_hash"].toString().toStdString();
             source_image.original_release = config["image.description"].toString().toStdString();
             source_image.release_date = config["image.version"].toString().toStdString();
@@ -179,17 +179,21 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             return source_image;
         }
 
+        source_image.id = config["volatile.base_image"].toString().toStdString();
+
         Query image_query;
         image_query.release = config["image.release"].toString().toStdString();
 
-        const auto info = info_for(image_query);
+        try
+        {
+            const auto info = info_for(image_query);
 
-        VMImage source_image;
-
-        source_image.id = info.id.toStdString();
-        source_image.original_release = info.release_title.toStdString();
-        source_image.release_date = info.version.toStdString();
-        source_image.aliases = copy_aliases(info.aliases);
+            source_image.original_release = info.release_title.toStdString();
+        }
+        catch (const std::exception&)
+        {
+            // do nothing
+        }
 
         return source_image;
     }
