@@ -69,9 +69,12 @@ public:
     }
     void clear()
     {
-        modified = true;
+        if (!aliases.empty())
+        {
+            modified = true;
 
-        return aliases.clear();
+            aliases.clear();
+        }
     }
 
 private:
