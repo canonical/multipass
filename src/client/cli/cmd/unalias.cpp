@@ -42,16 +42,8 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
 
         if (!bad_aliases.empty())
         {
-            auto i = bad_aliases.begin();
-            if (bad_aliases.size() == 1)
-                cerr << fmt::format("Unexisting alias: {}.\n", *i);
-            else
-            {
-                cerr << fmt::format("Unexisting aliases: {}", *i);
-                for (++i; i != bad_aliases.end(); ++i)
-                    cerr << fmt::format(", {}", *i);
-                cerr << ".\n";
-            }
+            cerr << fmt::format("Nonexistent {}: {}.\n", bad_aliases.size() == 1 ? "alias" : "aliases",
+                                fmt::join(bad_aliases, ", "));
 
             return ReturnCode::CommandLineError;
         }
