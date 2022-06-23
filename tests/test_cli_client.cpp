@@ -2981,7 +2981,7 @@ TEST_F(ClientAlias, execute_existing_alias)
     EXPECT_EQ(send_command({"some_alias"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(ClientAlias, execute_unexisting_alias)
+TEST_F(ClientAlias, execute_nonexistent_alias)
 {
     populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", "map"}}});
 
@@ -3015,7 +3015,7 @@ TEST_F(ClientAlias, fails_executing_alias_without_separator)
                                              "multipass <alias> -- <arguments>\n"));
 }
 
-TEST_F(ClientAlias, alias_refuses_creation_unexisting_instance)
+TEST_F(ClientAlias, alias_refuses_creation_nonexistent_instance)
 {
     EXPECT_CALL(mock_daemon, info(_, _, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
@@ -3085,9 +3085,9 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAlias)
                                    {"another_alias", {"another_instance", "another_command", "default"}}});
 
     std::stringstream cerr_stream;
-    EXPECT_EQ(send_command({"unalias", "unexisting_alias"}, trash_stream, cerr_stream),
+    EXPECT_EQ(send_command({"unalias", "nonexistent_alias"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
-    EXPECT_EQ(cerr_stream.str(), "Nonexistent alias: unexisting_alias.\n");
+    EXPECT_EQ(cerr_stream.str(), "Nonexistent alias: nonexistent_alias.\n");
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
@@ -3103,9 +3103,14 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAliases)
                                    {"another_alias", {"another_instance", "another_command", "map"}}});
 
     std::stringstream cerr_stream;
-    EXPECT_EQ(send_command({"unalias", "unexisting_alias", "another_unexisting_alias"}, trash_stream, cerr_stream),
+    EXPECT_EQ(send_command({"unalias", "nonexistent_alias", "another_nonexistent_alias"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
-    EXPECT_EQ(cerr_stream.str(), "Nonexistent aliases: unexisting_alias, another_unexisting_alias.\n");
+    // Since the container for bad aliases is unordered, we cannot expect an ordered output.
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Nonexistent aliases: "));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("nonexistent_alias"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(", "));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("another_nonexistent_alias"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(".\n"));
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
