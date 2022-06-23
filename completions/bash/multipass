@@ -99,6 +99,30 @@ _multipass_complete()
         multipass_aliases=$( \eval $cmd | \grep -Ev '(\+--|Alias)' | \cut -d',' -f 1 )
     }
 
+    # Set $unused_aliases to the list of aliases from which were not yet specified in the command-line.
+    _unused_aliases()
+    {
+        _multipass_aliases
+
+        local alias_found=0
+
+        unused_aliases=""
+
+        for j in $multipass_aliases; do
+            alias_found=0
+
+            for ((i=2; i<COMP_CWORD; ++i)); do
+                if [[ "${COMP_WORDS[$i]}" == "$j" ]]; then
+                    alias_found=1
+                fi
+            done
+
+            if [[ ${alias_found} == 0 ]]; then
+                unused_aliases="${unused_aliases} $j"
+            fi
+        done
+    }
+
     # Removes the comma or equals sign at the end of $cur.
     _remove_trailing_char()
     {
@@ -177,7 +201,7 @@ _multipass_complete()
         COMP_WORDBREAKS="${COMP_WORDBREAKS}="
     fi
 
-    local cur cmd opts prev prev2 prev_opts multipass_aliases
+    local cur cmd opts prev prev2 prev_opts multipass_aliases unused_aliases
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -230,8 +254,8 @@ _multipass_complete()
             opts="${opts} --format"
         ;;
         "unalias")
-            _multipass_aliases
-            opts="${opts} ${multipass_aliases}"
+            _unused_aliases
+            opts="${opts} ${unused_aliases}"
         ;;
     esac
 
