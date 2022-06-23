@@ -21,6 +21,8 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
+#include <unordered_set>
+
 #include <QString>
 
 namespace multipass
@@ -45,7 +47,7 @@ private:
     ParseCode parse_args(ArgParser* parser);
 
     AliasDict aliases;
-    std::vector<std::string> aliases_to_remove;
+    std::unordered_set<std::string> aliases_to_remove;
 };
 } // namespace cmd
 } // namespace multipass

@@ -98,12 +98,12 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
     if (parser->isSet(all_option_name))
     {
         for (auto definition_it = aliases.cbegin(); definition_it != aliases.cend(); ++definition_it)
-            aliases_to_remove.push_back(definition_it->first);
+            aliases_to_remove.emplace(definition_it->first);
     }
     else
     {
         for (const auto& arg : parser->positionalArguments())
-            aliases_to_remove.push_back(arg.toStdString());
+            aliases_to_remove.emplace(arg.toStdString());
     }
 
     return ParseCode::Ok;
