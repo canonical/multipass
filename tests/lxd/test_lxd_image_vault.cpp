@@ -98,7 +98,6 @@ TEST_F(LXDImageVault, instance_exists_fetch_returns_expected_image_info)
 
     EXPECT_EQ(image.id, mpt::default_id);
     EXPECT_EQ(image.original_release, "18.04 LTS");
-    EXPECT_EQ(image.release_date, mpt::default_version);
 }
 
 TEST_F(LXDImageVault, instance_exists_custom_image_returns_expected_image_info)
