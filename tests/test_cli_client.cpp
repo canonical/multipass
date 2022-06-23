@@ -3079,7 +3079,7 @@ TEST_F(ClientAlias, unalias_succeeds_even_if_script_cannot_be_removed)
     EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map\n");
 }
 
-TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAlias)
+TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAlias)
 {
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}},
                                    {"another_alias", {"another_instance", "another_command", "default"}}});
@@ -3087,7 +3087,7 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAlias)
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "unexisting_alias"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
-    EXPECT_EQ(cerr_stream.str(), "Unexisting alias: unexisting_alias.\n");
+    EXPECT_EQ(cerr_stream.str(), "Nonexistent alias: unexisting_alias.\n");
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
@@ -3097,7 +3097,7 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAlias)
                   "an_alias,an_instance,a_command,map\nanother_alias,another_instance,another_command,default\n");
 }
 
-TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAliases)
+TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAliases)
 {
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "default"}},
                                    {"another_alias", {"another_instance", "another_command", "map"}}});
@@ -3105,7 +3105,7 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveUnexistingAliases)
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "unexisting_alias", "another_unexisting_alias"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
-    EXPECT_EQ(cerr_stream.str(), "Unexisting aliases: unexisting_alias, another_unexisting_alias.\n");
+    EXPECT_EQ(cerr_stream.str(), "Nonexistent aliases: unexisting_alias, another_unexisting_alias.\n");
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
