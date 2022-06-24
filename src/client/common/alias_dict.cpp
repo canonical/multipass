@@ -77,6 +77,11 @@ void mp::AliasDict::add_alias(const std::string& alias, const mp::AliasDefinitio
     }
 }
 
+bool mp::AliasDict::exists_alias(const std::string& alias)
+{
+    return aliases.count(alias);
+}
+
 bool mp::AliasDict::remove_alias(const std::string& alias)
 {
     if (aliases.erase(alias) > 0)
