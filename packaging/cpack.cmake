@@ -146,6 +146,7 @@ if (MSVC)
     CopyFiles '$INSTDIR\\\\Fonts\\\\*' '$WINDIR\\\\Fonts'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Fonts' 'Ubuntu Mono (TrueType)' 'UbuntuMono-R.ttf'
     CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\multipass.gui.exe'
+    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Multipass' 'DisplayIcon' '$INSTDIR\\\\bin\\\\multipass_wt.ico'
     "
   )
 
