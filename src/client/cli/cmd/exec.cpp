@@ -66,9 +66,12 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
     }
     else
     {
-        // If the current working directory is mounted in the instance, then prepend the appropriate `cd` to the
-        // command to be ran (unless the user specified the non-mapping option).
-        if (!parser->isSet(no_dir_mapping_option))
+        // Decide whether the working directory must be mapped. There are two cases to consider:
+        // 1. when executing an alias, see if the working directory is set to "map";
+        // 2. when not executing an alias, see if the user did not specify the no-mapping argument.
+        // If one of these two things is true, then prepend the appropriate `cd` to the command to be ran.
+        if ((parser->executeAlias() && parser->executeAlias()->working_directory == "map") ||
+            (!parser->executeAlias() && !parser->isSet(no_dir_mapping_option)))
         {
             // The host directory on which the user is executing the command.
             QString clean_exec_dir = QDir::cleanPath(QDir::current().canonicalPath());
