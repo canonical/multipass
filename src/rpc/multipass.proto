@@ -263,6 +263,7 @@ message MountRequest {
     repeated TargetPathInfo target_paths = 2;
     MountMaps mount_maps = 3;
     int32 verbosity_level = 4;
+    bool experimental = 5;
 }
 
 message MountReply {
