@@ -119,7 +119,8 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                     "<host> to <instance> inside the instance. Can be "
                                     "used multiple times.",
                                     "host>:<instance");
-    parser->addOptions({gid_mappings, uid_mappings});
+    QCommandLineOption experimental_option("experimental", "Use experimental host native performance mounts.");
+    parser->addOptions({gid_mappings, uid_mappings, experimental_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -256,6 +257,8 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         gid_pair->set_host_id(mcp::getgid());
         gid_pair->set_instance_id(mp::default_id);
     }
+
+    request.set_experimental(parser->isSet(experimental_option));
 
     return ParseCode::Ok;
 }
