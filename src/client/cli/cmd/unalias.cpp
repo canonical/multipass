@@ -32,8 +32,26 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    if (aliases.remove_alias(alias_to_remove))
+    if (!parser->isSet(all_option_name))
     {
+        std::vector<std::string> bad_aliases;
+
+        for (const auto& alias_to_remove : aliases_to_remove)
+            if (!aliases.exists_alias(alias_to_remove))
+                bad_aliases.push_back(alias_to_remove);
+
+        if (!bad_aliases.empty())
+        {
+            cerr << fmt::format("Nonexistent {}: {}.\n", bad_aliases.size() == 1 ? "alias" : "aliases",
+                                fmt::join(bad_aliases, ", "));
+
+            return ReturnCode::CommandLineError;
+        }
+    }
+
+    for (const auto& alias_to_remove : aliases_to_remove)
+    {
+        aliases.remove_alias(alias_to_remove); // We know removal won't fail because the alias exists.
         try
         {
             MP_PLATFORM.remove_alias_script(alias_to_remove);
@@ -42,14 +60,9 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
         {
             cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), alias_to_remove);
         }
+    }
 
-        return ReturnCode::Ok;
-    }
-    else
-    {
-        cerr << fmt::format("Alias '{}' does not exist\n", alias_to_remove);
-        return ReturnCode::CommandLineError;
-    }
+    return ReturnCode::Ok;
 }
 
 std::string cmd::Unalias::name() const
@@ -59,29 +72,39 @@ std::string cmd::Unalias::name() const
 
 QString cmd::Unalias::short_help() const
 {
-    return QStringLiteral("Remove an alias");
+    return QStringLiteral("Remove aliases");
 }
 
 QString cmd::Unalias::description() const
 {
-    return QStringLiteral("Remove an alias");
+    return QStringLiteral("Remove aliases");
 }
 
 mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "The name of the alias to remove\n");
+    parser->addPositionalArgument("name", "Names of aliases to remove", "<name> [<name> ...]");
+
+    QCommandLineOption all_option(all_option_name, "Remove all aliases");
+    parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    if (parser->positionalArguments().count() != 1)
-    {
-        cerr << "Wrong number of arguments given\n";
-        return ParseCode::CommandLineError;
-    }
+    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, false);
+    if (parse_code != ParseCode::Ok)
+        return parse_code;
 
-    alias_to_remove = parser->positionalArguments()[0].toStdString();
+    if (parser->isSet(all_option_name))
+    {
+        for (auto definition_it = aliases.cbegin(); definition_it != aliases.cend(); ++definition_it)
+            aliases_to_remove.emplace(definition_it->first);
+    }
+    else
+    {
+        for (const auto& arg : parser->positionalArguments())
+            aliases_to_remove.emplace(arg.toStdString());
+    }
 
     return ParseCode::Ok;
 }
