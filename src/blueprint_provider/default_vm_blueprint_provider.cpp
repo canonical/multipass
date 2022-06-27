@@ -110,6 +110,11 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
     Query query{"", "default", false, "", Query::Type::Alias};
     auto& blueprint_config = blueprint_map.at(blueprint_name);
 
+    if (!blueprint_config["instances"][blueprint_name])
+    {
+        throw InvalidBlueprintException(fmt::format("Definition of \"{}\" not found", blueprint_name));
+    }
+
     auto blueprint_instance = blueprint_config["instances"][blueprint_name];
 
     // TODO: Abstract all of the following YAML schema boilerplate
