@@ -37,6 +37,13 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
+const QStringList help_option_names
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    {"?", "h", "help"};
+#else
+    {"h", "help"};
+#endif
+
 auto max_command_string_length(const std::vector<cmd::Command::UPtr>& commands)
 {
     auto ret = 0ul;
@@ -107,12 +114,13 @@ mp::ParseCode mp::ArgParser::prepare_alias_execution(const QString& alias)
 
 mp::ParseCode mp::ArgParser::parse(const mp::optional<mp::AliasDict>& aliases)
 {
-    QCommandLineOption help_option = parser.addHelpOption();
+    QCommandLineOption help_option(help_option_names, "Displays help on commandline options");
     QCommandLineOption verbose_option({"v", "verbose"},
                                       "Increase logging verbosity. Repeat the 'v' in the short option for more detail. "
                                       "Maximum verbosity is obtained with 4 (or more) v's, i.e. -vvvv.");
     QCommandLineOption version_option({"V", "version"}, "Show version details");
     version_option.setFlags(QCommandLineOption::HiddenFromHelp);
+    parser.addOption(help_option);
     parser.addOption(verbose_option);
     parser.addOption(version_option);
 
