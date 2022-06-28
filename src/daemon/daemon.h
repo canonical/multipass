@@ -136,7 +136,11 @@ private:
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
-    void install_sshfs(VirtualMachine* vm, const std::string& name);
+    template <typename Reply>
+    void start_sshfs_mount(VirtualMachine* vm, grpc::ServerWriterInterface<Reply>* server,
+                           const std::string& source_path, const std::string& target_path,
+                           const id_mappings& gid_mappings, const id_mappings& uid_mappings,
+                           const std::string& ssh_username);
 
     struct AsyncOperationStatus
     {

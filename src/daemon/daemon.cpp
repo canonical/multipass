@@ -1512,30 +1512,12 @@ try // clang-format on
         {
             try
             {
-                instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings, uid_mappings);
+                start_sshfs_mount(vm.get(), server, request->source_path(), target_path, gid_mappings, uid_mappings,
+                                  vm_specs.ssh_username);
             }
             catch (const mp::SSHFSMissingError&)
             {
-                try
-                {
-                    // Force the deleteLater() event to process now to avoid unloading the apparmor profile
-                    // later.  See https://github.com/canonical/multipass/issues/1131
-                    QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
-
-                    MountReply mount_reply;
-                    mount_reply.set_mount_message("Enabling support for mounting");
-                    server->Write(mount_reply);
-
-                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                           *config->ssh_key_provider};
-                    mp::utils::install_sshfs_for(name, session);
-                    instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings,
-                                                uid_mappings);
-                }
-                catch (const mp::SSHFSMissingError&)
-                {
-                    return status_promise->set_value(grpc_status_for_mount_error(name));
-                }
+                return status_promise->set_value(grpc_status_for_mount_error(name));
             }
             catch (const std::exception& e)
             {
@@ -2630,6 +2612,36 @@ mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 }
 
 template <typename Reply>
+void mp::Daemon::start_sshfs_mount(VirtualMachine* vm, grpc::ServerWriterInterface<Reply>* server,
+                                   const std::string& source_path, const std::string& target_path,
+                                   const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings,
+                                   const std::string& ssh_username)
+{
+    try
+    {
+        instance_mounts.start_mount(vm, source_path, target_path, gid_mappings, uid_mappings);
+    }
+    catch (const mp::SSHFSMissingError&)
+    {
+        // Force the deleteLater() event to process now to avoid unloading the apparmor profile
+        // later.  See https://github.com/canonical/multipass/issues/1131
+        QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
+
+        if (server)
+        {
+            Reply reply;
+            reply.set_reply_message("Enabling support for mounting");
+            server->Write(reply);
+        }
+
+        mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), ssh_username, *config->ssh_key_provider};
+        mp::utils::install_sshfs_for(vm->vm_name, session);
+
+        instance_mounts.start_mount(vm, source_path, target_path, gid_mappings, uid_mappings);
+    }
+}
+
+template <typename Reply>
 error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
                                                                  const std::chrono::seconds& timeout,
                                                                  grpc::ServerWriterInterface<Reply>* server)
@@ -2668,29 +2680,13 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
                 try
                 {
-                    instance_mounts.start_mount(vm.get(), source_path, target_path, gid_mappings, uid_mappings);
+                    start_sshfs_mount(vm.get(), server, source_path, target_path, gid_mappings, uid_mappings,
+                                      vm_specs.ssh_username);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    try
-                    {
-                        if (server)
-                        {
-                            Reply reply;
-                            reply.set_reply_message("Enabling support for mounting");
-                            server->Write(reply);
-                        }
-
-                        mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                               *config->ssh_key_provider};
-                        mp::utils::install_sshfs_for(name, session);
-                        instance_mounts.start_mount(vm.get(), source_path, target_path, gid_mappings, uid_mappings);
-                    }
-                    catch (const mp::SSHFSMissingError&)
-                    {
-                        fmt::format_to(errors, sshfs_error_template + "\n", name);
-                        break;
-                    }
+                    fmt::format_to(errors, sshfs_error_template + "\n", name);
+                    break;
                 }
                 catch (const std::exception& e)
                 {
