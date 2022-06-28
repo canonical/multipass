@@ -75,7 +75,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         }
 
         spinner.stop();
-        spinner.start(reply.mount_message());
+        spinner.start(reply.reply_message());
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
