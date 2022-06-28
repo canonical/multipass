@@ -520,6 +520,18 @@ TEST_F(VMBlueprintProvider, noImageDefinedReturnsDefault)
     EXPECT_EQ(query.release, "default");
 }
 
+TEST_F(VMBlueprintProvider, nameMismatchThrows)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("name-mismatch", vm_desc),
+                         mp::InvalidBlueprintException,
+                         mpt::match_what(StrEq("Definition of \"name-mismatch\" not found")));
+}
+
 TEST_F(VMBlueprintProvider, invalidRunsOnThrows)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
