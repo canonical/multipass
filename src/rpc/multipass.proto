@@ -268,7 +268,7 @@ message MountRequest {
 
 message MountReply {
     string log_line = 1;
-    string mount_message = 2;
+    string reply_message = 2;
 }
 
 message PingRequest {
