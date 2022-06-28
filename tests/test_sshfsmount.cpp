@@ -173,6 +173,10 @@ struct SshfsMount : public mp::test::SftpServerTest
         EXPECT_TRUE(next_expected_cmd == commands.end()) << "\"" << next_expected_cmd->first << "\" not executed";
     }
 
+    static void on_install()
+    {
+    }
+
     mpt::ExitStatusMock exit_status_mock;
 
     std::string default_source{"source"};
@@ -423,7 +427,7 @@ TEST_F(SshfsMount, throws_install_sshfs_which_snap_fails)
 
     mp::SSHSession session{"a", 42};
 
-    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session), std::runtime_error);
+    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session, on_install), std::runtime_error);
     EXPECT_TRUE(invoked);
 }
 
@@ -435,7 +439,7 @@ TEST_F(SshfsMount, throws_install_sshfs_no_snap_dir_fails)
 
     mp::SSHSession session{"a", 42};
 
-    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session), std::runtime_error);
+    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session, on_install), std::runtime_error);
     EXPECT_TRUE(invoked);
 }
 
@@ -447,7 +451,7 @@ TEST_F(SshfsMount, throws_install_sshfs_snap_install_fails)
 
     mp::SSHSession session{"a", 42};
 
-    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session), mp::SSHFSMissingError);
+    EXPECT_THROW(mp::utils::install_sshfs_for("foo", session, on_install), mp::SSHFSMissingError);
     EXPECT_TRUE(invoked);
 }
 
@@ -455,7 +459,7 @@ TEST_F(SshfsMount, install_sshfs_no_failures_does_not_throw)
 {
     mp::SSHSession session{"a", 42};
 
-    EXPECT_NO_THROW(mp::utils::install_sshfs_for("foo", session));
+    EXPECT_NO_THROW(mp::utils::install_sshfs_for("foo", session, on_install));
 }
 
 TEST_F(SshfsMount, install_sshfs_timeout_logs_info)
@@ -498,5 +502,5 @@ TEST_F(SshfsMount, install_sshfs_timeout_logs_info)
 
     mp::SSHSession session{"a", 42};
 
-    mp::utils::install_sshfs_for("foo", session, std::chrono::milliseconds(1));
+    mp::utils::install_sshfs_for("foo", session, on_install, std::chrono::milliseconds(1));
 }
