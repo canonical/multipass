@@ -2591,28 +2591,19 @@ void mp::Daemon::start_sshfs_mount(VirtualMachine* vm, grpc::ServerWriterInterfa
                                    const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings,
                                    const std::string& ssh_username)
 {
-    try
-    {
-        instance_mounts.start_mount(vm, source_path, target_path, gid_mappings, uid_mappings);
-    }
-    catch (const mp::SSHFSMissingError&)
-    {
-        // Force the deleteLater() event to process now to avoid unloading the apparmor profile
-        // later.  See https://github.com/canonical/multipass/issues/1131
-        QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
-
+    auto on_install = [server] {
         if (server)
         {
             Reply reply;
             reply.set_reply_message("Enabling support for mounting");
             server->Write(reply);
         }
+    };
 
-        mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), ssh_username, *config->ssh_key_provider};
-        mp::utils::install_sshfs_for(vm->vm_name, session);
+    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), ssh_username, *config->ssh_key_provider};
+    mp::utils::install_sshfs_for(vm->vm_name, session, on_install);
 
-        instance_mounts.start_mount(vm, source_path, target_path, gid_mappings, uid_mappings);
-    }
+    instance_mounts.start_mount(vm, source_path, target_path, gid_mappings, uid_mappings);
 }
 
 template <typename Reply>
