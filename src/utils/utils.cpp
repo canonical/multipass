@@ -326,10 +326,8 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
 }
 
 void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& session,
-                                  const std::chrono::milliseconds timeout)
+                                  std::function<void()> const& on_install, const std::chrono::milliseconds timeout)
 {
-    mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap in \'{}\'", name));
-
     // Check if snap support is installed in the instance
     auto which_proc = session.exec("which snap");
     if (which_proc.exit_code() != 0)
@@ -343,6 +341,14 @@ void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& sessi
                         "please do that as well.\n\n"
                         "Alternatively, install `sshfs` manually inside the instance.",
                         name));
+    }
+
+    // Check if multipass-sshfs is already installed
+    if (session.exec("sudo snap list multipass-sshfs").exit_code() == 0)
+    {
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("The multipass-sshfs snap is already installed on \'{}\'", name));
+        return;
     }
 
     // Check if /snap exists for "classic" snap support
@@ -359,6 +365,10 @@ void mp::utils::install_sshfs_for(const std::string& name, mp::SSHSession& sessi
 
     try
     {
+        mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap in \'{}\'", name));
+
+        on_install();
+
         auto proc = session.exec("sudo snap install multipass-sshfs");
         if (proc.exit_code(timeout) != 0)
         {
