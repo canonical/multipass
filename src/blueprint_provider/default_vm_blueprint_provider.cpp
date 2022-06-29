@@ -112,7 +112,8 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
 
     if (!blueprint_config["instances"][blueprint_name])
     {
-        throw InvalidBlueprintException(fmt::format("Definition of \"{}\" not found", blueprint_name));
+        throw InvalidBlueprintException(
+            fmt::format("There are no instance definitions matching Blueprint name \"{}\"", blueprint_name));
     }
 
     auto blueprint_instance = blueprint_config["instances"][blueprint_name];

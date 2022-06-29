@@ -527,9 +527,9 @@ TEST_F(VMBlueprintProvider, nameMismatchThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("name-mismatch", vm_desc),
-                         mp::InvalidBlueprintException,
-                         mpt::match_what(StrEq("Definition of \"name-mismatch\" not found")));
+    MP_EXPECT_THROW_THAT(
+        blueprint_provider.fetch_blueprint_for("name-mismatch", vm_desc), mp::InvalidBlueprintException,
+        mpt::match_what(StrEq("There are no instance definitions matching Blueprint name \"name-mismatch\"")));
 }
 
 TEST_F(VMBlueprintProvider, invalidRunsOnThrows)
