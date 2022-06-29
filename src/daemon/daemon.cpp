@@ -322,8 +322,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
             uid_mappings = mp::unique_id_mappings(uid_mappings);
             gid_mappings = mp::unique_id_mappings(gid_mappings);
+            auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
 
-            mp::VMMount mount{source_path, gid_mappings, uid_mappings};
+            mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
             mounts[target_path] = mount;
         }
 
@@ -1507,13 +1508,21 @@ try // clang-format on
 
         auto& vm = it->second;
         auto& vm_specs = vm_instance_specs[name];
+        auto mount_type = request->experimental() ? mp::VMMount::MountType::Performance : mp::VMMount::MountType::SSHFS;
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
             {
-                start_sshfs_mount(vm.get(), server, request->source_path(), target_path, gid_mappings, uid_mappings,
-                                  vm_specs.ssh_username);
+                if (mount_type == mp::VMMount::MountType::SSHFS)
+                {
+                    start_sshfs_mount(vm.get(), server, request->source_path(), target_path, gid_mappings, uid_mappings,
+                                      vm_specs.ssh_username);
+                }
+                else
+                {
+                    throw mp::NotImplementedOnThisBackendException("experimental mounts");
+                }
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1532,7 +1541,7 @@ try // clang-format on
             continue;
         }
 
-        VMMount mount{request->source_path(), gid_mappings, uid_mappings};
+        VMMount mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_specs.mounts[target_path] = mount;
     }
 
@@ -2181,6 +2190,8 @@ void mp::Daemon::persist_instances()
             }
 
             entry.insert("gid_mappings", gid_mappings);
+
+            entry.insert("mount_type", static_cast<int>(mount.second.mount_type));
             mounts.append(entry);
         }
 
