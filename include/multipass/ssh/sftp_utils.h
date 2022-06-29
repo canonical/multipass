@@ -21,6 +21,7 @@
 #include <functional>
 #include <libssh/sftp.h>
 #include <memory>
+#include <stack>
 
 namespace
 {
@@ -42,6 +43,23 @@ MP_SFTP_UNIQUE_PTR(sftp_lstat, sftp_attributes_free)
 MP_SFTP_UNIQUE_PTR(sftp_opendir, sftp_closedir)
 MP_SFTP_UNIQUE_PTR(sftp_readdir, sftp_attributes_free)
 MP_SFTP_UNIQUE_PTR(sftp_readlink, free)
+
+using SFTPAttributesUPtr = std::unique_ptr<sftp_attributes_struct, std::function<void(sftp_attributes)>>;
+using SFTPDirUPtr = std::unique_ptr<sftp_dir_struct, std::function<int(sftp_dir)>>;
+
+class SFTPDirIterator
+{
+    sftp_session sftp;
+    std::stack<SFTPDirUPtr, std::vector<SFTPDirUPtr>> dirs;
+    SFTPAttributesUPtr previous_attr;
+
+    void push_dir(const std::string& path);
+
+public:
+    SFTPDirIterator(sftp_session sftp, const std::string& path);
+    bool hasNext();
+    SFTPAttributesUPtr next();
+};
 
 } // namespace multipass
 #endif // MULTIPASS_SFTP_UTILS_H
