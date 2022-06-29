@@ -19,14 +19,44 @@
 #define MULTIPASS_TRANSFER_H
 
 #include <multipass/cli/command.h>
+#include <multipass/ssh/sftp_client.h>
 
 #include <string>
 #include <vector>
 
-namespace multipass
+namespace multipass::cmd
 {
-namespace cmd
+
+struct InstanceSourcesLocalTarget
 {
+    std::unordered_multimap<std::string, std::string> sources;
+    std::string target_path;
+};
+
+struct LocalSourcesInstanceTarget
+{
+    std::vector<std::string> source_paths;
+    std::string target;
+};
+
+struct FromCin
+{
+    std::string target;
+};
+
+struct ToCout
+{
+    std::string source;
+};
+
+enum ArgumentsFormat
+{
+    INSTANCE_SOURCES_LOCAL_TARGET,
+    LOCAL_SOURCES_INSTANCE_TARGET,
+    FROM_CIN,
+    TO_COUT,
+};
+
 class Transfer final : public Command
 {
 public:
@@ -40,14 +70,10 @@ public:
 
 private:
     SSHInfoRequest request;
-    std::vector<std::pair<std::string, std::string>> sources;
-    std::pair<std::string, std::string> destination;
-    bool streaming_enabled;
+    std::variant<InstanceSourcesLocalTarget, LocalSourcesInstanceTarget, FromCin, ToCout> arguments;
+    QFlags<TransferFlags> flags;
 
     ParseCode parse_args(ArgParser* parser);
-    ParseCode parse_sources(ArgParser* parser);
-    ParseCode parse_destination(ArgParser* parser);
 };
-}
-}
+} // namespace multipass::cmd
 #endif // MULTIPASS_TRANSFER_H
