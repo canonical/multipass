@@ -34,9 +34,16 @@ namespace multipass
 {
 struct VMMount
 {
+    enum class MountType : int
+    {
+        SSHFS = 0,
+        Performance = 1
+    };
+
     std::string source_path;
     id_mappings gid_mappings;
     id_mappings uid_mappings;
+    MountType mount_type;
 };
 
 struct VMSpecs
