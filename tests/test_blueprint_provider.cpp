@@ -317,7 +317,7 @@ TEST_F(VMBlueprintProvider, allBlueprintsReturnsExpectedInfo)
 
     auto blueprints = blueprint_provider.all_blueprints();
 
-    EXPECT_EQ(blueprints.size(), 10ul);
+    EXPECT_EQ(blueprints.size(), 11ul);
 
     EXPECT_TRUE(std::find_if(blueprints.cbegin(), blueprints.cend(), [](const mp::VMImageInfo& blueprint_info) {
                     return ((blueprint_info.aliases.size() == 1) && (blueprint_info.aliases[0] == "test-blueprint1") &&
@@ -520,6 +520,18 @@ TEST_F(VMBlueprintProvider, noImageDefinedReturnsDefault)
     EXPECT_EQ(query.release, "default");
 }
 
+TEST_F(VMBlueprintProvider, nameMismatchThrows)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    MP_EXPECT_THROW_THAT(
+        blueprint_provider.fetch_blueprint_for("name-mismatch", vm_desc), mp::InvalidBlueprintException,
+        mpt::match_what(StrEq("There are no instance definitions matching Blueprint name \"name-mismatch\"")));
+}
+
 TEST_F(VMBlueprintProvider, invalidRunsOnThrows)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
@@ -571,7 +583,7 @@ TEST_F(VMBlueprintProvider, allBlueprintsReturnsExpectedInfoForArch)
 
     auto blueprints = blueprint_provider.all_blueprints();
 
-    EXPECT_EQ(blueprints.size(), 11ul);
+    EXPECT_EQ(blueprints.size(), 12ul);
     EXPECT_TRUE(std::find_if(blueprints.cbegin(), blueprints.cend(), [](const mp::VMImageInfo& blueprint_info) {
                     return ((blueprint_info.aliases.size() == 1) && (blueprint_info.aliases[0] == "arch-only") &&
                             (blueprint_info.release_title == "An arch-only blueprint"));
