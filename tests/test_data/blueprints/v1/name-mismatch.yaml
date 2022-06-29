@@ -1,0 +1,10 @@
+description: Name conflict between file name and contents
+version: 0.1
+
+instances:
+  wrong-name:
+    image: "default"
+    limits:
+      min-cpu: 2
+      min-mem: 2G
+      min-disk: 25G
