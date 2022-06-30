@@ -21,7 +21,6 @@
 
 #include <QStringList>
 
-#include "../../ssh/ssh_client_key_provider.h" // FIXME
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
@@ -30,6 +29,8 @@
 #include <multipass/mount_handlers/sshfs/sshfs_mount.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
+
+#include <ssh/ssh_client_key_provider.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

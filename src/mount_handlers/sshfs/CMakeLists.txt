@@ -45,6 +45,11 @@ target_link_libraries(sshfs_server
   logger
   sshfs_mount)
 
+target_include_directories(sshfs_server
+  BEFORE
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
+
 install(TARGETS sshfs_server
   DESTINATION bin
   COMPONENT multipassd)
