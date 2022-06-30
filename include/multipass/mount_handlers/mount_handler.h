@@ -39,8 +39,8 @@ public:
     virtual bool has_instance_already_mounted(const std::string& instance, const std::string& path) const = 0;
 
 protected:
-    MountHandler(const SSHKeyProvider& ssh_key_provider) : key(ssh_key_provider.private_key_as_base64()){};
-    const std::string key;
+    MountHandler(const SSHKeyProvider& ssh_key_provider) : ssh_key_provider(&ssh_key_provider){};
+    const SSHKeyProvider *ssh_key_provider;
 };
 
 } // namespace multipass
