@@ -29,7 +29,7 @@ namespace multipass
 {
 class VirtualMachine;
 
-class SSHFSMountHandler : public QObject, MountHandler
+class SSHFSMountHandler : public QObject, public MountHandler
 {
     Q_OBJECT
 public:
