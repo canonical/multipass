@@ -24,7 +24,7 @@
 
 #include <multipass/delayed_shutdown_timer.h>
 //#include <multipass/format.h>
-#include <multipass/sshfs_mount/sshfs_mounts.h>
+#include <multipass/mount_handlers/sshfs/sshfs_mounts.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 

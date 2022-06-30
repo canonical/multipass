@@ -24,7 +24,7 @@
 #include "tests/mock_file_ops.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
-#include <multipass/sshfs_mount/sshfs_mounts.h>
+#include <multipass/mount_handlers/sshfs/sshfs_mounts.h>
 
 #include <QCoreApplication>
 #include <QTimer>
