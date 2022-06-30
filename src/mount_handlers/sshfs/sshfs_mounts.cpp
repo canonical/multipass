@@ -19,9 +19,9 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/mount_handlers/sshfs/sshfs_mounts.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_key_provider.h>
-#include <multipass/sshfs_mount/sshfs_mounts.h>
 #include <multipass/sshfs_server_config.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>

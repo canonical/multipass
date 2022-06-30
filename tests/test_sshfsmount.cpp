@@ -23,8 +23,8 @@
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
+#include <multipass/mount_handlers/sshfs/sshfs_mount.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/utils.h>
 
 #include <algorithm>

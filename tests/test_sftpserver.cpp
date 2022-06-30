@@ -28,9 +28,9 @@
 #include "temp_file.h"
 
 #include <multipass/format.h>
+#include <multipass/mount_handlers/sshfs/sftp_server.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/sshfs_mount/sftp_server.h>
 
 #include <queue>
 
