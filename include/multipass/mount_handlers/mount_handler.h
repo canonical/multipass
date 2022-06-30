@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_MOUNT_HANDLER_H
 #define MULTIPASS_MOUNT_HANDLER_H
 
+#include <multipass/disabled_copy_move.h>
 #include <multipass/id_mappings.h>
 #include <multipass/ssh/ssh_key_provider.h>
 
@@ -27,7 +28,7 @@ namespace multipass
 {
 class VirtualMachine;
 
-class MountHandler
+class MountHandler : private DisabledCopyMove
 {
 public:
     virtual ~MountHandler() = default;
@@ -40,7 +41,7 @@ public:
 
 protected:
     MountHandler(const SSHKeyProvider& ssh_key_provider) : ssh_key_provider(&ssh_key_provider){};
-    const SSHKeyProvider *ssh_key_provider;
+    const SSHKeyProvider* ssh_key_provider;
 };
 
 } // namespace multipass
