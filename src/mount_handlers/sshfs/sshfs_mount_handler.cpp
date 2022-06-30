@@ -19,7 +19,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mounts.h>
+#include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/sshfs_server_config.h>
@@ -34,7 +34,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto category = "sshfs-mounts";
+constexpr auto category = "sshfs-mount-hanlder";
 
 template <typename Signal>
 void start_and_block_until(mp::Process* process, Signal signal, std::function<bool(mp::Process* process)> ready_decider)
@@ -60,12 +60,13 @@ void start_and_block_until(mp::Process* process, Signal signal, std::function<bo
 }
 } // namespace
 
-mp::SSHFSMounts::SSHFSMounts(const SSHKeyProvider& key_provider) : MountHandler(key_provider)
+mp::SSHFSMountHandler::SSHFSMountHandler(const SSHKeyProvider& key_provider) : MountHandler(key_provider)
 {
 }
 
-void mp::SSHFSMounts::start_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
-                                  const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
+void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, const std::string& source_path,
+                                        const std::string& target_path, const mp::id_mappings& gid_mappings,
+                                        const mp::id_mappings& uid_mappings)
 {
     if (!MP_FILEOPS.exists(QDir{QString::fromStdString(source_path)}))
     {
@@ -144,7 +145,7 @@ void mp::SSHFSMounts::start_mount(VirtualMachine* vm, const std::string& source_
     mount_processes[vm->vm_name][target_path] = std::move(sshfs_server_process);
 }
 
-bool mp::SSHFSMounts::stop_mount(const std::string& instance, const std::string& path)
+bool mp::SSHFSMountHandler::stop_mount(const std::string& instance, const std::string& path)
 {
     auto sshfs_mount_it = mount_processes.find(instance);
     if (sshfs_mount_it == mount_processes.end())
@@ -171,7 +172,7 @@ bool mp::SSHFSMounts::stop_mount(const std::string& instance, const std::string&
     return false;
 }
 
-void mp::SSHFSMounts::stop_all_mounts_for_instance(const std::string& instance)
+void mp::SSHFSMountHandler::stop_all_mounts_for_instance(const std::string& instance)
 {
     auto mounts_it = mount_processes.find(instance);
     if (mounts_it == mount_processes.end() || mounts_it->second.empty())
@@ -190,7 +191,7 @@ void mp::SSHFSMounts::stop_all_mounts_for_instance(const std::string& instance)
     mount_processes[instance].clear();
 }
 
-bool mp::SSHFSMounts::has_instance_already_mounted(const std::string& instance, const std::string& path) const
+bool mp::SSHFSMountHandler::has_instance_already_mounted(const std::string& instance, const std::string& path) const
 {
     auto entry = mount_processes.find(instance);
     return entry != mount_processes.end() && entry->second.find(path) != entry->second.end();
