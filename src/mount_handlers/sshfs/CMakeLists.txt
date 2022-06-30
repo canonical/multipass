@@ -18,11 +18,11 @@ function(add_sshfs_mount_target TARGET_NAME)
 
   add_library(${TARGET_NAME} STATIC
     sshfs_mount.cpp
-    sshfs_mounts.cpp
+    sshfs_mount_handler.cpp
     sftp_server.cpp
     # Need to run MOC on these
     ${CMAKE_SOURCE_DIR}/include/multipass/mount_handlers/sshfs/sshfs_mount.h
-    ${CMAKE_SOURCE_DIR}/include/multipass/mount_handlers/sshfs/sshfs_mounts.h)
+    ${CMAKE_SOURCE_DIR}/include/multipass/mount_handlers/sshfs/sshfs_mount_handler.h)
 
   target_link_libraries(${TARGET_NAME}
     fmt

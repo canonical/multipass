@@ -2542,7 +2542,7 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
 
         auto& shutdown_timer = delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(
             &vm, std::move(session),
-            std::bind(&SSHFSMounts::stop_all_mounts_for_instance, &instance_mounts, std::placeholders::_1));
+            std::bind(&SSHFSMountHandler::stop_all_mounts_for_instance, &instance_mounts, std::placeholders::_1));
 
         QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
                          [this, name]() { delayed_shutdown_instances.erase(name); });

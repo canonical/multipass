@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFSMOUNTS_H
-#define MULTIPASS_SSHFSMOUNTS_H
+#ifndef MULTIPASS_SSHFS_MOUNT_HANDLER_H
+#define MULTIPASS_SSHFS_MOUNT_HANDLER_H
 
 #include <multipass/mount_handlers/mount_handler.h>
 #include <multipass/process/process.h>
@@ -29,11 +29,11 @@ namespace multipass
 {
 class VirtualMachine;
 
-class SSHFSMounts : public QObject, MountHandler
+class SSHFSMountHandler : public QObject, MountHandler
 {
     Q_OBJECT
 public:
-    explicit SSHFSMounts(const SSHKeyProvider& ssh_key_provider);
+    explicit SSHFSMountHandler(const SSHKeyProvider& ssh_key_provider);
 
     void start_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
                      const id_mappings& gid_mappings, const id_mappings& uid_mappings) override;
@@ -49,4 +49,4 @@ private:
 };
 
 } // namespace multipass
-#endif // MULTIPASS_SSHFSMOUNTS_H
+#endif // MULTIPASS_SSHFS_MOUNT_HANDLER_H

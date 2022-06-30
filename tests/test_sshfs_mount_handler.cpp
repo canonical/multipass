@@ -24,7 +24,7 @@
 #include "tests/mock_file_ops.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mounts.h>
+#include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
 
 #include <QCoreApplication>
 #include <QTimer>
@@ -36,7 +36,7 @@ using namespace testing;
 
 const multipass::logging::Level default_log_level = multipass::logging::Level::debug;
 
-struct SSHFSMountsTest : public ::Test
+struct SSHFSMountHandlerTest : public ::Test
 {
     void TearDown() override
     {
@@ -67,21 +67,21 @@ struct SSHFSMountsTest : public ::Test
     };
 };
 
-TEST_F(SSHFSMountsTest, mount_creates_sshfs_process)
+TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
 
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(sshfs_prints_connected);
 
-    mp::SSHFSMounts sshfs_mounts(key_provider);
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
     mpt::MockVirtualMachine vm{"my_instance"};
     EXPECT_CALL(vm, ssh_port());
     EXPECT_CALL(vm, ssh_hostname());
     EXPECT_CALL(vm, ssh_username());
 
-    sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
     auto sshfs_command = factory->process_list()[0];
@@ -101,7 +101,7 @@ TEST_F(SSHFSMountsTest, mount_creates_sshfs_process)
     EXPECT_EQ(sshfs_command.arguments[7], log_level_as_string);
 }
 
-TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exception)
+TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_exception)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
 
@@ -121,10 +121,10 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exceptio
     };
     factory->register_callback(sshfs_fails_with_exit_code_nine);
 
-    mp::SSHFSMounts sshfs_mounts(key_provider);
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    EXPECT_THROW(sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings),
+    EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings),
                  mp::SSHFSMissingError);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
@@ -132,7 +132,7 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exceptio
     EXPECT_TRUE(sshfs_command.command.endsWith("sshfs_server"));
 }
 
-TEST_F(SSHFSMountsTest, sshfs_process_failing_causes_runtime_exception)
+TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_causes_runtime_exception)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
 
@@ -153,12 +153,12 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_causes_runtime_exception)
     };
     factory->register_callback(sshfs_fails);
 
-    mp::SSHFSMounts sshfs_mounts(key_provider);
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
     EXPECT_THROW(
         try {
-            sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+            sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
         } catch (const std::runtime_error& e) {
             EXPECT_STREQ(e.what(), "Process returned exit code: 1: Whoopsie");
             throw;
@@ -166,7 +166,7 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_causes_runtime_exception)
         std::runtime_error);
 }
 
-TEST_F(SSHFSMountsTest, stop_terminates_sshfs_process)
+TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
 
@@ -183,16 +183,16 @@ TEST_F(SSHFSMountsTest, stop_terminates_sshfs_process)
     };
     factory->register_callback(sshfs_fails);
 
-    mp::SSHFSMounts sshfs_mounts(key_provider);
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
-    int ret = sshfs_mounts.stop_mount(vm.vm_name, target_path);
+    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    int ret = sshfs_mount_handler.stop_mount(vm.vm_name, target_path);
     ASSERT_TRUE(ret);
 }
 
-TEST_F(SSHFSMountsTest, stop_all_mounts_terminates_all_sshfs_processes)
+TEST_F(SSHFSMountHandlerTest, stop_all_mounts_terminates_all_sshfs_processes)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).Times(3).WillRepeatedly(Return(true));
 
@@ -208,63 +208,63 @@ TEST_F(SSHFSMountsTest, stop_all_mounts_terminates_all_sshfs_processes)
     };
     factory->register_callback(sshfs_fails);
 
-    mp::SSHFSMounts sshfs_mounts(key_provider);
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mounts.start_mount(&vm, "/source/one", "/target/one", gid_mappings, uid_mappings);
-    sshfs_mounts.start_mount(&vm, "/source/two", "/target/two", gid_mappings, uid_mappings);
-    sshfs_mounts.start_mount(&vm, "/source/three", "/target/three", gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, "/source/one", "/target/one", gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, "/source/two", "/target/two", gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, "/source/three", "/target/three", gid_mappings, uid_mappings);
 
-    sshfs_mounts.stop_all_mounts_for_instance(vm.vm_name);
+    sshfs_mount_handler.stop_all_mounts_for_instance(vm.vm_name);
 }
 
-TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_true_when_found)
+TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_true_when_found)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
 
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(sshfs_prints_connected);
 
-    mp::SSHFSMounts sshfs_mounts(key_provider);
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
 
-    EXPECT_TRUE(sshfs_mounts.has_instance_already_mounted(vm.vm_name, target_path));
+    EXPECT_TRUE(sshfs_mount_handler.has_instance_already_mounted(vm.vm_name, target_path));
 }
 
-TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_false_when_no_such_mount)
+TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_false_when_no_such_mount)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
 
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(sshfs_prints_connected);
 
-    mp::SSHFSMounts sshfs_mounts(key_provider);
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
 
-    EXPECT_FALSE(sshfs_mounts.has_instance_already_mounted(vm.vm_name, "/bad/path"));
+    EXPECT_FALSE(sshfs_mount_handler.has_instance_already_mounted(vm.vm_name, "/bad/path"));
 }
 
-TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_false_when_no_such_instance)
+TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_false_when_no_such_instance)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
 
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(sshfs_prints_connected);
 
-    mp::SSHFSMounts sshfs_mounts(key_provider);
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
 
-    EXPECT_FALSE(sshfs_mounts.has_instance_already_mounted("bad_vm_name", target_path));
+    EXPECT_FALSE(sshfs_mount_handler.has_instance_already_mounted("bad_vm_name", target_path));
 }
 
 TEST_F(SSHFSMountsTest, mount_fails_on_nonexist_directory)
