@@ -18,35 +18,32 @@
 #ifndef MULTIPASS_SSHFSMOUNTS_H
 #define MULTIPASS_SSHFSMOUNTS_H
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-
-#include <multipass/id_mappings.h>
+#include <multipass/mount_handlers/mount_handler.h>
 #include <multipass/process/process.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
 #include <multipass/ssh/ssh_key_provider.h>
+
+#include <unordered_map>
 
 namespace multipass
 {
 class VirtualMachine;
 
-class SSHFSMounts : public QObject
+class SSHFSMounts : public QObject, MountHandler
 {
     Q_OBJECT
 public:
     explicit SSHFSMounts(const SSHKeyProvider& ssh_key_provider);
 
     void start_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
-                     const id_mappings& gid_mappings, const id_mappings& uid_mappings);
+                     const id_mappings& gid_mappings, const id_mappings& uid_mappings) override;
 
-    bool stop_mount(const std::string& instance, const std::string& path);
-    void stop_all_mounts_for_instance(const std::string& instance);
+    bool stop_mount(const std::string& instance, const std::string& path) override;
+    void stop_all_mounts_for_instance(const std::string& instance) override;
 
-    bool has_instance_already_mounted(const std::string& instance, const std::string& path) const;
+    bool has_instance_already_mounted(const std::string& instance, const std::string& path) const override;
 
 private:
-    const std::string key;
     std::unordered_map<std::string, std::unordered_map<std::string, qt_delete_later_unique_ptr<Process>>>
         mount_processes;
 };

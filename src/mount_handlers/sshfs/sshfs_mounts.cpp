@@ -60,7 +60,7 @@ void start_and_block_until(mp::Process* process, Signal signal, std::function<bo
 }
 } // namespace
 
-mp::SSHFSMounts::SSHFSMounts(const SSHKeyProvider& key_provider) : key(key_provider.private_key_as_base64())
+mp::SSHFSMounts::SSHFSMounts(const SSHKeyProvider& key_provider) : MountHandler(key_provider)
 {
 }
 
