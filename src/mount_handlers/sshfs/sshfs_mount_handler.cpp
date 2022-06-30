@@ -83,7 +83,7 @@ void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, const std::string& s
     config.source_path = source_path;
     config.uid_mappings = uid_mappings;
     config.gid_mappings = gid_mappings;
-    config.private_key = key;
+    config.private_key = ssh_key_provider->private_key_as_base64();
 
     auto sshfs_server_process_t = mp::platform::make_sshfs_server_process(config);
     // FIXME: ProcessFactory really should return qt_delete_later_unique_ptr<Process> as Process emits signals
