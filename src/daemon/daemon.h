@@ -24,7 +24,6 @@
 
 #include <multipass/delayed_shutdown_timer.h>
 //#include <multipass/format.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -167,7 +166,6 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
-    SSHFSMountHandler instance_mounts;
     std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;

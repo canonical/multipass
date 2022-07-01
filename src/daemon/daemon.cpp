@@ -869,7 +869,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      instance_mounts{*config->ssh_key_provider},
       instance_mod_handler{register_instance_mod(vm_instance_specs, vm_instances, deleted_instances,
                                                  preparing_instances, [this] { persist_instances(); })}
 {
@@ -1467,7 +1466,7 @@ try // clang-format on
     }
 
     mp::id_mappings uid_mappings, gid_mappings;
-
+    auto mount_type = request->experimental() ? mp::VMMount::MountType::Performance : mp::VMMount::MountType::SSHFS;
     auto mount_maps = request->mount_maps();
 
     for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
@@ -1500,7 +1499,7 @@ try // clang-format on
             continue;
         }
 
-        if (instance_mounts.has_instance_already_mounted(name, target_path))
+        if (config->mount_handlers[static_cast<int>(mount_type)]->has_instance_already_mounted(name, target_path))
         {
             fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
@@ -1508,7 +1507,6 @@ try // clang-format on
 
         auto& vm = it->second;
         auto& vm_specs = vm_instance_specs[name];
-        auto mount_type = request->experimental() ? mp::VMMount::MountType::Performance : mp::VMMount::MountType::SSHFS;
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
@@ -1799,7 +1797,11 @@ try // clang-format on
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
             vm.suspend();
-            instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler->stop_all_mounts_for_instance(vm.vm_name);
+            }
+
             return grpc::Status::OK;
         });
     }
@@ -1868,7 +1870,11 @@ try // clang-format on
             if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
                 delayed_shutdown_instances.erase(name);
 
-            instance_mounts.stop_all_mounts_for_instance(name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler->stop_all_mounts_for_instance(name);
+            }
+
             instance->shutdown();
 
             if (purge)
@@ -1931,14 +1937,18 @@ try // clang-format on
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
         {
-            instance_mounts.stop_all_mounts_for_instance(name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler->stop_all_mounts_for_instance(name);
+            }
+
             mounts.clear();
         }
         else
         {
             if (vm->current_state() == mp::VirtualMachine::State::running)
             {
-                if (!instance_mounts.stop_mount(name, target_path))
+                if (!config->mount_handlers[static_cast<int>(mounts[name].mount_type)]->stop_mount(name, target_path))
                 {
                     fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
                 }
@@ -2566,9 +2576,15 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
                      fmt::format("Cannot open ssh session on \"{}\" shutdown: {}", name, e.what()));
         }
 
-        auto& shutdown_timer = delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(
-            &vm, std::move(session),
-            std::bind(&SSHFSMountHandler::stop_all_mounts_for_instance, &instance_mounts, std::placeholders::_1));
+        auto stop_all_mounts = [this](const std::string& name) {
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler->stop_all_mounts_for_instance(name);
+            }
+        };
+
+        auto& shutdown_timer = delayed_shutdown_instances[name] =
+            std::make_unique<DelayedShutdownTimer>(&vm, std::move(session), stop_all_mounts);
 
         QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
                          [this, name]() { delayed_shutdown_instances.erase(name); });
@@ -2640,7 +2656,8 @@ void mp::Daemon::start_sshfs_mount(VirtualMachine* vm, grpc::ServerWriterInterfa
     mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), ssh_username, *config->ssh_key_provider};
     mp::utils::install_sshfs_for(vm->vm_name, session, on_install);
 
-    instance_mounts.start_mount(vm, source_path, target_path, gid_mappings, uid_mappings);
+    config->mount_handlers[static_cast<int>(VMMount::MountType::SSHFS)]->start_mount(vm, source_path, target_path,
+                                                                                     gid_mappings, uid_mappings);
 }
 
 template <typename Reply>
