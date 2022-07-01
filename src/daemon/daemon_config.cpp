@@ -25,6 +25,7 @@
 #include <multipass/default_vm_blueprint_provider.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
+#include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/openssh_key_provider.h>
@@ -184,9 +185,14 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(), cache_directory, manifest_ttl);
     }
 
+    if (mount_handlers.empty())
+    {
+        mount_handlers.push_back(std::make_unique<SSHFSMountHandler>(*ssh_key_provider));
+    }
+
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
         std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
         std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), std::move(client_cert_store),
         std::move(update_prompt), multiplexing_logger, std::move(network_proxy), std::move(blueprint_provider),
-        cache_directory, data_directory, server_address, ssh_username, image_refresh_timer});
+        std::move(mount_handlers), cache_directory, data_directory, server_address, ssh_username, image_refresh_timer});
 }
