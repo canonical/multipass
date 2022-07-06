@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_FILE_OPS_H
 #define MULTIPASS_FILE_OPS_H
 
+#include "recursive_dir_iterator.h"
 #include "singleton.h"
 
 #include <QByteArray>
@@ -28,8 +29,11 @@
 #include <QTextStream>
 
 #include <fstream>
+#include <filesystem>
 
 #define MP_FILEOPS multipass::FileOps::instance()
+
+namespace fs = std::filesystem;
 
 namespace multipass
 {
@@ -66,6 +70,17 @@ public:
 
     // std operations
     virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;
+    virtual std::unique_ptr<std::ostream> open_write(const fs::path& path) const;
+    virtual std::unique_ptr<std::istream> open_read(const fs::path& path) const;
+    virtual bool exists(const fs::path& path, std::error_code& err) const;
+    virtual bool is_directory(const fs::path& path, std::error_code& err) const;
+    virtual bool create_directory(const fs::path& path, std::error_code& err) const;
+    virtual bool remove(const fs::path& path, std::error_code& err) const;
+    virtual void create_symlink(const fs::path& to, const fs::path& path, std::error_code& err) const;
+    virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
+    virtual void permissions(const fs::path& path, fs::perms perms, std::error_code& err) const;
+    virtual fs::file_status status(const fs::path& path, std::error_code& err) const;
+    virtual std::unique_ptr<RecursiveDirIterator> recursive_dir_iterator(const fs::path& path, std::error_code& err) const;
 };
 } // namespace multipass
 
