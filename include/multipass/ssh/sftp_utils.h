@@ -18,13 +18,11 @@
 #ifndef MULTIPASS_SFTP_UTILS_H
 #define MULTIPASS_SFTP_UTILS_H
 
-#include <functional>
-#include <libssh/sftp.h>
-#include <memory>
-#include <stack>
+#include "sftp_client.h"
+#include "sftp_dir_iterator.h"
 
-namespace
-{
+#include <multipass/singleton.h>
+
 #define MP_SFTP_UNIQUE_PTR(open, close)                                                                                \
     template <typename... Args>                                                                                        \
     auto mp_##open(Args&&... args)                                                                                     \
@@ -32,7 +30,6 @@ namespace
         return std::unique_ptr<std::remove_pointer_t<decltype(std::function{open})::result_type>,                      \
                                decltype(std::function{close})>{open(std::forward<Args>(args)...), close};              \
     }
-} // namespace
 
 namespace multipass
 {
@@ -44,22 +41,22 @@ MP_SFTP_UNIQUE_PTR(sftp_opendir, sftp_closedir)
 MP_SFTP_UNIQUE_PTR(sftp_readdir, sftp_attributes_free)
 MP_SFTP_UNIQUE_PTR(sftp_readlink, free)
 
-using SFTPAttributesUPtr = std::unique_ptr<sftp_attributes_struct, std::function<void(sftp_attributes)>>;
-using SFTPDirUPtr = std::unique_ptr<sftp_dir_struct, std::function<int(sftp_dir)>>;
+#define MP_SFTPUTILS multipass::SFTPUtils::instance()
 
-class SFTPDirIterator
+struct SFTPUtils : public Singleton<SFTPUtils>
 {
-    sftp_session sftp;
-    std::stack<SFTPDirUPtr, std::vector<SFTPDirUPtr>> dirs;
-    SFTPAttributesUPtr previous_attr;
+    SFTPUtils(const Singleton<SFTPUtils>::PrivatePass&) noexcept;
 
-    void push_dir(const std::string& path);
-
-public:
-    SFTPDirIterator(sftp_session sftp, const std::string& path);
-    bool hasNext();
-    SFTPAttributesUPtr next();
+    virtual fs::path get_full_local_file_target(const fs::path& source_path, const fs::path& target_path);
+    virtual fs::path get_full_remote_file_target(sftp_session sftp, const fs::path& source_path,
+                                                 const fs::path& target_path);
+    virtual fs::path get_full_local_dir_target(const fs::path& source_path, const fs::path& target_path);
+    virtual fs::path get_full_remote_dir_target(sftp_session sftp, const fs::path& source_path,
+                                                const fs::path& target_path);
+    virtual std::unique_ptr<SFTPDirIterator> make_SFTPDirIterator(sftp_session sftp, const std::string& path);
+    virtual std::unique_ptr<SFTPClient> make_SFTPClient(const std::string& host, int port, const std::string& username,
+                                                        const std::string& priv_key_blob);
 };
-
 } // namespace multipass
-#endif // MULTIPASS_SFTP_UTILS_H
+
+#endif
