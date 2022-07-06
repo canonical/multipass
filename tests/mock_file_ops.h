@@ -53,6 +53,20 @@ public:
     MOCK_CONST_METHOD3(open, void(std::fstream&, const char*, std::ios_base::openmode));
     MOCK_CONST_METHOD1(commit, bool(QSaveFile&));
 
+    MOCK_METHOD(std::unique_ptr<std::ostream>, open_write, (const fs::path& path), (override, const));
+    MOCK_METHOD(std::unique_ptr<std::istream>, open_read, (const fs::path& path), (override, const));
+    MOCK_METHOD(bool, exists, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(bool, is_directory, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(bool, create_directory, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(bool, remove, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(void, create_symlink, (const fs::path& to, const fs::path& path, std::error_code& err),
+                (override, const));
+    MOCK_METHOD(fs::path, read_symlink, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(void, permissions, (const fs::path& path, fs::perms perms, std::error_code& err), (override, const));
+    MOCK_METHOD(fs::file_status, status, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(std::unique_ptr<multipass::RecursiveDirIterator>, recursive_dir_iterator,
+                (const fs::path& path, std::error_code& err), (override, const));
+
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };
 } // namespace multipass::test
