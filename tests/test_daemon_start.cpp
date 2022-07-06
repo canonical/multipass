@@ -132,5 +132,6 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
 
     EXPECT_FALSE(status.ok());
 
-    EXPECT_THAT(status.error_message(), HasSubstr("Cannot start the instance while suspending"));
+    EXPECT_THAT(status.error_message(),
+                HasSubstr(fmt::format("Cannot start the instance \'{}\' while suspending", mock_instance_name)));
 }

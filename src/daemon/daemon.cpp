@@ -1706,9 +1706,33 @@ try // clang-format on
         }
     }
 
+    fmt::memory_buffer start_errors;
+    for (const auto& name : vms)
+    {
+        auto& vm = vm_instances.find(name)->second;
+        auto state = vm->current_state();
+        if (state == VirtualMachine::State::unknown)
+        {
+            auto error_string = fmt::format("Instance \'{}\' is already running, but in an unknown state", name);
+            mpl::log(mpl::Level::warning, category, error_string);
+            fmt::format_to(start_errors, error_string);
+            continue;
+        }
+        else if (state == VirtualMachine::State::suspending)
+        {
+            fmt::format_to(start_errors, "Cannot start the instance \'{}\' while suspending", name);
+            continue;
+        }
+        else if (state != VirtualMachine::State::running && state != VirtualMachine::State::starting &&
+                 state != VirtualMachine::State::restarting)
+        {
+            vm->start();
+        }
+    }
+
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, server, vms,
-                                                timeout, status_promise, true));
+                                                timeout, status_promise, fmt::to_string(start_errors)));
 }
 catch (const std::exception& e)
 {
@@ -1817,7 +1841,7 @@ try // clang-format on
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server,
-                                                instances, timeout, status_promise, false));
+                                                instances, timeout, status_promise, std::string()));
 }
 catch (const std::exception& e)
 {
@@ -2077,7 +2101,8 @@ void mp::Daemon::on_restart(const std::string& name)
 {
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, nullptr,
-                                                std::vector<std::string>{name}, mp::default_timeout, nullptr, false));
+                                                std::vector<std::string>{name}, mp::default_timeout, nullptr,
+                                                std::string()));
 }
 
 void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
@@ -2307,6 +2332,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                     reply.set_create_message("Starting " + name);
                     server->Write(reply);
 
+                    vm_instances[name]->start();
+
                     auto future_watcher = create_future_watcher([this, server, name] {
                         LaunchReply reply;
                         reply.set_vm_instance_name(name);
@@ -2315,7 +2342,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                     });
                     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
                                                                 server, std::vector<std::string>{name}, timeout,
-                                                                status_promise, true));
+                                                                status_promise, std::string()));
                 }
                 else
                 {
@@ -2620,9 +2647,11 @@ template <typename Reply>
 mp::Daemon::AsyncOperationStatus
 mp::Daemon::async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server, const std::vector<std::string>& vms,
                                      const std::chrono::seconds& timeout, std::promise<grpc::Status>* status_promise,
-                                     const bool start_vm)
+                                     const std::string& start_errors)
 {
     fmt::memory_buffer errors;
+    fmt::format_to(errors, "{}", start_errors);
+
     QFutureSynchronizer<std::string> start_synchronizer;
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
@@ -2634,30 +2663,6 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server,
             }
             else
             {
-                if (start_vm)
-                {
-                    auto it = vm_instances.find(name);
-                    auto state = it->second->current_state();
-                    if (state == VirtualMachine::State::unknown)
-                    {
-                        auto error_string =
-                            fmt::format("Instance \'{}\' is already running, but in an unknown state", name);
-                        mpl::log(mpl::Level::warning, category, error_string);
-                        fmt::format_to(errors, error_string);
-                        continue;
-                    }
-                    else if (state == VirtualMachine::State::suspending)
-                    {
-                        fmt::format_to(errors, "Cannot start the instance while suspending");
-                        continue;
-                    }
-                    else if (state != VirtualMachine::State::running && state != VirtualMachine::State::starting &&
-                             state != VirtualMachine::State::restarting)
-                    {
-                        it->second->start();
-                    }
-                }
-
                 auto future = QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name,
                                                 timeout, server);
                 async_running_futures[name] = future;
