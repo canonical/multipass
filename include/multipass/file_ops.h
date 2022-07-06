@@ -28,8 +28,8 @@
 #include <QString>
 #include <QTextStream>
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 #define MP_FILEOPS multipass::FileOps::instance()
 
@@ -80,7 +80,8 @@ public:
     virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
     virtual void permissions(const fs::path& path, fs::perms perms, std::error_code& err) const;
     virtual fs::file_status status(const fs::path& path, std::error_code& err) const;
-    virtual std::unique_ptr<RecursiveDirIterator> recursive_dir_iterator(const fs::path& path, std::error_code& err) const;
+    virtual std::unique_ptr<RecursiveDirIterator> recursive_dir_iterator(const fs::path& path,
+                                                                         std::error_code& err) const;
 };
 } // namespace multipass
 

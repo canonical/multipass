@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_TRANSFER_H
 #define MULTIPASS_TRANSFER_H
 
-#include <multipass/ssh/sftp_client.h>
 #include <multipass/cli/command.h>
+#include <multipass/ssh/sftp_client.h>
 
 #include <filesystem>
 #include <string>

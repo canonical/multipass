@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_FORMAT_H
 #define MULTIPASS_FORMAT_H
 
+#include <QString>
+#include <filesystem>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <filesystem>
-#include <QString>
 
 namespace fmt
 {
@@ -59,6 +59,5 @@ struct formatter<std::filesystem::path>
 };
 
 } // namespace fmt
-
 
 #endif // MULTIPASS_FORMAT_H

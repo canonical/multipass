@@ -67,6 +67,6 @@ struct MockRecursiveDirIterator : public RecursiveDirIterator
     MOCK_METHOD(bool, hasNext, (), (override));
     MOCK_METHOD(const DirectoryEntry&, next, (), (override));
 };
-} // namespace multipass
+} // namespace multipass::test
 
 #endif // MULTIPASS_MOCK_STD_RECURSIVE_DIR_ITER_H

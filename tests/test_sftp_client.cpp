@@ -320,7 +320,7 @@ TEST_F(SFTPClient, in_steam_throws_on_sftp_open_failed)
     auto sftp = make_sftp_client();
 
     std::istream fake_cin{test_stream.rdbuf()};
-    EXPECT_THROW(sftp.stream_file("bar", fake_cin), std::runtime_error);
+    EXPECT_THROW(sftp.from_cin(fake_cin, "bar"), std::runtime_error);
 }
 
 TEST_F(SFTPClient, in_stream_throws_on_write_failed)
@@ -339,7 +339,7 @@ TEST_F(SFTPClient, in_stream_throws_on_write_failed)
     auto sftp = make_sftp_client();
 
     std::istream fake_cin{test_stream.rdbuf()};
-    EXPECT_THROW(sftp.stream_file("bar", fake_cin), std::runtime_error);
+    EXPECT_THROW(sftp.from_cin(fake_cin, "bar"), std::runtime_error);
 }
 
 TEST_F(SFTPClient, out_stream_throws_on_sftp_open_failed)
@@ -355,7 +355,7 @@ TEST_F(SFTPClient, out_stream_throws_on_sftp_open_failed)
     auto sftp = make_sftp_client();
 
     std::ostream fake_cout{test_stream.rdbuf()};
-    EXPECT_THROW(sftp.stream_file(source_path, fake_cout), std::runtime_error);
+    EXPECT_THROW(sftp.to_cout(source_path, fake_cout), std::runtime_error);
 }
 
 TEST_F(SFTPClient, out_stream_throws_on_sftp_read_failed)
@@ -376,7 +376,7 @@ TEST_F(SFTPClient, out_stream_throws_on_sftp_read_failed)
     auto sftp = make_sftp_client();
 
     std::ostream fake_cout{test_stream.rdbuf()};
-    EXPECT_THROW(sftp.stream_file(source_path, fake_cout), std::runtime_error);
+    EXPECT_THROW(sftp.to_cout(source_path, fake_cout), std::runtime_error);
 }
 
 TEST_F(SFTPClient, out_stream_writes_data_with_nulls)
@@ -404,6 +404,6 @@ TEST_F(SFTPClient, out_stream_writes_data_with_nulls)
     auto sftp = make_sftp_client();
     std::ostringstream out;
 
-    EXPECT_NO_THROW(sftp.stream_file("fake path", out));
+    EXPECT_NO_THROW(sftp.to_cout("fake path", out));
     EXPECT_EQ(out.str(), source_data);
 }
