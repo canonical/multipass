@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_SFTP_CLIENT_H
 #define MULTIPASS_SFTP_CLIENT_H
 
-#include <multipass/ssh/ssh_session.h>
+#include "ssh_session.h"
 
 #include <libssh/sftp.h>
 
@@ -26,15 +26,13 @@
 #include <filesystem>
 #include <functional>
 #include <iostream>
-#include <memory>
-#include <string>
+
+namespace fs = std::filesystem;
 
 namespace multipass
 {
 using SSHSessionUPtr = std::unique_ptr<SSHSession>;
 using SFTPSessionUPtr = std::unique_ptr<sftp_session_struct, std::function<void(sftp_session)>>;
-
-namespace fs = std::filesystem;
 
 enum TransferFlags
 {
@@ -42,12 +40,6 @@ enum TransferFlags
 };
 
 SFTPSessionUPtr make_sftp_session(ssh_session session);
-std::unique_ptr<std::ostream> open_write_file(const fs::path& path);
-std::unique_ptr<std::istream> open_read_file(const fs::path& path);
-std::string get_full_file_target(const fs::path& source_path, const fs::path& target_path);
-std::string get_full_file_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path);
-fs::path get_full_dir_target(const fs::path& source_path, const fs::path& target_path);
-fs::path get_full_dir_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path);
 
 class SFTPClient
 {
@@ -55,17 +47,19 @@ public:
     SFTPClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob);
     SFTPClient(SSHSessionUPtr ssh_session);
 
-    bool is_dir(const fs::path& path);
-    bool push(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
-              std::ostream& err_sink);
-    bool pull(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
-              std::ostream& err_sink);
-    void push_file(const fs::path& source_path, const fs::path& target_path);
-    void pull_file(const fs::path& source_path, const fs::path& target_path);
-    bool push_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink);
-    bool pull_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink);
-    void from_cin(std::istream& cin, const fs::path& target_path);
-    void to_cout(const fs::path& source_path, std::ostream& cout);
+    virtual bool is_dir(const fs::path& path);
+    virtual bool push(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
+                      std::ostream& err_sink);
+    virtual bool pull(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
+                      std::ostream& err_sink);
+    virtual void push_file(const fs::path& source_path, const fs::path& target_path);
+    virtual void pull_file(const fs::path& source_path, const fs::path& target_path);
+    virtual bool push_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink);
+    virtual bool pull_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink);
+    virtual void from_cin(std::istream& cin, const fs::path& target_path);
+    virtual void to_cout(const fs::path& source_path, std::ostream& cout);
+
+    virtual ~SFTPClient() = default;
 
 private:
     void do_push_file(std::istream& source, const fs::path& target_path);

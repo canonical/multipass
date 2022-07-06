@@ -16,20 +16,15 @@
  */
 
 #include <multipass/ssh/sftp_client.h>
+
+#include "ssh_client_key_provider.h"
+#include <multipass/file_ops.h>
+#include <multipass/format.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/throw_on_error.h>
 
-#include "ssh_client_key_provider.h"
-
-#include <multipass/format.h>
-
 #include <array>
 #include <fcntl.h>
-#include <fstream>
-
-#include <QFile>
-
-namespace fs = std::filesystem;
 
 constexpr int file_mode = 0664;
 constexpr auto max_transfer = 65536u;
@@ -44,117 +39,6 @@ SFTPSessionUPtr make_sftp_session(ssh_session session)
         throw std::runtime_error(fmt::format("[sftp] could not create new sftp session: {}", ssh_get_error(session)));
 
     return sftp;
-}
-
-std::unique_ptr<std::ostream> open_write_file(const fs::path& path)
-{
-    return std::make_unique<std::ofstream>(path);
-}
-
-std::unique_ptr<std::istream> open_read_file(const fs::path& path)
-{
-    return std::make_unique<std::ifstream>(path);
-}
-
-std::string get_full_file_target(const fs::path& source_path, const fs::path& target_path)
-{
-    if (!exists(target_path))
-    {
-        const auto parent_path = target_path.parent_path();
-        return exists(parent_path.empty() ? "." : parent_path)
-                   ? target_path
-                   : throw std::runtime_error{"[sftp] local target does not exist"};
-    }
-
-    if (!is_directory(target_path))
-        return target_path;
-
-    auto target_full_path = target_path / source_path.filename();
-    if (is_directory(target_full_path))
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot overwrite local directory {} with non-directory", target_full_path)};
-
-    return target_full_path;
-}
-
-std::string get_full_file_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path)
-{
-    auto target_full_path = target_path.empty() ? source_path.filename() : target_path;
-
-    auto target_attr = mp_sftp_stat(sftp, target_full_path.c_str());
-    if (!target_attr)
-    {
-        const auto parent_path = target_full_path.parent_path();
-        const auto parent_attr = mp_sftp_stat(sftp, parent_path.empty() ? "." : parent_path.c_str());
-        return parent_attr ? target_full_path : throw std::runtime_error{"[sftp] remote target does not exist"};
-    }
-
-    if (target_attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
-        return target_full_path;
-
-    target_full_path /= source_path.filename();
-    target_attr = mp_sftp_stat(sftp, target_full_path.c_str());
-    if (target_attr && target_attr->type == SSH_FILEXFER_TYPE_DIRECTORY)
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot overwrite remote directory {} with non-directory", target_full_path)};
-
-    return target_full_path;
-}
-
-fs::path get_full_dir_target(const fs::path& source_path, const fs::path& target_path)
-{
-    if (fs::exists(target_path) && !fs::is_directory(target_path))
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot overwrite local non-directory {} with directory", target_path)};
-
-    if (!fs::exists(target_path))
-    {
-        std::error_code err;
-        if (!fs::create_directory(target_path, err))
-            throw std::runtime_error{
-                fmt::format("[sftp] cannot create local directory {}: {}", target_path, err.message())};
-        return target_path;
-    }
-
-    auto child_path = target_path / source_path.filename();
-    if (fs::exists(child_path) && !fs::is_directory(child_path))
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot overwrite local non-directory {} with directory", child_path)};
-    std::error_code err;
-    if (!fs::create_directory(child_path, err) && err)
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot create local directory {}: {}", child_path, err.message())};
-
-    return child_path;
-}
-
-fs::path get_full_dir_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path)
-{
-    auto target_info = mp_sftp_stat(sftp, target_path.c_str());
-
-    if (target_info && target_info->type != SSH_FILEXFER_TYPE_DIRECTORY)
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot overwrite remote non-directory {} with directory", target_path)};
-
-    if (!target_info)
-    {
-        if (sftp_mkdir(sftp, target_path.c_str(), 0777) != SSH_FX_OK)
-            throw std::runtime_error{fmt::format("[sftp] cannot create remote directory {}: {}", target_path,
-                                                 ssh_get_error(sftp->session))};
-
-        return target_path;
-    }
-
-    auto child_path = target_path / source_path.filename();
-    auto child_info = mp_sftp_stat(sftp, child_path.c_str());
-    if (child_info && child_info->type != SSH_FILEXFER_TYPE_DIRECTORY)
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot overwrite remote non-directory {} with directory", child_path)};
-    if (!child_info && sftp_mkdir(sftp, child_path.c_str(), 0777) != SSH_FX_OK)
-        throw std::runtime_error{fmt::format("[sftp] cannot create remote directory {}: {}", child_path,
-                                             ssh_get_error(sftp->session))};
-
-    return child_path;
 }
 
 SFTPClient::SFTPClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob)
@@ -175,9 +59,11 @@ bool SFTPClient::is_dir(const fs::path& path)
 }
 
 bool SFTPClient::push(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
-                                 std::ostream& err_sink)
+                      std::ostream& err_sink)
 {
-    if (fs::is_directory(source_path))
+    std::error_code err;
+
+    if (MP_FILEOPS.is_directory(source_path, err) && !err)
     {
         if (!flags.testFlag(TransferFlags::Recursive))
         {
@@ -185,13 +71,15 @@ bool SFTPClient::push(const fs::path& source_path, const fs::path& target_path, 
             return false;
         }
 
-        auto full_target_path = get_full_dir_target(sftp.get(), source_path, target_path);
+        auto full_target_path = MP_SFTPUTILS.get_full_remote_dir_target(sftp.get(), source_path, target_path);
         return push_dir(source_path, full_target_path, err_sink);
     }
+    else if (err)
+        throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", source_path, err.message())};
 
     try
     {
-        auto full_target_path = get_full_file_target(sftp.get(), source_path, target_path);
+        auto full_target_path = MP_SFTPUTILS.get_full_remote_file_target(sftp.get(), source_path, target_path);
         push_file(source_path, full_target_path);
         return true;
     }
@@ -203,7 +91,7 @@ bool SFTPClient::push(const fs::path& source_path, const fs::path& target_path, 
 }
 
 bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
-                                 std::ostream& err_sink)
+                      std::ostream& err_sink)
 {
     if (is_dir(source_path))
     {
@@ -213,13 +101,13 @@ bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, 
             return false;
         }
 
-        auto full_target_path = get_full_dir_target(source_path, target_path);
+        auto full_target_path = MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path);
         return pull_dir(source_path, full_target_path, err_sink);
     }
 
     try
     {
-        auto full_target_path = get_full_file_target(source_path, target_path);
+        auto full_target_path = MP_SFTPUTILS.get_full_local_file_target(source_path, target_path);
         pull_file(source_path, full_target_path);
         return true;
     }
@@ -232,14 +120,19 @@ bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, 
 
 void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_path)
 {
-    auto local_file = open_read_file(source_path);
+    auto local_file = MP_FILEOPS.open_read(source_path);
     if (local_file->fail())
         throw std::runtime_error{fmt::format("[sftp] cannot open local file {}: {}", source_path, strerror(errno))};
 
     do_push_file(*local_file, target_path);
 
     auto target_attr = mp_sftp_stat(sftp.get(), target_path.c_str());
-    target_attr->permissions = static_cast<mode_t>(status(source_path).permissions());
+    std::error_code err;
+    auto status = MP_FILEOPS.status(source_path, err);
+    if (err)
+        throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", source_path, err.message())};
+
+    target_attr->permissions = static_cast<mode_t>(status.permissions());
     if (sftp_setstat(sftp.get(), target_path.c_str(), target_attr.get()) != SSH_FX_OK)
         throw std::runtime_error{fmt::format("[sftp] cannot set permissions for remote file {}: {}", target_path,
                                              ssh_get_error(sftp->session))};
@@ -251,35 +144,36 @@ void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_p
 
 void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_path)
 {
-    auto local_file = open_write_file(target_path);
+    auto local_file = MP_FILEOPS.open_write(target_path);
     if (local_file->fail())
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot open local file {}: {}", target_path, strerror(errno))};
+        throw std::runtime_error{fmt::format("[sftp] cannot open local file {}: {}", target_path, strerror(errno))};
 
     do_pull_file(source_path, *local_file);
 
     auto source_perms = mp_sftp_stat(sftp.get(), source_path.c_str())->permissions;
     std::error_code err;
-    fs::permissions(target_path, static_cast<fs::perms>(source_perms), err);
+    MP_FILEOPS.permissions(target_path, static_cast<fs::perms>(source_perms), err);
     if (err)
         throw std::runtime_error{
             fmt::format("[sftp] cannot copy permissions for local file {}: {}", target_path, err.message())};
 
     if (local_file->fail())
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot write to local file {}: {}", target_path, strerror(errno))};
+        throw std::runtime_error{fmt::format("[sftp] cannot write to local file {}: {}", target_path, strerror(errno))};
 }
 
 bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink)
 {
     auto success = true;
+    std::error_code err;
 
-    fs::recursive_directory_iterator local_iter{source_path};
-    while (local_iter != fs::end(local_iter))
+    auto local_iter = MP_FILEOPS.recursive_dir_iterator(source_path, err);
+    if (err)
+        throw std::runtime_error{fmt::format("[sftp] cannot open local directory {}: {}", source_path, err.message())};
+    while (local_iter->hasNext())
     {
         try
         {
-            auto entry = *local_iter++;
+            auto entry = local_iter->next();
             auto remote_file_path = target_path / (entry.path().c_str() + source_path.string().size() + 1);
 
             switch (entry.symlink_status().type())
@@ -299,8 +193,7 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
             }
             case fs::file_type::symlink:
             {
-                std::error_code err;
-                auto link_target = fs::read_symlink(entry, err);
+                auto link_target = MP_FILEOPS.read_symlink(entry.path(), err);
                 if (err)
                     throw std::runtime_error{
                         fmt::format("[sftp] cannot read local link {}: {}", entry.path(), err.message())};
@@ -312,17 +205,16 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
 
                 if (sftp_unlink(sftp.get(), remote_file_path.c_str()) != SSH_FX_OK &&
                     sftp_get_error(sftp.get()) != SSH_FX_NO_SUCH_FILE)
-                    throw std::runtime_error{fmt::format("[sftp] cannot create remote symlink {}: {}",
-                                                         remote_file_path, ssh_get_error(sftp->session))};
+                    throw std::runtime_error{fmt::format("[sftp] cannot create remote symlink {}: {}", remote_file_path,
+                                                         ssh_get_error(sftp->session))};
 
                 if (sftp_symlink(sftp.get(), link_target.c_str(), remote_file_path.c_str()) != SSH_FX_OK)
-                    throw std::runtime_error{fmt::format("[sftp] cannot create remote symlink {}: {}",
-                                                         remote_file_path, ssh_get_error(sftp->session))};
+                    throw std::runtime_error{fmt::format("[sftp] cannot create remote symlink {}: {}", remote_file_path,
+                                                         ssh_get_error(sftp->session))};
                 break;
             }
             default:
-                throw std::runtime_error{
-                    fmt::format("[sftp] cannot copy {}: not a regular file", entry.path())};
+                throw std::runtime_error{fmt::format("[sftp] cannot copy {}: not a regular file", entry.path())};
             }
         }
         catch (std::exception& e)
@@ -339,12 +231,12 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
 {
     auto success = true;
 
-    SFTPDirIterator remote_iter{sftp.get(), source_path};
-    while (remote_iter.hasNext())
+    auto remote_iter = MP_SFTPUTILS.make_SFTPDirIterator(sftp.get(), source_path);
+    while (remote_iter->hasNext())
     {
         try
         {
-            auto entry = remote_iter.next();
+            auto entry = remote_iter->next();
             auto local_file_path = target_path / (entry->name + source_path.string().size() + 1);
 
             switch (entry->type)
@@ -357,10 +249,10 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
             case SSH_FILEXFER_TYPE_DIRECTORY:
             {
                 std::error_code err;
-                fs::create_directory(local_file_path, err);
+                MP_FILEOPS.create_directory(local_file_path, err);
                 if (err)
-                    throw std::runtime_error{fmt::format("[sftp] cannot create local directory {}: {}",
-                                                         local_file_path, err.message())};
+                    throw std::runtime_error{
+                        fmt::format("[sftp] cannot create local directory {}: {}", local_file_path, err.message())};
                 break;
             }
             case SSH_FILEXFER_TYPE_SYMLINK:
@@ -370,20 +262,23 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
                     throw std::runtime_error{fmt::format("[sftp] cannot read remote link \"{}\": {}", entry->name,
                                                          ssh_get_error(sftp->session))};
 
-                if (fs::is_directory(local_file_path))
-                    throw std::runtime_error{fmt::format(
-                        "[sftp] cannot overwrite local directory {} with non-directory", local_file_path)};
-
                 std::error_code err;
-                fs::remove(local_file_path, err);
-                if (err)
-                    throw std::runtime_error{fmt::format("[sftp] cannot create local symlink {}: {}",
-                                                         local_file_path, err.message())};
+                if (MP_FILEOPS.is_directory(local_file_path, err) && !err)
+                    throw std::runtime_error{
+                        fmt::format("[sftp] cannot overwrite local directory {} with non-directory", local_file_path)};
+                else if (err)
+                    throw std::runtime_error{
+                        fmt::format("[sftp] cannot access {}: {}", local_file_path, err.message())};
 
-                fs::create_symlink(link_target.get(), local_file_path, err);
+                MP_FILEOPS.remove(local_file_path, err);
+                if (err)
+                    throw std::runtime_error{
+                        fmt::format("[sftp] cannot create local symlink {}: {}", local_file_path, err.message())};
+
+                MP_FILEOPS.create_symlink(link_target.get(), local_file_path, err);
                 if (err && err != std::errc::file_exists)
-                    throw std::runtime_error{fmt::format("[sftp] cannot create local symlink {}: {}",
-                                                         local_file_path, err.message())};
+                    throw std::runtime_error{
+                        fmt::format("[sftp] cannot create local symlink {}: {}", local_file_path, err.message())};
                 break;
             }
             default:
@@ -402,7 +297,7 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
 
 void SFTPClient::from_cin(std::istream& cin, const fs::path& target_path)
 {
-    auto full_target_path = get_full_file_target(sftp.get(), stream_file_name, target_path);
+    auto full_target_path = MP_SFTPUTILS.get_full_remote_file_target(sftp.get(), stream_file_name, target_path);
     do_push_file(cin, full_target_path);
 }
 
@@ -421,8 +316,8 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
     std::array<char, max_transfer> buffer{};
     while (auto r = source.read(buffer.data(), buffer.size()).gcount())
         if (sftp_write(remote_file.get(), buffer.data(), r) == 0)
-            throw std::runtime_error{fmt::format("[sftp] cannot write to remote file {}: {}", target_path,
-                                                 ssh_get_error(sftp->session))};
+            throw std::runtime_error{
+                fmt::format("[sftp] cannot write to remote file {}: {}", target_path, ssh_get_error(sftp->session))};
 }
 
 void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
@@ -436,8 +331,8 @@ void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
     while (auto r = sftp_read(remote_file.get(), buffer.data(), buffer.size()))
     {
         if (r < 0)
-            throw std::runtime_error{fmt::format("[sftp] cannot read from remote file {}: {}", source_path,
-                                                 ssh_get_error(sftp->session))};
+            throw std::runtime_error{
+                fmt::format("[sftp] cannot read from remote file {}: {}", source_path, ssh_get_error(sftp->session))};
 
         target.write(buffer.data(), r);
     }
