@@ -20,6 +20,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <filesystem>
 #include <QString>
 
 namespace fmt
@@ -38,6 +39,22 @@ struct formatter<QString>
     auto format(const QString& a, FormatContext& ctx)
     {
         return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
+    }
+};
+
+template <>
+struct formatter<std::filesystem::path>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const std::filesystem::path& path, FormatContext& ctx)
+    {
+        return format_to(ctx.out(), "'{}'", path.string());
     }
 };
 
