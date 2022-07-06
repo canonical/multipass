@@ -20,13 +20,12 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
-
-#include <filesystem>
+#include <multipass/file_ops.h>
+#include <multipass/ssh/sftp_utils.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
-namespace fs = std::filesystem;
 
 namespace
 {
@@ -45,39 +44,42 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
         {
             try
             {
-                SFTPClient sftp_client{ssh_info.host(), ssh_info.port(), ssh_info.username(),
-                                       ssh_info.priv_key_base64()};
+                auto sftp_client = MP_SFTPUTILS.make_SFTPClient(ssh_info.host(), ssh_info.port(), ssh_info.username(),
+                                                                ssh_info.priv_key_base64());
                 switch (arguments.index())
                 {
                 case INSTANCE_SOURCES_LOCAL_TARGET:
                 {
                     auto& [sources, target] = std::get<INSTANCE_SOURCES_LOCAL_TARGET>(arguments);
-                    if (sources.size() > 1 && !fs::is_directory(target))
-                        throw std::runtime_error{fmt::format("[sftp] target \"{}\" is not a directory", target)};
+                    std::error_code err;
+                    if (sources.size() > 1 && !MP_FILEOPS.is_directory(target, err) && !err)
+                        throw std::runtime_error{fmt::format("[sftp] target {} is not a directory", target)};
+                    else if (err)
+                        throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", target, err.message())};
                     for (auto [s, s_end] = sources.equal_range(instance_name); s != s_end; ++s)
-                        success &= sftp_client.pull(s->second, target, flags, cerr);
+                        success &= sftp_client->pull(s->second, target, flags, term->cerr());
                     break;
                 }
                 case LOCAL_SOURCES_INSTANCE_TARGET:
                 {
                     auto& [sources, target] = std::get<LOCAL_SOURCES_INSTANCE_TARGET>(arguments);
-                    if (sources.size() > 1 && !sftp_client.is_dir(target))
-                        throw std::runtime_error{fmt::format("[sftp] target \"{}\" is not a directory", target)};
+                    if (sources.size() > 1 && !sftp_client->is_dir(target))
+                        throw std::runtime_error{fmt::format("[sftp] target {} is not a directory", target)};
                     for (const auto& source : sources)
-                        success &= sftp_client.push(source, target, flags, cerr);
+                        success &= sftp_client->push(source, target, flags, term->cerr());
                     break;
                 }
                 case FROM_CIN:
-                    sftp_client.from_cin(term->cin(), std::get<FROM_CIN>(arguments).target);
+                    sftp_client->from_cin(term->cin(), std::get<FROM_CIN>(arguments).target);
                     break;
                 case TO_COUT:
-                    sftp_client.to_cout(std::get<TO_COUT>(arguments).source, term->cout());
+                    sftp_client->to_cout(std::get<TO_COUT>(arguments).source, term->cout());
                     break;
                 }
             }
             catch (const std::exception& e)
             {
-                cerr << e.what() << "\n";
+                term->cerr() << e.what() << "\n";
                 success = false;
             }
         }
@@ -85,7 +87,9 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
         return success ? ReturnCode::Ok : ReturnCode::CommandFail;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), term->cerr(), status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
@@ -131,11 +135,11 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     auto positionalArgs = parser->positionalArguments();
     if (positionalArgs.size() < 2)
     {
-        cerr << "Not enough arguments given\n";
+        term->cerr() << "Not enough arguments given\n";
         return ParseCode::CommandLineError;
     }
 
-    std::vector<std::pair<std::string, std::string>> instance_entry_args;
+    std::vector<std::pair<std::string, fs::path>> instance_entry_args;
     instance_entry_args.reserve(positionalArgs.size());
     for (const auto& entry : positionalArgs)
     {
@@ -158,13 +162,13 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     const auto target_streaming = target == streaming_symbol;
     if ((target_streaming && source_streaming) || source_streaming > 1)
     {
-        cerr << fmt::format("Only one '{}' allowed\n", streaming_symbol);
+        term->cerr() << fmt::format("Only one '{}' allowed\n", streaming_symbol);
         return ParseCode::CommandLineError;
     }
 
     if ((target_streaming || source_streaming) && sources.size() > 1)
     {
-        cerr << fmt::format("Only two arguments allowed when using '{}'\n", streaming_symbol);
+        term->cerr() << fmt::format("Only two arguments allowed when using '{}'\n", streaming_symbol);
         return ParseCode::CommandLineError;
     }
 
@@ -172,7 +176,7 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     {
         if (instance_sources.front().first.empty())
         {
-            cerr << "Source must be from inside an instance\n";
+            term->cerr() << "Source must be from inside an instance\n";
             return ParseCode::CommandLineError;
         }
 
@@ -184,7 +188,7 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     {
         if (instance_target.first.empty())
         {
-            cerr << "Target must be inside an instance\n";
+            term->cerr() << "Target must be inside an instance\n";
             return ParseCode::CommandLineError;
         }
 
@@ -201,19 +205,20 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
             return ParseCode::Ok;
         }
 
-        cerr << (request.instance_name_size() ? "All sources must be from inside an instance\n"
-                                              : "An instance name is needed for either source or destination\n");
+        term->cerr() << (request.instance_name_size()
+                             ? "All sources must be from inside an instance\n"
+                             : "An instance name is needed for either source or destination\n");
         return ParseCode::CommandLineError;
     }
     else
     {
         if (request.instance_name_size() > 1)
         {
-            cerr << "Cannot specify an instance name for both source and destination\n";
+            term->cerr() << "Cannot specify an instance name for both source and destination\n";
             return ParseCode::CommandLineError;
         }
 
-        std::vector<std::string> source_paths;
+        std::vector<fs::path> source_paths;
         source_paths.reserve(instance_sources.size());
         std::transform(instance_sources.begin(), instance_sources.end(), std::back_inserter(source_paths),
                        [](auto& item) { return std::move(item.second); });

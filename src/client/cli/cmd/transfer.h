@@ -18,35 +18,38 @@
 #ifndef MULTIPASS_TRANSFER_H
 #define MULTIPASS_TRANSFER_H
 
-#include <multipass/cli/command.h>
 #include <multipass/ssh/sftp_client.h>
+#include <multipass/cli/command.h>
 
+#include <filesystem>
 #include <string>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 namespace multipass::cmd
 {
 
 struct InstanceSourcesLocalTarget
 {
-    std::unordered_multimap<std::string, std::string> sources;
-    std::string target_path;
+    std::unordered_multimap<std::string, fs::path> sources;
+    fs::path target_path;
 };
 
 struct LocalSourcesInstanceTarget
 {
-    std::vector<std::string> source_paths;
-    std::string target;
+    std::vector<fs::path> source_paths;
+    fs::path target;
 };
 
 struct FromCin
 {
-    std::string target;
+    fs::path target;
 };
 
 struct ToCout
 {
-    std::string source;
+    fs::path source;
 };
 
 enum ArgumentsFormat
