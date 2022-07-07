@@ -860,8 +860,8 @@ TEST_F(SFTPClient, pull_dir_cannot_create_symlink)
     EXPECT_CALL(*mock_sftp_utils, make_SFTPDirIterator(_, source_path)).WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(
-            Return(std::unique_ptr<sftp_attributes_struct>(get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink"))));
+        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
+            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink"))));
 
     REPLACE(sftp_readlink, [](auto...) { return (char*)malloc(10); });
     EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(false));

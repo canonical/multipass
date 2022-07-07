@@ -249,7 +249,8 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
                         fmt::format("[sftp] cannot overwrite local directory {} with non-directory", local_file_path)};
 
                 if (MP_FILEOPS.remove(local_file_path, err); !err)
-                    if (MP_FILEOPS.create_symlink(link_target.get(), local_file_path, err); !err) break;
+                    if (MP_FILEOPS.create_symlink(link_target.get(), local_file_path, err); !err)
+                        break;
 
                 throw std::runtime_error{
                     fmt::format("[sftp] cannot create local symlink {}: {}", local_file_path, err.message())};
