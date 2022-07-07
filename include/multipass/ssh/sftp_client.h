@@ -52,16 +52,16 @@ public:
                       std::ostream& err_sink);
     virtual bool pull(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
                       std::ostream& err_sink);
-    virtual void push_file(const fs::path& source_path, const fs::path& target_path);
-    virtual void pull_file(const fs::path& source_path, const fs::path& target_path);
-    virtual bool push_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink);
-    virtual bool pull_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink);
     virtual void from_cin(std::istream& cin, const fs::path& target_path);
     virtual void to_cout(const fs::path& source_path, std::ostream& cout);
 
     virtual ~SFTPClient() = default;
 
 private:
+    void push_file(const fs::path& source_path, const fs::path& target_path);
+    void pull_file(const fs::path& source_path, const fs::path& target_path);
+    bool push_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink);
+    bool pull_dir(const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink);
     void do_push_file(std::istream& source, const fs::path& target_path);
     void do_pull_file(const fs::path& source_path, std::ostream& target);
 
