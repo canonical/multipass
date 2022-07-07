@@ -34,12 +34,6 @@ struct MockSFTPClient : public SFTPClient
                 (const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
                  std::ostream& err_sink),
                 (override));
-    MOCK_METHOD(void, push_file, (const fs::path& source_path, const fs::path& target_path), (override));
-    MOCK_METHOD(void, pull_file, (const fs::path& source_path, const fs::path& target_path), (override));
-    MOCK_METHOD(bool, push_dir, (const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink),
-                (override));
-    MOCK_METHOD(bool, pull_dir, (const fs::path& source_path, const fs::path& target_path, std::ostream& err_sink),
-                (override));
     MOCK_METHOD(void, from_cin, (std::istream & cin, const fs::path& target_path), (override));
     MOCK_METHOD(void, to_cout, (const fs::path& source_path, std::ostream& cout), (override));
 };

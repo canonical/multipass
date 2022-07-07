@@ -42,10 +42,8 @@ fs::path SFTPUtils::get_full_local_file_target(const fs::path& source_path, cons
     else if (err)
         throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", target_path, err.message())};
 
-    if (!MP_FILEOPS.is_directory(target_path, err) && !err)
+    if (!MP_FILEOPS.is_directory(target_path, err))
         return target_path;
-    else if (err)
-        throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", target_path, err.message())};
 
     auto target_full_path = target_path / source_path.filename();
     if (MP_FILEOPS.is_directory(target_full_path, err) && !err)
@@ -92,15 +90,13 @@ fs::path SFTPUtils::get_full_local_dir_target(const fs::path& source_path, const
     else if (err)
         throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", target_path, err.message())};
 
-    if (!MP_FILEOPS.exists(target_path, err) && !err)
+    if (!MP_FILEOPS.exists(target_path, err))
     {
         if (!MP_FILEOPS.create_directory(target_path, err))
             throw std::runtime_error{
                 fmt::format("[sftp] cannot create local directory {}: {}", target_path, err.message())};
         return target_path;
     }
-    else if (err)
-        throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", target_path, err.message())};
 
     auto child_path = target_path / source_path.filename();
     if (MP_FILEOPS.exists(child_path, err) && !MP_FILEOPS.is_directory(child_path, err) && !err)
