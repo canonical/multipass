@@ -80,4 +80,6 @@ add_c_mocks(
   sftp_symlink
   sftp_unlink
   sftp_setstat
+  sftp_dir_eof
+  ssh_get_error
 )

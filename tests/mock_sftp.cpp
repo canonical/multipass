@@ -35,4 +35,5 @@ extern "C"
     IMPL_MOCK_DEFAULT(3, sftp_symlink);
     IMPL_MOCK_DEFAULT(2, sftp_unlink);
     IMPL_MOCK_DEFAULT(3, sftp_setstat);
+    IMPL_MOCK_DEFAULT(1, sftp_dir_eof);
 }

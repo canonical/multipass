@@ -39,5 +39,6 @@ DECL_MOCK(sftp_mkdir);
 DECL_MOCK(sftp_symlink);
 DECL_MOCK(sftp_unlink);
 DECL_MOCK(sftp_setstat);
+DECL_MOCK(sftp_dir_eof);
 
 #endif // MULTIPASS_MOCK_SFTP_H
