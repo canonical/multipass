@@ -53,7 +53,7 @@ struct SFTPUtils : public Singleton<SFTPUtils>
     virtual fs::path get_full_local_dir_target(const fs::path& source_path, const fs::path& target_path);
     virtual fs::path get_full_remote_dir_target(sftp_session sftp, const fs::path& source_path,
                                                 const fs::path& target_path);
-    virtual std::unique_ptr<SFTPDirIterator> make_SFTPDirIterator(sftp_session sftp, const std::string& path);
+    virtual std::unique_ptr<SFTPDirIterator> make_SFTPDirIterator(sftp_session sftp, const fs::path& path);
     virtual std::unique_ptr<SFTPClient> make_SFTPClient(const std::string& host, int port, const std::string& username,
                                                         const std::string& priv_key_blob);
 };

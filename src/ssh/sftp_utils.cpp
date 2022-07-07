@@ -147,7 +147,7 @@ std::unique_ptr<SFTPClient> SFTPUtils::make_SFTPClient(const std::string& host, 
     return std::make_unique<SFTPClient>(host, port, username, priv_key_blob);
 }
 
-std::unique_ptr<SFTPDirIterator> SFTPUtils::make_SFTPDirIterator(sftp_session sftp, const std::string& path)
+std::unique_ptr<SFTPDirIterator> SFTPUtils::make_SFTPDirIterator(sftp_session sftp, const fs::path& path)
 {
     return std::make_unique<SFTPDirIterator>(sftp, path);
 }
