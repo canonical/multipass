@@ -64,10 +64,14 @@ SFTPAttributesUPtr SFTPDirIterator::next()
         return attr;
     }
 
-    auto eof = sftp_dir_eof(dir);
+    if (sftp_dir_eof(dir))
+    {
+        dirs.pop();
+        return next();
+    }
+
+    auto err_msg = fmt::format("[sftp] cannot read remote directory '{}': {}", dir->name, ssh_get_error(sftp->session));
     dirs.pop();
-    return eof ? next()
-               : throw std::runtime_error{fmt::format("[sftp] cannot read remote directory '{}': {}", dir->name,
-                                                      ssh_get_error(sftp->session))};
+    throw std::runtime_error{err_msg};
 }
 } // namespace multipass
