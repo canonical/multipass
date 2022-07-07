@@ -127,10 +127,8 @@ void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_p
     do_push_file(*local_file, target_path);
 
     auto target_attr = mp_sftp_stat(sftp.get(), target_path.c_str());
-    std::error_code err;
-    auto status = MP_FILEOPS.status(source_path, err);
-    if (err)
-        throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", source_path, err.message())};
+    std::error_code _;
+    auto status = MP_FILEOPS.status(source_path, _);
 
     target_attr->permissions = static_cast<mode_t>(status.permissions());
     if (sftp_setstat(sftp.get(), target_path.c_str(), target_attr.get()) != SSH_FX_OK)
@@ -155,7 +153,7 @@ void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_p
     MP_FILEOPS.permissions(target_path, static_cast<fs::perms>(source_perms), err);
     if (err)
         throw std::runtime_error{
-            fmt::format("[sftp] cannot copy permissions for local file {}: {}", target_path, err.message())};
+            fmt::format("[sftp] cannot set permissions for local file {}: {}", target_path, err.message())};
 
     if (local_file->fail())
         throw std::runtime_error{fmt::format("[sftp] cannot write to local file {}: {}", target_path, strerror(errno))};
@@ -315,7 +313,7 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
 
     std::array<char, max_transfer> buffer{};
     while (auto r = source.read(buffer.data(), buffer.size()).gcount())
-        if (sftp_write(remote_file.get(), buffer.data(), r) == 0)
+        if (sftp_write(remote_file.get(), buffer.data(), r) < 0)
             throw std::runtime_error{
                 fmt::format("[sftp] cannot write to remote file {}: {}", target_path, ssh_get_error(sftp->session))};
 }
