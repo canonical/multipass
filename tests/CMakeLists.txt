@@ -107,6 +107,7 @@ add_executable(multipass_tests
   test_utils.cpp
   test_with_mocked_bin_path.cpp
   test_blueprint_provider.cpp
+  test_sftp_dir_iterator.cpp
 )
 
 target_include_directories(multipass_tests
