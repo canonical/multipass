@@ -1433,6 +1433,10 @@ void mp::Daemon::mount(const MountRequest* request, grpc::ServerWriterInterface<
 try // clang-format on
 {
     mpl::ClientLogger<MountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    auto mount_type = request->experimental() ? mp::VMMount::MountType::Performance : mp::VMMount::MountType::SSHFS;
+
+    if (mount_type == mp::VMMount::MountType::Performance && config->mount_handlers.size() < 2)
+        throw mp::NotImplementedOnThisBackendException("experimental mounts");
 
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
     {
@@ -1466,7 +1470,7 @@ try // clang-format on
     }
 
     mp::id_mappings uid_mappings, gid_mappings;
-    auto mount_type = request->experimental() ? mp::VMMount::MountType::Performance : mp::VMMount::MountType::SSHFS;
+
     auto mount_maps = request->mount_maps();
 
     for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
@@ -1499,7 +1503,7 @@ try // clang-format on
             continue;
         }
 
-        if (config->mount_handlers[static_cast<int>(mount_type)]->has_instance_already_mounted(name, target_path))
+        if (config->mount_handlers.at(static_cast<int>(mount_type))->has_instance_already_mounted(name, target_path))
         {
             fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
@@ -1512,15 +1516,8 @@ try // clang-format on
         {
             try
             {
-                if (mount_type == mp::VMMount::MountType::SSHFS)
-                {
-                    start_sshfs_mount(vm.get(), server, request->source_path(), target_path, gid_mappings, uid_mappings,
-                                      vm_specs.ssh_username);
-                }
-                else
-                {
-                    throw mp::NotImplementedOnThisBackendException("experimental mounts");
-                }
+                config->mount_handlers.at(static_cast<int>(mount_type))
+                    ->start_mount(vm.get(), server, request->source_path(), target_path, gid_mappings, uid_mappings);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1948,7 +1945,8 @@ try // clang-format on
         {
             if (vm->current_state() == mp::VirtualMachine::State::running)
             {
-                if (!config->mount_handlers[static_cast<int>(mounts[name].mount_type)]->stop_mount(name, target_path))
+                if (!config->mount_handlers.at(static_cast<int>(mounts[target_path].mount_type))
+                         ->stop_mount(name, target_path))
                 {
                     fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
                 }
@@ -2639,28 +2637,6 @@ mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 }
 
 template <typename Reply>
-void mp::Daemon::start_sshfs_mount(VirtualMachine* vm, grpc::ServerWriterInterface<Reply>* server,
-                                   const std::string& source_path, const std::string& target_path,
-                                   const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings,
-                                   const std::string& ssh_username)
-{
-    auto on_install = [server] {
-        if (server)
-        {
-            Reply reply;
-            reply.set_reply_message("Enabling support for mounting");
-            server->Write(reply);
-        }
-    };
-
-    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), ssh_username, *config->ssh_key_provider};
-    mp::utils::install_sshfs_for(vm->vm_name, session, on_install);
-
-    config->mount_handlers[static_cast<int>(VMMount::MountType::SSHFS)]->start_mount(vm, source_path, target_path,
-                                                                                     gid_mappings, uid_mappings);
-}
-
-template <typename Reply>
 error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
                                                                  const std::chrono::seconds& timeout,
                                                                  grpc::ServerWriterInterface<Reply>* server)
@@ -2689,7 +2665,6 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
             std::vector<std::string> invalid_mounts;
             fmt::memory_buffer warnings;
             auto& mounts = vm_instance_specs[name].mounts;
-            auto& vm_specs = vm_instance_specs[name];
             for (const auto& mount_entry : mounts)
             {
                 auto& target_path = mount_entry.first;
@@ -2699,8 +2674,8 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
                 try
                 {
-                    start_sshfs_mount(vm.get(), server, source_path, target_path, gid_mappings, uid_mappings,
-                                      vm_specs.ssh_username);
+                    config->mount_handlers.at(static_cast<int>(mount_entry.second.mount_type))
+                        ->start_mount(vm.get(), server, source_path, target_path, gid_mappings, uid_mappings);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
