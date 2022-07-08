@@ -44,6 +44,7 @@ SFTPSessionUPtr make_sftp_session(ssh_session session);
 class SFTPClient
 {
 public:
+    SFTPClient() = default;
     SFTPClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob);
     SFTPClient(SSHSessionUPtr ssh_session);
 
