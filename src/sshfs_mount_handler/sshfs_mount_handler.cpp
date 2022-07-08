@@ -34,7 +34,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto category = "sshfs-mount-hanlder";
+constexpr auto category = "sshfs-mount-handler";
 
 template <typename Signal>
 void start_and_block_until(mp::Process* process, Signal signal, std::function<bool(mp::Process* process)> ready_decider)
@@ -64,7 +64,7 @@ mp::SSHFSMountHandler::SSHFSMountHandler(const SSHKeyProvider& key_provider) : M
 {
 }
 
-void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, const std::string& source_path,
+void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& source_path,
                                         const std::string& target_path, const mp::id_mappings& gid_mappings,
                                         const mp::id_mappings& uid_mappings)
 {
@@ -73,6 +73,22 @@ void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, const std::string& s
         mount_processes[vm->vm_name].erase(target_path);
         throw std::runtime_error(fmt::format("Mount path \"{}\" does not exist.", source_path));
     }
+
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+    std::visit(
+        [this, vm, &session](auto&& server) {
+            auto on_install = [this, server] {
+                if (server)
+                {
+                    auto reply = make_reply_from_server(*server);
+                    reply.set_reply_message("Enabling support for mounting");
+                    server->Write(reply);
+                }
+            };
+
+            mp::utils::install_sshfs_for(vm->vm_name, session, on_install);
+        },
+        server);
 
     mp::SSHFSServerConfig config;
     config.host = vm->ssh_hostname();
