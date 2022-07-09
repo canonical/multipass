@@ -15,10 +15,14 @@
  *
  */
 
+#include "mock_ssh_test_fixture.h"
+
 #include "common.h"
 #include "mock_environment_helpers.h"
 #include "mock_logger.h"
 #include "mock_process_factory.h"
+#include "mock_server_writer.h"
+#include "mock_ssh_process_exit_status.h"
 #include "mock_virtual_machine.h"
 #include "stub_ssh_key_provider.h"
 #include "tests/mock_file_ops.h"
@@ -52,6 +56,9 @@ struct SSHFSMountHandlerTest : public ::Test
     mp::id_mappings gid_mappings{{1, 2}, {3, 4}}, uid_mappings{{5, -1}, {6, 10}};
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(default_log_level);
+    mpt::MockServerWriter<mp::MountReply> server;
+    mpt::MockSSHTestFixture mock_ssh_test_fixture;
+    mpt::ExitStatusMock exit_status_mock;
 
     mpt::MockProcessFactory::Callback sshfs_prints_connected = [](mpt::MockProcess* process) {
         if (process->program().contains("sshfs_server"))
@@ -77,11 +84,11 @@ TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
     mpt::MockVirtualMachine vm{"my_instance"};
-    EXPECT_CALL(vm, ssh_port());
-    EXPECT_CALL(vm, ssh_hostname());
-    EXPECT_CALL(vm, ssh_username());
+    EXPECT_CALL(vm, ssh_port()).Times(2);
+    EXPECT_CALL(vm, ssh_hostname()).Times(2);
+    EXPECT_CALL(vm, ssh_username()).Times(2);
 
-    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
     auto sshfs_command = factory->process_list()[0];
@@ -124,7 +131,7 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_ex
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings),
+    EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings),
                  mp::SSHFSMissingError);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
@@ -158,7 +165,7 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_causes_runtime_exception)
 
     EXPECT_THROW(
         try {
-            sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+            sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
         } catch (const std::runtime_error& e) {
             EXPECT_STREQ(e.what(), "Process returned exit code: 1: Whoopsie");
             throw;
@@ -187,7 +194,7 @@ TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
     int ret = sshfs_mount_handler.stop_mount(vm.vm_name, target_path);
     ASSERT_TRUE(ret);
 }
@@ -212,9 +219,9 @@ TEST_F(SSHFSMountHandlerTest, stop_all_mounts_terminates_all_sshfs_processes)
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mount_handler.start_mount(&vm, "/source/one", "/target/one", gid_mappings, uid_mappings);
-    sshfs_mount_handler.start_mount(&vm, "/source/two", "/target/two", gid_mappings, uid_mappings);
-    sshfs_mount_handler.start_mount(&vm, "/source/three", "/target/three", gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, &server, "/source/one", "/target/one", gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, &server, "/source/two", "/target/two", gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, &server, "/source/three", "/target/three", gid_mappings, uid_mappings);
 
     sshfs_mount_handler.stop_all_mounts_for_instance(vm.vm_name);
 }
@@ -230,7 +237,7 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_true_when_fou
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
 
     EXPECT_TRUE(sshfs_mount_handler.has_instance_already_mounted(vm.vm_name, target_path));
 }
@@ -246,7 +253,7 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_false_when_no
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
 
     EXPECT_FALSE(sshfs_mount_handler.has_instance_already_mounted(vm.vm_name, "/bad/path"));
 }
@@ -262,7 +269,7 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_false_when_no
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    sshfs_mount_handler.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
 
     EXPECT_FALSE(sshfs_mount_handler.has_instance_already_mounted("bad_vm_name", target_path));
 }
