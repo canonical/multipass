@@ -109,8 +109,6 @@ std::string match_line_for(const std::string& output, const std::string& matcher
 bool is_running(const VirtualMachine::State& state);
 void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                        std::function<void()> const& ensure_vm_is_running = []() {});
-void install_sshfs_for(const std::string& name, SSHSession& session, std::function<void()> const& on_install,
-                       const std::chrono::milliseconds timeout = std::chrono::minutes(5));
 std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
 
 // yaml helpers
