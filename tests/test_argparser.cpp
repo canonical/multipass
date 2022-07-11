@@ -19,7 +19,7 @@
 #include "tests/fake_alias_config.h"
 #include "tests/stub_terminal.h"
 
-#include <multipass/cli/alias_definition.h>
+#include <multipass/alias_definition.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/command.h>
 
