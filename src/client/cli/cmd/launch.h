@@ -20,6 +20,7 @@
 
 #include "animated_spinner.h"
 
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 #include <multipass/timer.h>
 
@@ -37,8 +38,12 @@ class Launch final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
 
+    Launch(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    {
+    }
+
+    ReturnCode run(ArgParser* parser) override;
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
@@ -56,6 +61,8 @@ private:
 
     std::vector<std::pair<QString, QString>> mount_routes;
     QString instance_name;
+
+    AliasDict aliases;
 };
 } // namespace cmd
 } // namespace multipass

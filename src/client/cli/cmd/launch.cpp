@@ -18,6 +18,7 @@
 #include "launch.h"
 #include "animated_spinner.h"
 #include "common_cli.h"
+#include "create_alias.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
@@ -434,6 +435,14 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         spinner->stop();
         if (timer)
             timer->pause();
+
+        auto n = reply.aliases_to_be_created_size();
+        for (auto i = 0; i < n; ++i)
+        {
+            auto alias_to_be_created = reply.aliases_to_be_created(i);
+            AliasDefinition alias_definition{alias_to_be_created.instance(), alias_to_be_created.command(), "map"};
+            create_alias(aliases, alias_to_be_created.name(), alias_definition, cout, cerr);
+        }
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
         instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
