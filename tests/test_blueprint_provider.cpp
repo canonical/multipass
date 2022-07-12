@@ -76,7 +76,9 @@ TEST_F(VMBlueprintProvider, fetchBlueprintForUnknownBlueprintThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    EXPECT_THROW(blueprint_provider.fetch_blueprint_for("phony", vm_desc), std::out_of_range);
+    mp::AliasMap dummy_map;
+
+    EXPECT_THROW(blueprint_provider.fetch_blueprint_for("phony", vm_desc, dummy_map), std::out_of_range);
 }
 
 TEST_F(VMBlueprintProvider, infoForUnknownBlueprintThrows)
@@ -94,7 +96,9 @@ TEST_F(VMBlueprintProvider, invalidImageSchemeThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-image-blueprint", vm_desc),
+    mp::AliasMap dummy_map;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-image-blueprint", vm_desc, dummy_map),
                          mp::InvalidBlueprintException,
                          mpt::match_what(StrEq("Unsupported image scheme in Blueprint")));
 }
@@ -106,7 +110,9 @@ TEST_F(VMBlueprintProvider, invalidMinCoresThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-cpu-blueprint", vm_desc),
+    mp::AliasMap dummy_map;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-cpu-blueprint", vm_desc, dummy_map),
                          mp::InvalidBlueprintException,
                          mpt::match_what(StrEq("Minimum CPU value in Blueprint is invalid")));
 }
@@ -118,7 +124,9 @@ TEST_F(VMBlueprintProvider, invalidMinMemorySizeThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-memory-size-blueprint", vm_desc),
+    mp::AliasMap dummy_map;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-memory-size-blueprint", vm_desc, dummy_map),
                          mp::InvalidBlueprintException,
                          mpt::match_what(StrEq("Minimum memory size value in Blueprint is invalid")));
 }
@@ -130,7 +138,9 @@ TEST_F(VMBlueprintProvider, invalidMinDiskSpaceThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-disk-space-blueprint", vm_desc),
+    mp::AliasMap dummy_map;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-disk-space-blueprint", vm_desc, dummy_map),
                          mp::InvalidBlueprintException,
                          mpt::match_what(StrEq("Minimum disk space value in Blueprint is invalid")));
 }
@@ -142,7 +152,9 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedInfo)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    auto query = blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc);
+    mp::AliasMap dummy_map;
+
+    auto query = blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, dummy_map);
 
     auto yaml_as_str = mp::utils::emit_yaml(vm_desc.vendor_data_config);
 
@@ -160,7 +172,9 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint2ReturnsExpectedInfo)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    auto query = blueprint_provider.fetch_blueprint_for("test-blueprint2", vm_desc);
+    mp::AliasMap dummy_map;
+
+    auto query = blueprint_provider.fetch_blueprint_for("test-blueprint2", vm_desc, dummy_map);
 
     EXPECT_EQ(query.release, "bionic");
     EXPECT_EQ(query.remote_name, "daily");
@@ -223,8 +237,10 @@ TEST_F(VMBlueprintProvider, invalidCloudInitThrows)
 
     const std::string blueprint{"invalid-cloud-init-blueprint"};
 
+    mp::AliasMap dummy_map;
+
     MP_EXPECT_THROW_THAT(
-        blueprint_provider.fetch_blueprint_for(blueprint, vm_desc), mp::InvalidBlueprintException,
+        blueprint_provider.fetch_blueprint_for(blueprint, vm_desc, dummy_map), mp::InvalidBlueprintException,
         mpt::match_what(StrEq(fmt::format("Cannot convert cloud-init data for the {} Blueprint", blueprint))));
 }
 
@@ -235,7 +251,9 @@ TEST_F(VMBlueprintProvider, givenCoresLessThanMinimumThrows)
 
     mp::VirtualMachineDescription vm_desc{1, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc),
+    mp::AliasMap dummy_map;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, dummy_map),
                          mp::BlueprintMinimumException,
                          mpt::match_what(AllOf(HasSubstr("Number of CPUs"), HasSubstr("2"))));
 }
@@ -247,7 +265,9 @@ TEST_F(VMBlueprintProvider, givenMemLessThanMinimumThrows)
 
     mp::VirtualMachineDescription vm_desc{0, mp::MemorySize{"1G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc),
+    mp::AliasMap dummy_map;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, dummy_map),
                          mp::BlueprintMinimumException,
                          mpt::match_what(AllOf(HasSubstr("Memory size"), HasSubstr("2G"))));
 }
@@ -259,7 +279,9 @@ TEST_F(VMBlueprintProvider, givenDiskSpaceLessThanMinimumThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, mp::MemorySize{"20G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc),
+    mp::AliasMap dummy_map;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, dummy_map),
                          mp::BlueprintMinimumException,
                          mpt::match_what(AllOf(HasSubstr("Disk space"), HasSubstr("25G"))));
 }
@@ -272,7 +294,9 @@ TEST_F(VMBlueprintProvider, higherOptionsIsNotOverriden)
     mp::VirtualMachineDescription vm_desc{
         4, mp::MemorySize{"4G"}, mp::MemorySize{"50G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc);
+    mp::AliasMap dummy_map;
+
+    blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, dummy_map);
 
     EXPECT_EQ(vm_desc.num_cores, 4);
     EXPECT_EQ(vm_desc.mem_size, mp::MemorySize("4G"));
@@ -515,7 +539,9 @@ TEST_F(VMBlueprintProvider, noImageDefinedReturnsDefault)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    auto query = blueprint_provider.fetch_blueprint_for("no-image-blueprint", vm_desc);
+    mp::AliasMap dummy_map;
+
+    auto query = blueprint_provider.fetch_blueprint_for("no-image-blueprint", vm_desc, dummy_map);
 
     EXPECT_EQ(query.release, "default");
 }
@@ -527,8 +553,10 @@ TEST_F(VMBlueprintProvider, nameMismatchThrows)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
+    mp::AliasMap dummy_map;
+
     MP_EXPECT_THROW_THAT(
-        blueprint_provider.fetch_blueprint_for("name-mismatch", vm_desc), mp::InvalidBlueprintException,
+        blueprint_provider.fetch_blueprint_for("name-mismatch", vm_desc, dummy_map), mp::InvalidBlueprintException,
         mpt::match_what(StrEq("There are no instance definitions matching Blueprint name \"name-mismatch\"")));
 }
 

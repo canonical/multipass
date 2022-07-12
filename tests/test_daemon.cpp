@@ -641,9 +641,9 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
             return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
         });
 
-    EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _))
-        .WillOnce([&mem_size, &disk_space, &release, &remote](const auto&,
-                                                              mp::VirtualMachineDescription& vm_desc) -> mp::Query {
+    EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
+        .WillOnce([&mem_size, &disk_space, &release, &remote](const auto&, mp::VirtualMachineDescription& vm_desc,
+                                                              auto&) -> mp::Query {
             vm_desc.num_cores = num_cores;
             vm_desc.mem_size = mem_size;
             vm_desc.disk_space = disk_space;
