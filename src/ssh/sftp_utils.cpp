@@ -132,6 +132,21 @@ fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp, const fs::path& sou
     return child_path;
 }
 
+void SFTPUtils::mkdir_recursive(sftp_session sftp, const fs::path& path)
+{
+    std::vector<fs::path> partial_paths;
+    // this takes a path and creates a list of all sub-paths
+    // e.g "some/nested/path" => ["some", "some/nested", "some/nested/path"]
+    std::partial_sum(path.begin(), path.end(), std::back_inserter(partial_paths),
+                     [](auto acc, auto curr) { return acc.u8string() + '/' + curr.u8string(); });
+    for (const auto& partial_path : partial_paths)
+        if (auto attr = mp_sftp_lstat(sftp, partial_path.u8string().c_str());
+            attr && attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
+            throw SFTPError{"cannot overwrite remote non-directory {} with directory", partial_path};
+        else if (!attr && sftp_mkdir(sftp, partial_path.u8string().c_str(), 0777) != SSH_FX_OK)
+            throw SFTPError{"cannot create remote directory {}: {}", partial_path, ssh_get_error(sftp->session)};
+}
+
 std::unique_ptr<SFTPClient> SFTPUtils::make_SFTPClient(const std::string& host, int port, const std::string& username,
                                                        const std::string& priv_key_blob)
 {
