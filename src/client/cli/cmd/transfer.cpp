@@ -72,7 +72,7 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
                 }
 
                 if (const auto args = std::get_if<FromCin>(&arguments); args)
-                    sftp_client->from_cin(term->cin(), args->target);
+                    sftp_client->from_cin(term->cin(), args->target, flags.testFlag(SFTPClient::Flag::MakeParent));
 
                 if (const auto args = std::get_if<ToCout>(&arguments); args)
                     sftp_client->to_cout(args->source, term->cout());
