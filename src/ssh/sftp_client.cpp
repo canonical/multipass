@@ -22,6 +22,7 @@
 #include <multipass/format.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/throw_on_error.h>
+#include <multipass/utils.h>
 
 #include <array>
 #include <fcntl.h>
@@ -62,20 +63,23 @@ bool SFTPClient::push(const fs::path& source_path, const fs::path& target_path, 
                       std::ostream& err_sink)
 try
 {
+    auto source = source_path.lexically_normal().string();
+    utils::trim_end(source, [](char ch) { return ch == '/' || ch == '\\'; });
+
     std::error_code err;
     if (MP_FILEOPS.is_directory(source_path, err) && !err)
     {
         if (!flags.testFlag(TransferFlags::Recursive))
             throw std::runtime_error{fmt::format("[sftp] omitting local directory {}: -r not specified", source_path)};
 
-        auto full_target_path = MP_SFTPUTILS.get_full_remote_dir_target(sftp.get(), source_path, target_path);
-        return push_dir(source_path, full_target_path, err_sink);
+        auto full_target_path = MP_SFTPUTILS.get_full_remote_dir_target(sftp.get(), source, target_path);
+        return push_dir(source, full_target_path, err_sink);
     }
     else if (err)
         throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", source_path, err.message())};
 
-    auto full_target_path = MP_SFTPUTILS.get_full_remote_file_target(sftp.get(), source_path, target_path);
-    push_file(source_path, full_target_path);
+    auto full_target_path = MP_SFTPUTILS.get_full_remote_file_target(sftp.get(), source, target_path);
+    push_file(source, full_target_path);
     return true;
 }
 catch (const std::exception& e)
@@ -88,17 +92,20 @@ bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, 
                       std::ostream& err_sink)
 try
 {
+    auto source = source_path.lexically_normal().string();
+    utils::trim_end(source, [](char ch) { return ch == '/' || ch == '\\'; });
+
     if (is_dir(source_path))
     {
         if (!flags.testFlag(TransferFlags::Recursive))
             throw std::runtime_error{fmt::format("[sftp] omitting remote directory {}: -r not specified", source_path)};
 
-        auto full_target_path = MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path);
-        return pull_dir(source_path, full_target_path, err_sink);
+        auto full_target_path = MP_SFTPUTILS.get_full_local_dir_target(source, target_path);
+        return pull_dir(source, full_target_path, err_sink);
     }
 
-    auto full_target_path = MP_SFTPUTILS.get_full_local_file_target(source_path, target_path);
-    pull_file(source_path, full_target_path);
+    auto full_target_path = MP_SFTPUTILS.get_full_local_file_target(source, target_path);
+    pull_file(source, full_target_path);
     return true;
 }
 catch (const std::exception& e)
