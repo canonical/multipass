@@ -43,6 +43,7 @@ public:
     enum class Flag
     {
         Recursive = 1,
+        MakeParent = 2,
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 

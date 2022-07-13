@@ -126,11 +126,13 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
                                   "a path inside the instance, or '-' for stdout",
                                   "<destination>");
     parser->addOption({{"r", "recursive"}, "Recursively copy entire directories"});
+    parser->addOption({{"p", "parents"}, "Make parent directories as needed"});
 
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
 
     flags.setFlag(SFTPClient::Flag::Recursive, parser->isSet("r"));
+    flags.setFlag(SFTPClient::Flag::MakeParent, parser->isSet("p"));
 
     auto positionalArgs = parser->positionalArguments();
     if (positionalArgs.size() < 2)
