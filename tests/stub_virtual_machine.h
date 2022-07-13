@@ -26,7 +26,7 @@ namespace test
 {
 struct StubVirtualMachine final : public multipass::VirtualMachine
 {
-    StubVirtualMachine() : VirtualMachine{""}
+    StubVirtualMachine() : VirtualMachine{"stub"}
     {
     }
 
