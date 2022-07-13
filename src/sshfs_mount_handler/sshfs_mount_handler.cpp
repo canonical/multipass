@@ -61,7 +61,7 @@ void start_and_block_until(mp::Process* process, Signal signal, std::function<bo
 }
 
 void install_sshfs_for(const std::string& name, mp::SSHSession& session, std::function<void()> const& on_install,
-                       const std::chrono::milliseconds timeout = std::chrono::minutes(5))
+                       const std::chrono::milliseconds& timeout)
 {
     // Check if snap support is installed in the instance
     auto which_proc = session.exec("which snap");
@@ -117,6 +117,7 @@ void install_sshfs_for(const std::string& name, mp::SSHSession& session, std::fu
     catch (const mp::ExitlessSSHProcessException&)
     {
         mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'sshfs' in '{}'", name));
+        throw mp::SSHFSMissingError();
     }
 }
 } // namespace
@@ -127,7 +128,7 @@ mp::SSHFSMountHandler::SSHFSMountHandler(const SSHKeyProvider& key_provider) : M
 
 void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& source_path,
                                         const std::string& target_path, const mp::id_mappings& gid_mappings,
-                                        const mp::id_mappings& uid_mappings)
+                                        const mp::id_mappings& uid_mappings, const std::chrono::milliseconds& timeout)
 {
     if (!MP_FILEOPS.exists(QDir{QString::fromStdString(source_path)}))
     {
@@ -137,8 +138,8 @@ void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server
 
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     std::visit(
-        [this, vm, &session](auto&& server) {
-            auto on_install = [this, server] {
+        [this, vm, &session, &timeout](auto&& server) {
+            auto on_install = [this, server, &timeout] {
                 if (server)
                 {
                     auto reply = make_reply_from_server(*server);
@@ -147,7 +148,7 @@ void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server
                 }
             };
 
-            install_sshfs_for(vm->vm_name, session, on_install);
+            install_sshfs_for(vm->vm_name, session, on_install, timeout);
         },
         server);
 
