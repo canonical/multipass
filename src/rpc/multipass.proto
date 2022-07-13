@@ -105,6 +105,7 @@ message LaunchReply {
         string name = 1;
         string instance = 2;
         string command = 3;
+        string working_directory = 4;
     }
     oneof create_oneof {
         string vm_instance_name = 1;

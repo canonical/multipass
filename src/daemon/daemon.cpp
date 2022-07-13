@@ -2360,6 +2360,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                             alias->set_name(blueprint_alias.first);
                             alias->set_instance(blueprint_alias.second.instance);
                             alias->set_command(blueprint_alias.second.command);
+                            alias->set_working_directory(blueprint_alias.second.working_directory);
                         }
 
                         server->Write(reply);
