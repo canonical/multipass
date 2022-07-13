@@ -130,7 +130,7 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
             mpl::log(mpl::Level::trace, category,
                      fmt::format("Add alias [{}, {}, {}] to RPC answer", alias_name, instance_and_command[0],
                                  instance_and_command[1]));
-            AliasDefinition alias_definition{instance_and_command[0], instance_and_command[1], "default"};
+            AliasDefinition alias_definition{instance_and_command[0], instance_and_command[1], "map"};
             aliases_to_be_created.emplace(alias_name, alias_definition);
         }
     }
