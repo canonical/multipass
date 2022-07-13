@@ -1,6 +1,10 @@
 description: The first test blueprint
 version: 0.1
 
+aliases:
+  lst: test-blueprint1:ls
+  lsp: test-blueprint1:pwd
+
 instances:
   test-blueprint1:
     image: "default"

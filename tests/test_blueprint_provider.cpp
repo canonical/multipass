@@ -145,6 +145,20 @@ TEST_F(VMBlueprintProvider, invalidMinDiskSpaceThrows)
                          mpt::match_what(StrEq("Minimum disk space value in Blueprint is invalid")));
 }
 
+TEST_F(VMBlueprintProvider, invalidAliasDefinitionThrows)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    mp::AliasMap dummy_map;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("invalid-alias-blueprint", vm_desc, dummy_map),
+                         mp::InvalidBlueprintException,
+                         mpt::match_what(StrEq("Alias definition must be in the form instance:command")));
+}
+
 TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedInfo)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
@@ -163,6 +177,30 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedInfo)
     EXPECT_EQ(vm_desc.mem_size, mp::MemorySize("2G"));
     EXPECT_EQ(vm_desc.disk_space, mp::MemorySize("25G"));
     EXPECT_THAT(yaml_as_str, AllOf(HasSubstr("runcmd"), HasSubstr("echo \"Have fun!\"")));
+}
+
+TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedAliases)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    mp::AliasMap aliases;
+
+    auto query = blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, aliases);
+
+    EXPECT_EQ(aliases.size(), 2);
+
+    auto lst_alias = aliases["lst"];
+    EXPECT_EQ(lst_alias.instance, "test-blueprint1");
+    EXPECT_EQ(lst_alias.command, "ls");
+    EXPECT_EQ(lst_alias.working_directory, "map");
+
+    auto lsp_alias = aliases["lsp"];
+    EXPECT_EQ(lsp_alias.instance, "test-blueprint1");
+    EXPECT_EQ(lsp_alias.command, "pwd");
+    EXPECT_EQ(lsp_alias.working_directory, "map");
 }
 
 TEST_F(VMBlueprintProvider, fetchTestBlueprint2ReturnsExpectedInfo)
@@ -341,7 +379,7 @@ TEST_F(VMBlueprintProvider, allBlueprintsReturnsExpectedInfo)
 
     auto blueprints = blueprint_provider.all_blueprints();
 
-    EXPECT_EQ(blueprints.size(), 11ul);
+    EXPECT_EQ(blueprints.size(), 12ul);
 
     EXPECT_TRUE(std::find_if(blueprints.cbegin(), blueprints.cend(), [](const mp::VMImageInfo& blueprint_info) {
                     return ((blueprint_info.aliases.size() == 1) && (blueprint_info.aliases[0] == "test-blueprint1") &&
@@ -611,7 +649,7 @@ TEST_F(VMBlueprintProvider, allBlueprintsReturnsExpectedInfoForArch)
 
     auto blueprints = blueprint_provider.all_blueprints();
 
-    EXPECT_EQ(blueprints.size(), 12ul);
+    EXPECT_EQ(blueprints.size(), 13ul);
     EXPECT_TRUE(std::find_if(blueprints.cbegin(), blueprints.cend(), [](const mp::VMImageInfo& blueprint_info) {
                     return ((blueprint_info.aliases.size() == 1) && (blueprint_info.aliases[0] == "arch-only") &&
                             (blueprint_info.release_title == "An arch-only blueprint"));
