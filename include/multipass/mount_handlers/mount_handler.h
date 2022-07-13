@@ -23,6 +23,7 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/ssh/ssh_key_provider.h>
 
+#include <chrono>
 #include <string>
 #include <variant>
 
@@ -41,7 +42,8 @@ public:
 
     virtual void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& source_path,
                              const std::string& target_path, const id_mappings& gid_mappings,
-                             const id_mappings& uid_mappings) = 0;
+                             const id_mappings& uid_mappings,
+                             const std::chrono::milliseconds& timeout = std::chrono::minutes(5)) = 0;
     virtual bool stop_mount(const std::string& instance, const std::string& path) = 0;
     virtual void stop_all_mounts_for_instance(const std::string& instance) = 0;
     virtual bool has_instance_already_mounted(const std::string& instance, const std::string& path) const = 0;
