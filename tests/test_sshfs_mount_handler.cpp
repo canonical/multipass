@@ -26,14 +26,18 @@
 #include "mock_virtual_machine.h"
 #include "stub_ssh_key_provider.h"
 #include "tests/mock_file_ops.h"
+#include "stub_virtual_machine.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
+
+#include <thread>
 
 #include <QCoreApplication>
 #include <QTimer>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
@@ -42,11 +46,36 @@ const multipass::logging::Level default_log_level = multipass::logging::Level::d
 
 struct SSHFSMountHandlerTest : public ::Test
 {
+    SSHFSMountHandlerTest()
+    {
+        EXPECT_CALL(server, Write(_, _)).WillRepeatedly(Return(true));
+    }
+
     void TearDown() override
     {
         // Deliberately spin the event loop to ensure all deleteLater()'ed QObjects are cleaned up, so
         // the mock tests are performed
         qApp->processEvents(QEventLoop::AllEvents);
+    }
+
+    auto make_exec_that_fails_for(const std::vector<std::string>& expected_cmds, bool& invoked)
+    {
+        auto request_exec = [this, expected_cmds, &invoked](ssh_channel, const char* raw_cmd) {
+            std::string cmd{raw_cmd};
+            exit_status_mock.return_exit_code(SSH_OK);
+
+            for (const auto& expected_cmd : expected_cmds)
+            {
+                if (cmd.find(expected_cmd) != std::string::npos)
+                {
+                    invoked = true;
+                    exit_status_mock.return_exit_code(SSH_ERROR);
+                    break;
+                }
+            }
+            return SSH_OK;
+        };
+        return request_exec;
     }
 
     mpt::StubSSHKeyProvider key_provider;
@@ -59,6 +88,7 @@ struct SSHFSMountHandlerTest : public ::Test
     mpt::MockServerWriter<mp::MountReply> server;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
+    mpt::StubVirtualMachine vm;
 
     mpt::MockProcessFactory::Callback sshfs_prints_connected = [](mpt::MockProcess* process) {
         if (process->program().contains("sshfs_server"))
@@ -83,12 +113,12 @@ TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    mpt::MockVirtualMachine vm{"my_instance"};
-    EXPECT_CALL(vm, ssh_port()).Times(2);
-    EXPECT_CALL(vm, ssh_hostname()).Times(2);
-    EXPECT_CALL(vm, ssh_username()).Times(2);
+    mpt::MockVirtualMachine mock_vm{"my_instance"};
+    EXPECT_CALL(mock_vm, ssh_port()).Times(2);
+    EXPECT_CALL(mock_vm, ssh_hostname()).Times(2);
+    EXPECT_CALL(mock_vm, ssh_username()).Times(2);
 
-    sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
+    sshfs_mount_handler.start_mount(&mock_vm, &server, source_path, target_path, gid_mappings, uid_mappings);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
     auto sshfs_command = factory->process_list()[0];
@@ -129,7 +159,6 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_ex
     factory->register_callback(sshfs_fails_with_exit_code_nine);
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
     EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings),
                  mp::SSHFSMissingError);
@@ -161,7 +190,6 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_causes_runtime_exception)
     factory->register_callback(sshfs_fails);
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
     EXPECT_THROW(
         try {
@@ -192,8 +220,6 @@ TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
-
     sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
     int ret = sshfs_mount_handler.stop_mount(vm.vm_name, target_path);
     ASSERT_TRUE(ret);
@@ -217,8 +243,6 @@ TEST_F(SSHFSMountHandlerTest, stop_all_mounts_terminates_all_sshfs_processes)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
-
     sshfs_mount_handler.start_mount(&vm, &server, "/source/one", "/target/one", gid_mappings, uid_mappings);
     sshfs_mount_handler.start_mount(&vm, &server, "/source/two", "/target/two", gid_mappings, uid_mappings);
     sshfs_mount_handler.start_mount(&vm, &server, "/source/three", "/target/three", gid_mappings, uid_mappings);
@@ -235,8 +259,6 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_true_when_fou
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
-
     sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
 
     EXPECT_TRUE(sshfs_mount_handler.has_instance_already_mounted(vm.vm_name, target_path));
@@ -251,8 +273,6 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_false_when_no
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
-
     sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
 
     EXPECT_FALSE(sshfs_mount_handler.has_instance_already_mounted(vm.vm_name, "/bad/path"));
@@ -266,8 +286,6 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_false_when_no
     factory->register_callback(sshfs_prints_connected);
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
-
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
     sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings);
 
@@ -288,4 +306,97 @@ TEST_F(SSHFSMountsTest, mount_fails_on_nonexist_directory)
     MP_EXPECT_THROW_THAT(sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings),
                          std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("Mount path \"{}\" does not exist.", source_path))));
+}
+
+TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_which_snap_fails)
+{
+    bool invoked{false};
+    auto request_exec = make_exec_that_fails_for({"which snap"}, invoked);
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
+
+    EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings),
+                 std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_no_snap_dir_fails)
+{
+    bool invoked{false};
+    auto request_exec = make_exec_that_fails_for({"[ -e /snap ]", "sudo snap list multipass-sshfs"}, invoked);
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
+
+    EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings),
+                 std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_snap_install_fails)
+{
+    bool invoked{false};
+    auto request_exec =
+        make_exec_that_fails_for({"sudo snap list multipass-sshfs", "sudo snap install multipass-sshfs"}, invoked);
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
+
+    EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings),
+                 mp::SSHFSMissingError);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
+{
+    ssh_channel_callbacks callbacks{nullptr};
+    bool sleep{false};
+    int exit_code;
+
+    auto request_exec = [&sleep, &exit_code](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        exit_code = SSH_OK;
+        if (cmd == "sudo snap install multipass-sshfs")
+        {
+            sleep = true;
+        }
+        else if (cmd == "sudo snap list multipass-sshfs")
+        {
+            exit_code = SSH_ERROR;
+        }
+
+        return SSH_OK;
+    };
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) mutable {
+        callbacks = cb;
+        return SSH_OK;
+    };
+    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
+
+    auto event_dopoll = [&callbacks, &sleep, &exit_code](ssh_event, int timeout) {
+        if (!callbacks)
+            return SSH_ERROR;
+
+        if (sleep)
+            std::this_thread::sleep_for(std::chrono::milliseconds(timeout + 1));
+        else
+            callbacks->channel_exit_status_function(nullptr, nullptr, exit_code, callbacks->userdata);
+
+        return SSH_OK;
+    };
+    REPLACE(ssh_event_dopoll, event_dopoll);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs-mount-handler")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("Timeout while installing 'sshfs' in 'stub'"))));
+
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
+
+    EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, source_path, target_path, gid_mappings, uid_mappings,
+                                                 std::chrono::milliseconds(1)),
+                 mp::SSHFSMissingError);
 }
