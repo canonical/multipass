@@ -154,6 +154,11 @@ bool mp::FileOps::create_directory(const fs::path& path, std::error_code& err) c
     return fs::create_directory(path, err);
 }
 
+bool mp::FileOps::create_directories(const fs::path& path, std::error_code& err) const
+{
+    return fs::create_directories(path, err);
+}
+
 bool mp::FileOps::remove(const fs::path& path, std::error_code& err) const
 {
     return fs::remove(path, err);
