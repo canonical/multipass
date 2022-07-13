@@ -139,7 +139,7 @@ void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     std::visit(
         [this, vm, &session, &timeout](auto&& server) {
-            auto on_install = [this, server, &timeout] {
+            auto on_install = [this, server] {
                 if (server)
                 {
                     auto reply = make_reply_from_server(*server);
