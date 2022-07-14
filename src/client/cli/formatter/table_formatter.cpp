@@ -82,6 +82,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
         else
             fmt::format_to(buf, "{}{}\n", info.id().substr(0, 12),
                            !info.image_release().empty() ? fmt::format(" (Ubuntu {})", info.image_release()) : "");
+        fmt::format_to(buf, "{:<16}{}\n", "CPU(s):", info.cpu_count().empty() ? "--" : info.cpu_count());
         fmt::format_to(buf, "{:<16}{}\n", "Load:", info.load().empty() ? "--" : info.load());
         fmt::format_to(buf, "{:<16}{}\n", "Disk usage:", to_usage(info.disk_usage(), info.disk_total()));
         fmt::format_to(buf, "{:<16}{}\n", "Memory usage:", to_usage(info.memory_usage(), info.memory_total()));
