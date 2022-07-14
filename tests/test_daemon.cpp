@@ -18,6 +18,7 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
+#include "fake_alias_config.h"
 #include "json_utils.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
@@ -107,6 +108,8 @@ struct Daemon : public mpt::DaemonTestFixture
 
         EXPECT_CALL(mock_platform, get_blueprints_url_override()).WillRepeatedly([] { return QString{}; });
         EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
+        EXPECT_CALL(mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
+        EXPECT_CALL(mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
     }
 
     void SetUp() override
@@ -321,6 +324,15 @@ namespace
 {
 struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<std::string>
 {
+};
+
+struct DaemonCreateLaunchAliasTestSuite : public Daemon, public FakeAliasConfig, public WithParamInterface<std::string>
+{
+    DaemonCreateLaunchAliasTestSuite()
+    {
+        EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
+            .WillRepeatedly(Return(fake_alias_dir.path()));
+    }
 };
 
 struct MinSpaceRespectedSuite : public Daemon,
@@ -606,6 +618,69 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
             }));
 
     send_command({GetParam()});
+}
+
+TEST_F(DaemonCreateLaunchAliasTestSuite, blueprint_found_passes_expected_aliases)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
+
+    static constexpr int num_cores = 4;
+    const mp::MemorySize mem_size{"4G"};
+    const mp::MemorySize disk_space{"25G"};
+    const std::string release{"focal"};
+    const std::string remote{"release"};
+    const std::string name{"ultimo-blueprint"};
+    const std::string alias_name{"aliasname"};
+    const std::string alias_command{"aliascommand"};
+    const std::string alias_wdir{"map"};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .WillOnce([&mem_size, &disk_space, &name](const mp::VirtualMachineDescription& vm_desc, auto&) {
+            EXPECT_EQ(vm_desc.num_cores, num_cores);
+            EXPECT_EQ(vm_desc.mem_size, mem_size);
+            EXPECT_EQ(vm_desc.disk_space, disk_space);
+            EXPECT_EQ(vm_desc.vm_name, name);
+
+            return std::make_unique<mpt::StubVirtualMachine>();
+        });
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _))
+        .WillOnce([&release, &remote](const mp::FetchType& fetch_type, const mp::Query& query,
+                                      const mp::VMImageVault::PrepareAction& prepare,
+                                      const mp::ProgressMonitor& monitor) {
+            EXPECT_EQ(query.release, release);
+            EXPECT_EQ(query.remote_name, remote);
+
+            return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
+        });
+
+    EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
+        .WillOnce([&mem_size, &disk_space, &release, &remote, &name, &alias_name, &alias_command, &alias_wdir](
+                      const auto&, mp::VirtualMachineDescription& vm_desc, mp::AliasMap& aliases) -> mp::Query {
+            vm_desc.num_cores = num_cores;
+            vm_desc.mem_size = mem_size;
+            vm_desc.disk_space = disk_space;
+
+            aliases.emplace(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir});
+
+            return {"", release, false, remote, mp::Query::Type::Alias};
+        });
+
+    EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
+
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"launch"});
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    auto expected_csv_string = alias_name + "," + name + "," + alias_command + "," + alias_wdir + "\n";
+    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_csv_string));
 }
 
 TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
