@@ -3,7 +3,6 @@ status = [
            "CI (Linux, linux, lxd)",
            "CI (Linux, linux, qemu)",
            "macOS-x86_64",
-           "CI (macOS, macos-10.14, hyperkit, x86_64)",
            "CI (macOS, macos-10.15, hyperkit, x86_64)",
            "CI (macOS, macos-10.15, qemu, x86_64)",
            "CI (macOS, macos-11, hyperkit, x86_64)",
