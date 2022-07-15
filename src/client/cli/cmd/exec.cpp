@@ -169,7 +169,16 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const mp::
         std::vector<std::vector<std::string>> all_args;
         if (dir)
         {
-            all_args = {{"cd", *dir}, {args}};
+            if (args[0] == "sudo")
+            {
+                // If we are running through 'sudo' and need to change directory, it might happen that the default user
+                // does not have access to the folder and thus the cd command will fail. Additionally, `cd` cannot be
+                // ran with sudo, what forces us to run everything through `sh`.
+                auto sh_args = fmt::format("cd {} && {}", *dir, fmt::join(args, " "));
+                all_args = {{"sudo", "sh", "-c", sh_args}};
+            }
+            else
+                all_args = {{"cd", *dir}, {args}};
         }
         else
             all_args = {{args}};
