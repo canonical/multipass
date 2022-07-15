@@ -13,8 +13,8 @@ if [ "$CPU_OK" -ne "1" ] ; then
     exit 1
 fi
 
-if [ $( sw_vers -productVersion | cut -d. -f1 ) -eq 10 -a $( sw_vers -productVersion | cut -d. -f2 ) -lt 14 ]; then
-    echo "Multipass currently requires macOS 10.14 or newer"
+if [ $( sw_vers -productVersion | cut -d. -f1 ) -eq 10 -a $( sw_vers -productVersion | cut -d. -f2 ) -lt 15 ]; then
+    echo "Multipass currently requires macOS 10.15 or newer"
     exit 1
 fi
 
