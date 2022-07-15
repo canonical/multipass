@@ -1292,6 +1292,38 @@ TEST_F(Client, execCmdWithDirPrependsCd)
     EXPECT_EQ(send_command({"exec", instance_name, "--working-directory", dir, "--", cmd}), mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, execCmdWithDirAndSudoUsesSh)
+{
+    std::string dir{"/root/"};
+    std::vector<std::string> cmds{"sudo", "pwd"};
+
+    std::string cmds_string{cmds[0]};
+    for (size_t i = 1; i < cmds.size(); ++i)
+        cmds_string += " " + cmds[i];
+
+    REPLACE(ssh_channel_request_exec, ([&dir, &cmds_string](ssh_channel, const char* raw_cmd) {
+                EXPECT_EQ(raw_cmd, "'sudo' 'sh' '-c' 'cd " + dir + " && " + cmds_string + "'");
+
+                return SSH_OK;
+            }));
+
+    std::string instance_name{"instance"};
+    mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _, _))
+        .WillOnce([&response](grpc::ServerContext* context, const mp::SSHInfoRequest* request,
+                              grpc::ServerWriter<multipass::SSHInfoReply>* server) {
+            server->Write(response);
+            return grpc::Status{};
+        });
+
+    std::vector<std::string> full_cmdline{"exec", instance_name, "--working-directory", dir, "--"};
+    for (const auto& c : cmds)
+        full_cmdline.push_back(c);
+
+    EXPECT_EQ(send_command(full_cmdline), mp::ReturnCode::Ok);
+}
+
 TEST_F(Client, execCmdFailsIfSshExecThrows)
 {
     std::string dir{"/home/ubuntu/"};
