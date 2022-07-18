@@ -181,7 +181,7 @@ profile %1 flags=(attach_disconnected) {
     catch (const mp::SnapEnvironmentException&)
     {
         signal_peer = "unconfined";
-        firmware = "/usr/share/seabios/*";
+        firmware = "/usr/share/{seabios,ovmf,qemu-efi}/*";
     }
 
     return profile_template.arg(apparmor_profile_name(), signal_peer, firmware, root_dir, program(),
