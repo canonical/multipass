@@ -204,12 +204,17 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                            "bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
                                            min_disk_size, default_disk_size)),
         "disk", QString::fromUtf8(default_disk_size));
+
     QCommandLineOption memOption(
-        {"m", "mem"},
+        {"m", "memory"},
         QString::fromStdString(fmt::format("Amount of memory to allocate. Positive integers, "
                                            "in bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
                                            min_memory_size, default_memory_size)),
-        "mem", QString::fromUtf8(default_memory_size)); // In MB's
+        "memory", QString::fromUtf8(default_memory_size)); // In MB's
+    QCommandLineOption memOptionDeprecated(
+        "mem", QString::fromStdString("Deprecated memory allocation long option. See \"--memory\"."), "memory",
+        QString::fromUtf8(default_memory_size));
+    memOptionDeprecated.setFlags(QCommandLineOption::HiddenFromHelp);
 
     const auto name_option_desc =
         petenv_name.isEmpty()
@@ -237,8 +242,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                    "mount point will be the same as the absolute path of <local-path>",
                                    "local-path>:<instance-path");
 
-    parser->addOptions(
-        {cpusOption, diskOption, memOption, nameOption, cloudInitOption, networkOption, bridgedOption, mountOption});
+    parser->addOptions({cpusOption, diskOption, memOption, memOptionDeprecated, nameOption, cloudInitOption,
+                        networkOption, bridgedOption, mountOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -305,9 +310,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         request.set_num_cores(cpu_count);
     }
 
-    if (parser->isSet(memOption))
+    if (parser->isSet(memOption) || parser->isSet(memOptionDeprecated))
     {
-        auto arg_mem_size = parser->value(memOption).toStdString();
+        auto arg_mem_size = parser->isSet(memOption) ? parser->value(memOption).toStdString()
+                                                     : parser->value(memOptionDeprecated).toStdString();
 
         mp::MemorySize{arg_mem_size}; // throw if bad
 
