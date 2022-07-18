@@ -173,6 +173,9 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 #if defined Q_PROCESSOR_X86
                          << "-bios"
                          << "OVMF.fd"
+#elif defined Q_PROCESSOR_ARM
+                         << "-bios"
+                         << "QEMU_EFI.fd"
 #endif
                          // Pass host CPU flags to VM
                          << "-cpu"
