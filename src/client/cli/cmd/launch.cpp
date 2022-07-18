@@ -312,6 +312,17 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(memOption) || parser->isSet(memOptionDeprecated))
     {
+        if (parser->isSet(memOption) && parser->isSet(memOptionDeprecated))
+        {
+            cerr << "error: Invalid option(s) used for memory allocation. Please use \"--memory\" to specify "
+                    "amount of memory to allocate.\n";
+            return ParseCode::CommandLineError;
+        }
+
+        if (parser->isSet(memOptionDeprecated))
+            cout << "warning: \"--mem\" long option will be deprecated in favor of \"--memory\" in a future release."
+                    "Please update any scripts, etc.\n";
+
         auto arg_mem_size = parser->isSet(memOption) ? parser->value(memOption).toStdString()
                                                      : parser->value(memOptionDeprecated).toStdString();
 
