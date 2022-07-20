@@ -170,6 +170,13 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     name_to_net_device_map.emplace(vm_desc.vm_name, std::make_pair(tap_device_name, vm_desc.default_mac_address));
 
     return QStringList() << "--enable-kvm"
+#if defined Q_PROCESSOR_X86
+                         << "-bios"
+                         << "OVMF.fd"
+#elif defined Q_PROCESSOR_ARM
+                         << "-bios"
+                         << "QEMU_EFI.fd"
+#endif
                          // Pass host CPU flags to VM
                          << "-cpu"
                          << "host"
