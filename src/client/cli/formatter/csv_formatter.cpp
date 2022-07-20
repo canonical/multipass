@@ -56,10 +56,11 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
 
     for (const auto& instance : format::sorted(reply.instances()))
     {
-        fmt::format_to(buf, "{},{},{},{},{},\"{}\"\n", instance.name(),
-                       mp::format::status_string_for(instance.instance_status()),
-                       instance.ipv4_size() ? instance.ipv4(0) : "", instance.ipv6_size() ? instance.ipv6(0) : "",
-                       instance.current_release(), fmt::join(instance.ipv4(), ","));
+        fmt::format_to(
+            buf, "{},{},{},{},{},\"{}\"\n", instance.name(), mp::format::status_string_for(instance.instance_status()),
+            instance.ipv4_size() ? instance.ipv4(0) : "", instance.ipv6_size() ? instance.ipv6(0) : "",
+            instance.current_release().empty() ? "Not Available" : fmt::format("Ubuntu {}", instance.current_release()),
+            fmt::join(instance.ipv4(), ","));
     }
 
     return fmt::to_string(buf);
@@ -92,7 +93,9 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
 
         mp::format::filter_aliases(aliases);
 
-        auto image_id = aliases[0].remote_name().empty() ? aliases[0].alias() : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
+        auto image_id = aliases[0].remote_name().empty()
+                            ? aliases[0].alias()
+                            : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
         fmt::format_to(buf, "{},{},{},{},{},{}\n", image_id, aliases[0].remote_name(),
                        fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"), image.os(), image.release(),
                        image.version());

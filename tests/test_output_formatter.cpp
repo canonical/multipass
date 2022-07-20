@@ -91,12 +91,12 @@ auto construct_unsorted_list_reply()
     list_entry = list_reply.add_instances();
     list_entry->set_name("trusty-190611-1539");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
-    list_entry->set_current_release("N/A");
+    list_entry->set_current_release("");
 
     list_entry = list_reply.add_instances();
     list_entry->set_name("trusty-190611-1529");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
-    list_entry->set_current_release("N/A");
+    list_entry->set_current_release("");
 
     return list_reply;
 }
@@ -441,9 +441,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
 
     {&table_formatter, &unsorted_list_reply,
      "Name                    State             IPv4             Image\n"
-     "trusty-190611-1529      Deleted           --               Ubuntu N/A\n"
+     "trusty-190611-1529      Deleted           --               Not Available\n"
      "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
-     "trusty-190611-1539      Suspended         --               Ubuntu N/A\n"
+     "trusty-190611-1539      Suspended         --               Not Available\n"
      "trusty-190611-1542      Running           --               Ubuntu N/A\n",
      "table_list_unsorted"},
 
@@ -493,19 +493,19 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4\n", "csv_list_empty"},
     {&csv_formatter, &single_instance_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4\n"
-     "foo,Running,10.168.32.2,fdde:2681:7a2::4ca,16.04 LTS,\"10.168.32.2,200.3.123.30\"\n",
+     "foo,Running,10.168.32.2,fdde:2681:7a2::4ca,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\"\n",
      "csv_list_single"},
     {&csv_formatter, &multiple_instances_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4\n"
-     "bogus-instance,Running,10.21.124.56,,16.04 LTS,\"10.21.124.56\"\n"
-     "bombastic,Stopped,,,18.04 LTS,\"\"\n",
+     "bogus-instance,Running,10.21.124.56,,Ubuntu 16.04 LTS,\"10.21.124.56\"\n"
+     "bombastic,Stopped,,,Ubuntu 18.04 LTS,\"\"\n",
      "csv_list_multiple"},
     {&csv_formatter, &unsorted_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4\n"
-     "trusty-190611-1529,Deleted,,,N/A,\"\"\n"
-     "trusty-190611-1535,Stopped,,,N/A,\"\"\n"
-     "trusty-190611-1539,Suspended,,,N/A,\"\"\n"
-     "trusty-190611-1542,Running,,,N/A,\"\"\n",
+     "trusty-190611-1529,Deleted,,,Not Available,\"\"\n"
+     "trusty-190611-1535,Stopped,,,Ubuntu N/A,\"\"\n"
+     "trusty-190611-1539,Suspended,,,Not Available,\"\"\n"
+     "trusty-190611-1542,Running,,,Ubuntu N/A,\"\"\n",
      "csv_list_unsorted"},
 
     {&csv_formatter, &empty_info_reply,
@@ -535,41 +535,41 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "    ipv4:\n"
      "      - 10.168.32.2\n"
      "      - 200.3.123.30\n"
-     "    release: 16.04 LTS\n",
+     "    release: Ubuntu 16.04 LTS\n",
      "yaml_list_single"},
     {&yaml_formatter, &multiple_instances_list_reply,
      "bogus-instance:\n"
      "  - state: Running\n"
      "    ipv4:\n"
      "      - 10.21.124.56\n"
-     "    release: 16.04 LTS\n"
+     "    release: Ubuntu 16.04 LTS\n"
      "bombastic:\n"
      "  - state: Stopped\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: 18.04 LTS\n",
+     "    release: Ubuntu 18.04 LTS\n",
      "yaml_list_multiple"},
     {&yaml_formatter, &unsorted_list_reply,
      "trusty-190611-1529:\n"
      "  - state: Deleted\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: N/A\n"
+     "    release: Not Available\n"
      "trusty-190611-1535:\n"
      "  - state: Stopped\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: N/A\n"
+     "    release: Ubuntu N/A\n"
      "trusty-190611-1539:\n"
      "  - state: Suspended\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: N/A\n"
+     "    release: Not Available\n"
      "trusty-190611-1542:\n"
      "  - state: Running\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: N/A\n",
+     "    release: Ubuntu N/A\n",
      "yaml_list_unsorted"},
     {&yaml_formatter, &empty_info_reply, "errors:\n  - ~\n", "yaml_info_empty"},
 
@@ -670,7 +670,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                \"200.3.123.30\"\n"
      "            ],\n"
      "            \"name\": \"foo\",\n"
-     "            \"release\": \"16.04 LTS\",\n"
+     "            \"release\": \"Ubuntu 16.04 LTS\",\n"
      "            \"state\": \"Running\"\n"
      "        }\n"
      "    ]\n"
@@ -684,14 +684,14 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                \"10.21.124.56\"\n"
      "            ],\n"
      "            \"name\": \"bogus-instance\",\n"
-     "            \"release\": \"16.04 LTS\",\n"
+     "            \"release\": \"Ubuntu 16.04 LTS\",\n"
      "            \"state\": \"Running\"\n"
      "        },\n"
      "        {\n"
      "            \"ipv4\": [\n"
      "            ],\n"
      "            \"name\": \"bombastic\",\n"
-     "            \"release\": \"18.04 LTS\",\n"
+     "            \"release\": \"Ubuntu 18.04 LTS\",\n"
      "            \"state\": \"Stopped\"\n"
      "        }\n"
      "    ]\n"

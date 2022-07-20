@@ -134,7 +134,8 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
         for (const auto& ip : instance.ipv4())
             instance_node["ipv4"].push_back(ip);
 
-        instance_node["release"] = instance.current_release();
+        instance_node["release"] =
+            instance.current_release().empty() ? "Not Available" : fmt::format("Ubuntu {}", instance.current_release());
 
         list[instance.name()].push_back(instance_node);
     }
