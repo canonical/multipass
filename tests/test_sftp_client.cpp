@@ -41,12 +41,12 @@ sftp_file get_dummy_sftp_file(sftp_session sftp = nullptr)
     return file;
 }
 
-sftp_attributes get_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR, const std::string& name = "",
+sftp_attributes get_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR, const fs::path& name = "",
                                     mode_t perms = 0777)
 {
     auto attr = static_cast<sftp_attributes_struct*>(calloc(1, sizeof(struct sftp_attributes_struct)));
     attr->type = type;
-    attr->name = strdup(name.c_str());
+    attr->name = strdup(name.u8string().c_str());
     attr->permissions = perms;
     return attr;
 }

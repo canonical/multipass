@@ -23,6 +23,7 @@
 #include <libssh/sftp.h>
 #include <memory>
 #include <stack>
+#include <vector>
 
 namespace fs = std::filesystem;
 

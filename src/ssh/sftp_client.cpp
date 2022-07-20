@@ -55,7 +55,7 @@ SFTPClient::SFTPClient(SSHSessionUPtr ssh_session)
 
 bool SFTPClient::is_dir(const fs::path& path)
 {
-    auto attr = mp_sftp_stat(sftp.get(), path.c_str());
+    auto attr = mp_sftp_stat(sftp.get(), path.u8string().c_str());
     return attr && attr->type == SSH_FILEXFER_TYPE_DIRECTORY;
 }
 
@@ -122,12 +122,12 @@ void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_p
 
     do_push_file(*local_file, target_path);
 
-    auto target_attr = mp_sftp_stat(sftp.get(), target_path.c_str());
+    auto target_attr = mp_sftp_stat(sftp.get(), target_path.u8string().c_str());
     std::error_code _;
     auto status = MP_FILEOPS.status(source_path, _);
 
     target_attr->permissions = static_cast<mode_t>(status.permissions());
-    if (sftp_setstat(sftp.get(), target_path.c_str(), target_attr.get()) != SSH_FX_OK)
+    if (sftp_setstat(sftp.get(), target_path.u8string().c_str(), target_attr.get()) != SSH_FX_OK)
         throw std::runtime_error{fmt::format("[sftp] cannot set permissions for remote file {}: {}", target_path,
                                              ssh_get_error(sftp->session))};
 
@@ -144,7 +144,7 @@ void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_p
 
     do_pull_file(source_path, *local_file);
 
-    auto source_perms = mp_sftp_stat(sftp.get(), source_path.c_str())->permissions;
+    auto source_perms = mp_sftp_stat(sftp.get(), source_path.u8string().c_str())->permissions;
     std::error_code err;
     if (MP_FILEOPS.permissions(target_path, static_cast<fs::perms>(source_perms), err); err)
         throw std::runtime_error{
@@ -178,7 +178,7 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
             }
             case fs::file_type::directory:
             {
-                if (sftp_mkdir(sftp.get(), remote_file_path.c_str(), 0777) != SSH_OK &&
+                if (sftp_mkdir(sftp.get(), remote_file_path.u8string().c_str(), 0777) != SSH_OK &&
                     sftp_get_error(sftp.get()) != SSH_FX_FILE_ALREADY_EXISTS)
                     throw std::runtime_error{fmt::format("[sftp] cannot create remote directory {}: {}",
                                                          remote_file_path, ssh_get_error(sftp->session))};
@@ -191,14 +191,15 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
                     throw std::runtime_error{
                         fmt::format("[sftp] cannot read local link {}: {}", entry.path(), err.message())};
 
-                auto remote_file_info = mp_sftp_lstat(sftp.get(), remote_file_path.c_str());
+                auto remote_file_info = mp_sftp_lstat(sftp.get(), remote_file_path.u8string().c_str());
                 if (remote_file_info && remote_file_info->type == SSH_FILEXFER_TYPE_DIRECTORY)
                     throw std::runtime_error{fmt::format(
                         "[sftp] cannot overwrite remote directory {} with non-directory", remote_file_path)};
 
-                if ((sftp_unlink(sftp.get(), remote_file_path.c_str()) != SSH_FX_OK &&
+                if ((sftp_unlink(sftp.get(), remote_file_path.u8string().c_str()) != SSH_FX_OK &&
                      sftp_get_error(sftp.get()) != SSH_FX_NO_SUCH_FILE) ||
-                    sftp_symlink(sftp.get(), link_target.c_str(), remote_file_path.c_str()) != SSH_FX_OK)
+                    sftp_symlink(sftp.get(), link_target.u8string().c_str(), remote_file_path.u8string().c_str()) !=
+                        SSH_FX_OK)
                     throw std::runtime_error{fmt::format("[sftp] cannot create remote symlink {}: {}", remote_file_path,
                                                          ssh_get_error(sftp->session))};
                 break;
@@ -289,7 +290,8 @@ void SFTPClient::to_cout(const fs::path& source_path, std::ostream& cout)
 
 void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
 {
-    auto remote_file = mp_sftp_open(sftp.get(), target_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, file_mode);
+    auto remote_file =
+        mp_sftp_open(sftp.get(), target_path.u8string().c_str(), O_WRONLY | O_CREAT | O_TRUNC, file_mode);
     if (!remote_file)
         throw std::runtime_error{
             fmt::format("[sftp] cannot open remote file {}: {}", target_path, ssh_get_error(sftp->session))};
@@ -303,7 +305,7 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
 
 void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
 {
-    auto remote_file = mp_sftp_open(sftp.get(), source_path.c_str(), O_RDONLY, 0);
+    auto remote_file = mp_sftp_open(sftp.get(), source_path.u8string().c_str(), O_RDONLY, 0);
     if (!remote_file)
         throw std::runtime_error{
             fmt::format("[sftp] cannot open remote file {}: {}", source_path, ssh_get_error(sftp->session))};

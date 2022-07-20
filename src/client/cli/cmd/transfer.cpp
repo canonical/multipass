@@ -210,19 +210,17 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
                              : "An instance name is needed for either source or destination\n");
         return ParseCode::CommandLineError;
     }
-    else
-    {
-        if (request.instance_name_size() > 1)
-        {
-            term->cerr() << "Cannot specify an instance name for both source and destination\n";
-            return ParseCode::CommandLineError;
-        }
 
-        std::vector<fs::path> source_paths;
-        source_paths.reserve(instance_sources.size());
-        std::transform(instance_sources.begin(), instance_sources.end(), std::back_inserter(source_paths),
-                       [](auto& item) { return std::move(item.second); });
-        arguments = LocalSourcesInstanceTarget{std::move(source_paths), std::move(instance_target.second)};
-        return ParseCode::Ok;
+    if (request.instance_name_size() > 1)
+    {
+        term->cerr() << "Cannot specify an instance name for both source and destination\n";
+        return ParseCode::CommandLineError;
     }
+
+    std::vector<fs::path> source_paths;
+    source_paths.reserve(instance_sources.size());
+    std::transform(instance_sources.begin(), instance_sources.end(), std::back_inserter(source_paths),
+                   [](auto& item) { return std::move(item.second); });
+    arguments = LocalSourcesInstanceTarget{std::move(source_paths), std::move(instance_target.second)};
+    return ParseCode::Ok;
 }
