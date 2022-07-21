@@ -166,6 +166,6 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)
     mp::QemuVMProcessSpec spec(desc, platform_args, std::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=unconfined"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("/usr/share/seabios/* r,"));
+    EXPECT_TRUE(spec.apparmor_profile().contains("/usr/share/{seabios,ovmf,qemu-efi}/* r,"));
     EXPECT_TRUE(spec.apparmor_profile().contains(" /usr/bin/qemu-system-")); // space wanted
 }
