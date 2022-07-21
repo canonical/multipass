@@ -17,8 +17,6 @@
 
 #include "stub_process_factory.h"
 
-#include <multipass/optional.h>
-
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace ::testing;
@@ -64,12 +62,12 @@ public:
     }
     void terminate() override
     {
-        mp::ProcessState exit_state{0, mp::nullopt};
+        mp::ProcessState exit_state{0, std::nullopt};
         emit finished(exit_state);
     }
     void kill() override
     {
-        mp::ProcessState exit_state{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
+        mp::ProcessState exit_state{std::nullopt, mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
         emit finished(exit_state);
     }
 

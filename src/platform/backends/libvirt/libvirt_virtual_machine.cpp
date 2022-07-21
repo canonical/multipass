@@ -59,7 +59,7 @@ auto instance_mac_addr_for(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& 
 
 auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
-    mp::optional<mp::IPAddress> ip_address;
+    std::optional<mp::IPAddress> ip_address;
 
     mp::LibVirtVirtualMachine::ConnectionUPtr connection{nullptr, nullptr};
     try
@@ -430,7 +430,7 @@ void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 
 std::string mp::LibVirtVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> optional<IPAddress> { return instance_ip_for(mac_addr, libvirt_wrapper); };
+    auto get_ip = [this]() -> std::optional<IPAddress> { return instance_ip_for(mac_addr, libvirt_wrapper); };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
 }

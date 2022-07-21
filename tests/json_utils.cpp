@@ -29,7 +29,7 @@
 
 namespace mpu = multipass::utils;
 
-std::string make_instance_json(const mp::optional<std::string>& default_mac,
+std::string make_instance_json(const std::optional<std::string>& default_mac,
                                const std::vector<mp::NetworkInterface>& extra_ifaces,
                                const std::vector<std::string>& extra_instances)
 {

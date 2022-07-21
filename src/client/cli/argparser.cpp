@@ -112,7 +112,7 @@ mp::ParseCode mp::ArgParser::prepare_alias_execution(const QString& alias)
     return mp::ParseCode::Ok;
 }
 
-mp::ParseCode mp::ArgParser::parse(const mp::optional<mp::AliasDict>& aliases)
+mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
 {
     QCommandLineOption help_option(help_option_names, "Displays help on commandline options");
     QCommandLineOption verbose_option({"v", "verbose"},

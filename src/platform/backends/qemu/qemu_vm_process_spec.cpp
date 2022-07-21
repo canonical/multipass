@@ -28,7 +28,7 @@ namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QStringList& platform_args,
-                                         const multipass::optional<ResumeData>& resume_data)
+                                         const std::optional<ResumeData>& resume_data)
     : desc{desc}, platform_args{platform_args}, resume_data{resume_data}
 {
 }

@@ -19,7 +19,6 @@
 #define MULTIPASS_NETWORK_INTERFACE_INFO_H
 
 #include <multipass/ip_address.h>
-#include <multipass/optional.h>
 
 #include <algorithm>
 #include <string>

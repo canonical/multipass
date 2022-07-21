@@ -25,7 +25,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-void write_shutdown_message(mp::optional<mp::SSHSession>& ssh_session, const std::chrono::minutes& time_left,
+void write_shutdown_message(std::optional<mp::SSHSession>& ssh_session, const std::chrono::minutes& time_left,
                             const std::string& name)
 {
     if (ssh_session)
@@ -45,7 +45,7 @@ void write_shutdown_message(mp::optional<mp::SSHSession>& ssh_session, const std
 }
 } // namespace
 
-mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine, mp::optional<SSHSession>&& session,
+mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine, std::optional<SSHSession>&& session,
                                                const StopMounts& stop_mounts)
     : virtual_machine{virtual_machine}, ssh_session{std::move(session)}, stop_mounts{stop_mounts}
 {

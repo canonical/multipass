@@ -19,9 +19,9 @@
 #define MULTIPASS_ALIAS_DICT_H
 
 #include <multipass/cli/alias_definition.h>
-#include <multipass/optional.h>
 #include <multipass/terminal.h>
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -42,7 +42,7 @@ public:
     bool exists_alias(const std::string& alias);
     bool remove_alias(const std::string& alias);
     std::vector<std::string> remove_aliases_for_instance(const std::string& instance);
-    optional<AliasDefinition> get_alias(const std::string& alias) const;
+    std::optional<AliasDefinition> get_alias(const std::string& alias) const;
     DictType::iterator begin()
     {
         return aliases.begin();

@@ -121,7 +121,7 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
 } // namespace
 
 const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::string& method, QUrl url,
-                                  const mp::optional<QJsonObject>& json_data, int timeout)
+                                  const std::optional<QJsonObject>& json_data, int timeout)
 try
 {
     auto handle_request = [manager, &json_data](QNetworkRequest& request, const QByteArray& verb) {
@@ -180,7 +180,7 @@ try
                           .arg(base_url.toString())
                           .arg(task_data["metadata"].toObject()["id"].toString()));
 
-        task_reply = lxd_request(manager, "GET", task_url, mp::nullopt, timeout);
+        task_reply = lxd_request(manager, "GET", task_url, std::nullopt, timeout);
 
         if (task_reply["error_code"].toInt() >= 400)
         {

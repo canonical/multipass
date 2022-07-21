@@ -81,7 +81,7 @@ QStringList get_arguments(const QJsonObject& metadata)
     return args;
 }
 
-auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::optional<QJsonObject>& resume_metadata,
+auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::optional<QJsonObject>& resume_metadata,
                        const QStringList& platform_args)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
@@ -89,7 +89,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const mp::opti
         throw std::runtime_error("cannot start VM without an image");
     }
 
-    mp::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;
+    std::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;
     if (resume_metadata)
     {
         const auto& data = resume_metadata.value();
@@ -376,7 +376,7 @@ void mp::QemuVirtualMachine::on_shutdown()
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
-    management_ip = nullopt;
+    management_ip = std::nullopt;
     update_state();
     vm_process.reset(nullptr);
     lock.unlock();
@@ -394,7 +394,7 @@ void mp::QemuVirtualMachine::on_restart()
     state = State::restarting;
     update_state();
 
-    management_ip = nullopt;
+    management_ip = std::nullopt;
 
     monitor->on_restart(vm_name);
 }
@@ -422,7 +422,7 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> optional<IPAddress> { return qemu_platform->get_ip_for(mac_addr); };
+    auto get_ip = [this]() -> std::optional<IPAddress> { return qemu_platform->get_ip_for(mac_addr); };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
 }
@@ -464,7 +464,8 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
     vm_process = make_qemu_process(
-        desc, ((state == State::suspended) ? mp::make_optional(monitor->retrieve_metadata_for(vm_name)) : mp::nullopt),
+        desc,
+        ((state == State::suspended) ? std::make_optional(monitor->retrieve_metadata_for(vm_name)) : std::nullopt),
         qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {

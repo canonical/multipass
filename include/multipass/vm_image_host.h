@@ -19,10 +19,10 @@
 #define MULTIPASS_VM_IMAGE_HOST_H
 
 #include "disabled_copy_move.h"
-#include "optional.h"
 #include "vm_image_info.h"
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,7 +37,7 @@ public:
     using Action = std::function<void(const std::string&, const VMImageInfo&)>;
 
     virtual ~VMImageHost() = default;
-    virtual optional<VMImageInfo> info_for(const Query& query) = 0;
+    virtual std::optional<VMImageInfo> info_for(const Query& query) = 0;
     virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) = 0;
     virtual VMImageInfo info_for_full_hash(const std::string& full_hash) = 0;
     virtual std::vector<VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) = 0;
@@ -47,5 +47,5 @@ public:
 protected:
     VMImageHost() = default;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_VM_IMAGE_HOST_H

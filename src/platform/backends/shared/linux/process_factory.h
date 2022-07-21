@@ -18,12 +18,12 @@
 #ifndef MULTIPASS_PROCESS_FACTORY_H
 #define MULTIPASS_PROCESS_FACTORY_H
 
-#include <memory>
-
 #include "apparmor.h"
-#include <multipass/optional.h>
 #include <multipass/process/process_spec.h>
 #include <multipass/singleton.h>
+
+#include <memory>
+#include <optional>
 
 #define MP_PROCFACTORY multipass::ProcessFactory::instance()
 
@@ -40,7 +40,7 @@ public:
     std::unique_ptr<Process> create_process(const QString& command, const QStringList& args = QStringList()) const;
 
 private:
-    const multipass::optional<AppArmor> apparmor;
+    const std::optional<AppArmor> apparmor;
 };
 
 } // namespace multipass

@@ -80,7 +80,7 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
     }
 }
 
-mp::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAccessManager* manager, const QUrl& url)
+std::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAccessManager* manager, const QUrl& url)
 {
     const auto json_leases = lxd_request(manager, "GET", url);
     const auto leases = json_leases["metadata"].toArray();
@@ -91,7 +91,7 @@ mp::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAcces
         {
             try
             {
-                return mp::optional<mp::IPAddress>{lease.toObject()["address"].toString().toStdString()};
+                return std::optional<mp::IPAddress>{lease.toObject()["address"].toString().toStdString()};
             }
             catch (const std::invalid_argument&)
             {
@@ -100,7 +100,7 @@ mp::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAcces
         }
     }
 
-    return mp::nullopt;
+    return std::nullopt;
 }
 
 QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& desc)
@@ -252,7 +252,7 @@ void mp::LXDVirtualMachine::stop()
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
-    port = mp::nullopt;
+    port = std::nullopt;
 
     if (update_shutdown_status)
         update_state();
@@ -328,7 +328,7 @@ void mp::LXDVirtualMachine::update_state()
 
 std::string mp::LXDVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> optional<IPAddress> { return get_ip_for(mac_addr, manager, network_leases_url()); };
+    auto get_ip = [this]() -> std::optional<IPAddress> { return get_ip_for(mac_addr, manager, network_leases_url()); };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
 }

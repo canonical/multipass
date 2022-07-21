@@ -134,7 +134,7 @@ mp::QemuPlatformDetail::~QemuPlatformDetail()
     delete_virtual_switch(bridge_name);
 }
 
-mp::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
+std::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
 {
     return dnsmasq_server->get_ip_for(hw_addr);
 }

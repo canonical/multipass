@@ -58,7 +58,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
     for (int i = 1; i < parser->positionalArguments().size(); ++i)
         args.push_back(parser->positionalArguments().at(i).toStdString());
 
-    mp::optional<std::string> work_dir;
+    std::optional<std::string> work_dir;
     if (parser->isSet(work_dir_option_name))
     {
         // If the user asked for a working directory, prepend the appropriate `cd`.
@@ -148,7 +148,7 @@ QString cmd::Exec::description() const
     return QStringLiteral("Run a command on an instance");
 }
 
-mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const mp::optional<std::string>& dir,
+mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std::optional<std::string>& dir,
                                        const std::vector<std::string>& args, mp::Terminal* term)
 {
     // TODO: mainly for testing - need a better way to test parsing
@@ -210,7 +210,7 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
     {
         if (!parser->unknownOptionNames().empty() && !parser->containsArgument("--"))
         {
-            bool is_alias = parser->executeAlias() != mp::nullopt;
+            bool is_alias = parser->executeAlias() != std::nullopt;
             cerr << fmt::format("\nOptions to the {} should come after \"--\", like this:\nmultipass {} <arguments>\n",
                                 is_alias ? "alias" : "inner command",
                                 is_alias ? "<alias> --" : "exec <instance> -- <command>");
