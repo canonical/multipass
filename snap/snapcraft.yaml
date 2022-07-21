@@ -160,9 +160,9 @@ parts:
     override-pull: ""
     stage-packages:
     - ipxe-qemu-256k-compat-efi-roms
-    - on amd64: [qemu-system-x86]
-    - on armhf: [qemu-system-arm]
-    - on arm64: [qemu-system-arm]
+    - on amd64: [qemu-system-x86, ovmf]
+    - on armhf: [qemu-system-arm, qemu-efi]
+    - on arm64: [qemu-system-arm, qemu-efi]
     - qemu-utils
     - libslang2
     stage:
@@ -171,6 +171,8 @@ parts:
       usr/lib/*/pulseaudio/libpulsecommon-*.so: usr/lib/
       usr/share/seabios/*: qemu/
       usr/lib/ipxe/qemu/*: qemu/
+      usr/share/ovmf/*: qemu/
+      usr/share/qemu-efi-aarch64/*: qemu/
 
   kvm-support:
     plugin: nil
