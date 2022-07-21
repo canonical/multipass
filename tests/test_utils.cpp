@@ -735,6 +735,23 @@ TEST(Utils, wait_for_cloud_init_cannot_connect_times_out)
                          mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
 
+struct UniqueIdMappingsTestSuite : public Test, public WithParamInterface<std::pair<mp::id_mappings, mp::id_mappings>>
+{
+};
+
+TEST_P(UniqueIdMappingsTestSuite, UniqueIdMappingsWorks)
+{
+    auto [input_mappings, expected_mappings] = GetParam();
+
+    ASSERT_EQ(mp::utils::unique_id_mappings(input_mappings), expected_mappings);
+}
+
+INSTANTIATE_TEST_SUITE_P(Utils, UniqueIdMappingsTestSuite,
+                         Values(std::make_pair(mp::id_mappings{{1, 1}, {2, 1}, {1, 1}, {1, 2}},
+                                               mp::id_mappings{{1, 1}, {2, 1}, {1, 2}}),
+                                std::make_pair(mp::id_mappings{{3, 4}}, mp::id_mappings{{3, 4}}),
+                                std::make_pair(mp::id_mappings{}, mp::id_mappings{})));
+
 TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
 {
     mpt::TempDir temp_dir1, temp_dir2;
