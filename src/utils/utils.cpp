@@ -43,6 +43,7 @@
 #include <random>
 #include <regex>
 #include <sstream>
+#include <unordered_set>
 
 #include <openssl/evp.h>
 
@@ -80,6 +81,16 @@ QString find_autostart_target(const QString& subdir, const QString& autostart_fi
 
     return target_path;
 }
+
+struct id_map_hash
+{
+    std::size_t operator()(const std::pair<int, int>& p) const noexcept
+    {
+        std::size_t h1 = std::hash<int>{}(p.first);
+        std::size_t h2 = std::hash<int>{}(p.second);
+        return h1 ^ (h2 << 1);
+    }
+};
 } // namespace
 
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
@@ -629,4 +640,22 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
 std::string mp::utils::emit_cloud_config(const YAML::Node& node)
 {
     return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
+}
+
+mp::id_mappings mp::utils::unique_id_mappings(const mp::id_mappings& xid_mappings)
+{
+    mp::id_mappings ret;
+    std::unordered_set<std::pair<int, int>, id_map_hash> id_set;
+
+    for (const auto& id_map : xid_mappings)
+        if (id_set.insert(id_map).second)
+        {
+            ret.push_back(id_map);
+            mpl::log(mpl::Level::trace, category, fmt::format("Inserting map {}:{}", id_map.first, id_map.second));
+        }
+        else
+            mpl::log(mpl::Level::trace, category,
+                     fmt::format("Not inserting repeated map {}:{}", id_map.first, id_map.second));
+
+    return ret;
 }

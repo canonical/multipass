@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_UTILS_H
 #define MULTIPASS_UTILS_H
 
+#include <multipass/id_mappings.h>
 #include <multipass/logging/level.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
@@ -114,6 +115,9 @@ std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
 // yaml helpers
 std::string emit_yaml(const YAML::Node& node);
 std::string emit_cloud_config(const YAML::Node& node);
+
+// [ug]id mappings helpers
+id_mappings unique_id_mappings(const id_mappings& xid_mappings);
 
 // enum helpers
 template <typename RegisteredQtEnum>
