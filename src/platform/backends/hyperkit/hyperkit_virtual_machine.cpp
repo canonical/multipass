@@ -24,7 +24,6 @@
 #include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
-#include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -118,7 +117,7 @@ void mp::HyperkitVirtualMachine::on_shutdown()
         state = State::off;
     }
 
-    ip = mp::nullopt;
+    ip = std::nullopt;
     update_state();
     lock.unlock();
     monitor->on_shutdown();
@@ -149,7 +148,7 @@ int mp::HyperkitVirtualMachine::ssh_port()
 
 std::string mp::HyperkitVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> optional<IPAddress> { return mp::backend::get_vmnet_dhcp_ip_for(vm_name); };
+    auto get_ip = [this]() -> std::optional<IPAddress> { return mp::backend::get_vmnet_dhcp_ip_for(vm_name); };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
 }

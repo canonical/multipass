@@ -39,7 +39,7 @@ namespace
 const QString default_switch_guid{"C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"};
 const QString snapshot_name{"suspend"};
 
-mp::optional<mp::IPAddress> remote_ip(const std::string& host, int port) // clang-format off
+std::optional<mp::IPAddress> remote_ip(const std::string& host, int port) // clang-format off
 try // clang-format on
 {
     mp::SSHSession session{host, port};
@@ -50,13 +50,13 @@ try // clang-format on
     const auto failed = getpeername(socket, reinterpret_cast<sockaddr*>(&addr), &size);
 
     if (failed)
-        return mp::nullopt;
+        return std::nullopt;
 
-    return mp::optional<mp::IPAddress>{ntohl(addr.sin_addr.s_addr)};
+    return std::optional<mp::IPAddress>{ntohl(addr.sin_addr.s_addr)};
 }
 catch (...)
 {
-    return mp::nullopt;
+    return std::nullopt;
 }
 
 auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
@@ -181,14 +181,14 @@ void mp::HyperVVirtualMachine::stop()
     {
         power_shell->run({"Stop-VM", "-Name", name});
         state = State::stopped;
-        ip = mp::nullopt;
+        ip = std::nullopt;
     }
     else if (present_state == State::starting)
     {
         power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
         state = State::off;
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
-        ip = mp::nullopt;
+        ip = std::nullopt;
     }
     else if (present_state == State::suspended)
     {

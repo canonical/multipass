@@ -30,7 +30,7 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 // identifier can either be the MAC address or the VM name
-mp::optional<mp::IPAddress> mp::backend::get_vmnet_dhcp_ip_for(const std::string& identifier)
+std::optional<mp::IPAddress> mp::backend::get_vmnet_dhcp_ip_for(const std::string& identifier)
 {
     // bootpd leases entries consist of:
     // {
@@ -51,7 +51,7 @@ mp::optional<mp::IPAddress> mp::backend::get_vmnet_dhcp_ip_for(const std::string
     const bool is_hw_addr{(orig_hw_addr_tokens.size() > 1) ? true : false};
     std::smatch match;
     bool identifier_matched = false;
-    mp::optional<mp::IPAddress> ip_address;
+    std::optional<mp::IPAddress> ip_address;
 
     if (!MP_FILEOPS.open(leases_file, QIODevice::ReadOnly | QIODevice::Text))
         throw std::runtime_error(fmt::format("Cannot open dhcpd_leases file: {}", leases_file.errorString()));
@@ -64,7 +64,7 @@ mp::optional<mp::IPAddress> mp::backend::get_vmnet_dhcp_ip_for(const std::string
         if (line == "{")
         {
             identifier_matched = false;
-            ip_address = mp::nullopt;
+            ip_address = std::nullopt;
         }
         else if (!is_hw_addr && !identifier_matched && std::regex_match(line, name_re))
         {
@@ -102,5 +102,5 @@ mp::optional<mp::IPAddress> mp::backend::get_vmnet_dhcp_ip_for(const std::string
 
         input_line = MP_FILEOPS.read_line(input);
     }
-    return mp::nullopt;
+    return std::nullopt;
 }

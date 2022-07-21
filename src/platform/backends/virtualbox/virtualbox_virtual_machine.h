@@ -21,7 +21,6 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/path.h>
 
 #include <QString>
@@ -60,7 +59,7 @@ private: // TODO we should probably keep the VMDescription in the base VM class,
     const QString name;
     const std::string username;
     const Path image_path;
-    multipass::optional<int> port;
+    std::optional<int> port;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
 };

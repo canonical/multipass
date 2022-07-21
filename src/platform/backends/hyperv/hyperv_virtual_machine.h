@@ -21,7 +21,6 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/path.h>
 
 #include <QString>
@@ -67,7 +66,7 @@ private:
     const QString name;
     const std::string username;
     const Path image_path;
-    multipass::optional<multipass::IPAddress> ip;
+    std::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};

@@ -321,7 +321,7 @@ TEST(PlatformOSX, test_default_privileged_mounts)
 TEST(PlatformOSX, test_network_interfaces)
 {
     std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
-    const mp::ProcessState success{0, mp::nullopt};
+    const mp::ProcessState success{0, std::nullopt};
     mock_factory_scope->register_callback(
         [&](mpt::MockProcess* process) { simulate_environment(process, success, success); });
 

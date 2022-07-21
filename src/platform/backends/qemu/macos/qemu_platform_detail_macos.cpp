@@ -46,7 +46,7 @@ mp::QemuPlatformDetail::QemuPlatformDetail() : common_args{get_common_args(host_
 {
 }
 
-mp::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
+std::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
 {
     return mp::backend::get_vmnet_dhcp_ip_for(hw_addr);
 }

@@ -19,12 +19,12 @@
 #define MULTIPASS_BACKEND_UTILS_H
 
 #include <multipass/ip_address.h>
-#include <multipass/optional.h>
 
+#include <optional>
 #include <string>
 
 namespace multipass::backend
 {
-optional<IPAddress> get_vmnet_dhcp_ip_for(const std::string& identifier);
+std::optional<IPAddress> get_vmnet_dhcp_ip_for(const std::string& identifier);
 } // namespace multipass::backend
 #endif // MULTIPASS_BACKEND_UTILS_H
