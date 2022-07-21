@@ -18,7 +18,6 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <unordered_set>
 
 #include <QStringList>
 
@@ -31,6 +30,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
+#include <multipass/utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -42,7 +42,6 @@ namespace
 mp::id_mappings convert_id_mappings(const char* in)
 {
     mp::id_mappings ret_map;
-    std::unordered_set<int> keys;
     QString input(in);
 
     auto maps = input.split(',', QString::SkipEmptyParts);
@@ -54,6 +53,7 @@ mp::id_mappings convert_id_mappings(const char* in)
             cerr << "Incorrect ID mapping syntax";
             continue;
         }
+
         bool ok1, ok2;
         int from = ids.first().toInt(&ok1);
         int to = ids.last().toInt(&ok2);
@@ -63,16 +63,7 @@ mp::id_mappings convert_id_mappings(const char* in)
             continue;
         }
 
-        if (keys.count(from))
-        {
-            cerr << "Repeated ID mapping ids found, ignored" << endl;
-            continue;
-        }
-        else
-        {
-            keys.insert(from);
-            ret_map.push_back({from, to});
-        }
+        ret_map.push_back({from, to});
     }
 
     return ret_map;
