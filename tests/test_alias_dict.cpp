@@ -311,7 +311,7 @@ TEST_F(AliasDictionary, get_unexisting_alias_returns_nullopt)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    ASSERT_EQ(dict.get_alias("unexisting"), mp::nullopt);
+    ASSERT_EQ(dict.get_alias("unexisting"), std::nullopt);
 }
 
 TEST_F(AliasDictionary, creates_backup_db)
@@ -454,7 +454,7 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 
     config_builder.vault = std::move(mock_image_vault);
 
-    std::string json_contents = make_instance_json(mp::nullopt, {}, {"primary"});
+    std::string json_contents = make_instance_json(std::nullopt, {}, {"primary"});
 
     AliasesVector fake_aliases{{"lsp", {"primary", "ls", "map"}}, {"lsz", {"real-zebraphant", "ls", "map"}}};
 

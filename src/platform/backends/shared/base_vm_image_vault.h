@@ -77,7 +77,7 @@ protected:
             auto image_host = image_host_for(query.remote_name);
             auto info = image_host->info_for(query);
 
-            if (info != nullopt)
+            if (info != std::nullopt)
                 return *info;
         }
         else

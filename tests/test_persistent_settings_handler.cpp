@@ -21,7 +21,6 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
-#include <multipass/optional.h>
 #include <multipass/settings/basic_setting_spec.h>
 #include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
@@ -41,9 +40,9 @@ class TestPersistentSettingsHandler : public Test
 {
 public:
     mp::PersistentSettingsHandler
-    make_handler(const mp::optional<QString>& specific_key = mp::nullopt,
-                 const mp::optional<QString>& specific_val = mp::nullopt,
-                 const mp::optional<std::function<QString(QString)>>& specific_interpreter = mp::nullopt)
+    make_handler(const std::optional<QString>& specific_key = std::nullopt,
+                 const std::optional<QString>& specific_val = std::nullopt,
+                 const std::optional<std::function<QString(QString)>>& specific_interpreter = std::nullopt)
     {
         auto setting_set = make_basic_persistent_settings();
 

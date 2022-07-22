@@ -476,7 +476,7 @@ struct DaemonTestFixture : public ::Test
 
     std::string fake_json_contents(const std::string& default_mac,
                                    const std::vector<mp::NetworkInterface>& extra_ifaces,
-                                   const mp::optional<mp::VMMount>& mount = mp::nullopt)
+                                   const std::optional<mp::VMMount>& mount = std::nullopt)
     {
         QString contents("{\n"
                          "    \"real-zebraphant\": {\n"

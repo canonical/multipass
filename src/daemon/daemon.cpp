@@ -346,7 +346,7 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
 }
 
-auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
+auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
 {
     try
     {
@@ -354,7 +354,7 @@ auto try_mem_size(const std::string& val) -> mp::optional<mp::MemorySize>
     }
     catch (mp::InvalidMemorySizeException& /*unused*/)
     {
-        return mp::nullopt;
+        return std::nullopt;
     }
 }
 
@@ -365,7 +365,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 {
     std::vector<mp::NetworkInterface> interfaces;
 
-    mp::optional<std::vector<mp::NetworkInterfaceInfo>> factory_networks = mp::nullopt;
+    std::optional<std::vector<mp::NetworkInterfaceInfo>> factory_networks = std::nullopt;
 
     bool dont_allow_auto = false;
     std::string specified_image;
@@ -499,9 +499,9 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     else
         option_errors.add_error_codes(mp::LaunchError::INVALID_MEM_SIZE);
 
-    // If the user did not specify a disk size, then mp::nullopt be passed down. Otherwise, the specified size will be
+    // If the user did not specify a disk size, then std::nullopt be passed down. Otherwise, the specified size will be
     // checked.
-    mp::optional<mp::MemorySize> disk_space{}; // mp::nullopt by default.
+    std::optional<mp::MemorySize> disk_space{}; // std::nullopt by default.
     if (!disk_space_str.empty())
     {
         auto opt_disk_space = try_mem_size(disk_space_str);
@@ -524,7 +524,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     struct CheckedArguments
     {
         mp::MemorySize mem_size;
-        mp::optional<mp::MemorySize> disk_space;
+        std::optional<mp::MemorySize> disk_space;
         std::string instance_name;
         std::vector<mp::NetworkInterface> extra_interfaces;
         std::vector<std::string> nets_need_bridging;
@@ -716,7 +716,7 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
 // Computes the final size of an image, but also checks if the value given by the user is bigger than or equal than
 // the size of the image.
 mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
-                                        mp::optional<mp::MemorySize> command_line_value, mp::Path data_directory)
+                                        std::optional<mp::MemorySize> command_line_value, mp::Path data_directory)
 {
     mp::MemorySize disk_space{};
 
@@ -2497,7 +2497,7 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
     {
         delayed_shutdown_instances.erase(name);
 
-        mp::optional<mp::SSHSession> session;
+        std::optional<mp::SSHSession> session;
         try
         {
             session = mp::SSHSession{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};

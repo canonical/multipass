@@ -23,7 +23,6 @@
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
-#include <multipass/optional.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/utils.h>
@@ -46,7 +45,7 @@ namespace
 {
 struct SshfsMount : public mp::test::SftpServerTest
 {
-    mp::SshfsMount make_sshfsmount(mp::optional<std::string> target = mp::nullopt)
+    mp::SshfsMount make_sshfsmount(std::optional<std::string> target = std::nullopt)
     {
         mp::SSHSession session{"a", 42};
         return {std::move(session), default_source, target.value_or(default_target), default_mappings,
@@ -75,8 +74,8 @@ struct SshfsMount : public mp::test::SftpServerTest
     // cooperate better, i.e., make the reader read only when a command was issued.
     auto make_exec_to_check_commands(const CommandVector& commands, std::string::size_type& remaining,
                                      CommandVector::const_iterator& next_expected_cmd, std::string& output,
-                                     bool& invoked, mp::optional<std::string>& fail_cmd,
-                                     mp::optional<bool>& fail_invoked)
+                                     bool& invoked, std::optional<std::string>& fail_cmd,
+                                     std::optional<bool>& fail_invoked)
     {
         *fail_invoked = false;
 
@@ -153,9 +152,9 @@ struct SshfsMount : public mp::test::SftpServerTest
         return channel_read;
     }
 
-    void test_command_execution(const CommandVector& commands, mp::optional<std::string> target = mp::nullopt,
-                                mp::optional<std::string> fail_cmd = mp::nullopt,
-                                mp::optional<bool> fail_invoked = mp::nullopt)
+    void test_command_execution(const CommandVector& commands, std::optional<std::string> target = std::nullopt,
+                                std::optional<std::string> fail_cmd = std::nullopt,
+                                std::optional<bool> fail_invoked = std::nullopt)
     {
         bool invoked{false};
         std::string output;
@@ -240,8 +239,8 @@ TEST_P(SshfsMountFail, test_failed_invocation)
 
     CommandVector empty;
     CommandVector::const_iterator it = empty.end();
-    mp::optional<std::string> fail_cmd = mp::make_optional(GetParam());
-    mp::optional<bool> invoked_fail = mp::make_optional(false);
+    std::optional<std::string> fail_cmd = std::make_optional(GetParam());
+    std::optional<bool> invoked_fail = std::make_optional(false);
     auto request_exec = make_exec_to_check_commands(empty, remaining, it, output, invoked_cmd, fail_cmd, invoked_fail);
     REPLACE(ssh_channel_request_exec, request_exec);
 

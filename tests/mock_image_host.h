@@ -88,7 +88,7 @@ public:
         ON_CALL(*this, supported_remotes()).WillByDefault(Return(remote));
     };
 
-    MOCK_METHOD1(info_for, optional<VMImageInfo>(const Query&));
+    MOCK_METHOD1(info_for, std::optional<VMImageInfo>(const Query&));
     MOCK_METHOD1(all_info_for, std::vector<std::pair<std::string, VMImageInfo>>(const Query&));
     MOCK_METHOD1(info_for_full_hash, VMImageInfo(const std::string&));
     MOCK_METHOD2(all_images_for, std::vector<VMImageInfo>(const std::string&, const bool));

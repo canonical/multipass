@@ -306,7 +306,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
     else
     {
         std::string id;
-        optional<VMImage> source_image{nullopt};
+        std::optional<VMImage> source_image{std::nullopt};
         QFuture<VMImage> future;
 
         if (query.query_type == Query::Type::HttpDownload)
@@ -569,7 +569,7 @@ mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string
 }
 
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
-    const VMImageInfo& info, mp::optional<VMImage>& existing_source_image, const QDir& image_dir,
+    const VMImageInfo& info, std::optional<VMImage>& existing_source_image, const QDir& image_dir,
     const FetchType& fetch_type, const PrepareAction& prepare, const ProgressMonitor& monitor)
 {
     VMImage source_image;
@@ -673,7 +673,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& 
     return image;
 }
 
-mp::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(const std::string& id)
+std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(const std::string& id)
 {
     auto it = in_progress_image_fetches.find(id);
     if (it != in_progress_image_fetches.end())
@@ -681,7 +681,7 @@ mp::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(con
         return it->second;
     }
 
-    return mp::nullopt;
+    return std::nullopt;
 }
 
 mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, const VMImage& prepared_image,

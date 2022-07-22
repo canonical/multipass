@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_DBUS_WRAPPERS_H
 #define MULTIPASS_DBUS_WRAPPERS_H
 
-#include "multipass/optional.h"
 #include "multipass/singleton.h"
 
 #include <multipass/disabled_copy_move.h>
@@ -29,6 +28,7 @@
 
 #include <cassert>
 #include <memory>
+#include <optional>
 
 namespace multipass::backend::dbus
 {
@@ -124,12 +124,12 @@ public:
 protected:
     friend class DBusProvider;
     explicit DBusConnection(bool create_bus) // allow mocks to skip bus fetching
-        : connection{create_bus ? optional{QDBusConnection::systemBus()} : nullopt}
+        : connection{create_bus ? std::optional{QDBusConnection::systemBus()} : std::nullopt}
     {
     }
 
 private:
-    optional<QDBusConnection> connection;
+    std::optional<QDBusConnection> connection;
 };
 
 class DBusProvider : public Singleton<DBusProvider>

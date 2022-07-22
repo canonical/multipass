@@ -19,7 +19,6 @@
 #define MULTIPASS_DNSMASQ_PROCESS_SPEC_H
 
 #include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/path.h>
 #include <multipass/process/process_spec.h>
 

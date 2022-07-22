@@ -108,8 +108,7 @@ TEST_F(LXDBackend, createsProjectStoragePoolAndNetworkOnHealthcheck)
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
         .WillRepeatedly(
-            [&project_created, &network_created, &storage_pool_created](auto, auto request, auto outgoingData)
-            {
+            [&project_created, &network_created, &storage_pool_created](auto, auto request, auto outgoingData) {
                 outgoingData->open(QIODevice::ReadOnly);
                 auto data = outgoingData->readAll();
                 auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
@@ -179,50 +178,48 @@ TEST_F(LXDBackend, usesDefaultStoragePoolWhenItExistsAndNoMultipassPool)
     bool multipass_pool_checked{false};
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
-        .WillRepeatedly(
-            [&multipass_pool_checked](auto, auto request, auto outgoingData)
+        .WillRepeatedly([&multipass_pool_checked](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
             {
-                outgoingData->open(QIODevice::ReadOnly);
-                auto data = outgoingData->readAll();
-                auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-                auto url = request.url().toString();
-
-                if (op == "GET")
+                if (url.contains("1.0/storage-pools/default"))
                 {
-                    if (url.contains("1.0/storage-pools/default"))
-                    {
-                        const QByteArray storage_pool_data{"{"
-                                                           "\"error\": \"\","
-                                                           "\"error_code\": 0,"
-                                                           "\"metadata\": {"
-                                                           "    \"name\": \"default\""
-                                                           "},"
-                                                           "\"operation\": \"\","
-                                                           "\"status\": \"Success\","
-                                                           "\"status_code\": 200,"
-                                                           "\"type\": \"sync\""
-                                                           "}"};
+                    const QByteArray storage_pool_data{"{"
+                                                       "\"error\": \"\","
+                                                       "\"error_code\": 0,"
+                                                       "\"metadata\": {"
+                                                       "    \"name\": \"default\""
+                                                       "},"
+                                                       "\"operation\": \"\","
+                                                       "\"status\": \"Success\","
+                                                       "\"status_code\": 200,"
+                                                       "\"type\": \"sync\""
+                                                       "}"};
 
-                        return new mpt::MockLocalSocketReply(storage_pool_data);
-                    }
-                    else if (url.contains("1.0/storage-pools/multipass"))
-                    {
-                        multipass_pool_checked = true;
-
-                        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-                    }
-                    else if (url.contains("1.0"))
-                    {
-                        return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
-                    }
+                    return new mpt::MockLocalSocketReply(storage_pool_data);
                 }
-                else if (op == "POST" || op == "PUT")
+                else if (url.contains("1.0/storage-pools/multipass"))
                 {
-                    return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
-                }
+                    multipass_pool_checked = true;
 
-                return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-            });
+                    return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+                }
+                else if (url.contains("1.0"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
+                }
+            }
+            else if (op == "POST" || op == "PUT")
+            {
+                return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
 
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "Using the \'default\' storage pool.");
 
@@ -238,50 +235,48 @@ TEST_F(LXDBackend, usesMultipassStoragePoolWhenItExists)
     bool multipass_pool_returned{false};
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
-        .WillRepeatedly(
-            [&multipass_pool_returned](auto, auto request, auto outgoingData)
+        .WillRepeatedly([&multipass_pool_returned](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
             {
-                outgoingData->open(QIODevice::ReadOnly);
-                auto data = outgoingData->readAll();
-                auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-                auto url = request.url().toString();
-
-                if (op == "GET")
+                if (url.contains("1.0/storage-pools/multipass"))
                 {
-                    if (url.contains("1.0/storage-pools/multipass"))
-                    {
-                        multipass_pool_returned = true;
+                    multipass_pool_returned = true;
 
-                        const QByteArray storage_pool_data{"{"
-                                                           "\"error\": \"\","
-                                                           "\"error_code\": 0,"
-                                                           "\"metadata\": {"
-                                                           "    \"name\": \"multipass\""
-                                                           "},"
-                                                           "\"operation\": \"\","
-                                                           "\"status\": \"Success\","
-                                                           "\"status_code\": 200,"
-                                                           "\"type\": \"sync\""
-                                                           "}"};
+                    const QByteArray storage_pool_data{"{"
+                                                       "\"error\": \"\","
+                                                       "\"error_code\": 0,"
+                                                       "\"metadata\": {"
+                                                       "    \"name\": \"multipass\""
+                                                       "},"
+                                                       "\"operation\": \"\","
+                                                       "\"status\": \"Success\","
+                                                       "\"status_code\": 200,"
+                                                       "\"type\": \"sync\""
+                                                       "}"};
 
-                        return new mpt::MockLocalSocketReply(storage_pool_data);
-                    }
-                    else if (url.contains("1.0/storage-pools/default"))
-                    {
-                        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-                    }
-                    else if (url.contains("1.0"))
-                    {
-                        return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
-                    }
+                    return new mpt::MockLocalSocketReply(storage_pool_data);
                 }
-                else if (op == "POST" || op == "PUT")
+                else if (url.contains("1.0/storage-pools/default"))
                 {
-                    return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
+                    return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
                 }
+                else if (url.contains("1.0"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
+                }
+            }
+            else if (op == "POST" || op == "PUT")
+            {
+                return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
+            }
 
-                return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-            });
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
 
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "Using the \'multipass\' storage pool.");
 
@@ -297,61 +292,59 @@ TEST_F(LXDBackend, usesMultipassPoolWhenDefaultPoolExists)
     bool default_pool_returned{false};
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
-        .WillRepeatedly(
-            [&default_pool_returned](auto, auto request, auto outgoingData)
+        .WillRepeatedly([&default_pool_returned](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
             {
-                outgoingData->open(QIODevice::ReadOnly);
-                auto data = outgoingData->readAll();
-                auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-                auto url = request.url().toString();
-
-                if (op == "GET")
+                if (url.contains("1.0/storage-pools/multipass"))
                 {
-                    if (url.contains("1.0/storage-pools/multipass"))
-                    {
-                        const QByteArray storage_pool_data{"{"
-                                                           "\"error\": \"\","
-                                                           "\"error_code\": 0,"
-                                                           "\"metadata\": {"
-                                                           "    \"name\": \"multipass\""
-                                                           "},"
-                                                           "\"operation\": \"\","
-                                                           "\"status\": \"Success\","
-                                                           "\"status_code\": 200,"
-                                                           "\"type\": \"sync\""
-                                                           "}"};
+                    const QByteArray storage_pool_data{"{"
+                                                       "\"error\": \"\","
+                                                       "\"error_code\": 0,"
+                                                       "\"metadata\": {"
+                                                       "    \"name\": \"multipass\""
+                                                       "},"
+                                                       "\"operation\": \"\","
+                                                       "\"status\": \"Success\","
+                                                       "\"status_code\": 200,"
+                                                       "\"type\": \"sync\""
+                                                       "}"};
 
-                        return new mpt::MockLocalSocketReply(storage_pool_data);
-                    }
-                    else if (url.contains("1.0/storage-pools/default"))
-                    {
-                        default_pool_returned = true;
-                        const QByteArray storage_pool_data{"{"
-                                                           "\"error\": \"\","
-                                                           "\"error_code\": 0,"
-                                                           "\"metadata\": {"
-                                                           "    \"name\": \"default\""
-                                                           "},"
-                                                           "\"operation\": \"\","
-                                                           "\"status\": \"Success\","
-                                                           "\"status_code\": 200,"
-                                                           "\"type\": \"sync\""
-                                                           "}"};
-
-                        return new mpt::MockLocalSocketReply(storage_pool_data);
-                    }
-                    else if (url.contains("1.0"))
-                    {
-                        return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
-                    }
+                    return new mpt::MockLocalSocketReply(storage_pool_data);
                 }
-                else if (op == "POST" || op == "PUT")
+                else if (url.contains("1.0/storage-pools/default"))
                 {
-                    return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
-                }
+                    default_pool_returned = true;
+                    const QByteArray storage_pool_data{"{"
+                                                       "\"error\": \"\","
+                                                       "\"error_code\": 0,"
+                                                       "\"metadata\": {"
+                                                       "    \"name\": \"default\""
+                                                       "},"
+                                                       "\"operation\": \"\","
+                                                       "\"status\": \"Success\","
+                                                       "\"status_code\": 200,"
+                                                       "\"type\": \"sync\""
+                                                       "}"};
 
-                return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-            });
+                    return new mpt::MockLocalSocketReply(storage_pool_data);
+                }
+                else if (url.contains("1.0"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
+                }
+            }
+            else if (op == "POST" || op == "PUT")
+            {
+                return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
 
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "Using the \'multipass\' storage pool.");
 
@@ -1109,7 +1102,7 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
                 log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
                     mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
 
-    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url, mp::nullopt, 3),
+    MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url, std::nullopt, 3),
                          std::runtime_error, mpt::match_what(HasSubstr(error_string)));
 }
 

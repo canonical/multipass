@@ -20,12 +20,12 @@
 
 #include "disabled_copy_move.h"
 #include "ip_address.h"
-#include "optional.h"
 
 #include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -80,7 +80,7 @@ public:
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
-    optional<IPAddress> management_ip;
+    std::optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
 
 protected:
