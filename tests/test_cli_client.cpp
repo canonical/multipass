@@ -729,10 +729,10 @@ TEST_F(Client, launch_cmd_wrong_mem_arguments)
     EXPECT_CALL(mock_daemon, launch(_, _, _)).Times(0);
     MP_EXPECT_THROW_THAT(send_command({"launch", "-m", "wrong"}), std::runtime_error,
                          mpt::match_what(HasSubstr("wrong is not a valid memory size")));
-    MP_EXPECT_THROW_THAT(send_command({"launch", "--mem", "1.23f"}), std::runtime_error,
+    MP_EXPECT_THROW_THAT(send_command({"launch", "--memory", "1.23f"}), std::runtime_error,
                          mpt::match_what(HasSubstr("1.23f is not a valid memory size")));
-    MP_EXPECT_THROW_THAT(send_command({"launch", "-mem", "2048M"}), std::runtime_error,
-                         mpt::match_what(HasSubstr("em is not a valid memory size"))); // note single dash
+    MP_EXPECT_THROW_THAT(send_command({"launch", "-memory", "2048M"}), std::runtime_error,
+                         mpt::match_what(HasSubstr("emory is not a valid memory size"))); // note single dash
 }
 
 TEST_F(Client, launch_cmd_wrong_disk_arguments)
@@ -781,6 +781,20 @@ TEST_F(Client, launch_cmd_memory_option_ok)
 TEST_F(Client, launch_cmd_memory_option_fails_no_value)
 {
     EXPECT_THAT(send_command({"launch", "-m"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_memory_fails_duplicate_options)
+{
+    EXPECT_THAT(send_command({"launch", "--memory", "2048M", "--mem", "2048M"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_memory_deprecated_option_warning)
+{
+    std::stringstream cout_stream;
+
+    EXPECT_CALL(mock_daemon, launch(_, _, _));
+    EXPECT_THAT(send_command({"launch", "--mem", "2048M"}, cout_stream, trash_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_NE(std::string::npos, cout_stream.str().find("warning: \"--mem\"")) << "cout has: " << cout_stream.str();
 }
 
 TEST_F(Client, launch_cmd_cpu_option_ok)

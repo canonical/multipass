@@ -111,7 +111,7 @@ private:
     multipass::ParseCode parse_args(multipass::ArgParser* parser)
     {
         QCommandLineOption diskOption("disk", "", "disk", "");
-        QCommandLineOption memOption("mem", "", "mem", "");
+        QCommandLineOption memOption("memory", "", "memory", "");
         parser->addOptions({diskOption, memOption});
 
         auto status = parser->commandParse(this);

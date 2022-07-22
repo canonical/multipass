@@ -908,10 +908,10 @@ TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
 
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
-                         Combine(Values("test_create", "launch"), Values("--mem", "--disk"),
+                         Combine(Values("test_create", "launch"), Values("--memory", "--disk"),
                                  Values("1024m", "2Gb", "987654321")));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceViolatedSuite,
-                         Combine(Values("test_create", "launch"), Values("--mem", "--disk"),
+                         Combine(Values("test_create", "launch"), Values("--memory", "--disk"),
                                  Values("0", "0B", "0GB", "123B", "42kb", "100")));
 INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
                          Combine(Values("test_create", "launch"),

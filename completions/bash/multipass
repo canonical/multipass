@@ -236,7 +236,7 @@ _multipass_complete()
             opts="${opts} --all --purge"
         ;;
         "launch")
-            opts="${opts} --cpus --disk --mem --name --cloud-init --network --bridged --mount"
+            opts="${opts} --cpus --disk --memory --name --cloud-init --network --bridged --mount"
         ;;
         "mount")
             opts="${opts} --gid-map --uid-map"
