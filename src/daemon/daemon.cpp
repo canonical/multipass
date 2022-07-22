@@ -2418,6 +2418,13 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
             {
                 query = config->blueprint_provider->fetch_blueprint_for(request->image(), vm_desc, aliases_to_define);
                 query.name = name;
+
+                // Aliases are defined for the instance name in the Blueprint. If the user asked for a different name,
+                // it will be necessary to change the alias definitions to reflect it.
+                if (name != request->image())
+                    for (auto& alias_to_define : aliases_to_define)
+                        if (alias_to_define.second.instance == request->image())
+                            alias_to_define.second.instance = name;
             }
             catch (const std::out_of_range&)
             {
