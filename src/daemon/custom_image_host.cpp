@@ -196,7 +196,7 @@ mp::CustomVMImageHost::CustomVMImageHost(const QString& arch, URLDownloader* dow
 {
 }
 
-mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
+std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
     check_alias_is_supported(query.release, query.remote_name);
 
@@ -205,7 +205,7 @@ mp::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query
     auto it = custom_manifest->image_records.find(query.release);
 
     if (it == custom_manifest->image_records.end())
-        return nullopt;
+        return std::nullopt;
 
     return *it->second;
 }
@@ -215,7 +215,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_
     std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
     auto image = info_for(query);
-    if (image != nullopt)
+    if (image != std::nullopt)
         images.push_back(std::make_pair(query.remote_name, *image));
 
     return images;

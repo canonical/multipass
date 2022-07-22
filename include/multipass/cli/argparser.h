@@ -18,7 +18,6 @@
 #define ARGPARSER_H
 
 #include <multipass/cli/alias_dict.h>
-#include <multipass/optional.h>
 
 #include <QtCore/QCommandLineOption>
 #include <QtCore/QCommandLineParser>
@@ -42,7 +41,7 @@ public:
 
     void addPositionalArgument(const QString& name, const QString& description, const QString& syntax = QString());
 
-    ParseCode parse(const optional<AliasDict>& aliases = std::nullopt);
+    ParseCode parse(const std::optional<AliasDict>& aliases = std::nullopt);
     cmd::Command* chosenCommand() const;
     cmd::Command* findCommand(const QString& command) const;
     const std::vector<cmd::Command::UPtr>& getCommands() const;
@@ -52,7 +51,7 @@ public:
 
     QString value(const QCommandLineOption& option) const;
     QString value(const QString& option) const;
-    QStringList values(const QCommandLineOption &option) const;
+    QStringList values(const QCommandLineOption& option) const;
 
     QStringList positionalArguments() const;
 
@@ -74,7 +73,7 @@ public:
         return arguments;
     }
 
-    optional<AliasDefinition> executeAlias()
+    std::optional<AliasDefinition> executeAlias()
     {
         return execute_alias;
     };
@@ -87,7 +86,7 @@ private:
     QStringList arguments;
     const std::vector<cmd::Command::UPtr>& commands;
     cmd::Command* chosen_command;
-    optional<AliasDefinition> execute_alias;
+    std::optional<AliasDefinition> execute_alias;
 
     QCommandLineParser parser;
 

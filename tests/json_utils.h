@@ -21,7 +21,6 @@
 #include "temp_dir.h"
 
 #include <multipass/network_interface.h>
-#include <multipass/optional.h>
 
 #include <string>
 #include <vector>
@@ -31,7 +30,7 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
-std::string make_instance_json(const mp::optional<std::string>& default_mac = mp::nullopt,
+std::string make_instance_json(const std::optional<std::string>& default_mac = std::nullopt,
                                const std::vector<mp::NetworkInterface>& extra_ifaces = {},
                                const std::vector<std::string>& extra_instances = {});
 

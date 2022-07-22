@@ -19,12 +19,13 @@
 #define MULTIPASS_NEW_RELEASE_MONITOR_H
 
 #include <multipass/new_release_info.h>
-#include <multipass/optional.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
 
 #include <QObject>
 #include <QString>
 #include <QTimer>
+
+#include <optional>
 
 namespace multipass
 {
@@ -50,7 +51,7 @@ public:
                       const QString& update_url = default_update_url);
     ~NewReleaseMonitor();
 
-    optional<NewReleaseInfo> get_new_release() const;
+    std::optional<NewReleaseInfo> get_new_release() const;
 
 private slots:
     void check_for_new_release();
@@ -58,7 +59,7 @@ private slots:
 
 private:
     const QString current_version, update_url;
-    optional<NewReleaseInfo> new_release;
+    std::optional<NewReleaseInfo> new_release;
     QTimer refresh_timer;
 
     qt_delete_later_unique_ptr<LatestReleaseChecker> worker_thread;

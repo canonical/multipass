@@ -112,7 +112,7 @@ std::vector<std::string> mp::AliasDict::remove_aliases_for_instance(const std::s
     return removed_aliases;
 }
 
-mp::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
+std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
 {
     try
     {
@@ -120,7 +120,7 @@ mp::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& al
     }
     catch (const std::out_of_range&)
     {
-        return mp::nullopt;
+        return std::nullopt;
     }
 }
 

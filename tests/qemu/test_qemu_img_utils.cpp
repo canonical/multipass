@@ -30,13 +30,13 @@ using namespace testing;
 
 namespace
 {
-const auto success = mp::ProcessState{0, mp::nullopt};
-const auto failure = mp::ProcessState{1, mp::nullopt};
-const auto crash = mp::ProcessState{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
-const auto null_string_matcher = static_cast<mp::optional<decltype(_)>>(mp::nullopt);
+const auto success = mp::ProcessState{0, std::nullopt};
+const auto failure = mp::ProcessState{1, std::nullopt};
+const auto crash = mp::ProcessState{std::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
+const auto null_string_matcher = static_cast<std::optional<decltype(_)>>(std::nullopt);
 
 using ImageConversionParamType =
-    std::tuple<const char*, const char*, mp::ProcessState, bool, mp::ProcessState, mp::optional<Matcher<std::string>>>;
+    std::tuple<const char*, const char*, mp::ProcessState, bool, mp::ProcessState, std::optional<Matcher<std::string>>>;
 
 void simulate_qemuimg_info_with_json(const mpt::MockProcess* process, const QString& expect_img,
                                      const mp::ProcessState& produce_result, const QByteArray& produce_output = {})
@@ -97,7 +97,7 @@ void simulate_qemuimg_convert(const mpt::MockProcess* process, const QString& im
 
 template <class Matcher>
 void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size, const mp::MemorySize& requested_size,
-                         const mp::ProcessState& qemuimg_resize_result, mp::optional<Matcher> throw_msg_matcher)
+                         const mp::ProcessState& qemuimg_resize_result, std::optional<Matcher> throw_msg_matcher)
 {
     auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
@@ -119,7 +119,7 @@ void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size
 template <class Matcher>
 void test_image_conversion(const char* img_path, const char* expected_img_path, const char* qemuimg_info_output,
                            const mp::ProcessState& qemuimg_info_result, bool attempt_convert,
-                           const mp::ProcessState& qemuimg_convert_result, mp::optional<Matcher> throw_msg_matcher)
+                           const mp::ProcessState& qemuimg_convert_result, std::optional<Matcher> throw_msg_matcher)
 {
     auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
@@ -156,9 +156,9 @@ const std::vector<ImageConversionParamType> image_conversion_inputs{
     {"/fake/img/path", "{\n    \"format\": \"qcow2\"\n}", success, false, mp::ProcessState{}, null_string_matcher},
     {"/fake/img/path.qcow2", "{\n    \"format\": \"raw\"\n}", success, true, success, null_string_matcher},
     {"/fake/img/path.qcow2", "not found", failure, false, mp::ProcessState{},
-     mp::make_optional(HasSubstr("not found"))},
+     std::make_optional(HasSubstr("not found"))},
     {"/fake/img/path.qcow2", "{\n    \"format\": \"raw\"\n}", success, true, failure,
-     mp::make_optional(HasSubstr("qemu-img failed"))}};
+     std::make_optional(HasSubstr("qemu-img failed"))}};
 } // namespace
 
 TEST(QemuImgUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
@@ -189,7 +189,7 @@ TEST(QemuImgUtils, image_resize_detects_resizing_exit_failure_and_throws)
     const auto min_size = mp::MemorySize{"100M"};
     const auto request_size = mp::MemorySize{"400M"};
     const auto qemuimg_resize_result = failure;
-    const auto throw_msg_matcher = mp::make_optional(HasSubstr("qemu-img failed"));
+    const auto throw_msg_matcher = std::make_optional(HasSubstr("qemu-img failed"));
 
     test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
@@ -201,7 +201,7 @@ TEST(QemuImgUtils, image_resize_detects_resizing_crash_failure_and_throws)
     const auto request_size = mp::MemorySize{"400M"};
     const auto qemuimg_resize_result = crash;
     const auto throw_msg_matcher =
-        mp::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
+        std::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
 
     test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }

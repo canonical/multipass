@@ -22,7 +22,6 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/network_interface_info.h>
-#include <multipass/optional.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
 #include <multipass/virtual_machine_description.h>
@@ -31,6 +30,7 @@
 #include <QStringList>
 
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace multipass
@@ -42,7 +42,7 @@ public:
 
     virtual ~QemuPlatform() = default;
 
-    virtual optional<IPAddress> get_ip_for(const std::string& hw_addr) = 0;
+    virtual std::optional<IPAddress> get_ip_for(const std::string& hw_addr) = 0;
     virtual void remove_resources_for(const std::string&) = 0;
     virtual void platform_health_check() = 0;
     virtual QStringList vmstate_platform_args()

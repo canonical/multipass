@@ -219,10 +219,10 @@ TEST_F(LXDImageVault, returns_expected_info_with_valid_remote)
 
 TEST_F(LXDImageVault, throws_with_invalid_alias)
 {
-    ON_CALL(host, info_for(_)).WillByDefault([this](auto query) -> mp::optional<mp::VMImageInfo> {
+    ON_CALL(host, info_for(_)).WillByDefault([this](auto query) -> std::optional<mp::VMImageInfo> {
         if (query.release != "bionic")
         {
-            return mp::nullopt;
+            return std::nullopt;
         }
 
         return host.mock_bionic_image_info;
@@ -316,7 +316,7 @@ TEST_F(LXDImageVault, instance_exists_missing_image_does_not_download_image)
 
     const auto missing_img_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
     EXPECT_CALL(host, info_for(_)).WillRepeatedly(Return(host.mock_bionic_image_info));
-    EXPECT_CALL(host, info_for(Field(&mp::Query::release, missing_img_hash))).WillRepeatedly(Return(mp::nullopt));
+    EXPECT_CALL(host, info_for(Field(&mp::Query::release, missing_img_hash))).WillRepeatedly(Return(std::nullopt));
 
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};

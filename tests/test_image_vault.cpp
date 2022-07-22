@@ -521,7 +521,7 @@ TEST_F(ImageVault, aborted_download_throws)
 TEST_F(ImageVault, minimum_image_size_returns_expected_size)
 {
     const mp::MemorySize image_size{"1048576"};
-    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
     const QByteArray qemuimg_output(fake_img_info(image_size));
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
@@ -536,7 +536,7 @@ TEST_F(ImageVault, minimum_image_size_returns_expected_size)
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_minimum_size_returns_expected_size))
 {
     const mp::MemorySize image_size{"2097152"};
-    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
     const QByteArray qemuimg_output(fake_img_info(image_size));
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
@@ -565,7 +565,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_not_cached)
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
 {
-    const mp::ProcessState qemuimg_exit_status{mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
+    const mp::ProcessState qemuimg_exit_status{std::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
     const QByteArray qemuimg_output("about to crash");
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
@@ -578,7 +578,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_image)
 {
-    const mp::ProcessState qemuimg_exit_status{1, mp::nullopt};
+    const mp::ProcessState qemuimg_exit_status{1, std::nullopt};
     const QByteArray qemuimg_output("Could not find");
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
@@ -591,7 +591,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_i
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_does_not_understand_the_image_size)
 {
-    const mp::ProcessState qemuimg_exit_status{0, mp::nullopt};
+    const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
     const QByteArray qemuimg_output("virtual size: an unintelligible string");
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 

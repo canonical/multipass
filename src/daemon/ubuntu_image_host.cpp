@@ -79,12 +79,12 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, std:
 {
 }
 
-mp::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
+std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
 {
     auto images = all_info_for(query);
 
     if (images.size() == 0)
-        return nullopt;
+        return std::nullopt;
 
     auto key = key_from(query.release);
     auto image_id = images.front().second.id;

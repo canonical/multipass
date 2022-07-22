@@ -120,7 +120,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                     if (execute == "system_powerdown")
                     {
                         EXPECT_CALL(*process, wait_for_finished(_)).WillOnce([process](auto...) {
-                            mp::ProcessState exit_state{0, mp::nullopt};
+                            mp::ProcessState exit_state{0, std::nullopt};
                             emit process->finished(exit_state);
                             return true;
                         });
@@ -138,7 +138,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 
                             EXPECT_CALL(*process, kill()).WillOnce([process] {
                                 mp::ProcessState exit_state{
-                                    mp::nullopt, mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
+                                    std::nullopt, mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
                                 emit process->error_occurred(QProcess::Crashed, "Crashed");
                                 emit process->finished(exit_state);
                             });
@@ -618,7 +618,7 @@ TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
     ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([&expected_ip](auto...) {
-        return mp::optional<mp::IPAddress>{expected_ip};
+        return std::optional<mp::IPAddress>{expected_ip};
     });
 
     mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
@@ -648,7 +648,7 @@ TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
     mpt::StubVMStatusMonitor stub_monitor;
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(mp::nullopt));
+    EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(std::nullopt));
 
     mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();
@@ -662,7 +662,7 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
     mpt::StubVMStatusMonitor stub_monitor;
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([](auto...) { return mp::nullopt; });
+    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([](auto...) { return std::nullopt; });
 
     mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
     machine.start();

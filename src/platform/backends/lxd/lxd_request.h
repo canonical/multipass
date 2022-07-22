@@ -18,12 +18,11 @@
 #ifndef MULTIPASS_LXD_REQUEST_H
 #define MULTIPASS_LXD_REQUEST_H
 
-#include <multipass/optional.h>
-
 #include <QHttpMultiPart>
 #include <QJsonObject>
 #include <QUrl>
 
+#include <optional>
 #include <string>
 
 namespace multipass
@@ -58,7 +57,7 @@ public:
 };
 
 const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
-                              const optional<QJsonObject>& json_data = nullopt,
+                              const std::optional<QJsonObject>& json_data = std::nullopt,
                               int timeout = 30000 /* in milliseconds */);
 
 const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
