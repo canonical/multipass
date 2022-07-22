@@ -85,7 +85,7 @@ TEST_F(TestQemuPlatformDetail, get_ip_returns_nullopt_not_found)
 
     auto addr = qemu_platform_detail.get_ip_for(hw_addr);
 
-    EXPECT_EQ(addr, mp::nullopt);
+    EXPECT_EQ(addr, std::nullopt);
 }
 
 TEST_F(TestQemuPlatformDetail, get_ip_throws_when_no_matching_ip)

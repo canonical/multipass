@@ -20,7 +20,6 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
-#include <multipass/optional.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/settings/settings.h>
@@ -163,7 +162,7 @@ std::string describe_bridge(const QString& name, const QString& ifconfig_output)
     return members.isEmpty() ? "Empty network bridge" : fmt::format("Network bridge with {}", members.join(", "));
 }
 
-mp::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry, const QString& ifconfig_output)
+std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry, const QString& ifconfig_output)
 {
     const auto name_pattern = QStringLiteral("^Device: ([\\w -]+)$");
     const auto desc_pattern = QStringLiteral("^Hardware Port: (.+)$");
@@ -196,7 +195,7 @@ mp::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry,
     }
 
     mpl::log(mpl::Level::trace, category, fmt::format("Skipping chunk"));
-    return mp::nullopt;
+    return std::nullopt;
 }
 
 std::string get_alias_script_path(const std::string& alias)

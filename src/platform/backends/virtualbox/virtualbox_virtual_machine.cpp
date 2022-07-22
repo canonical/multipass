@@ -20,7 +20,6 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_interface.h>
-#include <multipass/optional.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
@@ -50,7 +49,8 @@ auto instance_state_for(const QString& name)
     QProcess vminfo;
     vminfo.start("VBoxManage", {"showvminfo", name, "--machinereadable"});
     auto success = vminfo.waitForFinished();
-    if (!success || vminfo.exitStatus() != QProcess::NormalExit) {
+    if (!success || vminfo.exitStatus() != QProcess::NormalExit)
+    {
         throw std::runtime_error(fmt::format("Failed to run VBoxManage: {}", vminfo.errorString().toStdString()));
     }
     auto vminfo_output = QString::fromUtf8(vminfo.readAllStandardOutput());
@@ -88,7 +88,8 @@ auto instance_state_for(const QString& name)
     }
     else if (vminfo.exitCode() == 0)
     {
-        mpl::log(mpl::Level::error, name.toStdString(), fmt::format("Failed to parse info output: {}", vminfo_output.toStdString()));
+        mpl::log(mpl::Level::error, name.toStdString(),
+                 fmt::format("Failed to parse info output: {}", vminfo_output.toStdString()));
     }
 
     return mp::VirtualMachine::State::unknown;
@@ -210,14 +211,14 @@ void mp::VirtualBoxVirtualMachine::stop()
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "acpipowerbutton"}, "Could not stop VM: {}",
                                     name);
         state = State::stopped;
-        port = mp::nullopt;
+        port = std::nullopt;
     }
     else if (present_state == State::starting)
     {
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "poweroff"}, "Could not power VM off: {}", name);
         state = State::stopped;
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
-        port = mp::nullopt;
+        port = std::nullopt;
     }
     else if (present_state == State::suspended)
     {

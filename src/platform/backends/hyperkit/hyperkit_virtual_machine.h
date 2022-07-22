@@ -21,7 +21,6 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/ip_address.h>
-#include <multipass/optional.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QThread>
@@ -61,10 +60,10 @@ private:
     std::unique_ptr<VMProcess> vm_process;
     const std::string username;
     QThread thread;
-    multipass::optional<IPAddress> ip;
+    std::optional<IPAddress> ip;
     const VirtualMachineDescription desc;
     bool update_shutdown_status;
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_HYPERKIT_VIRTUAL_MACHINE_H

@@ -30,7 +30,7 @@ class QemuPlatformDetail : public QemuPlatform
 public:
     explicit QemuPlatformDetail();
 
-    optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
+    std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;
     void platform_health_check() override;
     QStringList vmstate_platform_args() override;
