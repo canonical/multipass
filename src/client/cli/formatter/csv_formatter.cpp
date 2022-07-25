@@ -28,7 +28,7 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
     fmt::memory_buffer buf;
     fmt::format_to(
         buf, "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
-             "total,Mounts,AllIPv4\n");
+             "total,Mounts,AllIPv4,CPU(s)\n");
 
     for (const auto& info : format::sorted(reply.info()))
     {
@@ -43,7 +43,7 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
             fmt::format_to(buf, "{} => {};", mount->source_path(), mount->target_path());
         }
 
-        fmt::format_to(buf, ",\"{}\"\n", fmt::join(info.ipv4(), ","));
+        fmt::format_to(buf, ",\"{}\";,{}\n", fmt::join(info.ipv4(), ","), info.cpu_count());
     }
     return fmt::to_string(buf);
 }
@@ -92,7 +92,9 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
 
         mp::format::filter_aliases(aliases);
 
-        auto image_id = aliases[0].remote_name().empty() ? aliases[0].alias() : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
+        auto image_id = aliases[0].remote_name().empty()
+                            ? aliases[0].alias()
+                            : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
         fmt::format_to(buf, "{},{},{},{},{},{}\n", image_id, aliases[0].remote_name(),
                        fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"), image.os(), image.release(),
                        image.version());

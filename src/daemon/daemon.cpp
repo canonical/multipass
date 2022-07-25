@@ -1293,6 +1293,7 @@ try // clang-format on
                 session, "df --output=used `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
             info->set_disk_total(mpu::run_in_ssh_session(
                 session, "df --output=size `awk '$2 == \"/\" { print $1 }' /proc/mounts` -B1 | sed 1d"));
+            info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
 
             std::string management_ip = vm->management_ipv4();
             auto all_ipv4 = vm->get_all_ipv4(*config->ssh_key_provider);
