@@ -25,6 +25,7 @@ Please provide logs from the daemon, see [accessing logs](https://multipass.run/
  - OS: [e.g. macOS 10.15]
 - `multipass version`
 - `multipass info --all`
+- `multipass get local.driver`
 
 **Additional context**
 Add any other context about the problem here.
