@@ -229,6 +229,19 @@ INSTANTIATE_TEST_SUITE_P(AliasDictionary, WriteReadTestsuite,
                                 AliasesVector{{"ipf", {"instance", "ip", "map"}}},
                                 AliasesVector{{"lsp", {"primary", "ls", "map"}}, {"llp", {"primary", "ls", "map"}}}));
 
+TEST_F(AliasDictionary, addAliasWorks)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    ASSERT_TRUE(dict.add_alias("repeated", mp::AliasDefinition{"instance-1", "command-1", "map"}));
+
+    ASSERT_FALSE(dict.add_alias("repeated", mp::AliasDefinition{"instance-2", "command-2", "map"}));
+
+    ASSERT_EQ(*dict.get_alias("repeated"), (mp::AliasDefinition{"instance-1", "command-1", "map"}));
+}
+
 TEST_F(AliasDictionary, existsAliasWorksWithExistingAlias)
 {
     std::stringstream trash_stream;
