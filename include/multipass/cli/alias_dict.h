@@ -38,7 +38,7 @@ public:
 
     AliasDict(Terminal* term);
     ~AliasDict();
-    void add_alias(const std::string& alias, const AliasDefinition& command);
+    bool add_alias(const std::string& alias, const AliasDefinition& command);
     bool exists_alias(const std::string& alias);
     bool remove_alias(const std::string& alias);
     std::vector<std::string> remove_aliases_for_instance(const std::string& instance);

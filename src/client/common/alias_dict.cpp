@@ -69,12 +69,16 @@ mp::AliasDict::~AliasDict()
     }
 }
 
-void mp::AliasDict::add_alias(const std::string& alias, const mp::AliasDefinition& command)
+bool mp::AliasDict::add_alias(const std::string& alias, const mp::AliasDefinition& command)
 {
     if (aliases.try_emplace(alias, command).second)
     {
         modified = true;
+
+        return true;
     }
+
+    return false;
 }
 
 bool mp::AliasDict::exists_alias(const std::string& alias)
