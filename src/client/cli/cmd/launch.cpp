@@ -436,14 +436,20 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         if (timer)
             timer->pause();
 
+        std::vector<std::string> warning_aliases;
         auto n = reply.aliases_to_be_created_size();
         for (auto i = 0; i < n; ++i)
         {
             auto alias_to_be_created = reply.aliases_to_be_created(i);
             AliasDefinition alias_definition{alias_to_be_created.instance(), alias_to_be_created.command(),
                                              alias_to_be_created.working_directory()};
-            create_alias(aliases, alias_to_be_created.name(), alias_definition, cout, cerr);
+            if (create_alias(aliases, alias_to_be_created.name(), alias_definition, cout, cerr) != ReturnCode::Ok)
+                warning_aliases.push_back(alias_to_be_created.name());
         }
+
+        if (warning_aliases.size())
+            cout << fmt::format("Warning: unable to create {} {}.\n", warning_aliases.size() == 1 ? "alias" : "aliases",
+                                fmt::join(warning_aliases, ", "));
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
         instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
