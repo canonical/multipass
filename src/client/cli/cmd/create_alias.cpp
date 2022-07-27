@@ -36,7 +36,8 @@ multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases, const std
 
     bool empty_before_add = aliases.empty();
 
-    aliases.add_alias(alias_name, alias_definition);
+    if (!aliases.add_alias(alias_name, alias_definition))
+        return ReturnCode::CommandLineError;
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     QChar separator(';');
