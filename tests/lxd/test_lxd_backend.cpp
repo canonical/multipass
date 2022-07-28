@@ -552,6 +552,52 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
 
+TEST_F(LXDBackend, machine_persists_internal_stopped_state_on_destruction)
+{
+    mpt::MockVMStatusMonitor mock_monitor;
+
+    bool vm_created{false};
+    auto vm_instance_state{mp::VirtualMachine::State::off};
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&vm_created](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            {
+                if (!vm_created)
+                {
+                    vm_created = true;
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                }
+                else
+                {
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                }
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).WillRepeatedly([&vm_instance_state](auto, auto state) {
+        vm_instance_state = state;
+    });
+
+    {
+        mp::LXDVirtualMachine machine{
+            default_description, mock_monitor,        mock_network_access_manager.get(), base_url,
+            bridge_name,         default_storage_pool};
+
+        ASSERT_EQ(machine.state, mp::VirtualMachine::State::running);
+    } // Simulate multipass exiting by having the vm destruct
+
+    EXPECT_TRUE(vm_created);
+    EXPECT_EQ(vm_instance_state, mp::VirtualMachine::State::stopped);
+}
+
 TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
@@ -2004,7 +2050,7 @@ void setup_vm_creation_expectations(mpt::MockNetworkAccessManager& mock_network_
                                                        custom_request_matcher("GET", "pied-piper-valley/state"), _))
         .Times(3)
         .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::not_found_data, QNetworkReply::ContentNotFoundError}))
-        .WillRepeatedly(Return(new mpt::MockLocalSocketReply{mpt::vm_info_data}));
+        .WillRepeatedly([] { return new mpt::MockLocalSocketReply{mpt::vm_info_data}; });
 
     EXPECT_CALL(mock_network_access_mgr,
                 createRequest(QNetworkAccessManager::CustomOperation,
