@@ -49,6 +49,10 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         else
             instance_node["release"] = info.current_release();
 
+        instance_node["cpu_count"] = YAML::Null;
+        if (!info.cpu_count().empty())
+            instance_node["cpu_count"] = info.cpu_count();
+
         if (!info.load().empty())
         {
             // The VM returns load info in the default C locale

@@ -73,6 +73,7 @@ State:          RUNNING
 IPv4:           10.125.174.247
 Release:        Ubuntu 18.04.1 LTS
 Image hash:     19e9853d8267 (Ubuntu 18.04 LTS)
+CPU(s):         1
 Load:           0.97 0.30 0.10
 Disk usage:     1.1G out of 4.7G
 Memory usage:   85.1M out of 985.4M

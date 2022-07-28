@@ -203,6 +203,7 @@ message InfoReply {
         repeated string ipv4 = 11;
         repeated string ipv6 = 12;
         MountInfo mount_info = 13;
+        string cpu_count = 14;
     }
     repeated Info info = 1;
     string log_line = 2;
