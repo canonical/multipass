@@ -24,20 +24,23 @@ multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases, const std
                                                    const AliasDefinition& alias_definition, std::ostream& cout,
                                                    std::ostream& cerr)
 {
+    bool empty_before_add = aliases.empty();
+
+    if (!aliases.add_alias(alias_name, alias_definition))
+        return ReturnCode::CommandLineError;
+
     try
     {
         MP_PLATFORM.create_alias_script(alias_name, alias_definition);
     }
     catch (std::runtime_error& e)
     {
+        aliases.remove_alias(alias_name);
+
         cerr << fmt::format("Error when creating script for alias: {}\n", e.what());
+
         return ReturnCode::CommandLineError;
     }
-
-    bool empty_before_add = aliases.empty();
-
-    if (!aliases.add_alias(alias_name, alias_definition))
-        return ReturnCode::CommandLineError;
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     QChar separator(';');
