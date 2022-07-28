@@ -326,7 +326,8 @@ std::string mp::UbuntuVMImageHost::remote_url_from(const std::string& remote_nam
     return url;
 }
 
-mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host, std::string uri, std::optional<QString> mirror_key)
+mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host, std::string uri,
+                                             std::optional<QString> mirror_key)
     : official_host(std::move(official_host)), uri(std::move(uri)), mirror_key(std::move(mirror_key))
 {
 }
