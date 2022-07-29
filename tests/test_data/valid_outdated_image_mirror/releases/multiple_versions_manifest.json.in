@@ -1,0 +1,113 @@
+{
+  "content_id": "com.ubuntu.cloud:released:download",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "http://www.canonical.com/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud:server:16.04:@MANIFEST_ARCH@": {
+      "aliases": "16.04,default,lts,x,xenial",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "xenial",
+      "release_codename": "Xenial Xerus",
+      "release_title": "16.04 LTS",
+      "support_eol": "2021-04-21",
+      "supported": true,
+      "version": "16.04",
+      "versions": {
+        "20170516": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "7388b8e7e0e114b941a04aca591e2d64",
+              "path": "test_image.img",
+              "sha256": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
+              "size": 287440896
+            },
+            "lxd.tar.xz": {
+              "combined_rootxz_sha256": "b3c610b6111725a05ae3089e177281695d10a64cfc75ce03b0a17e0f999519e6",
+              "combined_sha256": "b3c610b6111725a05ae3089e177281695d10a64cfc75ce03b0a17e0f999519e6",
+              "combined_squashfs_sha256": "8fa08537ae51c880966626561987153e72d073cbe19dfe5abc062713d929254d",
+              "ftype": "lxd.tar.xz",
+              "md5": "c63c6c383e656348a2db25ad31f1bda9",
+              "path": "server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
+              "sha256": "0f95800385b5e6ab5fec7d3ca88a6a070cd0da1130c9219713980c365ea82613",
+              "size": 840
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-xenial-16.04-@MANIFEST_ARCH@-server-20170516"
+        }
+      }
+    },
+    "com.ubuntu.cloud:server:17.04:@MANIFEST_ARCH@": {
+      "aliases": "17.04,z,zesty",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "zesty",
+      "release_codename": "Zesty Zapus",
+      "release_title": "17.04",
+      "support_eol": "2018-01-25",
+      "supported": true,
+      "version": "17.04",
+      "versions": {
+        "20170615": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "09c2956086ac88c73be7d9bb232b6137",
+              "path": "server/releases/zesty/release-20170615/ubuntu-17.04-server-cloudimg-@MANIFEST_ARCH@.img",
+              "sha256": "1507bd2b3288ef4bacd3e699fe71b827b7ccf321ec4487e168a30d7089d3c8e4",
+              "size": 346423296
+            },
+            "lxd.tar.xz": {
+              "combined_squashfs_sha256": "55a10140362cd682ea21b5093209c480916bea18eef53598f62d05c41f61121b",
+              "ftype": "lxd.tar.xz",
+              "md5": "3fbdb62ade9b4271eadccee0297cc399",
+              "path": "server/releases/zesty/release-20170615/ubuntu-17.04-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
+              "sha256": "d201d07d85eb84371d598cb74a34ab4664bec60f6a3b3467bf81d520448124a5",
+              "size": 844
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-zesty-17.04-@MANIFEST_ARCH@-server-20170615"
+        }
+      }
+    },
+    "com.ubuntu.cloud:server:17.10:@MANIFEST_ARCH@": {
+      "aliases": "17.10,a,artful",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "artful",
+      "release_codename": "Artful Aardvark",
+      "release_title": "17.10",
+      "support_eol": "2018-07-19",
+      "supported": false,
+      "version": "17.10",
+      "versions": {
+        "20171017": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "md5": "2d011144148d71d2745d0c5be6e785ab",
+              "path": "server/releases/artful/release-20171017/ubuntu-17.10-server-cloudimg-@MANIFEST_ARCH@.img",
+              "sha256": "520224efaaf49b15a976b49c7ce7f2bd2e5b161470d684b37a838933595c0520",
+              "size": 317849600
+            },
+            "lxd.tar.xz": {
+              "combined_squashfs_sha256": "d6b33e50f42d129cdd0d3ef0b267d79012e382380deb30f6e22b5f9910a1e8ec",
+              "ftype": "lxd.tar.xz",
+              "md5": "15241f00869ffebbeff53bc020b562c7",
+              "path": "server/releases/artful/release-20171017/ubuntu-17.10-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
+              "sha256": "d421060416078ea4ec3a25953dd66b87efc937ef5edb16e64f9cb7ba9b8fad0a",
+              "size": 776
+            }
+          },
+          "label": "release",
+          "pubname": "ubuntu-artful-17.10-@MANIFEST_ARCH@-server-20171017"
+        }
+      }
+    }
+  },
+  "updated": "Thu, 18 May 2017 09:18:01 +0000"
+}

@@ -34,10 +34,11 @@ constexpr auto daily_remote = "daily";
 constexpr auto appliance_remote = "appliance";
 
 class URLDownloader;
+class UbuntuVMImageRemote;
 class UbuntuVMImageHost final : public CommonVMImageHost
 {
 public:
-    UbuntuVMImageHost(std::vector<std::pair<std::string, std::string>> remotes, URLDownloader* downloader,
+    UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes, URLDownloader* downloader,
                       std::chrono::seconds manifest_time_to_live);
 
     std::optional<VMImageInfo> info_for(const Query& query) override;
@@ -56,9 +57,22 @@ private:
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     URLDownloader* const url_downloader;
-    std::vector<std::pair<std::string, std::string>> remotes;
+    std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
     std::string remote_url_from(const std::string& remote_name);
     QString index_path;
+};
+class UbuntuVMImageRemote
+{
+public:
+    UbuntuVMImageRemote(std::string official_host, std::string uri, std::optional<QString> mirror_key = std::nullopt);
+    const QString get_url() const;
+    const QString get_official_url() const;
+    const std::optional<QString> get_mirror_url() const;
+
+private:
+    const std::string official_host;
+    const std::string uri;
+    const std::optional<QString> mirror_key;
 };
 } // namespace multipass
 #endif // MULTIPASS_UBUNTU_IMAGE_HOST_H

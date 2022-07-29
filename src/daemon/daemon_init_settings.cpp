@@ -59,6 +59,26 @@ QString driver_interpreter(QString val)
     return val;
 }
 
+QString image_mirror_interpreter(QString val)
+{
+    if (val.size() == 0)
+    {
+        return val;
+    }
+
+    if (!val.startsWith("https://"))
+    {
+        throw mp::InvalidSettingException(mp::mirror_key, val,
+                                          "The hostname of mirror must contain protocol name: https");
+    }
+
+    if (!val.endsWith("/"))
+    {
+        val.append("/");
+    }
+    return val;
+}
+
 } // namespace
 
 void mp::daemon::monitor_and_quit_on_settings_change() // temporary
@@ -79,6 +99,7 @@ void mp::daemon::register_global_settings_handlers()
     settings.insert(std::make_unique<CustomSettingSpec>(mp::passphrase_key, "", [](QString val) {
         return val.isEmpty() ? val : MP_UTILS.generate_scrypt_hash_for(val);
     }));
+    settings.insert(std::make_unique<CustomSettingSpec>(mp::mirror_key, "", image_mirror_interpreter));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
