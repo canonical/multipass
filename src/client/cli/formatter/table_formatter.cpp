@@ -20,35 +20,19 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
-
 #include <multipass/format.h>
+#include <multipass/memory_size.h>
 
 namespace mp = multipass;
 
 namespace
 {
 
-auto human_readable_size(const std::string& num_in_bytes)
-{
-    auto bytes = std::stoll(num_in_bytes);
-
-    if (bytes < 1024)
-        return fmt::format("{}B", bytes);
-    if (bytes < 1048576)
-        return fmt::format("{:.1f}K", bytes / 1024.);
-    if (bytes < 1073741824)
-        return fmt::format("{:.1f}M", bytes / 1048576.);
-    if (bytes < 1099511627776)
-        return fmt::format("{:.1f}G", bytes / 1073741824.);
-
-    return fmt::format("{:.1f}T", bytes / 1099511627776.);
-}
-
 std::string to_usage(const std::string& usage, const std::string& total)
 {
     if (usage.empty() || total.empty())
         return "--";
-    return fmt::format("{} out of {}", human_readable_size(usage), human_readable_size(total));
+    return fmt::format("{} out of {}", mp::MemorySize{usage}.human_readable(), mp::MemorySize{total}.human_readable());
 }
 
 } // namespace
