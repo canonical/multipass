@@ -318,8 +318,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                     {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
             }
 
-            uid_mappings = mp::utils::unique_id_mappings(uid_mappings);
-            gid_mappings = mp::utils::unique_id_mappings(gid_mappings);
+            uid_mappings = mp::unique_id_mappings(uid_mappings);
+            gid_mappings = mp::unique_id_mappings(gid_mappings);
 
             mp::VMMount mount{source_path, gid_mappings, uid_mappings};
             mounts[target_path] = mount;

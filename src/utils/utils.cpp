@@ -42,7 +42,6 @@
 #include <fstream>
 #include <random>
 #include <regex>
-#include <set>
 #include <sstream>
 
 #include <openssl/evp.h>
@@ -630,22 +629,4 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
 std::string mp::utils::emit_cloud_config(const YAML::Node& node)
 {
     return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
-}
-
-mp::id_mappings mp::utils::unique_id_mappings(const mp::id_mappings& xid_mappings)
-{
-    mp::id_mappings ret;
-    std::set<std::pair<int, int>> id_set;
-
-    for (const auto& id_map : xid_mappings)
-        if (id_set.insert(id_map).second)
-        {
-            ret.push_back(id_map);
-            mpl::log(mpl::Level::trace, category, fmt::format("Inserting map {}:{}", id_map.first, id_map.second));
-        }
-        else
-            mpl::log(mpl::Level::trace, category,
-                     fmt::format("Not inserting repeated map {}:{}", id_map.first, id_map.second));
-
-    return ret;
 }

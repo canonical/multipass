@@ -30,7 +30,6 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount.h>
-#include <multipass/utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

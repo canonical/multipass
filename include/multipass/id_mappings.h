@@ -18,12 +18,33 @@
 #ifndef MULTIPASS_ID_MAPPINGS_H
 #define MULTIPASS_ID_MAPPINGS_H
 
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
+
+#include <set>
 #include <utility>
 #include <vector>
+
+namespace mpl = multipass::logging;
 
 namespace multipass
 {
 typedef typename std::vector<std::pair<int, int>> id_mappings;
+
+inline id_mappings unique_id_mappings(const id_mappings& xid_mappings)
+{
+    id_mappings ret;
+    std::set<std::pair<int, int>> id_set;
+
+    for (const auto& id_map : xid_mappings)
+        if (id_set.insert(id_map).second)
+            ret.push_back(id_map);
+        else
+            mpl::log(mpl::Level::debug, "id_mappings",
+                     fmt::format("Not inserting repeated map {}:{}", id_map.first, id_map.second));
+
+    return ret;
 }
+} // namespace multipass
 
 #endif // MULTIPASS_ID_MAPPINGS_H
