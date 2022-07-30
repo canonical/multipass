@@ -25,12 +25,17 @@
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
+#include "mock_standard_paths.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
 #include "path.h"
+#include "stub_virtual_machine.h"
+#include "stub_vm_image_vault.h"
 #include "tracking_url_downloader.h"
+
+#include <src/daemon/default_vm_image_vault.h>
 
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
@@ -200,7 +205,7 @@ TEST_F(Daemon, provides_version)
     EXPECT_CALL(mock_server, Write(Property(&mp::VersionReply::version, StrEq(mp::version_string)), _))
         .WillOnce(Return(true));
 
-    EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::version, mp::VersionRequest{}, mock_server).ok());
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::version, mp::VersionRequest{}, mock_server).ok());
 }
 
 TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
@@ -214,7 +219,7 @@ TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
     std::promise<grpc::Status> status_promise;
 
     daemon.restart(&request, nullptr, &status_promise);
-    EXPECT_TRUE(mpt::is_ready(status_promise.get_future()));
+    EXPECT_TRUE(is_ready(status_promise.get_future()));
 }
 
 TEST_F(Daemon, proxy_contains_valid_info)
@@ -981,7 +986,7 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
         EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
             .WillOnce(Return(true));
 
-        EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+        EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
     }
 
     // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
@@ -1202,7 +1207,7 @@ TEST_F(Daemon, ctor_drops_removed_instances)
     EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(stayed_matcher)), _))
         .WillOnce(Return(true));
 
-    EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
 
     auto updated_json = mpt::load(filename);
     EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
@@ -1452,8 +1457,8 @@ TEST_F(Daemon, refusesDisabledMount)
 
     std::stringstream err_stream;
 
-    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::mount, mp::MountRequest{},
-                                        StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, mp::MountRequest{},
+                                   StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
@@ -1470,7 +1475,7 @@ TEST_F(Daemon, keysReturnsSettingsKeys)
     EXPECT_CALL(mock_server, Write(Property(&mp::KeysReply::settings_keys, UnorderedElementsAreArray(keys)), _))
         .WillOnce(Return(true));
 
-    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{}, mock_server);
+    auto status = call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{}, mock_server);
     EXPECT_TRUE(status.ok());
 }
 
@@ -1481,8 +1486,8 @@ TEST_F(Daemon, keysReportsException)
     const auto e = std::runtime_error{"some error"};
     EXPECT_CALL(mock_settings, keys).WillOnce(Throw(e));
 
-    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{},
-                                        StrictMock<mpt::MockServerWriter<mp::KeysReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{},
+                                   StrictMock<mpt::MockServerWriter<mp::KeysReply>>{});
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr(e.what()));
 }
@@ -1501,7 +1506,7 @@ TEST_F(Daemon, getReturnsSetting)
     mp::GetRequest request;
     request.set_key(key);
 
-    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::get, request, mock_server);
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request, mock_server);
     EXPECT_TRUE(status.ok());
 }
 
@@ -1515,7 +1520,7 @@ TEST_F(Daemon, getHandlesEmptyKey)
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     auto status =
-        mpt::call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
+        call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
@@ -1531,7 +1536,7 @@ TEST_F(Daemon, getHandlesInvalidKey)
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     auto status =
-        mpt::call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
+        call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr(request.key())));
@@ -1548,7 +1553,7 @@ TEST_F(Daemon, getReportsException)
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(std::runtime_error{"exception"}));
 
     auto status =
-        mpt::call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
+        call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr("exception"));
@@ -1568,7 +1573,7 @@ TEST_F(Daemon, setSetsSetting)
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).Times(1);
 
     auto mock_server = StrictMock<mpt::MockServerWriter<mp::SetReply>>{};
-    EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
 
 using SetException = std::variant<mp::UnrecognizedSettingException, mp::InvalidSettingException, std::runtime_error>; /*
@@ -1589,8 +1594,8 @@ TEST_P(DaemonSetExceptions, setHandlesSettingsException)
     EXPECT_CALL(mock_settings, set).WillOnce(WithoutArgs([&thrower, e = &exception] { std::visit(thrower, *e); })); /*
                                 lambda capture with initializer works around forbidden capture of structured binding */
 
-    auto status = mpt::call_daemon_slot(daemon, &mp::Daemon::set, mp::SetRequest{},
-                                        StrictMock<mpt::MockServerWriter<mp::SetReply>>{});
+    auto status =
+        call_daemon_slot(daemon, &mp::Daemon::set, mp::SetRequest{}, StrictMock<mpt::MockServerWriter<mp::SetReply>>{});
 
     EXPECT_EQ(status.error_code(), expected_code);
     EXPECT_THAT(status.error_message(), msg_matcher);
@@ -1625,7 +1630,7 @@ TEST_F(Daemon, requests_networks)
                 Write(Property(&mp::NetworksReply::interfaces, UnorderedPointwise(same_net_matcher, net_infos)), _))
         .WillOnce(Return(true));
 
-    EXPECT_TRUE(mpt::call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{}, mock_server).ok());
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{}, mock_server).ok());
 }
 
 TEST_F(Daemon, performs_health_check_on_networks)
@@ -1634,8 +1639,8 @@ TEST_F(Daemon, performs_health_check_on_networks)
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, hypervisor_health_check);
-    mpt::call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{},
-                          NiceMock<mpt::MockServerWriter<mp::NetworksReply>>{});
+    call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{},
+                     NiceMock<mpt::MockServerWriter<mp::NetworksReply>>{});
 }
 
 TEST_F(Daemon, purgePersistsInstances)
@@ -1652,8 +1657,7 @@ TEST_F(Daemon, purgePersistsInstances)
     mp::Daemon daemon{config_builder.build()};
 
     QFile::remove(filename);
-    mpt::call_daemon_slot(daemon, &mp::Daemon::purge, mp::PurgeRequest{},
-                          NiceMock<mpt::MockServerWriter<mp::PurgeReply>>{});
+    call_daemon_slot(daemon, &mp::Daemon::purge, mp::PurgeRequest{}, NiceMock<mpt::MockServerWriter<mp::PurgeReply>>{});
 
     auto updated_json = mpt::load(filename);
     EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));

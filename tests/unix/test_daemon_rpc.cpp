@@ -15,6 +15,7 @@
  *
  */
 
+#include <tests/common.h>
 #include <tests/daemon_test_fixture.h>
 #include <tests/mock_cert_provider.h>
 #include <tests/mock_cert_store.h>

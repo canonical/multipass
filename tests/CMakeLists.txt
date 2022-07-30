@@ -31,6 +31,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(multipass_tests
   common.cpp
+  daemon_test_fixture.cpp
   file_operations.cpp
   image_host_remote_count.cpp
   json_utils.cpp
