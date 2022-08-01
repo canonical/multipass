@@ -34,7 +34,7 @@ TEST_P(UniqueIdMappingsTestSuite, UniqueIdMappingsWorks)
     ASSERT_EQ(mp::unique_id_mappings(input_mappings), expected_mappings);
 }
 
-INSTANTIATE_TEST_SUITE_P(Utils, UniqueIdMappingsTestSuite,
+INSTANTIATE_TEST_SUITE_P(IdMappings, UniqueIdMappingsTestSuite,
                          Values(std::make_pair(mp::id_mappings{{1, 1}, {2, 1}, {1, 1}, {1, 2}},
                                                mp::id_mappings{{1, 1}, {2, 1}, {1, 2}}),
                                 std::make_pair(mp::id_mappings{{3, 4}}, mp::id_mappings{{3, 4}}),
