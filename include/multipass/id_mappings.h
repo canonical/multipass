@@ -21,6 +21,8 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
+#include <algorithm>
+#include <iterator>
 #include <set>
 #include <utility>
 #include <vector>
@@ -36,12 +38,17 @@ inline id_mappings unique_id_mappings(const id_mappings& xid_mappings)
     id_mappings ret;
     std::set<std::pair<int, int>> id_set;
 
-    for (const auto& id_map : xid_mappings)
-        if (id_set.insert(id_map).second)
-            ret.push_back(id_map);
-        else
-            mpl::log(mpl::Level::debug, "id_mappings",
-                     fmt::format("Not inserting repeated map {}:{}", id_map.first, id_map.second));
+    auto is_mapping_repeated = [&id_set](const auto& m) {
+        if (id_set.insert(m).second)
+            return false;
+
+        mpl::log(mpl::Level::debug, "id_mappings", fmt::format("Dropping repeated mapping {}:{}", m.first, m.second));
+
+        return true;
+    };
+
+    std::remove_copy_if(xid_mappings.cbegin(), xid_mappings.cend(), std::back_insert_iterator(ret),
+                        is_mapping_repeated);
 
     return ret;
 }
