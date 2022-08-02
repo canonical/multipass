@@ -298,11 +298,12 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         std::unordered_map<std::string, mp::VMMount> mounts;
-        mp::id_mappings uid_mappings;
-        mp::id_mappings gid_mappings;
 
         for (QJsonValueRef entry : record["mounts"].toArray())
         {
+            mp::id_mappings uid_mappings;
+            mp::id_mappings gid_mappings;
+
             auto target_path = entry.toObject()["target_path"].toString().toStdString();
             auto source_path = entry.toObject()["source_path"].toString().toStdString();
 
