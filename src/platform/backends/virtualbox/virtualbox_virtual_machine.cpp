@@ -129,7 +129,7 @@ QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const 
                                  "--boot3",     "none",
                                  "--boot4",     "none",
                                  "--acpi",      "on",
-                                 "--firmware",  "bios",
+                                 "--firmware",  "efi",
                                  "--rtcuseutc", "on",
                                  "--audio",     "none",
                                  "--uart1",     "0x3f8",
