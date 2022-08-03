@@ -998,6 +998,56 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
     check_interfaces_in_json(filename, mac_addr, extra_interfaces);
 }
 
+TEST_F(Daemon, writesAndReadsMountsInJson)
+{
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    std::string mac_addr("52:54:00:23:11:97");
+    std::vector<mp::NetworkInterface> extra_interfaces{};
+
+    // Create a temp folder containing three subfolders, and create mount points for all of them.
+    auto temp_mount_dir = QDir(mpt::TempDir().path());
+    auto temp_mount_1 = make_dir(temp_mount_dir, QString("a"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_2 = make_dir(temp_mount_dir, QString("b"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_3 = make_dir(temp_mount_dir, QString("c"), QFileDevice::Permissions{}).toStdString();
+
+    mp::id_mappings uid_mappings_1{{123, 321}};
+    mp::id_mappings gid_mappings_1{{456, 654}};
+
+    mp::id_mappings uid_mappings_2{{234, 432}};
+    mp::id_mappings gid_mappings_2{{567, 765}};
+
+    mp::id_mappings uid_mappings_3{{345, 543}};
+    mp::id_mappings gid_mappings_3{{678, 876}};
+
+    std::unordered_map<std::string, mp::VMMount> mounts;
+
+    mounts.emplace("target_1", mp::VMMount{temp_mount_1, uid_mappings_1, gid_mappings_1});
+    mounts.emplace("target_2", mp::VMMount{temp_mount_2, uid_mappings_2, gid_mappings_2});
+    mounts.emplace("target_3", mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3});
+
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+
+    // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
+    config_builder.data_directory = temp_dir->path();
+    mp::Daemon daemon{config_builder.build()};
+
+    // Check that the instance was indeed read and there were no errors.
+    {
+        StrictMock<mpt::MockServerWriter<mp::ListReply>> mock_server;
+
+        auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
+        EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
+            .WillOnce(Return(true));
+
+        EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    }
+
+    QFile::remove(filename);    // Remove the JSON.
+    daemon.persist_instances(); // Write it again to disk.
+    check_mounts_in_json(filename, mounts);
+}
+
 TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
