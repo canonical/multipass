@@ -437,10 +437,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             timer->pause();
 
         std::vector<std::string> warning_aliases;
-        auto n = reply.aliases_to_be_created_size();
-        for (auto i = 0; i < n; ++i)
+        for (const auto& alias_to_be_created : reply.aliases_to_be_created())
         {
-            auto alias_to_be_created = reply.aliases_to_be_created(i);
             AliasDefinition alias_definition{alias_to_be_created.instance(), alias_to_be_created.command(),
                                              alias_to_be_created.working_directory()};
             if (create_alias(aliases, alias_to_be_created.name(), alias_definition, cout, cerr) != ReturnCode::Ok)
