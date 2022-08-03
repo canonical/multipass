@@ -552,6 +552,60 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
 
+TEST_F(LXDBackend, force_shutdown)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    bool force_shutdown{false};
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&force_shutdown](auto, auto request, auto outgoingData) {
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
+            {
+                if (url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164/wait"))
+                {
+                    if (force_shutdown)
+                        return new mpt::MockLocalSocketReply(mpt::vm_stop_wait_task_data);
+                    else
+                        return new mpt::MockLocalSocketReply(mpt::stop_vm_error_data);
+                }
+                else if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                {
+                    if (force_shutdown)
+                        return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                    else
+                        return new mpt::MockLocalSocketReply(mpt::vm_state_error_data);
+                }
+            }
+            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+                     data.contains("stop"))
+            {
+                if (data.contains("\"force\":true"))
+                    force_shutdown = true;
+                return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVirtualMachine machine{default_description, mock_monitor,        mock_network_access_manager.get(), base_url,
+                                  bridge_name,         default_storage_pool};
+
+    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::unknown);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                    mpt::MockLogger::make_cstring_matcher(HasSubstr("Operation completed with error: (400)"))));
+
+    machine.shutdown();
+
+    EXPECT_TRUE(force_shutdown);
+    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
+}
+
 TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;

@@ -243,7 +243,15 @@ void mp::LXDVirtualMachine::stop()
         return;
     }
 
-    request_state("stop");
+    try
+    {
+        request_state("stop");
+    }
+    catch (LXDRuntimeError&)
+    {
+        mpl::log(mpl::Level::info, vm_name, "Failed to stop vm, forcing shutdown");
+        request_state("stop", true);
+    }
 
     state = State::stopped;
 
@@ -378,9 +386,9 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
     return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
-void mp::LXDVirtualMachine::request_state(const QString& new_state)
+void mp::LXDVirtualMachine::request_state(const QString& new_state, const bool force)
 {
-    const QJsonObject state_json{{"action", new_state}};
+    const QJsonObject state_json{{"action", new_state}, {"force", force}};
 
     auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
 

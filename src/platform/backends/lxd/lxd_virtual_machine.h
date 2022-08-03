@@ -69,7 +69,7 @@ private:
     const QUrl url();
     const QUrl state_url();
     const QUrl network_leases_url();
-    void request_state(const QString& new_state);
+    void request_state(const QString& new_state, const bool force = false);
 };
 } // namespace multipass
 #endif // MULTIPASS_LXD_VIRTUAL_MACHINE_H
