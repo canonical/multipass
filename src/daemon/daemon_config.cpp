@@ -38,6 +38,7 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -134,10 +135,12 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(),
                                                                       url_downloader.get(), manifest_ttl));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
-            std::vector<std::pair<std::string, std::string>>{
-                {mp::release_remote, "https://cloud-images.ubuntu.com/releases/"},
-                {mp::daily_remote, "https://cloud-images.ubuntu.com/daily/"},
-                {mp::appliance_remote, "https://cdimage.ubuntu.com/ubuntu-core/appliances/"}},
+            std::vector<std::pair<std::string, UbuntuVMImageRemote>>{
+                {mp::release_remote, UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/", "releases/",
+                                                         std::make_optional<QString>(mp::mirror_key)}},
+                {mp::daily_remote, UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/", "daily/",
+                                                       std::make_optional<QString>(mp::mirror_key)}},
+                {mp::appliance_remote, UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}}},
             url_downloader.get(), manifest_ttl));
     }
     if (vault == nullptr)

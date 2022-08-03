@@ -74,7 +74,7 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
     auto status =
-        mpt::call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
+        call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -101,7 +101,7 @@ TEST_F(TestDaemonStart, unknownStateDoesNotStart)
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
     auto status =
-        mpt::call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
+        call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
 
     EXPECT_FALSE(status.ok());
 }
@@ -128,7 +128,7 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
     auto status =
-        mpt::call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
+        call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
 
     EXPECT_FALSE(status.ok());
 

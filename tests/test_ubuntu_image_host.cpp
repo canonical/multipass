@@ -34,6 +34,7 @@
 #include <QUrl>
 
 #include <cstddef>
+#include <optional>
 #include <unordered_set>
 
 namespace mp = multipass;
@@ -54,6 +55,7 @@ struct UbuntuImageHost : public testing::Test
 
         EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu")); /* TODO parameterize driver
                                                                                               (code branches for lxd) */
+        EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key))).WillRepeatedly(Return(""));
     }
 
     mp::Query make_query(std::string release, std::string remote)
@@ -61,11 +63,24 @@ struct UbuntuImageHost : public testing::Test
         return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
     }
 
-    QString host_url{QUrl::fromLocalFile(mpt::test_data_path()).toString() + "releases/"};
-    QString daily_url{QUrl::fromLocalFile(mpt::test_data_path()).toString() + "daily/"};
-    std::pair<std::string, std::string> release_remote_spec = {"release", host_url.toStdString()};
-    std::pair<std::string, std::string> daily_remote_spec = {"daily", daily_url.toStdString()};
-    std::vector<std::pair<std::string, std::string>> all_remote_specs = {release_remote_spec, daily_remote_spec};
+    QString test_host = QUrl::fromLocalFile(mpt::test_data_path()).toString();
+    QString test_valid_mirror_host = QUrl::fromLocalFile(mpt::test_data_sub_dir_path("valid_image_mirror")).toString();
+    QString test_valid_outdated_mirror_host =
+        QUrl::fromLocalFile(mpt::test_data_sub_dir_path("valid_outdated_image_mirror")).toString();
+    QString test_invalid_mirror_host =
+        QUrl::fromLocalFile(mpt::test_data_sub_dir_path("invalid_image_mirror")).toString();
+
+    std::string mock_image_host = test_host.toStdString();
+    QString host_url{test_host + "releases/"};
+    QString daily_url{test_host + "daily/"};
+    std::pair<std::string, mp::UbuntuVMImageRemote> release_remote_spec = {
+        "release", mp::UbuntuVMImageRemote{mock_image_host, "releases/"}};
+    std::pair<std::string, mp::UbuntuVMImageRemote> release_remote_spec_with_mirror_allowed = {
+        "release", mp::UbuntuVMImageRemote{mock_image_host, "releases/", std::make_optional<QString>(mp::mirror_key)}};
+    std::pair<std::string, mp::UbuntuVMImageRemote> daily_remote_spec = {
+        "daily", mp::UbuntuVMImageRemote{mock_image_host, "daily/"}};
+    std::vector<std::pair<std::string, mp::UbuntuVMImageRemote>> all_remote_specs = {release_remote_spec,
+                                                                                     daily_remote_spec};
     mpt::MischievousURLDownloader url_downloader{std::chrono::seconds{10}};
     std::chrono::seconds default_ttl{1};
     QString expected_location{host_url + "newest_image.img"};
@@ -77,7 +92,7 @@ struct UbuntuImageHost : public testing::Test
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
-}
+} // namespace
 
 TEST_F(UbuntuImageHost, returns_expected_info)
 {
@@ -88,6 +103,44 @@ TEST_F(UbuntuImageHost, returns_expected_info)
     ASSERT_TRUE(info);
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
+}
+
+TEST_F(UbuntuImageHost, returns_expected_mirror_info)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key))).WillRepeatedly(Return(test_valid_mirror_host));
+
+    mp::UbuntuVMImageHost host{{release_remote_spec_with_mirror_allowed}, &url_downloader, default_ttl};
+
+    auto info = host.info_for(make_query("xenial", release_remote_spec.first));
+    QString expected_location{test_valid_mirror_host + "releases/" + "newest_image.img"};
+
+    ASSERT_TRUE(info);
+    EXPECT_THAT(info->image_location, Eq(expected_location));
+    EXPECT_THAT(info->id, Eq(expected_id));
+}
+
+TEST_F(UbuntuImageHost, returns_expected_mirror_info_with_most_recent_image)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key))).WillRepeatedly(Return(test_valid_outdated_mirror_host));
+
+    mp::UbuntuVMImageHost host{{release_remote_spec_with_mirror_allowed}, &url_downloader, default_ttl};
+
+    auto info = host.info_for(make_query("xenial", release_remote_spec.first));
+    QString expected_location{test_valid_outdated_mirror_host + "releases/" + "test_image.img"};
+    QString expected_id{"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
+
+    ASSERT_TRUE(info);
+    EXPECT_THAT(info->image_location, Eq(expected_location));
+    EXPECT_THAT(info->id, Eq(expected_id));
+}
+
+TEST_F(UbuntuImageHost, throw_if_mirror_is_invalid)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key))).WillRepeatedly(Return(test_invalid_mirror_host));
+
+    mp::UbuntuVMImageHost host{{release_remote_spec_with_mirror_allowed}, &url_downloader, default_ttl};
+
+    EXPECT_THROW(host.info_for(make_query("xenial", release_remote_spec.first)), std::runtime_error);
 }
 
 TEST_F(UbuntuImageHost, uses_default_on_unspecified_release)

@@ -27,10 +27,12 @@ FetchContent_Declare(googletest
   GIT_PROGRESS TRUE
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "")
 FetchContent_MakeAvailable(googletest)
 
 add_executable(multipass_tests
   common.cpp
+  daemon_test_fixture.cpp
   file_operations.cpp
   image_host_remote_count.cpp
   json_utils.cpp
