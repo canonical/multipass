@@ -469,8 +469,9 @@ TEST_F(Client, transfer_cmd_instance_sources_local_target_cannot_access)
     auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
-    EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce([](auto, std::error_code& err) {
-        err = std::make_error_code(std::errc::permission_denied);
+    auto err = std::make_error_code(std::errc::permission_denied);
+    EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce([&](auto, std::error_code& e) {
+        e = err;
         return false;
     });
     EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
@@ -480,10 +481,10 @@ TEST_F(Client, transfer_cmd_instance_sources_local_target_cannot_access)
         return grpc::Status{};
     });
 
-    std::stringstream err;
-    EXPECT_EQ(send_command({"transfer", "test-vm:foo", "test-vm:baz", "bar"}, trash_stream, err),
+    std::stringstream err_sink;
+    EXPECT_EQ(send_command({"transfer", "test-vm:foo", "test-vm:baz", "bar"}, trash_stream, err_sink),
               mp::ReturnCode::CommandFail);
-    EXPECT_THAT(err.str(), HasSubstr("[sftp] cannot access 'bar': Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot access 'bar': {}", err.message())));
 }
 
 TEST_F(Client, transfer_cmd_local_sources_instance_target_not_dir)
@@ -531,8 +532,7 @@ TEST_F(Client, transfer_cmd_help_ok)
 
 TEST_F(Client, transfer_cmd_fails_no_instance)
 {
-    EXPECT_THAT(send_command({"transfer", mpt::test_data_path().toStdString() + "good_index.json", "."}),
-                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"transfer", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, transfer_cmd_fails_instance_both_source_destination)

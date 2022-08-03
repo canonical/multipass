@@ -23,6 +23,7 @@
 #include "mock_sftp_utils.h"
 #include "mock_ssh_test_fixture.h"
 #include "path.h"
+#include <Poco/TeeStream.h>
 
 #include <multipass/ssh/sftp_client.h>
 #include <multipass/ssh/ssh_session.h>
@@ -81,8 +82,8 @@ struct SFTPClient : public testing::Test
     mpt::MockFileOps* mock_file_ops{mock_file_ops_guard.first};
     mpt::MockSFTPUtils::GuardedMock mock_sftp_utils_guard{mpt::MockSFTPUtils::inject()};
     mpt::MockSFTPUtils* mock_sftp_utils{mock_sftp_utils_guard.first};
-    fs::path source_path = "source/path";
-    fs::path target_path = "target/path";
+    fs::path source_path = fs::path{"source"} / "path";
+    fs::path target_path = fs::path{"target"} / "path";
 };
 } // namespace
 
@@ -106,16 +107,14 @@ TEST_F(SFTPClient, is_dir)
 {
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
 
-    auto sftp_stat_type = [](auto type) { return get_dummy_sftp_attr(type); };
-
     auto mocked_sftp_stat = MOCK(sftp_stat);
     auto sftp_client = make_sftp_client();
 
     mocked_sftp_stat.returnValue(nullptr);
     EXPECT_FALSE(sftp_client.is_dir("non/existent/path"));
-    mocked_sftp_stat.returnValue(sftp_stat_type(SSH_FILEXFER_TYPE_DIRECTORY));
+    mocked_sftp_stat.returnValue(get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY));
     EXPECT_TRUE(sftp_client.is_dir("a/true/directory"));
-    mocked_sftp_stat.returnValue(sftp_stat_type(SSH_FILEXFER_TYPE_REGULAR));
+    mocked_sftp_stat.returnValue(get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR));
     EXPECT_FALSE(sftp_client.is_dir("not/a/directory"));
 }
 
@@ -158,10 +157,11 @@ TEST_F(SFTPClient, push_file_cannot_open_source)
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_sftp_utils, get_full_remote_file_target(_, source_path, target_path))
         .WillOnce(Return(target_path));
+    auto err = EACCES;
     EXPECT_CALL(*mock_file_ops, open_read(source_path)).WillOnce([&](auto...) {
         auto file = std::make_unique<std::stringstream>();
         file->setstate(std::ios_base::failbit);
-        errno = EACCES;
+        errno = err;
         return file;
     });
 
@@ -169,7 +169,8 @@ TEST_F(SFTPClient, push_file_cannot_open_source)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot open local file 'source/path': Permission denied"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot open local file {}: {}", source_path, strerror(err))));
 }
 
 TEST_F(SFTPClient, push_file_cannot_open_target)
@@ -180,14 +181,14 @@ TEST_F(SFTPClient, push_file_cannot_open_target)
         .WillOnce(Return(target_path));
     EXPECT_CALL(*mock_file_ops, open_read(source_path)).WillOnce(Return(std::make_unique<std::stringstream>()));
     REPLACE(sftp_open, [](auto...) { return nullptr; });
-    REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot open remote file 'target/path': SFTP server: Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot open remote file {}: {}", target_path, err)));
 }
 
 TEST_F(SFTPClient, push_file_cannot_write_target)
@@ -203,14 +204,14 @@ TEST_F(SFTPClient, push_file_cannot_write_target)
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
     REPLACE(sftp_write, [](auto...) { return -1; });
-    REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot write to remote file 'target/path': SFTP server: Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot write to remote file {}: {}", target_path, err)));
 }
 
 TEST_F(SFTPClient, push_file_cannot_read_source)
@@ -228,10 +229,11 @@ TEST_F(SFTPClient, push_file_cannot_read_source)
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
     REPLACE(sftp_write, [](auto, auto, auto size) { return size; });
+    auto err = EACCES;
     REPLACE(sftp_stat, [&](auto...) {
         test_file_p->clear();
         test_file_p->setstate(std::ios_base::failbit);
-        errno = EACCES;
+        errno = err;
         return get_dummy_sftp_attr();
     });
     EXPECT_CALL(*mock_file_ops, status(source_path, _))
@@ -242,7 +244,8 @@ TEST_F(SFTPClient, push_file_cannot_read_source)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot read from local file 'source/path': Permission denied"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot read from local file {}: {}", source_path, strerror(err))));
 }
 
 TEST_F(SFTPClient, push_file_cannot_set_perms)
@@ -263,15 +266,15 @@ TEST_F(SFTPClient, push_file_cannot_set_perms)
     EXPECT_CALL(*mock_file_ops, status(source_path, _))
         .WillOnce(Return(fs::file_status{fs::file_type::regular, fs::perms::all}));
     REPLACE(sftp_setstat, [](auto...) { return -1; });
-    REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(
-        err_sink.str(),
-        HasSubstr("[sftp] cannot set permissions for remote file 'target/path': SFTP server: Permission denied"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot set permissions for remote file {}: {}", target_path, err)));
 }
 
 TEST_F(SFTPClient, pull_file_success)
@@ -281,9 +284,10 @@ TEST_F(SFTPClient, pull_file_success)
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     EXPECT_CALL(*mock_sftp_utils, get_full_local_file_target(source_path, target_path)).WillOnce(Return(target_path));
 
-    auto test_file = std::make_unique<std::stringstream>();
-    auto test_file_p = test_file.get();
-    EXPECT_CALL(*mock_file_ops, open_write(target_path)).WillOnce(Return(std::move(test_file)));
+    std::stringstream test_file;
+    auto tee_stream = std::make_unique<Poco::TeeOutputStream>();
+    tee_stream->addStream(test_file);
+    EXPECT_CALL(*mock_file_ops, open_write(target_path)).WillOnce(Return(std::move(tee_stream)));
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
     auto mocked_sftp_read = [&, read = false](auto, void* data, auto) mutable {
@@ -303,7 +307,7 @@ TEST_F(SFTPClient, pull_file_success)
     std::stringstream err_sink;
     EXPECT_TRUE(sftp_client.pull(source_path, target_path, {}, err_sink));
     EXPECT_TRUE(err_sink.str().empty());
-    EXPECT_EQ(test_data, test_file_p->str());
+    EXPECT_EQ(test_data, test_file.str());
     EXPECT_EQ(static_cast<fs::perms>(perms), written_perms);
 }
 
@@ -314,14 +318,14 @@ TEST_F(SFTPClient, pull_file_cannot_open_source)
     EXPECT_CALL(*mock_sftp_utils, get_full_local_file_target(source_path, target_path)).WillOnce(Return(target_path));
     EXPECT_CALL(*mock_file_ops, open_write(target_path)).WillOnce(Return(std::make_unique<std::stringstream>()));
     REPLACE(sftp_open, [](auto...) { return nullptr; });
-    REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot open remote file 'source/path': SFTP server: Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot open remote file {}: {}", source_path, err)));
 }
 
 TEST_F(SFTPClient, pull_file_cannot_open_target)
@@ -329,10 +333,11 @@ TEST_F(SFTPClient, pull_file_cannot_open_target)
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(); });
     EXPECT_CALL(*mock_sftp_utils, get_full_local_file_target(source_path, target_path)).WillOnce(Return(target_path));
+    auto err = EACCES;
     EXPECT_CALL(*mock_file_ops, open_write(target_path)).WillOnce([&](auto...) {
         auto file = std::make_unique<std::stringstream>();
         file->setstate(std::ios_base::failbit);
-        errno = EACCES;
+        errno = err;
         return file;
     });
 
@@ -340,7 +345,8 @@ TEST_F(SFTPClient, pull_file_cannot_open_target)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot open local file 'target/path': Permission denied"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot open local file {}: {}", target_path, strerror(err))));
 }
 
 TEST_F(SFTPClient, pull_file_cannot_write_target)
@@ -353,10 +359,11 @@ TEST_F(SFTPClient, pull_file_cannot_write_target)
     EXPECT_CALL(*mock_file_ops, open_write(target_path)).WillOnce(Return(std::move(test_file)));
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
+    auto err = EACCES;
     auto mocked_sftp_read = [&, read = false](auto...) mutable {
         test_file_p->clear();
         test_file_p->setstate(std::ios_base::failbit);
-        errno = EACCES;
+        errno = err;
         return (read = !read) ? 10 : 0;
     };
     REPLACE(sftp_read, mocked_sftp_read);
@@ -368,7 +375,8 @@ TEST_F(SFTPClient, pull_file_cannot_write_target)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot write to local file 'target/path': Permission denied"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot write to local file {}: {}", target_path, strerror(err))));
 }
 
 TEST_F(SFTPClient, pull_file_cannot_read_source)
@@ -380,14 +388,14 @@ TEST_F(SFTPClient, pull_file_cannot_read_source)
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
     REPLACE(sftp_read, [](auto...) { return -1; });
-    REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot read from remote file 'source/path': SFTP server: Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot read from remote file {}: {}", source_path, err)));
 }
 
 TEST_F(SFTPClient, pull_file_cannot_set_perms)
@@ -400,15 +408,16 @@ TEST_F(SFTPClient, pull_file_cannot_set_perms)
 
     mode_t perms = 0777;
     REPLACE(sftp_stat, [&](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "", perms); });
+    auto err = std::make_error_code(std::errc::permission_denied);
     EXPECT_CALL(*mock_file_ops, permissions(target_path, static_cast<fs::perms>(perms), _))
-        .WillOnce([&](auto, auto, std::error_code& err) { err = std::make_error_code(std::errc::permission_denied); });
+        .WillOnce([&](auto, auto, std::error_code& e) { e = err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot set permissions for local file 'target/path': Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot set permissions for local file {}: {}",
+                                                      target_path, err.message())));
 }
 
 TEST_F(SFTPClient, push_dir_success_regular)
@@ -501,14 +510,15 @@ TEST_F(SFTPClient, push_dir_fail_dir)
     EXPECT_CALL(*iter_p, next).WillOnce(ReturnRef(entry));
     REPLACE(sftp_mkdir, [](auto...) { return -1; });
     REPLACE(sftp_get_error, [](auto...) { return SSH_FX_PERMISSION_DENIED; });
-    REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
     EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot create remote directory 'target/path/dir': SFTP server: Permission denied"));
+                HasSubstr(fmt::format("[sftp] cannot create remote directory {}: {}", target_path / "dir", err)));
 }
 
 TEST_F(SFTPClient, push_dir_success_symlink)
@@ -561,8 +571,9 @@ TEST_F(SFTPClient, push_dir_cannot_read_symlink)
     EXPECT_CALL(entry, symlink_status()).WillRepeatedly(Return(status));
     EXPECT_CALL(*iter_p, next).WillOnce(ReturnRef(entry));
 
-    EXPECT_CALL(*mock_file_ops, read_symlink).WillOnce([](auto, std::error_code& err) {
-        err = std::make_error_code(std::errc::permission_denied);
+    auto err = std::make_error_code(std::errc::permission_denied);
+    EXPECT_CALL(*mock_file_ops, read_symlink).WillOnce([&](auto, std::error_code& e) {
+        e = err;
         return "";
     });
 
@@ -570,7 +581,8 @@ TEST_F(SFTPClient, push_dir_cannot_read_symlink)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot read local link 'source/path/symlink': Permission denied"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot read local link {}: {}", source_path / "symlink", err.message())));
 }
 
 TEST_F(SFTPClient, push_dir_cannot_create_symlink)
@@ -596,14 +608,15 @@ TEST_F(SFTPClient, push_dir_cannot_create_symlink)
     REPLACE(sftp_lstat, [](auto...) { return get_dummy_sftp_attr(); });
     REPLACE(sftp_unlink, [](auto...) { return SSH_FX_OK; });
     REPLACE(sftp_symlink, [](auto...) { return -1; });
-    REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
     EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot create remote symlink 'target/path/symlink': SFTP server: Permission denied"));
+                HasSubstr(fmt::format("[sftp] cannot create remote symlink {}: {}", target_path / "symlink", err)));
 }
 
 TEST_F(SFTPClient, push_dir_symlink_over_dir)
@@ -632,8 +645,8 @@ TEST_F(SFTPClient, push_dir_symlink_over_dir)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot overwrite remote directory 'target/path/symlink' with non-directory"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot overwrite remote directory {} with non-directory",
+                                                      target_path / "symlink")));
 }
 
 TEST_F(SFTPClient, push_dir_unknown_file_type)
@@ -659,7 +672,8 @@ TEST_F(SFTPClient, push_dir_unknown_file_type)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot copy 'source/path/unknown': not a regular file"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot copy {}: not a regular file", source_path / "unknown")));
 }
 
 TEST_F(SFTPClient, push_dir_open_iter_fail)
@@ -669,8 +683,9 @@ TEST_F(SFTPClient, push_dir_open_iter_fail)
     EXPECT_CALL(*mock_sftp_utils, get_full_remote_dir_target(_, source_path, target_path))
         .WillOnce(Return(target_path));
 
-    EXPECT_CALL(*mock_file_ops, recursive_dir_iterator(source_path, _)).WillOnce([](auto, std::error_code& err) {
-        err = std::make_error_code(std::errc::permission_denied);
+    auto err = std::make_error_code(std::errc::permission_denied);
+    EXPECT_CALL(*mock_file_ops, recursive_dir_iterator(source_path, _)).WillOnce([&](auto, std::error_code& e) {
+        e = err;
         return std::make_unique<mpt::MockRecursiveDirIterator>();
     });
 
@@ -678,14 +693,17 @@ TEST_F(SFTPClient, push_dir_open_iter_fail)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot open local directory 'source/path': Permission denied"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot open local directory {}: {}", source_path, err.message())));
 }
 
 TEST_F(SFTPClient, push_dir_cannot_access_target)
 {
     REPLACE(sftp_init, [](auto...) { return SSH_OK; });
-    EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce([](auto, std::error_code& err) {
-        err = std::make_error_code(std::errc::permission_denied);
+
+    auto err = std::make_error_code(std::errc::permission_denied);
+    EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce([&](auto, std::error_code& e) {
+        e = err;
         return false;
     });
 
@@ -693,7 +711,7 @@ TEST_F(SFTPClient, push_dir_cannot_access_target)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot access 'source/path': Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot access {}: {}", source_path, err.message())));
 }
 
 TEST_F(SFTPClient, push_dir_r_not_specified)
@@ -705,7 +723,8 @@ TEST_F(SFTPClient, push_dir_r_not_specified)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] omitting local directory 'source/path': -r not specified"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] omitting local directory {}: -r not specified", source_path)));
 }
 
 TEST_F(SFTPClient, pull_dir_success_regular)
@@ -722,9 +741,10 @@ TEST_F(SFTPClient, pull_dir_success_regular)
             get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, source_path / "file"))));
 
     std::string test_data = "test_data";
-    auto test_file = std::make_unique<std::stringstream>();
-    auto test_file_p = test_file.get();
-    EXPECT_CALL(*mock_file_ops, open_write).WillOnce(Return(std::move(test_file)));
+    std::stringstream test_file;
+    auto tee_stream = std::make_unique<Poco::TeeOutputStream>();
+    tee_stream->addStream(test_file);
+    EXPECT_CALL(*mock_file_ops, open_write).WillOnce(Return(std::move(tee_stream)));
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
     auto mocked_sftp_read = [&, read = false](auto, const void* data, auto size) mutable {
@@ -747,7 +767,7 @@ TEST_F(SFTPClient, pull_dir_success_regular)
     std::stringstream err_sink;
     EXPECT_TRUE(sftp_client.pull(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
     EXPECT_TRUE(err_sink.str().empty());
-    EXPECT_EQ(test_data, test_file_p->str());
+    EXPECT_EQ(test_data, test_file.str());
     EXPECT_EQ(static_cast<fs::perms>(perms), written_perms);
 }
 
@@ -786,8 +806,10 @@ TEST_F(SFTPClient, pull_dir_fail_dir)
     EXPECT_CALL(*iter_p, next)
         .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
             get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, source_path / "dir"))));
-    EXPECT_CALL(*mock_file_ops, create_directory(target_path / "dir", _)).WillOnce([](auto, std::error_code& err) {
-        err = std::make_error_code(std::errc::permission_denied);
+
+    auto err = std::make_error_code(std::errc::permission_denied);
+    EXPECT_CALL(*mock_file_ops, create_directory(target_path / "dir", _)).WillOnce([&](auto, std::error_code& e) {
+        e = err;
         return false;
     });
 
@@ -795,7 +817,8 @@ TEST_F(SFTPClient, pull_dir_fail_dir)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot create local directory 'target/path/dir': Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot create local directory {}: {}",
+                                                      target_path / "dir", err.message())));
 }
 
 TEST_F(SFTPClient, pull_dir_success_symlink)
@@ -839,14 +862,15 @@ TEST_F(SFTPClient, pull_dir_cannot_read_symlink)
             get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink"))));
 
     REPLACE(sftp_readlink, [](auto...) { return nullptr; });
-    REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
     EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot read remote link 'source/path/symlink': SFTP server: Permission denied"));
+                HasSubstr(fmt::format("[sftp] cannot read remote link {}: {}", source_path / "symlink", err)));
 }
 
 TEST_F(SFTPClient, pull_dir_cannot_create_symlink)
@@ -866,14 +890,15 @@ TEST_F(SFTPClient, pull_dir_cannot_create_symlink)
     REPLACE(sftp_readlink, [](auto...) { return (char*)malloc(10); });
     EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(true));
+    auto err = std::make_error_code(std::errc::permission_denied);
     EXPECT_CALL(*mock_file_ops, create_symlink(_, target_path / "symlink", _))
-        .WillOnce([](auto, auto, std::error_code& err) { err = std::make_error_code(std::errc::permission_denied); });
+        .WillOnce([&](auto, auto, std::error_code& e) { e = err; });
     auto sftp_client = make_sftp_client();
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot create local symlink 'target/path/symlink': Permission denied"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot create local symlink {}: {}",
+                                                      target_path / "symlink", err.message())));
 }
 
 TEST_F(SFTPClient, pull_dir_symlink_over_dir)
@@ -897,8 +922,8 @@ TEST_F(SFTPClient, pull_dir_symlink_over_dir)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr("[sftp] cannot overwrite local directory 'target/path/symlink' with non-directory"));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot overwrite local directory {} with non-directory",
+                                                      target_path / "symlink")));
 }
 
 TEST_F(SFTPClient, pull_dir_unknown_file_type)
@@ -919,7 +944,8 @@ TEST_F(SFTPClient, pull_dir_unknown_file_type)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] cannot copy 'source/path/unknown': not a regular file"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot copy {}: not a regular file", source_path / "unknown")));
 }
 
 TEST_F(SFTPClient, pull_dir_r_not_specified)
@@ -931,5 +957,6 @@ TEST_F(SFTPClient, pull_dir_r_not_specified)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, {}, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr("[sftp] omitting remote directory 'source/path': -r not specified"));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] omitting remote directory {}: -r not specified", source_path)));
 }
