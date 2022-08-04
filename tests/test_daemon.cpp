@@ -658,12 +658,12 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce([&mem_size, &disk_space, &release, &remote, &name, &alias_name, &alias_command, &alias_wdir](
-                      const auto&, mp::VirtualMachineDescription& vm_desc, mp::AliasMap& aliases) -> mp::Query {
+                      const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
             vm_desc.num_cores = num_cores;
             vm_desc.mem_size = mem_size;
             vm_desc.disk_space = disk_space;
 
-            aliases.emplace(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir});
+            l_data.aliases_to_be_created.emplace(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir});
 
             return {"", release, false, remote, mp::Query::Type::Alias};
         });
@@ -722,12 +722,12 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliasesWith
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce([&mem_size, &disk_space, &release, &remote, &name, &alias_name, &alias_command, &alias_wdir](
-                      const auto&, mp::VirtualMachineDescription& vm_desc, mp::AliasMap& aliases) -> mp::Query {
+                      const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
             vm_desc.num_cores = num_cores;
             vm_desc.mem_size = mem_size;
             vm_desc.disk_space = disk_space;
 
-            aliases.emplace(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir});
+            l_data.aliases_to_be_created.emplace(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir});
 
             return {"", release, false, remote, mp::Query::Type::Alias};
         });
@@ -789,12 +789,12 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce([&mem_size, &disk_space, &release, &remote, &name, &alias_name, &alias_command, &alias_wdir](
-                      const auto&, mp::VirtualMachineDescription& vm_desc, mp::AliasMap& aliases) -> mp::Query {
+                      const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
             vm_desc.num_cores = num_cores;
             vm_desc.mem_size = mem_size;
             vm_desc.disk_space = disk_space;
 
-            aliases.emplace(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir});
+            l_data.aliases_to_be_created.emplace(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir});
 
             return {"", release, false, remote, mp::Query::Type::Alias};
         });

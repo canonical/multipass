@@ -104,7 +104,7 @@ mp::DefaultVMBlueprintProvider::DefaultVMBlueprintProvider(URLDownloader* downlo
 
 mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string& blueprint_name,
                                                               VirtualMachineDescription& vm_desc,
-                                                              AliasMap& aliases_to_be_created)
+                                                              ClientLaunchData& client_launch_data)
 {
     update_blueprints();
 
@@ -131,7 +131,7 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
                      fmt::format("Add alias [{}, {}, {}] to RPC answer", alias_name, instance_and_command[0],
                                  instance_and_command[1]));
             AliasDefinition alias_definition{instance_and_command[0], instance_and_command[1], "map"};
-            aliases_to_be_created.emplace(alias_name, alias_definition);
+            client_launch_data.aliases_to_be_created.emplace(alias_name, alias_definition);
         }
     }
 

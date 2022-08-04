@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_VM_BLUEPRINT_PROVIDER_H
 #define MULTIPASS_VM_BLUEPRINT_PROVIDER_H
 
-#include "alias_definition.h"
+#include "client_launch_data.h"
 #include "disabled_copy_move.h"
 #include "query.h"
 #include "virtual_machine_description.h"
@@ -35,7 +35,7 @@ public:
     virtual ~VMBlueprintProvider() = default;
 
     virtual Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc,
-                                      AliasMap& aliases_to_be_created) = 0;
+                                      ClientLaunchData& client_launch_data) = 0;
     virtual VMImageInfo info_for(const std::string& blueprint_name) = 0;
     virtual std::vector<VMImageInfo> all_blueprints() = 0;
     virtual std::string name_from_blueprint(const std::string& blueprint_name) = 0;
