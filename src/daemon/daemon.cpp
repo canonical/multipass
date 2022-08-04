@@ -298,11 +298,12 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         }
 
         std::unordered_map<std::string, mp::VMMount> mounts;
-        mp::id_mappings uid_mappings;
-        mp::id_mappings gid_mappings;
 
         for (QJsonValueRef entry : record["mounts"].toArray())
         {
+            mp::id_mappings uid_mappings;
+            mp::id_mappings gid_mappings;
+
             auto target_path = entry.toObject()["target_path"].toString().toStdString();
             auto source_path = entry.toObject()["source_path"].toString().toStdString();
 
@@ -317,6 +318,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                 gid_mappings.push_back(
                     {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
             }
+
+            uid_mappings = mp::unique_id_mappings(uid_mappings);
+            gid_mappings = mp::unique_id_mappings(gid_mappings);
 
             mp::VMMount mount{source_path, gid_mappings, uid_mappings};
             mounts[target_path] = mount;
@@ -2165,6 +2169,7 @@ void mp::Daemon::persist_instances()
             entry.insert("target_path", QString::fromStdString(mount.first));
 
             QJsonArray uid_mappings;
+
             for (const auto& map : mount.second.uid_mappings)
             {
                 QJsonObject map_entry;
@@ -2177,6 +2182,7 @@ void mp::Daemon::persist_instances()
             entry.insert("uid_mappings", uid_mappings);
 
             QJsonArray gid_mappings;
+
             for (const auto& map : mount.second.gid_mappings)
             {
                 QJsonObject map_entry;

@@ -405,7 +405,7 @@ int mpt::DaemonTestFixture::total_lines_of_output(std::stringstream& output)
 
 std::string mpt::DaemonTestFixture::fake_json_contents(const std::string& default_mac,
                                                        const std::vector<mp::NetworkInterface>& extra_ifaces,
-                                                       const std::optional<mp::VMMount>& mount)
+                                                       const std::unordered_map<std::string, mp::VMMount>& mounts)
 {
     QString contents("{\n"
                      "    \"real-zebraphant\": {\n"
@@ -439,44 +439,54 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const std::string& defaul
                                                    "        \"mounts\": [\n",
                                                    default_mac));
 
-    if (mount)
+    QStringList mount_array_elements;
+    for (const auto& mount_pair : mounts)
     {
-        contents += QString::fromStdString(fmt::format("            {{\n"
-                                                       "                \"gid_mappings\": ["));
+        const auto& mountpoint = mount_pair.first;
+        const auto& mount = mount_pair.second;
 
-        array_elements.clear();
-        for (const auto& gid_pair : mount->gid_mappings)
+        QString mount_element;
+
+        mount_element += QString::fromStdString(fmt::format("            {{\n"
+                                                            "                \"gid_mappings\": ["));
+
+        QStringList gid_array_elements;
+        for (const auto& gid_pair : mount.gid_mappings)
         {
-            array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
-                                                                 "                        \"host_gid\": {},\n"
-                                                                 "                        \"instance_gid\": {}\n"
-                                                                 "                    }}",
-                                                                 gid_pair.first, gid_pair.second));
+            gid_array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
+                                                                     "                        \"host_gid\": {},\n"
+                                                                     "                        \"instance_gid\": {}\n"
+                                                                     "                    }}",
+                                                                     gid_pair.first, gid_pair.second));
         }
-        contents += array_elements.join(',');
+        mount_element += gid_array_elements.join(',');
 
-        contents += QString::fromStdString(fmt::format("\n                ],\n"
-                                                       "                \"source_path\": \"{}\",\n"
-                                                       "                \"target_path\": \"Home\",\n"
-                                                       "                \"uid_mappings\": [",
-                                                       mount->source_path));
+        mount_element += QString::fromStdString(fmt::format("\n                ],\n"
+                                                            "                \"source_path\": \"{}\",\n"
+                                                            "                \"target_path\": \"{}\",\n"
+                                                            "                \"uid_mappings\": [",
+                                                            mount.source_path, mountpoint));
 
-        array_elements.clear();
-        for (const auto& uid_pair : mount->uid_mappings)
+        QStringList uid_array_elements;
+        for (const auto& uid_pair : mount.uid_mappings)
         {
-            array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
-                                                                 "                        \"host_uid\": {},\n"
-                                                                 "                        \"instance_uid\": {}\n"
-                                                                 "                    }}",
-                                                                 uid_pair.first, uid_pair.second));
+            uid_array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
+                                                                     "                        \"host_uid\": {},\n"
+                                                                     "                        \"instance_uid\": {}\n"
+                                                                     "                    }}",
+                                                                     uid_pair.first, uid_pair.second));
         }
-        contents += array_elements.join(',');
+        mount_element += uid_array_elements.join(',');
 
-        contents += QString::fromStdString(fmt::format("\n                ]\n"
-                                                       "            }}\n"));
+        mount_element += QString::fromStdString(fmt::format("\n                ]\n"
+                                                            "            }}"));
+
+        mount_array_elements += mount_element;
     }
 
-    contents += QString::fromStdString(fmt::format("        ],\n"
+    contents += mount_array_elements.join(",\n");
+
+    contents += QString::fromStdString(fmt::format("\n        ],\n"
                                                    "        \"num_cores\": 1,\n"
                                                    "        \"ssh_username\": \"ubuntu\",\n"
                                                    "        \"state\": 2\n"
