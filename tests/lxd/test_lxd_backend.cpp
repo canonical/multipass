@@ -495,7 +495,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
     mp::LXDVirtualMachine machine{default_description, mock_monitor,        mock_network_access_manager.get(), base_url,
                                   bridge_name,         default_storage_pool};
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(2);
     machine.start();
 
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::starting);
@@ -545,11 +545,57 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
     mp::LXDVirtualMachine machine{default_description, mock_monitor,        mock_network_access_manager.get(), base_url,
                                   bridge_name,         default_storage_pool};
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(2);
     machine.shutdown();
 
     EXPECT_TRUE(vm_shutdown);
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
+}
+
+TEST_F(LXDBackend, machine_persists_internal_stopped_state_on_destruction)
+{
+    mpt::MockVMStatusMonitor mock_monitor;
+
+    bool vm_created{false};
+    auto vm_instance_state{mp::VirtualMachine::State::off};
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&vm_created](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            {
+                if (!vm_created)
+                {
+                    vm_created = true;
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                }
+                else
+                {
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                }
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).WillRepeatedly([&vm_instance_state](auto, auto state) {
+        vm_instance_state = state;
+    });
+
+    {
+        mp::LXDVirtualMachine machine{
+            default_description, mock_monitor,        mock_network_access_manager.get(), base_url,
+            bridge_name,         default_storage_pool};
+
+        ASSERT_EQ(machine.state, mp::VirtualMachine::State::running);
+    } // Simulate multipass exiting by having the vm destruct
+
+    EXPECT_TRUE(vm_created);
+    EXPECT_EQ(vm_instance_state, mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
@@ -1485,7 +1531,7 @@ TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
 
     ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(0);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(
         *logger_scope.mock_logger,
         log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
@@ -1517,7 +1563,7 @@ TEST_F(LXDBackend, shutdown_while_frozen_does_nothing_and_logs_info)
 
     ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(0);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
                     mpt::MockLogger::make_cstring_matcher(StrEq("Ignoring shutdown issued while suspended"))));
@@ -1751,7 +1797,8 @@ TEST_F(LXDBackend, current_state_connection_error_logs_warning_and_sets_unknown_
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq(exception_message))));
+                    mpt::MockLogger::make_cstring_matcher(StrEq(exception_message))))
+        .Times(2);
 
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::unknown);
 }
@@ -1838,7 +1885,7 @@ TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
 {
     auto log_matcher =
         mpt::MockLogger::make_cstring_matcher(AnyOf(HasSubstr("Error parsing JSON"), HasSubstr("Empty reply")));
-    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::debug), _, log_matcher)).Times(1);
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::debug), _, log_matcher));
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
@@ -2001,8 +2048,9 @@ void setup_vm_creation_expectations(mpt::MockNetworkAccessManager& mock_network_
 {
     EXPECT_CALL(mock_network_access_mgr, createRequest(QNetworkAccessManager::CustomOperation,
                                                        custom_request_matcher("GET", "pied-piper-valley/state"), _))
+        .Times(3)
         .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::not_found_data, QNetworkReply::ContentNotFoundError}))
-        .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::vm_info_data}));
+        .WillRepeatedly([] { return new mpt::MockLocalSocketReply{mpt::vm_info_data}; });
 
     EXPECT_CALL(mock_network_access_mgr,
                 createRequest(QNetworkAccessManager::CustomOperation,

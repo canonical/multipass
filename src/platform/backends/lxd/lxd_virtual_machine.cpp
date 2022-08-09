@@ -196,6 +196,7 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
 {
     update_shutdown_status = false;
 
+    current_state();
     if (state == State::running)
     {
         try
@@ -207,6 +208,10 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
         {
             stop();
         }
+    }
+    else
+    {
+        update_state();
     }
 }
 
