@@ -28,7 +28,7 @@ namespace platform
 {
 constexpr auto unlock_code{"honeyed-bigeye"};
 // clang-format off
-const std::unordered_set<std::string> supported_release_aliases{"core",   "core16", "core18",
+const std::unordered_set<std::string> supported_release_aliases{"core",   "core16", "core18", "core20", "core22",
                                                                 "default", "ubuntu", "lts",
                                                                 "16.04", "x", "xenial",
                                                                 "18.04", "b", "bionic",
@@ -36,7 +36,7 @@ const std::unordered_set<std::string> supported_release_aliases{"core",   "core1
                                                                 "21.10", "i", "impish",
                                                                 "22.04", "j", "jammy"};
 // clang-format on
-const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18"};
+const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18", "core20", "core22"};
 const std::unordered_set<std::string> supported_snapcraft_aliases{"core18", "18.04",  "core20",
                                                                   "20.04",  "core22", "22.04"};
 const std::unordered_map<std::string, std::unordered_set<std::string>> supported_remotes_aliases_map{
