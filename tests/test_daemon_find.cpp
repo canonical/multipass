@@ -199,5 +199,5 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
                                     HasSubstr(fmt::format("{}{}", remote_name, mpt::another_alias)),
                                     HasSubstr(mpt::another_release_info)));
 
-    EXPECT_EQ(total_lines_of_output(stream), 3);
+    EXPECT_EQ(total_lines_of_output(stream), 6);
 }
