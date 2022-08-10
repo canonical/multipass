@@ -201,20 +201,48 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    if (reply.images_info().empty())
-        return "No images or Blueprints found.\n";
-
-    fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
-
-    for (const auto& image : reply.images_info())
+    if (reply.show_blueprints())
     {
-        auto aliases = image.aliases_info();
+        fmt::format_to(buf, "{:<28}{:<18}{:<17}{:<}\n", "Blueprint", "Aliases", "Version", "Description");
 
-        mp::format::filter_aliases(aliases);
+        for (const auto& blueprint : reply.blueprints_info())
+        {
+            auto aliases = blueprint.aliases_info();
 
-        fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", mp::format::image_string_for(aliases[0]),
-                       fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
-                       fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
+            mp::format::filter_aliases(aliases);
+
+            fmt::format_to(
+                std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", mp::format::image_string_for(aliases[0]),
+                fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), blueprint.version(),
+                fmt::format("{}{}", blueprint.os().empty() ? "" : blueprint.os() + " ", blueprint.release()));
+        }
+
+        if (reply.blueprints_info().empty())
+            fmt::format_to(std::back_inserter(buf), "No blueprints found.\n");
+
+        if (reply.show_images())
+            fmt::format_to(std::back_inserter(buf), "\n");
+    }
+
+    if (reply.show_images())
+    {
+        fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version",
+                       "Description");
+
+        for (const auto& image : reply.images_info())
+        {
+            auto aliases = image.aliases_info();
+
+            mp::format::filter_aliases(aliases);
+
+            fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n",
+                           mp::format::image_string_for(aliases[0]),
+                           fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
+                           fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
+        }
+
+        if (reply.images_info().empty())
+            fmt::format_to(std::back_inserter(buf), "No images found.\n");
     }
 
     return fmt::to_string(buf);

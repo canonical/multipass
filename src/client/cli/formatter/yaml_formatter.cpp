@@ -167,7 +167,30 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
 {
     YAML::Node find;
     find["errors"] = std::vector<YAML::Node>{};
+    find["blueprints"] = std::map<std::string, YAML::Node>{};
     find["images"] = std::map<std::string, YAML::Node>{};
+
+    for (const auto& blueprint : reply.blueprints_info())
+    {
+        YAML::Node blueprint_node;
+        blueprint_node["aliases"] = std::vector<std::string>{};
+
+        auto aliases = blueprint.aliases_info();
+        mp::format::filter_aliases(aliases);
+
+        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
+        {
+            blueprint_node["aliases"].push_back(alias->alias());
+        }
+
+        blueprint_node["os"] = blueprint.os();
+        blueprint_node["release"] = blueprint.release();
+        blueprint_node["version"] = blueprint.version();
+
+        blueprint_node["remote"] = aliases[0].remote_name();
+
+        find["blueprints"][mp::format::image_string_for(aliases[0])] = blueprint_node;
+    }
 
     for (const auto& image : reply.images_info())
     {

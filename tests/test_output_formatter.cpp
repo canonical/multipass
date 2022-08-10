@@ -252,9 +252,21 @@ auto add_petenv_to_reply(mp::InfoReply& reply)
     entry->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
 }
 
+auto construct_empty_reply()
+{
+    auto reply = mp::FindReply();
+
+    reply.set_show_blueprints(true);
+    reply.set_show_images(true);
+
+    return reply;
+}
+
 auto construct_find_one_reply()
 {
     auto reply = mp::FindReply();
+
+    reply.set_show_images(true);
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -271,6 +283,9 @@ auto construct_find_one_reply_no_os()
 {
     auto reply = mp::FindReply();
 
+    reply.set_show_blueprints(true);
+    reply.set_show_images(true);
+
     auto image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
     image_entry->set_version("20190520");
@@ -286,12 +301,22 @@ auto construct_find_multiple_reply()
 {
     auto reply = mp::FindReply();
 
+    reply.set_show_blueprints(true);
+    reply.set_show_images(true);
+
+    auto blueprint_entry = reply.add_blueprints_info();
+    blueprint_entry->set_release("Anbox Cloud Appliance");
+    blueprint_entry->set_version("latest");
+
+    auto alias_entry = blueprint_entry->add_aliases_info();
+    alias_entry->set_alias("anbox-cloud-appliance");
+
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
     image_entry->set_release("18.04 LTS");
     image_entry->set_version("20190516");
 
-    auto alias_entry = image_entry->add_aliases_info();
+    alias_entry = image_entry->add_aliases_info();
     alias_entry->set_alias("ubuntu");
     alias_entry = image_entry->add_aliases_info();
     alias_entry->set_alias("lts");
@@ -317,6 +342,9 @@ auto construct_find_multiple_reply()
 auto construct_find_multiple_reply_duplicate_image()
 {
     auto reply = mp::FindReply();
+
+    reply.set_show_blueprints(true);
+    reply.set_show_images(true);
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -927,34 +955,51 @@ const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
      "}\n",
      "json_networks_multiple_lines"}};
 
-const auto empty_find_reply = mp::FindReply();
+const auto empty_find_reply = construct_empty_reply();
 const auto find_one_reply = construct_find_one_reply();
 const auto find_multiple_reply = construct_find_multiple_reply();
 const auto find_one_reply_no_os = construct_find_one_reply_no_os();
 const auto find_multiple_reply_duplicate_image = construct_find_multiple_reply_duplicate_image();
 
 const std::vector<FormatterParamType> find_formatter_outputs{
-    {&table_formatter, &empty_find_reply, "No images or Blueprints found.\n", "table_find_empty"},
+    {&table_formatter, &empty_find_reply,
+     "Blueprint                   Aliases           Version          Description\n"
+     "No blueprints found.\n"
+     "\n"
+     "Image                       Aliases           Version          Description\n"
+     "No images found.\n",
+     "table_find_empty"},
     {&table_formatter, &find_one_reply,
      "Image                       Aliases           Version          Description\n"
      "ubuntu                                        20190516         Ubuntu 18.04 LTS\n",
      "table_find_one"},
     {&table_formatter, &find_multiple_reply,
+     "Blueprint                   Aliases           Version          Description\n"
+     "anbox-cloud-appliance                         latest           Anbox Cloud Appliance\n"
+     "\n"
      "Image                       Aliases           Version          Description\n"
      "lts                                           20190516         Ubuntu 18.04 LTS\n"
      "daily:19.10                 eoan,devel        20190516         Ubuntu 19.10\n",
      "table_find_multiple"},
     {&table_formatter, &find_one_reply_no_os,
+     "Blueprint                   Aliases           Version          Description\n"
+     "No blueprints found.\n"
+     "\n"
      "Image                       Aliases           Version          Description\n"
      "snapcraft:core18                              20190520         Snapcraft builder for core18\n",
      "table_find_no_os"},
     {&table_formatter, &find_multiple_reply_duplicate_image,
+     "Blueprint                   Aliases           Version          Description\n"
+     "No blueprints found.\n"
+     "\n"
      "Image                       Aliases           Version          Description\n"
      "core18                                        20190520         Ubuntu Core 18\n"
      "snapcraft:core18                              20190520         Snapcraft builder for core18\n",
      "table_find_multiple_duplicate_image"},
     {&json_formatter, &empty_find_reply,
      "{\n"
+     "    \"blueprints\": {\n"
+     "    },\n"
      "    \"errors\": [\n"
      "    ],\n"
      "    \"images\": {\n"
@@ -963,6 +1008,8 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "json_find_empty"},
     {&json_formatter, &find_one_reply,
      "{\n"
+     "    \"blueprints\": {\n"
+     "    },\n"
      "    \"errors\": [\n"
      "    ],\n"
      "    \"images\": {\n"
@@ -979,6 +1026,16 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "json_find_one"},
     {&json_formatter, &find_multiple_reply,
      "{\n"
+     "    \"blueprints\": {\n"
+     "        \"anbox-cloud-appliance\": {\n"
+     "            \"aliases\": [\n"
+     "            ],\n"
+     "            \"os\": \"\",\n"
+     "            \"release\": \"Anbox Cloud Appliance\",\n"
+     "            \"remote\": \"\",\n"
+     "            \"version\": \"latest\"\n"
+     "        }\n"
+     "    },\n"
      "    \"errors\": [\n"
      "    ],\n"
      "    \"images\": {\n"
@@ -1005,6 +1062,8 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "json_find_multiple"},
     {&json_formatter, &find_multiple_reply_duplicate_image,
      "{\n"
+     "    \"blueprints\": {\n"
+     "    },\n"
      "    \"errors\": [\n"
      "    ],\n"
      "    \"images\": {\n"
@@ -1027,17 +1086,28 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "    }\n"
      "}\n",
      "json_find_multiple_duplicate_image"},
-    {&csv_formatter, &empty_find_reply, "Image,Remote,Aliases,OS,Release,Version\n", "csv_find_empty"},
+    {&csv_formatter, &empty_find_reply,
+     "Blueprint,Remote,Aliases,OS,Release,Version\n"
+     "\n"
+     "Image,Remote,Aliases,OS,Release,Version\n",
+     "csv_find_empty"},
     {&csv_formatter, &find_one_reply,
+     "Blueprint,Remote,Aliases,OS,Release,Version\n"
+     "\n"
      "Image,Remote,Aliases,OS,Release,Version\n"
      "ubuntu,,,Ubuntu,18.04 LTS,20190516\n",
      "csv_find_one"},
     {&csv_formatter, &find_multiple_reply,
+     "Blueprint,Remote,Aliases,OS,Release,Version\n"
+     "anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest\n"
+     "\n"
      "Image,Remote,Aliases,OS,Release,Version\n"
      "lts,,,Ubuntu,18.04 LTS,20190516\n"
      "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516\n",
      "csv_find_multiple"},
     {&csv_formatter, &find_multiple_reply_duplicate_image,
+     "Blueprint,Remote,Aliases,OS,Release,Version\n"
+     "\n"
      "Image,Remote,Aliases,OS,Release,Version\n"
      "core18,,,Ubuntu,Core 18,20190520\n"
      "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520\n",
@@ -1045,12 +1115,16 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&yaml_formatter, &empty_find_reply,
      "errors:\n"
      "  []\n"
+     "blueprints:\n"
+     "  {}\n"
      "images:\n"
      "  {}\n",
      "yaml_find_empty"},
     {&yaml_formatter, &find_one_reply,
      "errors:\n"
      "  []\n"
+     "blueprints:\n"
+     "  {}\n"
      "images:\n"
      "  ubuntu:\n"
      "    aliases:\n"
@@ -1063,6 +1137,14 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&yaml_formatter, &find_multiple_reply,
      "errors:\n"
      "  []\n"
+     "blueprints:\n"
+     "  anbox-cloud-appliance:\n"
+     "    aliases:\n"
+     "      []\n"
+     "    os: \"\"\n"
+     "    release: Anbox Cloud Appliance\n"
+     "    version: latest\n"
+     "    remote: \"\"\n"
      "images:\n"
      "  lts:\n"
      "    aliases:\n"
@@ -1083,6 +1165,8 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&yaml_formatter, &find_multiple_reply_duplicate_image,
      "errors:\n"
      "  []\n"
+     "blueprints:\n"
+     "  {}\n"
      "images:\n"
      "  core18:\n"
      "    aliases:\n"

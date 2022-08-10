@@ -88,6 +88,23 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
 {
     fmt::memory_buffer buf;
 
+    fmt::format_to(std::back_inserter(buf), "Blueprint,Remote,Aliases,OS,Release,Version\n");
+
+    for (const auto& blueprint : reply.blueprints_info())
+    {
+        auto aliases = blueprint.aliases_info();
+
+        mp::format::filter_aliases(aliases);
+
+        auto blueprint_id = aliases[0].remote_name().empty()
+                                ? aliases[0].alias()
+                                : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
+        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{}\n", blueprint_id, aliases[0].remote_name(),
+                       fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"), blueprint.os(), blueprint.release(),
+                       blueprint.version());
+    }
+    fmt::format_to(std::back_inserter(buf), "\n");
+
     fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version\n");
 
     for (const auto& image : reply.images_info())

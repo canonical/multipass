@@ -70,7 +70,9 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
                                   "Ubuntu release version, codename or alias.",
                                   "[<remote:>][<string>]");
     QCommandLineOption unsupportedOption("show-unsupported", "Show unsupported cloud images as well");
-    parser->addOptions({unsupportedOption});
+    QCommandLineOption showImagesOption("images", "Show cloud images");
+    QCommandLineOption showBlueprintsOption("blueprints", "Show only blueprints");
+    parser->addOptions({unsupportedOption, showImagesOption, showBlueprintsOption});
 
     QCommandLineOption formatOption(
         "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
@@ -85,10 +87,29 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
         return status;
     }
 
+    if (parser->isSet(showImagesOption) && parser->isSet(showBlueprintsOption))
+    {
+        cerr << "Specify one of \"--images\", \"--blueprints\" or omit to fetch both\n";
+        return ParseCode::CommandLineError;
+    }
+
+    request.set_show_images(true);
+    request.set_show_blueprints(true);
+
+    if (parser->isSet(showImagesOption))
+    {
+        request.set_show_blueprints(false);
+    }
+
+    if (parser->isSet(showBlueprintsOption))
+    {
+        request.set_show_images(false);
+    }
+
     if (parser->positionalArguments().count() > 1)
     {
         cerr << "Wrong number of arguments\n";
-        status = ParseCode::CommandLineError;
+        return ParseCode::CommandLineError;
     }
     else if (parser->positionalArguments().count() == 1)
     {

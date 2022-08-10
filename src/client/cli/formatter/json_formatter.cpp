@@ -174,8 +174,33 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
 {
     QJsonObject find_json;
     QJsonObject images;
+    QJsonObject blueprints;
 
     find_json.insert("errors", QJsonArray());
+
+    for (const auto& blueprint : reply.blueprints_info())
+    {
+        QJsonObject blueprint_obj;
+        blueprint_obj.insert("os", QString::fromStdString(blueprint.os()));
+        blueprint_obj.insert("release", QString::fromStdString(blueprint.release()));
+        blueprint_obj.insert("version", QString::fromStdString(blueprint.version()));
+
+        QJsonArray aliases_arr;
+        auto aliases = blueprint.aliases_info();
+        mp::format::filter_aliases(aliases);
+
+        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
+        {
+            aliases_arr.append(QString::fromStdString(alias->alias()));
+        }
+        blueprint_obj.insert("aliases", aliases_arr);
+
+        blueprint_obj.insert("remote", QString::fromStdString(aliases[0].remote_name()));
+
+        blueprints.insert(QString::fromStdString(mp::format::image_string_for(aliases[0])), blueprint_obj);
+    }
+
+    find_json.insert("blueprints", blueprints);
 
     for (const auto& image : reply.images_info())
     {
