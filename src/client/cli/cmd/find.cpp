@@ -70,7 +70,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
                                   "Ubuntu release version, codename or alias.",
                                   "[<remote:>][<string>]");
     QCommandLineOption unsupportedOption("show-unsupported", "Show unsupported cloud images as well");
-    QCommandLineOption showImagesOption("images", "Show cloud images");
+    QCommandLineOption showImagesOption("images", "Show only images");
     QCommandLineOption showBlueprintsOption("blueprints", "Show only blueprints");
     parser->addOptions({unsupportedOption, showImagesOption, showBlueprintsOption});
 
