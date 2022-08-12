@@ -110,6 +110,7 @@ add_executable(multipass_tests
   test_sftp_dir_iterator.cpp
   test_sftp_utils.cpp
   test_file_ops.cpp
+  test_recursive_dir_iter.cpp
 )
 
 target_include_directories(multipass_tests
