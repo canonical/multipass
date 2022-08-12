@@ -203,7 +203,8 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
 
     if (reply.show_blueprints())
     {
-        fmt::format_to(buf, "{:<28}{:<18}{:<17}{:<}\n", "Blueprint", "Aliases", "Version", "Description");
+        fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", "Blueprint", "Aliases", "Version",
+                       "Description");
 
         for (const auto& blueprint : reply.blueprints_info())
         {

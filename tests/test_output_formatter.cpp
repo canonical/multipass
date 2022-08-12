@@ -1086,31 +1086,21 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "    }\n"
      "}\n",
      "json_find_multiple_duplicate_image"},
-    {&csv_formatter, &empty_find_reply,
-     "Blueprint,Remote,Aliases,OS,Release,Version\n"
-     "\n"
-     "Image,Remote,Aliases,OS,Release,Version\n",
-     "csv_find_empty"},
+    {&csv_formatter, &empty_find_reply, "Image,Remote,Aliases,OS,Release,Version,Type\n", "csv_find_empty"},
     {&csv_formatter, &find_one_reply,
-     "Blueprint,Remote,Aliases,OS,Release,Version\n"
-     "\n"
-     "Image,Remote,Aliases,OS,Release,Version\n"
-     "ubuntu,,,Ubuntu,18.04 LTS,20190516\n",
+     "Image,Remote,Aliases,OS,Release,Version,Type\n"
+     "ubuntu,,,Ubuntu,18.04 LTS,20190516,Cloud Image\n",
      "csv_find_one"},
     {&csv_formatter, &find_multiple_reply,
-     "Blueprint,Remote,Aliases,OS,Release,Version\n"
-     "anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest\n"
-     "\n"
-     "Image,Remote,Aliases,OS,Release,Version\n"
-     "lts,,,Ubuntu,18.04 LTS,20190516\n"
-     "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516\n",
+     "Image,Remote,Aliases,OS,Release,Version,Type\n"
+     "anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest,Blueprint\n"
+     "lts,,,Ubuntu,18.04 LTS,20190516,Cloud Image\n"
+     "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516,Cloud Image\n",
      "csv_find_multiple"},
     {&csv_formatter, &find_multiple_reply_duplicate_image,
-     "Blueprint,Remote,Aliases,OS,Release,Version\n"
-     "\n"
-     "Image,Remote,Aliases,OS,Release,Version\n"
-     "core18,,,Ubuntu,Core 18,20190520\n"
-     "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520\n",
+     "Image,Remote,Aliases,OS,Release,Version,Type\n"
+     "core18,,,Ubuntu,Core 18,20190520,Cloud Image\n"
+     "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520,Cloud Image\n",
      "csv_find_multiple_duplicate_image"},
     {&yaml_formatter, &empty_find_reply,
      "errors:\n"
