@@ -31,6 +31,7 @@
 
 #include <memory>
 #include <optional>
+#include <unordered_map>
 
 using namespace testing;
 namespace mp = multipass;
@@ -65,7 +66,7 @@ struct DaemonTestFixture : public ::Test
 
     std::string fake_json_contents(const std::string& default_mac,
                                    const std::vector<mp::NetworkInterface>& extra_ifaces,
-                                   const std::optional<mp::VMMount>& mount = std::nullopt);
+                                   const std::unordered_map<std::string, mp::VMMount>& mounts = {});
 
     std::pair<std::unique_ptr<TempDir>, QString> // unique_ptr bypasses missing move ctor
     plant_instance_json(const std::string& contents);

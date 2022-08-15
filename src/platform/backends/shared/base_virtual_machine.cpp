@@ -41,7 +41,8 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
             ip_a_output = QString::fromStdString(
                 mpu::run_in_ssh_session(session, "ip -brief -family inet address show scope global"));
 
-            QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*$"), QRegularExpression::MultilineOption};
+            QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*(metric \\d+)?\\s*$"),
+                                       QRegularExpression::MultilineOption};
 
             QRegularExpressionMatchIterator ip_it = ipv4_re.globalMatch(ip_a_output);
 

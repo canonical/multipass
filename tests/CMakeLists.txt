@@ -71,6 +71,7 @@ add_executable(multipass_tests
   test_disabled_copy_move.cpp
   test_format_utils.cpp
   test_global_settings_handlers.cpp
+  test_id_mappings.cpp
   test_image_vault.cpp
   test_instance_settings_handler.cpp
   test_ip_address.cpp

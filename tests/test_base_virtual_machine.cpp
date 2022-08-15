@@ -196,6 +196,7 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 INSTANTIATE_TEST_SUITE_P(
     BaseVM, IpExecution,
     Values(IpTestParams{0, "eth0             UP             192.168.2.168/24 \n", {"192.168.2.168"}},
+           IpTestParams{0, "eth1             UP             192.168.2.169/24 metric 100 \n", {"192.168.2.169"}},
            IpTestParams{0,
                         "wlp4s0           UP             192.168.2.8/24 \n"
                         "virbr0           DOWN           192.168.3.1/24 \n"
