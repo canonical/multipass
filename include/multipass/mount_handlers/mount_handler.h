@@ -40,6 +40,8 @@ class MountHandler : private DisabledCopyMove
 public:
     virtual ~MountHandler() = default;
 
+    virtual void init_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
+                            const id_mappings& gid_mappings, const id_mappings& uid_mappings) = 0;
     virtual void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& source_path,
                              const std::string& target_path, const id_mappings& gid_mappings,
                              const id_mappings& uid_mappings,
