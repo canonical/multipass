@@ -119,7 +119,7 @@ TEST_F(URLDownloader, simpleDownloadNetworkTimeoutTriesCache)
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning, fmt::format("Error getting {}: Network timeout - trying cache.", fake_url.toString()));
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     auto downloaded_data = downloader.download(fake_url);
 
@@ -138,7 +138,7 @@ TEST_F(URLDownloader, simpleDownloadProxyAuthenticationRequiredAborts)
         return mock_reply;
     });
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     MP_EXPECT_THROW_THAT(downloader.download(fake_url), mp::AbortedDownloadException,
                          mpt::match_what(StrEq("Proxy authorization required")));
@@ -155,7 +155,7 @@ TEST_F(URLDownloader, simpleDownloadAbortAllStopsDownload)
         return mock_reply;
     });
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     downloader.abort_all_downloads();
 
@@ -200,7 +200,7 @@ TEST_F(URLDownloader, fileDownloadNoErrorHasExpectedResults)
     logger_scope.mock_logger->expect_log(mpl::Level::trace,
                                          fmt::format("Found {} in cache: false", fake_url.toString()));
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
@@ -254,7 +254,7 @@ TEST_F(URLDownloader, fileDownloadErrorTriesCache)
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning, fmt::format("Error getting {}: Network timeout - trying cache.", fake_url.toString()));
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
@@ -282,7 +282,7 @@ TEST_F(URLDownloader, fileDownloadMonitorReturnFalseAborts)
 
     auto progress_monitor = [](auto...) { return false; };
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
@@ -318,7 +318,7 @@ TEST_F(URLDownloader, fileDownloadZeroBytesReceivedDoesNotCallMonitor)
     logger_scope.mock_logger->expect_log(mpl::Level::trace,
                                          fmt::format("Found {} in cache: false", fake_url.toString()));
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
@@ -344,7 +344,7 @@ TEST_F(URLDownloader, fileDownloadAbortAllStopDownload)
 
     auto progress_monitor = [](auto...) { return true; };
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
     downloader.abort_all_downloads();
 
     mpt::TempDir file_dir;
@@ -388,7 +388,7 @@ TEST_F(URLDownloader, fileDownloadUnknownBytesSetToQueriedSize)
     logger_scope.mock_logger->expect_log(mpl::Level::trace,
                                          fmt::format("Found {} in cache: false", fake_url.toString()));
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
@@ -421,7 +421,7 @@ TEST_F(URLDownloader, fileDownloadTimeoutDoesNotWriteFile)
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning, fmt::format("Error getting {}: Network timeout - trying cache.", fake_url.toString()));
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
@@ -464,7 +464,7 @@ TEST_F(URLDownloader, fileDownloadWriteFailsLogsErrorAndThrows)
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(mpl::Level::error, "error writing image:");
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
@@ -503,7 +503,7 @@ TEST_F(URLDownloader, lastModifiedHeaderTimeoutThrows)
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning, fmt::format("Cannot retrieve headers for {}: Network timeout", fake_url.toString()));
 
-    mp::URLDownloader downloader(cache_dir.path(), 1ms);
+    mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     EXPECT_THROW(downloader.last_modified(fake_url), mp::DownloadException);
 }
