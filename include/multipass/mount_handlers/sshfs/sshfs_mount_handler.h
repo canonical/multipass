@@ -35,6 +35,8 @@ class SSHFSMountHandler : public QObject, public MountHandler
 public:
     explicit SSHFSMountHandler(const SSHKeyProvider& ssh_key_provider);
 
+    void init_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
+                    const id_mappings& gid_mappings, const id_mappings& uid_mappings) override;
     void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& source_path,
                      const std::string& target_path, const id_mappings& gid_mappings, const id_mappings& uid_mappings,
                      const std::chrono::milliseconds& timeout = std::chrono::minutes(5)) override;
