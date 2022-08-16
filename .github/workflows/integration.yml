@@ -74,19 +74,20 @@ jobs:
         path: ${{ env.TESTFLINGER_FILE }}
         write-mode: overwrite
         contents: |
-          job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || 'vmware-fusion' }}
+          job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || matrix.vm }}
           output_timeout: 2400
           provision_data:
-            ${{ matrix.vm && format('vmx: /Users/michal/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
+            ${{ matrix.vm && format('vmx: /Users/cibot/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
             snapshot: Testflinger
-            ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/impish/release/ubuntu-21.10-server-cloudimg-amd64.img' || '' }}
+            ${{ matrix.os == 'Linux' && 'image_url: https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64.img' || '' }}
+            ${{ matrix.vm == 'windows-10' && 'username: ieuser' || '' }}
+            ${{ matrix.vm == 'windows-11' && 'username: user' || '' }}
             vmx_config:
               memsize: 2048
               vhv.enable: true
               vpmc.enable: true
 
           test_data:
-            ${{ matrix.os == 'Windows' && 'test_username: user' || '' }}
             test_cmds: |
               set -xeuo pipefail
 
