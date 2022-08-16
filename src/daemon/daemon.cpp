@@ -1512,6 +1512,9 @@ try // clang-format on
         auto& vm = it->second;
         auto& vm_specs = vm_instance_specs[name];
 
+        config->mount_handlers.at(static_cast<int>(mount_type))
+            ->init_mount(vm.get(), request->source_path(), target_path, gid_mappings, uid_mappings);
+
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
