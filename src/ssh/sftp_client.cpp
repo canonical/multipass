@@ -29,7 +29,7 @@
 
 constexpr int file_mode = 0664;
 constexpr auto max_transfer = 65536u;
-const char* stream_file_name = "stream_output.dat";
+const std::string stream_file_name{"stream_output.dat"};
 
 namespace multipass
 {
@@ -59,7 +59,7 @@ bool SFTPClient::is_dir(const fs::path& path)
     return attr && attr->type == SSH_FILEXFER_TYPE_DIRECTORY;
 }
 
-bool SFTPClient::push(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
+bool SFTPClient::push(const fs::path& source_path, const fs::path& target_path, const QFlags<TransferFlags> flags,
                       std::ostream& err_sink)
 try
 {
@@ -88,7 +88,7 @@ catch (const std::exception& e)
     return false;
 }
 
-bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
+bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, const QFlags<TransferFlags> flags,
                       std::ostream& err_sink)
 try
 {

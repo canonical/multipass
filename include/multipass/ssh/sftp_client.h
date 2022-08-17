@@ -22,10 +22,11 @@
 
 #include <libssh/sftp.h>
 
-#include <QFlags>
 #include <filesystem>
 #include <functional>
 #include <iostream>
+
+#include <QFlags>
 
 namespace fs = std::filesystem;
 
@@ -49,9 +50,9 @@ public:
     SFTPClient(SSHSessionUPtr ssh_session);
 
     virtual bool is_dir(const fs::path& path);
-    virtual bool push(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
+    virtual bool push(const fs::path& source_path, const fs::path& target_path, const QFlags<TransferFlags> flags,
                       std::ostream& err_sink);
-    virtual bool pull(const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
+    virtual bool pull(const fs::path& source_path, const fs::path& target_path, const QFlags<TransferFlags> flags,
                       std::ostream& err_sink);
     virtual void from_cin(std::istream& cin, const fs::path& target_path);
     virtual void to_cout(const fs::path& source_path, std::ostream& cout);

@@ -36,7 +36,9 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
+    {
         return parser->returnCodeFrom(ret);
+    }
 
     auto on_success = [this](mp::SSHInfoReply& reply) {
         auto success = true;
@@ -125,7 +127,7 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
                                   "The destination path, prefixed with <name:> for "
                                   "a path inside the instance, or '-' for stdout",
                                   "<destination>");
-    parser->addOption({"r", "Recursively copy entire directories"});
+    parser->addOption({{"r", "recursive"}, "Recursively copy entire directories"});
 
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;

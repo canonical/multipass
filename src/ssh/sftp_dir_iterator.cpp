@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 Canonical, Ltd.
+ * Copyright (C) 2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,10 @@
  *
  */
 
+#include <multipass/format.h>
 #include <multipass/ssh/sftp_dir_iterator.h>
-
 #include <multipass/ssh/sftp_utils.h>
 
-#include <multipass/format.h>
 #include <stdexcept>
 
 namespace multipass
@@ -30,6 +29,7 @@ void SFTPDirIterator::push_dir(const std::string& path)
     if (!dir)
         throw std::runtime_error{
             fmt::format("[sftp] cannot open remote directory '{}': {}", path, ssh_get_error(sftp->session))};
+
     dirs.push(std::move(dir));
 }
 
@@ -39,7 +39,7 @@ SFTPDirIterator::SFTPDirIterator(sftp_session sftp, const fs::path& path) : sftp
     next();
 }
 
-bool SFTPDirIterator::hasNext()
+bool SFTPDirIterator::hasNext() const
 {
     return (bool)previous_attr;
 }

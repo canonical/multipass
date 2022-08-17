@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 Canonical, Ltd.
+ * Copyright (C) 2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,10 @@
 #ifndef MULTIPASS_SFTP_DIR_ITERATOR_H
 #define MULTIPASS_SFTP_DIR_ITERATOR_H
 
+#include <libssh/sftp.h>
+
 #include <filesystem>
 #include <functional>
-#include <libssh/sftp.h>
 #include <memory>
 #include <stack>
 #include <vector>
@@ -43,7 +44,7 @@ class SFTPDirIterator
 public:
     SFTPDirIterator() = default;
     SFTPDirIterator(sftp_session sftp, const fs::path& path);
-    virtual bool hasNext();
+    virtual bool hasNext() const;
     virtual SFTPAttributesUPtr next();
 
     virtual ~SFTPDirIterator() = default;

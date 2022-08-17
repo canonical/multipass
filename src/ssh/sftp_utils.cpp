@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 Canonical, Ltd.
+ * Copyright (C) 2022 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,6 +95,7 @@ fs::path SFTPUtils::get_full_local_dir_target(const fs::path& source_path, const
         if (!MP_FILEOPS.create_directory(target_path, err))
             throw std::runtime_error{
                 fmt::format("[sftp] cannot create local directory {}: {}", target_path, err.message())};
+
         return target_path;
     }
 
@@ -134,6 +135,7 @@ fs::path SFTPUtils::get_full_remote_dir_target(sftp_session sftp, const fs::path
     if (child_info && child_info->type != SSH_FILEXFER_TYPE_DIRECTORY)
         throw std::runtime_error{
             fmt::format("[sftp] cannot overwrite remote non-directory {} with directory", child_path)};
+
     if (!child_info && sftp_mkdir(sftp, child_path.u8string().c_str(), 0777) != SSH_FX_OK)
         throw std::runtime_error{
             fmt::format("[sftp] cannot create remote directory {}: {}", child_path, ssh_get_error(sftp->session))};
