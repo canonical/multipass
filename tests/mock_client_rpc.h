@@ -22,12 +22,20 @@
 
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+using namespace testing;
+
 namespace multipass::test
 {
 template <class R>
 class MockClientReader : public grpc::ClientReaderInterface<R>
 {
 public:
+    MockClientReader()
+    {
+        EXPECT_CALL(*this, Read(_)).WillRepeatedly(Return(false));
+        EXPECT_CALL(*this, Finish()).WillRepeatedly(Return(grpc::Status()));
+    }
+
     MOCK_METHOD(grpc::Status, Finish, (), (override));
     MOCK_METHOD(bool, NextMessageSize, (uint32_t * sz), (override));
     MOCK_METHOD(bool, Read, (R * msg), (override));
