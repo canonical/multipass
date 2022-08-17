@@ -23,7 +23,6 @@
 #include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_key_provider.h>
-#include <multipass/sshfs_server_config.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
@@ -130,8 +129,12 @@ void mp::SSHFSMountHandler::init_mount(VirtualMachine* vm, const std::string& so
                                        const std::string& target_path, const id_mappings& gid_mappings,
                                        const id_mappings& uid_mappings)
 {
+    mpl::log(mpl::Level::info, category,
+             fmt::format("initializing mount {} => {} in {}", source_path, target_path, vm->vm_name));
+
+    // Putting this here is kind of contrived, but passing all the same arguments to start_mount() is
+    // redundant.
     mp::SSHFSServerConfig config;
-    config.host = vm->ssh_hostname();
     config.port = vm->ssh_port();
     config.username = vm->ssh_username();
     config.instance = vm->vm_name;
@@ -140,6 +143,38 @@ void mp::SSHFSMountHandler::init_mount(VirtualMachine* vm, const std::string& so
     config.uid_mappings = uid_mappings;
     config.gid_mappings = gid_mappings;
     config.private_key = ssh_key_provider->private_key_as_base64();
+
+    sshfs_server_configs[vm->vm_name][target_path] = config;
+}
+
+void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
+                                        const std::chrono::milliseconds& timeout)
+{
+    if (!MP_FILEOPS.exists(QDir{QString::fromStdString(source_path)}))
+    {
+        mount_processes[vm->vm_name].erase(target_path);
+        throw std::runtime_error(fmt::format("Mount path \"{}\" does not exist.", source_path));
+    }
+
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+    std::visit(
+        [this, vm, &session, &timeout](auto&& server) {
+            auto on_install = [this, server] {
+                if (server)
+                {
+                    auto reply = make_reply_from_server(*server);
+                    reply.set_reply_message("Enabling support for mounting");
+                    server->Write(reply);
+                }
+            };
+
+            install_sshfs_for(vm->vm_name, session, on_install, timeout);
+        },
+        server);
+
+    auto config = sshfs_server_configs[vm->vm_name][target_path];
+    // Can't obtain hostname/IP address until instance is running
+    config.host = vm->ssh_hostname();
 
     auto sshfs_server_process_t = mp::platform::make_sshfs_server_process(config);
     // FIXME: ProcessFactory really should return qt_delete_later_unique_ptr<Process> as Process emits signals
@@ -176,42 +211,9 @@ void mp::SSHFSMountHandler::init_mount(VirtualMachine* vm, const std::string& so
         });
 
     mpl::log(mpl::Level::info, category,
-             fmt::format("initializing mount {} => {} in {}", source_path, target_path, vm->vm_name));
-    mpl::log(mpl::Level::info, category,
              fmt::format("process program '{}'", sshfs_server_process->program().toStdString()));
     mpl::log(mpl::Level::info, category,
              fmt::format("process arguments '{}'", sshfs_server_process->arguments().join(", ").toStdString()));
-
-    mount_processes[vm->vm_name][target_path] = std::move(sshfs_server_process);
-}
-
-void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& source_path,
-                                        const std::string& target_path, const mp::id_mappings& gid_mappings,
-                                        const mp::id_mappings& uid_mappings, const std::chrono::milliseconds& timeout)
-{
-    if (!MP_FILEOPS.exists(QDir{QString::fromStdString(source_path)}))
-    {
-        mount_processes[vm->vm_name].erase(target_path);
-        throw std::runtime_error(fmt::format("Mount path \"{}\" does not exist.", source_path));
-    }
-
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-    std::visit(
-        [this, vm, &session, &timeout](auto&& server) {
-            auto on_install = [this, server] {
-                if (server)
-                {
-                    auto reply = make_reply_from_server(*server);
-                    reply.set_reply_message("Enabling support for mounting");
-                    server->Write(reply);
-                }
-            };
-
-            install_sshfs_for(vm->vm_name, session, on_install, timeout);
-        },
-        server);
-
-    auto& sshfs_server_process = mount_processes[vm->vm_name][target_path];
 
     start_and_block_until(
         sshfs_server_process.get(), &mp::Process::ready_read_standard_output, [](mp::Process* process) {
@@ -229,6 +231,9 @@ void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server
         throw std::runtime_error(
             fmt::format("{}: {}", process_state.failure_message(), sshfs_server_process->read_all_standard_error()));
     }
+
+    sshfs_server_configs[vm->vm_name].erase(target_path);
+    mount_processes[vm->vm_name][target_path] = std::move(sshfs_server_process);
 }
 
 bool mp::SSHFSMountHandler::stop_mount(const std::string& instance, const std::string& path)
