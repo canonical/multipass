@@ -1535,7 +1535,7 @@ try // clang-format on
         {
             try
             {
-                mount_handler->start_mount(vm.get(), server, target_path);
+                config->mount_handlers.at(static_cast<int>(mount_type))->start_mount(vm.get(), server, target_path);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -2676,9 +2676,19 @@ void mp::Daemon::init_mounts(const std::string& name)
     for (const auto& mount_entry : vm_instance_specs[name].mounts)
     {
         auto& target_path = mount_entry.first;
+<<<<<<< HEAD
         auto mount_type = mount_entry.second.mount_type;
 
         config->mount_handlers.at(mount_type)->init_mount(vm_instances[name].get(), target_path, mount_entry.second);
+=======
+        auto& source_path = mount_entry.second.source_path;
+        auto& uid_mappings = mount_entry.second.uid_mappings;
+        auto& gid_mappings = mount_entry.second.gid_mappings;
+        auto mount_type = mount_entry.second.mount_type;
+
+        config->mount_handlers.at(static_cast<int>(mount_type))
+            ->init_mount(vm_instances[name].get(), source_path, target_path, gid_mappings, uid_mappings);
+>>>>>>> b94c147c ([daemon] Pass proper start_mount() arguments)
     }
 }
 
@@ -2732,7 +2742,11 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
 
                 try
                 {
+<<<<<<< HEAD
                     config->mount_handlers.at(mount_entry.second.mount_type)
+=======
+                    config->mount_handlers.at(static_cast<int>(mount_entry.second.mount_type))
+>>>>>>> b94c147c ([daemon] Pass proper start_mount() arguments)
                         ->start_mount(vm.get(), server, target_path);
                 }
                 catch (const mp::SSHFSMissingError&)
