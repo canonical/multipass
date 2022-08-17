@@ -24,12 +24,12 @@
 
 namespace multipass
 {
-void SFTPDirIterator::push_dir(const fs::path& path)
+void SFTPDirIterator::push_dir(const std::string& path)
 {
-    auto dir = mp_sftp_opendir(sftp, path.u8string().c_str());
+    auto dir = mp_sftp_opendir(sftp, path.c_str());
     if (!dir)
         throw std::runtime_error{
-            fmt::format("[sftp] cannot open remote directory {}: {}", path, ssh_get_error(sftp->session))};
+            fmt::format("[sftp] cannot open remote directory '{}': {}", path, ssh_get_error(sftp->session))};
     dirs.push(std::move(dir));
 }
 
@@ -55,11 +55,11 @@ SFTPAttributesUPtr SFTPDirIterator::next()
         if (strcmp(attr->name, ".") == 0 || strcmp(attr->name, "..") == 0)
             continue;
 
-        auto path = fs::path{dir->name} / attr->name;
+        auto path = fmt::format("{}/{}", dir->name, attr->name);
         if (attr->type == SSH_FILEXFER_TYPE_DIRECTORY)
             push_dir(path);
 
-        attr->name = strdup(path.u8string().c_str());
+        attr->name = strdup(path.c_str());
         previous_attr.swap(attr);
         return attr;
     }

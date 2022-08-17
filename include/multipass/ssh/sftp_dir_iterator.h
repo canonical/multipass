@@ -38,7 +38,7 @@ class SFTPDirIterator
     std::stack<SFTPDirUPtr, std::vector<SFTPDirUPtr>> dirs;
     SFTPAttributesUPtr previous_attr;
 
-    void push_dir(const fs::path& path);
+    void push_dir(const std::string& path);
 
 public:
     SFTPDirIterator() = default;

@@ -19,10 +19,10 @@ auto get_dummy_attr(const char* name, uint8_t type)
     return attr;
 }
 
-auto get_dummy_dir(const fs::path& name)
+auto get_dummy_dir(const char* name)
 {
     auto dir = static_cast<sftp_dir_struct*>(calloc(1, sizeof(struct sftp_dir_struct)));
-    dir->name = strdup(name.u8string().c_str());
+    dir->name = strdup(name);
     return dir;
 }
 } // namespace
@@ -31,9 +31,9 @@ TEST(SFTPDirIterator, success)
 {
     std::vector<sftp_dir> dirs{
         get_dummy_dir("dir"),
-        get_dummy_dir(fs::path("dir") / "dir1"),
-        get_dummy_dir(fs::path("dir") / "dir1" / "dir2"),
-        get_dummy_dir(fs::path("dir") / "dir3"),
+        get_dummy_dir("dir/dir1"),
+        get_dummy_dir("dir/dir1/dir2"),
+        get_dummy_dir("dir/dir3"),
     };
 
     std::vector<sftp_attributes> entries{
@@ -66,11 +66,9 @@ TEST(SFTPDirIterator, success)
     while (iter.hasNext())
         result.emplace_back(iter.next()->name);
 
-    EXPECT_THAT(result, UnorderedElementsAre(fs::path("dir") / "file1", fs::path("dir") / "dir1",
-                                             fs::path("dir") / "dir1" / "file2", fs::path("dir") / "dir1" / "dir2",
-                                             fs::path("dir") / "dir1" / "dir2" / "file3",
-                                             fs::path("dir") / "dir1" / "file4", fs::path("dir") / "dir1" / "file5",
-                                             fs::path("dir") / "dir3", fs::path("dir") / "dir3" / "file6"));
+    EXPECT_THAT(result,
+                UnorderedElementsAre("dir/file1", "dir/dir1", "dir/dir1/file2", "dir/dir1/dir2", "dir/dir1/dir2/file3",
+                                     "dir/dir1/file4", "dir/dir1/file5", "dir/dir3", "dir/dir3/file6"));
 }
 
 TEST(SFTPDirIterator, fail_opendir)
