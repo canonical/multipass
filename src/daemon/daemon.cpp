@@ -952,6 +952,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             assert(!spec.deleted);
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
+            init_mounts(name);
+
             QTimer::singleShot(0, [this, &name] {
                 multipass::top_catch_all(name, [this, &name]() {
                     vm_instances[name]->start();
@@ -1519,8 +1521,7 @@ try // clang-format on
         {
             try
             {
-                config->mount_handlers.at(static_cast<int>(mount_type))
-                    ->start_mount(vm.get(), server, request->source_path(), target_path, gid_mappings, uid_mappings);
+                config->mount_handlers.at(static_cast<int>(mount_type))->start_mount(vm.get(), server, target_path);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1721,6 +1722,8 @@ try // clang-format on
         else if (state != VirtualMachine::State::running && state != VirtualMachine::State::starting &&
                  state != VirtualMachine::State::restarting)
         {
+            init_mounts(name);
+
             vm->start();
         }
     }
@@ -2353,6 +2356,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                     reply.set_create_message("Starting " + name);
                     server->Write(reply);
 
+                    init_mounts(name);
+
                     vm_instances[name]->start();
 
                     auto future_watcher = create_future_watcher([this, server, name, vm_aliases] {
@@ -2598,6 +2603,21 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     return grpc::Status::OK;
 }
 
+void mp::Daemon::init_mounts(const std::string& name)
+{
+    for (const auto& mount_entry : vm_instance_specs[name].mounts)
+    {
+        auto& target_path = mount_entry.first;
+        auto& source_path = mount_entry.second.source_path;
+        auto& uid_mappings = mount_entry.second.uid_mappings;
+        auto& gid_mappings = mount_entry.second.gid_mappings;
+        auto mount_type = mount_entry.second.mount_type;
+
+        config->mount_handlers.at(static_cast<int>(mount_type))
+            ->init_mount(vm_instances[name].get(), source_path, target_path, gid_mappings, uid_mappings);
+    }
+}
+
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
 mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 {
@@ -2645,14 +2665,11 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
             for (const auto& mount_entry : mounts)
             {
                 auto& target_path = mount_entry.first;
-                auto& source_path = mount_entry.second.source_path;
-                auto& uid_mappings = mount_entry.second.uid_mappings;
-                auto& gid_mappings = mount_entry.second.gid_mappings;
 
                 try
                 {
                     config->mount_handlers.at(static_cast<int>(mount_entry.second.mount_type))
-                        ->start_mount(vm.get(), server, source_path, target_path, gid_mappings, uid_mappings);
+                        ->start_mount(vm.get(), server, target_path);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
