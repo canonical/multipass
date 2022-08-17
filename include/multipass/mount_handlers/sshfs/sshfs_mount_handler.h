@@ -22,6 +22,7 @@
 #include <multipass/process/process.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/sshfs_server_config.h>
 
 #include <unordered_map>
 
@@ -37,8 +38,7 @@ public:
 
     void init_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
                     const id_mappings& gid_mappings, const id_mappings& uid_mappings) override;
-    void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& source_path,
-                     const std::string& target_path, const id_mappings& gid_mappings, const id_mappings& uid_mappings,
+    void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
                      const std::chrono::milliseconds& timeout = std::chrono::minutes(5)) override;
 
     bool stop_mount(const std::string& instance, const std::string& path) override;
@@ -47,6 +47,7 @@ public:
     bool has_instance_already_mounted(const std::string& instance, const std::string& path) const override;
 
 private:
+    std::unordered_map<std::string, std::unordered_map<std::string, SSHFSServerConfig>> sshfs_server_configs;
     std::unordered_map<std::string, std::unordered_map<std::string, qt_delete_later_unique_ptr<Process>>>
         mount_processes;
 };
