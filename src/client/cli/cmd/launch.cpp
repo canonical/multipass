@@ -35,10 +35,10 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QTimeZone>
 #include <QUrl>
-
-#include <QRegularExpression>
+#include <filesystem>
 #include <regex>
 #include <unordered_map>
 
@@ -46,6 +46,7 @@ namespace mp = multipass;
 namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
+namespace fs = std::filesystem;
 
 namespace
 {
@@ -371,9 +372,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             }
             else
             {
-                QFileInfo check_file(cloudInitFile);
-
-                if (!check_file.exists() || !check_file.isFile())
+                auto file_type = fs::status(cloudInitFile.toStdString()).type();
+                if (file_type != fs::file_type::regular && file_type != fs::file_type::fifo)
                 {
                     cerr << "error: No such file: " << cloudInitFile.toStdString() << "\n";
                     return ParseCode::CommandLineError;
