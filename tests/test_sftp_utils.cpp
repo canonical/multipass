@@ -181,8 +181,8 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_too)
 
     MP_EXPECT_THROW_THAT(
         MP_SFTPUTILS.get_full_remote_file_target(nullptr, source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot overwrite remote directory {} with non-directory",
-                                          target_path / source_path.filename()))));
+        mpt::match_what(StrEq(fmt::format("[sftp] cannot overwrite remote directory '{}' with non-directory",
+                                          target_path.u8string() + '/' + source_path.filename().u8string()))));
 }
 
 TEST_F(SFTPUtils, get_full_local_dir_target__target_exists_not_dir)
@@ -318,18 +318,18 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_cannot_create)
 
 TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_is_not)
 {
+    auto target_child_path = target_path.u8string() + '/' + source_path.filename().u8string();
     REPLACE(sftp_stat, [&](auto, auto path) -> sftp_attributes {
         if (target_path == path)
             return get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY);
-        if (target_path / source_path.filename() == path)
+        if (target_child_path == path)
             return get_dummy_attr(path, SSH_FILEXFER_TYPE_REGULAR);
         return nullptr;
     });
 
-    MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_remote_dir_target(nullptr, source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot overwrite remote non-directory {} with directory",
-                                          target_path / source_path.filename()))));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_remote_dir_target(nullptr, source_path, target_path), std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format(
+                             "[sftp] cannot overwrite remote non-directory '{}' with directory", target_child_path))));
 }
 
 TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can_create)
@@ -353,7 +353,8 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can
     REPLACE(ssh_get_error, [&](auto...) { return err; });
 
     sftp_session_struct sftp{};
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_remote_dir_target(&sftp, source_path, target_path), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("[sftp] cannot create remote directory {}: {}",
-                                                           target_path / source_path.filename(), err))));
+    MP_EXPECT_THROW_THAT(
+        MP_SFTPUTILS.get_full_remote_dir_target(&sftp, source_path, target_path), std::runtime_error,
+        mpt::match_what(StrEq(fmt::format("[sftp] cannot create remote directory '{}': {}",
+                                          target_path.u8string() + '/' + source_path.filename().u8string(), err))));
 }

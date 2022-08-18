@@ -63,8 +63,8 @@ bool SFTPClient::push(const fs::path& source_path, const fs::path& target_path, 
                       std::ostream& err_sink)
 try
 {
-    auto source = source_path.lexically_normal().string();
-    utils::trim_end(source, [](char ch) { return ch == '/' || ch == '\\'; });
+    auto source = source_path.string();
+    utils::trim_end(source, [](char ch) { return ch == '/' || ch == fs::path::preferred_separator; });
 
     std::error_code err;
     if (MP_FILEOPS.is_directory(source_path, err) && !err)
@@ -92,8 +92,8 @@ bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, 
                       std::ostream& err_sink)
 try
 {
-    auto source = source_path.lexically_normal().string();
-    utils::trim_end(source, [](char ch) { return ch == '/' || ch == '\\'; });
+    auto source = source_path.string();
+    utils::trim_end(source, [](char ch) { return ch == '/' || ch == fs::path::preferred_separator; });
 
     if (is_dir(source_path))
     {
@@ -167,7 +167,10 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
         try
         {
             auto& entry = local_iter->next();
-            auto remote_file_path = target_path / (entry.path().c_str() + source_path.string().size() + 1);
+            auto remote_file_str =
+                entry.path().u8string().replace(0, source_path.u8string().size(), target_path.u8string());
+            std::replace(remote_file_str.begin(), remote_file_str.end(), (char)fs::path::preferred_separator, '/');
+            fs::path remote_file_path{remote_file_str};
 
             switch (entry.symlink_status().type())
             {

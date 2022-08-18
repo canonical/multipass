@@ -82,8 +82,8 @@ struct SFTPClient : public testing::Test
     mpt::MockFileOps* mock_file_ops{mock_file_ops_guard.first};
     mpt::MockSFTPUtils::GuardedMock mock_sftp_utils_guard{mpt::MockSFTPUtils::inject()};
     mpt::MockSFTPUtils* mock_sftp_utils{mock_sftp_utils_guard.first};
-    fs::path source_path = fs::path{"source"} / "path";
-    fs::path target_path = fs::path{"target"} / "path";
+    fs::path source_path{"source/path"};
+    fs::path target_path{"target/path"};
 };
 } // namespace
 
@@ -517,8 +517,8 @@ TEST_F(SFTPClient, push_dir_fail_dir)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr(fmt::format("[sftp] cannot create remote directory {}: {}", target_path / "dir", err)));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot create remote directory '{}': {}",
+                                                      target_path.u8string() + "/dir", err)));
 }
 
 TEST_F(SFTPClient, push_dir_success_symlink)
@@ -615,8 +615,8 @@ TEST_F(SFTPClient, push_dir_cannot_create_symlink)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(),
-                HasSubstr(fmt::format("[sftp] cannot create remote symlink {}: {}", target_path / "symlink", err)));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot create remote symlink '{}': {}",
+                                                      target_path.u8string() + "/symlink", err)));
 }
 
 TEST_F(SFTPClient, push_dir_symlink_over_dir)
@@ -645,8 +645,9 @@ TEST_F(SFTPClient, push_dir_symlink_over_dir)
 
     std::stringstream err_sink;
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::TransferFlags::Recursive, err_sink));
-    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot overwrite remote directory {} with non-directory",
-                                                      target_path / "symlink")));
+    EXPECT_THAT(err_sink.str(),
+                HasSubstr(fmt::format("[sftp] cannot overwrite remote directory '{}' with non-directory",
+                                      target_path.u8string() + "/symlink")));
 }
 
 TEST_F(SFTPClient, push_dir_unknown_file_type)
