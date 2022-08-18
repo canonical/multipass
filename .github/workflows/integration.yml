@@ -180,7 +180,7 @@ jobs:
                 _install ${{ github.event.inputs.win-package }}
 
                 if [ '${{ matrix.driver }}' == 'hyperv' ]; then
-                  _ps "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"
+                  _ps "Set-Variable ProgressPreference SilentlyContinue; Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"
                   _ps "Restart-Computer -Force"
                   sleep 60
                 fi
