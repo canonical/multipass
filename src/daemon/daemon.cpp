@@ -947,16 +947,18 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             spec.state = VirtualMachine::State::stopped;
         }
 
-        if (spec.state == VirtualMachine::State::running && vm_instances[name]->state != VirtualMachine::State::running)
+        std::unique_lock<decltype(start_mutex)> lock{start_mutex};
+        if (spec.state == VirtualMachine::State::running &&
+            vm_instances[name]->current_state() != VirtualMachine::State::running &&
+            vm_instances[name]->current_state() != VirtualMachine::State::starting)
         {
             assert(!spec.deleted);
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
-            QTimer::singleShot(0, [this, &name] {
-                multipass::top_catch_all(name, [this, &name]() {
-                    vm_instances[name]->start();
-                    on_restart(name);
-                });
+            multipass::top_catch_all(name, [this, &name, &lock]() {
+                vm_instances[name]->start();
+                lock.unlock();
+                on_restart(name);
             });
         }
     }
@@ -1715,6 +1717,7 @@ try // clang-format on
     fmt::memory_buffer start_errors;
     for (const auto& name : vms)
     {
+        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
         auto& vm = vm_instances.find(name)->second;
         auto state = vm->current_state();
         if (state == VirtualMachine::State::unknown)
