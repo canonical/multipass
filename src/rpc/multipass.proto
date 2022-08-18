@@ -101,6 +101,12 @@ message UpdateInfo {
 }
 
 message LaunchReply {
+    message Alias {
+        string name = 1;
+        string instance = 2;
+        string command = 3;
+        string working_directory = 4;
+    }
     oneof create_oneof {
         string vm_instance_name = 1;
         LaunchProgress launch_progress = 2;
@@ -110,6 +116,7 @@ message LaunchReply {
     UpdateInfo update_info = 7;
     string reply_message = 8;
     repeated string nets_need_bridging = 9;
+    repeated Alias aliases_to_be_created = 10;
 }
 
 message PurgeRequest {

@@ -1,0 +1,10 @@
+description: An invalid alias blueprint
+version: 0.1
+
+aliases:
+  lst: invalid-alias-blueprint:ls
+  lsp: invalid-alias-blueprint:pwd:invaliddefinition
+
+instances:
+  invalid-alias-blueprint:
+    image: "default"

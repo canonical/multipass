@@ -28,7 +28,7 @@ namespace test
 {
 struct MockVMBlueprintProvider : public VMBlueprintProvider
 {
-    MOCK_METHOD2(fetch_blueprint_for, Query(const std::string&, VirtualMachineDescription&));
+    MOCK_METHOD3(fetch_blueprint_for, Query(const std::string&, VirtualMachineDescription&, AliasMap&));
     MOCK_METHOD1(info_for, VMImageInfo(const std::string&));
     MOCK_METHOD0(all_blueprints, std::vector<VMImageInfo>());
     MOCK_METHOD1(name_from_blueprint, std::string(const std::string&));

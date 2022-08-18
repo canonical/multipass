@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_PLATFORM_H
 #define MULTIPASS_PLATFORM_H
 
-#include <multipass/cli/alias_definition.h>
+#include <multipass/alias_definition.h>
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
