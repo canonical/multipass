@@ -36,6 +36,12 @@ constexpr auto bad_hash{"b2cf02af556c857dd77de2d2476f3830fd0214"};
 
 struct TestDaemonAuthenticate : public mpt::DaemonTestFixture
 {
+    TestDaemonAuthenticate()
+    {
+        EXPECT_CALL(mock_settings, register_handler(_)).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+    }
+
     mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils* mock_utils = utils_attr.first;
     mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject<NiceMock>()};
