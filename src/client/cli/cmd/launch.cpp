@@ -432,7 +432,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         timer->start();
     }
 
-    auto on_success = [this](mp::LaunchReply& reply) {
+    auto on_success = [this, &parser](mp::LaunchReply& reply) {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -468,7 +468,11 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                 }
             }
 
-            // TODO: mount the folder.
+            auto full_mount_path = reply.vm_instance_name() + ":" + workspace_to_be_created;
+            if (mount(parser, full_path_str, QString::fromStdString(full_mount_path)) != ReturnCode::Ok)
+            {
+                cerr << fmt::format("Error mounting folder {}.\n", full_path_str);
+            }
         }
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
