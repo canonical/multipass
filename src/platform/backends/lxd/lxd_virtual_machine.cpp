@@ -263,33 +263,6 @@ void mp::LXDVirtualMachine::start()
 
 void mp::LXDVirtualMachine::shutdown(bool force)
 {
-    if (force)
-    {
-        auto present_state = current_state();
-
-        if (present_state != State::stopped && present_state != State::off)
-        {
-            const QJsonObject state_json{{"action", "stop"}, {"force", true}};
-
-            auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
-
-            try
-            {
-                lxd_wait(manager, base_url, state_task, 60000);
-            }
-            catch (const LXDNotFoundException&)
-            {
-            }
-
-            state = State::stopped;
-        }
-
-        if (update_shutdown_status)
-            update_state();
-
-        return;
-    }
-
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
 
@@ -298,14 +271,13 @@ void mp::LXDVirtualMachine::shutdown(bool force)
         mpl::log(mpl::Level::debug, vm_name, "Ignoring stop request since instance is already stopped");
         return;
     }
-
-    if (present_state == State::suspended)
+    else if (present_state == State::suspended && !force)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
         return;
     }
 
-    request_state("stop");
+    request_state("stop", {{"force", force}});
 
     state = State::stopped;
 
@@ -434,9 +406,13 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
     return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
-void mp::LXDVirtualMachine::request_state(const QString& new_state)
+void mp::LXDVirtualMachine::request_state(const QString& new_state, const QJsonObject args)
 {
-    const QJsonObject state_json{{"action", new_state}};
+    QJsonObject state_json{{"action", new_state}};
+    for (auto it = args.constBegin(); it != args.constEnd(); it++)
+    {
+        state_json.insert(it.key(), it.value());
+    }
 
     auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
 
