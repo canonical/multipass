@@ -253,6 +253,13 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
         }
     }
 
+    auto blueprint_workspaces = blueprint_instance["workspace"];
+    if (blueprint_workspaces && blueprint_workspaces.as<bool>())
+    {
+        mpl::log(mpl::Level::trace, category, fmt::format("Add workspace {} to RPC answer", blueprint_name));
+        client_launch_data.workspaces_to_be_created.push_back(blueprint_name);
+    }
+
     return query;
 }
 
