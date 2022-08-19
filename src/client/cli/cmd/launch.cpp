@@ -29,6 +29,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
+#include <multipass/standard_paths.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 
@@ -448,6 +449,27 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         if (warning_aliases.size())
             cout << fmt::format("Warning: unable to create {} {}.\n", warning_aliases.size() == 1 ? "alias" : "aliases",
                                 fmt::join(warning_aliases, ", "));
+
+        for (const auto& workspace_to_be_created : reply.workspaces_to_be_created())
+        {
+            auto full_path_str = MP_STDPATHS.writableLocation(StandardPaths::HomeLocation) + "/multipass/" +
+                                 QString::fromStdString(workspace_to_be_created);
+            QDir full_path(full_path_str);
+            if (full_path.exists())
+            {
+                cerr << fmt::format("Folder \"{}\" already exists.\n", full_path_str);
+            }
+            else
+            {
+                if (!full_path.mkpath(full_path_str))
+                {
+                    cerr << fmt::format("Error creating folder {}. Not mounting.\n", full_path_str);
+                    continue;
+                }
+            }
+
+            // TODO: mount the folder.
+        }
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
         instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
