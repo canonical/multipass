@@ -112,6 +112,8 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    request.set_force_stop(parser->isSet(force_option));
+
     auto time = parser->value(time_option);
 
     if (time.startsWith("+"))
