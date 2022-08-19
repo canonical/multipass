@@ -182,7 +182,7 @@ jobs:
                 if [ '${{ matrix.driver }}' == 'hyperv' ]; then
                   _ps "Set-Variable ProgressPreference SilentlyContinue; Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"
                   _ps "Restart-Computer -Force"
-                  sleep 60
+                  sleep 120
                 fi
               fi
 
