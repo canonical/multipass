@@ -353,21 +353,14 @@ void mp::QemuVirtualMachine::shutdown(bool force)
         if (vm_process)
         {
             mpl::log(mpl::Level::info, vm_name, "Killing process");
-            try
-            {
-                vm_process->kill();
-            }
-            catch (std::exception&)
-            {
-            }
+            vm_process->kill();
         }
         else
+        {
             mpl::log(mpl::Level::info, vm_name, "No process to kill");
-
-        return;
+        }
     }
-
-    if (state == State::suspended)
+    else if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
