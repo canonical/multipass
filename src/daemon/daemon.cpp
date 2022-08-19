@@ -2323,6 +2323,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                 auto vm_desc = vm_desc_pair.first;
                 auto& vm_client_data = vm_desc_pair.second;
                 auto& vm_aliases = vm_client_data.aliases_to_be_created;
+                auto& vm_workspaces = vm_client_data.workspaces_to_be_created;
 
                 vm_instance_specs[name] = {vm_desc.num_cores,
                                            vm_desc.mem_size,
@@ -2347,7 +2348,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
 
                     vm_instances[name]->start();
 
-                    auto future_watcher = create_future_watcher([this, server, name, vm_aliases] {
+                    auto future_watcher = create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
                         LaunchReply reply;
                         reply.set_vm_instance_name(name);
                         config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
@@ -2362,6 +2363,14 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                             alias->set_instance(blueprint_alias.second.instance);
                             alias->set_command(blueprint_alias.second.command);
                             alias->set_working_directory(blueprint_alias.second.working_directory);
+                        }
+
+                        // Now attach the workspaces.
+                        for (const auto& blueprint_workspace : vm_workspaces)
+                        {
+                            mpl::log(mpl::Level::debug, category,
+                                     fmt::format("Adding workspace '{}' to RPC reply", blueprint_workspace));
+                            reply.add_workspaces_to_be_created(blueprint_workspace);
                         }
 
                         server->Write(reply);
@@ -2420,12 +2429,28 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                 query = config->blueprint_provider->fetch_blueprint_for(request->image(), vm_desc, client_launch_data);
                 query.name = name;
 
-                // Aliases are defined for the instance name in the Blueprint. If the user asked for a different name,
-                // it will be necessary to change the alias definitions to reflect it.
+                // Aliases and default workspace are named in function of the instance name in the Blueprint. If the
+                // user asked for a different name, it will be necessary to change the alias definitions and the
+                // workspace name to reflect it.
                 if (name != request->image())
+                {
                     for (auto& alias_to_define : client_launch_data.aliases_to_be_created)
                         if (alias_to_define.second.instance == request->image())
+                        {
+                            mpl::log(mpl::Level::trace, category,
+                                     fmt::format("Renaming instance on alias \"{}\" from \"{}\" to \"{}\"",
+                                                 alias_to_define.first, alias_to_define.second.instance, name));
                             alias_to_define.second.instance = name;
+                        }
+
+                    for (auto& workspace_to_create : client_launch_data.workspaces_to_be_created)
+                        if (workspace_to_create == request->image())
+                        {
+                            mpl::log(mpl::Level::trace, category,
+                                     fmt::format("Renaming workspace \"{}\" to \"{}\"", workspace_to_create, name));
+                            workspace_to_create = name;
+                        }
+                }
             }
             catch (const std::out_of_range&)
             {
