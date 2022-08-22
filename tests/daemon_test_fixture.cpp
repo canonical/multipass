@@ -23,6 +23,7 @@
 #include "stub_cert_store.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
+#include "stub_mount_handler.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_terminal.h"
 #include "stub_virtual_machine_factory.h"
@@ -312,6 +313,7 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     config_builder.logger = std::make_unique<StubLogger>();
     config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
     config_builder.blueprint_provider = std::make_unique<StubVMBlueprintProvider>();
+    config_builder.mount_handlers.push_back(std::make_unique<StubMountHandler>());
 }
 
 void mpt::DaemonTestFixture::SetUp()
