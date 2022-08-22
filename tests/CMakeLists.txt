@@ -66,6 +66,7 @@ add_executable(multipass_tests
   test_daemon.cpp
   test_daemon_authenticate.cpp
   test_daemon_find.cpp
+  test_daemon_mount.cpp
   test_daemon_start.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
