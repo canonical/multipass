@@ -8,6 +8,7 @@ aliases:
 instances:
   test-blueprint1:
     image: "default"
+    workspace: true
     limits:
       min-cpu: 2
       min-mem: 2G

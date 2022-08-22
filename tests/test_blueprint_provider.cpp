@@ -179,7 +179,7 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedInfo)
     EXPECT_THAT(yaml_as_str, AllOf(HasSubstr("runcmd"), HasSubstr("echo \"Have fun!\"")));
 }
 
-TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedAliases)
+TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedAliasesAndWorkspace)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
@@ -201,6 +201,9 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedAliases)
     EXPECT_EQ(lsp_alias.instance, "test-blueprint1");
     EXPECT_EQ(lsp_alias.command, "pwd");
     EXPECT_EQ(lsp_alias.working_directory, "map");
+
+    EXPECT_TRUE(launch_data.workspaces_to_be_created.size() == 1 &&
+                launch_data.workspaces_to_be_created[0] == "test-blueprint1");
 }
 
 TEST_F(VMBlueprintProvider, fetchTestBlueprint2ReturnsExpectedInfo)
@@ -210,9 +213,9 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint2ReturnsExpectedInfo)
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
-    mp::ClientLaunchData dummy_data;
+    mp::ClientLaunchData launch_data;
 
-    auto query = blueprint_provider.fetch_blueprint_for("test-blueprint2", vm_desc, dummy_data);
+    auto query = blueprint_provider.fetch_blueprint_for("test-blueprint2", vm_desc, launch_data);
 
     EXPECT_EQ(query.release, "bionic");
     EXPECT_EQ(query.remote_name, "daily");
@@ -220,6 +223,8 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint2ReturnsExpectedInfo)
     EXPECT_EQ(vm_desc.mem_size, mp::MemorySize("4G"));
     EXPECT_EQ(vm_desc.disk_space, mp::MemorySize("50G"));
     EXPECT_TRUE(vm_desc.vendor_data_config.IsNull());
+
+    EXPECT_EQ(launch_data.workspaces_to_be_created.size(), 0);
 }
 
 TEST_F(VMBlueprintProvider, missingDescriptionThrows)
