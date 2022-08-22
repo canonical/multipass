@@ -1536,7 +1536,8 @@ try // clang-format on
 
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
-            fmt::format_to(errors, "There is already a mount defined for \"{}:{}\"\n", name, target_path);
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Mount already defined for \"{}:{}\"\n", name, target_path));
             continue;
         }
 
