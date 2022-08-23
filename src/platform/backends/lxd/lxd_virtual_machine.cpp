@@ -196,22 +196,29 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
 {
     update_shutdown_status = false;
 
-    current_state();
-    if (state == State::running)
+    try
     {
-        try
+        current_state();
+
+        if (state == State::running)
         {
-            if (!QFileInfo::exists(mp::utils::snap_common_dir() + "/snap_refresh"))
+            try
+            {
+                if (!QFileInfo::exists(mp::utils::snap_common_dir() + "/snap_refresh"))
+                    stop();
+            }
+            catch (const mp::SnapEnvironmentException&)
+            {
                 stop();
+            }
         }
-        catch (const mp::SnapEnvironmentException&)
+        else
         {
-            stop();
+            update_state();
         }
     }
-    else
+    catch (const LXDNotFoundException& e)
     {
-        update_state();
     }
 }
 
