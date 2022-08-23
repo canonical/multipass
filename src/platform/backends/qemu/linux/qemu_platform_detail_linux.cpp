@@ -136,7 +136,8 @@ mp::QemuPlatformDetail::~QemuPlatformDetail()
 
 std::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
 {
-    return dnsmasq_server->get_ip_for(hw_addr);
+    auto ip_and_host = dnsmasq_server->get_ip_and_host_for(hw_addr);
+    return ip_and_host ? std::make_optional(ip_and_host.value().first) : std::nullopt;
 }
 
 void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
@@ -185,6 +186,14 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
                          << QString::fromStdString(
                                 fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
                                             tap_device_name, vm_desc.default_mac_address));
+}
+
+// FIXME: after moving to core22, this will be handled by dnsmasq --dhcp-ignore-clid
+void multipass::QemuPlatformDetail::release_mac_with_different_hostname(const std::string& hw_addr,
+                                                                        const std::string& name)
+{
+    if (auto ip_and_host = dnsmasq_server->get_ip_and_host_for(hw_addr); ip_and_host && ip_and_host->second != name)
+        dnsmasq_server->release_mac(hw_addr);
 }
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const

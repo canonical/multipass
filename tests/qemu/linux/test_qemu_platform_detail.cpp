@@ -120,7 +120,9 @@ TEST_F(QemuPlatformDetail, get_ip_for_returns_expected_info)
 {
     const mp::IPAddress ip_address{fmt::format("{}.5", subnet)};
 
-    EXPECT_CALL(*mock_dnsmasq_server, get_ip_for(hw_addr)).WillOnce([&ip_address](auto...) { return ip_address; });
+    EXPECT_CALL(*mock_dnsmasq_server, get_ip_and_host_for(hw_addr)).WillOnce([&ip_address](auto...) {
+        return std::make_optional(std::make_pair(ip_address, ""));
+    });
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 

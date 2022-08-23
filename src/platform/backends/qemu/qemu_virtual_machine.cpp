@@ -391,6 +391,8 @@ void mp::QemuVirtualMachine::on_suspend()
 
 void mp::QemuVirtualMachine::on_restart()
 {
+    qemu_platform->release_mac_with_different_hostname(mac_addr, vm_name);
+
     state = State::restarting;
     update_state();
 
