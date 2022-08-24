@@ -1435,7 +1435,9 @@ void mp::Daemon::mount(const MountRequest* request, grpc::ServerWriterInterface<
 try // clang-format on
 {
     mpl::ClientLogger<MountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-    auto mount_type = request->experimental() ? mp::VMMount::MountType::Performance : mp::VMMount::MountType::SSHFS;
+    auto mount_type = request->mount_type() == mp::MountRequest_MountType_INTEGRATED
+                          ? mp::VMMount::MountType::SSHFS
+                          : mp::VMMount::MountType::Performance;
 
     if (mount_type == mp::VMMount::MountType::Performance && config->mount_handlers.size() < 2)
         throw mp::NotImplementedOnThisBackendException("experimental mounts");
