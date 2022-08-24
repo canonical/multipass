@@ -259,11 +259,15 @@ message TargetPathInfo {
 }
 
 message MountRequest {
+    enum MountType {
+        INTEGRATED = 0;
+        NATIVE = 1;
+    }
     string source_path = 1;
     repeated TargetPathInfo target_paths = 2;
     MountMaps mount_maps = 3;
     int32 verbosity_level = 4;
-    bool experimental = 5;
+    MountType mount_type = 5;
 }
 
 message MountReply {
