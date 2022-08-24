@@ -1540,6 +1540,26 @@ TEST_F(Client, mount_cmd_fails_invalid_host_int_gid_mappings)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, mountCmdGoodIntergratedMountType)
+{
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
+    EXPECT_EQ(send_command({"mount", "-t", "integrated", mpt::test_data_path().toStdString(), "test-vm:test"}),
+              mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, mountCmdGoodNativeMountType)
+{
+    EXPECT_CALL(mock_daemon, mount(_, _, _));
+    EXPECT_EQ(send_command({"mount", "-t", "native", mpt::test_data_path().toStdString(), "test-vm:test"}),
+              mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, mountCmdFailsBogusMountType)
+{
+    EXPECT_EQ(send_command({"mount", "-t", "bogus", mpt::test_data_path().toStdString(), "test-vm:test"}),
+              mp::ReturnCode::CommandLineError);
+}
+
 // recover cli tests
 TEST_F(Client, recover_cmd_fails_no_args)
 {
