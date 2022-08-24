@@ -21,6 +21,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
+#include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
@@ -35,6 +36,8 @@ namespace cmd = multipass::cmd;
 namespace
 {
 constexpr auto category = "mount cmd";
+const QString default_mount_type{"integrated"};
+const QString native_mount_type{"native"};
 
 auto convert_id_for(const QString& id_string)
 {
@@ -45,6 +48,18 @@ auto convert_id_for(const QString& id_string)
         throw std::runtime_error(id_string.toStdString() + " is an invalid id");
 
     return id;
+}
+
+auto checked_mount_type(const QString& type)
+{
+    if (type == "integrated")
+        return mp::MountRequest_MountType_INTEGRATED;
+
+    if (type == "native")
+        return mp::MountRequest_MountType_NATIVE;
+
+    throw mp::ValidationException{fmt::format("Bad mount type '{}' specified, please use '{}' or '{}'", type,
+                                              default_mount_type, native_mount_type)};
 }
 } // namespace
 
@@ -119,8 +134,13 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                     "<host> to <instance> inside the instance. Can be "
                                     "used multiple times.",
                                     "host>:<instance");
-    QCommandLineOption experimental_option("experimental", "Use experimental host native performance mounts.");
-    parser->addOptions({gid_mappings, uid_mappings, experimental_option});
+    QCommandLineOption mount_type_option({"t", "type"},
+                                         "Specify the type of mount to use.\n"
+                                         "Integrated mounts use technology built into Multipass.\n"
+                                         "Native mounts use hypervisor and/or platform specific mounts.\n"
+                                         "Valid types are: integrated (default) and native",
+                                         "type", default_mount_type);
+    parser->addOptions({gid_mappings, uid_mappings, mount_type_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -258,7 +278,15 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         gid_pair->set_instance_id(mp::default_id);
     }
 
-    request.set_experimental(parser->isSet(experimental_option));
+    try
+    {
+        request.set_mount_type(checked_mount_type(parser->value(mount_type_option).toLower()));
+    }
+    catch (mp::ValidationException& e)
+    {
+        cerr << "error: " << e.what() << "\n";
+        return ParseCode::CommandLineError;
+    }
 
     return ParseCode::Ok;
 }
