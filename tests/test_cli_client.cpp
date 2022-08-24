@@ -3203,7 +3203,10 @@ TEST_F(ClientAlias, fails_when_remove_backup_alias_file_fails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(true)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>()))
+        .WillOnce(Return(false))
+        .WillOnce(Return(true))
+        .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
@@ -3221,7 +3224,10 @@ TEST_F(ClientAlias, fails_renaming_alias_file_fails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(true)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>()))
+        .WillOnce(Return(false))
+        .WillOnce(Return(true))
+        .WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
@@ -3239,7 +3245,7 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));

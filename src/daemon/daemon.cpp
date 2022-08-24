@@ -2667,11 +2667,15 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                 }
                 catch (const std::exception& e)
                 {
-                    fmt::format_to(errors, "Removing \"{}\": {}\n", target_path, e.what());
+                    mpl::log(mpl::Level::error, category, fmt::format("Removing \"{}\": {}\n", target_path, e.what()));
                     invalid_mounts.push_back(target_path);
                 }
-                persist_instances();
             }
+
+            for (const auto& mount : invalid_mounts)
+                vm_instance_specs[name].mounts.erase(mount);
+
+            persist_instances();
         }
     }
     catch (const std::exception& e)

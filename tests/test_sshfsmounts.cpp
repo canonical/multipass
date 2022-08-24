@@ -21,6 +21,7 @@
 #include "mock_process_factory.h"
 #include "mock_virtual_machine.h"
 #include "stub_ssh_key_provider.h"
+#include "tests/mock_file_ops.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/sshfs_mount/sshfs_mounts.h>
@@ -46,6 +47,8 @@ struct SSHFSMountsTest : public ::Test
 
     mpt::StubSSHKeyProvider key_provider;
     std::string source_path{"/my/source/path"}, target_path{"/the/target/path"};
+    mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject();
+    mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
     mp::id_mappings gid_mappings{{1, 2}, {3, 4}}, uid_mappings{{5, -1}, {6, 10}};
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(default_log_level);
@@ -66,6 +69,8 @@ struct SSHFSMountsTest : public ::Test
 
 TEST_F(SSHFSMountsTest, mount_creates_sshfs_process)
 {
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
+
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(sshfs_prints_connected);
 
@@ -98,6 +103,8 @@ TEST_F(SSHFSMountsTest, mount_creates_sshfs_process)
 
 TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exception)
 {
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
+
     auto factory = mpt::MockProcessFactory::Inject();
 
     mpt::MockProcessFactory::Callback sshfs_fails_with_exit_code_nine = [](mpt::MockProcess* process) {
@@ -127,6 +134,8 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_with_return_code_9_causes_exceptio
 
 TEST_F(SSHFSMountsTest, sshfs_process_failing_causes_runtime_exception)
 {
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
+
     auto factory = mpt::MockProcessFactory::Inject();
 
     mpt::MockProcessFactory::Callback sshfs_fails = [](mpt::MockProcess* process) {
@@ -159,6 +168,8 @@ TEST_F(SSHFSMountsTest, sshfs_process_failing_causes_runtime_exception)
 
 TEST_F(SSHFSMountsTest, stop_terminates_sshfs_process)
 {
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
+
     auto factory = mpt::MockProcessFactory::Inject();
     mpt::MockProcessFactory::Callback sshfs_fails = [this](mpt::MockProcess* process) {
         sshfs_prints_connected(process);
@@ -181,6 +192,8 @@ TEST_F(SSHFSMountsTest, stop_terminates_sshfs_process)
 
 TEST_F(SSHFSMountsTest, stop_all_mounts_terminates_all_sshfs_processes)
 {
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).Times(3).WillRepeatedly(Return(true));
+
     auto factory = mpt::MockProcessFactory::Inject();
     mpt::MockProcessFactory::Callback sshfs_fails = [this](mpt::MockProcess* process) {
         sshfs_prints_connected(process);
@@ -205,6 +218,8 @@ TEST_F(SSHFSMountsTest, stop_all_mounts_terminates_all_sshfs_processes)
 
 TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_true_when_found)
 {
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
+
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(sshfs_prints_connected);
 
@@ -219,6 +234,8 @@ TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_true_when_found)
 
 TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_false_when_no_such_mount)
 {
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
+
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(sshfs_prints_connected);
 
@@ -233,6 +250,8 @@ TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_false_when_no_such_
 
 TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_false_when_no_such_instance)
 {
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
+
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(sshfs_prints_connected);
 
