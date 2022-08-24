@@ -638,16 +638,20 @@ auto create_virtual_machine_lambda(const int& num_cores, const mp::MemorySize& m
 
 auto fetch_blueprint_for_lambda(const int& num_cores, const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
                                 const std::string& release, const std::string& remote,
-                                std::optional<std::pair<std::string, mp::AliasDefinition>> alias)
+                                std::optional<std::pair<std::string, mp::AliasDefinition>> alias = std::nullopt,
+                                std::optional<std::string> workspace = std::nullopt)
 {
-    return [&num_cores, &mem_size, &disk_space, &release, &remote,
-            alias](const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
+    return [&num_cores, &mem_size, &disk_space, &release, &remote, alias,
+            workspace](const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
         vm_desc.num_cores = num_cores;
         vm_desc.mem_size = mem_size;
         vm_desc.disk_space = disk_space;
 
         if (alias)
             l_data.aliases_to_be_created.emplace(alias->first, alias->second);
+
+        if (workspace)
+            l_data.workspaces_to_be_created.push_back(*workspace);
 
         return {"", release, false, remote, mp::Query::Type::Alias};
     };
@@ -710,6 +714,39 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
 
     auto expected_csv_string = alias_name + "," + name + "," + alias_command + "," + alias_wdir + "\n";
     EXPECT_THAT(cout_stream.str(), HasSubstr(expected_csv_string));
+}
+
+TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspace)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
+
+    static constexpr int num_cores = 4;
+    const mp::MemorySize mem_size{"4G"};
+    const mp::MemorySize disk_space{"25G"};
+    const std::string release{"focal"};
+    const std::string remote{"release"};
+    const std::string name{"ultimo-blueprint"};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .WillOnce(create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(fetch_image_lambda(release, remote));
+
+    EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
+        .WillOnce(fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, std::nullopt, name));
+
+    EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
+
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream cout_stream;
+    send_command({"launch"}, cout_stream);
+    EXPECT_THAT(cout_stream.str(),
+                AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into ':" + name + ":" + name + "'")));
 }
 
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliasesWithNameOverride)
@@ -821,7 +858,7 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
     EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
-        .WillOnce(fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, std::nullopt));
+        .WillOnce(fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
 
