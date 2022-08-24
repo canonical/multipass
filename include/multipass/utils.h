@@ -66,8 +66,9 @@ enum class TimeoutAction
 
 // filesystem and path helpers
 QDir base_dir(const QString& path);
-Path make_dir(const QDir& a_dir, const QString& name, const QFileDevice::Permissions permissions = 0);
-Path make_dir(const QDir& dir, const QFileDevice::Permissions permissions = 0);
+Path make_dir(const QDir& a_dir, const QString& name,
+              const QFileDevice::Permissions permissions = QFileDevice::Permissions());
+Path make_dir(const QDir& dir, const QFileDevice::Permissions permissions = QFileDevice::Permissions());
 bool is_dir(const std::string& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string filename_for(const std::string& path);

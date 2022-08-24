@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_ALIAS_DICT_H
 #define MULTIPASS_ALIAS_DICT_H
 
-#include <multipass/cli/alias_definition.h>
+#include <multipass/alias_definition.h>
 #include <multipass/terminal.h>
 
 #include <optional>
@@ -31,14 +31,14 @@ namespace multipass
 class AliasDict
 {
 public:
-    typedef typename std::unordered_map<std::string, AliasDefinition> DictType;
+    typedef AliasMap DictType;
     typedef typename DictType::key_type key_type;
     typedef typename DictType::mapped_type mapped_type;
     typedef typename DictType::size_type size_type;
 
     AliasDict(Terminal* term);
     ~AliasDict();
-    void add_alias(const std::string& alias, const AliasDefinition& command);
+    bool add_alias(const std::string& alias, const AliasDefinition& command);
     bool exists_alias(const std::string& alias);
     bool remove_alias(const std::string& alias);
     std::vector<std::string> remove_aliases_for_instance(const std::string& instance);

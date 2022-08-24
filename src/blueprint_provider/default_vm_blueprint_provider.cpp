@@ -103,7 +103,8 @@ mp::DefaultVMBlueprintProvider::DefaultVMBlueprintProvider(URLDownloader* downlo
 }
 
 mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string& blueprint_name,
-                                                              VirtualMachineDescription& vm_desc)
+                                                              VirtualMachineDescription& vm_desc,
+                                                              AliasMap& aliases_to_be_created)
 {
     update_blueprints();
 
@@ -114,6 +115,24 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
     {
         throw InvalidBlueprintException(
             fmt::format("There are no instance definitions matching Blueprint name \"{}\"", blueprint_name));
+    }
+
+    auto blueprint_aliases = blueprint_config["aliases"];
+    if (blueprint_aliases)
+    {
+        for (const auto& alias_to_be_defined : blueprint_aliases)
+        {
+            auto alias_name = alias_to_be_defined.first.as<std::string>();
+            auto instance_and_command = mp::utils::split(alias_to_be_defined.second.as<std::string>(), ":");
+            if (instance_and_command.size() != 2)
+                throw InvalidBlueprintException(fmt::format("Alias definition must be in the form instance:command"));
+
+            mpl::log(mpl::Level::trace, category,
+                     fmt::format("Add alias [{}, {}, {}] to RPC answer", alias_name, instance_and_command[0],
+                                 instance_and_command[1]));
+            AliasDefinition alias_definition{instance_and_command[0], instance_and_command[1], "map"};
+            aliases_to_be_created.emplace(alias_name, alias_definition);
+        }
     }
 
     auto blueprint_instance = blueprint_config["instances"][blueprint_name];

@@ -18,6 +18,7 @@ add_library(commands STATIC
   animated_spinner.cpp
   authenticate.cpp
   common_cli.cpp
+  create_alias.cpp
   delete.cpp
   exec.cpp
   find.cpp

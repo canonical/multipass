@@ -47,7 +47,8 @@ public:
                                const std::chrono::milliseconds& blueprints_ttl,
                                const QString& arch = QSysInfo::currentCpuArchitecture());
 
-    Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc) override;
+    Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc,
+                              AliasMap& aliases_to_be_created) override;
     VMImageInfo info_for(const std::string& blueprint_name) override;
     std::vector<VMImageInfo> all_blueprints() override;
     std::string name_from_blueprint(const std::string& blueprint_name) override;
