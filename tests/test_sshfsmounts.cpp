@@ -263,3 +263,19 @@ TEST_F(SSHFSMountsTest, has_instance_already_mounted_returns_false_when_no_such_
 
     EXPECT_FALSE(sshfs_mounts.has_instance_already_mounted("bad_vm_name", target_path));
 }
+
+TEST_F(SSHFSMountsTest, mount_fails_on_nonexist_directory)
+{
+    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(false));
+
+    auto factory = mpt::MockProcessFactory::Inject();
+    factory->register_callback(sshfs_prints_connected);
+
+    mp::SSHFSMounts sshfs_mounts(key_provider);
+
+    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
+
+    MP_EXPECT_THROW_THAT(sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings),
+                         std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("Mount path `{}` does not exist.", source_path))));
+}
