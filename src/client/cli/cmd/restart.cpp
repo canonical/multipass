@@ -46,7 +46,16 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    spinner.start(instance_action_message_for(request.instance_names(), "Restarting "));
+    auto streaming_callback = [this, &spinner](mp::RestartReply& reply) {
+        if (!reply.log_line().empty())
+        {
+            spinner.print(cerr, reply.log_line());
+        }
+
+        spinner.stop();
+        spinner.start(reply.reply_message());
+    };
+
     request.set_verbosity_level(parser->verbosityLevel());
 
     std::unique_ptr<multipass::utils::Timer> timer;
@@ -58,7 +67,14 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
         timer->start();
     }
 
-    return dispatch(&RpcMethod::restart, request, on_success, on_failure);
+    ReturnCode return_code;
+    do
+    {
+        spinner.start(instance_action_message_for(request.instance_names(), "Restarting "));
+    } while ((return_code = dispatch(&RpcMethod::restart, request, on_success, on_failure, streaming_callback)) ==
+             ReturnCode::Retry);
+
+    return return_code;
 }
 
 std::string cmd::Restart::name() const
