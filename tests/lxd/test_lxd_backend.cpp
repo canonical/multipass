@@ -26,7 +26,6 @@
 #include "tests/mock_platform.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_status_monitor.h"
-#include "tests/stub_terminal.h"
 #include "tests/stub_url_downloader.h"
 #include "tests/temp_dir.h"
 
@@ -654,7 +653,7 @@ TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
     EXPECT_TRUE(stop_requested);
 }
 
-TEST_F(LXDBackend, machine_logs_not_found_exception_in_dtor)
+TEST_F(LXDBackend, machineLogsNotFoundExceptionInDtor)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
