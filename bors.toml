@@ -1,20 +1,13 @@
 status = [
            "Linux",
-           "CI (Linux, linux, lxd)",
-           "CI (Linux, linux, qemu)",
            "macOS-x86_64",
-           "CI (macOS, macos-10.15, hyperkit, x86_64)",
-           "CI (macOS, macos-10.15, qemu, x86_64)",
-           "CI (macOS, macos-11, hyperkit, x86_64)",
-           "CI (macOS, macos-11, qemu, x86_64)",
            "macOS-arm64",
-           "CI (macOS, qemu, arm64)",
            "Windows",
-           "CI (Windows, windows-10, hyperv)",
-           "CI (Windows, windows-11, hyperv)"
          ]
 block-labels = [ "no-merge" ]
-timeout-sec = 12000
+committer.name = "Multipass CI Bot"
+committer.email = "multipass-ci-bot@canonical.com"
+timeout-sec = 3600
 delete-merged-branches = true
 update_base_for_deletes = true
 cut_body_after = "---"
