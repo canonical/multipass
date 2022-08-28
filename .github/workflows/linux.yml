@@ -59,10 +59,13 @@ jobs:
     # Let Lint fail on pull requests
     if: |
       ${{
-        success()
-        || needs.Lint.result == 'skipped'
-        || ( needs.Lint.result == 'failure'
-             && github.event_name == 'pull_request' )
+        !cancelled()
+        && ( success()
+             || needs.Lint.result == 'skipped'
+             || ( needs.Lint.result == 'failure'
+                  && github.event_name == 'pull_request'
+                )
+           )
       }}
 
     outputs:
