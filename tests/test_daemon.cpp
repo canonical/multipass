@@ -15,6 +15,7 @@
  *
  */
 
+#include "blueprint_test_lambdas.h"
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
@@ -620,61 +621,6 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
     send_command({GetParam()});
 }
 
-auto create_virtual_machine_lambda(const int& num_cores, const mp::MemorySize& mem_size,
-                                   const mp::MemorySize& disk_space, const std::string& name)
-{
-    return [&num_cores, &mem_size, &disk_space, &name](const mp::VirtualMachineDescription& vm_desc, auto&) {
-        EXPECT_EQ(vm_desc.num_cores, num_cores);
-        EXPECT_EQ(vm_desc.mem_size, mem_size);
-        EXPECT_EQ(vm_desc.disk_space, disk_space);
-        if (!name.empty())
-        {
-            EXPECT_EQ(vm_desc.vm_name, name);
-        }
-
-        return std::make_unique<mpt::StubVirtualMachine>();
-    };
-}
-
-auto fetch_blueprint_for_lambda(const int& num_cores, const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
-                                const std::string& release, const std::string& remote,
-                                std::optional<std::pair<std::string, mp::AliasDefinition>> alias = std::nullopt,
-                                std::optional<std::string> workspace = std::nullopt)
-{
-    return [&num_cores, &mem_size, &disk_space, &release, &remote, alias,
-            workspace](const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
-        vm_desc.num_cores = num_cores;
-        vm_desc.mem_size = mem_size;
-        vm_desc.disk_space = disk_space;
-
-        if (alias)
-            l_data.aliases_to_be_created.emplace(alias->first, alias->second);
-
-        if (workspace)
-            l_data.workspaces_to_be_created.push_back(*workspace);
-
-        return {"", release, false, remote, mp::Query::Type::Alias};
-    };
-}
-
-auto fetch_image_lambda(const std::string& release, const std::string& remote)
-{
-    return [&release, &remote](const mp::FetchType& fetch_type, const mp::Query& query,
-                               const mp::VMImageVault::PrepareAction& prepare, const mp::ProgressMonitor& monitor) {
-        EXPECT_EQ(query.release, release);
-        if (remote.empty())
-        {
-            EXPECT_TRUE(query.remote_name.empty());
-        }
-        else
-        {
-            EXPECT_EQ(query.remote_name, remote);
-        }
-
-        return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor);
-    };
-}
-
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -692,14 +638,14 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
     const std::string alias_wdir{"map"};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .WillOnce(create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
+        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     auto alias = std::make_optional(std::make_pair(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir}));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
-        .WillOnce(fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, alias));
+        .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, alias));
 
     EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
 
@@ -730,12 +676,13 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspace)
     const std::string name{"ultimo-blueprint"};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .WillOnce(create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
+        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
-        .WillOnce(fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, std::nullopt, name));
+        .WillOnce(
+            mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, std::nullopt, name));
 
     EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
 
@@ -767,14 +714,14 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliasesWith
     const std::string alias_wdir{"map"};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .WillOnce(create_virtual_machine_lambda(num_cores, mem_size, disk_space, command_line_name));
+        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, command_line_name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     auto alias = std::make_optional(std::make_pair(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir}));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
-        .WillOnce(fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, alias));
+        .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, alias));
 
     EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(command_line_name));
 
@@ -812,14 +759,14 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
     populate_db_file(AliasesVector{{alias_name, {"original_instance", "a_command", "map"}}});
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .WillOnce(create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
+        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     auto alias = std::make_optional(std::make_pair(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir}));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
-        .WillOnce(fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, alias));
+        .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, alias));
 
     EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
 
@@ -853,12 +800,12 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
     const std::string name{"ultimo-blueprint"};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .WillOnce(create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
+        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
-        .WillOnce(fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote));
+        .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
 
@@ -881,9 +828,9 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_not_found_passes_expected_data)
     const std::string release{"default"};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
-        .WillOnce(create_virtual_machine_lambda(num_cores, mem_size, disk_space, empty));
+        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, empty));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(fetch_image_lambda(release, empty));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, empty));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
