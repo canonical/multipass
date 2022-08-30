@@ -697,6 +697,44 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspace)
                 AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into ':" + name + ":" + name + "'")));
 }
 
+TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceConfined)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
+
+    static constexpr int num_cores = 4;
+    const mp::MemorySize mem_size{"4G"};
+    const mp::MemorySize disk_space{"25G"};
+    const std::string release{"focal"};
+    const std::string remote{"release"};
+    const std::string name{"ultimo-blueprint"};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+
+    EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
+        .WillOnce(
+            mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, std::nullopt, name));
+
+    EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
+
+    mpt::TempDir temp_dir;
+    mpt::SetEnvScope env_scope1("SNAP_NAME", "multipass");
+    mpt::SetEnvScope env_scope2("SNAP_REAL_HOME", temp_dir.path().toUtf8());
+
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream cout_stream;
+    send_command({"launch"}, cout_stream);
+    EXPECT_THAT(cout_stream.str(),
+                AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into ':" + name + ":" + name + "'")));
+}
+
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceInExistingDir)
 {
     auto mock_factory = use_a_mock_vm_factory();
