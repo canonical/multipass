@@ -453,8 +453,10 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
         for (const auto& workspace_to_be_created : reply.workspaces_to_be_created())
         {
-            auto full_path_str = MP_STDPATHS.writableLocation(StandardPaths::HomeLocation) + "/multipass/" +
-                                 QString::fromStdString(workspace_to_be_created);
+            auto home_dir = mpu::in_multipass_snap() ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
+                                                     : MP_STDPATHS.writableLocation(StandardPaths::HomeLocation);
+            auto full_path_str = home_dir + "/multipass/" + QString::fromStdString(workspace_to_be_created);
+
             QDir full_path(full_path_str);
             if (full_path.exists())
             {
