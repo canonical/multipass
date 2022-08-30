@@ -110,7 +110,10 @@ TEST_F(DNSMasqServer, finds_ip)
     auto ip_and_host = dns.get_ip_and_host_for(hw_addr);
 
     ASSERT_TRUE(ip_and_host);
-    EXPECT_THAT(ip_and_host.value().first, Eq(mp::IPAddress(expected_ip)));
+
+    auto [ip, host] = ip_and_host.value();
+    EXPECT_EQ(ip, mp::IPAddress(expected_ip));
+    EXPECT_EQ(host, "dummy_name");
 }
 
 TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
