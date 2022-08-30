@@ -29,6 +29,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/network_access_manager.h>
 #include <multipass/snap_utils.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -196,23 +197,33 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
 {
     update_shutdown_status = false;
 
-    current_state();
-    if (state == State::running)
-    {
+    mp::top_catch_all(vm_name, [this]() {
         try
         {
-            if (!QFileInfo::exists(mp::utils::snap_common_dir() + "/snap_refresh"))
-                stop();
+            current_state();
+
+            if (state == State::running)
+            {
+                try
+                {
+                    if (!QFileInfo::exists(mp::utils::snap_common_dir() + "/snap_refresh"))
+                        stop();
+                }
+                catch (const mp::SnapEnvironmentException&)
+                {
+                    stop();
+                }
+            }
+            else
+            {
+                update_state();
+            }
         }
-        catch (const mp::SnapEnvironmentException&)
+        catch (const LXDNotFoundException& e)
         {
-            stop();
+            mpl::log(mpl::Level::debug, vm_name, fmt::format("LXD object not found"));
         }
-    }
-    else
-    {
-        update_state();
-    }
+    });
 }
 
 void mp::LXDVirtualMachine::start()
