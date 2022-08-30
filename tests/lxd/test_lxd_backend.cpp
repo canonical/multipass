@@ -653,6 +653,65 @@ TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
     EXPECT_TRUE(stop_requested);
 }
 
+TEST_F(LXDBackend, machineLogsNotFoundExceptionInDtor)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    bool vm_shutdown{false}, stop_requested{false};
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&vm_shutdown, &stop_requested](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET")
+            {
+                if (url.contains("1.0/operations/b043d632-5c48-44b3-983c-a25660d61164"))
+                {
+                    vm_shutdown = true;
+                    return new mpt::MockLocalSocketReply(mpt::vm_stop_wait_task_data);
+                }
+                else if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                {
+                    if (vm_shutdown)
+                    {
+                        throw mp::LXDNotFoundException();
+                    }
+                    else
+                    {
+                        return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                    }
+                }
+            }
+            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+                     data.contains("stop"))
+            {
+                stop_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("LXD object not found"))));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+
+    // create in its own scope so the dtor is called
+    {
+        mp::LXDVirtualMachine machine{
+            default_description, mock_monitor,        mock_network_access_manager.get(), base_url,
+            bridge_name,         default_storage_pool};
+        machine.shutdown();
+    }
+
+    EXPECT_TRUE(vm_shutdown);
+    EXPECT_TRUE(stop_requested);
+}
+
 TEST_F(LXDBackend, does_not_call_stop_when_snap_refresh_is_detected)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
