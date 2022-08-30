@@ -25,6 +25,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 #include <multipass/settings/settings.h>
@@ -461,7 +462,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             }
             else
             {
-                if (!full_path.mkpath(full_path_str))
+                if (!MP_FILEOPS.mkpath(full_path, full_path_str))
                 {
                     cerr << fmt::format("Error creating folder {}. Not mounting.\n", full_path_str);
                     continue;
