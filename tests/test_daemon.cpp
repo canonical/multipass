@@ -694,7 +694,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspace)
     std::stringstream cout_stream;
     send_command({"launch"}, cout_stream);
     EXPECT_THAT(cout_stream.str(),
-                AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into ':" + name + ":" + name + "'")));
+                AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into '" + name + ":" + name + "'")));
 }
 
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceConfined)
@@ -732,7 +732,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceConfined)
     std::stringstream cout_stream;
     send_command({"launch"}, cout_stream);
     EXPECT_THAT(cout_stream.str(),
-                AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into ':" + name + ":" + name + "'")));
+                AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into '" + name + ":" + name + "'")));
 }
 
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceInExistingDir)
@@ -775,7 +775,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceInExisting
 
     EXPECT_THAT(cerr_stream.str(), HasSubstr(fmt::format("Folder \"{}\" already exists.", workspace_path)));
     EXPECT_THAT(cout_stream.str(),
-                AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into ':" + name + ":" + name + "'")));
+                AllOf(HasSubstr("Mounted '"), HasSubstr(name + "' into '" + name + ":" + name + "'")));
 }
 
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotMountUnwrittableWorkspace)

@@ -451,6 +451,9 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             cout << fmt::format("Warning: unable to create {} {}.\n", warning_aliases.size() == 1 ? "alias" : "aliases",
                                 fmt::join(warning_aliases, ", "));
 
+        instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
+                                                                               : request.instance_name());
+
         for (const auto& workspace_to_be_created : reply.workspaces_to_be_created())
         {
             auto home_dir = mpu::in_multipass_snap() ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
@@ -471,16 +474,13 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                 }
             }
 
-            auto full_mount_path = reply.vm_instance_name() + ":" + workspace_to_be_created;
-            if (mount(parser, full_path_str, QString::fromStdString(full_mount_path)) != ReturnCode::Ok)
+            if (mount(parser, full_path_str, QString::fromStdString(workspace_to_be_created)) != ReturnCode::Ok)
             {
                 cerr << fmt::format("Error mounting folder {}.\n", full_path_str);
             }
         }
 
         cout << "Launched: " << reply.vm_instance_name() << "\n";
-        instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
-                                                                               : request.instance_name());
 
         if (term->is_live() && update_available(reply.update_info()))
         {
