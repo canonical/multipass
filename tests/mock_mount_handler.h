@@ -38,7 +38,7 @@ public:
                 (override));
     MOCK_METHOD(void, start_mount,
                 (VirtualMachine*, ServerVariant, const std::string&, const std::chrono::milliseconds&), (override));
-    MOCK_METHOD(bool, stop_mount, (const std::string&, const std::string&), (override));
+    MOCK_METHOD(void, stop_mount, (const std::string&, const std::string&), (override));
     MOCK_METHOD(void, stop_all_mounts_for_instance, (const std::string&), (override));
     MOCK_METHOD(bool, has_instance_already_mounted, (const std::string&, const std::string&), (const, override));
 
