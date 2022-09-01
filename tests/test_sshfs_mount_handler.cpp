@@ -228,6 +228,19 @@ TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
     sshfs_mount_handler.stop_mount(vm.vm_name, target_path);
 }
 
+TEST_F(SSHFSMountHandlerTest, stopNoRunningProcessLogsMessageAndReturns)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs-mount-handler")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq(
+                        fmt::format("No running mount process for \"{}\" serving '{}'", vm.vm_name, target_path)))));
+
+    mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
+
+    sshfs_mount_handler.stop_mount(vm.vm_name, target_path);
+}
+
 TEST_F(SSHFSMountHandlerTest, stop_all_mounts_terminates_all_sshfs_processes)
 {
     EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).Times(3).WillRepeatedly(Return(true));
