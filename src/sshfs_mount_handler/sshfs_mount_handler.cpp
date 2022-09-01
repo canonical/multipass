@@ -236,12 +236,14 @@ void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server
     mount_processes[vm->vm_name][target_path] = std::move(sshfs_server_process);
 }
 
-bool mp::SSHFSMountHandler::stop_mount(const std::string& instance, const std::string& path)
+void mp::SSHFSMountHandler::stop_mount(const std::string& instance, const std::string& path)
 {
     auto sshfs_mount_it = mount_processes.find(instance);
     if (sshfs_mount_it == mount_processes.end())
     {
-        return false;
+        mpl::log(mpl::Level::info, category,
+                 fmt::format("No running mount process for \"{}\" serving '{}'", instance, path));
+        return;
     }
 
     auto& sshfs_mount_map = sshfs_mount_it->second;
@@ -258,9 +260,7 @@ bool mp::SSHFSMountHandler::stop_mount(const std::string& instance, const std::s
                      fmt::format("Failed to terminate mount '{}' in instance \"{}\", killing", path, instance));
             sshfs_mount->kill();
         }
-        return true;
     }
-    return false;
 }
 
 void mp::SSHFSMountHandler::stop_all_mounts_for_instance(const std::string& instance)
