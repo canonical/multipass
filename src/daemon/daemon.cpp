@@ -1938,7 +1938,6 @@ try // clang-format on
 
         auto target_path = path_entry.target_path();
         auto& mounts = vm_instance_specs[name].mounts;
-        auto& vm = it->second;
 
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
@@ -1952,20 +1951,27 @@ try // clang-format on
         }
         else
         {
-            if (vm->current_state() == mp::VirtualMachine::State::running)
+            int mount_type;
+            try
             {
-                if (!config->mount_handlers.at(static_cast<int>(mounts[target_path].mount_type))
-                         ->stop_mount(name, target_path))
-                {
-                    fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
-                }
+                mount_type = static_cast<int>(mounts.at(target_path).mount_type);
             }
-
-            auto erased = mounts.erase(target_path);
-            if (!erased)
+            catch (const std::out_of_range&)
             {
                 fmt::format_to(errors, "\"{}\" not found in database\n", target_path);
+                continue;
             }
+
+            try
+            {
+                config->mount_handlers.at(mount_type)->stop_mount(name, target_path);
+            }
+            catch (const std::out_of_range&)
+            {
+                throw std::runtime_error("Cannot unmount: Invalid mount type stored in the database.");
+            }
+
+            mounts.erase(target_path);
         }
     }
 
