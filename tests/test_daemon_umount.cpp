@@ -116,9 +116,7 @@ TEST_F(TestDaemonUmount, unmountsMountedTargetWhenInstanceRunning)
         return std::move(instance_ptr);
     });
 
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
-
-    EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(1);
     config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
 
     mp::Daemon daemon{config_builder.build()};
@@ -134,35 +132,6 @@ TEST_F(TestDaemonUmount, unmountsMountedTargetWhenInstanceRunning)
     EXPECT_TRUE(status.ok());
 }
 
-TEST_F(TestDaemonUmount, unmountNonMountedTargetHasError)
-{
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
-    config_builder.data_directory = temp_dir->path();
-
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
-        return std::move(instance_ptr);
-    });
-
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
-
-    EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).WillOnce(Return(false));
-    config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
-
-    mp::Daemon daemon{config_builder.build()};
-
-    mp::UmountRequest request;
-    auto entry = request.add_target_paths();
-    entry->set_instance_name(mock_instance_name);
-    entry->set_target_path(fake_target_path);
-
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::umount, request, StrictMock<mpt::MockServerWriter<mp::UmountReply>>{});
-
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
-    EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("\"{}\" is not mounted\n", fake_target_path)));
-}
-
 TEST_F(TestDaemonUmount, mountNotFoundInDatabaseHasError)
 {
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
@@ -173,9 +142,7 @@ TEST_F(TestDaemonUmount, mountNotFoundInDatabaseHasError)
         return std::move(instance_ptr);
     });
 
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
-
-    EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(0);
     config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
 
     mp::Daemon daemon{config_builder.build()};
@@ -190,4 +157,34 @@ TEST_F(TestDaemonUmount, mountNotFoundInDatabaseHasError)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("\"{}\" not found in database", fake_target_path)));
+}
+
+TEST_F(TestDaemonUmount, invalidMountTypeHasError)
+{
+    std::unordered_map<std::string, mp::VMMount> mounts;
+    mounts.emplace(fake_target_path, mp::VMMount{"foo", {}, {}, static_cast<multipass::VMMount::MountType>(2)});
+
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    config_builder.data_directory = temp_dir->path();
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
+        return std::move(instance_ptr);
+    });
+
+    EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(0);
+    config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::UmountRequest request;
+    auto entry = request.add_target_paths();
+    entry->set_instance_name(mock_instance_name);
+    entry->set_target_path(fake_target_path);
+
+    auto status =
+        call_daemon_slot(daemon, &mp::Daemon::umount, request, StrictMock<mpt::MockServerWriter<mp::UmountReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("Cannot unmount: Invalid mount type stored in the database."));
 }

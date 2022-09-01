@@ -42,9 +42,8 @@ struct StubMountHandler : public MountHandler
     {
     }
 
-    bool stop_mount(const std::string& instance, const std::string& path) override
+    void stop_mount(const std::string& instance, const std::string& path) override
     {
-        return true;
     }
 
     void stop_all_mounts_for_instance(const std::string& instance) override

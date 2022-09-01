@@ -225,8 +225,7 @@ TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
     sshfs_mount_handler.init_mount(&vm, source_path, target_path, gid_mappings, uid_mappings);
     sshfs_mount_handler.start_mount(&vm, &server, target_path);
 
-    int ret = sshfs_mount_handler.stop_mount(vm.vm_name, target_path);
-    ASSERT_TRUE(ret);
+    sshfs_mount_handler.stop_mount(vm.vm_name, target_path);
 }
 
 TEST_F(SSHFSMountHandlerTest, stop_all_mounts_terminates_all_sshfs_processes)
