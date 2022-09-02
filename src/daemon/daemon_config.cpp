@@ -23,6 +23,7 @@
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
@@ -188,6 +189,16 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (mount_handlers.empty())
     {
         mount_handlers.push_back(std::make_unique<SSHFSMountHandler>(*ssh_key_provider));
+
+        try
+        {
+            mount_handlers.push_back(factory->create_performance_mount_handler(*ssh_key_provider));
+        }
+        catch (const NotImplementedOnThisBackendException& e)
+        {
+            mpl::log(mpl::Level::info, "daemon_config",
+                     fmt::format("Cannot set performance mount handler: {}", e.what()));
+        }
     }
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
