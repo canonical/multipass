@@ -24,6 +24,7 @@
 #include <multipass/ssh/ssh_key_provider.h>
 
 #include <chrono>
+#include <memory>
 #include <string>
 #include <variant>
 
@@ -38,6 +39,8 @@ using ServerVariant =
 class MountHandler : private DisabledCopyMove
 {
 public:
+    using UPtr = std::unique_ptr<MountHandler>;
+
     virtual ~MountHandler() = default;
 
     // Used to set up anything host side related
