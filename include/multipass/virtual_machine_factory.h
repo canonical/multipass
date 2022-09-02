@@ -33,6 +33,7 @@ class Node;
 
 namespace multipass
 {
+class MountHandler;
 class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
@@ -68,6 +69,9 @@ public:
 
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
+
+    // Create the performance mount handler for the backend.
+    virtual std::unique_ptr<MountHandler> create_performance_mount_handler(const SSHKeyProvider& ssh_key_provider) = 0;
 
 protected:
     VirtualMachineFactory() = default;
