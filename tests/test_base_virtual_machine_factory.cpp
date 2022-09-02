@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_logger.h"
+#include "stub_ssh_key_provider.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
 
@@ -275,5 +276,14 @@ TEST_F(BaseFactory, prepareNetworkingGutsPreparesEachRequestedNetwork)
     factory.base_prepare_networking_guts(extra_nets, bridge_type);
     EXPECT_EQ(extra_nets.size(), num_nets);
     EXPECT_THAT(extra_nets, Each(Eq(tag)));
+}
+
+TEST_F(BaseFactory, performanceMountsThrowsByDefault)
+{
+    StrictMock<MockBaseFactory> factory;
+    mpt::StubSSHKeyProvider stub_key_provider;
+
+    ASSERT_THROW(factory.mp::BaseVirtualMachineFactory::create_performance_mount_handler(stub_key_provider),
+                 mp::NotImplementedOnThisBackendException);
 }
 } // namespace
