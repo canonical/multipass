@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_VM_SPECS_H
 #define MULTIPASS_VM_SPECS_H
 
-#include <multipass/id_mappings.h>
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/vm_mount.h>
 
 #include <string>
 #include <tuple>
@@ -32,20 +32,6 @@
 
 namespace multipass
 {
-struct VMMount
-{
-    enum class MountType : int
-    {
-        SSHFS = 0,
-        Performance = 1
-    };
-
-    std::string source_path;
-    id_mappings gid_mappings;
-    id_mappings uid_mappings;
-    MountType mount_type;
-};
-
 struct VMSpecs
 {
     int num_cores;
@@ -59,12 +45,6 @@ struct VMSpecs
     bool deleted;
     QJsonObject metadata;
 };
-
-inline bool operator==(const VMMount& a, const VMMount& b)
-{
-    return std::tie(a.source_path, a.gid_mappings, a.uid_mappings) ==
-           std::tie(b.source_path, b.gid_mappings, b.uid_mappings);
-}
 
 inline bool operator==(const VMSpecs& a, const VMSpecs& b)
 {
