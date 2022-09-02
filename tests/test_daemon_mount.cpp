@@ -27,6 +27,7 @@
 #include "temp_file.h"
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 
 namespace mp = multipass;
@@ -396,4 +397,33 @@ TEST_F(TestDaemonMount, expectedUidsGidsPassedToInitMount)
         call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
 
     EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
+{
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = temp_dir->path();
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
+        return std::move(instance_ptr);
+    });
+
+    EXPECT_CALL(*mock_factory, create_performance_mount_handler(_))
+        .WillOnce(Throw(mp::NotImplementedOnThisBackendException("foo")));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::MountRequest request;
+    request.set_source_path(mount_dir.path().toStdString());
+    request.set_mount_type(mp::MountRequest_MountType_NATIVE);
+    auto entry = request.add_target_paths();
+    entry->set_instance_name(mock_instance_name);
+    entry->set_target_path(fake_target_path);
+
+    auto status =
+        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), StrEq("The experimental mounts feature is not implemented on this backend."));
 }
