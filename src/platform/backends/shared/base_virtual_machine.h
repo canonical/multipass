@@ -41,6 +41,9 @@ public:
     BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
 
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
+    void add_vm_mount(const std::string& target_path, const VMMount& vm_mount) override
+    {
+    }
 };
 } // namespace multipass
 
