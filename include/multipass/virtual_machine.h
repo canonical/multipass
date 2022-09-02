@@ -33,6 +33,7 @@ namespace multipass
 {
 class MemorySize;
 class SSHKeyProvider;
+struct VMMount;
 
 class VirtualMachine : private DisabledCopyMove
 {
@@ -75,6 +76,7 @@ public:
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size) = 0;
+    virtual void add_vm_mount(const std::string& target_path, const VMMount& vm_mount) = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
