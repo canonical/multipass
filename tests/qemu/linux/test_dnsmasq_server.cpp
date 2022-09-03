@@ -107,10 +107,13 @@ TEST_F(DNSMasqServer, finds_ip)
     auto dns = make_default_dnsmasq_server();
     make_lease_entry();
 
-    auto ip = dns.get_ip_for(hw_addr);
+    auto ip_and_host = dns.get_ip_and_host_for(hw_addr);
 
-    ASSERT_TRUE(ip);
-    EXPECT_THAT(ip.value(), Eq(mp::IPAddress(expected_ip)));
+    ASSERT_TRUE(ip_and_host);
+
+    auto [ip, host] = ip_and_host.value();
+    EXPECT_EQ(ip, mp::IPAddress(expected_ip));
+    EXPECT_EQ(host, "dummy_name");
 }
 
 TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
@@ -118,9 +121,9 @@ TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
     auto dns = make_default_dnsmasq_server();
 
     const std::string hw_addr{"00:01:02:03:04:05"};
-    auto ip = dns.get_ip_for(hw_addr);
+    auto ip_and_host = dns.get_ip_and_host_for(hw_addr);
 
-    EXPECT_FALSE(ip);
+    EXPECT_FALSE(ip_and_host);
 }
 
 TEST_F(DNSMasqServer, release_mac_releases_ip)

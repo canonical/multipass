@@ -61,18 +61,11 @@ QString latest_version_in(const QJsonObject& versions)
     return max_version;
 }
 
-QString derive_unpacked_file_path_prefix_from(const QString& image_location)
+QString derive_unpacked_file_path_prefix_from(const QString& image_location, const QString& image_suffix)
 {
     QFileInfo info{image_location};
-    auto file_name = info.fileName();
-    file_name.remove("-disk1.img");
-    file_name.remove(".img");
-
-    auto prefix = info.path();
-    prefix.append("/unpacked/");
-    prefix.append(file_name);
-
-    return prefix;
+    auto file_name = info.fileName().remove('-' + image_suffix).remove(".img");
+    return info.path().append("/unpacked/").append(file_name);
 }
 } // namespace
 
@@ -160,14 +153,15 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
             }
             else
             {
-                image = items["disk1.img"].toObject();
+                const auto image_key = items.contains("uefi1.img") ? "uefi1.img" : "disk1.img";
+                image = items[image_key].toObject();
                 image_location = image["path"].toString();
                 sha256 = image["sha256"].toString();
                 size = image["size"].toInt(-1);
 
                 // NOTE: These are not defined in the manifest itself
                 // so they are not guaranteed to be correct or exist in the server
-                const auto prefix = derive_unpacked_file_path_prefix_from(image_location);
+                const auto prefix = derive_unpacked_file_path_prefix_from(image_location, image_key);
                 kernel_location = prefix + "-vmlinuz-generic";
                 initrd_location = prefix + "-initrd-generic";
             }
