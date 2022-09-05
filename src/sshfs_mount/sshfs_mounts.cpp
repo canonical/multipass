@@ -154,7 +154,8 @@ bool mp::SSHFSMounts::stop_mount(const std::string& instance, const std::string&
 
         if (!sshfs_mount->wait_for_finished(1000))
         {
-            mpl::log(mpl::Level::info, category, "failed to terminate nicely, killing");
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Failed to terminate mount '{}' in instance \"{}\", killing", path, instance));
             sshfs_mount->kill();
         }
         return true;
