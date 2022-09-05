@@ -70,7 +70,7 @@ void mp::SSHFSMounts::start_mount(VirtualMachine* vm, const std::string& source_
     if (!MP_FILEOPS.exists(QDir{QString::fromStdString(source_path)}))
     {
         mount_processes[vm->vm_name].erase(target_path);
-        throw std::runtime_error(fmt::format("Mount path `{}` does not exist.", source_path));
+        throw std::runtime_error(fmt::format("Mount path \"{}\" does not exist.", source_path));
     }
 
     mp::SSHFSServerConfig config;

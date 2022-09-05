@@ -277,5 +277,5 @@ TEST_F(SSHFSMountsTest, mount_fails_on_nonexist_directory)
 
     MP_EXPECT_THROW_THAT(sshfs_mounts.start_mount(&vm, source_path, target_path, gid_mappings, uid_mappings),
                          std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("Mount path `{}` does not exist.", source_path))));
+                         mpt::match_what(StrEq(fmt::format("Mount path \"{}\" does not exist.", source_path))));
 }

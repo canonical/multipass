@@ -2670,9 +2670,9 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                 {
                     // TODO: Combine these into one warning level log once they are displayed in the cli by
                     // default
-                    mpl::log(mpl::Level::info, category, fmt::format("Removing \'{}\': {}\n", target_path, e.what()));
+                    mpl::log(mpl::Level::info, category, fmt::format("Removing \"{}\": {}\n", target_path, e.what()));
                     fmt::format_to(warnings,
-                                   fmt::format("Removing mount \'{}\' from {}: {}\n", target_path, name, e.what()));
+                                   fmt::format("Removing mount \"{}\" from {}: {}\n", target_path, name, e.what()));
                     invalid_mounts.push_back(target_path);
                 }
             }
@@ -2680,7 +2680,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
             for (const auto& mount : invalid_mounts)
                 vm_instance_specs[name].mounts.erase(mount);
 
-            if (server && !fmt::to_string(warnings).empty())
+            if (server && warnings.size() > 0)
             {
                 Reply reply;
                 reply.set_log_line(fmt::to_string(warnings));
