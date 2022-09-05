@@ -401,7 +401,7 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     {
         petenv_start_action.setText("Start");
         petenv_start_action.setEnabled(false);
-        petenv_shell_action.setEnabled(false);
+        petenv_shell_action.setEnabled(true);
         petenv_stop_action.setEnabled(false);
 
         current_petenv_name = petenv_name;
