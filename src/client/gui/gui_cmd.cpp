@@ -399,28 +399,25 @@ void cmd::GuiCmd::handle_petenv_instance(const google::protobuf::RepeatedPtrFiel
     // petenv doesn't exist yet
     if (petenv_instance == instances.cend())
     {
-        if (current_petenv_name != petenv_name)
-        {
-            petenv_start_action.setText("Start");
-            petenv_start_action.setEnabled(false);
-            petenv_shell_action.setEnabled(true);
-            petenv_stop_action.setEnabled(false);
+        petenv_start_action.setText("Start");
+        petenv_start_action.setEnabled(false);
+        petenv_shell_action.setEnabled(true);
+        petenv_stop_action.setEnabled(false);
 
+        current_petenv_name = petenv_name;
+    }
+    else
+    {
+        auto state = petenv_instance->instance_status();
+
+        if (petenv_state.status() != state.status() || petenv_name != current_petenv_name)
+        {
+            petenv_start_action.setText(set_title_string_for(fmt::format("Start \"{}\"", petenv_name), state));
+
+            set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action}, state);
+            petenv_state = state;
             current_petenv_name = petenv_name;
         }
-
-        return;
-    }
-
-    auto state = petenv_instance->instance_status();
-
-    if (petenv_state.status() != state.status() || petenv_name != current_petenv_name)
-    {
-        petenv_start_action.setText(set_title_string_for(fmt::format("Start \"{}\"", petenv_name), state));
-
-        set_input_state_for({&petenv_start_action, &petenv_shell_action, &petenv_stop_action}, state);
-        petenv_state = state;
-        current_petenv_name = petenv_name;
     }
 }
 
