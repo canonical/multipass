@@ -25,6 +25,7 @@
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/vm_mount.h>
 
 #include <QDir>
 #include <QEventLoop>
@@ -125,12 +126,10 @@ mp::SSHFSMountHandler::SSHFSMountHandler(const SSHKeyProvider& key_provider) : M
 {
 }
 
-void mp::SSHFSMountHandler::init_mount(VirtualMachine* vm, const std::string& source_path,
-                                       const std::string& target_path, const id_mappings& gid_mappings,
-                                       const id_mappings& uid_mappings)
+void mp::SSHFSMountHandler::init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount)
 {
     mpl::log(mpl::Level::info, category,
-             fmt::format("initializing mount {} => {} in {}", source_path, target_path, vm->vm_name));
+             fmt::format("initializing mount {} => {} in {}", vm_mount.source_path, target_path, vm->vm_name));
 
     // Putting this here is kind of contrived, but passing all the same arguments to start_mount() is
     // redundant.
@@ -139,9 +138,9 @@ void mp::SSHFSMountHandler::init_mount(VirtualMachine* vm, const std::string& so
     config.username = vm->ssh_username();
     config.instance = vm->vm_name;
     config.target_path = target_path;
-    config.source_path = source_path;
-    config.uid_mappings = uid_mappings;
-    config.gid_mappings = gid_mappings;
+    config.source_path = vm_mount.source_path;
+    config.uid_mappings = vm_mount.uid_mappings;
+    config.gid_mappings = vm_mount.gid_mappings;
     config.private_key = ssh_key_provider->private_key_as_base64();
 
     sshfs_server_configs[vm->vm_name][target_path] = config;

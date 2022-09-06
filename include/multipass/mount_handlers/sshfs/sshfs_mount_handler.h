@@ -29,6 +29,7 @@
 namespace multipass
 {
 class VirtualMachine;
+struct VMMount;
 
 class SSHFSMountHandler : public QObject, public MountHandler
 {
@@ -36,8 +37,7 @@ class SSHFSMountHandler : public QObject, public MountHandler
 public:
     explicit SSHFSMountHandler(const SSHKeyProvider& ssh_key_provider);
 
-    void init_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
-                    const id_mappings& gid_mappings, const id_mappings& uid_mappings) override;
+    void init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount) override;
     void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
                      const std::chrono::milliseconds& timeout = std::chrono::minutes(5)) override;
 
