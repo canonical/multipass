@@ -31,6 +31,7 @@
 namespace multipass
 {
 class VirtualMachine;
+struct VMMount;
 
 using ServerVariant =
     std::variant<grpc::ServerWriterInterface<StartReply>*, grpc::ServerWriterInterface<LaunchReply>*,
@@ -44,8 +45,7 @@ public:
     virtual ~MountHandler() = default;
 
     // Used to set up anything host side related
-    virtual void init_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
-                            const id_mappings& gid_mappings, const id_mappings& uid_mappings) = 0;
+    virtual void init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount) = 0;
     virtual void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
                              const std::chrono::milliseconds& timeout = std::chrono::minutes(5)) = 0;
     virtual void stop_mount(const std::string& instance, const std::string& path) = 0;
