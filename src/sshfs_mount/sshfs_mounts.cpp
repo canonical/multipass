@@ -172,10 +172,11 @@ void mp::SSHFSMounts::stop_all_mounts_for_instance(const std::string& instance)
     }
     else
     {
-        for (auto it = mounts_it->second.cbegin(), next = it; it != mounts_it->second.cend(); it = next)
+        for (auto it = mounts_it->second.cbegin(); it != mounts_it->second.cend();)
         {
-            next++;
-            stop_mount(instance, it->first);
+            // Clever postfix increment with member access needed to prevent iterator invalidation since iterable is
+            // modified in sshfs connection signal handler
+            stop_mount(instance, it++->first);
         }
     }
     mount_processes[instance].clear();
