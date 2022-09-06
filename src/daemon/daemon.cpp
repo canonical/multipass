@@ -1515,9 +1515,9 @@ try // clang-format on
 
         auto& vm = it->second;
         auto& vm_specs = vm_instance_specs[name];
+        VMMount mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
 
-        config->mount_handlers.at(static_cast<int>(mount_type))
-            ->init_mount(vm.get(), request->source_path(), target_path, gid_mappings, uid_mappings);
+        config->mount_handlers.at(static_cast<int>(mount_type))->init_mount(vm.get(), target_path, mount);
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
@@ -1543,7 +1543,6 @@ try // clang-format on
             continue;
         }
 
-        VMMount mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_specs.mounts[target_path] = mount;
     }
 
@@ -2643,13 +2642,10 @@ void mp::Daemon::init_mounts(const std::string& name)
     for (const auto& mount_entry : vm_instance_specs[name].mounts)
     {
         auto& target_path = mount_entry.first;
-        auto& source_path = mount_entry.second.source_path;
-        auto& uid_mappings = mount_entry.second.uid_mappings;
-        auto& gid_mappings = mount_entry.second.gid_mappings;
         auto mount_type = mount_entry.second.mount_type;
 
         config->mount_handlers.at(static_cast<int>(mount_type))
-            ->init_mount(vm_instances[name].get(), source_path, target_path, gid_mappings, uid_mappings);
+            ->init_mount(vm_instances[name].get(), target_path, mount_entry.second);
     }
 }
 
