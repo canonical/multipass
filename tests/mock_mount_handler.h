@@ -33,9 +33,7 @@ public:
     {
     }
 
-    MOCK_METHOD(void, init_mount,
-                (VirtualMachine*, const std::string&, const std::string&, const id_mappings&, const id_mappings&),
-                (override));
+    MOCK_METHOD(void, init_mount, (VirtualMachine*, const std::string&, const VMMount&), (override));
     MOCK_METHOD(void, start_mount,
                 (VirtualMachine*, ServerVariant, const std::string&, const std::chrono::milliseconds&), (override));
     MOCK_METHOD(void, stop_mount, (const std::string&, const std::string&), (override));

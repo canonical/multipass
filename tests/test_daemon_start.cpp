@@ -142,9 +142,9 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     const std::string fake_target_path{"/home/luke/skywalker"}, fake_source_path{"/home/han/solo"};
     const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
     std::unordered_map<std::string, mp::VMMount> mounts;
+    const mp::VMMount mount{fake_source_path, uid_mappings, gid_mappings, mp::VMMount::MountType::SSHFS};
 
-    mounts.emplace(fake_target_path,
-                   mp::VMMount{fake_source_path, uid_mappings, gid_mappings, mp::VMMount::MountType::SSHFS});
+    mounts.emplace(fake_target_path, mount);
 
     auto mock_factory = use_a_mock_vm_factory();
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
@@ -159,8 +159,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     EXPECT_CALL(*instance_ptr, start()).Times(1);
 
     std::unique_ptr<mpt::MockMountHandler> mock_mount_handler{std::make_unique<mpt::MockMountHandler>()};
-    EXPECT_CALL(*mock_mount_handler, init_mount(_, fake_source_path, fake_target_path, uid_mappings, gid_mappings))
-        .Times(1);
+    EXPECT_CALL(*mock_mount_handler, init_mount(_, fake_target_path, mount)).Times(1);
     EXPECT_CALL(*mock_mount_handler, start_mount(_, _, _, _)).Times(1);
 
     config_builder.mount_handlers.clear();
