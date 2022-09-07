@@ -2304,6 +2304,16 @@ TEST_F(Client, restart_cmd_fails_with_unknown_options)
     EXPECT_THAT(send_command({"restart", "--cancel", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, restart_cmd_fails_if_petenv_nonexistent)
+{
+    const auto petenv_start_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(petenv_name);
+    const grpc::Status aborted = aborted_start_status({}, {petenv_name});
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, restart(_, petenv_start_matcher, _)).WillOnce(Return(aborted));
+    EXPECT_THAT(send_command({"restart"}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(Client, restart_cmd_disabled_petenv)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(""));
@@ -2839,6 +2849,7 @@ struct ClientLogMessageSuite : Client, WithParamInterface<std::vector<std::strin
         ON_CALL(mock_daemon, launch).WillByDefault(reply_log_message<mp::LaunchReply>);
         ON_CALL(mock_daemon, mount).WillByDefault(reply_log_message<mp::MountReply>);
         ON_CALL(mock_daemon, start).WillByDefault(reply_log_message<mp::StartReply>);
+        ON_CALL(mock_daemon, restart).WillByDefault(reply_log_message<mp::RestartReply>);
         ON_CALL(mock_daemon, version).WillByDefault(reply_log_message<mp::VersionReply>);
     }
 
@@ -2861,6 +2872,7 @@ TEST_P(ClientLogMessageSuite, clientPrintsOutExpectedLogMessage)
     EXPECT_CALL(mock_daemon, mount).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, version).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
 
     std::stringstream cerr_stream;
 
@@ -2872,7 +2884,8 @@ TEST_P(ClientLogMessageSuite, clientPrintsOutExpectedLogMessage)
 INSTANTIATE_TEST_SUITE_P(Client, ClientLogMessageSuite,
                          Values(std::vector<std::string>{"launch"},
                                 std::vector<std::string>{"mount", "..", "test-vm:test"},
-                                std::vector<std::string>{"start"}, std::vector<std::string>{"version"}));
+                                std::vector<std::string>{"start"}, std::vector<std::string>{"version"},
+                                std::vector<std::string>{"restart"}, std::vector<std::string>{"version"}));
 
 TEST_F(ClientAlias, alias_creates_alias)
 {
@@ -3203,7 +3216,10 @@ TEST_F(ClientAlias, fails_when_remove_backup_alias_file_fails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(true)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>()))
+        .WillOnce(Return(false))
+        .WillOnce(Return(true))
+        .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
@@ -3221,7 +3237,10 @@ TEST_F(ClientAlias, fails_renaming_alias_file_fails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(true)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>()))
+        .WillOnce(Return(false))
+        .WillOnce(Return(true))
+        .WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
@@ -3239,7 +3258,7 @@ TEST_F(ClientAlias, fails_creating_alias_file_fails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));

@@ -23,6 +23,11 @@ mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Sin
 {
 }
 
+bool mp::FileOps::exists(const QDir& dir) const
+{
+    return dir.exists();
+}
+
 bool mp::FileOps::isReadable(const QDir& dir) const
 {
     return dir.isReadable();

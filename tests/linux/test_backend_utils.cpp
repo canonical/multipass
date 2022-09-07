@@ -386,7 +386,7 @@ INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeExceptionTest, Values(tru
 TEST(LinuxBackendUtils, check_for_kvm_support_no_error_does_not_throw)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
 
     EXPECT_NO_THROW(MP_BACKEND.check_for_kvm_support());
@@ -395,7 +395,7 @@ TEST(LinuxBackendUtils, check_for_kvm_support_no_error_does_not_throw)
 TEST(LinuxBackendUtils, check_for_kvm_support_does_not_exist_throws_expected_error)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_BACKEND.check_for_kvm_support(), std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("KVM support is not enabled on this machine."),
@@ -405,7 +405,7 @@ TEST(LinuxBackendUtils, check_for_kvm_support_does_not_exist_throws_expected_err
 TEST(LinuxBackendUtils, check_for_kvm_support_no_read_write_throws_expected_error)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, exists(_)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(

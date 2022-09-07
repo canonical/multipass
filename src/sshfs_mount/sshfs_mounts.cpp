@@ -16,6 +16,7 @@
  */
 
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -25,6 +26,7 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
+#include <QDir>
 #include <QEventLoop>
 
 namespace mp = multipass;
@@ -65,6 +67,12 @@ mp::SSHFSMounts::SSHFSMounts(const SSHKeyProvider& key_provider) : key(key_provi
 void mp::SSHFSMounts::start_mount(VirtualMachine* vm, const std::string& source_path, const std::string& target_path,
                                   const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
 {
+    if (!MP_FILEOPS.exists(QDir{QString::fromStdString(source_path)}))
+    {
+        mount_processes[vm->vm_name].erase(target_path);
+        throw std::runtime_error(fmt::format("Mount path \"{}\" does not exist.", source_path));
+    }
+
     mp::SSHFSServerConfig config;
     config.host = vm->ssh_hostname();
     config.port = vm->ssh_port();
