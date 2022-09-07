@@ -460,7 +460,7 @@ TEST_F(Client, transfer_cmd_instance_sources_local_target_not_dir)
     std::stringstream err;
     EXPECT_EQ(send_command({"transfer", "test-vm:foo", "test-vm:baz", "bar"}, trash_stream, err),
               mp::ReturnCode::CommandFail);
-    EXPECT_THAT(err.str(), HasSubstr("[sftp] target 'bar' is not a directory"));
+    EXPECT_THAT(err.str(), HasSubstr("Target 'bar' is not a directory"));
 }
 
 TEST_F(Client, transfer_cmd_instance_sources_local_target_cannot_access)
@@ -484,7 +484,7 @@ TEST_F(Client, transfer_cmd_instance_sources_local_target_cannot_access)
     std::stringstream err_sink;
     EXPECT_EQ(send_command({"transfer", "test-vm:foo", "test-vm:baz", "bar"}, trash_stream, err_sink),
               mp::ReturnCode::CommandFail);
-    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("[sftp] cannot access 'bar': {}", err.message())));
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("Cannot access 'bar': {}", err.message())));
 }
 
 TEST_F(Client, transfer_cmd_local_sources_instance_target_not_dir)
@@ -494,7 +494,7 @@ TEST_F(Client, transfer_cmd_local_sources_instance_target_not_dir)
     auto mocked_sftp_client_p = mocked_sftp_client.get();
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::move(mocked_sftp_client)));
-    EXPECT_CALL(*mocked_sftp_client_p, is_dir).WillOnce(Return(false));
+    EXPECT_CALL(*mocked_sftp_client_p, is_remote_dir).WillOnce(Return(false));
     EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
         mp::SSHInfoReply reply;
         reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
@@ -504,7 +504,7 @@ TEST_F(Client, transfer_cmd_local_sources_instance_target_not_dir)
 
     std::stringstream err;
     EXPECT_EQ(send_command({"transfer", "foo", "baz", "test-vm:bar"}, trash_stream, err), mp::ReturnCode::CommandFail);
-    EXPECT_THAT(err.str(), HasSubstr("[sftp] target 'bar' is not a directory"));
+    EXPECT_THAT(err.str(), HasSubstr("Target 'bar' is not a directory"));
 }
 
 TEST_F(Client, transfer_cmd_local_source_instance_target)

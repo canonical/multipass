@@ -27,8 +27,7 @@ void SFTPDirIterator::push_dir(const std::string& path)
 {
     auto dir = mp_sftp_opendir(sftp, path.c_str());
     if (!dir)
-        throw std::runtime_error{
-            fmt::format("[sftp] cannot open remote directory '{}': {}", path, ssh_get_error(sftp->session))};
+        throw SFTPError{"cannot open remote directory '{}': {}", path, ssh_get_error(sftp->session)};
 
     dirs.push(std::move(dir));
 }
@@ -41,13 +40,13 @@ SFTPDirIterator::SFTPDirIterator(sftp_session sftp, const fs::path& path) : sftp
 
 bool SFTPDirIterator::hasNext() const
 {
-    return (bool)previous_attr;
+    return bool{next_attr};
 }
 
 SFTPAttributesUPtr SFTPDirIterator::next()
 {
     if (dirs.empty())
-        return std::move(previous_attr);
+        return std::move(next_attr);
 
     auto dir = dirs.top().get();
     while (auto attr = mp_sftp_readdir(sftp, dir))
@@ -60,7 +59,7 @@ SFTPAttributesUPtr SFTPDirIterator::next()
             push_dir(path);
 
         attr->name = strdup(path.c_str());
-        previous_attr.swap(attr);
+        next_attr.swap(attr);
         return attr;
     }
 
@@ -70,8 +69,8 @@ SFTPAttributesUPtr SFTPDirIterator::next()
         return next();
     }
 
-    auto err_msg = fmt::format("[sftp] cannot read remote directory '{}': {}", dir->name, ssh_get_error(sftp->session));
+    SFTPError err{"cannot read remote directory '{}': {}", dir->name, ssh_get_error(sftp->session)};
     dirs.pop();
-    throw std::runtime_error{err_msg};
+    throw err;
 }
 } // namespace multipass

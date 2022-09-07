@@ -18,6 +18,7 @@
 #include <multipass/file_ops.h>
 
 namespace mp = multipass;
+namespace fs = mp::fs;
 
 mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Singleton<FileOps>::Singleton{pass}
 {

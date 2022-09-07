@@ -20,6 +20,7 @@
 #include <multipass/file_ops.h>
 
 using namespace testing;
+namespace fs = multipass::fs;
 
 struct FileOps : public Test
 {

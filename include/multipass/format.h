@@ -44,6 +44,7 @@ struct formatter<QString>
     }
 };
 
+// TODO this will be included in fmtlib v9
 template <>
 struct formatter<std::filesystem::path>
 {

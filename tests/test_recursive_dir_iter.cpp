@@ -22,6 +22,7 @@
 #include <multipass/recursive_dir_iterator.h>
 
 namespace mp = multipass;
+namespace fs = mp::fs;
 
 using namespace testing;
 

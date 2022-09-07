@@ -33,10 +33,10 @@
 
 #define MP_FILEOPS multipass::FileOps::instance()
 
-namespace fs = std::filesystem;
-
 namespace multipass
 {
+namespace fs = std::filesystem;
+
 class FileOps : public Singleton<FileOps>
 {
 public:

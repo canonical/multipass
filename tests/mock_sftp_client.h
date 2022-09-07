@@ -25,15 +25,9 @@ namespace multipass::test
 {
 struct MockSFTPClient : public SFTPClient
 {
-    MOCK_METHOD(bool, is_dir, (const fs::path& path), (override));
-    MOCK_METHOD(bool, push,
-                (const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
-                 std::ostream& err_sink),
-                (override));
-    MOCK_METHOD(bool, pull,
-                (const fs::path& source_path, const fs::path& target_path, QFlags<TransferFlags> flags,
-                 std::ostream& err_sink),
-                (override));
+    MOCK_METHOD(bool, is_remote_dir, (const fs::path& path), (override));
+    MOCK_METHOD(bool, push, (const fs::path& source_path, const fs::path& target_path, Flags flags), (override));
+    MOCK_METHOD(bool, pull, (const fs::path& source_path, const fs::path& target_path, Flags flags), (override));
     MOCK_METHOD(void, from_cin, (std::istream & cin, const fs::path& target_path), (override));
     MOCK_METHOD(void, to_cout, (const fs::path& source_path, std::ostream& cout), (override));
 };

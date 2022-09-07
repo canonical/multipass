@@ -20,6 +20,7 @@
 #include "mock_ssh.h"
 
 #include <multipass/ssh/sftp_dir_iterator.h>
+#include <multipass/ssh/sftp_utils.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -94,9 +95,8 @@ TEST(SFTPDirIterator, fail_opendir)
     REPLACE(ssh_get_error, [](auto...) { return "SFTP server: No such file"; });
 
     sftp_session_struct sftp{};
-    MP_EXPECT_THROW_THAT(
-        (mp::SFTPDirIterator{&sftp, "dir"}), std::runtime_error,
-        mpt::match_what(StrEq("[sftp] cannot open remote directory 'dir': SFTP server: No such file")));
+    MP_EXPECT_THROW_THAT((mp::SFTPDirIterator{&sftp, "dir"}), mp::SFTPError,
+                         mpt::match_what(StrEq("cannot open remote directory 'dir': SFTP server: No such file")));
 }
 
 TEST(SFTPDirIterator, fail_readdir)
@@ -107,7 +107,6 @@ TEST(SFTPDirIterator, fail_readdir)
     REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
 
     sftp_session_struct sftp{};
-    MP_EXPECT_THROW_THAT(
-        (mp::SFTPDirIterator{&sftp, "dir"}), std::runtime_error,
-        mpt::match_what(StrEq("[sftp] cannot read remote directory 'dir': SFTP server: Permission denied")));
+    MP_EXPECT_THROW_THAT((mp::SFTPDirIterator{&sftp, "dir"}), mp::SFTPError,
+                         mpt::match_what(StrEq("cannot read remote directory 'dir': SFTP server: Permission denied")));
 }

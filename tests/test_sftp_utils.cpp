@@ -24,6 +24,7 @@
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+namespace fs = mp::fs;
 
 using namespace testing;
 
@@ -52,7 +53,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_is_dir_child_is_not)
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path / source_path.filename(), _)).WillOnce(Return(false));
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_local_file_target(source_path, target_path), target_path / source_path.filename());
+    EXPECT_EQ(MP_SFTPUTILS.get_local_file_target(source_path, target_path), target_path / source_path.filename());
 }
 
 TEST_F(SFTPUtils, get_full_local_file_target__target_exists_not_dir)
@@ -60,7 +61,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_exists_not_dir)
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(false));
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_local_file_target(source_path, target_path), target_path);
+    EXPECT_EQ(MP_SFTPUTILS.get_local_file_target(source_path, target_path), target_path);
 }
 
 TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_does)
@@ -68,7 +69,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_does)
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, exists(target_path.parent_path(), _)).WillOnce(Return(true));
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_local_file_target(source_path, target_path), target_path);
+    EXPECT_EQ(MP_SFTPUTILS.get_local_file_target(source_path, target_path), target_path);
 }
 
 TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_neither)
@@ -76,8 +77,8 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_neither)
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, exists(target_path.parent_path(), _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_local_file_target(source_path, target_path), std::runtime_error,
-                         mpt::match_what(StrEq("[sftp] local target does not exist")));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_local_file_target(source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq("local target does not exist")));
 }
 
 TEST_F(SFTPUtils, get_full_local_file_target__target_is_dir_child_is_too)
@@ -86,10 +87,9 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_is_dir_child_is_too)
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path / source_path.filename(), _)).WillOnce(Return(true));
 
-    MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_local_file_target(source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot overwrite local directory {} with non-directory",
-                                          target_path / source_path.filename()))));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_local_file_target(source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq(fmt::format("cannot overwrite local directory {} with non-directory",
+                                                           target_path / source_path.filename()))));
 }
 
 TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_target)
@@ -100,9 +100,8 @@ TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_target)
         return false;
     });
 
-    MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_local_file_target(source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot access {}: {}", target_path, err.message()))));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_local_file_target(source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq(fmt::format("cannot access {}: {}", target_path, err.message()))));
 }
 
 TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_parent)
@@ -115,8 +114,8 @@ TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_parent)
     });
 
     MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_local_file_target(source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot access {}: {}", target_path.parent_path(), err.message()))));
+        MP_SFTPUTILS.get_local_file_target(source_path, target_path), mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot access {}: {}", target_path.parent_path(), err.message()))));
 }
 
 TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_child)
@@ -130,9 +129,9 @@ TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_child)
             return false;
         });
 
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_local_file_target(source_path, target_path), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("[sftp] cannot access {}: {}",
-                                                           target_path / source_path.filename(), err.message()))));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_local_file_target(source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq(fmt::format("cannot access {}: {}", target_path / source_path.filename(),
+                                                           err.message()))));
 }
 
 TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_not)
@@ -145,7 +144,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_not)
         return nullptr;
     });
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_remote_file_target(nullptr, source_path, target_path),
+    EXPECT_EQ(MP_SFTPUTILS.get_remote_file_target(nullptr, source_path, target_path),
               target_path / source_path.filename());
 }
 
@@ -155,7 +154,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_exists_not_dir)
         return target_path == path ? get_dummy_attr(path, SSH_FILEXFER_TYPE_REGULAR) : nullptr;
     });
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_remote_file_target(nullptr, source_path, target_path), target_path);
+    EXPECT_EQ(MP_SFTPUTILS.get_remote_file_target(nullptr, source_path, target_path), target_path);
 }
 
 TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_does)
@@ -164,15 +163,15 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_does)
         return target_path == path ? nullptr : get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY);
     });
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_remote_file_target(nullptr, source_path, target_path), target_path);
+    EXPECT_EQ(MP_SFTPUTILS.get_remote_file_target(nullptr, source_path, target_path), target_path);
 }
 
 TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_neither)
 {
     REPLACE(sftp_stat, [](auto...) { return nullptr; });
 
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_remote_file_target(nullptr, source_path, target_path),
-                         std::runtime_error, mpt::match_what(StrEq("[sftp] remote target does not exist")));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_remote_file_target(nullptr, source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq("remote target does not exist")));
 }
 
 TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_too)
@@ -180,8 +179,8 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_too)
     REPLACE(sftp_stat, [](auto, auto path) { return get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY); });
 
     MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_remote_file_target(nullptr, source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot overwrite remote directory '{}' with non-directory",
+        MP_SFTPUTILS.get_remote_file_target(nullptr, source_path, target_path), mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot overwrite remote directory '{}' with non-directory",
                                           target_path.u8string() + '/' + source_path.filename().u8string()))));
 }
 
@@ -190,9 +189,9 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_exists_not_dir)
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format(
-                             "[sftp] cannot overwrite local non-directory {} with directory", target_path))));
+    MP_EXPECT_THROW_THAT(
+        MP_SFTPUTILS.get_local_dir_target(source_path, target_path), mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot overwrite local non-directory {} with directory", target_path))));
 }
 
 TEST_F(SFTPUtils, get_full_local_dir_target__cannot_access_target)
@@ -203,9 +202,8 @@ TEST_F(SFTPUtils, get_full_local_dir_target__cannot_access_target)
         return false;
     });
 
-    MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot access {}: {}", target_path, err.message()))));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_local_dir_target(source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq(fmt::format("cannot access {}: {}", target_path, err.message()))));
 }
 
 TEST_F(SFTPUtils, get_full_local_dir_target__target_not_exists_can_create)
@@ -213,7 +211,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_not_exists_can_create)
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillRepeatedly(Return(false));
     EXPECT_CALL(*mock_file_ops, create_directory(target_path, _)).WillOnce(Return(true));
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path), target_path);
+    EXPECT_EQ(MP_SFTPUTILS.get_local_dir_target(source_path, target_path), target_path);
 }
 
 TEST_F(SFTPUtils, get_full_local_dir_target__target_not_exists_cannot_create)
@@ -226,8 +224,8 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_not_exists_cannot_create)
     });
 
     MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot create local directory {}: {}", target_path, err.message()))));
+        MP_SFTPUTILS.get_local_dir_target(source_path, target_path), mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot create local directory {}: {}", target_path, err.message()))));
 }
 
 TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_is_not)
@@ -237,10 +235,9 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_is_not)
     EXPECT_CALL(*mock_file_ops, exists(target_path / source_path.filename(), _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path / source_path.filename(), _)).WillRepeatedly(Return(false));
 
-    MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot overwrite local non-directory {} with directory",
-                                          target_path / source_path.filename()))));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_local_dir_target(source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq(fmt::format("cannot overwrite local non-directory {} with directory",
+                                                           target_path / source_path.filename()))));
 }
 
 TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_not_exists_can_create)
@@ -250,7 +247,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_not_exists_can_
     EXPECT_CALL(*mock_file_ops, exists(target_path / source_path.filename(), _)).WillRepeatedly(Return(false));
     EXPECT_CALL(*mock_file_ops, create_directory(target_path / source_path.filename(), _)).WillRepeatedly(Return(true));
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path), target_path / source_path.filename());
+    EXPECT_EQ(MP_SFTPUTILS.get_local_dir_target(source_path, target_path), target_path / source_path.filename());
 }
 
 TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_not_exists_cannot_create)
@@ -265,8 +262,8 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_not_exists_cann
             return false;
         });
 
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("[sftp] cannot create local directory {}: {}",
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_local_dir_target(source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq(fmt::format("cannot create local directory {}: {}",
                                                            target_path / source_path.filename(), err.message()))));
 }
 
@@ -281,18 +278,18 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_cannot_access_child)
             return false;
         });
 
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_local_dir_target(source_path, target_path), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("[sftp] cannot access {}: {}",
-                                                           target_path / source_path.filename(), err.message()))));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_local_dir_target(source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq(fmt::format("cannot access {}: {}", target_path / source_path.filename(),
+                                                           err.message()))));
 }
 
 TEST_F(SFTPUtils, get_full_remote_dir_target__target_exists_not_dir)
 {
     REPLACE(sftp_stat, [](auto, auto path) { return get_dummy_attr(path, SSH_FILEXFER_TYPE_REGULAR); });
 
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_remote_dir_target(nullptr, source_path, target_path), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format(
-                             "[sftp] cannot overwrite remote non-directory {} with directory", target_path))));
+    MP_EXPECT_THROW_THAT(
+        MP_SFTPUTILS.get_remote_dir_target(nullptr, source_path, target_path), mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot overwrite remote non-directory {} with directory", target_path))));
 }
 
 TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_can_create)
@@ -300,7 +297,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_can_create)
     REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_mkdir, [](auto...) { return SSH_FX_OK; });
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_remote_dir_target(nullptr, source_path, target_path), target_path);
+    EXPECT_EQ(MP_SFTPUTILS.get_remote_dir_target(nullptr, source_path, target_path), target_path);
 }
 
 TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_cannot_create)
@@ -312,8 +309,8 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_cannot_create)
 
     sftp_session_struct sftp{};
     MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_remote_dir_target(&sftp, source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot create remote directory {}: {}", target_path, err))));
+        MP_SFTPUTILS.get_remote_dir_target(&sftp, source_path, target_path), mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot create remote directory {}: {}", target_path, err))));
 }
 
 TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_is_not)
@@ -327,9 +324,9 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_is_not)
         return nullptr;
     });
 
-    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_full_remote_dir_target(nullptr, source_path, target_path), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format(
-                             "[sftp] cannot overwrite remote non-directory '{}' with directory", target_child_path))));
+    MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_remote_dir_target(nullptr, source_path, target_path), mp::SFTPError,
+                         mpt::match_what(StrEq(fmt::format("cannot overwrite remote non-directory '{}' with directory",
+                                                           target_child_path))));
 }
 
 TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can_create)
@@ -339,7 +336,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can
     });
     REPLACE(sftp_mkdir, [](auto...) { return SSH_FX_OK; });
 
-    EXPECT_EQ(MP_SFTPUTILS.get_full_remote_dir_target(nullptr, source_path, target_path),
+    EXPECT_EQ(MP_SFTPUTILS.get_remote_dir_target(nullptr, source_path, target_path),
               target_path / source_path.filename());
 }
 
@@ -354,7 +351,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can
 
     sftp_session_struct sftp{};
     MP_EXPECT_THROW_THAT(
-        MP_SFTPUTILS.get_full_remote_dir_target(&sftp, source_path, target_path), std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("[sftp] cannot create remote directory '{}': {}",
+        MP_SFTPUTILS.get_remote_dir_target(&sftp, source_path, target_path), mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot create remote directory '{}': {}",
                                           target_path.u8string() + '/' + source_path.filename().u8string(), err))));
 }

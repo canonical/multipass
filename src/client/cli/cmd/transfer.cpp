@@ -26,6 +26,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
+namespace fs = mp::fs;
 
 namespace
 {
@@ -48,36 +49,33 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
             {
                 auto sftp_client = MP_SFTPUTILS.make_SFTPClient(ssh_info.host(), ssh_info.port(), ssh_info.username(),
                                                                 ssh_info.priv_key_base64());
-                switch (arguments.index())
+
+                if (const auto args = std::get_if<InstanceSourcesLocalTarget>(&arguments); args)
                 {
-                case INSTANCE_SOURCES_LOCAL_TARGET:
-                {
-                    auto& [sources, target] = std::get<INSTANCE_SOURCES_LOCAL_TARGET>(arguments);
+                    auto& [sources, target] = *args;
                     std::error_code err;
                     if (sources.size() > 1 && !MP_FILEOPS.is_directory(target, err) && !err)
-                        throw std::runtime_error{fmt::format("[sftp] target {} is not a directory", target)};
+                        throw std::runtime_error{fmt::format("Target {} is not a directory", target)};
                     else if (err)
-                        throw std::runtime_error{fmt::format("[sftp] cannot access {}: {}", target, err.message())};
+                        throw std::runtime_error{fmt::format("Cannot access {}: {}", target, err.message())};
                     for (auto [s, s_end] = sources.equal_range(instance_name); s != s_end; ++s)
-                        success &= sftp_client->pull(s->second, target, flags, term->cerr());
-                    break;
+                        success &= sftp_client->pull(s->second, target, flags);
                 }
-                case LOCAL_SOURCES_INSTANCE_TARGET:
+
+                if (const auto args = std::get_if<LocalSourcesInstanceTarget>(&arguments); args)
                 {
-                    auto& [sources, target] = std::get<LOCAL_SOURCES_INSTANCE_TARGET>(arguments);
-                    if (sources.size() > 1 && !sftp_client->is_dir(target))
-                        throw std::runtime_error{fmt::format("[sftp] target {} is not a directory", target)};
+                    auto& [sources, target] = *args;
+                    if (sources.size() > 1 && !sftp_client->is_remote_dir(target))
+                        throw std::runtime_error{fmt::format("Target {} is not a directory", target)};
                     for (const auto& source : sources)
-                        success &= sftp_client->push(source, target, flags, term->cerr());
-                    break;
+                        success &= sftp_client->push(source, target, flags);
                 }
-                case FROM_CIN:
-                    sftp_client->from_cin(term->cin(), std::get<FROM_CIN>(arguments).target);
-                    break;
-                case TO_COUT:
-                    sftp_client->to_cout(std::get<TO_COUT>(arguments).source, term->cout());
-                    break;
-                }
+
+                if (const auto args = std::get_if<FromCin>(&arguments); args)
+                    sftp_client->from_cin(term->cin(), args->target);
+
+                if (const auto args = std::get_if<ToCout>(&arguments); args)
+                    sftp_client->to_cout(args->source, term->cout());
             }
             catch (const std::exception& e)
             {
@@ -132,7 +130,7 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
 
-    flags.setFlag(TransferFlags::Recursive, parser->isSet("r"));
+    flags.setFlag(SFTPClient::Flag::Recursive, parser->isSet("r"));
 
     auto positionalArgs = parser->positionalArguments();
     if (positionalArgs.size() < 2)
@@ -141,9 +139,25 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    auto split_args = args_to_instance_and_path(positionalArgs);
+    auto split_target = std::move(split_args.back());
+    split_args.pop_back();
+    auto& split_sources = split_args;
+
+    const auto full_target = positionalArgs.takeLast();
+    const auto& full_sources = positionalArgs;
+
+    if (const auto ret_opt = parse_streaming(full_sources, full_target, split_sources, split_target); ret_opt)
+        return ret_opt.value();
+
+    return parse_non_streaming(split_sources, split_target);
+}
+
+std::vector<std::pair<std::string, fs::path>> cmd::Transfer::args_to_instance_and_path(const QStringList& args)
+{
     std::vector<std::pair<std::string, fs::path>> instance_entry_args;
-    instance_entry_args.reserve(positionalArgs.size());
-    for (const auto& entry : positionalArgs)
+    instance_entry_args.reserve(args.size());
+    for (const auto& entry : args)
     {
         const auto source_components = entry.split(':');
         const auto instance_name = source_components.size() == 1 ? "" : source_components.first().toStdString();
@@ -152,23 +166,23 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
             request.add_instance_name()->append(instance_name);
         instance_entry_args.emplace_back(instance_name, file_path.isEmpty() ? "." : file_path.toStdString());
     }
+    return instance_entry_args;
+}
 
-    auto instance_target = std::move(instance_entry_args.back());
-    instance_entry_args.pop_back();
-    auto& instance_sources = instance_entry_args;
-
-    const auto target = positionalArgs.takeLast();
-    const auto& sources = positionalArgs;
-
-    const auto source_streaming = std::count(sources.begin(), sources.end(), streaming_symbol);
-    const auto target_streaming = target == streaming_symbol;
+std::optional<mp::ParseCode>
+multipass::cmd::Transfer::parse_streaming(const QStringList& full_sources, const QString& full_target,
+                                          std::vector<std::pair<std::string, fs::path>> split_sources,
+                                          std::pair<std::string, fs::path> split_target)
+{
+    const auto source_streaming = std::count(full_sources.begin(), full_sources.end(), streaming_symbol);
+    const auto target_streaming = full_target == streaming_symbol;
     if ((target_streaming && source_streaming) || source_streaming > 1)
     {
         term->cerr() << fmt::format("Only one '{}' allowed\n", streaming_symbol);
         return ParseCode::CommandLineError;
     }
 
-    if ((target_streaming || source_streaming) && sources.size() > 1)
+    if ((target_streaming || source_streaming) && full_sources.size() > 1)
     {
         term->cerr() << fmt::format("Only two arguments allowed when using '{}'\n", streaming_symbol);
         return ParseCode::CommandLineError;
@@ -176,34 +190,40 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
 
     if (target_streaming)
     {
-        if (instance_sources.front().first.empty())
+        if (split_sources.front().first.empty())
         {
             term->cerr() << "Source must be from inside an instance\n";
             return ParseCode::CommandLineError;
         }
 
-        arguments = ToCout{std::move(instance_sources.front().second)};
+        arguments = ToCout{std::move(split_sources.front().second)};
         return ParseCode::Ok;
     }
 
     if (source_streaming)
     {
-        if (instance_target.first.empty())
+        if (split_target.first.empty())
         {
             term->cerr() << "Target must be inside an instance\n";
             return ParseCode::CommandLineError;
         }
 
-        arguments = FromCin{std::move(instance_target).second};
+        arguments = FromCin{std::move(split_target).second};
         return ParseCode::Ok;
     }
 
-    if (instance_target.first.empty())
+    return std::nullopt;
+}
+
+mp::ParseCode cmd::Transfer::parse_non_streaming(std::vector<std::pair<std::string, fs::path>>& split_sources,
+                                                 std::pair<std::string, fs::path>& split_target)
+{
+    if (split_target.first.empty())
     {
-        if (request.instance_name_size() == (int)instance_sources.size())
+        if (request.instance_name_size() == (int)split_sources.size())
         {
-            arguments = InstanceSourcesLocalTarget{{instance_sources.begin(), instance_sources.end()},
-                                                   std::move(instance_target.second)};
+            arguments = InstanceSourcesLocalTarget{{split_sources.begin(), split_sources.end()},
+                                                   std::move(split_target.second)};
             return ParseCode::Ok;
         }
 
@@ -220,9 +240,9 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     }
 
     std::vector<fs::path> source_paths;
-    source_paths.reserve(instance_sources.size());
-    std::transform(instance_sources.begin(), instance_sources.end(), std::back_inserter(source_paths),
+    source_paths.reserve(split_sources.size());
+    std::transform(split_sources.begin(), split_sources.end(), std::back_inserter(source_paths),
                    [](auto& item) { return std::move(item.second); });
-    arguments = LocalSourcesInstanceTarget{std::move(source_paths), std::move(instance_target.second)};
+    arguments = LocalSourcesInstanceTarget{std::move(source_paths), std::move(split_target.second)};
     return ParseCode::Ok;
 }

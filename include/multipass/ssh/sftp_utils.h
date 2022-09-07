@@ -21,6 +21,7 @@
 #include "sftp_client.h"
 #include "sftp_dir_iterator.h"
 
+#include <multipass/format.h>
 #include <multipass/singleton.h>
 
 #define MP_SFTP_UNIQUE_PTR(open, close)                                                                                \
@@ -33,6 +34,14 @@
 
 namespace multipass
 {
+struct SFTPError : public std::runtime_error
+{
+    template <typename... Args>
+    explicit SFTPError(const char* fmt, Args&&... args) : runtime_error(fmt::format(fmt, std::forward<Args>(args)...))
+    {
+    }
+};
+
 MP_SFTP_UNIQUE_PTR(sftp_new, sftp_free)
 MP_SFTP_UNIQUE_PTR(sftp_open, sftp_close)
 MP_SFTP_UNIQUE_PTR(sftp_stat, sftp_attributes_free)
@@ -47,12 +56,11 @@ struct SFTPUtils : public Singleton<SFTPUtils>
 {
     SFTPUtils(const Singleton<SFTPUtils>::PrivatePass&) noexcept;
 
-    virtual fs::path get_full_local_file_target(const fs::path& source_path, const fs::path& target_path);
-    virtual fs::path get_full_remote_file_target(sftp_session sftp, const fs::path& source_path,
-                                                 const fs::path& target_path);
-    virtual fs::path get_full_local_dir_target(const fs::path& source_path, const fs::path& target_path);
-    virtual fs::path get_full_remote_dir_target(sftp_session sftp, const fs::path& source_path,
-                                                const fs::path& target_path);
+    virtual fs::path get_local_file_target(const fs::path& source_path, const fs::path& target_path);
+    virtual fs::path get_remote_file_target(sftp_session sftp, const fs::path& source_path,
+                                            const fs::path& target_path);
+    virtual fs::path get_local_dir_target(const fs::path& source_path, const fs::path& target_path);
+    virtual fs::path get_remote_dir_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path);
     virtual std::unique_ptr<SFTPDirIterator> make_SFTPDirIterator(sftp_session sftp, const fs::path& path);
     virtual std::unique_ptr<SFTPClient> make_SFTPClient(const std::string& host, int port, const std::string& username,
                                                         const std::string& priv_key_blob);

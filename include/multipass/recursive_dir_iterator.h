@@ -20,14 +20,13 @@
 
 #include <filesystem>
 
-namespace fs = std::filesystem;
-
 namespace multipass
 {
+namespace fs = std::filesystem;
+
+// this is just a thin wrapper around std::filesystem::directory_entry, used for mocking purposes
 class DirectoryEntry
 {
-    fs::directory_entry entry;
-
 public:
     DirectoryEntry() = default;
     DirectoryEntry(const DirectoryEntry&) = default;
@@ -36,8 +35,8 @@ public:
     {
     }
 
-    virtual DirectoryEntry& operator=(const DirectoryEntry&) = default;
-    virtual DirectoryEntry& operator=(DirectoryEntry&&) noexcept = default;
+    DirectoryEntry& operator=(const DirectoryEntry&) = default;
+    DirectoryEntry& operator=(DirectoryEntry&&) noexcept = default;
 
     virtual ~DirectoryEntry() = default;
 
@@ -220,13 +219,14 @@ public:
     {
         return entry == rhs.entry;
     }
+
+private:
+    fs::directory_entry entry;
 };
 
+// wrapper class around std::filesystem::recursive_directory_iterator used for mocking purposes
 class RecursiveDirIterator
 {
-    fs::recursive_directory_iterator iter;
-    DirectoryEntry current;
-
 public:
     RecursiveDirIterator() = default;
     RecursiveDirIterator(const fs::path& path, std::error_code& err) : iter{path, err}
@@ -244,6 +244,10 @@ public:
     }
 
     virtual ~RecursiveDirIterator() = default;
+
+private:
+    fs::recursive_directory_iterator iter;
+    DirectoryEntry current;
 };
 } // namespace multipass
 
