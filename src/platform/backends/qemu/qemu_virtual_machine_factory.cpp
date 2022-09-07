@@ -16,6 +16,7 @@
  */
 
 #include "qemu_virtual_machine_factory.h"
+#include "qemu_mount_handler.h"
 #include "qemu_virtual_machine.h"
 
 #include <multipass/format.h>
@@ -117,4 +118,10 @@ QString mp::QemuVirtualMachineFactory::get_backend_directory_name()
 auto mp::QemuVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
     return qemu_platform->networks();
+}
+
+std::unique_ptr<mp::MountHandler>
+mp::QemuVirtualMachineFactory::create_performance_mount_handler(const SSHKeyProvider& ssh_key_provider)
+{
+    return std::make_unique<QemuMountHandler>(ssh_key_provider);
 }
