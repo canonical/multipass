@@ -21,12 +21,13 @@
 
 #include <QStringList>
 
+#include "sshfs_mount.h"
+
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/multiplexing_logger.h>
 #include <multipass/logging/standard_logger.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mount.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 

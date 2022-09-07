@@ -29,7 +29,7 @@
 #include "stub_virtual_machine.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
+#include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/vm_mount.h>
 
 #include <thread>

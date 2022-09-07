@@ -21,8 +21,8 @@ function(add_sshfs_mount_target TARGET_NAME)
     sshfs_mount_handler.cpp
     sftp_server.cpp
     # Need to run MOC on these
-    ${CMAKE_SOURCE_DIR}/include/multipass/mount_handlers/sshfs/sshfs_mount.h
-    ${CMAKE_SOURCE_DIR}/include/multipass/mount_handlers/sshfs/sshfs_mount_handler.h)
+    sshfs_mount.h
+    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount_handler.h)
 
   target_link_libraries(${TARGET_NAME}
     fmt

@@ -15,12 +15,13 @@
  *
  */
 
+#include "sshfs_mount.h"
+#include "sftp_server.h"
+
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
 #include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
-#include <multipass/mount_handlers/sshfs/sftp_server.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mount.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>

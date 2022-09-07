@@ -26,10 +26,10 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/openssh_key_provider.h>
+#include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>

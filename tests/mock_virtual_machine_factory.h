@@ -20,7 +20,7 @@
 
 #include "common.h"
 
-#include <multipass/mount_handlers/mount_handler.h>
+#include <multipass/mount_handler.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>

@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_MOCK_MOUNT_HANDLER_H
 #define MULTIPASS_MOCK_MOUNT_HANDLER_H
 
-#include <multipass/mount_handlers/mount_handler.h>
+#include <multipass/mount_handler.h>
 
 #include "stub_ssh_key_provider.h"
 

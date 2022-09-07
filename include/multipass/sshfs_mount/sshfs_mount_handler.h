@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_SSHFS_MOUNT_HANDLER_H
 #define MULTIPASS_SSHFS_MOUNT_HANDLER_H
 
-#include <multipass/mount_handlers/mount_handler.h>
+#include <multipass/mount_handler.h>
 #include <multipass/process/process.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
 #include <multipass/ssh/ssh_key_provider.h>
