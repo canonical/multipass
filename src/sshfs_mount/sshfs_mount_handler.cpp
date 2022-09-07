@@ -20,9 +20,9 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mount_handler.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_mount.h>

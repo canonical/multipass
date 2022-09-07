@@ -23,7 +23,7 @@
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/logging/multiplexing_logger.h>
-#include <multipass/mount_handlers/mount_handler.h>
+#include <multipass/mount_handler.h>
 #include <multipass/name_generator.h>
 #include <multipass/path.h>
 #include <multipass/rpc/multipass.grpc.pb.h>

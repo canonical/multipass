@@ -21,9 +21,10 @@
 #include "sftp_server_test_fixture.h"
 #include "signal.h"
 
+#include <src/sshfs_mount/sshfs_mount.h>
+
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
-#include <multipass/mount_handlers/sshfs/sshfs_mount.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 
