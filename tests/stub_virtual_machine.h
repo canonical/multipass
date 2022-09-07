@@ -109,6 +109,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     void add_vm_mount(const std::string&, const VMMount&) override
     {
     }
+
+    void delete_vm_mount(const std::string&) override
+    {
+    }
 };
 } // namespace test
 } // namespace multipass

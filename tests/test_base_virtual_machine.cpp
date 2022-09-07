@@ -156,6 +156,13 @@ TEST_F(BaseVM, addMountDoesNotFail)
     EXPECT_NO_THROW(base_vm.add_vm_mount("bar", mp::VMMount()));
 }
 
+TEST_F(BaseVM, deleteMountDoesNotFail)
+{
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+
+    EXPECT_NO_THROW(base_vm.delete_vm_mount("bar"));
+}
+
 struct IpTestParams
 {
     int exit_status;
