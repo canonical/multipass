@@ -77,6 +77,7 @@ public:
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size) = 0;
     virtual void add_vm_mount(const std::string& target_path, const VMMount& vm_mount) = 0;
+    virtual void delete_vm_mount(const std::string& target_path) = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
