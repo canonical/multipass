@@ -579,3 +579,23 @@ void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
 }
+
+void mp::QemuVirtualMachine::add_vm_mount(const std::string& target_path, const VMMount& vm_mount)
+{
+    // Need a way to save the mount info so that they can be passed as arguments to qemu when starting
+    // in the following form:
+    // -virtfs
+    // local,security_model=passthrough,uid_map=${host_uid}:${instance_uid},gid_map=${host_gid}:${instance_gid},path=${source_path},mount_tag=${mount_tag}
+    // where
+    // ${host_uid}:${instance_uid} is from VMMount::uid_mappings
+    // ${host_gid}:${instance_gid} is from VMMount::gid_mappings
+    // ${source_path} is from VMMount::source_path
+    // ${mount_tag} is a unique tag used in the mount command inside the instance
+    // target_path should be used as a key for storing the mount data since it will be unique to the instance (only one
+    // target can be mounted at a time)
+}
+
+void mp::QemuVirtualMachine::delete_vm_mount(const std::string& target_path)
+{
+    // This should delete the mount data associated with the target_path key outlined above
+}
