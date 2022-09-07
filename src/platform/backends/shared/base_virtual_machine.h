@@ -44,6 +44,10 @@ public:
     void add_vm_mount(const std::string& target_path, const VMMount& vm_mount) override
     {
     }
+
+    void delete_vm_mount(const std::string& target_path) override
+    {
+    }
 };
 } // namespace multipass
 
