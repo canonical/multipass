@@ -128,6 +128,12 @@ mp::SSHFSMountHandler::SSHFSMountHandler(const SSHKeyProvider& key_provider) : M
 
 void mp::SSHFSMountHandler::init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount)
 {
+    if (!MP_FILEOPS.exists(QDir{QString::fromStdString(vm_mount.source_path)}))
+    {
+        mount_processes[vm->vm_name].erase(target_path);
+        throw std::runtime_error(fmt::format("Mount path \"{}\" does not exist.", vm_mount.source_path));
+    }
+
     mpl::log(mpl::Level::info, category,
              fmt::format("initializing mount {} => {} in {}", vm_mount.source_path, target_path, vm->vm_name));
 
@@ -149,12 +155,6 @@ void mp::SSHFSMountHandler::init_mount(VirtualMachine* vm, const std::string& ta
 void mp::SSHFSMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
                                         const std::chrono::milliseconds& timeout)
 {
-    if (!MP_FILEOPS.exists(QDir{QString::fromStdString(source_path)}))
-    {
-        mount_processes[vm->vm_name].erase(target_path);
-        throw std::runtime_error(fmt::format("Mount path \"{}\" does not exist.", source_path));
-    }
-
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     std::visit(
         [this, vm, &session, &timeout](auto&& server) {
