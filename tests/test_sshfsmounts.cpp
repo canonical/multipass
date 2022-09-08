@@ -177,6 +177,8 @@ TEST_F(SSHFSMountsTest, stop_terminates_sshfs_process)
         if (process->program().contains("sshfs_server"))
         {
             EXPECT_CALL(*process, terminate);
+            EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
+            EXPECT_CALL(*process, kill);
         }
     };
     factory->register_callback(sshfs_fails);
@@ -201,6 +203,7 @@ TEST_F(SSHFSMountsTest, stop_all_mounts_terminates_all_sshfs_processes)
         if (process->program().contains("sshfs_server"))
         {
             EXPECT_CALL(*process, terminate);
+            ON_CALL(*process, wait_for_finished(_)).WillByDefault(Return(true));
         }
     };
     factory->register_callback(sshfs_fails);

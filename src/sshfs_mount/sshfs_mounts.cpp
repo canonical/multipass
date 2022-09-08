@@ -157,9 +157,15 @@ bool mp::SSHFSMounts::stop_mount(const std::string& instance, const std::string&
     if (map_entry != sshfs_mount_map.end())
     {
         auto& sshfs_mount = map_entry->second;
-        mpl::log(mpl::Level::info, category,
-                 fmt::format("stopping sshfs_server for \"{}\" serving '{}'", instance, path));
-        sshfs_mount->terminate(); // TODO - if non-responsive, then kill()
+        mpl::log(mpl::Level::info, category, fmt::format("Stopping mount '{}' in instance \"{}\"", path, instance));
+        sshfs_mount->terminate();
+
+        if (!sshfs_mount->wait_for_finished(1000))
+        {
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Failed to terminate mount '{}' in instance \"{}\", killing", path, instance));
+            sshfs_mount->kill();
+        }
         return true;
     }
     return false;
@@ -170,15 +176,15 @@ void mp::SSHFSMounts::stop_all_mounts_for_instance(const std::string& instance)
     auto mounts_it = mount_processes.find(instance);
     if (mounts_it == mount_processes.end() || mounts_it->second.empty())
     {
-        mpl::log(mpl::Level::debug, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
+        mpl::log(mpl::Level::info, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
     }
     else
     {
-        for (auto& sshfs_mount : mounts_it->second)
+        for (auto it = mounts_it->second.cbegin(); it != mounts_it->second.cend();)
         {
-            mpl::log(mpl::Level::debug, category,
-                     fmt::format("Stopping mount '{}' in instance \"{}\"", sshfs_mount.first, instance));
-            sshfs_mount.second->terminate();
+            // Clever postfix increment with member access needed to prevent iterator invalidation since iterable is
+            // modified in sshfs connection signal handler
+            stop_mount(instance, it++->first);
         }
     }
     mount_processes[instance].clear();
@@ -187,9 +193,5 @@ void mp::SSHFSMounts::stop_all_mounts_for_instance(const std::string& instance)
 bool mp::SSHFSMounts::has_instance_already_mounted(const std::string& instance, const std::string& path) const
 {
     auto entry = mount_processes.find(instance);
-    if (entry != mount_processes.end() && entry->second.find(path) != entry->second.end())
-    {
-        return true;
-    }
-    return false;
+    return entry != mount_processes.end() && entry->second.find(path) != entry->second.end();
 }
