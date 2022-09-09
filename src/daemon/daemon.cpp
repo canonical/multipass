@@ -2630,6 +2630,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
             std::vector<std::string> invalid_mounts;
+            fmt::memory_buffer warnings;
             auto& mounts = vm_instance_specs[name].mounts;
             auto& vm_specs = vm_instance_specs[name];
             for (const auto& mount_entry : mounts)
@@ -2667,11 +2668,26 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
                 }
                 catch (const std::exception& e)
                 {
-                    fmt::format_to(errors, "Removing \"{}\": {}\n", target_path, e.what());
+                    // TODO: Combine these into one warning level log once they are displayed in the cli by
+                    // default
+                    mpl::log(mpl::Level::info, category, fmt::format("Removing \"{}\": {}\n", target_path, e.what()));
+                    fmt::format_to(warnings,
+                                   fmt::format("Removing mount \"{}\" from {}: {}\n", target_path, name, e.what()));
                     invalid_mounts.push_back(target_path);
                 }
-                persist_instances();
             }
+
+            for (const auto& mount : invalid_mounts)
+                vm_instance_specs[name].mounts.erase(mount);
+
+            if (server && warnings.size() > 0)
+            {
+                Reply reply;
+                reply.set_log_line(fmt::to_string(warnings));
+                server->Write(reply);
+            }
+
+            persist_instances();
         }
     }
     catch (const std::exception& e)
