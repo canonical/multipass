@@ -104,7 +104,7 @@ mp::DefaultVMBlueprintProvider::DefaultVMBlueprintProvider(URLDownloader* downlo
 
 mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string& blueprint_name,
                                                               VirtualMachineDescription& vm_desc,
-                                                              AliasMap& aliases_to_be_created)
+                                                              ClientLaunchData& client_launch_data)
 {
     update_blueprints();
 
@@ -131,7 +131,7 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
                      fmt::format("Add alias [{}, {}, {}] to RPC answer", alias_name, instance_and_command[0],
                                  instance_and_command[1]));
             AliasDefinition alias_definition{instance_and_command[0], instance_and_command[1], "map"};
-            aliases_to_be_created.emplace(alias_name, alias_definition);
+            client_launch_data.aliases_to_be_created.emplace(alias_name, alias_definition);
         }
     }
 
@@ -251,6 +251,13 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
             throw InvalidBlueprintException(
                 fmt::format("Cannot convert cloud-init data for the {} Blueprint", blueprint_name));
         }
+    }
+
+    auto blueprint_workspaces = blueprint_instance["workspace"];
+    if (blueprint_workspaces && blueprint_workspaces.as<bool>())
+    {
+        mpl::log(mpl::Level::trace, category, fmt::format("Add workspace {} to RPC answer", blueprint_name));
+        client_launch_data.workspaces_to_be_created.push_back(blueprint_name);
     }
 
     return query;

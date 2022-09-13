@@ -25,10 +25,12 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 #include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
+#include <multipass/standard_paths.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 
@@ -431,7 +433,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         timer->start();
     }
 
-    auto on_success = [this](mp::LaunchReply& reply) {
+    auto on_success = [this, &parser](mp::LaunchReply& reply) {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -449,9 +451,36 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             cout << fmt::format("Warning: unable to create {} {}.\n", warning_aliases.size() == 1 ? "alias" : "aliases",
                                 fmt::join(warning_aliases, ", "));
 
-        cout << "Launched: " << reply.vm_instance_name() << "\n";
         instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
                                                                                : request.instance_name());
+
+        for (const auto& workspace_to_be_created : reply.workspaces_to_be_created())
+        {
+            auto home_dir = mpu::in_multipass_snap() ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
+                                                     : MP_STDPATHS.writableLocation(StandardPaths::HomeLocation);
+            auto full_path_str = home_dir + "/multipass/" + QString::fromStdString(workspace_to_be_created);
+
+            QDir full_path(full_path_str);
+            if (full_path.exists())
+            {
+                cerr << fmt::format("Folder \"{}\" already exists.\n", full_path_str);
+            }
+            else
+            {
+                if (!MP_FILEOPS.mkpath(full_path, full_path_str))
+                {
+                    cerr << fmt::format("Error creating folder {}. Not mounting.\n", full_path_str);
+                    continue;
+                }
+            }
+
+            if (mount(parser, full_path_str, QString::fromStdString(workspace_to_be_created)) != ReturnCode::Ok)
+            {
+                cerr << fmt::format("Error mounting folder {}.\n", full_path_str);
+            }
+        }
+
+        cout << "Launched: " << reply.vm_instance_name() << "\n";
 
         if (term->is_live() && update_available(reply.update_info()))
         {
