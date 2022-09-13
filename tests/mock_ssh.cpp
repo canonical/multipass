@@ -33,4 +33,5 @@ extern "C"
     IMPL_MOCK_DEFAULT(1, ssh_channel_get_exit_status);
     IMPL_MOCK_DEFAULT(2, ssh_event_dopoll);
     IMPL_MOCK_DEFAULT(2, ssh_add_channel_callbacks);
+    IMPL_MOCK_DEFAULT(1, ssh_get_error);
 }

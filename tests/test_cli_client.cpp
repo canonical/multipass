@@ -27,6 +27,8 @@
 #include "mock_network.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
+#include "mock_sftp_client.h"
+#include "mock_sftp_utils.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
 #include "mock_terminal.h"
@@ -424,18 +426,103 @@ TEST_F(Client, handles_remote_handler_exception)
 }
 
 // transfer cli tests
-TEST_F(Client, transfer_cmd_good_source_remote)
+TEST_F(Client, transfer_cmd_instance_source_local_target)
 {
-    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
-    EXPECT_THAT(send_command({"transfer", "test-vm:foo", mpt::test_data_path().toStdString() + "good_index.json"}),
-                Eq(mp::ReturnCode::Ok));
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, pull).WillOnce(Return(true));
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
+        mp::SSHInfoReply reply;
+        reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+        response->Write(reply);
+        return grpc::Status{};
+    });
+    EXPECT_EQ(send_command({"transfer", "test-vm:foo", "bar"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, transfer_cmd_good_destination_remote)
+TEST_F(Client, transfer_cmd_instance_sources_local_target_not_dir)
 {
-    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
-    EXPECT_THAT(send_command({"transfer", mpt::test_data_path().toStdString() + "good_index.json", "test-vm:bar"}),
-                Eq(mp::ReturnCode::Ok));
+    auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
+    EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce(Return(false));
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
+        mp::SSHInfoReply reply;
+        reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+        response->Write(reply);
+        return grpc::Status{};
+    });
+
+    std::stringstream err;
+    EXPECT_EQ(send_command({"transfer", "test-vm:foo", "test-vm:baz", "bar"}, trash_stream, err),
+              mp::ReturnCode::CommandFail);
+    EXPECT_THAT(err.str(), HasSubstr("Target 'bar' is not a directory"));
+}
+
+TEST_F(Client, transfer_cmd_instance_sources_local_target_cannot_access)
+{
+    auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
+    auto err = std::make_error_code(std::errc::permission_denied);
+    EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce([&](auto, std::error_code& e) {
+        e = err;
+        return false;
+    });
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
+        mp::SSHInfoReply reply;
+        reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+        response->Write(reply);
+        return grpc::Status{};
+    });
+
+    std::stringstream err_sink;
+    EXPECT_EQ(send_command({"transfer", "test-vm:foo", "test-vm:baz", "bar"}, trash_stream, err_sink),
+              mp::ReturnCode::CommandFail);
+    EXPECT_THAT(err_sink.str(), HasSubstr(fmt::format("Cannot access 'bar': {}", err.message())));
+}
+
+TEST_F(Client, transfer_cmd_local_sources_instance_target_not_dir)
+{
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, is_remote_dir).WillOnce(Return(false));
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
+        mp::SSHInfoReply reply;
+        reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+        response->Write(reply);
+        return grpc::Status{};
+    });
+
+    std::stringstream err;
+    EXPECT_EQ(send_command({"transfer", "foo", "baz", "test-vm:bar"}, trash_stream, err), mp::ReturnCode::CommandFail);
+    EXPECT_THAT(err.str(), HasSubstr("Target 'bar' is not a directory"));
+}
+
+TEST_F(Client, transfer_cmd_local_source_instance_target)
+{
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, push).WillOnce(Return(true));
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
+        mp::SSHInfoReply reply;
+        reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+        response->Write(reply);
+        return grpc::Status{};
+    });
+
+    EXPECT_EQ(send_command({"transfer", "foo", "test-vm:bar"}), mp::ReturnCode::Ok);
 }
 
 TEST_F(Client, transfer_cmd_help_ok)
@@ -443,21 +530,9 @@ TEST_F(Client, transfer_cmd_help_ok)
     EXPECT_THAT(send_command({"transfer", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, transfer_cmd_fails_invalid_source_file)
-{
-    EXPECT_THAT(send_command({"transfer", "foo", "test-vm:bar"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, transfer_cmd_fails_source_is_dir)
-{
-    EXPECT_THAT(send_command({"transfer", mpt::test_data_path().toStdString(), "test-vm:bar"}),
-                Eq(mp::ReturnCode::CommandLineError));
-}
-
 TEST_F(Client, transfer_cmd_fails_no_instance)
 {
-    EXPECT_THAT(send_command({"transfer", mpt::test_data_path().toStdString() + "good_index.json", "."}),
-                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"transfer", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, transfer_cmd_fails_instance_both_source_destination)
@@ -470,28 +545,55 @@ TEST_F(Client, transfer_cmd_fails_too_few_args)
     EXPECT_THAT(send_command({"transfer", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, transfer_cmd_fails_source_path_empty)
+TEST_F(Client, transfer_cmd_local_target_not_all_instance_sources_fails)
 {
-    EXPECT_THAT(send_command({"transfer", "test-vm1:", "bar"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, transfer_cmd_fails_multiple_sources_destination_file)
-{
-    EXPECT_THAT(send_command({"transfer", "test-vm1:foo", "test-vm2:bar",
-                              mpt::test_data_path().toStdString() + "good_index.json"}),
-                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"transfer", "aaa", "test-vm1:foo", "bbb"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, transfer_cmd_stdin_good_destination_ok)
 {
-    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
-    EXPECT_THAT(send_command({"transfer", "-", "test-vm1:foo"}), Eq(mp::ReturnCode::Ok));
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, from_cin);
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
+        mp::SSHInfoReply reply;
+        reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+        response->Write(reply);
+        return grpc::Status{};
+    });
+
+    EXPECT_EQ(send_command({"transfer", "-", "test-vm1:foo"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, transfer_cmd_stdin_bad_destination_fails)
+{
+    EXPECT_THAT(send_command({"transfer", "-", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, transfer_cmd_stdout_good_source_ok)
 {
-    EXPECT_CALL(mock_daemon, ssh_info(_, _, _));
-    EXPECT_THAT(send_command({"transfer", "test-vm1:foo", "-"}), Eq(mp::ReturnCode::Ok));
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, to_cout);
+    EXPECT_CALL(mock_daemon, ssh_info).WillOnce([](auto, auto, grpc::ServerWriter<mp::SSHInfoReply>* response) {
+        mp::SSHInfoReply reply;
+        reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+        response->Write(reply);
+        return grpc::Status{};
+    });
+
+    EXPECT_EQ(send_command({"transfer", "test-vm1:foo", "-"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, transfer_cmd_stdout_bad_source_fails)
+{
+    EXPECT_THAT(send_command({"transfer", "foo", "-"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, transfer_cmd_stdout_stdin_only_fails)
@@ -501,9 +603,12 @@ TEST_F(Client, transfer_cmd_stdout_stdin_only_fails)
 
 TEST_F(Client, transfer_cmd_stdout_stdin_declaration_fails)
 {
-    EXPECT_THAT(
-        send_command({"transfer", "test-vm1:foo", "-", "-", mpt::test_data_path().toStdString() + "good_index.json"}),
-        Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"transfer", "test-vm1:foo", "-", "-"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, transfer_cmd_stream_too_many_args)
+{
+    EXPECT_THAT(send_command({"transfer", "test-vm1:foo", "aaaaa", "-"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 // shell cli test

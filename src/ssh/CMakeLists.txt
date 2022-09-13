@@ -35,6 +35,8 @@ endif()
 function(add_sftp_client_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     sftp_client.cpp
+    sftp_dir_iterator.cpp
+    sftp_utils.cpp
     ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}

@@ -40,6 +40,7 @@ struct MockSSHTestFixture
         get_exit_status.returnValue(SSH_OK);
         channel_is_open.returnValue(true);
         channel_is_closed.returnValue(0);
+        options_set.returnValue(SSH_OK);
     }
 
     decltype(MOCK(ssh_connect)) connect{MOCK(ssh_connect)};
@@ -52,6 +53,7 @@ struct MockSSHTestFixture
     decltype(MOCK(ssh_channel_get_exit_status)) get_exit_status{MOCK(ssh_channel_get_exit_status)};
     decltype(MOCK(ssh_channel_is_open)) channel_is_open{MOCK(ssh_channel_is_open)};
     decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
+    decltype(MOCK(ssh_options_set)) options_set{MOCK(ssh_options_set)};
 };
 } // namespace test
 } // namespace multipass

@@ -20,22 +20,21 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
-#include <multipass/ssh/sftp_client.h>
-
-#include <QFileInfo>
+#include <multipass/file_ops.h>
+#include <multipass/ssh/sftp_utils.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
+namespace fs = mp::fs;
 
 namespace
 {
-const char streaming_symbol{'-'};
+constexpr char streaming_symbol{'-'};
 } // namespace
 
 mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
 {
-    streaming_enabled = false;
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
     {
@@ -43,56 +42,54 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
     }
 
     auto on_success = [this](mp::SSHInfoReply& reply) {
-        // TODO: mainly for testing - need a better way to test parsing
-        if (reply.ssh_info().empty())
-            return ReturnCode::Ok;
-
-        for (const auto& source : sources)
+        auto success = true;
+        for (const auto& [instance_name, ssh_info] : reply.ssh_info())
         {
-            mp::SSHInfo ssh_info;
-            if (!source.first.empty())
-            {
-                ssh_info = reply.ssh_info().find(source.first)->second;
-            }
-            else if (!destination.first.empty())
-            {
-                ssh_info = reply.ssh_info().find(destination.first)->second;
-            }
-
-            auto host = ssh_info.host();
-            auto port = ssh_info.port();
-            auto username = ssh_info.username();
-            auto priv_key_blob = ssh_info.priv_key_base64();
-
             try
             {
-                mp::SFTPClient sftp_client{host, port, username, priv_key_blob};
+                auto sftp_client = MP_SFTPUTILS.make_SFTPClient(ssh_info.host(), ssh_info.port(), ssh_info.username(),
+                                                                ssh_info.priv_key_base64());
 
-                if (streaming_enabled)
+                if (const auto args = std::get_if<InstanceSourcesLocalTarget>(&arguments); args)
                 {
-                    if (destination.first.empty())
-                        sftp_client.stream_file(source.second, term->cout());
-                    else
-                        sftp_client.stream_file(destination.second, term->cin());
+                    auto& [sources, target] = *args;
+                    std::error_code err;
+                    if (sources.size() > 1 && !MP_FILEOPS.is_directory(target, err) && !err)
+                        throw std::runtime_error{fmt::format("Target {} is not a directory", target)};
+                    else if (err)
+                        throw std::runtime_error{fmt::format("Cannot access {}: {}", target, err.message())};
+                    for (auto [s, s_end] = sources.equal_range(instance_name); s != s_end; ++s)
+                        success &= sftp_client->pull(s->second, target, flags);
                 }
-                else
+
+                if (const auto args = std::get_if<LocalSourcesInstanceTarget>(&arguments); args)
                 {
-                    if (!destination.first.empty())
-                        sftp_client.push_file(source.second, destination.second);
-                    else
-                        sftp_client.pull_file(source.second, destination.second);
+                    auto& [sources, target] = *args;
+                    if (sources.size() > 1 && !sftp_client->is_remote_dir(target))
+                        throw std::runtime_error{fmt::format("Target {} is not a directory", target)};
+                    for (const auto& source : sources)
+                        success &= sftp_client->push(source, target, flags);
                 }
+
+                if (const auto args = std::get_if<FromCin>(&arguments); args)
+                    sftp_client->from_cin(term->cin(), args->target);
+
+                if (const auto args = std::get_if<ToCout>(&arguments); args)
+                    sftp_client->to_cout(args->source, term->cout());
             }
             catch (const std::exception& e)
             {
-                cerr << "transfer failed: " << e.what() << "\n";
-                return ReturnCode::CommandFail;
+                term->cerr() << e.what() << "\n";
+                success = false;
             }
         }
-        return ReturnCode::Ok;
+
+        return success ? ReturnCode::Ok : ReturnCode::CommandFail;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), term->cerr(), status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::ssh_info, request, on_success, on_failure);
@@ -115,9 +112,7 @@ QString cmd::Transfer::short_help() const
 
 QString cmd::Transfer::description() const
 {
-    // TODO: Don't mention directories until we support that
-    // return QStringLiteral("Copy files and directories between the host and instances.");
-    return QStringLiteral("Copy files between the host and instances.");
+    return QStringLiteral("Copy files and directories between the host and instances.");
 }
 
 mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
@@ -130,156 +125,124 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
                                   "The destination path, prefixed with <name:> for "
                                   "a path inside the instance, or '-' for stdout",
                                   "<destination>");
+    parser->addOption({{"r", "recursive"}, "Recursively copy entire directories"});
 
-    auto status = parser->commandParse(this);
-    if (status != ParseCode::Ok)
+    if (auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
 
-    if (parser->positionalArguments().count() < 2)
+    flags.setFlag(SFTPClient::Flag::Recursive, parser->isSet("r"));
+
+    auto positionalArgs = parser->positionalArguments();
+    if (positionalArgs.size() < 2)
     {
-        cerr << "Not enough arguments given\n";
+        term->cerr() << "Not enough arguments given\n";
         return ParseCode::CommandLineError;
     }
 
-    const auto& args = parser->positionalArguments();
-    const auto num_streaming_symbols = std::count(std::begin(args), std::end(args), streaming_symbol);
-    const bool allow_streaming = (args.count() == 2);
+    auto split_args = args_to_instance_and_path(positionalArgs);
+    auto split_target = std::move(split_args.back());
+    split_args.pop_back();
+    auto& split_sources = split_args;
 
-    if (num_streaming_symbols && !allow_streaming)
-    {
-        cerr << fmt::format("Only two arguments allowed when using '{}'\n", streaming_symbol);
-        return ParseCode::CommandLineError;
-    }
+    const auto full_target = positionalArgs.takeLast();
+    const auto& full_sources = positionalArgs;
 
-    if (num_streaming_symbols > 1)
-    {
-        cerr << fmt::format("Only one '{}'\n", streaming_symbol);
-        return ParseCode::CommandLineError;
-    }
+    if (const auto ret_opt = parse_streaming(full_sources, full_target, split_sources, split_target); ret_opt)
+        return ret_opt.value();
 
-    const auto source_code = parse_sources(parser);
-    if (ParseCode::Ok != source_code)
-        return source_code;
-
-    const auto destination_code = parse_destination(parser);
-    if (ParseCode::Ok != destination_code)
-        return destination_code;
-
-    if (request.instance_name().empty())
-    {
-        cerr << "An instance name is needed for either source or destination\n";
-        return ParseCode::CommandLineError;
-    }
-
-    return ParseCode::Ok;
+    return parse_non_streaming(split_sources, split_target);
 }
 
-mp::ParseCode cmd::Transfer::parse_sources(mp::ArgParser* parser)
+std::vector<std::pair<std::string, fs::path>> cmd::Transfer::args_to_instance_and_path(const QStringList& args)
 {
-    for (auto i = 0; i < parser->positionalArguments().count() - 1; ++i)
+    std::vector<std::pair<std::string, fs::path>> instance_entry_args;
+    instance_entry_args.reserve(args.size());
+    for (const auto& entry : args)
     {
-        auto source_entry = parser->positionalArguments().at(i);
-        QString source_path, instance_name;
+        const auto source_components = entry.split(':');
+        const auto instance_name = source_components.size() == 1 ? "" : source_components.first().toStdString();
+        const auto file_path = source_components.size() == 1 ? source_components.first() : source_components.at(1);
+        if (!instance_name.empty())
+            request.add_instance_name()->append(instance_name);
+        instance_entry_args.emplace_back(instance_name, file_path.isEmpty() ? "." : file_path.toStdString());
+    }
+    return instance_entry_args;
+}
 
-        mcp::parse_transfer_entry(source_entry, source_path, instance_name);
+std::optional<mp::ParseCode>
+multipass::cmd::Transfer::parse_streaming(const QStringList& full_sources, const QString& full_target,
+                                          std::vector<std::pair<std::string, fs::path>> split_sources,
+                                          std::pair<std::string, fs::path> split_target)
+{
+    const auto source_streaming = std::count(full_sources.begin(), full_sources.end(), streaming_symbol);
+    const auto target_streaming = full_target == streaming_symbol;
+    if ((target_streaming && source_streaming) || source_streaming > 1)
+    {
+        term->cerr() << fmt::format("Only one '{}' allowed\n", streaming_symbol);
+        return ParseCode::CommandLineError;
+    }
 
-        if (source_path.isEmpty())
+    if ((target_streaming || source_streaming) && full_sources.size() > 1)
+    {
+        term->cerr() << fmt::format("Only two arguments allowed when using '{}'\n", streaming_symbol);
+        return ParseCode::CommandLineError;
+    }
+
+    if (target_streaming)
+    {
+        if (split_sources.front().first.empty())
         {
-            cerr << "Invalid source path given\n";
+            term->cerr() << "Source must be from inside an instance\n";
             return ParseCode::CommandLineError;
         }
 
-        if (streaming_symbol == source_path)
-        {
-            streaming_enabled = true;
-            sources.emplace_back(instance_name.toStdString(), "");
-            return ParseCode::Ok;
-        }
-
-        if (instance_name.isEmpty())
-        {
-            QFileInfo source(source_path);
-            if (!source.exists())
-            {
-                cerr << fmt::format("Source path \"{}\" does not exist\n", source_path);
-                return ParseCode::CommandLineError;
-            }
-
-            if (!source.isFile())
-            {
-                cerr << "Source path must be a file\n";
-                return ParseCode::CommandLineError;
-            }
-
-            if (!source.isReadable())
-            {
-                cerr << fmt::format("Source path \"{}\" is not readable\n", source_path);
-                return ParseCode::CommandLineError;
-            }
-        }
-        else
-        {
-            auto entry = request.add_instance_name();
-            entry->append(instance_name.toStdString());
-        }
-
-        sources.emplace_back(instance_name.toStdString(), source_path.toStdString());
-    }
-
-    return ParseCode::Ok;
-}
-
-mp::ParseCode cmd::Transfer::parse_destination(mp::ArgParser* parser)
-{
-    auto destination_entry = parser->positionalArguments().last();
-    QString destination_path, instance_name;
-
-    mcp::parse_transfer_entry(destination_entry, destination_path, instance_name);
-    if (streaming_symbol == destination_path)
-    {
-        streaming_enabled = true;
-        destination = std::make_pair("", "");
+        arguments = ToCout{std::move(split_sources.front().second)};
         return ParseCode::Ok;
     }
 
-    if (instance_name.isEmpty())
+    if (source_streaming)
     {
-        QFileInfo destination_file(destination_path);
-
-        if (destination_file.isDir())
+        if (split_target.first.empty())
         {
-            if (!destination_file.isWritable())
-            {
-                cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path);
-                return ParseCode::CommandLineError;
-            }
-        }
-        else
-        {
-            if (!QFileInfo(destination_file.dir().absolutePath()).isWritable())
-            {
-                cerr << fmt::format("Destination path \"{}\" is not writable\n", destination_path);
-                return ParseCode::CommandLineError;
-            }
-            else if (sources.size() > 1)
-            {
-                cerr << "Destination path must be a directory\n";
-                return ParseCode::CommandLineError;
-            }
-        }
-    }
-    else
-    {
-        if (!request.instance_name().empty())
-        {
-            cerr << "Cannot specify an instance name for both source and destination\n";
+            term->cerr() << "Target must be inside an instance\n";
             return ParseCode::CommandLineError;
         }
 
-        auto entry = request.add_instance_name();
-        entry->append(instance_name.toStdString());
+        arguments = FromCin{std::move(split_target).second};
+        return ParseCode::Ok;
     }
 
-    destination = std::make_pair(instance_name.toStdString(), destination_path.toStdString());
+    return std::nullopt;
+}
+
+mp::ParseCode cmd::Transfer::parse_non_streaming(std::vector<std::pair<std::string, fs::path>>& split_sources,
+                                                 std::pair<std::string, fs::path>& split_target)
+{
+    if (split_target.first.empty())
+    {
+        if (request.instance_name_size() == (int)split_sources.size())
+        {
+            arguments = InstanceSourcesLocalTarget{{split_sources.begin(), split_sources.end()},
+                                                   std::move(split_target.second)};
+            return ParseCode::Ok;
+        }
+
+        term->cerr() << (request.instance_name_size()
+                             ? "All sources must be from inside an instance\n"
+                             : "An instance name is needed for either source or destination\n");
+        return ParseCode::CommandLineError;
+    }
+
+    if (request.instance_name_size() > 1)
+    {
+        term->cerr() << "Cannot specify an instance name for both source and destination\n";
+        return ParseCode::CommandLineError;
+    }
+
+    std::vector<fs::path> source_paths;
+    source_paths.reserve(split_sources.size());
+    std::transform(split_sources.begin(), split_sources.end(), std::back_inserter(source_paths),
+                   [](auto& item) { return std::move(item.second); });
+    arguments = LocalSourcesInstanceTarget{std::move(source_paths), std::move(split_target.second)};
     return ParseCode::Ok;
 }
