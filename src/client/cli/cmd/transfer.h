@@ -19,14 +19,39 @@
 #define MULTIPASS_TRANSFER_H
 
 #include <multipass/cli/command.h>
+#include <multipass/ssh/sftp_client.h>
 
+#include "multipass/cli/return_codes.h"
+#include <filesystem>
 #include <string>
+#include <variant>
 #include <vector>
 
-namespace multipass
+namespace multipass::cmd
 {
-namespace cmd
+
+struct InstanceSourcesLocalTarget
 {
+    std::unordered_multimap<std::string, fs::path> sources;
+    fs::path target_path;
+};
+
+struct LocalSourcesInstanceTarget
+{
+    std::vector<fs::path> source_paths;
+    fs::path target;
+};
+
+struct FromCin
+{
+    fs::path target;
+};
+
+struct ToCout
+{
+    fs::path source;
+};
+
 class Transfer final : public Command
 {
 public:
@@ -40,14 +65,16 @@ public:
 
 private:
     SSHInfoRequest request;
-    std::vector<std::pair<std::string, std::string>> sources;
-    std::pair<std::string, std::string> destination;
-    bool streaming_enabled;
+    std::variant<InstanceSourcesLocalTarget, LocalSourcesInstanceTarget, FromCin, ToCout> arguments;
+    SFTPClient::Flags flags;
 
     ParseCode parse_args(ArgParser* parser);
-    ParseCode parse_sources(ArgParser* parser);
-    ParseCode parse_destination(ArgParser* parser);
+    std::vector<std::pair<std::string, fs::path>> args_to_instance_and_path(const QStringList& args);
+    std::optional<ParseCode> parse_streaming(const QStringList& full_sources, const QString& full_target,
+                                             std::vector<std::pair<std::string, fs::path>> split_sources,
+                                             std::pair<std::string, fs::path> split_target);
+    ParseCode parse_non_streaming(std::vector<std::pair<std::string, fs::path>>& split_sources,
+                                  std::pair<std::string, fs::path>& split_target);
 };
-}
-}
+} // namespace multipass::cmd
 #endif // MULTIPASS_TRANSFER_H

@@ -230,9 +230,9 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
     return cmd;
 }
 
-std::string& mp::utils::trim_end(std::string& s)
+std::string& mp::utils::trim_end(std::string& s, std::function<bool(char)> filter)
 {
-    auto rev_it = std::find_if(s.rbegin(), s.rend(), [](char ch) { return !std::isspace(ch); });
+    auto rev_it = std::find_if_not(s.rbegin(), s.rend(), filter);
     s.erase(rev_it.base(), s.end());
     return s;
 }

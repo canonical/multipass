@@ -18,6 +18,7 @@
 #include <multipass/file_ops.h>
 
 namespace mp = multipass;
+namespace fs = mp::fs;
 
 mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Singleton<FileOps>::Singleton{pass}
 {
@@ -126,4 +127,60 @@ bool mp::FileOps::commit(QSaveFile& file) const
 void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const
 {
     stream.open(filename, mode);
+}
+
+std::unique_ptr<std::ostream> mp::FileOps::open_write(const fs::path& path) const
+{
+    return std::make_unique<std::ofstream>(path);
+}
+
+std::unique_ptr<std::istream> mp::FileOps::open_read(const fs::path& path) const
+{
+    return std::make_unique<std::ifstream>(path);
+}
+
+bool mp::FileOps::exists(const fs::path& path, std::error_code& err) const
+{
+    return fs::exists(path, err);
+}
+
+bool mp::FileOps::is_directory(const fs::path& path, std::error_code& err) const
+{
+    return fs::is_directory(path, err);
+}
+
+bool mp::FileOps::create_directory(const fs::path& path, std::error_code& err) const
+{
+    return fs::create_directory(path, err);
+}
+
+bool mp::FileOps::remove(const fs::path& path, std::error_code& err) const
+{
+    return fs::remove(path, err);
+}
+
+void mp::FileOps::create_symlink(const fs::path& to, const fs::path& path, std::error_code& err) const
+{
+    fs::create_symlink(to, path, err);
+}
+
+fs::path mp::FileOps::read_symlink(const fs::path& path, std::error_code& err) const
+{
+    return fs::read_symlink(path, err);
+}
+
+void mp::FileOps::permissions(const fs::path& path, fs::perms perms, std::error_code& err) const
+{
+    fs::permissions(path, perms, err);
+}
+
+fs::file_status mp::FileOps::status(const fs::path& path, std::error_code& err) const
+{
+    return fs::status(path, err);
+}
+
+std::unique_ptr<mp::RecursiveDirIterator> mp::FileOps::recursive_dir_iterator(const fs::path& path,
+                                                                              std::error_code& err) const
+{
+    return std::make_unique<mp::RecursiveDirIterator>(path, err);
 }
