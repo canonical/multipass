@@ -47,9 +47,9 @@ fs::path SFTPUtils::get_local_file_target(const fs::path& source_path, const fs:
         return target_path;
 
     auto target_full_path = target_path / source_path.filename();
-    if (MP_FILEOPS.is_directory(target_full_path, err) && !err)
+    if (MP_FILEOPS.is_directory(target_full_path, err))
         throw SFTPError{"cannot overwrite local directory {} with non-directory", target_full_path};
-    else if (err)
+    else if (err && err != std::errc::no_such_file_or_directory)
         throw SFTPError{"cannot access {}: {}", target_full_path, err.message()};
 
     return target_full_path;
