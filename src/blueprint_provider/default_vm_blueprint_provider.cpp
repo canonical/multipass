@@ -41,39 +41,102 @@ namespace mpl = multipass::logging;
 namespace
 {
 const QString github_blueprints_archive_name{"multipass-blueprints.zip"};
-const QString blueprint_dir_version{"v1"};
+const QStringList blueprint_dir_versions{"v2", "v1"}; // The folders where to read definitions, sorted by precedence.
 constexpr auto category = "blueprint provider";
 
-auto blueprints_map_for(const std::string& archive_file_path, bool& needs_update)
+static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the {} Blueprint"};
+const auto runs_on_key{"runs-on"};
+const auto instances_key{"instances"};
+
+bool runs_on(const std::string& blueprint_name, const YAML::Node& blueprint_node, const std::string& arch)
+{
+    if (blueprint_node["blueprint-version"].as<std::string>() == "v1")
+    {
+        if (blueprint_node[runs_on_key])
+        {
+            try
+            {
+                std::vector<std::string> runs_on = blueprint_node[runs_on_key].as<std::vector<std::string>>();
+
+                return std::find(runs_on.cbegin(), runs_on.cend(), arch) != runs_on.cend();
+            }
+            catch (const YAML::BadConversion&)
+            {
+                throw mp::InvalidBlueprintException(fmt::format(bad_conversion_template, runs_on_key, blueprint_name));
+            }
+        }
+        else
+            return true;
+    }
+
+    if (!blueprint_node[instances_key] || !blueprint_node[instances_key][blueprint_name] ||
+        !blueprint_node[instances_key][blueprint_name]["images"])
+        throw mp::InvalidBlueprintException(fmt::format(bad_conversion_template, instances_key, blueprint_name));
+
+    auto images_node = blueprint_node[instances_key][blueprint_name]["images"];
+
+    return ((images_node["x86_64"] && arch == "x86_64") || (images_node["arm64"] && arch == "arm64"));
+}
+
+auto blueprints_map_for(const std::string& archive_file_path, bool& needs_update, const std::string& arch)
 {
     std::map<std::string, YAML::Node> blueprints_map;
     std::ifstream zip_stream{archive_file_path, std::ios::binary};
     auto zip_archive = MP_POCOZIPUTILS.zip_archive_for(zip_stream);
 
-    for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
+    for (auto blueprint_dir_version : blueprint_dir_versions)
     {
-        if (it->second.isFile())
+        for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
         {
-            auto file_name = it->second.getFileName();
-            QFileInfo file_info{QString::fromStdString(file_name)};
-
-            if (file_info.dir().dirName() == blueprint_dir_version &&
-                (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
+            if (it->second.isFile())
             {
-                if (!mp::utils::valid_hostname(file_info.baseName().toStdString()))
+                auto file_name = it->second.getFileName();
+                QFileInfo file_info{QString::fromStdString(file_name)};
+                auto blueprint_name = file_info.baseName().toStdString();
+
+                if (!blueprints_map.count(blueprint_name) && file_info.dir().dirName() == blueprint_dir_version &&
+                    (file_info.suffix() == "yaml" || file_info.suffix() == "yml"))
                 {
-                    mpl::log(
-                        mpl::Level::error, category,
-                        fmt::format("Invalid Blueprint name \'{}\': must be a valid host name", file_info.baseName()));
-                    needs_update = true;
+                    if (!mp::utils::valid_hostname(blueprint_name))
+                    {
+                        mpl::log(mpl::Level::error, category,
+                                 fmt::format("Invalid Blueprint name \'{}\': must be a valid host name",
+                                             file_info.baseName()));
+                        needs_update = true;
 
-                    continue;
+                        continue;
+                    }
+
+                    Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
+                    std::ostringstream out(std::ios::binary);
+                    Poco::StreamCopier::copyStream(zip_input_stream, out);
+                    auto blueprint_node = YAML::Load(out.str());
+                    blueprint_node["blueprint-version"] = blueprint_dir_version.toStdString();
+
+                    try
+                    {
+                        if (runs_on(blueprint_name, blueprint_node, arch))
+                        {
+                            mpl::log(
+                                mpl::Level::debug, category,
+                                fmt::format("Loading \"{}\" {}", blueprint_name, blueprint_dir_version.toStdString()));
+
+                            blueprints_map[blueprint_name] = blueprint_node;
+                        }
+                        else
+                        {
+                            mpl::log(mpl::Level::debug, category,
+                                     fmt::format("Not loading foreign arch \"{}\" {}", blueprint_name,
+                                                 blueprint_dir_version.toStdString()));
+                        }
+                    }
+                    catch (mp::InvalidBlueprintException&)
+                    {
+                        mpl::log(mpl::Level::debug, category,
+                                 fmt::format("Not loading malformed \"{}\" {}", blueprint_name,
+                                             blueprint_dir_version.toStdString()));
+                    }
                 }
-
-                Poco::Zip::ZipInputStream zip_input_stream{zip_stream, it->second};
-                std::ostringstream out(std::ios::binary);
-                Poco::StreamCopier::copyStream(zip_input_stream, out);
-                blueprints_map[file_info.baseName().toStdString()] = YAML::Load(out.str());
             }
         }
     }
@@ -111,7 +174,11 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
     Query query{"", "default", false, "", Query::Type::Alias};
     auto& blueprint_config = blueprint_map.at(blueprint_name);
 
-    if (!blueprint_config["instances"][blueprint_name])
+    mpl::log(mpl::Level::debug, category,
+             fmt::format("Loading Blueprint \"{}\", version {}", blueprint_name,
+                         blueprint_config["blueprint-version"].as<std::string>()));
+
+    if (!blueprint_config[instances_key][blueprint_name])
     {
         throw InvalidBlueprintException(
             fmt::format("There are no instance definitions matching Blueprint name \"{}\"", blueprint_name));
@@ -135,14 +202,31 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
         }
     }
 
-    auto blueprint_instance = blueprint_config["instances"][blueprint_name];
+    auto blueprint_instance = blueprint_config[instances_key][blueprint_name];
 
     // TODO: Abstract all of the following YAML schema boilerplate
-    if (blueprint_instance["image"])
+
+    if (blueprint_config["blueprint-version"].as<std::string>() == "v2")
     {
-        // TODO: Support http later.
+        try
+        {
+            auto arch_node = blueprint_instance["images"][arch.toStdString()];
+
+            query.release = arch_node["url"].as<std::string>();
+            query.query_type = Query::Type::HttpDownload;
+
+            // TODO: add code for SHA256
+        }
+        catch (const YAML::BadConversion&)
+        {
+            needs_update = true;
+            throw InvalidBlueprintException(fmt::format("No image for {} in {}", arch, blueprint_name));
+        }
+    }
+    else if (blueprint_instance["image"])
+    {
         // This only supports the "alias" and "remote:alias" scheme at this time
-        auto image_str{blueprint_config["instances"][blueprint_name]["image"].as<std::string>()};
+        auto image_str{blueprint_config[instances_key][blueprint_name]["image"].as<std::string>()};
         auto tokens = mp::utils::split(image_str, ":");
 
         if (tokens.size() == 2)
@@ -268,7 +352,6 @@ mp::VMImageInfo mp::DefaultVMBlueprintProvider::info_for(const std::string& blue
     update_blueprints();
 
     static constexpr auto missing_key_template{"The \'{}\' key is required for the {} Blueprint"};
-    static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the {} Blueprint"};
     auto& blueprint_config = blueprint_map.at(blueprint_name);
 
     VMImageInfo image_info;
@@ -276,22 +359,10 @@ mp::VMImageInfo mp::DefaultVMBlueprintProvider::info_for(const std::string& blue
 
     const auto description_key{"description"};
     const auto version_key{"version"};
-    const auto runs_on_key{"runs-on"};
 
-    if (blueprint_config[runs_on_key])
+    if (!runs_on(blueprint_name, blueprint_config, arch.toStdString()))
     {
-        try
-        {
-            auto runs_on = blueprint_config[runs_on_key].as<std::vector<std::string>>();
-            if (std::find(runs_on.cbegin(), runs_on.cend(), arch.toStdString()) == runs_on.cend())
-            {
-                throw IncompatibleBlueprintException(blueprint_name);
-            }
-        }
-        catch (const YAML::BadConversion&)
-        {
-            throw InvalidBlueprintException(fmt::format(bad_conversion_template, runs_on_key, blueprint_name));
-        }
+        throw IncompatibleBlueprintException(blueprint_name);
     }
 
     if (!blueprint_config[description_key])
@@ -380,7 +451,7 @@ int mp::DefaultVMBlueprintProvider::blueprint_timeout(const std::string& bluepri
 
         auto& blueprint_config = blueprint_map.at(blueprint_name);
 
-        auto blueprint_instance = blueprint_config["instances"][blueprint_name];
+        auto blueprint_instance = blueprint_config[instances_key][blueprint_name];
 
         if (blueprint_instance["timeout"])
         {
@@ -407,7 +478,7 @@ void mp::DefaultVMBlueprintProvider::fetch_blueprints()
 {
     url_downloader->download_to(blueprints_url, archive_file_path, -1, -1, [](auto...) { return true; });
 
-    blueprint_map = blueprints_map_for(archive_file_path.toStdString(), needs_update);
+    blueprint_map = blueprints_map_for(archive_file_path.toStdString(), needs_update, arch.toStdString());
 }
 
 void mp::DefaultVMBlueprintProvider::update_blueprints()
