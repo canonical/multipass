@@ -376,8 +376,7 @@ TEST_F(VMBlueprintProvider, allBlueprintsReturnsExpectedInfo)
         "Invalid Blueprint: The 'version' key is required for the missing-version-blueprint Blueprint");
     logger_scope.mock_logger->expect_log(
         mpl::Level::error, "Invalid Blueprint name \'42-invalid-hostname-blueprint\': must be a valid host name");
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::error, "Invalid Blueprint: Cannot convert 'runs-on' key for the invalid-arch Blueprint");
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Not loading malformed \"invalid-arch\" v1");
 
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
@@ -620,9 +619,10 @@ TEST_F(VMBlueprintProvider, fetchInvalidRunsOnThrows)
                                                       default_ttl};
 
     const std::string blueprint{"invalid-arch"};
-    MP_EXPECT_THROW_THAT(
-        blueprint_provider.info_for(blueprint), mp::InvalidBlueprintException,
-        mpt::match_what(StrEq(fmt::format("Cannot convert \'runs-on\' key for the {} Blueprint", blueprint))));
+    // This call fails with an std::out_of_range exception because the Blueprint is invalid and was filtered out by
+    // blueprints_map_for() at provider construction.
+    // TODO: add a test for this.
+    EXPECT_THROW(blueprint_provider.info_for(blueprint), std::out_of_range);
 }
 
 TEST_F(VMBlueprintProvider, infoForIncompatibleThrows)
@@ -631,8 +631,10 @@ TEST_F(VMBlueprintProvider, infoForIncompatibleThrows)
                                                       default_ttl};
 
     const std::string blueprint{"arch-only"};
-    MP_EXPECT_THROW_THAT(blueprint_provider.info_for(blueprint), mp::IncompatibleBlueprintException,
-                         mpt::match_what(StrEq(blueprint)));
+    // This call fails with an std::out_of_range exception because the Blueprint is invalid and was filtered out by
+    // blueprints_map_for() at provider construction.
+    // TODO: add a test for this.
+    EXPECT_THROW(blueprint_provider.info_for(blueprint), std::out_of_range);
 }
 
 TEST_F(VMBlueprintProvider, infoForCompatibleReturnsExpectedInfo)
