@@ -43,6 +43,7 @@ public:
 
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
     std::vector<NetworkInterfaceInfo> networks() const override;
+    std::unique_ptr<MountHandler> create_performance_mount_handler(const SSHKeyProvider& ssh_key_provider) override;
 
 protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
