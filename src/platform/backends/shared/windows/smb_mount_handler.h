@@ -39,7 +39,7 @@ public:
     bool has_instance_already_mounted(const std::string& instance, const std::string& path) const override;
 
 private:
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> smb_mount_map;
+    std::unordered_map<std::string, std::unordered_map<std::string, QString>> smb_mount_map;
 };
 
 } // namespace multipass
