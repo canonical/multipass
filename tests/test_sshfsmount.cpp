@@ -174,10 +174,6 @@ struct SshfsMount : public mp::test::SftpServerTest
         EXPECT_TRUE(next_expected_cmd == commands.end()) << "\"" << next_expected_cmd->first << "\" not executed";
     }
 
-    static void on_install()
-    {
-    }
-
     mpt::ExitStatusMock exit_status_mock;
 
     std::string default_source{"source"};

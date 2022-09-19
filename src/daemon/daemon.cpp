@@ -1439,7 +1439,8 @@ try // clang-format on
                           ? mp::VMMount::MountType::SSHFS
                           : mp::VMMount::MountType::Performance;
 
-    if (mount_type == mp::VMMount::MountType::Performance && config->mount_handlers.size() < 2)
+    if (mount_type == mp::VMMount::MountType::Performance &&
+        (config->mount_handlers.find(mp::VMMount::MountType::Performance) == config->mount_handlers.end()))
         throw mp::NotImplementedOnThisBackendException("experimental mounts");
 
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
@@ -1507,7 +1508,9 @@ try // clang-format on
             continue;
         }
 
-        if (config->mount_handlers.at(static_cast<int>(mount_type))->has_instance_already_mounted(name, target_path))
+        const auto& mount_handler = config->mount_handlers.at(mount_type);
+
+        if (mount_handler->has_instance_already_mounted(name, target_path))
         {
             fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
@@ -1517,13 +1520,13 @@ try // clang-format on
         auto& vm_specs = vm_instance_specs[name];
         VMMount mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
 
-        config->mount_handlers.at(static_cast<int>(mount_type))->init_mount(vm.get(), target_path, mount);
+        mount_handler->init_mount(vm.get(), target_path, mount);
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
             {
-                config->mount_handlers.at(static_cast<int>(mount_type))->start_mount(vm.get(), server, target_path);
+                mount_handler->start_mount(vm.get(), server, target_path);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1804,7 +1807,7 @@ try // clang-format on
             vm.suspend();
             for (const auto& mount_handler : config->mount_handlers)
             {
-                mount_handler->stop_all_mounts_for_instance(vm.vm_name);
+                mount_handler.second->stop_all_mounts_for_instance(vm.vm_name);
             }
 
             return grpc::Status::OK;
@@ -1877,7 +1880,7 @@ try // clang-format on
 
             for (const auto& mount_handler : config->mount_handlers)
             {
-                mount_handler->stop_all_mounts_for_instance(name);
+                mount_handler.second->stop_all_mounts_for_instance(name);
             }
 
             instance->shutdown();
@@ -1943,17 +1946,17 @@ try // clang-format on
         {
             for (const auto& mount_handler : config->mount_handlers)
             {
-                mount_handler->stop_all_mounts_for_instance(name);
+                mount_handler.second->stop_all_mounts_for_instance(name);
             }
 
             mounts.clear();
         }
         else
         {
-            int mount_type;
+            VMMount::MountType mount_type;
             try
             {
-                mount_type = static_cast<int>(mounts.at(target_path).mount_type);
+                mount_type = mounts.at(target_path).mount_type;
             }
             catch (const std::out_of_range&)
             {
@@ -2593,7 +2596,7 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
         auto stop_all_mounts = [this](const std::string& name) {
             for (const auto& mount_handler : config->mount_handlers)
             {
-                mount_handler->stop_all_mounts_for_instance(name);
+                mount_handler.second->stop_all_mounts_for_instance(name);
             }
         };
 
@@ -2644,8 +2647,7 @@ void mp::Daemon::init_mounts(const std::string& name)
         auto& target_path = mount_entry.first;
         auto mount_type = mount_entry.second.mount_type;
 
-        config->mount_handlers.at(static_cast<int>(mount_type))
-            ->init_mount(vm_instances[name].get(), target_path, mount_entry.second);
+        config->mount_handlers.at(mount_type)->init_mount(vm_instances[name].get(), target_path, mount_entry.second);
     }
 }
 
@@ -2699,7 +2701,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
 
                 try
                 {
-                    config->mount_handlers.at(static_cast<int>(mount_entry.second.mount_type))
+                    config->mount_handlers.at(mount_entry.second.mount_type)
                         ->start_mount(vm.get(), server, target_path);
                 }
                 catch (const mp::SSHFSMissingError&)

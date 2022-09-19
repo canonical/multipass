@@ -89,7 +89,7 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_all_mounts_for_instance(mock_instance_name)).Times(1);
-    config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
+    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -117,7 +117,7 @@ TEST_F(TestDaemonUmount, unmountsMountedTargetWhenInstanceRunning)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(1);
-    config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
+    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -143,7 +143,7 @@ TEST_F(TestDaemonUmount, mountNotFoundInDatabaseHasError)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(0);
-    config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
+    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -173,7 +173,7 @@ TEST_F(TestDaemonUmount, invalidMountTypeHasError)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(0);
-    config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
+    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 

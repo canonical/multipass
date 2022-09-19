@@ -163,7 +163,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     EXPECT_CALL(*mock_mount_handler, start_mount(_, _, _, _)).Times(1);
 
     config_builder.mount_handlers.clear();
-    config_builder.mount_handlers.push_back(std::move(mock_mount_handler));
+    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 

@@ -52,10 +52,10 @@ auto convert_id_for(const QString& id_string)
 
 auto checked_mount_type(const QString& type)
 {
-    if (type == "integrated")
+    if (type == default_mount_type)
         return mp::MountRequest_MountType_INTEGRATED;
 
-    if (type == "native")
+    if (type == native_mount_type)
         return mp::MountRequest_MountType_NATIVE;
 
     throw mp::ValidationException{fmt::format("Bad mount type '{}' specified, please use '{}' or '{}'", type,
