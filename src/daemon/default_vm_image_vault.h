@@ -28,6 +28,7 @@
 #include <QFuture>
 
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 
 namespace multipass
@@ -49,7 +50,7 @@ public:
     ~DefaultVMImageVault();
 
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
-                        const ProgressMonitor& monitor) override;
+                        const ProgressMonitor& monitor, const std::optional<std::string> checksum) override;
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;

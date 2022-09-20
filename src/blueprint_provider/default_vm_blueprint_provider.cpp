@@ -215,7 +215,14 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
             query.release = arch_node["url"].as<std::string>();
             query.query_type = Query::Type::HttpDownload;
 
-            // TODO: add code for SHA256
+            if (arch_node["sha256"])
+            {
+                auto sha256_string = arch_node["sha256"].as<std::string>();
+                mpl::log(mpl::Level::debug, category, fmt::format("Add SHA256 \"{}\" to image record", sha256_string));
+                vm_desc.image.id = sha256_string;
+            }
+            else
+                mpl::log(mpl::Level::debug, category, "No SHA256 to check");
         }
         catch (const YAML::BadConversion&)
         {

@@ -247,7 +247,8 @@ mp::DefaultVMImageVault::~DefaultVMImageVault()
 }
 
 mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
-                                                 const PrepareAction& prepare, const ProgressMonitor& monitor)
+                                                 const PrepareAction& prepare, const ProgressMonitor& monitor,
+                                                 const std::optional<std::string> checksum)
 {
     {
         std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -313,8 +314,11 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         {
             QUrl image_url(QString::fromStdString(query.release));
 
-            // Generate a sha256 hash based on the URL and use that for the id
-            id = QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex().toStdString();
+            // If no checksum given, generate a sha256 hash based on the URL and use that for the id
+            id =
+                checksum
+                    ? *checksum
+                    : QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex().toStdString();
             auto last_modified = url_downloader->last_modified(image_url);
 
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -350,7 +354,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                                        {},
                                        last_modified.toString(),
                                        0,
-                                       false};
+                                       checksum.has_value()};
                 const auto image_filename = mp::vault::filename_for(image_url.path());
                 // Attempt to make a sane directory name based on the filename of the image
 
@@ -528,7 +532,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
         mpl::log(mpl::Level::info, category, fmt::format("Updating {} source image to latest", record.query.release));
         try
         {
-            fetch_image(fetch_type, record.query, prepare, monitor);
+            fetch_image(fetch_type, record.query, prepare, monitor, std::nullopt);
 
             // Remove old image
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -600,6 +604,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
         if (info.verify)
         {
+            mpl::log(mpl::Level::debug, category, fmt::format("Verifying hash \"{}\"", id));
             monitor(LaunchProgress::VERIFY, -1);
             mp::vault::verify_image_download(source_image.image_path, id);
         }

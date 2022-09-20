@@ -367,7 +367,7 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
-    return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress);
+    return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress, std::nullopt);
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -2498,7 +2498,11 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             auto fetch_type = config->factory->fetch_type();
 
-            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor);
+            std::optional<std::string> checksum;
+            if (!vm_desc.image.id.empty())
+                checksum = vm_desc.image.id;
+
+            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor, checksum);
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
