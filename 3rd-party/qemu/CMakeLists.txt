@@ -26,7 +26,7 @@ set(QEMU_SOURCE_DIR "${CMAKE_BINARY_DIR}/3rd-party/qemu")
 FetchContent_Declare(qemu
   SOURCE_DIR ${QEMU_SOURCE_DIR}
   GIT_REPOSITORY https://github.com/canonical/qemu.git
-  GIT_TAG v6.2.0+m1fix+vmnetv15
+  GIT_TAG v7.1.0+9p-uid-gid-map
   GIT_SHALLOW TRUE
   GIT_SUBMODULES ""
   GIT_PROGRESS TRUE
@@ -42,7 +42,6 @@ ExternalProject_Add(qemu
       --ninja=ninja
       --target-list=${HOST_ARCH}-softmmu
       --enable-hvf
-      --enable-vdi
       --disable-bochs
       --disable-cloop
       --disable-docs
@@ -63,10 +62,11 @@ ExternalProject_Add(qemu
       --disable-tests
       --disable-nettle
       --disable-libusb
-      --disable-libxml2
       --disable-bzip2
       --disable-gcrypt
       --disable-gnutls
+      --disable-libvduse
+      --disable-vduse-blk-export
   BUILD_COMMAND ninja
   TEST_COMMAND ""
 )
