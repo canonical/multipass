@@ -117,6 +117,7 @@ message LaunchReply {
     string reply_message = 8;
     repeated string nets_need_bridging = 9;
     repeated Alias aliases_to_be_created = 10;
+    repeated string workspaces_to_be_created = 11;
 }
 
 message PurgeRequest {

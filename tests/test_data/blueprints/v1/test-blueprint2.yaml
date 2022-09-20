@@ -4,6 +4,7 @@ version: 0.1
 instances:
   test-blueprint2:
     image: "daily:bionic"
+    workspace: false
     limits:
       min-cpu: 4
       min-mem: 4G
