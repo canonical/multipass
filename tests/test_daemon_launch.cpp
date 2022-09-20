@@ -72,7 +72,7 @@ TEST_F(TestDaemonLaunch, blueprintFoundMountsWorkspaceWithNameOverride)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, command_line_name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce(
@@ -100,5 +100,8 @@ TEST_F(TestDaemonLaunch, blueprintFoundMountsWorkspaceWithNameOverride)
     auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, writer);
 
     EXPECT_EQ(reply.workspaces_to_be_created_size(), 1);
-    EXPECT_EQ(reply.workspaces_to_be_created(0), command_line_name);
+    if (reply.workspaces_to_be_created_size() > 0)
+    {
+        EXPECT_EQ(reply.workspaces_to_be_created(0), command_line_name);
+    }
 }
