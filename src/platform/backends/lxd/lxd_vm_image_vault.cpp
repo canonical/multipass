@@ -240,8 +240,10 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
         if (query.query_type == Query::Type::HttpDownload)
         {
-            // Generate a sha256 hash based on the URL and use that for the id
-            id = QString(QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex());
+            // If no checksum given, generate a sha256 hash based on the URL and use that for the id
+            id = checksum
+                     ? QString::fromStdString(*checksum)
+                     : QString(QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex());
             last_modified = url_downloader->last_modified(image_url);
         }
         else
@@ -254,7 +256,8 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             last_modified = QDateTime::currentDateTime();
         }
 
-        info = VMImageInfo{{}, {}, {}, {}, true, image_url.url(), {}, {}, id, {}, last_modified.toString(), 0, false};
+        info = VMImageInfo{
+            {}, {}, {}, {}, true, image_url.url(), {}, {}, id, {}, last_modified.toString(), 0, checksum.has_value()};
 
         source_image.id = id.toStdString();
         source_image.release_date = last_modified.toString(Qt::ISODateWithMs).toStdString();
