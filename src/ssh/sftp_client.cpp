@@ -19,7 +19,6 @@
 
 #include "ssh_client_key_provider.h"
 #include <multipass/file_ops.h>
-#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/throw_on_error.h>
@@ -124,12 +123,9 @@ void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_p
 
     do_push_file(*local_file, target_path);
 
-    auto target_attr = mp_sftp_stat(sftp.get(), target_path.u8string().c_str());
     std::error_code _;
     auto status = MP_FILEOPS.status(source_path, _);
-
-    target_attr->permissions = static_cast<mode_t>(status.permissions());
-    if (sftp_setstat(sftp.get(), target_path.u8string().c_str(), target_attr.get()) != SSH_FX_OK)
+    if (sftp_chmod(sftp.get(), target_path.u8string().c_str(), static_cast<mode_t>(status.permissions())) != SSH_FX_OK)
         throw SFTPError{"cannot set permissions for remote file {}: {}", target_path, ssh_get_error(sftp->session)};
 
     if (local_file->fail() && !local_file->eof())
