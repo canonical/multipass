@@ -218,6 +218,14 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
             if (arch_node["sha256"])
             {
                 auto sha256_string = arch_node["sha256"].as<std::string>();
+                if (QString::fromStdString(sha256_string).startsWith("http"))
+                {
+                    mpl::log(mpl::Level::debug, category, fmt::format("Downloading SHA256 from {}", sha256_string));
+                    auto downloaded_sha256 = url_downloader->download(QUrl(QString::fromStdString(sha256_string)));
+                    if (downloaded_sha256.size() > 64)
+                        downloaded_sha256.truncate(64); // To account for newlines or other content.
+                    sha256_string = QString(downloaded_sha256).toStdString();
+                }
                 mpl::log(mpl::Level::debug, category, fmt::format("Add SHA256 \"{}\" to image record", sha256_string));
                 vm_desc.image.id = sha256_string;
             }
