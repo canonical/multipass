@@ -73,17 +73,19 @@ protected:
         ReplyType reply;
         auto handle_failure = adapt_failure_handler(on_failure, reply);
 
-        auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1, std::placeholders::_2);
+        auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1);
 
         grpc::ClientContext context;
-        std::unique_ptr<grpc::ClientReaderInterface<ReplyType>> reader = rpc_method(&context, request);
+        std::unique_ptr<grpc::ClientReaderWriterInterface<Request, ReplyType>> client = rpc_method(&context);
 
-        while (reader->Read(&reply))
+        client->Write(request);
+
+        while (client->Read(&reply))
         {
-            streaming_callback(reply);
+            streaming_callback(reply, client.get());
         }
 
-        auto status = reader->Finish();
+        auto status = client->Finish();
 
         if (status.ok())
         {
@@ -126,12 +128,13 @@ protected:
     {
         using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
         using ReplyType = typename std::remove_reference<Arg0Type>::type;
-        return dispatch(rpc_func, request, on_success, on_failure, [this](ReplyType& reply) {
-            if (!reply.log_line().empty())
-            {
-                cerr << reply.log_line();
-            }
-        });
+        return dispatch(rpc_func, request, on_success, on_failure,
+                        [this](ReplyType& reply, grpc::ClientReaderWriterInterface<Request, ReplyType>* client) {
+                            if (!reply.log_line().empty())
+                            {
+                                cerr << reply.log_line();
+                            }
+                        });
     }
 
     Rpc::StubInterface* stub;
