@@ -947,7 +947,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             spec.state = VirtualMachine::State::stopped;
         }
 
-        std::unique_lock<decltype(start_mutex)> lock{start_mutex};
+        std::unique_lock lock{start_mutex};
         if (spec.state == VirtualMachine::State::running &&
             vm_instances[name]->current_state() != VirtualMachine::State::running &&
             vm_instances[name]->current_state() != VirtualMachine::State::starting)
@@ -1717,7 +1717,7 @@ try // clang-format on
     fmt::memory_buffer start_errors;
     for (const auto& name : vms)
     {
-        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
+        std::lock_guard lock{start_mutex};
         auto& vm = vm_instances.find(name)->second;
         auto state = vm->current_state();
         if (state == VirtualMachine::State::unknown)
