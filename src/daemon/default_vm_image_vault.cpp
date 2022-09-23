@@ -248,7 +248,7 @@ mp::DefaultVMImageVault::~DefaultVMImageVault()
 
 mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
                                                  const PrepareAction& prepare, const ProgressMonitor& monitor,
-                                                 const std::optional<std::string> checksum)
+                                                 const bool unlock, const std::optional<std::string> checksum)
 {
     {
         std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -261,7 +261,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         }
     }
 
-    if (query.query_type != Query::Type::Alias && !mp::platform::is_image_url_supported())
+    if (!unlock && query.query_type != Query::Type::Alias && !mp::platform::is_image_url_supported())
         throw std::runtime_error(fmt::format("http and file based images are not supported"));
 
     if (query.query_type == Query::Type::LocalFile)
@@ -532,7 +532,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
         mpl::log(mpl::Level::info, category, fmt::format("Updating {} source image to latest", record.query.release));
         try
         {
-            fetch_image(fetch_type, record.query, prepare, monitor, std::nullopt);
+            fetch_image(fetch_type, record.query, prepare, monitor, false, std::nullopt);
 
             // Remove old image
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};

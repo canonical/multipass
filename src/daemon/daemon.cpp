@@ -367,7 +367,7 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
-    return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress, std::nullopt);
+    return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress, false, std::nullopt);
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -2446,6 +2446,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             ClientLaunchData client_launch_data;
 
+            bool launch_from_blueprint{true};
             try
             {
                 query = config->blueprint_provider->fetch_blueprint_for(request->image(), vm_desc, client_launch_data);
@@ -2477,6 +2478,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             catch (const std::out_of_range&)
             {
                 // Blueprint not found, move on
+                launch_from_blueprint = false;
                 query = query_from(request, name);
                 vm_desc.mem_size = checked_args.mem_size;
             }
@@ -2502,7 +2504,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             if (!vm_desc.image.id.empty())
                 checksum = vm_desc.image.id;
 
-            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor, checksum);
+            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor,
+                                                       launch_from_blueprint, checksum);
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
