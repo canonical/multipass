@@ -40,14 +40,6 @@ namespace multipass
 {
 namespace test
 {
-template <typename W>
-class MockServerWriter : public grpc::ServerWriterInterface<W>
-{
-public:
-    MOCK_METHOD0(SendInitialMetadata, void());
-    MOCK_METHOD2_T(Write, bool(const W& msg, grpc::WriteOptions options));
-};
-
 struct DaemonTestFixture : public ::Test
 {
     DaemonTestFixture();
@@ -81,10 +73,10 @@ struct DaemonTestFixture : public ::Test
     /**
      * Helper function to call one of the <em>daemon slots</em> that ultimately handle RPC requests
      *  (e.g. @c mp::Daemon::get). It takes care of promise/future boilerplate. This will generally be given a
-     *  @c mpt::MockServerWriter, which can be used to verify replies.
+     *  @c mpt::MockServerReaderWriter, which can be used to verify replies.
      * @tparam DaemonSlotPtr The method pointer type for the provided slot. Example:
      *  @code
-     *  void (mp::Daemon::*)(const mp::GetRequest *, grpc::ServerWriterInterface<mp::GetReply> *,
+     *  void (mp::Daemon::*)(const mp::GetRequest *, grpc::ServerReaderWriterInterface<mp::GetReply> *,
      *                       std::promise<grpc::Status> *)>
      *  @endcode
      * @tparam Request The request type that the provided slot expects. Example: @c mp::GetRequest

@@ -22,7 +22,7 @@
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_process_factory.h"
-#include "mock_server_writer.h"
+#include "mock_server_reader_writer.h"
 #include "mock_ssh_process_exit_status.h"
 #include "mock_virtual_machine.h"
 #include "stub_ssh_key_provider.h"
@@ -86,7 +86,7 @@ struct SSHFSMountHandlerTest : public ::Test
     mp::id_mappings gid_mappings{{1, 2}, {3, 4}}, uid_mappings{{5, -1}, {6, 10}};
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(default_log_level);
-    mpt::MockServerWriter<mp::MountReply> server;
+    mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
     mpt::StubVirtualMachine vm;

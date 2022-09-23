@@ -20,6 +20,7 @@
 #include "mock_logger.h"
 #include "mock_mount_handler.h"
 #include "mock_platform.h"
+#include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
@@ -78,7 +79,7 @@ TEST_F(TestDaemonMount, refusesDisabledMount)
     std::stringstream err_stream;
 
     auto status = call_daemon_slot(daemon, &mp::Daemon::mount, mp::MountRequest{},
-                                   StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
@@ -92,8 +93,8 @@ TEST_F(TestDaemonMount, missingSourceDirFails)
     mp::MountRequest request;
     request.set_source_path(missing_dir);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("source \"{}\" does not exist", missing_dir)));
@@ -108,8 +109,8 @@ TEST_F(TestDaemonMount, sourceNotDirFails)
     mp::MountRequest request;
     request.set_source_path(file.name().toStdString());
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("source \"{}\" is not a directory", file.name())));
@@ -126,8 +127,8 @@ TEST_F(TestDaemonMount, missingInstanceFails)
     auto entry = request.add_target_paths();
     entry->set_instance_name(fake_instance);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("instance \"{}\" does not exist", fake_instance)));
@@ -152,8 +153,8 @@ TEST_F(TestDaemonMount, invalidTargetPathFails)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(invalid_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("Unable to mount to \"{}\"", invalid_path)));
@@ -180,8 +181,8 @@ TEST_F(TestDaemonMount, mountExistsDoesNotTryMount)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(),
@@ -213,8 +214,8 @@ TEST_F(TestDaemonMount, skipStartMountIfInstanceIsNotRunning)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -253,8 +254,8 @@ TEST_F(TestDaemonMount, mountAlreadyDefinedLogsAndContinues)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -284,8 +285,8 @@ TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -315,8 +316,8 @@ TEST_F(TestDaemonMount, mountFailsSshfsMissing)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(),
@@ -349,8 +350,8 @@ TEST_F(TestDaemonMount, mountFailsErrorMounting)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(),
@@ -393,8 +394,8 @@ TEST_F(TestDaemonMount, expectedUidsGidsPassedToInitMount)
     gid_pair->set_host_id(host_gid);
     gid_pair->set_instance_id(instance_gid);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -421,8 +422,8 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::mount, request, StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), StrEq("The experimental mounts feature is not implemented on this backend."));
