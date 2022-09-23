@@ -36,7 +36,7 @@ namespace cmd = multipass::cmd;
 namespace
 {
 constexpr auto category = "mount cmd";
-const QString default_mount_type{"integrated"};
+const QString default_mount_type{"classic"};
 const QString native_mount_type{"native"};
 
 auto convert_id_for(const QString& id_string)
@@ -136,9 +136,9 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                     "host>:<instance");
     QCommandLineOption mount_type_option({"t", "type"},
                                          "Specify the type of mount to use.\n"
-                                         "Integrated mounts use technology built into Multipass.\n"
+                                         "Classic mounts use technology built into Multipass.\n"
                                          "Native mounts use hypervisor and/or platform specific mounts.\n"
-                                         "Valid types are: integrated (default) and native",
+                                         "Valid types are: \'classic\' (default) and \'native\'",
                                          "type", default_mount_type);
     parser->addOptions({gid_mappings, uid_mappings, mount_type_option});
 
