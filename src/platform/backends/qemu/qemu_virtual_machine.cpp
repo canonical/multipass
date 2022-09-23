@@ -28,6 +28,7 @@
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
+#include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <QFile>
@@ -82,7 +83,7 @@ QStringList get_arguments(const QJsonObject& metadata)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::optional<QJsonObject>& resume_metadata,
-                       const QStringList& platform_args)
+                       const std::unordered_map<std::string, QStringList> mount_args, const QStringList& platform_args)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -97,7 +98,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::opt
                                                         get_arguments(data)};
     }
 
-    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, resume_data);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data);
     auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
@@ -468,7 +469,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     vm_process = make_qemu_process(
         desc,
         ((state == State::suspended) ? std::make_optional(monitor->retrieve_metadata_for(vm_name)) : std::nullopt),
-        qemu_platform->vm_platform_args(desc));
+        mount_args, qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
@@ -593,9 +594,21 @@ void mp::QemuVirtualMachine::add_vm_mount(const std::string& target_path, const 
     // ${mount_tag} is a unique tag used in the mount command inside the instance
     // target_path should be used as a key for storing the mount data since it will be unique to the instance (only one
     // target can be mounted at a time)
+    mount_args[target_path] = QStringList{
+        {"-virtfs",
+         QString("local,security_model=passthrough,uid_map=1000:1000,gid_map=1000:1000,path=%5,mount_tag=%6")
+             // {"-virtfs", QString("local,security_model=passthrough,uid_map=%1:%2,gid_map=%3:%4,path=%5,mount_tag=%6")
+             //  .arg(vm_mount.uid_mappings.at(0).first)
+             // .arg(vm_mount.uid_mappings.at(0).second)
+             //  .arg(vm_mount.gid_mappings.at(0).first)
+             // .arg(vm_mount.gid_mappings.at(0).second)
+             .arg(QString::fromStdString(vm_mount.source_path))
+             .arg("test_mount")}};
+    // .arg(QString::fromStdString(fmt::format("mount_{}", target_path)))}};
 }
 
 void mp::QemuVirtualMachine::delete_vm_mount(const std::string& target_path)
 {
     // This should delete the mount data associated with the target_path key outlined above
+    mount_args.erase(target_path);
 }

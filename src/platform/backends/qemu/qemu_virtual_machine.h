@@ -73,6 +73,7 @@ private:
 
     VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
+    std::unordered_map<std::string, QStringList> mount_args;
     const std::string mac_addr;
     const std::string username;
     QemuPlatform* qemu_platform;

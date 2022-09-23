@@ -35,6 +35,9 @@ public:
     void stop_mount(const std::string& instance, const std::string& path) override;
     void stop_all_mounts_for_instance(const std::string& instance) override;
     bool has_instance_already_mounted(const std::string& instance, const std::string& path) const override;
+
+private:
+    std::unordered_map<std::string, std::pair<std::string, VirtualMachine*>> mounts;
 };
 
 } // namespace multipass
