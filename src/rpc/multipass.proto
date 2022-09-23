@@ -260,7 +260,7 @@ message TargetPathInfo {
 
 message MountRequest {
     enum MountType {
-        INTEGRATED = 0;
+        CLASSIC = 0;
         NATIVE = 1;
     }
     string source_path = 1;

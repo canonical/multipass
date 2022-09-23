@@ -53,7 +53,7 @@ auto convert_id_for(const QString& id_string)
 auto checked_mount_type(const QString& type)
 {
     if (type == default_mount_type)
-        return mp::MountRequest_MountType_INTEGRATED;
+        return mp::MountRequest_MountType_CLASSIC;
 
     if (type == native_mount_type)
         return mp::MountRequest_MountType_NATIVE;
