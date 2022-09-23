@@ -1645,10 +1645,10 @@ TEST_F(Client, mount_cmd_fails_invalid_host_int_gid_mappings)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, mountCmdGoodIntergratedMountType)
+TEST_F(Client, mountCmdGoodClassicMountType)
 {
     EXPECT_CALL(mock_daemon, mount(_, _, _));
-    EXPECT_EQ(send_command({"mount", "-t", "integrated", mpt::test_data_path().toStdString(), "test-vm:test"}),
+    EXPECT_EQ(send_command({"mount", "-t", "classic", mpt::test_data_path().toStdString(), "test-vm:test"}),
               mp::ReturnCode::Ok);
 }
 
