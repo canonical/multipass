@@ -34,12 +34,12 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 
 std::function<mp::VMImage(const mp::FetchType&, const mp::Query&, const mp::VMImageVault::PrepareAction&,
-                          const mp::ProgressMonitor&, std::optional<std::string>)>
+                          const mp::ProgressMonitor&, const bool, const std::optional<std::string>)>
 mpt::fetch_image_lambda(const std::string& release, const std::string& remote)
 {
     return [&release, &remote](const mp::FetchType& fetch_type, const mp::Query& query,
                                const mp::VMImageVault::PrepareAction& prepare, const mp::ProgressMonitor& monitor,
-                               std::optional<std::string> checksum) {
+                               const bool unlock, const std::optional<std::string> checksum) {
         EXPECT_EQ(query.release, release);
         if (remote.empty())
         {
@@ -50,7 +50,7 @@ mpt::fetch_image_lambda(const std::string& release, const std::string& remote)
             EXPECT_EQ(query.remote_name, remote);
         }
 
-        return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor, checksum);
+        return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor, unlock, checksum);
     };
 }
 
