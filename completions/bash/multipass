@@ -257,6 +257,9 @@ _multipass_complete()
             _unused_aliases
             opts="${opts} ${unused_aliases}"
         ;;
+        "transfer"|"copy-files")
+            opts="${opts} --parents --recursive"
+        ;;
     esac
 
     if [[ ${prev} == -* ]]; then

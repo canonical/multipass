@@ -75,6 +75,7 @@ public:
     virtual bool exists(const fs::path& path, std::error_code& err) const;
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;
+    virtual bool create_directories(const fs::path& path, std::error_code& err) const;
     virtual bool remove(const fs::path& path, std::error_code& err) const;
     virtual void create_symlink(const fs::path& to, const fs::path& path, std::error_code& err) const;
     virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
