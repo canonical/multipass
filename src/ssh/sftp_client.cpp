@@ -74,13 +74,15 @@ try
         if (!flags.testFlag(Flag::Recursive))
             throw SFTPError{"omitting local directory {}: recursive mode not specified", source_path};
 
-        auto full_target_path = MP_SFTPUTILS.get_remote_dir_target(sftp.get(), source, target_path);
+        auto full_target_path = MP_SFTPUTILS.get_remote_dir_target(sftp.get(), source, target_path,
+                                                                   flags.testFlag(SFTPClient::Flag::MakeParent));
         return push_dir(source, full_target_path);
     }
     else if (err)
         throw SFTPError{"cannot access {}: {}", source_path, err.message()};
 
-    auto full_target_path = MP_SFTPUTILS.get_remote_file_target(sftp.get(), source, target_path);
+    auto full_target_path = MP_SFTPUTILS.get_remote_file_target(sftp.get(), source, target_path,
+                                                                flags.testFlag(SFTPClient::Flag::MakeParent));
     push_file(source, full_target_path);
     return true;
 }
@@ -101,11 +103,13 @@ try
         if (!flags.testFlag(Flag::Recursive))
             throw SFTPError{"omitting remote directory {}: recursive mode not specified", source_path};
 
-        auto full_target_path = MP_SFTPUTILS.get_local_dir_target(source, target_path);
+        auto full_target_path =
+            MP_SFTPUTILS.get_local_dir_target(source, target_path, flags.testFlag(SFTPClient::Flag::MakeParent));
         return pull_dir(source, full_target_path);
     }
 
-    auto full_target_path = MP_SFTPUTILS.get_local_file_target(source, target_path);
+    auto full_target_path =
+        MP_SFTPUTILS.get_local_file_target(source, target_path, flags.testFlag(SFTPClient::Flag::MakeParent));
     pull_file(source, full_target_path);
     return true;
 }
@@ -306,9 +310,9 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
     return success;
 }
 
-void SFTPClient::from_cin(std::istream& cin, const fs::path& target_path)
+void SFTPClient::from_cin(std::istream& cin, const fs::path& target_path, bool make_parent)
 {
-    auto full_target_path = MP_SFTPUTILS.get_remote_file_target(sftp.get(), stream_file_name, target_path);
+    auto full_target_path = MP_SFTPUTILS.get_remote_file_target(sftp.get(), stream_file_name, target_path, make_parent);
     do_push_file(cin, full_target_path);
 }
 
