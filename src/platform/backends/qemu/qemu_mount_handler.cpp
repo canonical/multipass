@@ -30,6 +30,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -62,8 +63,7 @@ void mp::QemuMountHandler::init_mount(VirtualMachine* vm, const std::string& tar
              fmt::format("Initializing native mount {} => {} in {}", vm_mount.source_path, target_path, vm->vm_name));
     vm->add_vm_mount(target_path, vm_mount);
 
-    // Need to save the vm pointer so it can be used later in stop.
-    mounts[vm->vm_name] = std::make_pair(target_path, vm);
+    mounts[vm->vm_name][target_path] = vm;
 }
 
 void mp::QemuMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
@@ -75,89 +75,70 @@ void mp::QemuMountHandler::start_mount(VirtualMachine* vm, ServerVariant server,
     // ${mount_tag} is the same mount_tag used in add_vm_mount()
     // ${target_path} is target_path
     // We may need to play around with the options here such as msize or other necessary options.
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-
-    auto proc = session.exec(fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912",
-                                         "test_mount", "/home/ubuntu"));
-    //  fmt::format("mount_{}", target_path), target_path));
     try
     {
-        // TODO: modify timeout
-        auto exit_code = proc.exit_code(timeout);
-
-        if (exit_code != 0)
-        {
-            auto error_msg = proc.read_std_error();
-            mpl::log(
-                mpl::Level::warning, category,
-                fmt::format("Failed to start native mount, error message: \'{}\'", mp::utils::trim_end(error_msg)));
-            throw std::runtime_error(error_msg);
-        }
+        SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+        mpu::run_in_ssh_session(session,
+                                fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912",
+                                            QString::fromStdString(target_path).replace('/', '_'), target_path));
     }
-    catch (const mp::ExitlessSSHProcessException&)
+    catch (const SSHException& e)
     {
         mpl::log(mpl::Level::debug, category,
-                 fmt::format("Timeout while starting native mount in \"{}\"", vm->vm_name));
-        // TODO: timeout; not sure what to do here
+                 fmt::format("Error starting native mount in \'{}\': {}", vm->vm_name, e.what()));
     }
 }
 
 void mp::QemuMountHandler::stop_mount(const std::string& instance, const std::string& path)
 {
-    auto mount = mounts.find(instance);
-    if (mount == mounts.end() && mount->second.first != path)
+    auto mount_it = mounts.find(instance);
+    if (mount_it == mounts.end())
     {
         mpl::log(mpl::Level::info, category,
                  fmt::format("No native mount defined for \"{}\" serving '{}'", instance, path));
         return;
     }
 
-    // The needs to SSHSession::exec() into the instance and unmount the path
-    auto& vm = mount->second.second;
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-    mpl::log(mpl::Level::info, category, fmt::format("Stopping native mount '{}' in instance \"{}\"", path, instance));
-
-    auto proc = session.exec(fmt::format("sudo umount {}", path));
-    try
+    auto& mount_map = mount_it->second;
+    auto map_entry = mount_map.find(path);
+    if (map_entry != mount_map.end())
     {
-        auto exit_code = proc.exit_code();
-
-        if (exit_code != 0)
+        auto& vm = map_entry->second;
+        try
         {
-            auto error_msg = proc.read_std_error();
-            mpl::log(
-                mpl::Level::warning, category,
-                fmt::format("Failed to start native mount, error message: \'{}\'", mp::utils::trim_end(error_msg)));
-            throw std::runtime_error(error_msg);
-        }
+            SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Stopping native mount '{}' in instance \"{}\"", path, instance));
 
-        vm->delete_vm_mount(path);
-        mounts.erase(instance);
-    }
-    catch (const mp::ExitlessSSHProcessException&)
-    {
-        mpl::log(mpl::Level::info, category,
-                 fmt::format("Failed to terminate mount '{}' in instance \"{}\"", path, instance));
+            mpu::run_in_ssh_session(session, fmt::format("sudo umount {}", path));
+
+            vm->delete_vm_mount(path);
+            mounts[instance].erase(path);
+        }
+        catch (const SSHException& e)
+        {
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Failed to terminate mount '{}' in instance \"{}\": ", path, instance, e.what()));
+        }
     }
 }
 
 void mp::QemuMountHandler::stop_all_mounts_for_instance(const std::string& instance)
 {
-    // This just needs to iterate over all mounts for an instance and stop them
-    auto mount = mounts.find(instance);
-    if (mount == mounts.end())
+    auto mount_it = mounts.find(instance);
+    if (mount_it == mounts.end())
     {
         mpl::log(mpl::Level::info, category, fmt::format("No native mounts to stop for instance \"{}\"", instance));
     }
     else
     {
-        stop_mount(instance, mount->second.first);
+        for (const auto& map_entry : mount_it->second)
+            stop_mount(instance, map_entry.first);
     }
 }
 
 bool mp::QemuMountHandler::has_instance_already_mounted(const std::string& instance, const std::string& path) const
 {
-    // Just returns if a mount is already running for the given instance and target_path
     auto entry = mounts.find(instance);
-    return entry != mounts.end() && entry->second.first != path;
+    return entry != mounts.end() && entry->second.find(path) != entry->second.end();
 }

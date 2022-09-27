@@ -169,8 +169,8 @@ profile %1 flags=(attach_disconnected) {
   %6 rwk,  # QCow2 filesystem image
   %7 rk,   # cloud-init ISO
 
-  /home/scott/dev/multipass/ rw,
-  /home/scott/dev/multipass/** rwlk
+  # allow full access just to user-specified mount directories on the host
+  %8
 }
     )END");
 
@@ -178,6 +178,13 @@ profile %1 flags=(attach_disconnected) {
     QString root_dir;    // root directory: either "" or $SNAP
     QString signal_peer; // who can send kill signal to qemu
     QString firmware;    // location of bootloader firmware needed by qemu
+    QString mount_dirs;  // directories on host that are mounted
+
+    for (auto& it : mount_args)
+    {
+        mount_dirs += QString::fromStdString(it.first) + "/ rw\n";
+        mount_dirs += QString::fromStdString(it.first) + "/** rwlk\n";
+    }
 
     try
     {
@@ -192,7 +199,7 @@ profile %1 flags=(attach_disconnected) {
     }
 
     return profile_template.arg(apparmor_profile_name(), signal_peer, firmware, root_dir, program(),
-                                desc.image.image_path, desc.cloud_init_iso);
+                                desc.image.image_path, desc.cloud_init_iso, mount_dirs);
 }
 
 QString mp::QemuVMProcessSpec::identifier() const
