@@ -621,7 +621,6 @@ TEST_F(VMBlueprintProvider, fetchInvalidRunsOnThrows)
     const std::string blueprint{"invalid-arch"};
     // This call fails with an std::out_of_range exception because the Blueprint is invalid and was filtered out by
     // blueprints_map_for() at provider construction.
-    // TODO: add a test for this.
     EXPECT_THROW(blueprint_provider.info_for(blueprint), std::out_of_range);
 }
 
@@ -633,7 +632,6 @@ TEST_F(VMBlueprintProvider, infoForIncompatibleThrows)
     const std::string blueprint{"arch-only"};
     // This call fails with an std::out_of_range exception because the Blueprint is invalid and was filtered out by
     // blueprints_map_for() at provider construction.
-    // TODO: add a test for this.
     EXPECT_THROW(blueprint_provider.info_for(blueprint), std::out_of_range);
 }
 
@@ -662,4 +660,48 @@ TEST_F(VMBlueprintProvider, allBlueprintsReturnsExpectedInfoForArch)
                             (blueprint_info.release_title == "An arch-only blueprint"));
                 }) != blueprints.cend());
     ASSERT_EQ(blueprints[0].aliases.size(), 1);
+}
+
+//
+// Blueprints v2 tests.
+//
+
+TEST_F(VMBlueprintProvider, v2WithNoInstancesKeyNotAdded)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    EXPECT_THROW(blueprint_provider.info_for("no-instances"), std::out_of_range);
+}
+
+TEST_F(VMBlueprintProvider, v2WithNoBlueprintKeyNotAdded)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    EXPECT_THROW(blueprint_provider.info_for("no-blueprint"), std::out_of_range);
+}
+
+TEST_F(VMBlueprintProvider, v2WithNoImagesKeyNotAdded)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    EXPECT_THROW(blueprint_provider.info_for("no-images"), std::out_of_range);
+}
+
+TEST_F(VMBlueprintProvider, v2WithNoUrlKeyNotAdded)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl, "multivacs"};
+
+    EXPECT_THROW(blueprint_provider.info_for("no-url"), std::out_of_range);
+}
+
+TEST_F(VMBlueprintProvider, v2MininalDefinitionAdded)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl, "multivacs"};
+
+    EXPECT_NO_THROW(blueprint_provider.info_for("minimal"));
 }

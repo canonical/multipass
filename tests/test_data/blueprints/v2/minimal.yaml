@@ -1,0 +1,8 @@
+description: Minimal v2 Blueprint
+version: latest
+
+instances:
+    minimal:
+        images:
+            multivacs:
+                url: https://some-multivacs-image.img
