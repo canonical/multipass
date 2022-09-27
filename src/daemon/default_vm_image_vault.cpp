@@ -355,9 +355,8 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                 // Attempt to make a sane directory name based on the filename of the image
 
                 const auto image_dir_name =
-                    QString("%1-%2")
-                        .arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2))
-                        .arg(last_modified.toString("yyyyMMdd"));
+                    QString("%1-%2").arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2),
+                                         QLocale::c().toString(last_modified, "yyyyMMdd"));
                 const auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
 
                 // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
