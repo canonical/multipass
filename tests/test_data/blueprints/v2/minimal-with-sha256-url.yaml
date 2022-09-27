@@ -1,0 +1,9 @@
+description: Minimal v2 Blueprint with SHA256 on URL
+version: latest
+
+instances:
+    minimal-with-sha256-url:
+        images:
+            multivacs:
+                url: https://some-multivacs-image.img
+                sha256: https://some-multivacs-image.sha256

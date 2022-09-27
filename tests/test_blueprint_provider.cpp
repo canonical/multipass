@@ -705,3 +705,32 @@ TEST_F(VMBlueprintProvider, v2MininalDefinitionAdded)
 
     EXPECT_NO_THROW(blueprint_provider.info_for("minimal"));
 }
+
+TEST_F(VMBlueprintProvider, v2MininalDefinitionWithShaOnUrlAdded)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl, "multivacs"};
+
+    EXPECT_NO_THROW(blueprint_provider.info_for("minimal-with-sha256-url"));
+}
+
+TEST_F(VMBlueprintProvider, v2MininalDefinitionWithHardcodedShaAdded)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl, "multivacs"};
+
+    EXPECT_NO_THROW(blueprint_provider.info_for("minimal-with-sha256-string"));
+}
+
+TEST_F(VMBlueprintProvider, v2ShaIsCorrectlyPropagated)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl, "multivacs"};
+
+    mp::VirtualMachineDescription vm_desc;
+    mp::ClientLaunchData launch_data;
+
+    auto query = blueprint_provider.fetch_blueprint_for("minimal-with-sha256-string", vm_desc, launch_data);
+
+    ASSERT_EQ(vm_desc.image.id, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+}
