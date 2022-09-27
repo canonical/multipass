@@ -1341,9 +1341,12 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     std::unordered_map<std::string, mp::VMMount> mounts;
 
-    mounts.emplace("target_1", mp::VMMount{temp_mount_1, uid_mappings_1, gid_mappings_1});
-    mounts.emplace("target_2", mp::VMMount{temp_mount_2, uid_mappings_2, gid_mappings_2});
-    mounts.emplace("target_3", mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3});
+    mounts.emplace("target_1",
+                   mp::VMMount{temp_mount_1, uid_mappings_1, gid_mappings_1, mp::VMMount::MountType::SSHFS});
+    mounts.emplace("target_2",
+                   mp::VMMount{temp_mount_2, uid_mappings_2, gid_mappings_2, mp::VMMount::MountType::SSHFS});
+    mounts.emplace("target_3",
+                   mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3, mp::VMMount::MountType::SSHFS});
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
@@ -1374,7 +1377,8 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
     mp::id_mappings uid_mappings{{1002, 0}, {1000, 0}, {1001, 1}};
     mp::id_mappings gid_mappings{{1002, 0}, {1000, 2}};
     std::unordered_map<std::string, mp::VMMount> mounts;
-    mounts.emplace("Home", mp::VMMount{mpt::TempDir().path().toStdString(), uid_mappings, gid_mappings});
+    mounts.emplace("Home", mp::VMMount{mpt::TempDir().path().toStdString(), uid_mappings, gid_mappings,
+                                       mp::VMMount::MountType::SSHFS});
 
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents("52:54:00:73:76:29", std::vector<mp::NetworkInterface>{}, mounts));
@@ -1817,21 +1821,6 @@ TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
     EXPECT_THAT(err_stream.str(),
                 HasSubstr("Invalid network 'invalid' set as bridged interface, use `multipass set "
                           "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
-}
-
-TEST_F(Daemon, refusesDisabledMount)
-{
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
-
-    std::stringstream err_stream;
-
-    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, mp::MountRequest{},
-                                   StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
-
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
 }
 
 TEST_F(Daemon, keysReturnsSettingsKeys)

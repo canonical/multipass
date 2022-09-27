@@ -15,13 +15,14 @@
  *
  */
 
+#include "sshfs_mount.h"
+#include "sftp_server.h"
+
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
 #include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/sshfs_mount/sftp_server.h>
-#include <multipass/sshfs_mount/sshfs_mount.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
@@ -104,7 +105,8 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         if (fuse_version.empty())
         {
             mpl::log(mpl::Level::warning, category, fmt::format("Unable to parse the {}", fuse_version_string));
-            mpl::log(mpl::Level::debug, category, fmt::format("Unable to parse the {}: {}", fuse_version_string, fuse_version_line));
+            mpl::log(mpl::Level::debug, category,
+                     fmt::format("Unable to parse the {}: {}", fuse_version_string, fuse_version_line));
         }
         // The option was made the default in libfuse 3.0
         else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))

@@ -27,10 +27,11 @@
 #include "temp_dir.h"
 #include "temp_file.h"
 
+#include <src/sshfs_mount/sftp_server.h>
+
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/sshfs_mount/sftp_server.h>
 
 #include <queue>
 

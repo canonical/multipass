@@ -322,8 +322,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
             uid_mappings = mp::unique_id_mappings(uid_mappings);
             gid_mappings = mp::unique_id_mappings(gid_mappings);
+            auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
 
-            mp::VMMount mount{source_path, gid_mappings, uid_mappings};
+            mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
             mounts[target_path] = mount;
         }
 
@@ -868,7 +869,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      instance_mounts{*config->ssh_key_provider},
       instance_mod_handler{register_instance_mod(vm_instance_specs, vm_instances, deleted_instances,
                                                  preparing_instances, [this] { persist_instances(); })}
 {
@@ -951,6 +951,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         {
             assert(!spec.deleted);
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
+
+            init_mounts(name);
 
             QTimer::singleShot(0, [this, &name] {
                 multipass::top_catch_all(name, [this, &name]() {
@@ -1433,6 +1435,12 @@ void mp::Daemon::mount(const MountRequest* request, grpc::ServerWriterInterface<
 try // clang-format on
 {
     mpl::ClientLogger<MountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    auto mount_type = request->mount_type() == mp::MountRequest_MountType_CLASSIC ? mp::VMMount::MountType::SSHFS
+                                                                                  : mp::VMMount::MountType::Performance;
+
+    if (mount_type == mp::VMMount::MountType::Performance &&
+        (config->mount_handlers.find(mp::VMMount::MountType::Performance) == config->mount_handlers.end()))
+        throw mp::NotImplementedOnThisBackendException("experimental mounts");
 
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
     {
@@ -1499,7 +1507,9 @@ try // clang-format on
             continue;
         }
 
-        if (instance_mounts.has_instance_already_mounted(name, target_path))
+        const auto& mount_handler = config->mount_handlers.at(mount_type);
+
+        if (mount_handler->has_instance_already_mounted(name, target_path))
         {
             fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
@@ -1507,35 +1517,19 @@ try // clang-format on
 
         auto& vm = it->second;
         auto& vm_specs = vm_instance_specs[name];
+        VMMount mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
+
+        mount_handler->init_mount(vm.get(), target_path, mount);
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
             {
-                instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings, uid_mappings);
+                mount_handler->start_mount(vm.get(), server, target_path);
             }
             catch (const mp::SSHFSMissingError&)
             {
-                try
-                {
-                    // Force the deleteLater() event to process now to avoid unloading the apparmor profile
-                    // later.  See https://github.com/canonical/multipass/issues/1131
-                    QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
-
-                    MountReply mount_reply;
-                    mount_reply.set_mount_message("Enabling support for mounting");
-                    server->Write(mount_reply);
-
-                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                           *config->ssh_key_provider};
-                    mp::utils::install_sshfs_for(name, session);
-                    instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings,
-                                                uid_mappings);
-                }
-                catch (const mp::SSHFSMissingError&)
-                {
-                    return status_promise->set_value(grpc_status_for_mount_error(name));
-                }
+                return status_promise->set_value(grpc_status_for_mount_error(name));
             }
             catch (const std::exception& e)
             {
@@ -1546,11 +1540,11 @@ try // clang-format on
 
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
-            fmt::format_to(errors, "There is already a mount defined for \"{}:{}\"\n", name, target_path);
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Mount already defined for \"{}:{}\"\n", name, target_path));
             continue;
         }
 
-        VMMount mount{request->source_path(), gid_mappings, uid_mappings};
         vm_specs.mounts[target_path] = mount;
     }
 
@@ -1732,6 +1726,8 @@ try // clang-format on
         else if (state != VirtualMachine::State::running && state != VirtualMachine::State::starting &&
                  state != VirtualMachine::State::restarting)
         {
+            init_mounts(name);
+
             vm->start();
         }
     }
@@ -1808,7 +1804,11 @@ try // clang-format on
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
             vm.suspend();
-            instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler.second->stop_all_mounts_for_instance(vm.vm_name);
+            }
+
             return grpc::Status::OK;
         });
     }
@@ -1877,7 +1877,11 @@ try // clang-format on
             if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
                 delayed_shutdown_instances.erase(name);
 
-            instance_mounts.stop_all_mounts_for_instance(name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler.second->stop_all_mounts_for_instance(name);
+            }
+
             instance->shutdown();
 
             if (purge)
@@ -1935,29 +1939,40 @@ try // clang-format on
 
         auto target_path = path_entry.target_path();
         auto& mounts = vm_instance_specs[name].mounts;
-        auto& vm = it->second;
 
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
         {
-            instance_mounts.stop_all_mounts_for_instance(name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler.second->stop_all_mounts_for_instance(name);
+            }
+
             mounts.clear();
         }
         else
         {
-            if (vm->current_state() == mp::VirtualMachine::State::running)
+            VMMount::MountType mount_type;
+            try
             {
-                if (!instance_mounts.stop_mount(name, target_path))
-                {
-                    fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
-                }
+                mount_type = mounts.at(target_path).mount_type;
             }
-
-            auto erased = mounts.erase(target_path);
-            if (!erased)
+            catch (const std::out_of_range&)
             {
                 fmt::format_to(errors, "\"{}\" not found in database\n", target_path);
+                continue;
             }
+
+            try
+            {
+                config->mount_handlers.at(mount_type)->stop_mount(name, target_path);
+            }
+            catch (const std::out_of_range&)
+            {
+                throw std::runtime_error("Cannot unmount: Invalid mount type stored in the database.");
+            }
+
+            mounts.erase(target_path);
         }
     }
 
@@ -2199,6 +2214,8 @@ void mp::Daemon::persist_instances()
             }
 
             entry.insert("gid_mappings", gid_mappings);
+
+            entry.insert("mount_type", static_cast<int>(mount.second.mount_type));
             mounts.append(entry);
         }
 
@@ -2350,6 +2367,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                     LaunchReply reply;
                     reply.set_create_message("Starting " + name);
                     server->Write(reply);
+
+                    init_mounts(name);
 
                     vm_instances[name]->start();
 
@@ -2573,9 +2592,15 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
                      fmt::format("Cannot open ssh session on \"{}\" shutdown: {}", name, e.what()));
         }
 
-        auto& shutdown_timer = delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(
-            &vm, std::move(session),
-            std::bind(&SSHFSMounts::stop_all_mounts_for_instance, &instance_mounts, std::placeholders::_1));
+        auto stop_all_mounts = [this](const std::string& name) {
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler.second->stop_all_mounts_for_instance(name);
+            }
+        };
+
+        auto& shutdown_timer = delayed_shutdown_instances[name] =
+            std::make_unique<DelayedShutdownTimer>(&vm, std::move(session), stop_all_mounts);
 
         QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
                          [this, name]() { delayed_shutdown_instances.erase(name); });
@@ -2612,6 +2637,17 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     }
 
     return grpc::Status::OK;
+}
+
+void mp::Daemon::init_mounts(const std::string& name)
+{
+    for (const auto& mount_entry : vm_instance_specs[name].mounts)
+    {
+        auto& target_path = mount_entry.first;
+        auto mount_type = mount_entry.second.mount_type;
+
+        config->mount_handlers.at(mount_type)->init_mount(vm_instances[name].get(), target_path, mount_entry.second);
+    }
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
@@ -2658,39 +2694,19 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
             std::vector<std::string> invalid_mounts;
             fmt::memory_buffer warnings;
             auto& mounts = vm_instance_specs[name].mounts;
-            auto& vm_specs = vm_instance_specs[name];
             for (const auto& mount_entry : mounts)
             {
                 auto& target_path = mount_entry.first;
-                auto& source_path = mount_entry.second.source_path;
-                auto& uid_mappings = mount_entry.second.uid_mappings;
-                auto& gid_mappings = mount_entry.second.gid_mappings;
 
                 try
                 {
-                    instance_mounts.start_mount(vm.get(), source_path, target_path, gid_mappings, uid_mappings);
+                    config->mount_handlers.at(mount_entry.second.mount_type)
+                        ->start_mount(vm.get(), server, target_path);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    try
-                    {
-                        if (server)
-                        {
-                            Reply reply;
-                            reply.set_reply_message("Enabling support for mounting");
-                            server->Write(reply);
-                        }
-
-                        mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                               *config->ssh_key_provider};
-                        mp::utils::install_sshfs_for(name, session);
-                        instance_mounts.start_mount(vm.get(), source_path, target_path, gid_mappings, uid_mappings);
-                    }
-                    catch (const mp::SSHFSMissingError&)
-                    {
-                        fmt::format_to(errors, sshfs_error_template + "\n", name);
-                        break;
-                    }
+                    fmt::format_to(errors, sshfs_error_template + "\n", name);
+                    break;
                 }
                 catch (const std::exception& e)
                 {

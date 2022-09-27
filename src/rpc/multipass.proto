@@ -259,15 +259,20 @@ message TargetPathInfo {
 }
 
 message MountRequest {
+    enum MountType {
+        CLASSIC = 0;
+        NATIVE = 1;
+    }
     string source_path = 1;
     repeated TargetPathInfo target_paths = 2;
     MountMaps mount_maps = 3;
     int32 verbosity_level = 4;
+    MountType mount_type = 5;
 }
 
 message MountReply {
     string log_line = 1;
-    string mount_message = 2;
+    string reply_message = 2;
 }
 
 message PingRequest {
