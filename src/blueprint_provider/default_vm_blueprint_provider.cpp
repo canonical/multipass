@@ -69,13 +69,19 @@ bool runs_on(const std::string& blueprint_name, const YAML::Node& blueprint_node
             return true;
     }
 
-    if (!blueprint_node[instances_key] || !blueprint_node[instances_key][blueprint_name] ||
-        !blueprint_node[instances_key][blueprint_name]["images"])
-        throw mp::InvalidBlueprintException(fmt::format(bad_conversion_template, instances_key, blueprint_name));
+    if (blueprint_node[instances_key] && blueprint_node[instances_key][blueprint_name] &&
+        blueprint_node[instances_key][blueprint_name]["images"])
+    {
+        if (blueprint_node[instances_key][blueprint_name]["images"][arch])
+        {
+            if (blueprint_node[instances_key][blueprint_name]["images"][arch]["url"])
+                return true;
+        }
+        else
+            return false;
+    }
 
-    auto images_node = blueprint_node[instances_key][blueprint_name]["images"];
-
-    return ((images_node["x86_64"] && arch == "x86_64") || (images_node["arm64"] && arch == "arm64"));
+    throw mp::InvalidBlueprintException(fmt::format(bad_conversion_template, instances_key, blueprint_name));
 }
 
 auto blueprints_map_for(const std::string& archive_file_path, bool& needs_update, const std::string& arch)
