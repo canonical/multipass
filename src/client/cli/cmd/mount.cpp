@@ -21,6 +21,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
+#include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
@@ -35,6 +36,8 @@ namespace cmd = multipass::cmd;
 namespace
 {
 constexpr auto category = "mount cmd";
+const QString default_mount_type{"classic"};
+const QString native_mount_type{"native"};
 
 auto convert_id_for(const QString& id_string)
 {
@@ -45,6 +48,18 @@ auto convert_id_for(const QString& id_string)
         throw std::runtime_error(id_string.toStdString() + " is an invalid id");
 
     return id;
+}
+
+auto checked_mount_type(const QString& type)
+{
+    if (type == default_mount_type)
+        return mp::MountRequest_MountType_CLASSIC;
+
+    if (type == native_mount_type)
+        return mp::MountRequest_MountType_NATIVE;
+
+    throw mp::ValidationException{fmt::format("Bad mount type '{}' specified, please use '{}' or '{}'", type,
+                                              default_mount_type, native_mount_type)};
 }
 } // namespace
 
@@ -75,7 +90,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         }
 
         spinner.stop();
-        spinner.start(reply.mount_message());
+        spinner.start(reply.reply_message());
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
@@ -119,7 +134,17 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                     "<host> to <instance> inside the instance. Can be "
                                     "used multiple times.",
                                     "host>:<instance");
-    parser->addOptions({gid_mappings, uid_mappings});
+    QCommandLineOption mount_type_option({"t", "type"},
+                                         "Specify the type of mount to use.\n"
+                                         "Classic mounts use technology built into Multipass.\n"
+                                         "Native mounts use hypervisor and/or platform specific mounts.\n"
+                                         "Valid types are: \'classic\' (default) and \'native\'",
+                                         "type", default_mount_type);
+
+    // TODO: Remove the HiddenFromHelp flag once the native mounts are implemented
+    mount_type_option.setFlags(QCommandLineOption::HiddenFromHelp);
+
+    parser->addOptions({gid_mappings, uid_mappings, mount_type_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -255,6 +280,16 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
         auto gid_pair = mount_maps->add_gid_mappings();
         gid_pair->set_host_id(mcp::getgid());
         gid_pair->set_instance_id(mp::default_id);
+    }
+
+    try
+    {
+        request.set_mount_type(checked_mount_type(parser->value(mount_type_option).toLower()));
+    }
+    catch (mp::ValidationException& e)
+    {
+        cerr << "error: " << e.what() << "\n";
+        return ParseCode::CommandLineError;
     }
 
     return ParseCode::Ok;

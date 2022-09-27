@@ -61,6 +61,8 @@ struct MockVirtualMachine : public multipass::VirtualMachine
     MOCK_METHOD1(update_cpus, void(int num_cores));
     MOCK_METHOD1(resize_memory, void(const MemorySize& new_size));
     MOCK_METHOD1(resize_disk, void(const MemorySize& new_size));
+    MOCK_METHOD(void, add_vm_mount, (const std::string&, const VMMount&), (override));
+    MOCK_METHOD(void, delete_vm_mount, (const std::string&), (override));
 };
 } // namespace test
 } // namespace multipass

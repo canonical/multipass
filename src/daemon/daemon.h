@@ -23,8 +23,6 @@
 #include "vm_specs.h"
 
 #include <multipass/delayed_shutdown_timer.h>
-//#include <multipass/format.h>
-#include <multipass/sshfs_mount/sshfs_mounts.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -136,7 +134,7 @@ private:
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
-    void install_sshfs(VirtualMachine* vm, const std::string& name);
+    void init_mounts(const std::string& name);
 
     struct AsyncOperationStatus
     {
@@ -163,7 +161,6 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
-    SSHFSMounts instance_mounts;
     std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;

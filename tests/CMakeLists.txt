@@ -68,7 +68,9 @@ add_executable(multipass_tests
   test_daemon_authenticate.cpp
   test_daemon_find.cpp
   test_daemon_launch.cpp
+  test_daemon_mount.cpp
   test_daemon_start.cpp
+  test_daemon_umount.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
   test_format_utils.cpp
@@ -100,7 +102,7 @@ add_executable(multipass_tests
   test_ssh_session.cpp
   test_sshfs_server_process_spec.cpp
   test_sshfsmount.cpp
-  test_sshfsmounts.cpp
+  test_sshfs_mount_handler.cpp
   test_ssl_cert_provider.cpp
   test_timer.cpp
   test_top_catch_all.cpp

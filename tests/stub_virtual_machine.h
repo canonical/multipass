@@ -26,7 +26,7 @@ namespace test
 {
 struct StubVirtualMachine final : public multipass::VirtualMachine
 {
-    StubVirtualMachine() : VirtualMachine{""}
+    StubVirtualMachine() : VirtualMachine{"stub"}
     {
     }
 
@@ -103,6 +103,14 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     }
 
     void resize_disk(const MemorySize&) override
+    {
+    }
+
+    void add_vm_mount(const std::string&, const VMMount&) override
+    {
+    }
+
+    void delete_vm_mount(const std::string&) override
     {
     }
 };

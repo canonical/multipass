@@ -18,11 +18,11 @@ function(add_sshfs_mount_target TARGET_NAME)
 
   add_library(${TARGET_NAME} STATIC
     sshfs_mount.cpp
-    sshfs_mounts.cpp
+    sshfs_mount_handler.cpp
     sftp_server.cpp
     # Need to run MOC on these
-    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount.h
-    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mounts.h)
+    sshfs_mount.h
+    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount_handler.h)
 
   target_link_libraries(${TARGET_NAME}
     fmt
@@ -47,6 +47,11 @@ target_link_libraries(sshfs_server
 
 set_target_properties(sshfs_server
   PROPERTIES INSTALL_RPATH "@executable_path/../lib")
+
+target_include_directories(sshfs_server
+  BEFORE
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
 
 install(TARGETS sshfs_server
   DESTINATION bin

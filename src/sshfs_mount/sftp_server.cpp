@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/sshfs_mount/sftp_server.h>
+#include "sftp_server.h"
 
 #include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
