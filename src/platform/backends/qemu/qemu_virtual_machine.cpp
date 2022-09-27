@@ -595,15 +595,13 @@ void mp::QemuVirtualMachine::add_vm_mount(const std::string& target_path, const 
     // target_path should be used as a key for storing the mount data since it will be unique to the instance (only one
     // target can be mounted at a time)
     mount_args[target_path] = QStringList{
-        {"-virtfs",
-         QString("local,security_model=passthrough,uid_map=1000:1000,gid_map=1000:1000,path=%5,mount_tag=%6")
-             // {"-virtfs", QString("local,security_model=passthrough,uid_map=%1:%2,gid_map=%3:%4,path=%5,mount_tag=%6")
-             //  .arg(vm_mount.uid_mappings.at(0).first)
-             // .arg(vm_mount.uid_mappings.at(0).second)
-             //  .arg(vm_mount.gid_mappings.at(0).first)
-             // .arg(vm_mount.gid_mappings.at(0).second)
-             .arg(QString::fromStdString(vm_mount.source_path))
-             .arg("test_mount")}};
+        {"-virtfs", QString("local,security_model=passthrough,uid_map=%1:%2,gid_map=%3:%4,path=%5,mount_tag=%6")
+                        .arg(vm_mount.uid_mappings.at(0).first)
+                        .arg(vm_mount.uid_mappings.at(0).second)
+                        .arg(vm_mount.gid_mappings.at(0).first)
+                        .arg(vm_mount.gid_mappings.at(0).second)
+                        .arg(QString::fromStdString(vm_mount.source_path))
+                        .arg(QString::fromStdString(target_path).replace('/', '_'))}};
     // .arg(QString::fromStdString(fmt::format("mount_{}", target_path)))}};
 }
 

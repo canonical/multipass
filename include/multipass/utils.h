@@ -77,6 +77,12 @@ bool invalid_target_path(const QString& target_path);
 QTemporaryFile create_temp_file_with_path(const QString& filename_template);
 void remove_directories(const std::vector<QString>& dirs);
 
+// filesystem mount helpers
+void make_target_dir(SSHSession& session, const std::string& root, const std::string& relative_target);
+void set_owner_for(SSHSession& session, const std::string& root, const std::string& relative_target, int vm_user,
+                   int vm_group);
+std::pair<std::string, std::string> get_path_split(SSHSession& session, const std::string& target);
+
 // special-file helpers
 void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
 void check_and_create_config_file(const QString& config_file_path);

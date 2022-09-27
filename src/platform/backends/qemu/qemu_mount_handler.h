@@ -37,7 +37,7 @@ public:
     bool has_instance_already_mounted(const std::string& instance, const std::string& path) const override;
 
 private:
-    std::unordered_map<std::string, std::pair<std::string, VirtualMachine*>> mounts;
+    std::unordered_map<std::string, std::unordered_map<std::string, VirtualMachine*>> mounts;
 };
 
 } // namespace multipass

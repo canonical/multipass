@@ -326,7 +326,6 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
 }
 
 // Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
-// Caveat emptor: if the command fails, an empty string is returned.
 std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd)
 {
     mpl::log(mpl::Level::debug, category, fmt::format("executing '{}'", cmd));
@@ -337,16 +336,10 @@ std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::st
         auto error_msg = proc.read_std_error();
         mpl::log(mpl::Level::warning, category,
                  fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-        return std::string{};
+        throw std::runtime_error(error_msg);
     }
 
     auto output = proc.read_std_output();
-    if (output.empty())
-    {
-        mpl::log(mpl::Level::warning, category, fmt::format("no output after running '{}'", cmd));
-        return std::string{};
-    }
-
     return mp::utils::trim_end(output);
 }
 
@@ -579,4 +572,52 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
 std::string mp::utils::emit_cloud_config(const YAML::Node& node)
 {
     return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
+}
+
+// Split a path into existing and to-be-created parts.
+std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& session, const std::string& target)
+{
+    std::string absolute;
+
+    switch (target[0])
+    {
+    case '~':
+        absolute = mp::utils::run_in_ssh_session(
+            session, fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
+        mp::utils::trim_newline(absolute);
+        break;
+    case '/':
+        absolute = target;
+        break;
+    default:
+        absolute =
+            mp::utils::run_in_ssh_session(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
+        mp::utils::trim_newline(absolute);
+        break;
+    }
+
+    std::string existing = mp::utils::run_in_ssh_session(
+        session, fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
+                             absolute));
+    mp::utils::trim_newline(existing);
+
+    return {existing,
+            QDir(QString::fromStdString(existing)).relativeFilePath(QString::fromStdString(absolute)).toStdString()};
+}
+
+// Create a directory on a given root folder.
+void mp::utils::make_target_dir(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
+{
+    mp::utils::run_in_ssh_session(
+        session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
+}
+
+// Set ownership of all directories on a path starting on a given root.
+// Assume it is already created.
+void mp::utils::set_owner_for(mp::SSHSession& session, const std::string& root, const std::string& relative_target,
+                              int vm_user, int vm_group)
+{
+    mp::utils::run_in_ssh_session(session,
+                                  fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user,
+                                              vm_group, relative_target.substr(0, relative_target.find_first_of('/'))));
 }
