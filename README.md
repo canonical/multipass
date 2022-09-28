@@ -29,6 +29,7 @@ For macOS, you can download the installers [from GitHub](https://github.com/cano
 
 ```
 # Note, this may require you to enter your password for some sudo operations during install
+# Mac OS users may need to disable their firewall to launch a multipass instance successfully
 brew install --cask multipass
 ```
 
