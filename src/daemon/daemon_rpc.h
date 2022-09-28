@@ -55,47 +55,48 @@ public:
     DaemonRpc(const std::string& server_address, const CertProvider& cert_provider, CertStore* client_cert_store);
 
 signals:
-    void on_create(const CreateRequest* request, grpc::ServerWriter<CreateReply>* reply,
+    void on_create(const CreateRequest* request, grpc::ServerReaderWriter<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise);
-    void on_launch(const LaunchRequest* request, grpc::ServerWriter<LaunchReply>* reply,
+    void on_launch(const LaunchRequest* request, grpc::ServerReaderWriter<LaunchReply, LaunchRequest>* server,
                    std::promise<grpc::Status>* status_promise);
-    void on_purge(const PurgeRequest* request, grpc::ServerWriter<PurgeReply>* response,
+    void on_purge(const PurgeRequest* request, grpc::ServerReaderWriter<PurgeReply, PurgeRequest>* server,
                   std::promise<grpc::Status>* status_promise);
-    void on_find(const FindRequest* request, grpc::ServerWriter<FindReply>* response,
+    void on_find(const FindRequest* request, grpc::ServerReaderWriter<FindReply, FindRequest>* server,
                  std::promise<grpc::Status>* status_promise);
-    void on_info(const InfoRequest* request, grpc::ServerWriter<InfoReply>* response,
+    void on_info(const InfoRequest* request, grpc::ServerReaderWriter<InfoReply, InfoRequest>* server,
                  std::promise<grpc::Status>* status_promise);
-    void on_list(const ListRequest* request, grpc::ServerWriter<ListReply>* response,
+    void on_list(const ListRequest* request, grpc::ServerReaderWriter<ListReply, ListRequest>* server,
                  std::promise<grpc::Status>* status_promise);
-    void on_networks(const NetworksRequest* request, grpc::ServerWriter<NetworksReply>* response,
+    void on_networks(const NetworksRequest* request, grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server,
                      std::promise<grpc::Status>* status_promise);
-    void on_mount(const MountRequest* request, grpc::ServerWriter<MountReply>* response,
+    void on_mount(const MountRequest* request, grpc::ServerReaderWriter<MountReply, MountRequest>* server,
                   std::promise<grpc::Status>* status_promise);
-    void on_recover(const RecoverRequest* request, grpc::ServerWriter<RecoverReply>* response,
+    void on_recover(const RecoverRequest* request, grpc::ServerReaderWriter<RecoverReply, RecoverRequest>* server,
                     std::promise<grpc::Status>* status_promise);
-    void on_ssh_info(const SSHInfoRequest* request, grpc::ServerWriter<SSHInfoReply>* response,
+    void on_ssh_info(const SSHInfoRequest* request, grpc::ServerReaderWriter<SSHInfoReply, SSHInfoRequest>* server,
                      std::promise<grpc::Status>* status_promise);
-    void on_start(const StartRequest* request, grpc::ServerWriter<StartReply>* response,
+    void on_start(const StartRequest* request, grpc::ServerReaderWriter<StartReply, StartRequest>* server,
                   std::promise<grpc::Status>* status_promise);
-    void on_stop(const StopRequest* request, grpc::ServerWriter<StopReply>* response,
+    void on_stop(const StopRequest* request, grpc::ServerReaderWriter<StopReply, StopRequest>* server,
                  std::promise<grpc::Status>* status_promise);
-    void on_suspend(const SuspendRequest* request, grpc::ServerWriter<SuspendReply>* response,
+    void on_suspend(const SuspendRequest* request, grpc::ServerReaderWriter<SuspendReply, SuspendRequest>* server,
                     std::promise<grpc::Status>* status_promise);
-    void on_restart(const RestartRequest* request, grpc::ServerWriter<RestartReply>* response,
+    void on_restart(const RestartRequest* request, grpc::ServerReaderWriter<RestartReply, RestartRequest>* server,
                     std::promise<grpc::Status>* status_promise);
-    void on_delete(const DeleteRequest* request, grpc::ServerWriter<DeleteReply>* response,
+    void on_delete(const DeleteRequest* request, grpc::ServerReaderWriter<DeleteReply, DeleteRequest>* server,
                    std::promise<grpc::Status>* status_promise);
-    void on_umount(const UmountRequest* request, grpc::ServerWriter<UmountReply>* response,
+    void on_umount(const UmountRequest* request, grpc::ServerReaderWriter<UmountReply, UmountRequest>* server,
                    std::promise<grpc::Status>* status_promise);
-    void on_version(const VersionRequest* request, grpc::ServerWriter<VersionReply>* response,
+    void on_version(const VersionRequest* request, grpc::ServerReaderWriter<VersionReply, VersionRequest>* server,
                     std::promise<grpc::Status>* status_promise);
-    void on_get(const GetRequest* request, grpc::ServerWriter<GetReply>* response,
+    void on_get(const GetRequest* request, grpc::ServerReaderWriter<GetReply, GetRequest>* server,
                 std::promise<grpc::Status>* status_promise);
-    void on_set(const SetRequest* request, grpc::ServerWriter<SetReply>* response,
+    void on_set(const SetRequest* request, grpc::ServerReaderWriter<SetReply, SetRequest>* server,
                 std::promise<grpc::Status>* status_promise);
-    void on_keys(const KeysRequest* request, grpc::ServerWriter<KeysReply>* response,
+    void on_keys(const KeysRequest* request, grpc::ServerReaderWriter<KeysReply, KeysRequest>* server,
                  std::promise<grpc::Status>* status_promise);
-    void on_authenticate(const AuthenticateRequest* request, grpc::ServerWriter<AuthenticateReply>* response,
+    void on_authenticate(const AuthenticateRequest* request,
+                         grpc::ServerReaderWriter<AuthenticateReply, AuthenticateRequest>* server,
                          std::promise<grpc::Status>* status_promise);
 
 private:
@@ -108,49 +109,42 @@ private:
     CertStore* client_cert_store;
 
 protected:
-    grpc::Status create(grpc::ServerContext* context, const CreateRequest* request,
-                        grpc::ServerWriter<CreateReply>* reply) override;
-    grpc::Status launch(grpc::ServerContext* context, const LaunchRequest* request,
-                        grpc::ServerWriter<LaunchReply>* reply) override;
-    grpc::Status purge(grpc::ServerContext* context, const PurgeRequest* request,
-                       grpc::ServerWriter<PurgeReply>* response) override;
-    grpc::Status find(grpc::ServerContext* context, const FindRequest* request,
-                      grpc::ServerWriter<FindReply>* response) override;
-    grpc::Status info(grpc::ServerContext* context, const InfoRequest* request,
-                      grpc::ServerWriter<InfoReply>* response) override;
-    grpc::Status list(grpc::ServerContext* context, const ListRequest* request,
-                      grpc::ServerWriter<ListReply>* response) override;
-    grpc::Status networks(grpc::ServerContext* context, const NetworksRequest* request,
-                          grpc::ServerWriter<NetworksReply>* response) override;
-    grpc::Status mount(grpc::ServerContext* context, const MountRequest* request,
-                       grpc::ServerWriter<MountReply>* response) override;
-    grpc::Status recover(grpc::ServerContext* context, const RecoverRequest* request,
-                         grpc::ServerWriter<RecoverReply>* response) override;
-    grpc::Status ssh_info(grpc::ServerContext* context, const SSHInfoRequest* request,
-                          grpc::ServerWriter<SSHInfoReply>* response) override;
-    grpc::Status start(grpc::ServerContext* context, const StartRequest* request,
-                       grpc::ServerWriter<StartReply>* response) override;
-    grpc::Status stop(grpc::ServerContext* context, const StopRequest* request,
-                      grpc::ServerWriter<StopReply>* response) override;
-    grpc::Status suspend(grpc::ServerContext* context, const SuspendRequest* request,
-                         grpc::ServerWriter<SuspendReply>* response) override;
-    grpc::Status restart(grpc::ServerContext* context, const RestartRequest* request,
-                         grpc::ServerWriter<RestartReply>* response) override;
-    grpc::Status delet(grpc::ServerContext* context, const DeleteRequest* request,
-                       grpc::ServerWriter<DeleteReply>* response) override;
-    grpc::Status umount(grpc::ServerContext* context, const UmountRequest* request,
-                        grpc::ServerWriter<UmountReply>* response) override;
-    grpc::Status version(grpc::ServerContext* context, const VersionRequest* request,
-                         grpc::ServerWriter<VersionReply>* response) override;
-    grpc::Status ping(grpc::ServerContext* context, const PingRequest* request, PingReply* response) override;
-    grpc::Status get(grpc::ServerContext* context, const GetRequest* request,
-                     grpc::ServerWriter<GetReply>* response) override;
-    grpc::Status set(grpc::ServerContext* context, const SetRequest* request,
-                     grpc::ServerWriter<SetReply>* response) override;
-    grpc::Status keys(grpc::ServerContext* context, const KeysRequest* request,
-                      grpc::ServerWriter<KeysReply>* response) override;
-    grpc::Status authenticate(grpc::ServerContext* context, const AuthenticateRequest* request,
-                              grpc::ServerWriter<AuthenticateReply>* response) override;
+    grpc::Status create(grpc::ServerContext* context,
+                        grpc::ServerReaderWriter<CreateReply, CreateRequest>* server) override;
+    grpc::Status launch(grpc::ServerContext* context,
+                        grpc::ServerReaderWriter<LaunchReply, LaunchRequest>* server) override;
+    grpc::Status purge(grpc::ServerContext* context,
+                       grpc::ServerReaderWriter<PurgeReply, PurgeRequest>* server) override;
+    grpc::Status find(grpc::ServerContext* context, grpc::ServerReaderWriter<FindReply, FindRequest>* server) override;
+    grpc::Status info(grpc::ServerContext* context, grpc::ServerReaderWriter<InfoReply, InfoRequest>* server) override;
+    grpc::Status list(grpc::ServerContext* context, grpc::ServerReaderWriter<ListReply, ListRequest>* server) override;
+    grpc::Status networks(grpc::ServerContext* context,
+                          grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server) override;
+    grpc::Status mount(grpc::ServerContext* context,
+                       grpc::ServerReaderWriter<MountReply, MountRequest>* server) override;
+    grpc::Status recover(grpc::ServerContext* context,
+                         grpc::ServerReaderWriter<RecoverReply, RecoverRequest>* server) override;
+    grpc::Status ssh_info(grpc::ServerContext* context,
+                          grpc::ServerReaderWriter<SSHInfoReply, SSHInfoRequest>* server) override;
+    grpc::Status start(grpc::ServerContext* context,
+                       grpc::ServerReaderWriter<StartReply, StartRequest>* server) override;
+    grpc::Status stop(grpc::ServerContext* context, grpc::ServerReaderWriter<StopReply, StopRequest>* server) override;
+    grpc::Status suspend(grpc::ServerContext* context,
+                         grpc::ServerReaderWriter<SuspendReply, SuspendRequest>* server) override;
+    grpc::Status restart(grpc::ServerContext* context,
+                         grpc::ServerReaderWriter<RestartReply, RestartRequest>* server) override;
+    grpc::Status delet(grpc::ServerContext* context,
+                       grpc::ServerReaderWriter<DeleteReply, DeleteRequest>* server) override;
+    grpc::Status umount(grpc::ServerContext* context,
+                        grpc::ServerReaderWriter<UmountReply, UmountRequest>* server) override;
+    grpc::Status version(grpc::ServerContext* context,
+                         grpc::ServerReaderWriter<VersionReply, VersionRequest>* server) override;
+    grpc::Status ping(grpc::ServerContext* context, const PingRequest* request, PingReply* reply) override;
+    grpc::Status get(grpc::ServerContext* context, grpc::ServerReaderWriter<GetReply, GetRequest>* server) override;
+    grpc::Status set(grpc::ServerContext* context, grpc::ServerReaderWriter<SetReply, SetRequest>* server) override;
+    grpc::Status keys(grpc::ServerContext* context, grpc::ServerReaderWriter<KeysReply, KeysRequest>* server) override;
+    grpc::Status authenticate(grpc::ServerContext* context,
+                              grpc::ServerReaderWriter<AuthenticateReply, AuthenticateRequest>* server) override;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H

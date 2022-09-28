@@ -20,6 +20,7 @@
 #include "mock_logger.h"
 #include "mock_mount_handler.h"
 #include "mock_platform.h"
+#include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
@@ -71,8 +72,8 @@ TEST_F(TestDaemonUmount, missingInstanceFails)
     auto entry = request.add_target_paths();
     entry->set_instance_name(fake_instance);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::umount, request, StrictMock<mpt::MockServerWriter<mp::UmountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("instance \"{}\" does not exist", fake_instance)));
@@ -97,8 +98,8 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
     auto entry = request.add_target_paths();
     entry->set_instance_name(mock_instance_name);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::umount, request, StrictMock<mpt::MockServerWriter<mp::UmountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -126,8 +127,8 @@ TEST_F(TestDaemonUmount, unmountsMountedTargetWhenInstanceRunning)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::umount, request, StrictMock<mpt::MockServerWriter<mp::UmountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -152,8 +153,8 @@ TEST_F(TestDaemonUmount, mountNotFoundInDatabaseHasError)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::umount, request, StrictMock<mpt::MockServerWriter<mp::UmountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("\"{}\" not found in database", fake_target_path)));
@@ -182,8 +183,8 @@ TEST_F(TestDaemonUmount, invalidMountTypeHasError)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::umount, request, StrictMock<mpt::MockServerWriter<mp::UmountReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), HasSubstr("Cannot unmount: Invalid mount type stored in the database."));

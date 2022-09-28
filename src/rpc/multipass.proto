@@ -17,28 +17,28 @@ syntax = "proto3";
 package multipass;
 
 service Rpc {
-    rpc create (LaunchRequest) returns (stream LaunchReply);
-    rpc launch (LaunchRequest) returns (stream LaunchReply);
-    rpc purge (PurgeRequest) returns (stream PurgeReply);
-    rpc find (FindRequest) returns (stream FindReply);
-    rpc info (InfoRequest) returns (stream InfoReply);
-    rpc list (ListRequest) returns (stream ListReply);
-    rpc networks (NetworksRequest) returns (stream NetworksReply);
-    rpc mount (MountRequest) returns (stream MountReply);
+    rpc create (stream LaunchRequest) returns (stream LaunchReply);
+    rpc launch (stream LaunchRequest) returns (stream LaunchReply);
+    rpc purge (stream PurgeRequest) returns (stream PurgeReply);
+    rpc find (stream FindRequest) returns (stream FindReply);
+    rpc info (stream InfoRequest) returns (stream InfoReply);
+    rpc list (stream ListRequest) returns (stream ListReply);
+    rpc networks (stream NetworksRequest) returns (stream NetworksReply);
+    rpc mount (stream MountRequest) returns (stream MountReply);
     rpc ping (PingRequest) returns (PingReply);
-    rpc recover (RecoverRequest) returns (stream RecoverReply);
-    rpc ssh_info (SSHInfoRequest) returns (stream SSHInfoReply);
-    rpc start (StartRequest) returns (stream StartReply);
-    rpc stop (StopRequest) returns (stream StopReply);
-    rpc suspend (SuspendRequest) returns (stream SuspendReply);
-    rpc restart (RestartRequest) returns (stream RestartReply);
-    rpc delet (DeleteRequest) returns (stream DeleteReply);
-    rpc umount (UmountRequest) returns (stream UmountReply);
-    rpc version (VersionRequest) returns (stream VersionReply);
-    rpc get (GetRequest) returns (stream GetReply);
-    rpc set (SetRequest) returns (stream SetReply);
-    rpc keys (KeysRequest) returns (stream KeysReply);
-    rpc authenticate (AuthenticateRequest) returns (stream AuthenticateReply);
+    rpc recover (stream RecoverRequest) returns (stream RecoverReply);
+    rpc ssh_info (stream SSHInfoRequest) returns (stream SSHInfoReply);
+    rpc start (stream StartRequest) returns (stream StartReply);
+    rpc stop (stream StopRequest) returns (stream StopReply);
+    rpc suspend (stream SuspendRequest) returns (stream SuspendReply);
+    rpc restart (stream RestartRequest) returns (stream RestartReply);
+    rpc delet (stream DeleteRequest) returns (stream DeleteReply);
+    rpc umount (stream UmountRequest) returns (stream UmountReply);
+    rpc version (stream VersionRequest) returns (stream VersionReply);
+    rpc get (stream GetRequest) returns (stream GetReply);
+    rpc set (stream SetRequest) returns (stream SetReply);
+    rpc keys (stream KeysRequest) returns (stream KeysReply);
+    rpc authenticate (stream AuthenticateRequest) returns (stream AuthenticateReply);
 }
 
 message LaunchRequest {

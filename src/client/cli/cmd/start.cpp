@@ -103,7 +103,8 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status, details);
     };
 
-    auto streaming_callback = [this, &spinner](mp::StartReply& reply) {
+    auto streaming_callback = [this, &spinner](mp::StartReply& reply,
+                                               grpc::ClientReaderWriterInterface<StartRequest, StartReply>* client) {
         if (!reply.log_line().empty())
         {
             spinner.print(cerr, reply.log_line());

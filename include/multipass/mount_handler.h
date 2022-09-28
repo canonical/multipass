@@ -33,9 +33,10 @@ namespace multipass
 class VirtualMachine;
 struct VMMount;
 
-using ServerVariant =
-    std::variant<grpc::ServerWriterInterface<StartReply>*, grpc::ServerWriterInterface<LaunchReply>*,
-                 grpc::ServerWriterInterface<MountReply>*, grpc::ServerWriterInterface<RestartReply>*>;
+using ServerVariant = std::variant<grpc::ServerReaderWriterInterface<StartReply, StartRequest>*,
+                                   grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*,
+                                   grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
+                                   grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*>;
 
 class MountHandler : private DisabledCopyMove
 {
@@ -55,8 +56,8 @@ public:
 protected:
     MountHandler(const SSHKeyProvider& ssh_key_provider) : ssh_key_provider(&ssh_key_provider){};
 
-    template <typename Reply>
-    Reply make_reply_from_server(grpc::ServerWriterInterface<Reply>&)
+    template <typename Reply, typename Request>
+    Reply make_reply_from_server(grpc::ServerReaderWriterInterface<Reply, Request>&)
     {
         return Reply{};
     }

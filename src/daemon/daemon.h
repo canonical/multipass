@@ -60,75 +60,85 @@ protected:
     QJsonObject retrieve_metadata_for(const std::string& name) override;
 
 public slots:
-    virtual void create(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* reply,
+    virtual void create(const CreateRequest* request,
+                        grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         std::promise<grpc::Status>* status_promise);
 
-    virtual void launch(const LaunchRequest* request, grpc::ServerWriterInterface<LaunchReply>* reply,
+    virtual void launch(const LaunchRequest* request,
+                        grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>* server,
                         std::promise<grpc::Status>* status_promise);
 
-    virtual void purge(const PurgeRequest* request, grpc::ServerWriterInterface<PurgeReply>* response,
+    virtual void purge(const PurgeRequest* request, grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
                        std::promise<grpc::Status>* status_promise);
 
-    virtual void find(const FindRequest* request, grpc::ServerWriterInterface<FindReply>* response,
+    virtual void find(const FindRequest* request, grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
                       std::promise<grpc::Status>* status_promise);
 
-    virtual void info(const InfoRequest* request, grpc::ServerWriterInterface<InfoReply>* response,
+    virtual void info(const InfoRequest* request, grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>* server,
                       std::promise<grpc::Status>* status_promise);
 
-    virtual void list(const ListRequest* request, grpc::ServerWriterInterface<ListReply>* response,
+    virtual void list(const ListRequest* request, grpc::ServerReaderWriterInterface<ListReply, ListRequest>* server,
                       std::promise<grpc::Status>* status_promise);
 
-    virtual void networks(const NetworksRequest* request, grpc::ServerWriterInterface<NetworksReply>* response,
+    virtual void networks(const NetworksRequest* request,
+                          grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
                           std::promise<grpc::Status>* status_promise);
 
-    virtual void mount(const MountRequest* request, grpc::ServerWriterInterface<MountReply>* response,
+    virtual void mount(const MountRequest* request, grpc::ServerReaderWriterInterface<MountReply, MountRequest>* server,
                        std::promise<grpc::Status>* status_promise);
 
-    virtual void recover(const RecoverRequest* request, grpc::ServerWriterInterface<RecoverReply>* response,
+    virtual void recover(const RecoverRequest* request,
+                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
                          std::promise<grpc::Status>* status_promise);
 
-    virtual void ssh_info(const SSHInfoRequest* request, grpc::ServerWriterInterface<SSHInfoReply>* response,
+    virtual void ssh_info(const SSHInfoRequest* request,
+                          grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>* server,
                           std::promise<grpc::Status>* status_promise);
 
-    virtual void start(const StartRequest* request, grpc::ServerWriterInterface<StartReply>* response,
+    virtual void start(const StartRequest* request, grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
                        std::promise<grpc::Status>* status_promise);
 
-    virtual void stop(const StopRequest* request, grpc::ServerWriterInterface<StopReply>* response,
+    virtual void stop(const StopRequest* request, grpc::ServerReaderWriterInterface<StopReply, StopRequest>* server,
                       std::promise<grpc::Status>* status_promise);
 
-    virtual void suspend(const SuspendRequest* request, grpc::ServerWriterInterface<SuspendReply>* response,
+    virtual void suspend(const SuspendRequest* request,
+                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
                          std::promise<grpc::Status>* status_promise);
 
-    virtual void restart(const RestartRequest* request, grpc::ServerWriterInterface<RestartReply>* response,
+    virtual void restart(const RestartRequest* request,
+                         grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>* server,
                          std::promise<grpc::Status>* status_promise);
 
-    virtual void delet(const DeleteRequest* request, grpc::ServerWriterInterface<DeleteReply>* response,
+    virtual void delet(const DeleteRequest* request,
+                       grpc::ServerReaderWriterInterface<DeleteReply, DeleteRequest>* server,
                        std::promise<grpc::Status>* status_promise);
 
-    virtual void umount(const UmountRequest* request, grpc::ServerWriterInterface<UmountReply>* response,
+    virtual void umount(const UmountRequest* request,
+                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
                         std::promise<grpc::Status>* status_promise);
 
-    virtual void version(const VersionRequest* request, grpc::ServerWriterInterface<VersionReply>* response,
+    virtual void version(const VersionRequest* request,
+                         grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>* server,
                          std::promise<grpc::Status>* status_promise);
 
-    virtual void get(const GetRequest* request, grpc::ServerWriterInterface<GetReply>* response,
+    virtual void get(const GetRequest* request, grpc::ServerReaderWriterInterface<GetReply, GetRequest>* server,
                      std::promise<grpc::Status>* status_promise);
 
-    virtual void set(const SetRequest* request, grpc::ServerWriterInterface<SetReply>* response,
+    virtual void set(const SetRequest* request, grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server,
                      std::promise<grpc::Status>* status_promise);
 
-    virtual void keys(const KeysRequest* request, grpc::ServerWriterInterface<KeysReply>* response,
+    virtual void keys(const KeysRequest* request, grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>* server,
                       std::promise<grpc::Status>* status_promise);
 
     virtual void authenticate(const AuthenticateRequest* request,
-                              grpc::ServerWriterInterface<AuthenticateReply>* response,
+                              grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>* server,
                               std::promise<grpc::Status>* status_promise);
 
 private:
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;
     std::string check_instance_exists(const std::string& instance_name) const;
-    void create_vm(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* server,
+    void create_vm(const CreateRequest* request, grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise, bool start);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
@@ -142,14 +152,14 @@ private:
         std::promise<grpc::Status>* status_promise;
     };
 
-    template <typename Reply>
+    template <typename Reply, typename Request>
     std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
-                                                        grpc::ServerWriterInterface<Reply>* server);
-    template <typename Reply>
+                                                        grpc::ServerReaderWriterInterface<Reply, Request>* server);
+    template <typename Reply, typename Request>
     AsyncOperationStatus
-    async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server, const std::vector<std::string>& vms,
-                             const std::chrono::seconds& timeout, std::promise<grpc::Status>* status_promise,
-                             const std::string& errors);
+    async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                             const std::vector<std::string>& vms, const std::chrono::seconds& timeout,
+                             std::promise<grpc::Status>* status_promise, const std::string& errors);
     void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
 

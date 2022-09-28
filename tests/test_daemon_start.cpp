@@ -20,6 +20,7 @@
 #include "mock_image_host.h"
 #include "mock_mount_handler.h"
 #include "mock_platform.h"
+#include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
@@ -74,8 +75,8 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -101,8 +102,8 @@ TEST_F(TestDaemonStart, unknownStateDoesNotStart)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
 
     EXPECT_FALSE(status.ok());
 }
@@ -128,8 +129,8 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
 
     EXPECT_FALSE(status.ok());
 
@@ -172,8 +173,8 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::start, request, StrictMock<mpt::MockServerWriter<mp::StartReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
