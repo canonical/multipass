@@ -74,9 +74,11 @@ public:
             return multipass::ReturnCode::CommandFail;
         };
 
-        auto streaming_callback = [this](multipass::CreateReply& reply) {
-            cout << reply.create_message() << std::endl;
-        };
+        auto streaming_callback =
+            [this](mp::CreateReply& reply,
+                   grpc::ClientReaderWriterInterface<mp::CreateRequest, mp::CreateReply>* client) {
+                cout << reply.create_message() << std::endl;
+            };
 
         auto ret = parse_args(parser);
         return ret == multipass::ParseCode::Ok

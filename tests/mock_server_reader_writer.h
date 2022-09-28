@@ -24,12 +24,14 @@ namespace multipass
 {
 namespace test
 {
-template <typename W>
-class MockServerWriter : public grpc::ServerWriterInterface<W>
+template <typename W, typename R>
+class MockServerReaderWriter : public grpc::ServerReaderWriterInterface<W, R>
 {
 public:
-    MOCK_METHOD0(SendInitialMetadata, void());
-    MOCK_METHOD2_T(Write, bool(const W& msg, grpc::WriteOptions options));
+    MOCK_METHOD(void, SendInitialMetadata, (), (override));
+    MOCK_METHOD(bool, Write, (const W& msg, grpc::WriteOptions options), (override));
+    MOCK_METHOD(bool, NextMessageSize, (uint32_t*), (override));
+    MOCK_METHOD(bool, Read, (R*), (override));
 };
 } // namespace test
 } // namespace multipass

@@ -18,6 +18,7 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_platform.h"
+#include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_utils.h"
 
@@ -63,8 +64,9 @@ TEST_F(TestDaemonAuthenticate, authenticateNoErrorReturnsOk)
     mp::AuthenticateRequest request;
     request.set_passphrase("foo");
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
-                                   StrictMock<mpt::MockServerWriter<mp::AuthenticateReply>>{});
+    auto status =
+        call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
+                         StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -78,8 +80,9 @@ TEST_F(TestDaemonAuthenticate, authenticateNoPassphraseSetReturnsError)
     mp::AuthenticateRequest request;
     request.set_passphrase("foo");
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
-                                   StrictMock<mpt::MockServerWriter<mp::AuthenticateReply>>{});
+    auto status =
+        call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
+                         StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_EQ(status.error_message(),
@@ -97,8 +100,9 @@ TEST_F(TestDaemonAuthenticate, authenticatePassphraseMismatchReturnsError)
     mp::AuthenticateRequest request;
     request.set_passphrase("foo");
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
-                                   StrictMock<mpt::MockServerWriter<mp::AuthenticateReply>>{});
+    auto status =
+        call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
+                         StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_EQ(status.error_message(), "Passphrase is not correct. Please try again.");
@@ -114,8 +118,9 @@ TEST_F(TestDaemonAuthenticate, authenticateCatchesExceptionReturnsError)
     mp::AuthenticateRequest request;
     request.set_passphrase("foo");
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
-                                   StrictMock<mpt::MockServerWriter<mp::AuthenticateReply>>{});
+    auto status =
+        call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
+                         StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_EQ(status.error_message(), error_msg);
