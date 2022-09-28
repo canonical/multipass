@@ -46,6 +46,7 @@ namespace
 {
 const QString test_blueprints_zip{"/test-blueprints.zip"};
 const QString multipass_blueprints_zip{"/multipass-blueprints.zip"};
+const char* sha256_checksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 struct VMBlueprintProvider : public Test
 {
@@ -722,7 +723,35 @@ TEST_F(VMBlueprintProvider, v2MininalDefinitionWithHardcodedShaAdded)
     EXPECT_NO_THROW(blueprint_provider.info_for("minimal-with-sha256-string"));
 }
 
-TEST_F(VMBlueprintProvider, v2ShaIsCorrectlyPropagated)
+TEST_F(VMBlueprintProvider, v2ShaOnUrlIsCorrectlyPropagated)
+{
+    mpt::MockURLDownloader mock_url_downloader;
+
+    EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _))
+        .WillOnce([this](const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+                         const mp::ProgressMonitor& monitor) {
+            url_downloader.download_to(url, file_name, size, download_type, monitor);
+        });
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &mock_url_downloader, cache_dir.path(),
+                                                      default_ttl, "multivacs"};
+
+    mp::VirtualMachineDescription vm_desc;
+    mp::ClientLaunchData launch_data;
+
+    EXPECT_CALL(mock_url_downloader, download(_)).Times(1).WillRepeatedly([](auto) {
+        char full_sha256_string[73];
+        strcpy(full_sha256_string, sha256_checksum);
+        strcat(full_sha256_string, " sha256\n");
+        return QByteArray{full_sha256_string};
+    });
+
+    auto query = blueprint_provider.fetch_blueprint_for("minimal-with-sha256-url", vm_desc, launch_data);
+
+    ASSERT_EQ(vm_desc.image.id, sha256_checksum);
+}
+
+TEST_F(VMBlueprintProvider, v2HardcodedShaIsCorrectlyPropagated)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl, "multivacs"};
@@ -732,5 +761,5 @@ TEST_F(VMBlueprintProvider, v2ShaIsCorrectlyPropagated)
 
     auto query = blueprint_provider.fetch_blueprint_for("minimal-with-sha256-string", vm_desc, launch_data);
 
-    ASSERT_EQ(vm_desc.image.id, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+    ASSERT_EQ(vm_desc.image.id, sha256_checksum);
 }
