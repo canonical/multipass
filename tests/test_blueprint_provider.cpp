@@ -763,3 +763,16 @@ TEST_F(VMBlueprintProvider, v2HardcodedShaIsCorrectlyPropagated)
 
     ASSERT_EQ(vm_desc.image.id, sha256_checksum);
 }
+
+TEST_F(VMBlueprintProvider, v2WithoutShaIsCorrectlyPropagated)
+{
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl, "multivacs"};
+
+    mp::VirtualMachineDescription vm_desc;
+    mp::ClientLaunchData launch_data;
+
+    auto query = blueprint_provider.fetch_blueprint_for("minimal", vm_desc, launch_data);
+
+    ASSERT_EQ(vm_desc.image.id, "");
+}
