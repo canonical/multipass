@@ -35,11 +35,11 @@ namespace mpt = multipass::test;
 
 std::function<mp::VMImage(const mp::FetchType&, const mp::Query&, const mp::VMImageVault::PrepareAction&,
                           const mp::ProgressMonitor&, const bool, const std::optional<std::string>)>
-mpt::fetch_image_lambda(const std::string& release, const std::string& remote)
+mpt::fetch_image_lambda(const std::string& release, const std::string& remote, const bool must_have_checksum)
 {
-    return [&release, &remote](const mp::FetchType& fetch_type, const mp::Query& query,
-                               const mp::VMImageVault::PrepareAction& prepare, const mp::ProgressMonitor& monitor,
-                               const bool unlock, const std::optional<std::string> checksum) {
+    return [&release, &remote, must_have_checksum](
+               const mp::FetchType& fetch_type, const mp::Query& query, const mp::VMImageVault::PrepareAction& prepare,
+               const mp::ProgressMonitor& monitor, const bool unlock, const std::optional<std::string> checksum) {
         EXPECT_EQ(query.release, release);
         if (remote.empty())
         {
@@ -48,6 +48,11 @@ mpt::fetch_image_lambda(const std::string& release, const std::string& remote)
         else
         {
             EXPECT_EQ(query.remote_name, remote);
+        }
+
+        if (must_have_checksum)
+        {
+            EXPECT_NE(checksum, std::nullopt);
         }
 
         return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor, unlock, checksum);
@@ -75,13 +80,15 @@ std::function<mp::Query(const std::string&, mp::VirtualMachineDescription&, mp::
 mpt::fetch_blueprint_for_lambda(const int& num_cores, const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
                                 const std::string& release, const std::string& remote,
                                 std::optional<std::pair<std::string, mp::AliasDefinition>> alias,
-                                std::optional<std::string> workspace)
+                                std::optional<std::string> workspace, std::optional<std::string> sha256)
 {
-    return [&num_cores, &mem_size, &disk_space, &release, &remote, alias,
-            workspace](const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
+    return [&num_cores, &mem_size, &disk_space, &release, &remote, alias, workspace,
+            sha256](const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
         vm_desc.num_cores = num_cores;
         vm_desc.mem_size = mem_size;
         vm_desc.disk_space = disk_space;
+        if (sha256)
+            vm_desc.image.id = *sha256;
 
         if (alias)
             l_data.aliases_to_be_created.emplace(alias->first, alias->second);
