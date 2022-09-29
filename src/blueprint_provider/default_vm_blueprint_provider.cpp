@@ -214,35 +214,27 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
 
     if (blueprint_config["blueprint-version"].as<std::string>() == "v2")
     {
-        try
+        auto arch_node = blueprint_instance["images"][arch.toStdString()];
+
+        query.release = arch_node["url"].as<std::string>();
+        query.query_type = Query::Type::HttpDownload;
+
+        if (arch_node["sha256"])
         {
-            auto arch_node = blueprint_instance["images"][arch.toStdString()];
-
-            query.release = arch_node["url"].as<std::string>();
-            query.query_type = Query::Type::HttpDownload;
-
-            if (arch_node["sha256"])
+            auto sha256_string = arch_node["sha256"].as<std::string>();
+            if (QString::fromStdString(sha256_string).startsWith("http"))
             {
-                auto sha256_string = arch_node["sha256"].as<std::string>();
-                if (QString::fromStdString(sha256_string).startsWith("http"))
-                {
-                    mpl::log(mpl::Level::debug, category, fmt::format("Downloading SHA256 from {}", sha256_string));
-                    auto downloaded_sha256 = url_downloader->download(QUrl(QString::fromStdString(sha256_string)));
-                    if (downloaded_sha256.size() > 64)
-                        downloaded_sha256.truncate(64); // To account for newlines or other content.
-                    sha256_string = QString(downloaded_sha256).toStdString();
-                }
-                mpl::log(mpl::Level::debug, category, fmt::format("Add SHA256 \"{}\" to image record", sha256_string));
-                vm_desc.image.id = sha256_string;
+                mpl::log(mpl::Level::debug, category, fmt::format("Downloading SHA256 from {}", sha256_string));
+                auto downloaded_sha256 = url_downloader->download(QUrl(QString::fromStdString(sha256_string)));
+                if (downloaded_sha256.size() > 64)
+                    downloaded_sha256.truncate(64); // To account for newlines or other content.
+                sha256_string = QString(downloaded_sha256).toStdString();
             }
-            else
-                mpl::log(mpl::Level::debug, category, "No SHA256 to check");
+            mpl::log(mpl::Level::debug, category, fmt::format("Add SHA256 \"{}\" to image record", sha256_string));
+            vm_desc.image.id = sha256_string;
         }
-        catch (const YAML::BadConversion&)
-        {
-            needs_update = true;
-            throw InvalidBlueprintException(fmt::format("No image for {} in {}", arch, blueprint_name));
-        }
+        else
+            mpl::log(mpl::Level::debug, category, "No SHA256 to check");
     }
     else if (blueprint_instance["image"])
     {
@@ -380,11 +372,6 @@ mp::VMImageInfo mp::DefaultVMBlueprintProvider::info_for(const std::string& blue
 
     const auto description_key{"description"};
     const auto version_key{"version"};
-
-    if (!runs_on(blueprint_name, blueprint_config, arch.toStdString()))
-    {
-        throw IncompatibleBlueprintException(blueprint_name);
-    }
 
     if (!blueprint_config[description_key])
     {
