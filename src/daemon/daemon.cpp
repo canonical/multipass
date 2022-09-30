@@ -28,6 +28,7 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/file_ops.h> // TODO hk migration, remove
 #include <multipass/ip_address.h>
 #include <multipass/json_writer.h>
 #include <multipass/logging/client_logger.h>
@@ -38,6 +39,7 @@
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/standard_paths.h> // TODO hk migration, remove
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -2896,6 +2898,24 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     mp::SetReply reply{};
     reply.set_log_line("Migration placeholder\n");
     server->Write(reply);
+
+    auto data_path = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
+    auto qemu_instances_dir = fmt::format("{}/qemu/vault/instances", data_path);
+
+    for (const auto& [vm_name, vm_ptr] : vm_instances)
+    {
+        reply.set_log_line(fmt::format("Migrating {} from hyperkit to qemu\n", vm_name)); // TODO@nomerge spin it
+        server->Write(reply);
+
+        auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
+        auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
+        mpl::log(mpl::Level::debug, category, fmt::format("Migrating instance files to '{}'", target_directory));
+
+        if (std::error_code err; !MP_FILEOPS.create_directories(target_directory, err) && err)
+            throw std::runtime_error{fmt::format("Could not create directory for QEMU instance: {} ", err.message())};
+
+        mp::vault::copy(vm_image.image_path, QString::fromStdString(target_directory));
+    }
 
     return grpc::Status::OK;
 }
