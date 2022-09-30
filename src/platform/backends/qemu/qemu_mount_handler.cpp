@@ -27,6 +27,7 @@
 #include <multipass/vm_mount.h>
 
 #include <QDir>
+#include <QUuid>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -69,18 +70,40 @@ void mp::QemuMountHandler::init_mount(VirtualMachine* vm, const std::string& tar
 void mp::QemuMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
                                        const std::chrono::milliseconds& timeout)
 {
-    // Need to SSHSession::exec() into the instance and run something like:
-    // sudo mount -t 9p ${mount_tag} ${target_path} -o trans=virtio,version=9p2000.L,msize=536870912
-    // where:
-    // ${mount_tag} is the same mount_tag used in add_vm_mount()
-    // ${target_path} is target_path
-    // We may need to play around with the options here such as msize or other necessary options.
     try
     {
         SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+
+        // Split the path in existing and missing parts
+        const auto& [leading, missing] = mpu::get_path_split(session, target_path);
+
+        auto output = mpu::run_in_ssh_session(session, "id -u");
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
+        auto default_uid = std::stoi(output);
+
+        output = mpu::run_in_ssh_session(session, "id -g");
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
+        auto default_gid = std::stoi(output);
+
+        // We need to create the part of the path which does not still exist, and set then the correct ownership.
+        if (missing != ".")
+        {
+            mpu::make_target_dir(session, leading, missing);
+            mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
+        }
+
+        // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
+        // uuid must be truncated. First character of mount_tag must also be alpabetical.
+        auto mount_tag = QUuid::createUuidV3(QUuid(), QString::fromStdString(target_path))
+                             .toString(QUuid::WithoutBraces)
+                             .replace("-", "");
+        mount_tag.truncate(30);
+
         mpu::run_in_ssh_session(session,
-                                fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912",
-                                            QString::fromStdString(target_path).replace('/', '_'), target_path));
+                                fmt::format("sudo mount -t 9p m{} {} -o trans=virtio,version=9p2000.L,msize=536870912",
+                                            mount_tag, target_path));
     }
     catch (const SSHException& e)
     {
@@ -111,30 +134,35 @@ void mp::QemuMountHandler::stop_mount(const std::string& instance, const std::st
                      fmt::format("Stopping native mount '{}' in instance \"{}\"", path, instance));
 
             mpu::run_in_ssh_session(session, fmt::format("sudo umount {}", path));
-
-            vm->delete_vm_mount(path);
-            mounts[instance].erase(path);
         }
-        catch (const SSHException& e)
+        catch (const std::exception& e)
         {
             mpl::log(mpl::Level::info, category,
                      fmt::format("Failed to terminate mount '{}' in instance \"{}\": ", path, instance, e.what()));
         }
+
+        vm->delete_vm_mount(path);
+        mounts[instance].erase(path);
     }
 }
 
 void mp::QemuMountHandler::stop_all_mounts_for_instance(const std::string& instance)
 {
-    auto mount_it = mounts.find(instance);
-    if (mount_it == mounts.end())
+    auto mounts_it = mounts.find(instance);
+    if (mounts_it == mounts.end() || mounts_it->second.empty())
     {
         mpl::log(mpl::Level::info, category, fmt::format("No native mounts to stop for instance \"{}\"", instance));
     }
     else
     {
-        for (const auto& map_entry : mount_it->second)
-            stop_mount(instance, map_entry.first);
+        for (auto it = mounts_it->second.cbegin(); it != mounts_it->second.cend();)
+        {
+            // Clever postfix increment with member access needed to prevent iterator invalidation since iterable is
+            // modified in stop_mount() function
+            stop_mount(instance, it++->first);
+        }
     }
+    mounts[instance].clear();
 }
 
 bool mp::QemuMountHandler::has_instance_already_mounted(const std::string& instance, const std::string& path) const

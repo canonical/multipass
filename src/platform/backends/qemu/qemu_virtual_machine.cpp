@@ -39,6 +39,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTemporaryFile>
+#include <QUuid>
 
 #include <cassert>
 
@@ -583,30 +584,24 @@ void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
 
 void mp::QemuVirtualMachine::add_vm_mount(const std::string& target_path, const VMMount& vm_mount)
 {
-    // Need a way to save the mount info so that they can be passed as arguments to qemu when starting
-    // in the following form:
-    // -virtfs
-    // local,security_model=passthrough,uid_map=${host_uid}:${instance_uid},gid_map=${host_gid}:${instance_gid},path=${source_path},mount_tag=${mount_tag}
-    // where
-    // ${host_uid}:${instance_uid} is from VMMount::uid_mappings
-    // ${host_gid}:${instance_gid} is from VMMount::gid_mappings
-    // ${source_path} is from VMMount::source_path
-    // ${mount_tag} is a unique tag used in the mount command inside the instance
-    // target_path should be used as a key for storing the mount data since it will be unique to the instance (only one
-    // target can be mounted at a time)
+    // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the uuid
+    // must be truncated. First character of mount_tag must also be alpabetical.
+    auto mount_tag = QUuid::createUuidV3(QUuid(), QString::fromStdString(target_path))
+                         .toString(QUuid::WithoutBraces)
+                         .replace("-", "");
+    mount_tag.truncate(30);
+
     mount_args[target_path] = QStringList{
-        {"-virtfs", QString("local,security_model=passthrough,uid_map=%1:%2,gid_map=%3:%4,path=%5,mount_tag=%6")
+        {"-virtfs", QString("local,security_model=passthrough,uid_map=%1:%2,gid_map=%3:%4,path=%5,mount_tag=m%6")
                         .arg(vm_mount.uid_mappings.at(0).first)
                         .arg(vm_mount.uid_mappings.at(0).second)
                         .arg(vm_mount.gid_mappings.at(0).first)
                         .arg(vm_mount.gid_mappings.at(0).second)
                         .arg(QString::fromStdString(vm_mount.source_path))
-                        .arg(QString::fromStdString(target_path).replace('/', '_'))}};
-    // .arg(QString::fromStdString(fmt::format("mount_{}", target_path)))}};
+                        .arg(mount_tag)}};
 }
 
 void mp::QemuVirtualMachine::delete_vm_mount(const std::string& target_path)
 {
-    // This should delete the mount data associated with the target_path key outlined above
     mount_args.erase(target_path);
 }

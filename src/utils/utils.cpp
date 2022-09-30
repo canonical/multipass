@@ -328,7 +328,6 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
 // Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
 std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd)
 {
-    mpl::log(mpl::Level::debug, category, fmt::format("executing '{}'", cmd));
     auto proc = session.exec(cmd);
 
     if (proc.exit_code() != 0)
@@ -584,7 +583,6 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
     case '~':
         absolute = mp::utils::run_in_ssh_session(
             session, fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
-        mp::utils::trim_newline(absolute);
         break;
     case '/':
         absolute = target;
@@ -592,14 +590,12 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
     default:
         absolute =
             mp::utils::run_in_ssh_session(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
-        mp::utils::trim_newline(absolute);
         break;
     }
 
     std::string existing = mp::utils::run_in_ssh_session(
         session, fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
                              absolute));
-    mp::utils::trim_newline(existing);
 
     return {existing,
             QDir(QString::fromStdString(existing)).relativeFilePath(QString::fromStdString(absolute)).toStdString()};
