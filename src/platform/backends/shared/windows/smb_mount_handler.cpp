@@ -126,8 +126,10 @@ void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, 
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
+    std::string username, password;
+
     std::visit(
-        [this, vm, &session, &timeout](auto&& server) {
+        [this, vm, &username, &password, &session, &timeout](auto&& server) {
             auto on_install = [this, server] {
                 if (server)
                 {
@@ -138,19 +140,74 @@ void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, 
             };
 
             install_cifs_for(vm->vm_name, session, on_install, timeout);
+
+            if (!server)
+            {
+                throw std::runtime_error("Cannot start Windows mount without client connection");
+            }
+
+            auto reply = make_reply_from_server(*server);
+
+            reply.set_credentials_requested(true);
+            if (!server->Write(reply))
+            {
+                throw std::runtime_error("Cannot request user credentials from client. Aborting...");
+            }
+
+            auto request = make_request_from_server(*server);
+            if (!server->Read(&request))
+            {
+                throw std::runtime_error("Cannot get user credentials from client. Aborting...");
+            }
+
+            username = request.user_credentials().username();
+            password = request.user_credentials().password();
         },
         server);
+
+    if (password.empty())
+    {
+        throw std::runtime_error("A password is required for Windows mounts.");
+    }
+
+    const std::string credentials_path{"/root/.smb_credentials"};
+
+    // The following mkdir in the instance will be replaced with refactored code
+    auto mkdir_proc = session.exec(fmt::format("mkdir -p {}", target_path));
+    if (mkdir_proc.exit_code() != 0)
+    {
+        throw std::runtime_error(fmt::format("Cannot create {} in instance '{}': {}", target_path, vm->vm_name,
+                                             mkdir_proc.read_std_error()));
+    }
+
+    auto creds_proc = session.exec(
+        fmt::format("sudo bash -c 'echo \"username={}\npassword={}\" > {}'", username, password, credentials_path));
+
+    if (creds_proc.exit_code() != 0)
+    {
+        throw std::runtime_error(
+            fmt::format("Cannot create credentials file in instance: {}", creds_proc.read_std_error()));
+    }
 
     auto gateway_ip = get_gateway_ip_address();
     auto share_name = smb_mount_map[vm->vm_name][target_path];
 
-    auto proc = session.exec(
-        fmt::format("sudo mount -t cifs //{}/{} {} -o credentials=/root/.smb_credentials,uid=$(id -u),gid=$(id -g)",
-                    gateway_ip, share_name, target_path));
+    auto mount_proc =
+        session.exec(fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
+                                 gateway_ip, share_name, target_path, credentials_path));
 
-    if (proc.exit_code() != 0)
+    auto mount_exit_code = mount_proc.exit_code();
+
+    auto rm_proc = session.exec(fmt::format("sudo rm {}", credentials_path));
+    if (rm_proc.exit_code() != 0)
     {
-        throw std::runtime_error(fmt::format("Error: {}", proc.read_std_error()));
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Failed deleting credentials file in \'{}\': {}", vm->vm_name, rm_proc.read_std_error()));
+    }
+
+    if (mount_exit_code != 0)
+    {
+        throw std::runtime_error(fmt::format("Error: {}", mount_proc.read_std_error()));
     }
 }
 
