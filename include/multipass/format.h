@@ -24,6 +24,7 @@
 #include <filesystem>
 
 #include <QByteArray>
+#include <QProcess>
 #include <QString>
 
 namespace fmt
@@ -38,7 +39,7 @@ struct formatter<QByteArray>
     }
 
     template <typename FormatContext>
-    auto format(const QByteArray& a, FormatContext& ctx)
+    auto format(const QByteArray& a, FormatContext& ctx) const
     {
         return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
     }
@@ -54,7 +55,7 @@ struct formatter<QString>
     }
 
     template <typename FormatContext>
-    auto format(const QString& a, FormatContext& ctx)
+    auto format(const QString& a, FormatContext& ctx) const
     {
         return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
     }
@@ -74,6 +75,22 @@ struct formatter<std::filesystem::path>
     auto format(const std::filesystem::path& path, FormatContext& ctx)
     {
         return format_to(ctx.out(), "'{}'", path.string());
+    }
+};
+
+template <>
+struct formatter<QProcess::ExitStatus>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const QProcess::ExitStatus& exit_status, FormatContext& ctx) const
+    {
+        return format_to(ctx.out(), "{}", static_cast<int>(exit_status));
     }
 };
 
