@@ -498,7 +498,7 @@ TEST_F(SFTPClient, push_dir_fail_dir)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot create remote directory '{}': {}",
+    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot create remote directory \"{}\": {}",
                                                            target_path.u8string() + "/dir", err));
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot set permissions for remote directory {}: {}", target_path, err));
@@ -597,7 +597,7 @@ TEST_F(SFTPClient, push_dir_cannot_create_symlink)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot create remote symlink '{}': {}",
+    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot create remote symlink \"{}\": {}",
                                                            target_path.u8string() + "/symlink", err));
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
@@ -627,8 +627,9 @@ TEST_F(SFTPClient, push_dir_symlink_over_dir)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot overwrite remote directory '{}' with non-directory",
-                                                           target_path.u8string() + "/symlink"));
+    mock_logger->expect_log(mpl::Level::error,
+                            fmt::format("cannot overwrite remote directory \"{}\" with non-directory",
+                                        target_path.u8string() + "/symlink"));
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
