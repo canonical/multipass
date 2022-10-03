@@ -26,6 +26,7 @@
 
 #include <array>
 #include <fcntl.h>
+#include <fmt/std.h>
 
 constexpr int file_mode = 0664;
 constexpr auto max_transfer = 65536u;

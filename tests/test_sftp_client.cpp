@@ -28,6 +28,8 @@
 #include <multipass/ssh/sftp_client.h>
 #include <multipass/ssh/ssh_session.h>
 
+#include <fmt/std.h>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;

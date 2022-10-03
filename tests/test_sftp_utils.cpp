@@ -22,6 +22,8 @@
 
 #include <multipass/ssh/sftp_utils.h>
 
+#include <fmt/std.h>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 namespace fs = mp::fs;
