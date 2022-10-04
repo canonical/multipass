@@ -90,6 +90,22 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
             spinner.print(cerr, reply.log_line());
         }
 
+        if (reply.credentials_requested())
+        {
+            MountRequest request;
+
+            spinner.stop();
+
+            const auto [username, password] = mcp::get_user_password(term);
+
+            request.mutable_user_credentials()->set_username(username);
+            request.mutable_user_credentials()->set_password(password);
+
+            client->Write(request);
+
+            return;
+        }
+
         spinner.stop();
         spinner.start(reply.reply_message());
     };
