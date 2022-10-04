@@ -59,6 +59,13 @@ auto create_smb_share_for(const std::string& source_path, const QString& vm_name
     return share_name;
 }
 
+void remove_smb_share_for(const QString& share_name)
+{
+    mp::PowerShell::exec({QStringList() << "Remove-SmbShare"
+                                        << "-Name" << share_name << "-Force"},
+                         category);
+}
+
 void install_cifs_for(const std::string& name, mp::SSHSession& session, std::function<void()> const& on_install,
                       const std::chrono::milliseconds& timeout)
 {
@@ -118,7 +125,7 @@ void mp::SmbMountHandler::init_mount(VirtualMachine* vm, const std::string& targ
 
     auto share_name = create_smb_share_for(vm_mount.source_path, QString::fromStdString(vm->vm_name), source_dir_owner);
 
-    smb_mount_map[vm->vm_name][target_path] = share_name;
+    smb_mount_map[vm->vm_name][target_path] = std::make_pair(share_name, vm);
 }
 
 void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
@@ -190,7 +197,7 @@ void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, 
     }
 
     auto gateway_ip = get_gateway_ip_address();
-    auto share_name = smb_mount_map[vm->vm_name][target_path];
+    const auto [share_name, _] = smb_mount_map[vm->vm_name][target_path];
 
     auto mount_proc =
         session.exec(fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
@@ -213,6 +220,19 @@ void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, 
 
 void mp::SmbMountHandler::stop_mount(const std::string& instance, const std::string& path)
 {
+    const auto [share_name, vm] = smb_mount_map[instance][path];
+
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+
+    auto umount_proc = session.exec(fmt::format("sudo umount {}", path));
+    if (umount_proc.exit_code() != 0)
+    {
+        throw std::runtime_error(fmt::format("Cannot unmount share in instance: {}", umount_proc.read_std_error()));
+    }
+
+    remove_smb_share_for(share_name);
+
+    smb_mount_map[instance].erase(path);
 }
 
 void mp::SmbMountHandler::stop_all_mounts_for_instance(const std::string& instance)
