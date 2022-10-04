@@ -259,5 +259,7 @@ void mp::SmbMountHandler::stop_all_mounts_for_instance(const std::string& instan
 
 bool mp::SmbMountHandler::has_instance_already_mounted(const std::string& instance, const std::string& path) const
 {
-    return false;
+    auto entry = smb_mount_map.find(instance);
+
+    return entry != smb_mount_map.end() && entry->second.find(path) != entry->second.end();
 }
