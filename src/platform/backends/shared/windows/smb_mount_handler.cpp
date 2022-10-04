@@ -237,6 +237,24 @@ void mp::SmbMountHandler::stop_mount(const std::string& instance, const std::str
 
 void mp::SmbMountHandler::stop_all_mounts_for_instance(const std::string& instance)
 {
+    try
+    {
+        const auto& mount_info = smb_mount_map.at(instance);
+
+        if (mount_info.empty())
+        {
+            throw std::out_of_range("");
+        }
+
+        for (auto it = mount_info.cbegin(); it != mount_info.cend();)
+        {
+            stop_mount(instance, it++->first);
+        }
+    }
+    catch (const std::out_of_range&)
+    {
+        mpl::log(mpl::Level::info, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
+    }
 }
 
 bool mp::SmbMountHandler::has_instance_already_mounted(const std::string& instance, const std::string& path) const
