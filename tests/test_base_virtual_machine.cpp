@@ -216,7 +216,6 @@ INSTANTIATE_TEST_SUITE_P(
                         "wlp4s0           UP             192.168.2.8/24 \n"
                         "virbr0           DOWN           192.168.3.1/24 \n"
                         "tun0             UNKNOWN        10.172.66.5/18 \n",
-                        {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
-           IpTestParams{0, "", {}}, IpTestParams{127, "ip: command not found\n", {}}));
+                        {"192.168.2.8", "192.168.3.1", "10.172.66.5"}}));
 
 } // namespace
