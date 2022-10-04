@@ -25,6 +25,8 @@ namespace multipass
 const auto default_id = -1;
 const auto no_id_info_available = -2;
 
+class Terminal;
+
 namespace cli
 {
 namespace platform
@@ -34,6 +36,7 @@ int getuid();
 int getgid();
 void open_multipass_shell(const QString& instance_name); // precondition: requires a valid instance name
 QStringList gui_tray_notification_strings();
+std::pair<std::string, std::string> get_user_password(Terminal* term);
 }
 }
 }
