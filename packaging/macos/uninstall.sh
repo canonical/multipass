@@ -40,6 +40,7 @@ launchctl unload -w "$LAUNCH_AGENT_DEST"
 if [ $DELETE_VMS -eq 1 ]; then
     echo "Removing daemon data:"
     rm -rfv "/var/root/Library/Application Support/multipassd"
+    rm -rfv "/var/root/Library/Application Support/multipass-client-certificate"
     rm -rfv "/var/root/Library/Preferences/multipassd"
 fi
 
