@@ -45,8 +45,7 @@ mp::QemuMountHandler::QemuMountHandler(const SSHKeyProvider& ssh_key_provider) :
 void mp::QemuMountHandler::init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount)
 {
     auto state = vm->current_state();
-    if (state != mp::VirtualMachine::State::suspended && state != mp::VirtualMachine::State::stopped &&
-        state != mp::VirtualMachine::State::off)
+    if (state != mp::VirtualMachine::State::stopped && state != mp::VirtualMachine::State::off)
         throw std::runtime_error("Please shutdown virtual machine before defining native mount.");
 
     if (!MP_FILEOPS.exists(QDir{QString::fromStdString(vm_mount.source_path)}))
@@ -105,7 +104,7 @@ void mp::QemuMountHandler::start_mount(VirtualMachine* vm, ServerVariant server,
                                 fmt::format("sudo mount -t 9p m{} {} -o trans=virtio,version=9p2000.L,msize=536870912",
                                             mount_tag, target_path));
     }
-    catch (const SSHException& e)
+    catch (const std::exception& e)
     {
         mpl::log(mpl::Level::debug, category,
                  fmt::format("Error starting native mount in \'{}\': {}", vm->vm_name, e.what()));
