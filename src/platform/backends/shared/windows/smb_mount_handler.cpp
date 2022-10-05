@@ -28,6 +28,8 @@
 
 #include <filesystem>
 
+#include <QHostInfo>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -95,20 +97,6 @@ void install_cifs_for(const std::string& name, mp::SSHSession& session, std::fun
         mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'cifs-utils' in '{}'", name));
         throw std::runtime_error("Timeout installing cifs-utils");
     }
-}
-
-auto get_gateway_ip_address()
-{
-    QString ps_output;
-
-    mp::PowerShell::exec({QStringList() << "Get-NetIPAddress"
-                                        << "-InterfaceAlias"
-                                        << "'vEthernet (Default Switch)'"
-                                        << "-AddressFamily"
-                                        << "IPv4" << mp::PowerShell::Snippets::expand_property << "IPAddress"},
-                         category, ps_output);
-
-    return ps_output;
 }
 } // namespace
 
@@ -196,12 +184,12 @@ void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, 
             fmt::format("Cannot create credentials file in instance: {}", creds_proc.read_std_error()));
     }
 
-    auto gateway_ip = get_gateway_ip_address();
+    auto hostname = QHostInfo::localHostName();
     const auto [share_name, _] = smb_mount_map[vm->vm_name][target_path];
 
     auto mount_proc =
-        session.exec(fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
-                                 gateway_ip, share_name, target_path, credentials_path));
+        session.exec(fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)", hostname,
+                                 share_name, target_path, credentials_path));
 
     auto mount_exit_code = mount_proc.exit_code();
 
