@@ -75,7 +75,10 @@ TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
                                              "chardev:char0",
                                              "-nographic",
                                              "-cdrom",
-                                             "/path/to/cloud_init.iso"}));
+                                             "/path/to/cloud_init.iso",
+                                             "-virtfs",
+                                             "local,security_model=passthrough,uid_map=1000:1000,gid_map=1000:1000,"
+                                             "path=path/to/mount,mount_tag=mount_path/to/mount"}));
 }
 
 TEST_F(TestQemuVMProcessSpec, resume_arguments_taken_from_resumedata)

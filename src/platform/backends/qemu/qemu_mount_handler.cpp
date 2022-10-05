@@ -69,46 +69,38 @@ void mp::QemuMountHandler::init_mount(VirtualMachine* vm, const std::string& tar
 void mp::QemuMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
                                        const std::chrono::milliseconds& timeout)
 {
-    try
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+
+    // Split the path in existing and missing parts
+    const auto& [leading, missing] = mpu::get_path_split(session, target_path);
+
+    auto output = mpu::run_in_ssh_session(session, "id -u");
+    mpl::log(mpl::Level::debug, category,
+             fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
+    auto default_uid = std::stoi(output);
+
+    output = mpu::run_in_ssh_session(session, "id -g");
+    mpl::log(mpl::Level::debug, category,
+             fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
+    auto default_gid = std::stoi(output);
+
+    // We need to create the part of the path which does not still exist, and set then the correct ownership.
+    if (missing != ".")
     {
-        SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-
-        // Split the path in existing and missing parts
-        const auto& [leading, missing] = mpu::get_path_split(session, target_path);
-
-        auto output = mpu::run_in_ssh_session(session, "id -u");
-        mpl::log(mpl::Level::debug, category,
-                 fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
-        auto default_uid = std::stoi(output);
-
-        output = mpu::run_in_ssh_session(session, "id -g");
-        mpl::log(mpl::Level::debug, category,
-                 fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
-        auto default_gid = std::stoi(output);
-
-        // We need to create the part of the path which does not still exist, and set then the correct ownership.
-        if (missing != ".")
-        {
-            mpu::make_target_dir(session, leading, missing);
-            mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
-        }
-
-        // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
-        // uuid must be truncated. First character of mount_tag must also be alpabetical.
-        auto mount_tag = QUuid::createUuidV3(QUuid(), QString::fromStdString(target_path))
-                             .toString(QUuid::WithoutBraces)
-                             .replace("-", "");
-        mount_tag.truncate(30);
-
-        mpu::run_in_ssh_session(session,
-                                fmt::format("sudo mount -t 9p m{} {} -o trans=virtio,version=9p2000.L,msize=536870912",
-                                            mount_tag, target_path));
+        mpu::make_target_dir(session, leading, missing);
+        mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
     }
-    catch (const std::exception& e)
-    {
-        mpl::log(mpl::Level::debug, category,
-                 fmt::format("Error starting native mount in \'{}\': {}", vm->vm_name, e.what()));
-    }
+
+    // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
+    // uuid must be truncated. First character of mount_tag must also be alpabetical.
+    auto mount_tag = QUuid::createUuidV3(QUuid(), QString::fromStdString(target_path))
+                         .toString(QUuid::WithoutBraces)
+                         .replace("-", "");
+    mount_tag.truncate(30);
+
+    mpu::run_in_ssh_session(session,
+                            fmt::format("sudo mount -t 9p m{} {} -o trans=virtio,version=9p2000.L,msize=536870912",
+                                        mount_tag, target_path));
 }
 
 void mp::QemuMountHandler::stop_mount(const std::string& instance, const std::string& path)
@@ -126,19 +118,11 @@ void mp::QemuMountHandler::stop_mount(const std::string& instance, const std::st
     if (map_entry != mount_map.end())
     {
         auto& vm = map_entry->second;
-        try
-        {
-            SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-            mpl::log(mpl::Level::info, category,
-                     fmt::format("Stopping native mount '{}' in instance \"{}\"", path, instance));
+        SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+        mpl::log(mpl::Level::info, category,
+                 fmt::format("Stopping native mount '{}' in instance \"{}\"", path, instance));
 
-            mpu::run_in_ssh_session(session, fmt::format("sudo umount {}", path));
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::info, category,
-                     fmt::format("Failed to terminate mount '{}' in instance \"{}\": ", path, instance, e.what()));
-        }
+        mpu::run_in_ssh_session(session, fmt::format("sudo umount {}", path));
 
         vm->delete_vm_mount(path);
         mounts[instance].erase(path);

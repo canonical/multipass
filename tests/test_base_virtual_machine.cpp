@@ -217,6 +217,6 @@ INSTANTIATE_TEST_SUITE_P(
                         "virbr0           DOWN           192.168.3.1/24 \n"
                         "tun0             UNKNOWN        10.172.66.5/18 \n",
                         {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
-           IpTestParams{0, "", {}}, IpTestParams{127, "ip: command not found\n", {}}));
+           IpTestParams{0, "", {}}));
 
 } // namespace
