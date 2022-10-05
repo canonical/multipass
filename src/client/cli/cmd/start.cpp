@@ -20,7 +20,6 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
-#include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/settings/settings.h>
@@ -33,7 +32,6 @@
 #include <cstdlib>
 
 namespace mp = multipass;
-namespace mcp = multipass::cli::platform;
 namespace cmd = multipass::cmd;
 
 using namespace std::chrono_literals;
@@ -115,18 +113,9 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
         if (reply.credentials_requested())
         {
-            StartRequest request;
-
             spinner.stop();
 
-            const auto [username, password] = mcp::get_user_password(term);
-
-            request.mutable_user_credentials()->set_username(username);
-            request.mutable_user_credentials()->set_password(password);
-
-            client->Write(request);
-
-            return;
+            return cmd::handle_user_password(client, term);
         }
 
         spinner.stop();
