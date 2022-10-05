@@ -94,7 +94,7 @@ way down the Inception levels... ;)
 ## Run commands inside an instance from outside
 
 ```
-$ multipass exec dancing-chipmunk -- lsb_release -a
+$ multipass exec dancing-chipmunk -- bash -c "lsb_release -a"
 No LSB modules are available.
 Distributor ID:  Ubuntu
 Description:     Ubuntu 18.04.1 LTS
