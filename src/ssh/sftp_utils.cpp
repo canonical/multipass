@@ -18,6 +18,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/ssh/sftp_utils.h>
 
+#include <fmt/std.h>
+
 namespace multipass
 {
 SFTPUtils::SFTPUtils(const PrivatePass& pass) noexcept : Singleton<SFTPUtils>::Singleton{pass}

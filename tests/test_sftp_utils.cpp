@@ -22,6 +22,8 @@
 
 #include <multipass/ssh/sftp_utils.h>
 
+#include <fmt/std.h>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 namespace fs = mp::fs;
@@ -206,7 +208,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_too)
 
     MP_EXPECT_THROW_THAT(
         MP_SFTPUTILS.get_remote_file_target(nullptr, source_path, target_path, false), mp::SFTPError,
-        mpt::match_what(StrEq(fmt::format("cannot overwrite remote directory '{}' with non-directory",
+        mpt::match_what(StrEq(fmt::format("cannot overwrite remote directory \"{}\" with non-directory",
                                           target_path.u8string() + '/' + source_path.filename().u8string()))));
 }
 
@@ -359,8 +361,8 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_is_not)
     });
 
     MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_remote_dir_target(nullptr, source_path, target_path, false), mp::SFTPError,
-                         mpt::match_what(StrEq(fmt::format("cannot overwrite remote non-directory '{}' with directory",
-                                                           target_child_path))));
+                         mpt::match_what(StrEq(fmt::format(
+                             "cannot overwrite remote non-directory \"{}\" with directory", target_child_path))));
 }
 
 TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can_create)
@@ -386,7 +388,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can
     sftp_session_struct sftp{};
     MP_EXPECT_THROW_THAT(
         MP_SFTPUTILS.get_remote_dir_target(&sftp, source_path, target_path, false), mp::SFTPError,
-        mpt::match_what(StrEq(fmt::format("cannot create remote directory '{}': {}",
+        mpt::match_what(StrEq(fmt::format("cannot create remote directory \"{}\": {}",
                                           target_path.u8string() + '/' + source_path.filename().u8string(), err))));
 }
 
@@ -403,7 +405,7 @@ TEST_F(SFTPUtils, mkdir_cannot_overwrite_non_directory)
     REPLACE(sftp_lstat, [](auto...) { return get_dummy_attr("", SSH_FILEXFER_TYPE_REGULAR); });
 
     MP_EXPECT_THROW_THAT(MP_SFTPUTILS.mkdir_recursive(nullptr, "some/nested/path"), mp::SFTPError,
-                         mpt::match_what(StrEq("cannot overwrite remote non-directory 'some' with directory")));
+                         mpt::match_what(StrEq("cannot overwrite remote non-directory \"some\" with directory")));
 }
 
 TEST_F(SFTPUtils, mkdir_cannot_create_dir)
@@ -415,5 +417,5 @@ TEST_F(SFTPUtils, mkdir_cannot_create_dir)
 
     MP_EXPECT_THROW_THAT(
         MP_SFTPUTILS.mkdir_recursive(&sftp, "some/nested/path"), mp::SFTPError,
-        mpt::match_what(StrEq("cannot create remote directory 'some': SFTP server: Permission denied")));
+        mpt::match_what(StrEq("cannot create remote directory \"some\": SFTP server: Permission denied")));
 }

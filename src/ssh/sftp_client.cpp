@@ -26,6 +26,7 @@
 
 #include <array>
 #include <fcntl.h>
+#include <fmt/std.h>
 
 constexpr int file_mode = 0664;
 constexpr auto max_transfer = 65536u;
@@ -273,7 +274,7 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
             {
                 auto link_target = mp_sftp_readlink(sftp.get(), entry->name);
                 if (!link_target)
-                    throw SFTPError{"cannot read remote link '{}': {}", entry->name, ssh_get_error(sftp->session)};
+                    throw SFTPError{"cannot read remote link \"{}\": {}", entry->name, ssh_get_error(sftp->session)};
 
                 if (MP_FILEOPS.is_directory(local_file_path, err))
                     throw SFTPError{"cannot overwrite local directory {} with non-directory", local_file_path};
@@ -285,7 +286,7 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
                 throw SFTPError{"cannot create local symlink {}: {}", local_file_path, err.message()};
             }
             default:
-                throw SFTPError{"cannot copy '{}': not a regular file", entry->name};
+                throw SFTPError{"cannot copy \"{}\": not a regular file", entry->name};
             }
         }
         catch (const SFTPError& e)

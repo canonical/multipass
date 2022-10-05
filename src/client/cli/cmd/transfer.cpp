@@ -23,6 +23,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/ssh/sftp_utils.h>
 
+#include <fmt/std.h>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
