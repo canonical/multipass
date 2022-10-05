@@ -21,7 +21,9 @@
 #include <grpcpp/grpcpp.h>
 
 #include <multipass/cert_provider.h>
+#include <multipass/cli/client_platform.h>
 #include <multipass/cli/return_codes.h>
+#include <multipass/console.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/ssl_cert_provider.h>
 
@@ -51,6 +53,18 @@ multipass::ReturnCode standard_failure_handler_for(const std::string& command, s
                                                    const std::string& error_details = std::string());
 bool update_available(const UpdateInfo& update_info);
 std::string update_notice(const multipass::UpdateInfo& update_info);
+
+template <typename Request, typename Reply>
+void handle_user_password(grpc::ClientReaderWriterInterface<Request, Reply>* client, Terminal* term)
+{
+    Request request;
+    const auto [username, password] = multipass::cli::platform::get_user_password(term);
+
+    request.mutable_user_credentials()->set_username(username);
+    request.mutable_user_credentials()->set_password(password);
+
+    client->Write(request);
+}
 }
 
 namespace client
