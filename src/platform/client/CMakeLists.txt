@@ -27,4 +27,5 @@ endif()
 
 target_link_libraries(client_platform
   Qt5::Core
+  console
   fmt)
