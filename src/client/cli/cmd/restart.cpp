@@ -54,6 +54,13 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
             spinner.print(cerr, reply.log_line());
         }
 
+        if (reply.credentials_requested())
+        {
+            spinner.stop();
+
+            return cmd::handle_user_password(client, term);
+        }
+
         spinner.stop();
         spinner.start(reply.reply_message());
     };
