@@ -62,6 +62,12 @@ protected:
         return Reply{};
     }
 
+    template <typename Reply, typename Request>
+    Request make_request_from_server(grpc::ServerReaderWriterInterface<Reply, Request>&)
+    {
+        return Request{};
+    }
+
     const SSHKeyProvider* ssh_key_provider;
 };
 
