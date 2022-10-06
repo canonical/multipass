@@ -45,4 +45,23 @@ inline bool operator==(const VMMount& a, const VMMount& b)
 }
 } // namespace multipass
 
+namespace fmt
+{
+template <>
+struct formatter<multipass::VMMount::MountType>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::VMMount::MountType& mount_type, FormatContext& ctx) const
+    {
+        return format_to(ctx.out(), "{}", static_cast<int>(mount_type));
+    }
+};
+} // namespace fmt
+
 #endif // MULTIPASS_VM_MOUNT_H

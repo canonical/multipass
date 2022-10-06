@@ -28,6 +28,8 @@
 #include <multipass/ssh/sftp_client.h>
 #include <multipass/ssh/ssh_session.h>
 
+#include <fmt/std.h>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
@@ -78,7 +80,6 @@ struct SFTPClient : public testing::Test
     MockScope<decltype(mock_sftp_free)> free_sftp;
 
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    std::stringstream test_stream{"testing stream :-)"};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockFileOps* mock_file_ops{mock_file_ops_guard.first};
@@ -496,7 +497,7 @@ TEST_F(SFTPClient, push_dir_fail_dir)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot create remote directory '{}': {}",
+    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot create remote directory \"{}\": {}",
                                                            target_path.u8string() + "/dir", err));
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot set permissions for remote directory {}: {}", target_path, err));
@@ -595,7 +596,7 @@ TEST_F(SFTPClient, push_dir_cannot_create_symlink)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot create remote symlink '{}': {}",
+    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot create remote symlink \"{}\": {}",
                                                            target_path.u8string() + "/symlink", err));
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
@@ -625,8 +626,9 @@ TEST_F(SFTPClient, push_dir_symlink_over_dir)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(mpl::Level::error, fmt::format("cannot overwrite remote directory '{}' with non-directory",
-                                                           target_path.u8string() + "/symlink"));
+    mock_logger->expect_log(mpl::Level::error,
+                            fmt::format("cannot overwrite remote directory \"{}\" with non-directory",
+                                        target_path.u8string() + "/symlink"));
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
@@ -838,7 +840,7 @@ TEST_F(SFTPClient, pull_dir_cannot_read_symlink)
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
         .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink"))));
+            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path.u8string() + "/symlink"))));
 
     REPLACE(sftp_readlink, [](auto...) { return nullptr; });
     auto err = "SFTP server: Permission denied";
@@ -847,8 +849,8 @@ TEST_F(SFTPClient, pull_dir_cannot_read_symlink)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(mpl::Level::error,
-                            fmt::format("cannot read remote link {}: {}", source_path / "symlink", err));
+    mock_logger->expect_log(
+        mpl::Level::error, fmt::format("cannot read remote link \"{}\": {}", source_path.u8string() + "/symlink", err));
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
@@ -918,13 +920,13 @@ TEST_F(SFTPClient, pull_dir_unknown_file_type)
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
         .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_UNKNOWN, source_path / "unknown"))));
+            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_UNKNOWN, source_path.u8string() + "/unknown"))));
     EXPECT_CALL(*mock_file_ops, permissions(_, _, _));
 
     auto sftp_client = make_sftp_client();
 
     mock_logger->expect_log(mpl::Level::error,
-                            fmt::format("cannot copy {}: not a regular file", source_path / "unknown"));
+                            fmt::format("cannot copy \"{}\": not a regular file", source_path.u8string() + "/unknown"));
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 

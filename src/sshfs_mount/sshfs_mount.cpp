@@ -34,6 +34,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -42,17 +43,6 @@ const std::string fuse_version_string{"FUSE library version"};
 const std::string ld_library_path_key{"LD_LIBRARY_PATH="};
 const std::string snap_path_key{"SNAP="};
 
-// TODO: Need to unify all the various SSHSession::exec type of functions into
-//       one place and account for reading both stdout and stderr
-auto run_cmd(mp::SSHSession& session, std::string&& cmd)
-{
-    auto ssh_process = session.exec(cmd);
-    if (ssh_process.exit_code() != 0)
-        throw std::runtime_error(ssh_process.read_std_error());
-
-    return ssh_process.read_std_output() + ssh_process.read_std_error();
-}
-
 auto get_sshfs_exec_and_options(mp::SSHSession& session)
 {
     std::string sshfs_exec;
@@ -60,7 +50,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     try
     {
         // Prefer to use Snap package version first
-        auto sshfs_env{run_cmd(session, "snap run multipass-sshfs.env")};
+        auto sshfs_env{mpu::run_in_ssh_session(session, "snap run multipass-sshfs.env")};
 
         auto ld_library_path = mp::utils::match_line_for(sshfs_env, ld_library_path_key);
         auto snap_path = mp::utils::match_line_for(sshfs_env, snap_path_key);
@@ -76,7 +66,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         // Fallback to looking for distro version if snap is not found
         try
         {
-            sshfs_exec = run_cmd(session, "sudo which sshfs");
+            sshfs_exec = mpu::run_in_ssh_session(session, "sudo which sshfs");
         }
         catch (const std::exception& e)
         {
@@ -88,7 +78,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
 
     sshfs_exec = mp::utils::trim_end(sshfs_exec);
 
-    auto version_info{run_cmd(session, fmt::format("sudo {} -V", sshfs_exec))};
+    auto version_info{mpu::run_in_ssh_session(session, fmt::format("sudo {} -V", sshfs_exec))};
 
     sshfs_exec += " -o slave -o transform_symlinks -o allow_other -o Compression=no";
 
@@ -126,51 +116,6 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     return sshfs_exec;
 }
 
-// Split a path into existing and to-be-created parts.
-std::pair<std::string, std::string> get_path_split(mp::SSHSession& session, const std::string& target)
-{
-    std::string absolute;
-
-    switch (target[0])
-    {
-    case '~':
-        absolute =
-            run_cmd(session, fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
-        mp::utils::trim_newline(absolute);
-        break;
-    case '/':
-        absolute = target;
-        break;
-    default:
-        absolute = run_cmd(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
-        mp::utils::trim_newline(absolute);
-        break;
-    }
-
-    std::string existing = run_cmd(
-        session, fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
-                             absolute));
-    mp::utils::trim_newline(existing);
-
-    return {existing,
-            QDir(QString::fromStdString(existing)).relativeFilePath(QString::fromStdString(absolute)).toStdString()};
-}
-
-// Create a directory on a given root folder.
-void make_target_dir(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
-{
-    run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
-}
-
-// Set ownership of all directories on a path starting on a given root.
-// Assume it is already created.
-void set_owner_for(mp::SSHSession& session, const std::string& root, const std::string& relative_target, int vm_user,
-                   int vm_group)
-{
-    run_cmd(session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user, vm_group,
-                                 relative_target.substr(0, relative_target.find_first_of('/'))));
-}
-
 auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const std::string& target,
                       const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
 {
@@ -180,14 +125,14 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     auto sshfs_exec_line = get_sshfs_exec_and_options(session);
 
     // Split the path in existing and missing parts.
-    const auto& [leading, missing] = get_path_split(session, target);
+    const auto& [leading, missing] = mpu::get_path_split(session, target);
 
-    auto output = run_cmd(session, "id -u");
+    auto output = mpu::run_in_ssh_session(session, "id -u");
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
     auto default_uid = std::stoi(output);
 
-    output = run_cmd(session, "id -g");
+    output = mpu::run_in_ssh_session(session, "id -g");
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
     auto default_gid = std::stoi(output);
@@ -196,8 +141,8 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     // and set then the correct ownership.
     if (missing != ".")
     {
-        make_target_dir(session, leading, missing);
-        set_owner_for(session, leading, missing, default_uid, default_gid);
+        mpu::make_target_dir(session, leading, missing);
+        mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
     }
 
     return std::make_unique<mp::SftpServer>(std::move(session), source, leading + missing, gid_mappings, uid_mappings,

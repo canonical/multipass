@@ -590,7 +590,7 @@ grpc::Status validate_requested_instances(const Instances& instances, const Inst
 {
     fmt::memory_buffer errors;
     for (const auto& name : instances)
-        fmt::format_to(errors, check_instance(name));
+        fmt::format_to(std::back_inserter(errors), check_instance(name));
 
     return grpc_status_for(errors);
 }
@@ -629,7 +629,7 @@ auto find_instances_to_delete(const Instances& instances, const InstanceMap& ope
         else if (trashed_vms.find(name) != trashed_vms.end())
             trashed_instances_to_delete.push_back(name);
         else
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
 
     auto status = grpc_status_for(errors);
 
@@ -1219,7 +1219,7 @@ try // clang-format on
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
             {
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
                 continue;
             }
             deleted = true;
@@ -1506,14 +1506,14 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             continue;
         }
 
         auto target_path = path_entry.target_path();
         if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
-            fmt::format_to(errors, "Unable to mount to \"{}\"\n", target_path);
+            fmt::format_to(std::back_inserter(errors), "Unable to mount to \"{}\"\n", target_path);
             continue;
         }
 
@@ -1521,7 +1521,7 @@ try // clang-format on
 
         if (mount_handler->has_instance_already_mounted(name, target_path))
         {
-            fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
+            fmt::format_to(std::back_inserter(errors), "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
         }
 
@@ -1543,7 +1543,7 @@ try // clang-format on
             }
             catch (const std::exception& e)
             {
-                fmt::format_to(errors, "error mounting \"{}\": {}", target_path, e.what());
+                fmt::format_to(std::back_inserter(errors), "error mounting \"{}\": {}", target_path, e.what());
                 continue;
             }
         }
@@ -1730,12 +1730,12 @@ try // clang-format on
         {
             auto error_string = fmt::format("Instance \'{}\' is already running, but in an unknown state", name);
             mpl::log(mpl::Level::warning, category, error_string);
-            fmt::format_to(start_errors, error_string);
+            fmt::format_to(std::back_inserter(start_errors), error_string);
             continue;
         }
         else if (state == VirtualMachine::State::suspending)
         {
-            fmt::format_to(start_errors, "Cannot start the instance \'{}\' while suspending", name);
+            fmt::format_to(std::back_inserter(start_errors), "Cannot start the instance \'{}\' while suspending", name);
             continue;
         }
         else if (state != VirtualMachine::State::running && state != VirtualMachine::State::starting &&
@@ -1803,9 +1803,9 @@ try // clang-format on
         {
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             else
-                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" is deleted\n", name);
             continue;
         }
         instances_to_suspend.push_back(name);
@@ -1957,7 +1957,7 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             continue;
         }
 
@@ -1983,7 +1983,7 @@ try // clang-format on
             }
             catch (const std::out_of_range&)
             {
-                fmt::format_to(errors, "\"{}\" not found in database\n", target_path);
+                fmt::format_to(std::back_inserter(errors), "\"{}\" not found in database\n", target_path);
                 continue;
             }
 
@@ -2736,7 +2736,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    fmt::format_to(errors, sshfs_error_template + "\n", name);
+                    fmt::format_to(std::back_inserter(errors), sshfs_error_template + "\n", name);
                     break;
                 }
                 catch (const std::exception& e)
@@ -2744,7 +2744,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                     // TODO: Combine these into one warning level log once they are displayed in the cli by
                     // default
                     mpl::log(mpl::Level::info, category, fmt::format("Removing \"{}\": {}\n", target_path, e.what()));
-                    fmt::format_to(warnings,
+                    fmt::format_to(std::back_inserter(warnings),
                                    fmt::format("Removing mount \"{}\" from {}: {}\n", target_path, name, e.what()));
                     invalid_mounts.push_back(target_path);
                 }
@@ -2765,7 +2765,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
     }
     catch (const std::exception& e)
     {
-        fmt::format_to(errors, e.what());
+        fmt::format_to(std::back_inserter(errors), e.what());
     }
 
     return fmt::to_string(errors);
@@ -2778,7 +2778,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                                      std::promise<grpc::Status>* status_promise, const std::string& start_errors)
 {
     fmt::memory_buffer errors;
-    fmt::format_to(errors, "{}", start_errors);
+    fmt::format_to(std::back_inserter(errors), "{}", start_errors);
 
     QFutureSynchronizer<std::string> start_synchronizer;
     {
@@ -2814,7 +2814,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         auto error = future.result();
         if (!error.empty())
         {
-            fmt::format_to(errors, "{}\n", error);
+            fmt::format_to(std::back_inserter(errors), "{}\n", error);
         }
     }
 
