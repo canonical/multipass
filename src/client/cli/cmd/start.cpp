@@ -33,6 +33,7 @@
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
+
 using namespace std::chrono_literals;
 
 namespace
@@ -108,6 +109,13 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         if (!reply.log_line().empty())
         {
             spinner.print(cerr, reply.log_line());
+        }
+
+        if (reply.credentials_requested())
+        {
+            spinner.stop();
+
+            return cmd::handle_user_password(client, term);
         }
 
         spinner.stop();
