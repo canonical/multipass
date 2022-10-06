@@ -182,8 +182,8 @@ profile %1 flags=(attach_disconnected) {
 
     for (auto& it : mount_args)
     {
-        mount_dirs += QString::fromStdString(it.first) + "/ rw\n";
-        mount_dirs += QString::fromStdString(it.first) + "/** rwlk\n";
+        mount_dirs += QString::fromStdString(it.first) + "/ rw,\n  ";
+        mount_dirs += QString::fromStdString(it.first) + "/** rwlk,\n  ";
     }
 
     try
