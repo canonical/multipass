@@ -84,7 +84,8 @@ QStringList get_arguments(const QJsonObject& metadata)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::optional<QJsonObject>& resume_metadata,
-                       const std::unordered_map<std::string, QStringList> mount_args, const QStringList& platform_args)
+                       const std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args,
+                       const QStringList& platform_args)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -592,14 +593,24 @@ void mp::QemuVirtualMachine::add_vm_mount(const std::string& target_path, const 
                          .replace("-", "");
     mount_tag.truncate(30);
 
-    mount_args[target_path] = QStringList{
-        {"-virtfs", QString("local,security_model=passthrough,uid_map=%1:%2,gid_map=%3:%4,path=%5,mount_tag=m%6")
-                        .arg(vm_mount.uid_mappings.at(0).first)
-                        .arg(vm_mount.uid_mappings.at(0).second)
-                        .arg(vm_mount.gid_mappings.at(0).first)
-                        .arg(vm_mount.gid_mappings.at(0).second)
-                        .arg(QString::fromStdString(vm_mount.source_path))
-                        .arg(mount_tag)}};
+    mount_args[target_path] = std::make_pair(
+        vm_mount.source_path,
+        QStringList{
+            {"-virtfs", QString("local,security_model=passthrough,%1%2path=%3,mount_tag=m%4")
+                            .arg(vm_mount.uid_mappings.size() > 0 ? QString("uid_map=%1:%2,")
+                                                                        .arg(vm_mount.uid_mappings.at(0).first)
+                                                                        .arg(vm_mount.uid_mappings.at(0).second == -1
+                                                                                 ? 1000
+                                                                                 : vm_mount.uid_mappings.at(0).second)
+                                                                  : "")
+                            .arg(vm_mount.gid_mappings.size() > 0 ? QString("gid_map=%1:%2,")
+                                                                        .arg(vm_mount.gid_mappings.at(0).first)
+                                                                        .arg(vm_mount.gid_mappings.at(0).second == -1
+                                                                                 ? 1000
+                                                                                 : vm_mount.gid_mappings.at(0).second)
+                                                                  : "")
+                            .arg(QString::fromStdString(vm_mount.source_path))
+                            .arg(mount_tag)}});
 }
 
 void mp::QemuVirtualMachine::delete_vm_mount(const std::string& target_path)

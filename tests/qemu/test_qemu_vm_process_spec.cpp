@@ -44,10 +44,11 @@ struct TestQemuVMProcessSpec : public Test
                                              {},
                                              {}};
     const QStringList platform_args{{"--enable-kvm", "-nic", "tap,ifname=tap_device,script=no,downscript=no"}};
-    const std::unordered_map<std::string, QStringList> mount_args{
-        {"path/to/mount",
-         {"-virtfs", "local,security_model=passthrough,uid_map=1000:1000,gid_map=1000:1000,path=path/to/"
-                     "mount,mount_tag=m810e457178f448d9afffc9d950d726"}}};
+    const std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args{
+        {"path/to/target",
+         {"path/to/source",
+          {"-virtfs", "local,security_model=passthrough,uid_map=1000:1000,gid_map=1000:1000,path=path/to/"
+                      "target,mount_tag=m810e457178f448d9afffc9d950d726"}}}};
 };
 
 TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
@@ -78,7 +79,7 @@ TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
                                              "/path/to/cloud_init.iso",
                                              "-virtfs",
                                              "local,security_model=passthrough,uid_map=1000:1000,gid_map=1000:1000,"
-                                             "path=path/to/mount,mount_tag=m810e457178f448d9afffc9d950d726"}));
+                                             "path=path/to/target,mount_tag=m810e457178f448d9afffc9d950d726"}));
 }
 
 TEST_F(TestQemuVMProcessSpec, resume_arguments_taken_from_resumedata)
@@ -116,8 +117,8 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesFileMountPerms)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("path/to/mount/ rw"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("path/to/mount/** rwlk"));
+    EXPECT_TRUE(spec.apparmor_profile().contains("path/to/source/ rw"));
+    EXPECT_TRUE(spec.apparmor_profile().contains("path/to/source/** rwlk"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmor_profile_has_correct_name)
