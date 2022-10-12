@@ -104,7 +104,7 @@ TEST_P(ExpectedDataSuite, returns_expected_data)
         EXPECT_EQ(info->release, release);
         EXPECT_EQ(info->release_title, release_title);
         EXPECT_TRUE(info->supported);
-        EXPECT_EQ(info->version, QDateTime::currentDateTime().toString("yyyyMMdd"));
+        EXPECT_EQ(info->version, QLocale::c().toString(QDateTime::currentDateTime(), "yyyyMMdd"));
     }
 }
 
