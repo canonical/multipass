@@ -2906,6 +2906,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     assert(config->factory->get_backend_version_string() == "hyperkit" &&
            "can only migrate when hyperkit is in effect");
 
+    // TODO@nomerge return early if there are no hyperkit instances to migrate
+
     mp::SetReply reply{};
     reply.set_log_line("Migration placeholder\n");
     server->Write(reply);
@@ -2941,27 +2943,38 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     // Migrate instances
     for (const auto& [vm_name, vm_ptr] : vm_instances)
     {
-        reply.set_log_line(fmt::format("Migrating {} from hyperkit to qemu\n", vm_name)); // TODO@nomerge spin it
-        server->Write(reply);
+        auto key = QString::fromStdString(vm_name);
+        if (qemu_instances_json.contains(key)) // TODO@nomerge test
+        {
+            reply.set_log_line(fmt::format("Cannot migrate {}: name already taken by a qemu instance", vm_name));
+            server->Write(reply);
+        }
+        else
+        {
+            reply.set_log_line(fmt::format("Migrating {} from hyperkit to qemu\n", vm_name)); // TODO@nomerge spin it
+            server->Write(reply);
 
-        // Copy instance image to qemu vault
-        auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
-        auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
-        mpl::log(mpl::Level::debug, category, fmt::format("Migrating instance files to '{}'", target_directory));
+            // Copy instance image to qemu vault
+            auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
+            auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
+            mpl::log(mpl::Level::debug, category, fmt::format("Migrating instance files to '{}'", target_directory));
 
-        if (std::error_code err; !MP_FILEOPS.create_directories(target_directory, err) && err)
-            throw std::runtime_error{fmt::format("Could not create directory for QEMU instance: {} ", err.message())};
+            if (std::error_code err; !MP_FILEOPS.create_directories(target_directory, err) && err)
+                throw std::runtime_error{
+                    fmt::format("Could not create directory for QEMU instance: {} ", err.message())};
 
-        auto new_image = mp::vault::copy(vm_image.image_path, QString::fromStdString(target_directory));
+            auto new_image = mp::vault::copy(vm_image.image_path, QString::fromStdString(target_directory));
 
-        // Fix image metadata
-        QStringList qemuimg_args = QStringList{"check", "-r", "all", new_image};
-        auto qemuimg_proc =
-            mp::platform::make_process(std::make_unique<CustomQemuImgProcessSpec>(std::move(qemuimg_args), new_image));
+            // Fix image metadata
+            QStringList qemuimg_args = QStringList{"check", "-r", "all", new_image};
+            auto qemuimg_proc = mp::platform::make_process(
+                std::make_unique<CustomQemuImgProcessSpec>(std::move(qemuimg_args), new_image));
 
-        if (auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
-            throw std::runtime_error{fmt::format("Failed to fix image metadata: {}",
-                                                 qemuimg_state.failure_message())}; // TODO@no-merge get stderr
+            if (auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
+                throw std::runtime_error{fmt::format("Failed to fix image metadata: {}",
+                                                     qemuimg_state.failure_message())}; // TODO@no-merge get stderr
+
+        }
     }
 
     return grpc::Status::OK;
