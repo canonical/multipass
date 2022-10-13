@@ -2947,7 +2947,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     for (const auto& [vm_name, vm_specs] : vm_instance_specs)
     {
         auto key = QString::fromStdString(vm_name);
-        if (qemu_instances_json.contains(key)) // TODO@nomerge test
+        if (qemu_instances_json.contains(key))
         {
             reply.set_log_line(fmt::format("Cannot migrate {}: name already taken by a qemu instance\n", vm_name));
             server->Write(reply);
@@ -2978,7 +2978,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                                                      qemuimg_state.failure_message())}; // TODO@no-merge get stderr
 
             // Add JSON for QEMU instance
-            qemu_instances_json.insert(key, vm_spec_to_json(vm_specs)); // TODO@nomerge test
+            qemu_instances_json.insert(key, vm_spec_to_json(vm_specs));
             instance_migrated = true;
         }
     }
