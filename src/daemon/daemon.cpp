@@ -2903,9 +2903,8 @@ void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_futu
 
 grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server)
 { // TODO hk migration, remove
-#ifndef MULTIPASS_PLATFORM_APPLE
-    assert(false && "no hyperkit otherwise");
-#endif
+    assert(config->factory->get_backend_version_string() == "hyperkit" &&
+           "can only migrate when hyperkit is in effect");
 
     mp::SetReply reply{};
     reply.set_log_line("Migration placeholder\n");
