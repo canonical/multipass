@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_QEMU_MOUNT_HANDLER_H
 #define MULTIPASS_QEMU_MOUNT_HANDLER_H
 
+#include <multipass/mount_config.h>
 #include <multipass/mount_handler.h>
 
 namespace multipass
@@ -37,7 +38,7 @@ public:
     bool has_instance_already_mounted(const std::string& instance, const std::string& path) const override;
 
 private:
-    std::unordered_map<std::string, std::unordered_map<std::string, std::pair<VirtualMachine*, int>>> mounts;
+    std::unordered_map<std::string, std::unordered_map<std::string, MountConfig>> mounts;
 };
 
 } // namespace multipass
