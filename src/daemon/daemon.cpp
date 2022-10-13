@@ -2916,11 +2916,17 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     auto qemu_instance_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
 
     // Read QEMU instance DB
+    QJsonObject qemu_instances_json{};
     QFile qemu_instance_db{QString::fromStdString(qemu_instance_db_path)};
     if (qemu_instance_db.exists())
     {
         qemu_instance_db.open(QIODevice::ReadOnly); // TODO@nomerge handle errors
         mpl::log(mpl::Level::debug, category, "Found QEMU instance database");
+
+        QJsonParseError parse_error;
+        auto doc = QJsonDocument::fromJson(qemu_instance_db.readAll(), &parse_error);
+        if (!doc.isNull())
+            qemu_instances_json = doc.object(); // TODO@nomerge do this RAII-like
     }
     else
         mpl::log(mpl::Level::debug, category, "No existing QEMU instance database found");
