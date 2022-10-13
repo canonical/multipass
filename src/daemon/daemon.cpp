@@ -2929,8 +2929,12 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             qemu_instances_json = doc.object(); // TODO@nomerge do this RAII-like
     }
     else
+    {
         mpl::log(mpl::Level::debug, category, "No existing QEMU instance database found");
 
+        if (std::error_code err; !MP_FILEOPS.create_directories(qemu_data_dir, err) && err)
+            throw std::runtime_error{fmt::format("Could not create directory for QEMU data: {} ", err.message())};
+    }
     // Migrate instances
     for (const auto& [vm_name, vm_ptr] : vm_instances)
     {
