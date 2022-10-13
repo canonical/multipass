@@ -261,7 +261,6 @@ void mp::QemuVirtualMachine::start()
     }
 
     vm_process->start();
-    state = VirtualMachine::State::starting;
 
     if (!vm_process->wait_for_started())
     {
@@ -353,6 +352,7 @@ void mp::QemuVirtualMachine::update_state()
 
 void mp::QemuVirtualMachine::on_started()
 {
+    state = VirtualMachine::State::starting;
     update_state();
     monitor->on_resume();
 }
