@@ -362,6 +362,77 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
     return reconstructed_records;
 }
 
+QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfaces)
+{
+    QJsonArray json;
+
+    for (const auto& interface : extra_interfaces)
+    {
+        QJsonObject entry;
+        entry.insert("id", QString::fromStdString(interface.id));
+        entry.insert("mac_address", QString::fromStdString(interface.mac_address));
+        entry.insert("auto_mode", interface.auto_mode);
+        json.append(entry);
+    }
+
+    return json;
+}
+
+QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
+{
+    QJsonObject json;
+    json.insert("num_cores", specs.num_cores);
+    json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
+    json.insert("disk_space", QString::number(specs.disk_space.in_bytes()));
+    json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
+    json.insert("state", static_cast<int>(specs.state));
+    json.insert("deleted", specs.deleted);
+    json.insert("metadata", specs.metadata);
+
+    // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
+    // default network interface. Then, write all the information about the rest of the interfaces.
+    json.insert("mac_addr", QString::fromStdString(specs.default_mac_address));
+    json.insert("extra_interfaces", to_json_array(specs.extra_interfaces));
+
+    QJsonArray mounts;
+    for (const auto& mount : specs.mounts)
+    {
+        QJsonObject entry;
+        entry.insert("source_path", QString::fromStdString(mount.second.source_path));
+        entry.insert("target_path", QString::fromStdString(mount.first));
+
+        QJsonArray uid_mappings;
+
+        for (const auto& map : mount.second.uid_mappings)
+        {
+            QJsonObject map_entry;
+            map_entry.insert("host_uid", map.first);
+            map_entry.insert("instance_uid", map.second);
+
+            uid_mappings.append(map_entry);
+        }
+
+        entry.insert("uid_mappings", uid_mappings);
+
+        QJsonArray gid_mappings;
+
+        for (const auto& map : mount.second.gid_mappings)
+        {
+            QJsonObject map_entry;
+            map_entry.insert("host_gid", map.first);
+            map_entry.insert("instance_gid", map.second);
+
+            gid_mappings.append(map_entry);
+        }
+
+        entry.insert("gid_mappings", gid_mappings);
+        mounts.append(entry);
+    }
+
+    json.insert("mounts", mounts);
+    return json;
+}
+
 auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, mp::VMImageVault& vault)
 {
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
@@ -2228,79 +2299,8 @@ QJsonObject mp::Daemon::retrieve_metadata_for(const std::string& name)
     return vm_instance_specs[name].metadata;
 }
 
-QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfaces)
-{
-    QJsonArray json;
-
-    for (const auto& interface : extra_interfaces)
-    {
-        QJsonObject entry;
-        entry.insert("id", QString::fromStdString(interface.id));
-        entry.insert("mac_address", QString::fromStdString(interface.mac_address));
-        entry.insert("auto_mode", interface.auto_mode);
-        json.append(entry);
-    }
-
-    return json;
-}
-
 void mp::Daemon::persist_instances()
 {
-    auto vm_spec_to_json = [](const mp::VMSpecs& specs) -> QJsonObject {
-        QJsonObject json;
-        json.insert("num_cores", specs.num_cores);
-        json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
-        json.insert("disk_space", QString::number(specs.disk_space.in_bytes()));
-        json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
-        json.insert("state", static_cast<int>(specs.state));
-        json.insert("deleted", specs.deleted);
-        json.insert("metadata", specs.metadata);
-
-        // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
-        // default network interface. Then, write all the information about the rest of the interfaces.
-        json.insert("mac_addr", QString::fromStdString(specs.default_mac_address));
-        json.insert("extra_interfaces", to_json_array(specs.extra_interfaces));
-
-        QJsonArray mounts;
-        for (const auto& mount : specs.mounts)
-        {
-            QJsonObject entry;
-            entry.insert("source_path", QString::fromStdString(mount.second.source_path));
-            entry.insert("target_path", QString::fromStdString(mount.first));
-
-            QJsonArray uid_mappings;
-
-            for (const auto& map : mount.second.uid_mappings)
-            {
-                QJsonObject map_entry;
-                map_entry.insert("host_uid", map.first);
-                map_entry.insert("instance_uid", map.second);
-
-                uid_mappings.append(map_entry);
-            }
-
-            entry.insert("uid_mappings", uid_mappings);
-
-            QJsonArray gid_mappings;
-
-            for (const auto& map : mount.second.gid_mappings)
-            {
-                QJsonObject map_entry;
-                map_entry.insert("host_gid", map.first);
-                map_entry.insert("instance_gid", map.second);
-
-                gid_mappings.append(map_entry);
-            }
-
-            entry.insert("gid_mappings", gid_mappings);
-
-            entry.insert("mount_type", static_cast<int>(mount.second.mount_type));
-            mounts.append(entry);
-        }
-
-        json.insert("mounts", mounts);
-        return json;
-    };
     QJsonObject instance_records_json;
     for (const auto& record : vm_instance_specs)
     {
