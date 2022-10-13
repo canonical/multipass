@@ -17,28 +17,28 @@ syntax = "proto3";
 package multipass;
 
 service Rpc {
-    rpc create (LaunchRequest) returns (stream LaunchReply);
-    rpc launch (LaunchRequest) returns (stream LaunchReply);
-    rpc purge (PurgeRequest) returns (stream PurgeReply);
-    rpc find (FindRequest) returns (stream FindReply);
-    rpc info (InfoRequest) returns (stream InfoReply);
-    rpc list (ListRequest) returns (stream ListReply);
-    rpc networks (NetworksRequest) returns (stream NetworksReply);
-    rpc mount (MountRequest) returns (stream MountReply);
+    rpc create (stream LaunchRequest) returns (stream LaunchReply);
+    rpc launch (stream LaunchRequest) returns (stream LaunchReply);
+    rpc purge (stream PurgeRequest) returns (stream PurgeReply);
+    rpc find (stream FindRequest) returns (stream FindReply);
+    rpc info (stream InfoRequest) returns (stream InfoReply);
+    rpc list (stream ListRequest) returns (stream ListReply);
+    rpc networks (stream NetworksRequest) returns (stream NetworksReply);
+    rpc mount (stream MountRequest) returns (stream MountReply);
     rpc ping (PingRequest) returns (PingReply);
-    rpc recover (RecoverRequest) returns (stream RecoverReply);
-    rpc ssh_info (SSHInfoRequest) returns (stream SSHInfoReply);
-    rpc start (StartRequest) returns (stream StartReply);
-    rpc stop (StopRequest) returns (stream StopReply);
-    rpc suspend (SuspendRequest) returns (stream SuspendReply);
-    rpc restart (RestartRequest) returns (stream RestartReply);
-    rpc delet (DeleteRequest) returns (stream DeleteReply);
-    rpc umount (UmountRequest) returns (stream UmountReply);
-    rpc version (VersionRequest) returns (stream VersionReply);
-    rpc get (GetRequest) returns (stream GetReply);
-    rpc set (SetRequest) returns (stream SetReply);
-    rpc keys (KeysRequest) returns (stream KeysReply);
-    rpc authenticate (AuthenticateRequest) returns (stream AuthenticateReply);
+    rpc recover (stream RecoverRequest) returns (stream RecoverReply);
+    rpc ssh_info (stream SSHInfoRequest) returns (stream SSHInfoReply);
+    rpc start (stream StartRequest) returns (stream StartReply);
+    rpc stop (stream StopRequest) returns (stream StopReply);
+    rpc suspend (stream SuspendRequest) returns (stream SuspendReply);
+    rpc restart (stream RestartRequest) returns (stream RestartReply);
+    rpc delet (stream DeleteRequest) returns (stream DeleteReply);
+    rpc umount (stream UmountRequest) returns (stream UmountReply);
+    rpc version (stream VersionRequest) returns (stream VersionReply);
+    rpc get (stream GetRequest) returns (stream GetReply);
+    rpc set (stream SetRequest) returns (stream SetReply);
+    rpc keys (stream KeysRequest) returns (stream KeysReply);
+    rpc authenticate (stream AuthenticateRequest) returns (stream AuthenticateReply);
 }
 
 message LaunchRequest {
@@ -66,6 +66,7 @@ message LaunchRequest {
     repeated NetworkOptions network_options = 12;
     bool permission_to_bridge = 13;
     int32 timeout = 14;
+    UserCredentials user_credentials = 15;
 }
 
 message LaunchError {
@@ -118,6 +119,7 @@ message LaunchReply {
     repeated string nets_need_bridging = 9;
     repeated Alias aliases_to_be_created = 10;
     repeated string workspaces_to_be_created = 11;
+    bool credentials_requested = 12;
 }
 
 message PurgeRequest {
@@ -258,16 +260,28 @@ message TargetPathInfo {
     string target_path = 2;
 }
 
+message UserCredentials {
+    string username = 1;
+    string password = 2;
+}
+
 message MountRequest {
+    enum MountType {
+        CLASSIC = 0;
+        NATIVE = 1;
+    }
     string source_path = 1;
     repeated TargetPathInfo target_paths = 2;
     MountMaps mount_maps = 3;
     int32 verbosity_level = 4;
+    MountType mount_type = 5;
+    UserCredentials user_credentials = 6;
 }
 
 message MountReply {
     string log_line = 1;
-    string mount_message = 2;
+    string reply_message = 2;
+    bool credentials_requested = 3;
 }
 
 message PingRequest {
@@ -316,12 +330,14 @@ message StartRequest {
     InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
     int32 timeout = 3;
+    UserCredentials user_credentials = 4;
 }
 
 message StartReply {
     string log_line = 1;
     string reply_message = 2;
     UpdateInfo update_info = 3;
+    bool credentials_requested = 4;
 }
 
 message StopRequest {
@@ -348,12 +364,14 @@ message RestartRequest {
     InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
     int32 timeout = 3;
+    UserCredentials user_credentials = 4;
 }
 
 message RestartReply {
     string log_line = 1;
     string reply_message = 2;
     UpdateInfo update_info = 3;
+    bool credentials_requested = 4;
 }
 
 message DeleteRequest {

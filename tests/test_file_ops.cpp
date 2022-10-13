@@ -117,3 +117,11 @@ TEST_F(FileOps, dir_iter)
     MP_FILEOPS.recursive_dir_iterator(temp_file, err);
     EXPECT_TRUE(err);
 }
+
+TEST_F(FileOps, create_directories)
+{
+    EXPECT_TRUE(MP_FILEOPS.create_directories(temp_dir / "subdir/nested", err));
+    EXPECT_FALSE(err);
+    EXPECT_FALSE(MP_FILEOPS.create_directories(temp_dir / "subdir/nested", err));
+    EXPECT_FALSE(err);
+}

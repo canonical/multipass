@@ -21,6 +21,7 @@
 
 #include <unistd.h>
 
+namespace mp = multipass;
 namespace mcp = multipass::cli::platform;
 
 void mcp::parse_transfer_entry(const QString& entry, QString& path, QString& instance_name)
@@ -54,4 +55,9 @@ int mcp::getuid()
 int mcp::getgid()
 {
     return ::getgid();
+}
+
+std::pair<std::string, std::string> mcp::get_user_password(mp::Terminal*)
+{
+    return {};
 }

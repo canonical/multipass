@@ -27,6 +27,7 @@
 #include "mock_image_host.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
+#include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_utils.h"
@@ -206,7 +207,7 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
 TEST_F(Daemon, provides_version)
 {
     mp::Daemon daemon{config_builder.build()};
-    StrictMock<mpt::MockServerWriter<mp::VersionReply>> mock_server;
+    StrictMock<mpt::MockServerReaderWriter<mp::VersionReply, mp::VersionRequest>> mock_server;
     EXPECT_CALL(mock_server, Write(Property(&mp::VersionReply::version, StrEq(mp::version_string)), _))
         .WillOnce(Return(true));
 
@@ -1299,7 +1300,7 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
 
     // Check that the instance was indeed read and there were no errors.
     {
-        StrictMock<mpt::MockServerWriter<mp::ListReply>> mock_server;
+        StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
 
         auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
         EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
@@ -1341,9 +1342,12 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     std::unordered_map<std::string, mp::VMMount> mounts;
 
-    mounts.emplace("target_1", mp::VMMount{temp_mount_1, uid_mappings_1, gid_mappings_1});
-    mounts.emplace("target_2", mp::VMMount{temp_mount_2, uid_mappings_2, gid_mappings_2});
-    mounts.emplace("target_3", mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3});
+    mounts.emplace("target_1",
+                   mp::VMMount{temp_mount_1, uid_mappings_1, gid_mappings_1, mp::VMMount::MountType::SSHFS});
+    mounts.emplace("target_2",
+                   mp::VMMount{temp_mount_2, uid_mappings_2, gid_mappings_2, mp::VMMount::MountType::SSHFS});
+    mounts.emplace("target_3",
+                   mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3, mp::VMMount::MountType::SSHFS});
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
@@ -1353,7 +1357,7 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     // Check that the instance was indeed read and there were no errors.
     {
-        StrictMock<mpt::MockServerWriter<mp::ListReply>> mock_server;
+        StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
 
         auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
         EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
@@ -1374,7 +1378,8 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
     mp::id_mappings uid_mappings{{1002, 0}, {1000, 0}, {1001, 1}};
     mp::id_mappings gid_mappings{{1002, 0}, {1000, 2}};
     std::unordered_map<std::string, mp::VMMount> mounts;
-    mounts.emplace("Home", mp::VMMount{mpt::TempDir().path().toStdString(), uid_mappings, gid_mappings});
+    mounts.emplace("Home", mp::VMMount{mpt::TempDir().path().toStdString(), uid_mappings, gid_mappings,
+                                       mp::VMMount::MountType::SSHFS});
 
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents("52:54:00:73:76:29", std::vector<mp::NetworkInterface>{}, mounts));
@@ -1572,7 +1577,7 @@ TEST_F(Daemon, ctor_drops_removed_instances)
 
     mp::Daemon daemon{config_builder.build()};
 
-    StrictMock<mpt::MockServerWriter<mp::ListReply>> mock_server;
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
     auto stayed_matcher = Property(&mp::ListVMInstance::name, stayed);
     EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(stayed_matcher)), _))
         .WillOnce(Return(true));
@@ -1819,21 +1824,6 @@ TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
                           "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
 }
 
-TEST_F(Daemon, refusesDisabledMount)
-{
-    mp::Daemon daemon{config_builder.build()};
-
-    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
-
-    std::stringstream err_stream;
-
-    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, mp::MountRequest{},
-                                   StrictMock<mpt::MockServerWriter<mp::MountReply>>{});
-
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(), HasSubstr("Mounts are disabled on this installation of Multipass."));
-}
-
 TEST_F(Daemon, keysReturnsSettingsKeys)
 {
     mp::Daemon daemon{config_builder.build()};
@@ -1841,7 +1831,7 @@ TEST_F(Daemon, keysReturnsSettingsKeys)
     const auto keys = std::set{"some", "config.keys", "of.various.kinds"};
     EXPECT_CALL(mock_settings, keys).WillOnce(Return(std::set<QString>{keys.begin(), keys.end()}));
 
-    StrictMock<mpt::MockServerWriter<mp::KeysReply>> mock_server;
+    StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>> mock_server;
     EXPECT_CALL(mock_server, Write(Property(&mp::KeysReply::settings_keys, UnorderedElementsAreArray(keys)), _))
         .WillOnce(Return(true));
 
@@ -1857,7 +1847,7 @@ TEST_F(Daemon, keysReportsException)
     EXPECT_CALL(mock_settings, keys).WillOnce(Throw(e));
 
     auto status = call_daemon_slot(daemon, &mp::Daemon::keys, mp::KeysRequest{},
-                                   StrictMock<mpt::MockServerWriter<mp::KeysReply>>{});
+                                   StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>{});
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr(e.what()));
 }
@@ -1870,7 +1860,7 @@ TEST_F(Daemon, getReturnsSetting)
     const auto val = "bar";
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
 
-    StrictMock<mpt::MockServerWriter<mp::GetReply>> mock_server;
+    StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>> mock_server;
     EXPECT_CALL(mock_server, Write(Property(&mp::GetReply::value, Eq(val)), _)).WillOnce(Return(true));
 
     mp::GetRequest request;
@@ -1889,8 +1879,8 @@ TEST_F(Daemon, getHandlesEmptyKey)
     request.set_key(key);
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
@@ -1905,8 +1895,8 @@ TEST_F(Daemon, getHandlesInvalidKey)
     request.set_key(key);
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr(request.key())));
@@ -1922,8 +1912,8 @@ TEST_F(Daemon, getReportsException)
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(std::runtime_error{"exception"}));
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::get, request, StrictMock<mpt::MockServerWriter<mp::GetReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::get, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr("exception"));
@@ -1942,7 +1932,7 @@ TEST_F(Daemon, setSetsSetting)
 
     EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).Times(1);
 
-    auto mock_server = StrictMock<mpt::MockServerWriter<mp::SetReply>>{};
+    auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
 
@@ -1964,8 +1954,8 @@ TEST_P(DaemonSetExceptions, setHandlesSettingsException)
     EXPECT_CALL(mock_settings, set).WillOnce(WithoutArgs([&thrower, e = &exception] { std::visit(thrower, *e); })); /*
                                 lambda capture with initializer works around forbidden capture of structured binding */
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::set, mp::SetRequest{}, StrictMock<mpt::MockServerWriter<mp::SetReply>>{});
+    auto status = call_daemon_slot(daemon, &mp::Daemon::set, mp::SetRequest{},
+                                   StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{});
 
     EXPECT_EQ(status.error_code(), expected_code);
     EXPECT_THAT(status.error_message(), msg_matcher);
@@ -1988,7 +1978,7 @@ TEST_F(Daemon, requests_networks)
                                                     {"net_b", "type_b", "description_b"}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_infos));
 
-    StrictMock<mpt::MockServerWriter<mp::NetworksReply>> mock_server;
+    StrictMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>> mock_server;
 
     auto are_same_net = [](const mp::NetInterface& proto_net, const mp::NetworkInterfaceInfo& net_info) {
         return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
@@ -2010,7 +2000,7 @@ TEST_F(Daemon, performs_health_check_on_networks)
 
     EXPECT_CALL(*mock_factory, hypervisor_health_check);
     call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{},
-                     NiceMock<mpt::MockServerWriter<mp::NetworksReply>>{});
+                     NiceMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>>{});
 }
 
 TEST_F(Daemon, purgePersistsInstances)
@@ -2027,7 +2017,8 @@ TEST_F(Daemon, purgePersistsInstances)
     mp::Daemon daemon{config_builder.build()};
 
     QFile::remove(filename);
-    call_daemon_slot(daemon, &mp::Daemon::purge, mp::PurgeRequest{}, NiceMock<mpt::MockServerWriter<mp::PurgeReply>>{});
+    call_daemon_slot(daemon, &mp::Daemon::purge, mp::PurgeRequest{},
+                     NiceMock<mpt::MockServerReaderWriter<mp::PurgeReply, mp::PurgeRequest>>{});
 
     auto updated_json = mpt::load(filename);
     EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));

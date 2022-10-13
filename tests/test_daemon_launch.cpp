@@ -20,6 +20,7 @@
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
 #include "mock_platform.h"
+#include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_blueprint_provider.h"
@@ -89,7 +90,7 @@ TEST_F(TestDaemonLaunch, blueprintFoundMountsWorkspaceWithNameOverride)
     request.set_image(name);
 
     mp::LaunchReply reply;
-    StrictMock<mpt::MockServerWriter<mp::LaunchReply>> writer{};
+    StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>> writer{};
 
     EXPECT_CALL(writer, Write(_, _)).WillRepeatedly([&reply](const mp::LaunchReply& written_reply, auto) -> bool {
         reply = written_reply;

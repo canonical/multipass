@@ -322,8 +322,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
             uid_mappings = mp::unique_id_mappings(uid_mappings);
             gid_mappings = mp::unique_id_mappings(gid_mappings);
+            auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
 
-            mp::VMMount mount{source_path, gid_mappings, uid_mappings};
+            mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
             mounts[target_path] = mount;
         }
 
@@ -589,7 +590,7 @@ grpc::Status validate_requested_instances(const Instances& instances, const Inst
 {
     fmt::memory_buffer errors;
     for (const auto& name : instances)
-        fmt::format_to(errors, check_instance(name));
+        fmt::format_to(std::back_inserter(errors), check_instance(name));
 
     return grpc_status_for(errors);
 }
@@ -628,7 +629,7 @@ auto find_instances_to_delete(const Instances& instances, const InstanceMap& ope
         else if (trashed_vms.find(name) != trashed_vms.end())
             trashed_instances_to_delete.push_back(name);
         else
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
 
     auto status = grpc_status_for(errors);
 
@@ -868,7 +869,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      instance_mounts{*config->ssh_key_provider},
       instance_mod_handler{register_instance_mod(vm_instance_specs, vm_instances, deleted_instances,
                                                  preparing_instances, [this] { persist_instances(); })}
 {
@@ -1023,11 +1023,13 @@ mp::Daemon::~Daemon()
     mp::top_catch_all(category, [this] { MP_SETTINGS.unregister_handler(instance_mod_handler); });
 }
 
-void mp::Daemon::create(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* server,
+void mp::Daemon::create(const CreateRequest* request,
+                        grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<CreateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<CreateReply, CreateRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                         server};
     return create_vm(request, server, status_promise, /*start=*/false);
 }
 catch (const std::exception& e)
@@ -1035,11 +1037,13 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::launch(const LaunchRequest* request, grpc::ServerWriterInterface<LaunchReply>* server,
+void mp::Daemon::launch(const LaunchRequest* request,
+                        grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>* server,
                         std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<LaunchReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<LaunchReply, LaunchRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                         server};
 
     return create_vm(request, server, status_promise, /*start=*/true);
 }
@@ -1058,7 +1062,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::purge(const PurgeRequest* request, grpc::ServerWriterInterface<PurgeReply>* server,
+void mp::Daemon::purge(const PurgeRequest* request, grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1081,11 +1085,12 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::find(const FindRequest* request, grpc::ServerWriterInterface<FindReply>* server,
+void mp::Daemon::find(const FindRequest* request, grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<FindReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<FindReply, FindRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                     server};
     FindReply response;
     const auto default_remote{"release"};
 
@@ -1182,11 +1187,12 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::info(const InfoRequest* request, grpc::ServerWriterInterface<InfoReply>* server,
+void mp::Daemon::info(const InfoRequest* request, grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>* server,
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<InfoReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                     server};
     InfoReply response;
 
     fmt::memory_buffer errors;
@@ -1213,7 +1219,7 @@ try // clang-format on
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
             {
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
                 continue;
             }
             deleted = true;
@@ -1333,11 +1339,12 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::list(const ListRequest* request, grpc::ServerWriterInterface<ListReply>* server,
+void mp::Daemon::list(const ListRequest* request, grpc::ServerReaderWriterInterface<ListReply, ListRequest>* server,
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<ListReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<ListReply, ListRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                     server};
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -1401,11 +1408,13 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::networks(const NetworksRequest* request, grpc::ServerWriterInterface<NetworksReply>* server,
+void mp::Daemon::networks(const NetworksRequest* request,
+                          grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<NetworksReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<NetworksReply, NetworksRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                             *config->logger, server};
     NetworksReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -1430,11 +1439,18 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::mount(const MountRequest* request, grpc::ServerWriterInterface<MountReply>* server,
+void mp::Daemon::mount(const MountRequest* request, grpc::ServerReaderWriterInterface<MountReply, MountRequest>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<MountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<MountReply, MountRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                       server};
+    auto mount_type = request->mount_type() == mp::MountRequest_MountType_CLASSIC ? mp::VMMount::MountType::SSHFS
+                                                                                  : mp::VMMount::MountType::Performance;
+
+    if (mount_type == mp::VMMount::MountType::Performance &&
+        (config->mount_handlers.find(mp::VMMount::MountType::Performance) == config->mount_handlers.end()))
+        throw mp::NotImplementedOnThisBackendException("experimental mounts");
 
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
     {
@@ -1490,69 +1506,55 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             continue;
         }
 
         auto target_path = path_entry.target_path();
         if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
-            fmt::format_to(errors, "Unable to mount to \"{}\"\n", target_path);
+            fmt::format_to(std::back_inserter(errors), "Unable to mount to \"{}\"\n", target_path);
             continue;
         }
 
-        if (instance_mounts.has_instance_already_mounted(name, target_path))
+        const auto& mount_handler = config->mount_handlers.at(mount_type);
+
+        if (mount_handler->has_instance_already_mounted(name, target_path))
         {
-            fmt::format_to(errors, "\"{}:{}\" is already mounted\n", name, target_path);
+            fmt::format_to(std::back_inserter(errors), "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
         }
 
         auto& vm = it->second;
         auto& vm_specs = vm_instance_specs[name];
+        VMMount mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
+
+        mount_handler->init_mount(vm.get(), target_path, mount);
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
             {
-                instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings, uid_mappings);
+                mount_handler->start_mount(vm.get(), server, target_path);
             }
             catch (const mp::SSHFSMissingError&)
             {
-                try
-                {
-                    // Force the deleteLater() event to process now to avoid unloading the apparmor profile
-                    // later.  See https://github.com/canonical/multipass/issues/1131
-                    QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
-
-                    MountReply mount_reply;
-                    mount_reply.set_mount_message("Enabling support for mounting");
-                    server->Write(mount_reply);
-
-                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                           *config->ssh_key_provider};
-                    mp::utils::install_sshfs_for(name, session);
-                    instance_mounts.start_mount(vm.get(), request->source_path(), target_path, gid_mappings,
-                                                uid_mappings);
-                }
-                catch (const mp::SSHFSMissingError&)
-                {
-                    return status_promise->set_value(grpc_status_for_mount_error(name));
-                }
+                return status_promise->set_value(grpc_status_for_mount_error(name));
             }
             catch (const std::exception& e)
             {
-                fmt::format_to(errors, "error mounting \"{}\": {}", target_path, e.what());
+                fmt::format_to(std::back_inserter(errors), "error mounting \"{}\": {}", target_path, e.what());
                 continue;
             }
         }
 
         if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
-            fmt::format_to(errors, "There is already a mount defined for \"{}:{}\"\n", name, target_path);
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Mount already defined for \"{}:{}\"\n", name, target_path));
             continue;
         }
 
-        VMMount mount{request->source_path(), gid_mappings, uid_mappings};
         vm_specs.mounts[target_path] = mount;
     }
 
@@ -1565,11 +1567,13 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::recover(const RecoverRequest* request, grpc::ServerWriterInterface<RecoverReply>* server,
+void mp::Daemon::recover(const RecoverRequest* request,
+                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<RecoverReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<RecoverReply, RecoverRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                           server};
 
     const auto [instances, status] =
         find_requested_instances(request->instance_names().instance_name(), deleted_instances,
@@ -1604,11 +1608,13 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::ssh_info(const SSHInfoRequest* request, grpc::ServerWriterInterface<SSHInfoReply>* server,
+void mp::Daemon::ssh_info(const SSHInfoRequest* request,
+                          grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>* server,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<SSHInfoReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<SSHInfoReply, SSHInfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                           server};
     SSHInfoReply response;
 
     for (const auto& name : request->instance_name())
@@ -1663,11 +1669,12 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::start(const StartRequest* request, grpc::ServerWriterInterface<StartReply>* server,
+void mp::Daemon::start(const StartRequest* request, grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<StartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<StartReply, StartRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                       server};
 
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
@@ -1724,35 +1731,38 @@ try // clang-format on
         {
             auto error_string = fmt::format("Instance \'{}\' is already running, but in an unknown state", name);
             mpl::log(mpl::Level::warning, category, error_string);
-            fmt::format_to(start_errors, error_string);
+            fmt::format_to(std::back_inserter(start_errors), error_string);
             continue;
         }
         else if (state == VirtualMachine::State::suspending)
         {
-            fmt::format_to(start_errors, "Cannot start the instance \'{}\' while suspending", name);
+            fmt::format_to(std::back_inserter(start_errors), "Cannot start the instance \'{}\' while suspending", name);
             continue;
         }
         else if (state != VirtualMachine::State::running && state != VirtualMachine::State::starting &&
                  state != VirtualMachine::State::restarting)
         {
+            init_mounts(name);
+
             vm->start();
         }
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, server, vms,
-                                                timeout, status_promise, fmt::to_string(start_errors)));
+    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+                                                server, vms, timeout, status_promise, fmt::to_string(start_errors)));
 }
 catch (const std::exception& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::stop(const StopRequest* request, grpc::ServerWriterInterface<StopReply>* server,
+void mp::Daemon::stop(const StopRequest* request, grpc::ServerReaderWriterInterface<StopReply, StopRequest>* server,
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<StopReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<StopReply, StopRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                     server};
 
     auto [instances, status] =
         find_requested_instances(request->instance_names().instance_name(), vm_instances,
@@ -1777,11 +1787,13 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::suspend(const SuspendRequest* request, grpc::ServerWriterInterface<SuspendReply>* server,
+void mp::Daemon::suspend(const SuspendRequest* request,
+                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<SuspendReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<SuspendReply, SuspendRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                           server};
 
     fmt::memory_buffer errors;
     std::vector<decltype(vm_instances)::key_type> instances_to_suspend;
@@ -1792,9 +1804,9 @@ try // clang-format on
         {
             it = deleted_instances.find(name);
             if (it == deleted_instances.end())
-                fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             else
-                fmt::format_to(errors, "instance \"{}\" is deleted\n", name);
+                fmt::format_to(std::back_inserter(errors), "instance \"{}\" is deleted\n", name);
             continue;
         }
         instances_to_suspend.push_back(name);
@@ -1811,7 +1823,11 @@ try // clang-format on
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
             vm.suspend();
-            instance_mounts.stop_all_mounts_for_instance(vm.vm_name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler.second->stop_all_mounts_for_instance(vm.vm_name);
+            }
+
             return grpc::Status::OK;
         });
     }
@@ -1823,11 +1839,13 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::restart(const RestartRequest* request, grpc::ServerWriterInterface<RestartReply>* server,
+void mp::Daemon::restart(const RestartRequest* request,
+                         grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>* server,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<RestartReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<RestartReply, RestartRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                           server};
 
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
@@ -1849,19 +1867,21 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply>, server,
-                                                instances, timeout, status_promise, std::string()));
+    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
+                                                server, instances, timeout, status_promise, std::string()));
 }
 catch (const std::exception& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::delet(const DeleteRequest* request, grpc::ServerWriterInterface<DeleteReply>* server,
+void mp::Daemon::delet(const DeleteRequest* request,
+                       grpc::ServerReaderWriterInterface<DeleteReply, DeleteRequest>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<DeleteReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<DeleteReply, DeleteRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                         server};
     DeleteReply response;
 
     const auto [operational_instances_to_delete, trashed_instances_to_delete, status] =
@@ -1880,7 +1900,11 @@ try // clang-format on
             if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
                 delayed_shutdown_instances.erase(name);
 
-            instance_mounts.stop_all_mounts_for_instance(name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler.second->stop_all_mounts_for_instance(name);
+            }
+
             instance->shutdown();
 
             if (purge)
@@ -1919,11 +1943,13 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::umount(const UmountRequest* request, grpc::ServerWriterInterface<UmountReply>* server,
+void mp::Daemon::umount(const UmountRequest* request,
+                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
                         std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger<UmountReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<UmountReply, UmountRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                         server};
 
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
@@ -1932,35 +1958,46 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            fmt::format_to(errors, "instance \"{}\" does not exist\n", name);
+            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
             continue;
         }
 
         auto target_path = path_entry.target_path();
         auto& mounts = vm_instance_specs[name].mounts;
-        auto& vm = it->second;
 
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
         {
-            instance_mounts.stop_all_mounts_for_instance(name);
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler.second->stop_all_mounts_for_instance(name);
+            }
+
             mounts.clear();
         }
         else
         {
-            if (vm->current_state() == mp::VirtualMachine::State::running)
+            VMMount::MountType mount_type;
+            try
             {
-                if (!instance_mounts.stop_mount(name, target_path))
-                {
-                    fmt::format_to(errors, "\"{}\" is not mounted\n", target_path);
-                }
+                mount_type = mounts.at(target_path).mount_type;
+            }
+            catch (const std::out_of_range&)
+            {
+                fmt::format_to(std::back_inserter(errors), "\"{}\" not found in database\n", target_path);
+                continue;
             }
 
-            auto erased = mounts.erase(target_path);
-            if (!erased)
+            try
             {
-                fmt::format_to(errors, "\"{}\" not found in database\n", target_path);
+                config->mount_handlers.at(mount_type)->stop_mount(name, target_path);
             }
+            catch (const std::out_of_range&)
+            {
+                throw std::runtime_error("Cannot unmount: Invalid mount type stored in the database.");
+            }
+
+            mounts.erase(target_path);
         }
     }
 
@@ -1973,10 +2010,12 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterface<VersionReply>* server,
+void mp::Daemon::version(const VersionRequest* request,
+                         grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>* server,
                          std::promise<grpc::Status>* status_promise)
 {
-    mpl::ClientLogger<VersionReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<VersionReply, VersionRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                           server};
 
     VersionReply reply;
     reply.set_version(multipass::version_string);
@@ -1985,11 +2024,12 @@ void mp::Daemon::version(const VersionRequest* request, grpc::ServerWriterInterf
     status_promise->set_value(grpc::Status::OK);
 }
 
-void mp::Daemon::get(const GetRequest* request, grpc::ServerWriterInterface<GetReply>* server,
+void mp::Daemon::get(const GetRequest* request, grpc::ServerReaderWriterInterface<GetReply, GetRequest>* server,
                      std::promise<grpc::Status>* status_promise)
 try
 {
-    mpl::ClientLogger<GetReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<GetReply, GetRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                   server};
 
     GetReply reply;
 
@@ -2010,11 +2050,12 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
-void mp::Daemon::set(const SetRequest* request, grpc::ServerWriterInterface<SetReply>* server,
+void mp::Daemon::set(const SetRequest* request, grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server,
                      std::promise<grpc::Status>* status_promise)
 try
 {
-    mpl::ClientLogger<SetReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<SetReply, SetRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                   server};
 
     auto key = request->key();
     auto val = request->val();
@@ -2038,11 +2079,12 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
-void mp::Daemon::keys(const mp::KeysRequest* request, grpc::ServerWriterInterface<KeysReply>* server,
+void mp::Daemon::keys(const mp::KeysRequest* request, grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>* server,
                       std::promise<grpc::Status>* status_promise)
 try
 {
-    mpl::ClientLogger<KeysReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<KeysReply, KeysRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                     server};
 
     KeysReply reply;
 
@@ -2060,11 +2102,12 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::authenticate(const AuthenticateRequest* request,
-                              grpc::ServerWriterInterface<AuthenticateReply>* server,
+                              grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>* server,
                               std::promise<grpc::Status>* status_promise)
 try
 {
-    mpl::ClientLogger<AuthenticateReply> logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+    mpl::ClientLogger<AuthenticateReply, AuthenticateRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                                     *config->logger, server};
 
     auto stored_hash = MP_SETTINGS.get(mp::passphrase_key);
 
@@ -2114,8 +2157,8 @@ void mp::Daemon::on_restart(const std::string& name)
         virtual_machine->state = VirtualMachine::State::running;
         virtual_machine->update_state();
     });
-    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply>, nullptr,
-                                                std::vector<std::string>{name}, mp::default_timeout, nullptr,
+    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+                                                nullptr, std::vector<std::string>{name}, mp::default_timeout, nullptr,
                                                 std::string()));
 }
 
@@ -2202,6 +2245,8 @@ void mp::Daemon::persist_instances()
             }
 
             entry.insert("gid_mappings", gid_mappings);
+
+            entry.insert("mount_type", static_cast<int>(mount.second.mount_type));
             mounts.append(entry);
         }
 
@@ -2256,7 +2301,8 @@ std::string mp::Daemon::check_instance_exists(const std::string& instance_name) 
     return {};
 }
 
-void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInterface<CreateReply>* server,
+void mp::Daemon::create_vm(const CreateRequest* request,
+                           grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                            std::promise<grpc::Status>* status_promise, bool start)
 {
     typedef typename std::pair<VirtualMachineDescription, ClientLaunchData> VMFullDescription;
@@ -2323,7 +2369,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
     QObject::connect(
         prepare_future_watcher, &QFutureWatcher<VMFullDescription>::finished,
         [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level] {
-            mpl::ClientLogger<CreateReply> logger{log_level, *config->logger, server};
+            mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
             try
             {
@@ -2354,6 +2400,8 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
                     reply.set_create_message("Starting " + name);
                     server->Write(reply);
 
+                    init_mounts(name);
+
                     vm_instances[name]->start();
 
                     auto future_watcher = create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
@@ -2383,9 +2431,9 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
 
                         server->Write(reply);
                     });
-                    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply>,
-                                                                server, std::vector<std::string>{name}, timeout,
-                                                                status_promise, std::string()));
+                    future_watcher->setFuture(
+                        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>, server,
+                                          std::vector<std::string>{name}, timeout, status_promise, std::string()));
                 }
                 else
                 {
@@ -2405,7 +2453,7 @@ void mp::Daemon::create_vm(const CreateRequest* request, grpc::ServerWriterInter
         });
 
     auto make_vm_description = [this, server, request, name, checked_args, log_level]() mutable -> VMFullDescription {
-        mpl::ClientLogger<CreateReply> logger{log_level, *config->logger, server};
+        mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try
         {
@@ -2576,9 +2624,15 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
                      fmt::format("Cannot open ssh session on \"{}\" shutdown: {}", name, e.what()));
         }
 
-        auto& shutdown_timer = delayed_shutdown_instances[name] = std::make_unique<DelayedShutdownTimer>(
-            &vm, std::move(session),
-            std::bind(&SSHFSMounts::stop_all_mounts_for_instance, &instance_mounts, std::placeholders::_1));
+        auto stop_all_mounts = [this](const std::string& name) {
+            for (const auto& mount_handler : config->mount_handlers)
+            {
+                mount_handler.second->stop_all_mounts_for_instance(name);
+            }
+        };
+
+        auto& shutdown_timer = delayed_shutdown_instances[name] =
+            std::make_unique<DelayedShutdownTimer>(&vm, std::move(session), stop_all_mounts);
 
         QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
                          [this, name]() { delayed_shutdown_instances.erase(name); });
@@ -2617,6 +2671,17 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
     return grpc::Status::OK;
 }
 
+void mp::Daemon::init_mounts(const std::string& name)
+{
+    for (const auto& mount_entry : vm_instance_specs[name].mounts)
+    {
+        auto& target_path = mount_entry.first;
+        auto mount_type = mount_entry.second.mount_type;
+
+        config->mount_handlers.at(mount_type)->init_mount(vm_instances[name].get(), target_path, mount_entry.second);
+    }
+}
+
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
 mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 {
@@ -2632,10 +2697,10 @@ mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
     return future_watcher;
 }
 
-template <typename Reply>
-error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name,
-                                                                 const std::chrono::seconds& timeout,
-                                                                 grpc::ServerWriterInterface<Reply>* server)
+template <typename Reply, typename Request>
+error_string
+mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
+                                                    grpc::ServerReaderWriterInterface<Reply, Request>* server)
 {
     fmt::memory_buffer errors;
     try
@@ -2661,46 +2726,26 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
             std::vector<std::string> invalid_mounts;
             fmt::memory_buffer warnings;
             auto& mounts = vm_instance_specs[name].mounts;
-            auto& vm_specs = vm_instance_specs[name];
             for (const auto& mount_entry : mounts)
             {
                 auto& target_path = mount_entry.first;
-                auto& source_path = mount_entry.second.source_path;
-                auto& uid_mappings = mount_entry.second.uid_mappings;
-                auto& gid_mappings = mount_entry.second.gid_mappings;
 
                 try
                 {
-                    instance_mounts.start_mount(vm.get(), source_path, target_path, gid_mappings, uid_mappings);
+                    config->mount_handlers.at(mount_entry.second.mount_type)
+                        ->start_mount(vm.get(), server, target_path);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    try
-                    {
-                        if (server)
-                        {
-                            Reply reply;
-                            reply.set_reply_message("Enabling support for mounting");
-                            server->Write(reply);
-                        }
-
-                        mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                               *config->ssh_key_provider};
-                        mp::utils::install_sshfs_for(name, session);
-                        instance_mounts.start_mount(vm.get(), source_path, target_path, gid_mappings, uid_mappings);
-                    }
-                    catch (const mp::SSHFSMissingError&)
-                    {
-                        fmt::format_to(errors, sshfs_error_template + "\n", name);
-                        break;
-                    }
+                    fmt::format_to(std::back_inserter(errors), sshfs_error_template + "\n", name);
+                    break;
                 }
                 catch (const std::exception& e)
                 {
                     // TODO: Combine these into one warning level log once they are displayed in the cli by
                     // default
                     mpl::log(mpl::Level::info, category, fmt::format("Removing \"{}\": {}\n", target_path, e.what()));
-                    fmt::format_to(warnings,
+                    fmt::format_to(std::back_inserter(warnings),
                                    fmt::format("Removing mount \"{}\" from {}: {}\n", target_path, name, e.what()));
                     invalid_mounts.push_back(target_path);
                 }
@@ -2721,20 +2766,20 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::stri
     }
     catch (const std::exception& e)
     {
-        fmt::format_to(errors, e.what());
+        fmt::format_to(std::back_inserter(errors), e.what());
     }
 
     return fmt::to_string(errors);
 }
 
-template <typename Reply>
+template <typename Reply, typename Request>
 mp::Daemon::AsyncOperationStatus
-mp::Daemon::async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server, const std::vector<std::string>& vms,
-                                     const std::chrono::seconds& timeout, std::promise<grpc::Status>* status_promise,
-                                     const std::string& start_errors)
+mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                     const std::vector<std::string>& vms, const std::chrono::seconds& timeout,
+                                     std::promise<grpc::Status>* status_promise, const std::string& start_errors)
 {
     fmt::memory_buffer errors;
-    fmt::format_to(errors, "{}", start_errors);
+    fmt::format_to(std::back_inserter(errors), "{}", start_errors);
 
     QFutureSynchronizer<std::string> start_synchronizer;
     {
@@ -2747,8 +2792,8 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server,
             }
             else
             {
-                auto future = QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply>, name,
-                                                timeout, server);
+                auto future = QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply, Request>,
+                                                name, timeout, server);
                 async_running_futures[name] = future;
                 start_synchronizer.addFuture(future);
             }
@@ -2770,7 +2815,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerWriterInterface<Reply>* server,
         auto error = future.result();
         if (!error.empty())
         {
-            fmt::format_to(errors, "{}\n", error);
+            fmt::format_to(std::back_inserter(errors), "{}\n", error);
         }
     }
 

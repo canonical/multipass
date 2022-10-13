@@ -23,6 +23,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/ssh/sftp_utils.h>
 
+#include <fmt/std.h>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
@@ -72,7 +74,7 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
                 }
 
                 if (const auto args = std::get_if<FromCin>(&arguments); args)
-                    sftp_client->from_cin(term->cin(), args->target);
+                    sftp_client->from_cin(term->cin(), args->target, flags.testFlag(SFTPClient::Flag::MakeParent));
 
                 if (const auto args = std::get_if<ToCout>(&arguments); args)
                     sftp_client->to_cout(args->source, term->cout());
@@ -126,11 +128,13 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
                                   "a path inside the instance, or '-' for stdout",
                                   "<destination>");
     parser->addOption({{"r", "recursive"}, "Recursively copy entire directories"});
+    parser->addOption({{"p", "parents"}, "Make parent directories as needed"});
 
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
 
     flags.setFlag(SFTPClient::Flag::Recursive, parser->isSet("r"));
+    flags.setFlag(SFTPClient::Flag::MakeParent, parser->isSet("p"));
 
     auto positionalArgs = parser->positionalArguments();
     if (positionalArgs.size() < 2)

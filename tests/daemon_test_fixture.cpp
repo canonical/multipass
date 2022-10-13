@@ -23,6 +23,7 @@
 #include "stub_cert_store.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
+#include "stub_mount_handler.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_terminal.h"
 #include "stub_virtual_machine_factory.h"
@@ -73,9 +74,11 @@ public:
             return multipass::ReturnCode::CommandFail;
         };
 
-        auto streaming_callback = [this](multipass::CreateReply& reply) {
-            cout << reply.create_message() << std::endl;
-        };
+        auto streaming_callback =
+            [this](mp::CreateReply& reply,
+                   grpc::ClientReaderWriterInterface<mp::CreateRequest, mp::CreateReply>* client) {
+                cout << reply.create_message() << std::endl;
+            };
 
         auto ret = parse_args(parser);
         return ret == multipass::ParseCode::Ok
@@ -312,6 +315,7 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     config_builder.logger = std::make_unique<StubLogger>();
     config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
     config_builder.blueprint_provider = std::make_unique<StubVMBlueprintProvider>();
+    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::make_unique<StubMountHandler>();
 }
 
 void mpt::DaemonTestFixture::SetUp()
@@ -463,9 +467,11 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const std::string& defaul
 
         mount_element += QString::fromStdString(fmt::format("\n                ],\n"
                                                             "                \"source_path\": \"{}\",\n"
-                                                            "                \"target_path\": \"{}\",\n"
-                                                            "                \"uid_mappings\": [",
+                                                            "                \"target_path\": \"{}\",\n",
                                                             mount.source_path, mountpoint));
+        mount_element += QString::fromStdString(fmt::format("                \"mount_type\": {},\n"
+                                                            "                \"uid_mappings\": [",
+                                                            mount.mount_type));
 
         QStringList uid_array_elements;
         for (const auto& uid_pair : mount.uid_mappings)

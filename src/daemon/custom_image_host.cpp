@@ -136,7 +136,7 @@ const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
 {
-    const auto last_modified = url_downloader->last_modified({image_url}).toString("yyyyMMdd");
+    const auto last_modified = QLocale::c().toString(url_downloader->last_modified({image_url}), "yyyyMMdd");
     const auto sha256_sums = url_downloader->download({hash_url}).split('\n');
     QString hash;
 

@@ -23,6 +23,7 @@
 
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/vm_mount.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -148,6 +149,20 @@ TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
     EXPECT_EQ(base_vm.get_all_ipv4(key_provider).size(), 0u);
 }
 
+TEST_F(BaseVM, addMountDoesNotFail)
+{
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+
+    EXPECT_NO_THROW(base_vm.add_vm_mount("bar", mp::VMMount()));
+}
+
+TEST_F(BaseVM, deleteMountDoesNotFail)
+{
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+
+    EXPECT_NO_THROW(base_vm.delete_vm_mount("bar"));
+}
+
 struct IpTestParams
 {
     int exit_status;
@@ -201,7 +216,6 @@ INSTANTIATE_TEST_SUITE_P(
                         "wlp4s0           UP             192.168.2.8/24 \n"
                         "virbr0           DOWN           192.168.3.1/24 \n"
                         "tun0             UNKNOWN        10.172.66.5/18 \n",
-                        {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
-           IpTestParams{0, "", {}}, IpTestParams{127, "ip: command not found\n", {}}));
+                        {"192.168.2.8", "192.168.3.1", "10.172.66.5"}}));
 
 } // namespace

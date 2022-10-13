@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/sshfs_mount/sftp_server.h>
+#include "sftp_server.h"
 
 #include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
@@ -87,7 +87,7 @@ int reply_unsupported(sftp_client_message msg)
 
 fmt::memory_buffer& operator<<(fmt::memory_buffer& buf, const char* v)
 {
-    fmt::format_to(buf, v);
+    fmt::format_to(std::back_inserter(buf), v);
     return buf;
 }
 
@@ -151,10 +151,10 @@ auto longname_from(const QFileInfo& file_info, const std::string& filename)
     else
         out << "-";
 
-    fmt::format_to(out, " 1 {} {} {}", file_info.ownerId(), file_info.groupId(), file_info.size());
+    fmt::format_to(std::back_inserter(out), " 1 {} {} {}", file_info.ownerId(), file_info.groupId(), file_info.size());
 
     const auto timestamp = file_info.lastModified().toString("MMM d hh:mm:ss yyyy").toStdString();
-    fmt::format_to(out, " {} {}", timestamp, filename);
+    fmt::format_to(std::back_inserter(out), " {} {}", timestamp, filename);
 
     return out;
 }

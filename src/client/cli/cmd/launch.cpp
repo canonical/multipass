@@ -532,7 +532,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
-    auto streaming_callback = [this](mp::LaunchReply& reply) {
+    auto streaming_callback = [this](mp::LaunchReply& reply,
+                                     grpc::ClientReaderWriterInterface<LaunchRequest, LaunchReply>* client) {
         std::unordered_map<int, std::string> progress_messages{
             {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
             {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
