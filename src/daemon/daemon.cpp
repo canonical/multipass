@@ -2949,7 +2949,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         auto key = QString::fromStdString(vm_name);
         if (qemu_instances_json.contains(key)) // TODO@nomerge test
         {
-            reply.set_log_line(fmt::format("Cannot migrate {}: name already taken by a qemu instance", vm_name));
+            reply.set_log_line(fmt::format("Cannot migrate {}: name already taken by a qemu instance\n", vm_name));
             server->Write(reply);
         }
         else
