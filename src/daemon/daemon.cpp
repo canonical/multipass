@@ -2880,15 +2880,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     QJsonObject qemu_instances_json{};
     QFile qemu_instance_db{QString::fromStdString(qemu_instance_db_path)};
     if (qemu_instance_db.exists())
-    {
-        qemu_instance_db.open(QIODevice::ReadOnly); // TODO@nomerge handle errors
         mpl::log(mpl::Level::debug, category, "Found QEMU instance database");
-
-        QJsonParseError parse_error;
-        auto doc = QJsonDocument::fromJson(qemu_instance_db.readAll(), &parse_error);
-        if (!doc.isNull())
-            qemu_instances_json = doc.object(); // TODO@nomerge do this RAII-like
-    }
     else
     {
         mpl::log(mpl::Level::debug, category, "No existing QEMU instance database found");
@@ -2896,6 +2888,17 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         if (std::error_code err; !MP_FILEOPS.create_directories(qemu_data_dir, err) && err)
             throw std::runtime_error{fmt::format("Could not create directory for QEMU data: {} ", err.message())};
     }
+
+    if (!qemu_instance_db.open(QFile::ReadWrite))
+        throw std::runtime_error{"Could not open QEMU instance database"};
+
+    QJsonParseError parse_error;
+    auto qemu_instances_doc =
+        QJsonDocument::fromJson(qemu_instance_db.readAll(),
+                                &parse_error); // TODO@nomerge check error, but avoid empty file causing trouble
+    if (!qemu_instances_doc.isNull())
+        qemu_instances_json = qemu_instances_doc.object(); // TODO@nomerge do this RAII-like
+
     // Migrate instances
     for (const auto& [vm_name, vm_ptr] : vm_instances)
     {
