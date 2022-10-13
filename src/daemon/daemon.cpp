@@ -2917,7 +2917,10 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     auto qemu_instances_dir = fmt::format("{}/vault/instances", qemu_data_dir);
     auto qemu_instance_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
 
+    // TODO@nomerge use MP_FILEOPS wherever possible
+
     // Read QEMU instance DB
+    bool instance_migrated = false;
     QJsonObject qemu_instances_json{};
     QFile qemu_instance_db{QString::fromStdString(qemu_instance_db_path)};
     if (qemu_instance_db.exists())
@@ -2941,7 +2944,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         qemu_instances_json = qemu_instances_doc.object(); // TODO@nomerge do this RAII-like
 
     // Migrate instances
-    for (const auto& [vm_name, vm_ptr] : vm_instances)
+    for (const auto& [vm_name, vm_specs] : vm_instance_specs)
     {
         auto key = QString::fromStdString(vm_name);
         if (qemu_instances_json.contains(key)) // TODO@nomerge test
@@ -2974,7 +2977,21 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 throw std::runtime_error{fmt::format("Failed to fix image metadata: {}",
                                                      qemuimg_state.failure_message())}; // TODO@no-merge get stderr
 
+            // Add JSON for QEMU instance
+            qemu_instances_json.insert(key, vm_spec_to_json(vm_specs)); // TODO@nomerge test
+            instance_migrated = true;
         }
+    }
+
+    // Write QEMU instance DB
+    if (instance_migrated)
+    {
+        qemu_instances_doc.setObject(qemu_instances_json);
+        [[maybe_unused]] auto reset_success = qemu_instance_db.reset(); /* seek back to the beginning of the file, to
+                                                                           overwrite its current contents */
+        assert(reset_success);
+
+        qemu_instance_db.write(qemu_instances_doc.toJson()); // overwrites with more content, so no need to erase first
     }
 
     return grpc::Status::OK;
