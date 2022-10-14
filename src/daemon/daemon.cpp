@@ -2918,7 +2918,6 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
     // Read QEMU instance DB
     bool instances_migrated = false;
-    QJsonObject qemu_instances_json{};
     QFile qemu_instances_db{QString::fromStdString(qemu_instances_db_path)};
     if (MP_FILEOPS.exists(qemu_instances_db))
         mpl::log(mpl::Level::debug, category, "Found QEMU instance database");
@@ -2941,8 +2940,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     if (parse_error.error)
         throw std::runtime_error{fmt::format("Could not parse QEMU instance DB: {}", parse_error.errorString())};
 
-    if (!qemu_instances_doc.isNull())
-        qemu_instances_json = qemu_instances_doc.object(); // TODO@nomerge do this RAII-like
+    auto qemu_instances_json = qemu_instances_doc.isNull() ? QJsonObject{} : qemu_instances_doc.object();
 
     // Migrate instances
     for (const auto& [vm_name, vm_specs] : vm_instance_specs)
