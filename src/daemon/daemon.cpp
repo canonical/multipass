@@ -2954,7 +2954,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         }
         else
         {
-            reply.set_log_line(fmt::format("Migrating {} from hyperkit to qemu\n", vm_name)); // TODO@nomerge spin it
+            reply.set_log_line(
+                fmt::format("Migrating instance from hyperkit to qemu: {}\n", vm_name)); // TODO@nomerge spin it
             server->Write(reply);
 
             // Copy instance image to qemu vault
