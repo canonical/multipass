@@ -2867,7 +2867,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     assert(config->factory->get_backend_version_string() == "hyperkit" &&
            "can only migrate when hyperkit is in effect");
 
-    // TODO@nomerge return early if there are no hyperkit instances to migrate
+    if (vm_instance_specs.empty())
+        return grpc::Status::OK;
 
     mp::SetReply reply{};
     reply.set_log_line("Migration placeholder\n");
