@@ -2910,9 +2910,22 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     reply.set_log_line("Migration placeholder\n");
     server->Write(reply);
 
-    auto data_path = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
-    auto qemu_instances_dir = fmt::format("{}/qemu/vault/instances", data_path);
+    auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
+    auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
+    auto qemu_instances_dir = fmt::format("{}/vault/instances", qemu_data_dir);
+    auto qemu_instance_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
 
+    // Read QEMU instance DB
+    QFile qemu_instance_db{QString::fromStdString(qemu_instance_db_path)};
+    if (qemu_instance_db.exists())
+    {
+        qemu_instance_db.open(QIODevice::ReadOnly); // TODO@nomerge handle errors
+        mpl::log(mpl::Level::debug, category, "Found QEMU instance database");
+    }
+    else
+        mpl::log(mpl::Level::debug, category, "No existing QEMU instance database found");
+
+    // Migrate instances
     for (const auto& [vm_name, vm_ptr] : vm_instances)
     {
         reply.set_log_line(fmt::format("Migrating {} from hyperkit to qemu\n", vm_name)); // TODO@nomerge spin it
