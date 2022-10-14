@@ -162,7 +162,7 @@ private:
     async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
                              const std::vector<std::string>& vms, const std::chrono::seconds& timeout,
                              std::promise<grpc::Status>* status_promise, const std::string& errors);
-    void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
+    void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
 
     std::unique_ptr<const DaemonConfig> config;
@@ -173,7 +173,7 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
-    std::vector<std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
+    std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;

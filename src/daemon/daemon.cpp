@@ -2863,16 +2863,17 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
 mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 {
-    async_future_watchers.emplace_back(std::make_unique<QFutureWatcher<AsyncOperationStatus>>());
+    auto uuid = mp::utils::make_uuid().toStdString();
+    auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
+    auto future_watcher_p = future_watcher.get();
+    async_future_watchers.insert({uuid, std::move(future_watcher)});
 
-    auto future_watcher = async_future_watchers.back().get();
-    QObject::connect(future_watcher, &QFutureWatcher<AsyncOperationStatus>::finished,
-                     [this, future_watcher, finished_op] {
-                         finished_op();
-                         finish_async_operation(future_watcher->future());
-                     });
+    QObject::connect(future_watcher_p, &QFutureWatcher<AsyncOperationStatus>::finished, [this, uuid, finished_op] {
+        finished_op();
+        finish_async_operation(uuid);
+    });
 
-    return future_watcher;
+    return future_watcher_p;
 }
 
 template <typename Reply, typename Request>
@@ -3005,19 +3006,13 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     return {grpc_status_for(errors), status_promise};
 }
 
-void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_future)
+void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 {
-    auto it = std::find_if(async_future_watchers.begin(), async_future_watchers.end(),
-                           [&async_future](const std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>& watcher) {
-                               return watcher->future() == async_future;
-                           });
+    if (async_future_watchers.find(async_future_key) == async_future_watchers.end())
+        return;
 
-    if (it != async_future_watchers.end())
-    {
-        async_future_watchers.erase(it);
-    }
-
-    auto async_op_result = async_future.result();
+    auto async_op_result = async_future_watchers.at(async_future_key)->result();
+    async_future_watchers.erase(async_future_key);
 
     if (!async_op_result.status.ok())
         persist_instances();
