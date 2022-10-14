@@ -2874,7 +2874,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
-    auto qemu_instances_dir = fmt::format("{}/vault/instances", qemu_data_dir);
+    auto qemu_vault_dir = fmt::format("{}/vault", qemu_data_dir);
+    auto qemu_instances_dir = fmt::format("{}/instances", qemu_vault_dir);
     auto qemu_instances_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
 
     // Read QEMU instance DB
@@ -2885,8 +2886,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     {
         mpl::log(mpl::Level::debug, category, "No existing QEMU instance database found");
 
-        if (std::error_code err; !MP_FILEOPS.create_directories(qemu_data_dir, err) && err)
-            throw std::runtime_error{fmt::format("Could not create directory for QEMU data: {} ", err.message())};
+        if (std::error_code err; !MP_FILEOPS.create_directories(qemu_vault_dir, err) && err)
+            throw std::runtime_error{fmt::format("Could not create directory for QEMU vault: {} ", err.message())};
     }
 
     if (!MP_FILEOPS.open(qemu_instances_db, QFile::ReadWrite))
