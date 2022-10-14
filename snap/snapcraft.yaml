@@ -44,7 +44,7 @@ apps:
         $SNAP/lib:$SNAP/lib/$CRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET
       PATH: &path
         $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
-      QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/plugins
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt6/plugins
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
       XDG_CONFIG_HOME: &daemon-config $SNAP_DATA/config
@@ -69,7 +69,7 @@ apps:
       <<: &client-environment
         LD_LIBRARY_PATH: *library-path
         PATH: *path
-        QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/plugins
+        QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt6/plugins
         XDG_DATA_HOME: $SNAP_USER_DATA/data
         XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
@@ -113,13 +113,13 @@ parts:
     - build-essential
     - git
     - libapparmor-dev
-    - libqt5x11extras5-dev
+    - libgl1-mesa-dev
     - libsystemd-dev
     - libssl-dev
     - libvirt-dev
     - pkg-config
-    - qtbase5-dev
-    - qtbase5-dev-tools
+    - qt6-base-dev
+    - qt6-base-dev-tools
     stage-packages:
     - apparmor
     - on amd64: [libgl1]
@@ -127,15 +127,16 @@ parts:
     - on arm64: [libgles2-mesa]
     - libc6
     - libpng16-16
-    - libqt5core5a
-    - libqt5gui5
-    - libqt5network5
-    - libqt5widgets5
-    - libqt5x11extras5
+    - libqt6core6
+    - libqt6gui6
+    - libqt6network6
+    - libqt6widgets6
     - libssl3
     - libxml2
+    - libxrender1
     - dnsmasq-base
     - dnsmasq-utils
+    - qt6-qpa-plugins
     source: .
     cmake-parameters:
     - -DCMAKE_BUILD_TYPE=Release
