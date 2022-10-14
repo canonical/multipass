@@ -26,4 +26,4 @@ target_link_libraries(formatter
   settings
   utils
   yaml
-  Qt5::Core)
+  Qt6::Core)

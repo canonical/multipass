@@ -20,4 +20,4 @@ add_library(logger STATIC
 
 target_link_libraries(logger
   fmt
-  Qt5::Core)
+  Qt6::Core)

@@ -23,4 +23,4 @@ add_library(settings STATIC
 target_link_libraries(settings
         fmt
         utils
-        Qt5::Core)
+        Qt6::Core)

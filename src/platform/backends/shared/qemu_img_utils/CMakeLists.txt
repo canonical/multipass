@@ -17,4 +17,4 @@ add_library(qemu_img_utils STATIC EXCLUDE_FROM_ALL
 
 target_link_libraries(qemu_img_utils
   fmt
-  Qt5::Core)
+  Qt6::Core)

@@ -23,7 +23,7 @@ target_link_libraries(update
   fmt
   rpc
   semver
-  Qt5::Core)
+  Qt6::Core)
 
 target_include_directories(update
   INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}

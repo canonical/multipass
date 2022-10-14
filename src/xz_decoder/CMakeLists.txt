@@ -21,4 +21,4 @@ target_link_libraries(xz_image_decoder
   xz-embedded
   fmt
   rpc
-  Qt5::Core)
+  Qt6::Core)

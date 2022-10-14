@@ -23,7 +23,7 @@ target_link_libraries(client
   formatter
   rpc
   scope_guard
-  Qt5::Core)
+  Qt6::Core)
 
 add_executable(multipass
   main.cpp)

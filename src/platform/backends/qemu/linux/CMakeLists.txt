@@ -25,5 +25,5 @@ target_link_libraries(qemu_platform_detail
   semver
   shared_linux
   utils
-  Qt5::Core)
+  Qt6::Core)
 

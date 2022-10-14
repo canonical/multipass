@@ -34,6 +34,6 @@ target_link_libraries(cert
   utils
   OpenSSL::SSL
   OpenSSL::Crypto
-  Qt5::Core
-  Qt5::Network
+  Qt6::Core
+  Qt6::Network
 )
