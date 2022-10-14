@@ -2910,8 +2910,6 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         return grpc::Status::OK;
 
     mp::SetReply reply{};
-    reply.set_log_line("Migration placeholder\n");
-    server->Write(reply);
 
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
