@@ -2934,9 +2934,13 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         throw std::runtime_error{"Could not open QEMU instance database"};
 
     QJsonParseError parse_error;
+    const auto& qemu_instances_data = qemu_instance_db.readAll();
     auto qemu_instances_doc =
-        QJsonDocument::fromJson(qemu_instance_db.readAll(),
-                                &parse_error); // TODO@nomerge check error, but avoid empty file causing trouble
+        qemu_instances_data.isEmpty() ? QJsonDocument{} : QJsonDocument::fromJson(qemu_instances_data, &parse_error);
+
+    if (parse_error.error)
+        throw std::runtime_error{fmt::format("Could not parse QEMU instance DB: {}", parse_error.errorString())};
+
     if (!qemu_instances_doc.isNull())
         qemu_instances_json = qemu_instances_doc.object(); // TODO@nomerge do this RAII-like
 
