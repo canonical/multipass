@@ -2975,8 +2975,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 std::make_unique<CustomQemuImgProcessSpec>(std::move(qemuimg_args), new_image));
 
             if (auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
-                throw std::runtime_error{fmt::format("Failed to fix image metadata: {}",
-                                                     qemuimg_state.failure_message())}; // TODO@no-merge get stderr
+                throw std::runtime_error{
+                    fmt::format("Failed to fix image metadata: {}", qemuimg_state.failure_message())};
 
             // Add JSON for QEMU instance
             qemu_instances_json.insert(key, vm_spec_to_json(vm_specs));
