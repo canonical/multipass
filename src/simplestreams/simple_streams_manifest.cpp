@@ -92,7 +92,7 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
     for (auto it = manifest_products.constBegin(); it != manifest_products.constEnd(); ++it)
     {
         const auto product_key = it.key();
-        const auto product = it.value();
+        const QJsonValue product = it.value();
 
         if (product["arch"].toString() != arch)
             continue;

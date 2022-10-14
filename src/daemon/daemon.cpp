@@ -57,7 +57,6 @@
 #include <QEventLoop>
 #include <QFutureSynchronizer>
 #include <QJsonArray>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QString>
