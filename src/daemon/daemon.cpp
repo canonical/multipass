@@ -2877,36 +2877,39 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         server->Write(reply);
     };
 
+    // Utility to read a json file
+    auto read_json = [](auto&& file_path) {
+        auto file = std::make_unique<QFile>(std::forward<decltype(file_path)>(file_path)); /* QFile is noncopyable,
+                                                                  but we need to return it, so we use an owning ptr */
+
+        if (!MP_FILEOPS.open(*file, QFile::ReadWrite))
+            throw std::runtime_error{fmt::format("Could not open file for reading and writing: {}", file->fileName())};
+
+        QJsonParseError parse_error;
+        const auto& data = file->readAll();
+        auto doc = data.isEmpty() ? QJsonDocument{} : QJsonDocument::fromJson(data, &parse_error);
+
+        if (parse_error.error)
+            throw std::runtime_error{fmt::format("Could not parse file as JSON; error: {}; file: {}", file->fileName(),
+                                                 parse_error.errorString())};
+
+        auto json = doc.isNull() ? QJsonObject{} : doc.object();
+        return std::tuple(std::move(file), std::move(doc), std::move(json));
+    };
+
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
     auto qemu_vault_dir = fmt::format("{}/vault", qemu_data_dir);
     auto qemu_instances_dir = fmt::format("{}/instances", qemu_vault_dir);
     auto qemu_instances_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
 
+    // Create QEMU vault (if not there yet)
+    if (std::error_code err; !MP_FILEOPS.create_directories(qemu_vault_dir, err) && err)
+        throw std::runtime_error{fmt::format("Could not create directory for QEMU vault: {} ", err.message())};
+
     // Read QEMU instance DB
-    QFile qemu_instances_db{QString::fromStdString(qemu_instances_db_path)};
-    if (MP_FILEOPS.exists(qemu_instances_db))
-        mpl::log(mpl::Level::debug, category, "Found QEMU instance database");
-    else
-    {
-        mpl::log(mpl::Level::debug, category, "No existing QEMU instance database found");
-
-        if (std::error_code err; !MP_FILEOPS.create_directories(qemu_vault_dir, err) && err)
-            throw std::runtime_error{fmt::format("Could not create directory for QEMU vault: {} ", err.message())};
-    }
-
-    if (!MP_FILEOPS.open(qemu_instances_db, QFile::ReadWrite))
-        throw std::runtime_error{"Could not open QEMU instance database"};
-
-    QJsonParseError parse_error;
-    const auto& qemu_instances_data = qemu_instances_db.readAll();
-    auto qemu_instances_doc =
-        qemu_instances_data.isEmpty() ? QJsonDocument{} : QJsonDocument::fromJson(qemu_instances_data, &parse_error);
-
-    if (parse_error.error)
-        throw std::runtime_error{fmt::format("Could not parse QEMU instance DB: {}", parse_error.errorString())};
-
-    auto qemu_instances_json = qemu_instances_doc.isNull() ? QJsonObject{} : qemu_instances_doc.object();
+    auto [qemu_instances_db, qemu_instances_doc, qemu_instances_json] =
+        read_json(QString::fromStdString(qemu_instances_db_path));
 
     // Migrate instances
     bool instances_migrated = false;
@@ -2949,12 +2952,12 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     if (instances_migrated)
     {
         qemu_instances_doc.setObject(qemu_instances_json);
-        [[maybe_unused]] auto reset_success = qemu_instances_db.reset(); /* seek back to the beginning of the file, to
-                                                                           overwrite its current contents */
+        [[maybe_unused]] auto reset_success = qemu_instances_db->reset(); /* seek back to the beginning of the file, to
+                                                                             overwrite its current contents */
         assert(reset_success);
 
-        MP_FILEOPS.write(qemu_instances_db, qemu_instances_doc.toJson()); /* overwrites with more content, so no need to
-                                                                            erase first */
+        MP_FILEOPS.write(*qemu_instances_db, qemu_instances_doc.toJson()); /* overwrites with more content, so no need
+                                                                              to erase first */
     }
 
     return grpc::Status::OK;
