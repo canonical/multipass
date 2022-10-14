@@ -601,13 +601,13 @@ void mp::QemuVirtualMachine::add_vm_mount(const std::string& target_path, const 
                                                                         .arg(vm_mount.uid_mappings.at(0).second == -1
                                                                                  ? 1000
                                                                                  : vm_mount.uid_mappings.at(0).second)
-                                                                  : "")
+                                                                  : QString("uid_map=1000:1000,"))
                             .arg(vm_mount.gid_mappings.size() > 0 ? QString("gid_map=%1:%2,")
                                                                         .arg(vm_mount.gid_mappings.at(0).first)
                                                                         .arg(vm_mount.gid_mappings.at(0).second == -1
                                                                                  ? 1000
                                                                                  : vm_mount.gid_mappings.at(0).second)
-                                                                  : "")
+                                                                  : QString("gid_map=1000:1000,"))
                             .arg(QString::fromStdString(vm_mount.source_path))
                             .arg(mount_tag)}});
 }
