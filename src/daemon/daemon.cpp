@@ -2917,7 +2917,6 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     auto qemu_instances_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
 
     // Read QEMU instance DB
-    bool instances_migrated = false;
     QFile qemu_instances_db{QString::fromStdString(qemu_instances_db_path)};
     if (MP_FILEOPS.exists(qemu_instances_db))
         mpl::log(mpl::Level::debug, category, "Found QEMU instance database");
@@ -2943,6 +2942,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     auto qemu_instances_json = qemu_instances_doc.isNull() ? QJsonObject{} : qemu_instances_doc.object();
 
     // Migrate instances
+    bool instances_migrated = false;
     for (const auto& [vm_name, vm_specs] : vm_instance_specs)
     {
         auto key = QString::fromStdString(vm_name);
