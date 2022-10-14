@@ -2914,13 +2914,13 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
     auto qemu_instances_dir = fmt::format("{}/vault/instances", qemu_data_dir);
-    auto qemu_instance_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
+    auto qemu_instances_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
 
     // Read QEMU instance DB
-    bool instance_migrated = false;
+    bool instances_migrated = false;
     QJsonObject qemu_instances_json{};
-    QFile qemu_instance_db{QString::fromStdString(qemu_instance_db_path)};
-    if (MP_FILEOPS.exists(qemu_instance_db))
+    QFile qemu_instances_db{QString::fromStdString(qemu_instances_db_path)};
+    if (MP_FILEOPS.exists(qemu_instances_db))
         mpl::log(mpl::Level::debug, category, "Found QEMU instance database");
     else
     {
@@ -2930,11 +2930,11 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             throw std::runtime_error{fmt::format("Could not create directory for QEMU data: {} ", err.message())};
     }
 
-    if (!MP_FILEOPS.open(qemu_instance_db, QFile::ReadWrite))
+    if (!MP_FILEOPS.open(qemu_instances_db, QFile::ReadWrite))
         throw std::runtime_error{"Could not open QEMU instance database"};
 
     QJsonParseError parse_error;
-    const auto& qemu_instances_data = qemu_instance_db.readAll();
+    const auto& qemu_instances_data = qemu_instances_db.readAll();
     auto qemu_instances_doc =
         qemu_instances_data.isEmpty() ? QJsonDocument{} : QJsonDocument::fromJson(qemu_instances_data, &parse_error);
 
@@ -2980,19 +2980,19 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             // Add JSON for QEMU instance
             qemu_instances_json.insert(key, vm_spec_to_json(vm_specs));
-            instance_migrated = true;
+            instances_migrated = true;
         }
     }
 
     // Write QEMU instance DB
-    if (instance_migrated)
+    if (instances_migrated)
     {
         qemu_instances_doc.setObject(qemu_instances_json);
-        [[maybe_unused]] auto reset_success = qemu_instance_db.reset(); /* seek back to the beginning of the file, to
+        [[maybe_unused]] auto reset_success = qemu_instances_db.reset(); /* seek back to the beginning of the file, to
                                                                            overwrite its current contents */
         assert(reset_success);
 
-        MP_FILEOPS.write(qemu_instance_db, qemu_instances_doc.toJson()); /* overwrites with more content, so no need to
+        MP_FILEOPS.write(qemu_instances_db, qemu_instances_doc.toJson()); /* overwrites with more content, so no need to
                                                                             erase first */
     }
 
