@@ -45,12 +45,6 @@ public:
         return qsettings->fileName();
     }
 
-    virtual void setIniCodec(const char* codec_name)
-    {
-        assert(qsettings);
-        qsettings->setIniCodec(codec_name);
-    }
-
     virtual void sync()
     {
         assert(qsettings);
