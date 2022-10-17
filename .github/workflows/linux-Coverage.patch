@@ -4,8 +4,8 @@ index a72d9f09a..d23ed58e3 100644
 +++ b/snap/snapcraft.yaml
 @@ -121,6 +121,7 @@ parts:
      - pkg-config
-     - qtbase5-dev
-     - qtbase5-dev-tools
+     - qt6-base-dev
+     - qt6-base-dev-tools
 +    - lcov
      stage-packages:
      - apparmor
