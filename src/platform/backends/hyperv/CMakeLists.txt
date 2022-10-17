@@ -20,7 +20,7 @@ add_library(hyperv_backend STATIC
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h)
 
 target_link_libraries(hyperv_backend
-  Qt5::Core
+  Qt6::Core
   fmt
   ip_address
   logger

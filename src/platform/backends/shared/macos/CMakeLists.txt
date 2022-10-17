@@ -22,4 +22,4 @@ include_directories(shared_macos
 target_link_libraries(shared_macos
   fmt
   ssh_common
-  Qt5::Core)
+  Qt6::Core)

@@ -21,4 +21,4 @@ target_link_libraries(qemu_platform_detail
   fmt
   logger
   utils
-  Qt5::Core)
+  Qt6::Core)

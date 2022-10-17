@@ -49,8 +49,10 @@ if(APPLE)
     MACOSX_BUNDLE TRUE
     INSTALL_RPATH "@executable_path/../../../../lib")
 
+  set(QT_PLUGIN_PATH ${PACKAGE_PREFIX_DIR}/share/qt/plugins/platforms)
+
   # Copy the cocoa platform plugin
-  file(COPY ${_qt5Gui_install_prefix}/plugins/platforms/libqcocoa.dylib
+  file(COPY ${QT_PLUGIN_PATH}/libqcocoa.dylib
     DESTINATION ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/plugins/platforms)
 
   install(FILES ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib
@@ -65,7 +67,7 @@ if(APPLE)
 
   install(CODE "
     include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\" LOADER_PATH \"${_qt5Gui_install_prefix}/plugins/platforms\")
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\" LOADER_PATH \"${QT_PLUGIN_PATH}\")
     " COMPONENT multipass_gui)
 
 endif(APPLE)
@@ -83,7 +85,7 @@ if(MSVC)
   set_target_properties(multipass_gui PROPERTIES WIN32_EXECUTABLE true)
 
   # Copy the windows platform plugin
-  install(FILES ${_qt5Gui_install_prefix}/plugins/platforms/qwindows.dll
+  install(FILES ${PACKAGE_PREFIX_DIR}/plugins/platforms/qwindows.dll
     DESTINATION bin/platforms
     COMPONENT multipass_gui)
 
