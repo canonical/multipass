@@ -198,7 +198,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
     QString ifs_info = QString::fromStdString(MP_UTILS.run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
 
     // List to store the output of the query command; each element corresponds to one interface.
-    QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), QString::SkipEmptyParts));
+    QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), Qt::SkipEmptyParts));
 
     mpl::log(mpl::Level::info, log_category, fmt::format("VirtualBox found {} interface(s)", if_list.size()));
 

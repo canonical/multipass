@@ -361,9 +361,9 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
     if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
     {
         std::vector<mp::NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
         {
-            auto terms = line.split(',', QString::KeepEmptyParts);
+            auto terms = line.split(',', Qt::KeepEmptyParts);
             if (terms.size() != 4)
             {
                 throw std::runtime_error{fmt::format(

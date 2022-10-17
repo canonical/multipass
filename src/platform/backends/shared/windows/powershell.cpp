@@ -71,7 +71,7 @@ const auto to_bare_csv_str = QStringLiteral("| ConvertTo-Csv -NoTypeInformation 
 } // namespace
 
 const QStringList mp::PowerShell::Snippets::expand_property{"|", "Select-Object", "-ExpandProperty"};
-const QStringList mp::PowerShell::Snippets::to_bare_csv = to_bare_csv_str.split(' ', QString::SkipEmptyParts);
+const QStringList mp::PowerShell::Snippets::to_bare_csv = to_bare_csv_str.split(' ', Qt::SkipEmptyParts);
 
 mp::PowerShell::PowerShell(const std::string& name)
     : powershell_proc{MP_PROCFACTORY.create_process(ps_cmd, default_args)}, name(name)

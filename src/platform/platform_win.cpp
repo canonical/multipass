@@ -354,16 +354,15 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 {
     static const auto ps_cmd_base = QStringLiteral(
         "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription");
-    static const auto ps_args =
-        QString{ps_cmd_base}.split(' ', QString::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
+    static const auto ps_args = QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
     if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", ps_output))
     {
         std::map<std::string, mp::NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
         {
-            auto terms = line.split(',', QString::KeepEmptyParts);
+            auto terms = line.split(',', Qt::KeepEmptyParts);
             if (terms.size() != 4)
             {
                 throw std::runtime_error{fmt::format(
@@ -752,12 +751,12 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 {
     auto ps_cmd = QStringLiteral("Get-NetAdapter -Name \"%1\" | Select-Object -ExpandProperty InterfaceDescription")
                       .arg(QString::fromStdString(ux_id))
-                      .split(' ', QString::SkipEmptyParts);
+                      .split(' ', Qt::SkipEmptyParts);
 
     QString ps_output;
     if (PowerShell::exec(ps_cmd, "Adapter description from name", ps_output))
     {
-        auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts);
+        auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts);
         if (output_lines.size() != 1)
         {
             throw std::runtime_error{

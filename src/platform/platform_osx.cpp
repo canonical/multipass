@@ -214,7 +214,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
     // split the output of networksetup in multiple entries (one per interface)
     auto empty_line_regex = QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
-    auto nsetup_entries = nsetup_output.split(empty_line_regex, QString::SkipEmptyParts);
+    auto nsetup_entries = nsetup_output.split(empty_line_regex, Qt::SkipEmptyParts);
 
     // Parse the output we got to obtain each interface's properties
     for (const auto& nsetup_entry : nsetup_entries)
