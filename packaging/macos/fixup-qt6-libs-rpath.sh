@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Script: fixup-qt5-libs-rpath.sh
-# If using the Brew Qt5 libraries, they have a problem: they're trickier to relocate as
+# Script: fixup-qt6-libs-rpath.sh
+# If using the Brew Qt6 libraries, they have a problem: they're trickier to relocate as
 # they're not compiled with rpath enabled.
 # Ref: https://github.com/Homebrew/homebrew-core/issues/3219#issuecomment-235763791
 #
@@ -16,7 +16,7 @@ BUNDLE_PATH="multipass.gui.app/Contents"
 QT_FRAMEWORKS="QtCore QtNetwork QtWidgets QtGui QtDBus QtPrintSupport"
 QT_COCOA_PLUGIN="${BUNDLE_PATH}/plugins/platforms/libqcocoa.dylib"
 BINARIES="multipass ${BUNDLE_PATH}/MacOS/multipass.gui multipassd ${QT_COCOA_PLUGIN} sshfs_server"
-QT5_PATH="$(brew --prefix qt5)"
+QT6_PATH="$(brew --prefix qt6)"
 
 if [ $# -ne 1 ]; then
     echo "Argument required"
@@ -27,8 +27,8 @@ CMAKE_BINARY_DIR=$1
 BINARY_DIR="$1/bin"
 
 # Check if brew libs used. If not, nothing to do
-if ! otool -L "$BINARY_DIR/multipass" | grep -q "${QT5_PATH}"; then
-    echo "Not using Qt5 from Homebrew, nothing to do"
+if ! otool -L "$BINARY_DIR/multipass" | grep -q "${QT6_PATH}"; then
+    echo "Not using Qt6 from Homebrew, nothing to do"
     exit 0;
 fi
 
@@ -36,18 +36,18 @@ fi
 LIB_DIR="$CMAKE_BINARY_DIR/lib"
 
 RPATH_CHANGES=()
-QT_VERSION=$( basename $( readlink ${QT5_PATH} ) )
-CELLAR_PATH="$(brew --prefix)/Cellar/qt@5"
+QT_VERSION=$( basename $( readlink ${QT6_PATH} ) )
+CELLAR_PATH="$(brew --prefix)/Cellar/qt"
 for framework in ${QT_FRAMEWORKS}; do
-    framework_dir="${framework}.framework/Versions/5"
+    framework_dir="${framework}.framework/Versions/A"
     framework_path="${framework_dir}/${framework}"
 
     RPATH_CHANGES+=("-change")
-    RPATH_CHANGES+=("${QT5_PATH}/${QT_VERSION}/lib/${framework_path}")
+    RPATH_CHANGES+=("${QT6_PATH}/${QT_VERSION}/lib/${framework_path}")
     RPATH_CHANGES+=("@rpath/${framework_path}")
 
     RPATH_CHANGES+=("-change")
-    RPATH_CHANGES+=("${QT5_PATH}/lib/${framework_path}")
+    RPATH_CHANGES+=("${QT6_PATH}/lib/${framework_path}")
     RPATH_CHANGES+=("@rpath/${framework_path}")
 
     RPATH_CHANGES+=("-change")
@@ -55,7 +55,7 @@ for framework in ${QT_FRAMEWORKS}; do
     RPATH_CHANGES+=("@rpath/${framework_path}")
 
     mkdir -p "${LIB_DIR}/${framework_dir}"
-    cp -fv "${QT5_PATH}/lib/${framework_path}" \
+    cp -fv "${QT6_PATH}/lib/${framework_path}" \
            "${LIB_DIR}/${framework_dir}"
     chmod +w "${LIB_DIR}/${framework_path}"
 
@@ -66,10 +66,10 @@ for framework in ${QT_FRAMEWORKS}; do
 
     install_name_tool "-id" "@rpath/${framework_path}" "${LIB_DIR}/${framework_path}"
 
-    QT5_DEPS=$(otool -L ${QT5_PATH}/lib/${framework_path} | grep ${CELLAR_PATH} | awk -F '\t' -F ' ' '{ print $1 }')
-    for dep in ${QT5_DEPS:-}; do
+    QT6_DEPS=$(otool -L ${QT6_PATH}/lib/${framework_path} | grep ${CELLAR_PATH} | awk -F '\t' -F ' ' '{ print $1 }')
+    for dep in ${QT6_DEPS:-}; do
         BASE_DEP=$( basename ${dep} )
-        install_name_tool "-change" "${dep}" "@rpath/${BASE_DEP}.framework/Versions/5/${BASE_DEP}" "${LIB_DIR}/${framework_path}"
+        install_name_tool "-change" "${dep}" "@rpath/${BASE_DEP}.framework/Versions/A/${BASE_DEP}" "${LIB_DIR}/${framework_path}"
     done
 
     chmod -w "${LIB_DIR}/${framework_path}"
