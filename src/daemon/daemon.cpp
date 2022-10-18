@@ -2897,19 +2897,28 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         return std::tuple(std::move(file), std::move(doc), std::move(json));
     };
 
+    auto instance_image_db_filename = "multipassd-instance-image-records.json";
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
     auto qemu_vault_dir = fmt::format("{}/vault", qemu_data_dir);
     auto qemu_instances_dir = fmt::format("{}/instances", qemu_vault_dir);
     auto qemu_instances_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
+    auto qemu_instance_images_db_path = fmt::format("{}/{}", qemu_vault_dir, instance_image_db_filename);
+    auto hyperkit_instance_image_db_path = fmt::format("{}/vault/{}", data_dir, instance_image_db_filename);
 
     // Create QEMU vault (if not there yet)
     if (std::error_code err; !MP_FILEOPS.create_directories(qemu_vault_dir, err) && err)
         throw std::runtime_error{fmt::format("Could not create directory for QEMU vault: {} ", err.message())};
 
-    // Read QEMU instance DB
+    // Read JSON DBs
     auto [qemu_instances_db, qemu_instances_doc, qemu_instances_json] =
         read_json(QString::fromStdString(qemu_instances_db_path));
+
+    auto [qemu_instance_images_db, qemu_instance_images_doc, qemu_instance_images_json] =
+        read_json(QString::fromStdString(qemu_instance_images_db_path));
+
+    const auto hyperkit_instance_images_json =
+        std::get<2>(read_json(QString::fromStdString(hyperkit_instance_image_db_path)));
 
     // Migrate instances
     bool instances_migrated = false;
