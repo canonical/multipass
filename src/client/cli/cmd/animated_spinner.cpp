@@ -19,14 +19,22 @@
 #include <iomanip>
 #include <iostream>
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+#include <windows.h>
+#endif
+
 namespace mp = multipass;
 
 namespace
 {
 void clear_line(std::ostream& out)
 {
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    out << "\x1B[1M"
+#else
     out << "\x1B[2K";               // Delete current line
     out << "\x1B[0E" << std::flush; // Move cursor to leftmost position of current line
+#endif
 }
 }
 
