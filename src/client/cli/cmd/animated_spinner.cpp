@@ -26,7 +26,8 @@ namespace
 void clear_line(std::ostream& out)
 {
 #ifdef MULTIPASS_PLATFORM_WINDOWS
-    out << "\x1B[1M"
+    out << "\r" << std::setw(80) << " ";
+    out << "\r" << std::flush;
 #else
     out << "\x1B[2K";               // Delete current line
     out << "\x1B[0E" << std::flush; // Move cursor to leftmost position of current line
