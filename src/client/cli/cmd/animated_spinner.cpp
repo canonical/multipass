@@ -19,10 +19,6 @@
 #include <iomanip>
 #include <iostream>
 
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-#include <windows.h>
-#endif
-
 namespace mp = multipass;
 
 namespace
