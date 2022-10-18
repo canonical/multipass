@@ -2924,7 +2924,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         if (!MP_FILEOPS.open(*file, QFile::ReadWrite))
             throw std::runtime_error{fmt::format("Could not open file for reading and writing: {}", file->fileName())};
 
-        QJsonParseError parse_error;
+        QJsonParseError parse_error{};
         const auto& data = file->readAll();
         auto doc = data.isEmpty() ? QJsonDocument{} : QJsonDocument::fromJson(data, &parse_error);
 
