@@ -2996,13 +2996,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             // Migrate JSON for instance image
             auto instance_image_record = hyperkit_instance_images_json[key].toObject();
-            if (instance_image_record.isEmpty())
-                throw std::runtime_error{fmt::format("Failed to migrate instance image: corrupted image records")};
-
             auto image_record = instance_image_record["image"].toObject();
-            if (image_record.isEmpty())
-                throw std::runtime_error{fmt::format(
-                    "Failed to migrate instance image: corrupted image records")}; // TODO@nomerge avoid repeating
+            if (image_record.isEmpty()) // true if either the image or instance objects were empty/absent
+                throw std::runtime_error{fmt::format("Failed to migrate instance image: corrupted image records")};
 
             image_record.insert("path", new_image);
             image_record.insert("kernel_path", "");
