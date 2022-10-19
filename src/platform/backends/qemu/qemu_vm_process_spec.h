@@ -23,6 +23,7 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <optional>
+#include <unordered_map>
 
 namespace multipass
 {

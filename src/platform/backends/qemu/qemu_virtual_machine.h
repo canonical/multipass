@@ -28,6 +28,8 @@
 #include <QObject>
 #include <QStringList>
 
+#include <unordered_map>
+
 namespace multipass
 {
 class QemuPlatform;
