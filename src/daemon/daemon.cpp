@@ -2936,6 +2936,17 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         return std::tuple(std::move(file), std::move(doc), std::move(json));
     };
 
+    // Utility to write json to a file (with fewer contents than the serialized json will have)
+    // Precondition: when serialized, the json object must produce more data than the current file contents.
+    auto write_longer_json = [](QFile& file, QJsonDocument& doc, const QJsonObject& json) {
+        doc.setObject(json);
+        [[maybe_unused]] auto reset_success = file.reset(); /* seek back to the beginning of the file, to overwrite its
+                                                               current contents */
+
+        assert(reset_success);
+        MP_FILEOPS.write(file, doc.toJson()); /* overwrites with more content, so no need to erase first */
+    };
+
     auto instance_image_db_filename = "multipassd-instance-image-records.json";
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
@@ -3010,24 +3021,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
     if (instances_migrated)
     {
-        // Write QEMU instances DB
-        qemu_instances_doc.setObject(qemu_instances_json);
-        [[maybe_unused]] auto reset_success = qemu_instances_db->reset(); /* seek back to the beginning of the file, to
-                                                                             overwrite its current contents */
-        assert(reset_success);
-
-        MP_FILEOPS.write(*qemu_instances_db, qemu_instances_doc.toJson()); /* overwrites with more content, so no need
-                                                                              to erase first */
-
-        // Write QEMU instance images DB
-        // TODO@nomerge extract this common code
-        qemu_instance_images_doc.setObject(qemu_instance_images_json);
-        reset_success = qemu_instance_images_db->reset(); /* seek back to the beginning of the file, to overwrite its
-                                                             current contents */
-        assert(reset_success);
-
-        MP_FILEOPS.write(*qemu_instance_images_db, qemu_instance_images_doc.toJson()); /* overwrites with more content,
-                                                                                          so no need to erase first */
+        // Write QEMU instance and instance-image DBs
+        write_longer_json(*qemu_instances_db, qemu_instances_doc, qemu_instances_json);
+        write_longer_json(*qemu_instance_images_db, qemu_instance_images_doc, qemu_instance_images_json);
     }
 
     return grpc::Status::OK;
