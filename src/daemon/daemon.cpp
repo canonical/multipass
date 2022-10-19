@@ -2951,10 +2951,6 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 throw std::runtime_error{
                     fmt::format("Failed to fix image metadata: {}", qemuimg_state.failure_message())};
 
-            // Add JSON for QEMU instance
-            qemu_instances_json.insert(key, vm_spec_to_json(vm_specs));
-            instances_migrated = true;
-
             // Migrate JSON for instance image
             auto instance_image_record = hyperkit_instance_images_json[key].toObject();
             auto image_record = instance_image_record["image"].toObject();
@@ -2966,6 +2962,10 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             image_record.insert("initrd_path", "");
             instance_image_record.insert("image", image_record);
             qemu_instance_images_json.insert(key, instance_image_record);
+
+            // Add JSON for QEMU instance
+            qemu_instances_json.insert(key, vm_spec_to_json(vm_specs));
+            instances_migrated = true;
         }
     }
 
