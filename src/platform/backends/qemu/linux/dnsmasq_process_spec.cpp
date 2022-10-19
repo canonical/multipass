@@ -48,6 +48,7 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
                          << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
                          << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
                          << "--dhcp-no-override"
+                         << "--dhcp-ignore-clid"
                          << "--dhcp-authoritative" << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
                          << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir) << "--dhcp-range"
                          << QString("%1,%2,infinite")
