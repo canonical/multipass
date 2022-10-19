@@ -45,7 +45,6 @@ public:
     static constexpr auto PicturesLocation = StandardLocation::PicturesLocation;
     static constexpr auto TempLocation = StandardLocation::TempLocation;
     static constexpr auto HomeLocation = StandardLocation::HomeLocation;
-    static constexpr auto DataLocation = StandardLocation::DataLocation;
     static constexpr auto CacheLocation = StandardLocation::CacheLocation;
     static constexpr auto GenericCacheLocation = StandardLocation::GenericCacheLocation;
     static constexpr auto GenericDataLocation = StandardLocation::GenericDataLocation;
