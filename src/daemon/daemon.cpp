@@ -2870,7 +2870,12 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     if (vm_instance_specs.empty())
         return grpc::Status::OK;
 
+    // Utility to write a msg back to the client
     mp::SetReply reply{};
+    auto reply_msg = [server, &reply](auto&& msg) {
+        reply.template set_log_line(std::forward<decltype(msg)>(msg));
+        server->Write(reply);
+    };
 
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
@@ -2909,15 +2914,10 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     {
         auto key = QString::fromStdString(vm_name);
         if (qemu_instances_json.contains(key))
-        {
-            reply.set_log_line(fmt::format("Cannot migrate {}: name already taken by a qemu instance\n", vm_name));
-            server->Write(reply);
-        }
+            reply_msg(fmt::format("Cannot migrate {}: name already taken by a qemu instance\n", vm_name));
         else
         {
-            reply.set_log_line(
-                fmt::format("Migrating instance from hyperkit to qemu: {}\n", vm_name)); // TODO@nomerge spin it
-            server->Write(reply);
+            reply_msg(fmt::format("Migrating instance from hyperkit to qemu: {}\n", vm_name)); // TODO@nomerge spin it
 
             // Copy instance image to qemu vault
             auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
