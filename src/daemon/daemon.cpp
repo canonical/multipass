@@ -2995,20 +2995,20 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             instances_migrated = true;
 
             // Migrate JSON for instance image
-            auto record = hyperkit_instance_images_json[key].toObject();
-            if (record.isEmpty())
+            auto instance_image_record = hyperkit_instance_images_json[key].toObject();
+            if (instance_image_record.isEmpty())
                 throw std::runtime_error{fmt::format("Failed to migrate instance image: corrupted image records")};
 
-            auto image = record["image"].toObject();
-            if (image.isEmpty())
+            auto image_record = instance_image_record["image"].toObject();
+            if (image_record.isEmpty())
                 throw std::runtime_error{fmt::format(
                     "Failed to migrate instance image: corrupted image records")}; // TODO@nomerge avoid repeating
 
-            image.insert("path", new_image);
-            image.insert("kernel_path", "");
-            image.insert("initrd_path", "");
-            record.insert("image", image);
-            qemu_instance_images_json.insert(key, record);
+            image_record.insert("path", new_image);
+            image_record.insert("kernel_path", "");
+            image_record.insert("initrd_path", "");
+            instance_image_record.insert("image", image_record);
+            qemu_instance_images_json.insert(key, instance_image_record);
         }
     }
 
