@@ -42,20 +42,18 @@ auto get_source_dir_owner(const QString& source_dir)
     QString ps_output;
     QStringList get_acl{"Get-Acl", source_dir};
 
-    mp::PowerShell::exec({QStringList() << get_acl << mp::PowerShell::Snippets::expand_property << "Owner"}, category,
-                         ps_output);
+    mp::PowerShell::exec(get_acl << mp::PowerShell::Snippets::expand_property << "Owner", category, ps_output);
 
     return ps_output;
 }
 
 auto create_smb_share_for(const std::string& source_path, const QString& vm_name, const QString& source_dir_owner)
 {
-    auto share_name = QString("%1_%2").arg(vm_name).arg(
-        QString::fromStdString(std::filesystem::path(source_path).filename().generic_string()));
+    auto share_name = QString("%1_%2").arg(
+        vm_name, QString::fromStdString(std::filesystem::path(source_path).filename().generic_string()));
 
-    mp::PowerShell::exec({QStringList() << "New-SmbShare"
-                                        << "-Name" << share_name << "-Path" << QString::fromStdString(source_path)
-                                        << "-FullAccess" << source_dir_owner},
+    mp::PowerShell::exec({"New-SmbShare", "-Name", share_name, "-Path", QString::fromStdString(source_path),
+                          "-FullAccess", source_dir_owner},
                          category);
 
     return share_name;
@@ -63,9 +61,7 @@ auto create_smb_share_for(const std::string& source_path, const QString& vm_name
 
 void remove_smb_share_for(const QString& share_name)
 {
-    mp::PowerShell::exec({QStringList() << "Remove-SmbShare"
-                                        << "-Name" << share_name << "-Force"},
-                         category);
+    mp::PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category);
 }
 
 void install_cifs_for(const std::string& name, mp::SSHSession& session, std::function<void()> const& on_install,
