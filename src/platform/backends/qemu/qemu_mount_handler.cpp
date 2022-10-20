@@ -62,12 +62,8 @@ void mp::QemuMountHandler::init_mount(VirtualMachine* vm, const std::string& tar
     mpl::log(mpl::Level::info, category,
              fmt::format("Initializing native mount {} => {} in {}", vm_mount.source_path, target_path, vm->vm_name));
 
-    mp::MountConfig config;
-    config.uid_mappings = vm_mount.uid_mappings;
-    config.vm = vm;
-
     vm->add_vm_mount(target_path, vm_mount);
-    mounts[vm->vm_name][target_path] = config;
+    mounts[vm->vm_name][target_path] = vm;
 }
 
 void mp::QemuMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
@@ -95,8 +91,6 @@ void mp::QemuMountHandler::start_mount(VirtualMachine* vm, ServerVariant server,
         mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
     }
 
-    auto config = mounts[vm->vm_name][target_path];
-
     // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
     // uuid must be truncated. First character of mount_tag must also be alpabetical.
     auto mount_tag = QUuid::createUuidV3(QUuid(), QString::fromStdString(target_path))
@@ -104,13 +98,9 @@ void mp::QemuMountHandler::start_mount(VirtualMachine* vm, ServerVariant server,
                          .replace("-", "");
     mount_tag.truncate(30);
 
-    auto uid = config.uid_mappings.size() > 0 && config.uid_mappings.at(0).second != -1
-                   ? config.uid_mappings.at(0).second
-                   : 1000;
-
-    mpu::run_in_ssh_session(
-        session, fmt::format("sudo mount -t 9p m{} {} -o trans=virtio,version=9p2000.L,msize=536870912,access={}",
-                             mount_tag, target_path, uid));
+    mpu::run_in_ssh_session(session,
+                            fmt::format("sudo mount -t 9p m{} {} -o trans=virtio,version=9p2000.L,msize=536870912",
+                                        mount_tag, target_path));
 }
 
 void mp::QemuMountHandler::stop_mount(const std::string& instance, const std::string& path)
@@ -127,9 +117,8 @@ void mp::QemuMountHandler::stop_mount(const std::string& instance, const std::st
     auto map_entry = mount_map.find(path);
     if (map_entry != mount_map.end())
     {
-        auto& config = map_entry->second;
-        SSHSession session{config.vm->ssh_hostname(), config.vm->ssh_port(), config.vm->ssh_username(),
-                           *ssh_key_provider};
+        auto& vm = map_entry->second;
+        SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
         mpl::log(mpl::Level::info, category,
                  fmt::format("Stopping native mount '{}' in instance \"{}\"", path, instance));
 
@@ -142,7 +131,7 @@ void mp::QemuMountHandler::stop_mount(const std::string& instance, const std::st
             mpl::log(mpl::Level::info, category, fmt::format("Error stopping native mount at {}", path));
         }
 
-        config.vm->delete_vm_mount(path);
+        vm->delete_vm_mount(path);
         mounts[instance].erase(path);
     }
 }

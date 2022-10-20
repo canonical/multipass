@@ -113,6 +113,10 @@ profile %1 flags=(attach_disconnected) {
   capability dac_read_search,
   capability chown,
 
+  # Enables modifying of file ownership and permissions
+  capability fsetid,
+  capability fowner,
+
   # needed to drop privileges
   capability setgid,
   capability setuid,
