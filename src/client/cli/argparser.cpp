@@ -85,10 +85,8 @@ auto verbosity_level_in(const QStringList& arguments)
             return 1;
         if (arg == QStringLiteral("-vv"))
             return 2;
-        if (arg == QStringLiteral("-vvv"))
+        if (QRegExp{"-vvv+"}.exactMatch(arg))
             return 3;
-        if (QRegExp{"-vvvv+"}.exactMatch(arg))
-            return 4;
     }
     return 0;
 }
@@ -117,7 +115,7 @@ mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
     QCommandLineOption help_option(help_option_names, "Displays help on commandline options");
     QCommandLineOption verbose_option({"v", "verbose"},
                                       "Increase logging verbosity. Repeat the 'v' in the short option for more detail. "
-                                      "Maximum verbosity is obtained with 4 (or more) v's, i.e. -vvvv.");
+                                      "Maximum verbosity is obtained with 3 (or more) v's, i.e. -vvv.");
     QCommandLineOption version_option({"V", "version"}, "Show version details");
     version_option.setFlags(QCommandLineOption::HiddenFromHelp);
     parser.addOption(help_option);
@@ -374,9 +372,9 @@ QStringList mp::ArgParser::unknownOptionNames() const
 
 void mp::ArgParser::setVerbosityLevel(int verbosity)
 {
-    if (verbosity > 4 || verbosity < 0)
+    if (verbosity > 3 || verbosity < 0)
     {
-        cerr << "Verbosity level is incorrect. Must be between 0 and 4.\n";
+        cerr << "Verbosity level is incorrect. Must be between 0 and 3.\n";
     }
     else if (verbosity_level != verbosity)
     {
