@@ -57,7 +57,7 @@ TEST_P(TestVerbosity, test_various_vs)
     auto parser = mp::ArgParser{args, cmds, oss, oss};
     parser.parse();
 
-    const auto expect = v > 4 ? 4 : v;
+    const auto expect = v > 3 ? 3 : v;
     EXPECT_EQ(parser.verbosityLevel(), expect);
 }
 

@@ -451,7 +451,7 @@ TEST_P(RemoteHandlerVerbosity, honors_verbosity_in_remote_settings_handler)
     send_command({vs, cmd});
 }
 
-INSTANTIATE_TEST_SUITE_P(Client, RemoteHandlerVerbosity, Combine(Range(0, 5), RemoteHandlerTest::cmds));
+INSTANTIATE_TEST_SUITE_P(Client, RemoteHandlerVerbosity, Combine(Range(0, 4), RemoteHandlerTest::cmds));
 
 TEST_F(Client, handles_remote_handler_exception)
 {
@@ -1130,7 +1130,7 @@ TEST_F(Client, launch_cmd_fails_when_automounting_in_petenv_fails)
 
 TEST_F(Client, launch_cmd_forwards_verbosity_to_subcommands)
 {
-    const auto verbosity = 4;
+    const auto verbosity = 3;
     const auto launch_verbosity_matcher = make_request_verbosity_matcher<mp::LaunchRequest>(verbosity);
     const auto mount_verbosity_matcher = make_request_verbosity_matcher<mp::MountRequest>(verbosity);
 
@@ -1140,7 +1140,7 @@ TEST_F(Client, launch_cmd_forwards_verbosity_to_subcommands)
             WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(launch_verbosity_matcher, ok)));
     EXPECT_CALL(mock_daemon, mount)
         .WillOnce(WithArg<1>(check_request_and_return<mp::MountReply, mp::MountRequest>(mount_verbosity_matcher, ok)));
-    EXPECT_THAT(send_command({"launch", "--name", petenv_name, "-vvvv"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"launch", "--name", petenv_name, "-vvv"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, launch_cmd_does_not_automount_in_normal_instances)
