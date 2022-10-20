@@ -64,19 +64,11 @@ void remove_smb_share_for(const QString& share_name)
     mp::PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category);
 }
 
-void install_cifs_for(const std::string& name, mp::SSHSession& session, std::function<void()> const& on_install,
-                      const std::chrono::milliseconds& timeout)
+void install_cifs_for(const std::string& name, mp::SSHSession& session, const std::chrono::milliseconds& timeout)
 {
-    if (session.exec("dpkg -l | grep cifs-utils").exit_code() == 0)
-    {
-        return;
-    }
-
     try
     {
         mpl::log(mpl::Level::info, category, fmt::format("Installing cifs-utils in \'{}\'", name));
-
-        on_install();
 
         auto proc = session.exec("sudo apt-get install -y cifs-utils");
         if (proc.exit_code(timeout) != 0)
@@ -119,23 +111,20 @@ void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, 
 
     const auto [username, password] = std::visit(
         [this, vm, &session, &timeout](auto&& server) {
-            auto on_install = [this, server] {
-                if (server)
-                {
-                    auto reply = make_reply_from_server(*server);
-                    reply.set_reply_message("Enabling support for mounting");
-                    server->Write(reply);
-                }
-            };
-
-            install_cifs_for(vm->vm_name, session, on_install, timeout);
-
             if (!server)
             {
                 throw std::runtime_error("Cannot start Windows mount without client connection");
             }
 
             auto reply = make_reply_from_server(*server);
+
+            if (session.exec("dpkg -l | grep cifs-utils").exit_code() != 0)
+            {
+                reply.set_reply_message("Enabling support for mounting");
+                server->Write(reply);
+
+                install_cifs_for(vm->vm_name, session, timeout);
+            }
 
             reply.set_credentials_requested(true);
             if (!server->Write(reply))
@@ -216,26 +205,24 @@ void mp::SmbMountHandler::stop_mount(const std::string& instance, const std::str
     smb_mount_map[instance].erase(path);
 }
 
-void mp::SmbMountHandler::stop_all_mounts_for_instance(const std::string& instance)
+void mp::SmbMountHandler::stop_all_mounts_for_instance(const std::string& instance) // clang-format off
+try // clang-format on
 {
-    try
-    {
-        const auto& mount_info = smb_mount_map.at(instance);
+    const auto& mount_info = smb_mount_map.at(instance);
 
-        if (mount_info.empty())
-        {
-            throw std::out_of_range("");
-        }
-
-        for (auto it = mount_info.cbegin(); it != mount_info.cend();)
-        {
-            stop_mount(instance, it++->first);
-        }
-    }
-    catch (const std::out_of_range&)
+    if (mount_info.empty())
     {
-        mpl::log(mpl::Level::info, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
+        throw std::out_of_range("");
     }
+
+    for (auto it = mount_info.cbegin(); it != mount_info.cend();)
+    {
+        stop_mount(instance, it++->first);
+    }
+}
+catch (const std::out_of_range&)
+{
+    mpl::log(mpl::Level::info, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
 }
 
 bool mp::SmbMountHandler::has_instance_already_mounted(const std::string& instance, const std::string& path) const
