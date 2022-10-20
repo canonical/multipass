@@ -2028,11 +2028,17 @@ try
     auto key = request->key();
     auto val = request->val();
 
+    bool need_migration = false; // TODO hk migration, remove
+#ifdef MULTIPASS_PLATFORM_APPLE  // TODO hk migration, remove
+    need_migration = val == "qemu" && MP_SETTINGS.get(QString::fromStdString(key)) == "hyperkit";
+#endif
+
     mpl::log(mpl::Level::trace, category, fmt::format("Trying to set {}={}", key, val));
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
 
-    status_promise->set_value(grpc::Status::OK);
+    status_promise->set_value(need_migration ? migrate_from_hyperkit(server)
+                                             : grpc::Status::OK); // TODO hk migration, revert
 }
 catch (const mp::UnrecognizedSettingException& e)
 {
@@ -2838,4 +2844,17 @@ void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_futu
 
     if (async_op_result.status_promise)
         async_op_result.status_promise->set_value(async_op_result.status);
+}
+
+grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server)
+{ // TODO hk migration, remove
+#ifndef MULTIPASS_PLATFORM_APPLE
+    assert(false && "no hyperkit otherwise");
+#endif
+
+    mp::SetReply reply{};
+    reply.set_log_line("Migration placeholder\n");
+    server->Write(reply);
+
+    return grpc::Status::OK;
 }
