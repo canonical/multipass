@@ -40,6 +40,18 @@ struct TestVerbosity : public TestWithParam<int>
 {
 };
 
+TEST_F(TestVerbosity, verbosity_is_zero_with_no_arguments)
+{
+    std::ostringstream oss;
+    const auto cmds = std::vector<mp::cmd::Command::UPtr>{};
+    auto args = QStringList{"multipass_tests"};
+
+    auto parser = mp::ArgParser{args, cmds, oss, oss};
+    parser.parse();
+
+    EXPECT_EQ(parser.verbosityLevel(), 0);
+}
+
 TEST_P(TestVerbosity, test_various_vs)
 {
     std::ostringstream oss;
@@ -62,6 +74,18 @@ TEST_P(TestVerbosity, test_various_vs)
 }
 
 INSTANTIATE_TEST_SUITE_P(ArgParser, TestVerbosity, Range(0, 10));
+
+TEST_F(TestVerbosity, cannot_be_more_verbose)
+{
+    std::ostringstream oss, ess;
+    const auto cmds = std::vector<mp::cmd::Command::UPtr>{};
+    auto args = QStringList{"multipass_tests"};
+
+    auto parser = mp::ArgParser{args, cmds, oss, ess};
+    parser.setVerbosityLevel(4);
+
+    EXPECT_EQ(ess.str(), "Verbosity level is incorrect. Must be between 0 and 3.\n");
+}
 
 struct TestAliasArguments : public TestWithParam<std::tuple<QStringList /* pre */, QStringList /* post */>>,
                             public FakeAliasConfig
