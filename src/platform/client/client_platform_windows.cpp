@@ -16,6 +16,8 @@
  */
 
 #include <multipass/cli/client_platform.h>
+#include <multipass/cli/prompters.h>
+#include <multipass/terminal.h>
 
 #include <QFileInfo>
 #include <QString>
@@ -71,8 +73,15 @@ QStringList mcp::gui_tray_notification_strings()
     return {"Multipass is in your Notification area", "Right-click on the icon in the taskbar for available options"};
 }
 
-std::pair<std::string, std::string> mcp::get_user_password(mp::Terminal*)
+std::pair<std::string, std::string> mcp::get_user_password(mp::Terminal* term)
 {
-    // To be implemented in a follow-up PR
+    if (term->is_live())
+    {
+        mp::PassphrasePrompter prompter(term);
+        auto password = prompter.prompt("Please enter your user password to allow Windows mounts");
+
+        return {qEnvironmentVariable("USERNAME").toStdString(), password};
+    }
+
     return {};
 }

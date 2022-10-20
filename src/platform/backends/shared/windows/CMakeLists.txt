@@ -15,7 +15,8 @@
 set (CMAKE_AUTOMOC ON)
 add_library(shared_win STATIC
   powershell.cpp
-  process_factory.cpp)
+  process_factory.cpp
+  smb_mount_handler.cpp)
 
 include_directories(shared_win
   ..)
