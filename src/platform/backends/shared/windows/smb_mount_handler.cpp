@@ -117,10 +117,8 @@ void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, 
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
-    std::string username, password;
-
-    std::visit(
-        [this, vm, &username, &password, &session, &timeout](auto&& server) {
+    const auto [username, password] = std::visit(
+        [this, vm, &session, &timeout](auto&& server) {
             auto on_install = [this, server] {
                 if (server)
                 {
@@ -151,8 +149,7 @@ void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, 
                 throw std::runtime_error("Cannot get user credentials from client. Aborting...");
             }
 
-            username = request.user_credentials().username();
-            password = request.user_credentials().password();
+            return std::make_pair(request.user_credentials().username(), request.user_credentials().password());
         },
         server);
 
