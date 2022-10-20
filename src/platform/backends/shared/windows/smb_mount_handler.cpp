@@ -59,9 +59,9 @@ auto create_smb_share_for(const std::string& source_path, const QString& vm_name
     return share_name;
 }
 
-void remove_smb_share_for(const QString& share_name)
+auto remove_smb_share_for(const QString& share_name)
 {
-    mp::PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category);
+    return mp::PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category);
 }
 
 void install_cifs_for(const std::string& name, mp::SSHSession& session, const std::chrono::milliseconds& timeout)
@@ -200,7 +200,11 @@ void mp::SmbMountHandler::stop_mount(const std::string& instance, const std::str
         throw std::runtime_error(fmt::format("Cannot unmount share in instance: {}", umount_proc.read_std_error()));
     }
 
-    remove_smb_share_for(share_name);
+    if (!remove_smb_share_for(share_name))
+    {
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Failed removing share \"{}\" for \"{}\"", share_name, instance));
+    }
 
     smb_mount_map[instance].erase(path);
 }
