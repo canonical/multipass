@@ -42,6 +42,7 @@ ExternalProject_Add(qemu
       --ninja=ninja
       --target-list=${HOST_ARCH}-softmmu
       --enable-hvf
+      --enable-virtfs
       --disable-bochs
       --disable-cloop
       --disable-docs
