@@ -118,12 +118,12 @@ void mp::QemuMountHandler::stop_mount(const std::string& instance, const std::st
     if (map_entry != mount_map.end())
     {
         auto& vm = map_entry->second;
-        SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-        mpl::log(mpl::Level::info, category,
-                 fmt::format("Stopping native mount '{}' in instance \"{}\"", path, instance));
 
         try
         {
+            SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+            mpl::log(mpl::Level::info, category,
+                     fmt::format("Stopping native mount '{}' in instance \"{}\"", path, instance));
             mpu::run_in_ssh_session(session, fmt::format("sudo umount {}", path));
         }
         catch (const std::exception& e)
