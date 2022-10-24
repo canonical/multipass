@@ -28,6 +28,7 @@
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
+#include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <QFile>
@@ -38,6 +39,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTemporaryFile>
+#include <QUuid>
 
 #include <cassert>
 
@@ -82,6 +84,7 @@ QStringList get_arguments(const QJsonObject& metadata)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::optional<QJsonObject>& resume_metadata,
+                       const std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args,
                        const QStringList& platform_args)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
@@ -97,7 +100,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::opt
                                                         get_arguments(data)};
     }
 
-    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, resume_data);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data);
     auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug, desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
@@ -469,7 +472,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     vm_process = make_qemu_process(
         desc,
         ((state == State::suspended) ? std::make_optional(monitor->retrieve_metadata_for(vm_name)) : std::nullopt),
-        qemu_platform->vm_platform_args(desc));
+        mount_args, qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
@@ -579,4 +582,38 @@ void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
 
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
+}
+
+void mp::QemuVirtualMachine::add_vm_mount(const std::string& target_path, const VMMount& vm_mount)
+{
+    // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the uuid
+    // must be truncated. First character of mount_tag must also be alpabetical.
+    auto mount_tag = QUuid::createUuidV3(QUuid(), QString::fromStdString(target_path))
+                         .toString(QUuid::WithoutBraces)
+                         .replace("-", "");
+    mount_tag.truncate(30);
+
+    mount_args[target_path] = std::make_pair(
+        vm_mount.source_path,
+        QStringList{
+            {"-virtfs", QString("local,security_model=passthrough,%1%2path=%3,mount_tag=m%4")
+                            .arg(vm_mount.uid_mappings.size() > 0 ? QString("uid_map=%1:%2,")
+                                                                        .arg(vm_mount.uid_mappings.at(0).first)
+                                                                        .arg(vm_mount.uid_mappings.at(0).second == -1
+                                                                                 ? 1000
+                                                                                 : vm_mount.uid_mappings.at(0).second)
+                                                                  : QString("uid_map=1000:1000,"))
+                            .arg(vm_mount.gid_mappings.size() > 0 ? QString("gid_map=%1:%2,")
+                                                                        .arg(vm_mount.gid_mappings.at(0).first)
+                                                                        .arg(vm_mount.gid_mappings.at(0).second == -1
+                                                                                 ? 1000
+                                                                                 : vm_mount.gid_mappings.at(0).second)
+                                                                  : QString("gid_map=1000:1000,"))
+                            .arg(QString::fromStdString(vm_mount.source_path))
+                            .arg(mount_tag)}});
+}
+
+void mp::QemuVirtualMachine::delete_vm_mount(const std::string& target_path)
+{
+    mount_args.erase(target_path);
 }

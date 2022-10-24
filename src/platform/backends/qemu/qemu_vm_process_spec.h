@@ -23,6 +23,7 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <optional>
+#include <unordered_map>
 
 namespace multipass
 {
@@ -41,6 +42,7 @@ public:
     static QString default_machine_type();
 
     explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QStringList& platform_args,
+                               const std::unordered_map<std::string, std::pair<std::string, QStringList>>& mount_args,
                                const std::optional<ResumeData>& resume_data);
 
     QStringList arguments() const override;
@@ -51,6 +53,7 @@ public:
 private:
     const VirtualMachineDescription desc;
     const QStringList platform_args;
+    const std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args;
     const std::optional<ResumeData> resume_data;
 };
 

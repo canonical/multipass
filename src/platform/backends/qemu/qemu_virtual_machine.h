@@ -28,6 +28,8 @@
 #include <QObject>
 #include <QStringList>
 
+#include <unordered_map>
+
 namespace multipass
 {
 class QemuPlatform;
@@ -56,6 +58,8 @@ public:
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
+    void add_vm_mount(const std::string& target_path, const VMMount& vm_mount) override;
+    void delete_vm_mount(const std::string& target_path) override;
 
 signals:
     void on_delete_memory_snapshot();
@@ -71,6 +75,7 @@ private:
 
     VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
+    std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args;
     const std::string mac_addr;
     const std::string username;
     QemuPlatform* qemu_platform;

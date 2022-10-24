@@ -1535,7 +1535,7 @@ try // clang-format on
         {
             try
             {
-                mount_handler->start_mount(vm.get(), server, target_path);
+                config->mount_handlers.at(mount_type)->start_mount(vm.get(), server, target_path);
             }
             catch (const mp::SSHFSMissingError&)
             {
