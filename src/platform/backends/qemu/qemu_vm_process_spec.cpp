@@ -27,9 +27,11 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mu = multipass::utils;
 
-mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QStringList& platform_args,
-                                         const std::optional<ResumeData>& resume_data)
-    : desc{desc}, platform_args{platform_args}, resume_data{resume_data}
+mp::QemuVMProcessSpec::QemuVMProcessSpec(
+    const mp::VirtualMachineDescription& desc, const QStringList& platform_args,
+    const std::unordered_map<std::string, std::pair<std::string, QStringList>>& mount_args,
+    const std::optional<ResumeData>& resume_data)
+    : desc{desc}, platform_args{platform_args}, mount_args{mount_args}, resume_data{resume_data}
 {
 }
 
@@ -88,6 +90,9 @@ QStringList mp::QemuVMProcessSpec::arguments() const
              << "-nographic";
         // Cloud-init disk
         args << "-cdrom" << desc.cloud_init_iso;
+
+        for (auto& it : mount_args)
+            args << it.second.second;
     }
 
     return args;
@@ -107,6 +112,10 @@ profile %1 flags=(attach_disconnected) {
   capability dac_override,
   capability dac_read_search,
   capability chown,
+
+  # Enables modifying of file ownership and permissions
+  capability fsetid,
+  capability fowner,
 
   # needed to drop privileges
   capability setgid,
@@ -164,6 +173,9 @@ profile %1 flags=(attach_disconnected) {
   # Disk images
   %6 rwk,  # QCow2 filesystem image
   %7 rk,   # cloud-init ISO
+
+  # allow full access just to user-specified mount directories on the host
+  %8
 }
     )END");
 
@@ -171,6 +183,13 @@ profile %1 flags=(attach_disconnected) {
     QString root_dir;    // root directory: either "" or $SNAP
     QString signal_peer; // who can send kill signal to qemu
     QString firmware;    // location of bootloader firmware needed by qemu
+    QString mount_dirs;  // directories on host that are mounted
+
+    for (auto& it : mount_args)
+    {
+        mount_dirs += QString::fromStdString(it.second.first) + "/ rw,\n  ";
+        mount_dirs += QString::fromStdString(it.second.first) + "/** rwlk,\n  ";
+    }
 
     try
     {
@@ -185,7 +204,7 @@ profile %1 flags=(attach_disconnected) {
     }
 
     return profile_template.arg(apparmor_profile_name(), signal_peer, firmware, root_dir, program(),
-                                desc.image.image_path, desc.cloud_init_iso);
+                                desc.image.image_path, desc.cloud_init_iso, mount_dirs);
 }
 
 QString mp::QemuVMProcessSpec::identifier() const
