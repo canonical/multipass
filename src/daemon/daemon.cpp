@@ -956,6 +956,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
             multipass::top_catch_all(name, [this, &name, &lock]() {
+                init_mounts(name);
+
                 vm_instances[name]->start();
                 lock.unlock();
                 on_restart(name);
@@ -1020,6 +1022,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
 mp::Daemon::~Daemon()
 {
+    for (const auto& pair : vm_instances)
+    {
+        for (const auto& mount_handler : config->mount_handlers)
+        {
+            mount_handler.second->stop_all_mounts_for_instance(pair.first);
+        }
+    }
+
     mp::top_catch_all(category, [this] { MP_SETTINGS.unregister_handler(instance_mod_handler); });
 }
 
@@ -1822,11 +1832,12 @@ try // clang-format on
         }
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
-            vm.suspend();
             for (const auto& mount_handler : config->mount_handlers)
             {
                 mount_handler.second->stop_all_mounts_for_instance(vm.vm_name);
             }
+
+            vm.suspend();
 
             return grpc::Status::OK;
         });
