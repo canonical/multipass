@@ -149,9 +149,6 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                          "Valid types are: \'classic\' (default) and \'native\'",
                                          "type", default_mount_type);
 
-    // TODO: Remove the HiddenFromHelp flag once the native mounts are implemented
-    mount_type_option.setFlags(QCommandLineOption::HiddenFromHelp);
-
     parser->addOptions({gid_mappings, uid_mappings, mount_type_option});
 
     auto status = parser->commandParse(this);
