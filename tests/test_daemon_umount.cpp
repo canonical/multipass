@@ -89,7 +89,7 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
         return std::move(instance_ptr);
     });
 
-    EXPECT_CALL(*mock_mount_handler, stop_all_mounts_for_instance(mock_instance_name)).Times(1);
+    EXPECT_CALL(*mock_mount_handler, stop_all_mounts_for_instance(mock_instance_name)).Times(2);
     config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
