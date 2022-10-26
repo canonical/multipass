@@ -145,6 +145,9 @@ TEST_F(TestDaemonMount, invalidTargetPathFails)
         return std::move(instance_ptr);
     });
 
+    EXPECT_CALL(*mock_mount_handler, stop_all_mounts_for_instance(_)).Times(1);
+    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+
     mp::Daemon daemon{config_builder.build()};
 
     mp::MountRequest request;
