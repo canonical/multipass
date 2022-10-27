@@ -119,6 +119,20 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
                                    const std::string& alias)
 {
     auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
+    QString pollinate_alias = QString::fromStdString(alias);
+
+    if (pollinate_alias.isEmpty())
+    {
+        pollinate_alias = "default";
+    }
+    else if (pollinate_alias.startsWith("http"))
+    {
+        pollinate_alias = "http";
+    }
+    else if (pollinate_alias.startsWith("file"))
+    {
+        pollinate_alias = "file";
+    }
 
     auto config = YAML::Load(mp::base_cloud_init_config);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
@@ -130,8 +144,7 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
     pollinate_user_agent_string +=
         fmt::format("multipass/host/{} # written by Multipass\n", multipass::platform::host_version());
-    pollinate_user_agent_string +=
-        fmt::format("multipass/alias/{} # written by Multipass\n", alias.empty() ? "default" : alias);
+    pollinate_user_agent_string += fmt::format("multipass/alias/{} # written by Multipass\n", pollinate_alias);
 
     YAML::Node pollinate_user_agent_node;
     pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
