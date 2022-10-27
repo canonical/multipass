@@ -115,7 +115,8 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
-                                   const std::string& username, const std::string& backend_version_string)
+                                   const std::string& username, const std::string& backend_version_string,
+                                   const std::string& alias)
 {
     auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
 
@@ -129,6 +130,8 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
     pollinate_user_agent_string +=
         fmt::format("multipass/host/{} # written by Multipass\n", multipass::platform::host_version());
+    pollinate_user_agent_string +=
+        fmt::format("multipass/alias/{} # written by Multipass\n", alias.empty() ? "default" : alias);
 
     YAML::Node pollinate_user_agent_node;
     pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
@@ -2486,7 +2489,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 YAML::Node{},
                 YAML::Node{},
                 make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
-                                              config->factory->get_backend_version_string().toStdString()),
+                                              config->factory->get_backend_version_string().toStdString(),
+                                              request->image()),
                 YAML::Node{}};
 
             ClientLaunchData client_launch_data;
