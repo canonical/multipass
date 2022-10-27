@@ -114,12 +114,11 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     return {name, image, false, request->remote_name(), query_type, true};
 }
 
-auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
-                                   const std::string& username, const std::string& backend_version_string,
-                                   const std::string& alias)
+auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& username,
+                                   const std::string& backend_version_string, const mp::CreateRequest* request)
 {
     auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
-    QString pollinate_alias = QString::fromStdString(alias);
+    QString pollinate_alias = QString::fromStdString(request->image());
 
     if (pollinate_alias.isEmpty())
     {
@@ -134,9 +133,10 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
         pollinate_alias = "file";
     }
 
+    auto remote_name = request->remote_name();
     auto config = YAML::Load(mp::base_cloud_init_config);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
-    config["timezone"] = time_zone;
+    config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
 
     auto pollinate_user_agent_string =
@@ -144,7 +144,8 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
     pollinate_user_agent_string +=
         fmt::format("multipass/host/{} # written by Multipass\n", multipass::platform::host_version());
-    pollinate_user_agent_string += fmt::format("multipass/alias/{} # written by Multipass\n", pollinate_alias);
+    pollinate_user_agent_string += fmt::format("multipass/alias/{}{} # written by Multipass\n",
+                                               !remote_name.empty() ? remote_name + ":" : "", pollinate_alias);
 
     YAML::Node pollinate_user_agent_node;
     pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
@@ -2501,9 +2502,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 "",
                 YAML::Node{},
                 YAML::Node{},
-                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
-                                              config->factory->get_backend_version_string().toStdString(),
-                                              request->image()),
+                make_cloud_init_vendor_config(*config->ssh_key_provider, config->ssh_username,
+                                              config->factory->get_backend_version_string().toStdString(), request),
                 YAML::Node{}};
 
             ClientLaunchData client_launch_data;
