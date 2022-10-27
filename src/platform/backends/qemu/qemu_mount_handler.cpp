@@ -44,8 +44,11 @@ mp::QemuMountHandler::QemuMountHandler(const SSHKeyProvider& ssh_key_provider) :
 
 void mp::QemuMountHandler::init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount)
 {
+    using St = VirtualMachine::State;
+    const auto skip_states = {St::off, St::stopped, St::suspended};
+
     auto state = vm->current_state();
-    if (state != mp::VirtualMachine::State::stopped && state != mp::VirtualMachine::State::off)
+    if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
         throw std::runtime_error("Please shutdown virtual machine before defining native mount.");
 
     if (!MP_FILEOPS.exists(QDir{QString::fromStdString(vm_mount.source_path)}))
