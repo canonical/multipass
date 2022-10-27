@@ -49,9 +49,9 @@ Click on the green "+" sign on the right lower corner of cmder
 Select "Setup tasks..."
 Click the "+" button to add a new task
 In the  task parameters box add (basically copying from cmd:Cmder task):
-    /icon "%CMDER_ROOT%\icons\cmder.ico"
+    ``/icon "%CMDER_ROOT%\icons\cmder.ico"``
 In the commands box, add:
-    cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%
+    ``cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%``
 
 Give the task a name (first box), such as vs2019 and click Save Settings.
 
