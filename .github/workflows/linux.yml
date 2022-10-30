@@ -118,12 +118,12 @@ jobs:
         echo "::set-output name=key::$( git merge-base origin/main ${{ github.sha }} )"
 
     - name: CCache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
           ccache-${{ runner.os }}-${{ matrix.build-type }}-
-        path: ~/.ccache/**
+        path: ~/.ccache
 
     - name: Set up coverage
       id: coverage-setup
