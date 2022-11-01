@@ -3010,13 +3010,13 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                     fmt::format("Failed to fix image metadata: {}", qemuimg_state.failure_message())}; /*
                                                                           TODO@no-merge include vm name */
 
-            // TODO@no-merge Update MAC address via cloud-init
+            // Verify if the default mount point for the cloud-init ISO is available
             if (QFile::exists(cloud_init_mount_point))
                 throw std::runtime_error{"Cannot mount cloud-init ISO: mount point already exists"}; /* By requiring the
                 default mount point to be available (which will virtually always be the case), we avoid having to parse
                 the output of the mounting tool. */
 
-            // Unmount the cloud-init ISO when we're done
+            // Set up a scope guard to unmount the cloud-init ISO when we're done
             const auto unmount_guard = sg::make_scope_guard([&cloud_init_mount_point]() noexcept {
                 mp::top_catch_all(category, [&cloud_init_mount_point] {
                     if (QFile::exists(cloud_init_mount_point))
@@ -3032,6 +3032,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 });
             });
 
+            // Mount the cloud-init ISO for the instance
             const auto hyperkit_instances_dir = mp::utils::base_dir(vm_image.image_path);
             const auto cloud_init_iso_path = hyperkit_instances_dir.filePath("cloud-init-config.iso");
             auto mount_proc =
@@ -3039,6 +3040,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             if (auto mount_state = mount_proc->execute(); !mount_state.completed_successfully())
                 throw std::runtime_error{fmt::format("Failed to mount the cloud-init ISO for {}: {}", vm_name,
                                                      mount_state.failure_message())};
+
+            // TODO@no-merge Update MAC address via cloud-init (copy files, edit, create new ISO)
 
             // Migrate JSON for instance image
             auto instance_image_record = hyperkit_instance_images_json[key].toObject();
