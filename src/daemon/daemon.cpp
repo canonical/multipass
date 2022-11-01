@@ -2947,6 +2947,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         MP_FILEOPS.write(file, doc.toJson()); /* overwrites with more content, so no need to erase first */
     };
 
+    auto cloud_init_mount_point = "/Volumes/cidata"; // TODO@no-merge can I really assume this?
     auto instance_image_db_filename = "multipassd-instance-image-records.json";
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
@@ -3000,6 +3001,12 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             if (auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
                 throw std::runtime_error{
                     fmt::format("Failed to fix image metadata: {}", qemuimg_state.failure_message())};
+
+            // TODO@no-merge Update MAC address via cloud-init
+            if (QFile::exists(cloud_init_mount_point))
+                throw std::runtime_error{"Cannot mount cloud-init ISO: mount point already exists"}; /* By requiring the
+                default mount point to be available (which will virtually always be the case), we avoid having to parse
+                the output of the mounting tool. */
 
             // Migrate JSON for instance image
             auto instance_image_record = hyperkit_instance_images_json[key].toObject();
