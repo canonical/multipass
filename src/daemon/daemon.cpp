@@ -37,6 +37,7 @@
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h> // TODO hk migration, remove
+#include <multipass/process/simple_process_spec.h>  // TODO hk migration, remove
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
 #include <multipass/ssh/ssh_session.h>
@@ -3007,6 +3008,16 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 throw std::runtime_error{"Cannot mount cloud-init ISO: mount point already exists"}; /* By requiring the
                 default mount point to be available (which will virtually always be the case), we avoid having to parse
                 the output of the mounting tool. */
+
+            // TODO@no-merge scope_guard to unmount cloud-init
+
+            const auto hyperkit_instances_dir = mp::utils::base_dir(vm_image.image_path);
+            const auto cloud_init_iso_path = hyperkit_instances_dir.filePath("cloud-init-config.iso");
+            auto mount_proc =
+                mp::platform::make_process(mp::simple_process_spec("hdiutil", {"mount", cloud_init_iso_path}));
+            if (auto mount_state = mount_proc->execute(); !mount_state.completed_successfully())
+                throw std::runtime_error{fmt::format("Failed to mount the cloud-init ISO for {}: {}", vm_name,
+                                                     mount_state.failure_message())};
 
             // Migrate JSON for instance image
             auto instance_image_record = hyperkit_instance_images_json[key].toObject();
