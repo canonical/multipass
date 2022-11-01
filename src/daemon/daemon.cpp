@@ -2907,6 +2907,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     assert(config->factory->get_backend_version_string() == "hyperkit" &&
            "can only migrate when hyperkit is in effect");
 
+    // TODO@no-merge throw in consts in variables
+    // TODO@no-merge homogenise failure messages
+
     if (vm_instance_specs.empty())
         return grpc::Status::OK;
 
@@ -2988,6 +2991,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
             mpl::log(mpl::Level::debug, category, fmt::format("Migrating instance files to '{}'", target_directory));
 
+            // TODO@no-merge for error handling, may want a scope guard to rollback things on failure (delete dir)
             if (std::error_code err; !MP_FILEOPS.create_directories(target_directory, err) && err)
                 throw std::runtime_error{
                     fmt::format("Could not create directory for QEMU instance: {} ", err.message())};
@@ -3001,7 +3005,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             if (auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
                 throw std::runtime_error{
-                    fmt::format("Failed to fix image metadata: {}", qemuimg_state.failure_message())};
+                    fmt::format("Failed to fix image metadata: {}", qemuimg_state.failure_message())}; /*
+                                                                          TODO@no-merge include vm name */
 
             // TODO@no-merge Update MAC address via cloud-init
             if (QFile::exists(cloud_init_mount_point))
