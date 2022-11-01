@@ -29,6 +29,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/file_ops.h> // TODO hk migration, remove
+#include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_writer.h>
 #include <multipass/logging/client_logger.h>
@@ -53,7 +54,8 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
-#include <multipass/format.h>
+#include <scope_guard.hpp> // TODO hk migration, remove
+
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
@@ -2975,7 +2977,21 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 default mount point to be available (which will virtually always be the case), we avoid having to parse
                 the output of the mounting tool. */
 
-            // TODO@no-merge scope_guard to unmount cloud-init
+            // Unmount the cloud-init ISO when we're done
+            const auto unmount_guard = sg::make_scope_guard([&cloud_init_mount_point]() noexcept {
+                mp::top_catch_all(category, [&cloud_init_mount_point] {
+                    if (QFile::exists(cloud_init_mount_point))
+                    {
+                        auto unmount_proc = mp::platform::make_process(
+                            mp::simple_process_spec("hdiutil", {"unmount", cloud_init_mount_point}));
+
+                        if (auto unmount_state = unmount_proc->execute(); !unmount_state.completed_successfully())
+                            throw std::runtime_error{
+                                fmt::format("Failed to unmount the cloud-init ISO in {}", cloud_init_mount_point)}; /*
+                                                                                    TODO@no-merge stop throwing here */
+                    }
+                });
+            });
 
             const auto hyperkit_instances_dir = mp::utils::base_dir(vm_image.image_path);
             const auto cloud_init_iso_path = hyperkit_instances_dir.filePath("cloud-init-config.iso");
