@@ -1877,6 +1877,20 @@ try // clang-format on
         return status_promise->set_value(status);
     }
 
+    // No need to worry about status here.  Just let it pass.
+    cmd_vms(instances, [this](auto& vm) {
+        try
+        {
+            init_mounts(vm.vm_name);
+        }
+        catch (const std::exception&)
+        {
+            // ignore exceptions
+        }
+
+        return grpc::Status::OK;
+    });
+
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
                                                 server, instances, timeout, status_promise, std::string()));
