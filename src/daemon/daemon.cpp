@@ -72,7 +72,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cerrno>  // TODO hk migration, remove
+#include <cstring> // TODO hk migration, remove
 #include <functional>
+#include <iterator> // TODO hk migration, remove
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -3046,6 +3049,18 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             // TODO@no-merge Update MAC address via cloud-init (copy files, edit, create new ISO)
             mp::CloudInitIso qemu_iso{};
             qemu_iso.add_file("network-config", mpu::emit_cloud_config(YAML::Node{}));
+
+            for (auto filename : {"meta-data", "user-data", "vendor-data"})
+            {
+                auto stream = MP_FILEOPS.open_read(fmt::format("{}/{}", cloud_init_mount_point, filename));
+                auto contents = std::string{std::istreambuf_iterator{*stream}, {}};
+                if (stream->fail())
+                    throw std::runtime_error{fmt::format("Could not read cloud-init config file {} for {}: {}",
+                                                         filename, vm_name, std::strerror(errno))};
+
+                qemu_iso.add_file(filename, contents);
+            }
+
             qemu_iso.write_to(QString::fromStdString(fmt::format("{}/{}", target_directory, cloud_init_iso_name)));
 
             // Migrate JSON for instance image
