@@ -20,6 +20,7 @@
 #include "instance_settings_handler.h"
 
 #include <multipass/alias_definition.h>
+#include <multipass/cloud_init_iso.h> // TODO hk migration, remove
 #include <multipass/constants.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -3042,6 +3043,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                                                      mount_state.failure_message())};
 
             // TODO@no-merge Update MAC address via cloud-init (copy files, edit, create new ISO)
+            mp::CloudInitIso qemu_iso{};
+            qemu_iso.add_file("network-config", mpu::emit_cloud_config(YAML::Node{}));
+            qemu_iso.write_to(QString::fromStdString(fmt::format("{}/{}", target_directory, "cloud-init-config.iso")));
 
             // Migrate JSON for instance image
             auto instance_image_record = hyperkit_instance_images_json[key].toObject();
