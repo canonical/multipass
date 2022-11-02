@@ -429,5 +429,5 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
                                    StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(), StrEq("The experimental mounts feature is not implemented on this backend."));
+    EXPECT_THAT(status.error_message(), StrEq("The native mounts feature is not implemented on this backend."));
 }

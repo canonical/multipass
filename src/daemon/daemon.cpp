@@ -1460,7 +1460,7 @@ try // clang-format on
 
     if (mount_type == mp::VMMount::MountType::Performance &&
         (config->mount_handlers.find(mp::VMMount::MountType::Performance) == config->mount_handlers.end()))
-        throw mp::NotImplementedOnThisBackendException("experimental mounts");
+        throw mp::NotImplementedOnThisBackendException("native mounts");
 
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
     {
