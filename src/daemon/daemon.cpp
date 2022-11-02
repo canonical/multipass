@@ -3034,9 +3034,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             // Mount the cloud-init ISO for the instance
             const auto hyperkit_instances_dir = mp::utils::base_dir(vm_image.image_path);
-            const auto cloud_init_iso_path = hyperkit_instances_dir.filePath("cloud-init-config.iso");
+            const auto hyperkit_iso_path = hyperkit_instances_dir.filePath("cloud-init-config.iso");
             auto mount_proc =
-                mp::platform::make_process(mp::simple_process_spec("hdiutil", {"mount", cloud_init_iso_path}));
+                mp::platform::make_process(mp::simple_process_spec("hdiutil", {"mount", hyperkit_iso_path}));
             if (auto mount_state = mount_proc->execute(); !mount_state.completed_successfully())
                 throw std::runtime_error{fmt::format("Failed to mount the cloud-init ISO for {}: {}", vm_name,
                                                      mount_state.failure_message())};
