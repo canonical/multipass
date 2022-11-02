@@ -195,7 +195,7 @@ jobs:
               _run $MP set local.driver=${{ matrix.driver }}
 
               # Wait for the daemon to restart
-              _retry_grep 12 5 '^${{ matrix.driver }}$' _run $MP get local.driver
+              _retry_grep 12 5 '^${{ matrix.driver }}' _run $MP get local.driver
 
               # and for the streams to flow down
               _retry_grep 12 5 "\w,lts\W" _run $MP find
