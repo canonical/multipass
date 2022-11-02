@@ -2954,6 +2954,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         MP_FILEOPS.write(file, doc.toJson()); /* overwrites with more content, so no need to erase first */
     };
 
+    const auto cloud_init_iso_name = "cloud-init-config.iso";
     auto cloud_init_mount_point = "/Volumes/cidata"; // TODO@no-merge can I really assume this?
     auto instance_image_db_filename = "multipassd-instance-image-records.json";
     auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
@@ -3035,7 +3036,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             // Mount the cloud-init ISO for the instance
             const auto hyperkit_instances_dir = mp::utils::base_dir(vm_image.image_path);
-            const auto hyperkit_iso_path = hyperkit_instances_dir.filePath("cloud-init-config.iso");
+            const auto hyperkit_iso_path = hyperkit_instances_dir.filePath(cloud_init_iso_name);
             auto mount_proc =
                 mp::platform::make_process(mp::simple_process_spec("hdiutil", {"mount", hyperkit_iso_path}));
             if (auto mount_state = mount_proc->execute(); !mount_state.completed_successfully())
@@ -3045,7 +3046,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             // TODO@no-merge Update MAC address via cloud-init (copy files, edit, create new ISO)
             mp::CloudInitIso qemu_iso{};
             qemu_iso.add_file("network-config", mpu::emit_cloud_config(YAML::Node{}));
-            qemu_iso.write_to(QString::fromStdString(fmt::format("{}/{}", target_directory, "cloud-init-config.iso")));
+            qemu_iso.write_to(QString::fromStdString(fmt::format("{}/{}", target_directory, cloud_init_iso_name)));
 
             // Migrate JSON for instance image
             auto instance_image_record = hyperkit_instance_images_json[key].toObject();
