@@ -1455,11 +1455,11 @@ try // clang-format on
 {
     mpl::ClientLogger<MountReply, MountRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                        server};
-    auto mount_type = request->mount_type() == mp::MountRequest_MountType_CLASSIC ? mp::VMMount::MountType::SSHFS
-                                                                                  : mp::VMMount::MountType::Performance;
+    auto mount_type = request->mount_type() == mp::MountRequest_MountType_CLASSIC ? mp::VMMount::MountType::Classic
+                                                                                  : mp::VMMount::MountType::Native;
 
-    if (mount_type == mp::VMMount::MountType::Performance &&
-        (config->mount_handlers.find(mp::VMMount::MountType::Performance) == config->mount_handlers.end()))
+    if (mount_type == mp::VMMount::MountType::Native &&
+        (config->mount_handlers.find(mp::VMMount::MountType::Native) == config->mount_handlers.end()))
         throw mp::NotImplementedOnThisBackendException("native mounts");
 
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))

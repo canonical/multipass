@@ -143,7 +143,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     const std::string fake_target_path{"/home/luke/skywalker"}, fake_source_path{"/home/han/solo"};
     const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
     std::unordered_map<std::string, mp::VMMount> mounts;
-    const mp::VMMount mount{fake_source_path, uid_mappings, gid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{fake_source_path, uid_mappings, gid_mappings, mp::VMMount::MountType::Classic};
 
     mounts.emplace(fake_target_path, mount);
 
@@ -164,7 +164,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     EXPECT_CALL(*mock_mount_handler, start_mount(_, _, _, _)).Times(1);
 
     config_builder.mount_handlers.clear();
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
