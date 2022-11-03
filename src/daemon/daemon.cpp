@@ -28,6 +28,7 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/stop_instance_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_writer.h>
 #include <multipass/logging/client_logger.h>
@@ -1883,7 +1884,7 @@ try // clang-format on
         {
             init_mounts(vm.vm_name);
         }
-        catch (const std::exception&)
+        catch (const mp::StopInstanceException&)
         {
             // ignore exceptions
         }

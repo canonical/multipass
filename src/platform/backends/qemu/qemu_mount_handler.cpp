@@ -18,6 +18,7 @@
 #include "qemu_mount_handler.h"
 
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/stop_instance_exception.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -49,7 +50,7 @@ void mp::QemuMountHandler::init_mount(VirtualMachine* vm, const std::string& tar
 
     auto state = vm->current_state();
     if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
-        throw std::runtime_error("Please shutdown virtual machine before defining native mount.");
+        throw mp::StopInstanceException("Please shutdown virtual machine before defining native mount.");
 
     if (!MP_FILEOPS.exists(QDir{QString::fromStdString(vm_mount.source_path)}))
     {
