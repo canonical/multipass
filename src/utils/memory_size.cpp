@@ -16,10 +16,11 @@
  */
 
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/format.h>
 #include <multipass/memory_size.h>
 #include <multipass/utils.h>
 
-#include <multipass/format.h>
+#include <cmath>
 
 namespace mp = multipass;
 
@@ -31,31 +32,42 @@ constexpr auto gibi = mebi * kibi;
 
 long long in_bytes(const std::string& mem_value)
 {
-    QRegExp matcher("\\s*(\\d+)(?:([KMG])(?:i?B)?|B)?\\s*", Qt::CaseInsensitive); // TODO accept decimals
+    QRegExp matcher("\\s*(\\d+)(?:\\.(\\d+)(?=[KMG]))?(?:([KMG])(?:i?B)?|B)?\\s*", Qt::CaseInsensitive);
 
     if (matcher.exactMatch(QString::fromStdString(mem_value)))
     {
         auto val = matcher.cap(1).toLongLong(); // value is in the second capture (1st one is the whole match)
-        const auto unit = matcher.cap(2);       // unit in the third capture (idem)
+        auto mantissa = 0LL;
+        const auto unit = matcher.cap(3); // unit in the fourth capture (idem)
+
+        if (!matcher.cap(2).isEmpty())
+        {
+            assert(!unit.isEmpty() && "Shouldn't be here (invalid decimal amount and unit)");
+            mantissa = matcher.cap(2).toLongLong(); // mantissa is in the third capture
+        }
+
         if (!unit.isEmpty())
         {
             switch (unit.at(0).toLower().toLatin1())
             {
             case 'g':
                 val *= gibi;
+                mantissa *= gibi;
                 break;
             case 'm':
                 val *= mebi;
+                mantissa *= mebi;
                 break;
             case 'k':
                 val *= kibi;
+                mantissa *= kibi;
                 break;
             default:
                 assert(false && "Shouldn't be here (invalid unit)");
             }
         }
 
-        return val;
+        return val + (long long)(mantissa / pow(10, matcher.cap(2).size()));
     }
 
     throw mp::InvalidMemorySizeException{mem_value};
