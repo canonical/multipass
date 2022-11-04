@@ -3007,9 +3007,15 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 throw std::runtime_error{fmt::format("Failed to mount the cloud-init ISO for {}: {}", vm_name,
                                                      mount_state.failure_message())};
 
-            // TODO@no-merge Update MAC address via cloud-init (copy files, edit, create new ISO)
+            // Create a network-config file to give the new interface (w/ new MAC address) DHCP and the previous name
+            YAML::Node network_data;
+            network_data["version"] = "2";
+            network_data["ethernets"]["default"]["match"]["macaddress"] = vm_specs.default_mac_address;
+            network_data["ethernets"]["default"]["set-name"] = "enp0s2";
+            network_data["ethernets"]["default"]["dhcp4"] = true;
+
             mp::CloudInitIso qemu_iso{};
-            qemu_iso.add_file("network-config", mpu::emit_cloud_config(YAML::Node{}));
+            qemu_iso.add_file("network-config", mpu::emit_cloud_config(network_data));
 
             for (auto filename : {"meta-data", "user-data", "vendor-data"})
             {
