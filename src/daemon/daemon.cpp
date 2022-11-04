@@ -3056,7 +3056,13 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             mp::CloudInitIso qemu_iso{};
             qemu_iso.add_file("network-config", mpu::emit_cloud_config(network_data));
 
-            for (auto filename : {"meta-data", "user-data", "vendor-data"})
+            // Update the instance-id, to have cloud-init re-render the network. Note the hostname remains unchanged.
+            auto meta_data = make_cloud_init_meta_config(vm_name);
+            meta_data["instance-id"] = fmt::format("{}-migrated", vm_name); // update the id to rerun cloud-init
+            qemu_iso.add_file("meta-data", mpu::emit_cloud_config(meta_data));
+
+            // Copy the remaining cloud-init files
+            for (auto filename : {"user-data", "vendor-data"})
             {
                 auto stream = MP_FILEOPS.open_read(fmt::format("{}/{}", cloud_init_mount_point, filename));
                 auto contents = std::string{std::istreambuf_iterator{*stream}, {}};
