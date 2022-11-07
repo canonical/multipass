@@ -95,8 +95,11 @@ mp::PowerShell::~PowerShell()
     }
 }
 
-bool mp::PowerShell::run(const QStringList& args, QString& output, bool whisper)
+bool mp::PowerShell::run(const QStringList& args, QString* output, bool whisper)
 {
+    QString default_output;
+    output = output ? output : &default_output;
+
     QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(output_end_marker);
     bool cmdlet_code{false};
     auto pid = powershell_proc->process_id();
@@ -139,25 +142,28 @@ bool mp::PowerShell::run(const QStringList& args, QString& output, bool whisper)
                 // Get the actual cmdlet's output
                 if (cmdlet_exit_found)
                 {
-                    output = parsed_output.at(0).trimmed();
-                    mpl::log(mpl::Level::trace, name, output.toStdString());
+                    *output = parsed_output.at(0).trimmed();
+                    mpl::log(mpl::Level::trace, name, output->toStdString());
                 }
             }
         }
     }
 
-    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output: {}", pid, output));
+    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output: {}", pid, *output));
     mpl::log(notice_level, name, fmt::format("[{}] Cmdlet exit status is '{}'", pid, cmdlet_code));
     return cmdlet_code;
 }
 
-bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QString& output)
+bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QString* output)
 {
+    QString default_output;
+    output = output ? output : &default_output;
+
     auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
     setup_powershell(power_shell.get(), name);
 
     QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_output,
-                     [&output, &power_shell]() { output += power_shell->read_all_standard_output(); });
+                     [output, &power_shell]() { *output += power_shell->read_all_standard_output(); });
 
     power_shell->start();
     auto wait_result = power_shell->wait_for_finished(/* msecs = */ 60000);
@@ -170,8 +176,8 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
         mpl::log(mpl::Level::warning, name, msg);
     }
 
-    output = output.trimmed();
-    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output:\n{}", pid, output));
+    *output = output->trimmed();
+    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output:\n{}", pid, *output));
 
     return wait_result && power_shell->process_state().completed_successfully();
 }

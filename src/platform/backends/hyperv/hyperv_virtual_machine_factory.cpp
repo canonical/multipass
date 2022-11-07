@@ -46,14 +46,14 @@ void ensure_hyperv_service_is_running(mp::PowerShell& power_shell)
     QString ps_output;
     const QStringList get_vmms_service{"Get-Service", "-Name", "vmms"};
 
-    if (!power_shell.run(QStringList() << get_vmms_service << expand_property << "Status", ps_output))
+    if (!power_shell.run(QStringList() << get_vmms_service << expand_property << "Status", &ps_output))
     {
         throw std::runtime_error("The Hyper-V service does not exist. Ensure Hyper-V is installed correctly.");
     }
 
     if (ps_output == "Stopped")
     {
-        power_shell.run(QStringList() << get_vmms_service << expand_property << "StartType", ps_output);
+        power_shell.run(QStringList() << get_vmms_service << expand_property << "StartType", &ps_output);
 
         if (ps_output == "Disabled")
         {
@@ -63,7 +63,7 @@ void ensure_hyperv_service_is_running(mp::PowerShell& power_shell)
         if (!power_shell.run(QStringList() << "Start-Service"
                                            << "-Name"
                                            << "vmms",
-                             ps_output))
+                             &ps_output))
         {
             throw std::runtime_error("Could not start the Hyper-V service");
         }
@@ -76,7 +76,7 @@ void check_host_hyperv_support(mp::PowerShell& power_shell)
 
     if (power_shell.run(QStringList() << "Get-CimInstance Win32_Processor" << expand_property
                                       << "VirtualizationFirmwareEnabled",
-                        ps_output))
+                        &ps_output))
     {
         if (ps_output == "False")
         {
@@ -87,7 +87,7 @@ void check_host_hyperv_support(mp::PowerShell& power_shell)
 
     if (power_shell.run(QStringList() << "Get-CimInstance Win32_Processor" << expand_property
                                       << "SecondLevelAddressTranslationExtensions",
-                        ps_output))
+                        &ps_output))
     {
         if (ps_output == "False")
         {
@@ -103,7 +103,7 @@ void check_hyperv_feature_enabled(mp::PowerShell& power_shell)
 
     // Check if Hyper-V is fully enabled
     if (power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V" << expand_property << "State",
-                        ps_output))
+                        &ps_output))
     {
         if (ps_output.isEmpty())
         {
@@ -115,7 +115,7 @@ void check_hyperv_feature_enabled(mp::PowerShell& power_shell)
         {
             power_shell.run(QStringList()
                                 << optional_feature << "Microsoft-Hyper-V-Hypervisor" << expand_property << "State",
-                            ps_output);
+                            &ps_output);
             if (ps_output == "Enabled")
                 return;
 
@@ -142,13 +142,14 @@ void check_hyperv_support()
                                      "'HKLM:\\Software\\Microsoft\\Windows NT\\CurrentVersion'"};
 
     // Check for Windows 10
-    power_shell.run(QStringList() << get_reg_version_info << expand_property << "CurrentMajorVersionNumber", ps_output);
+    power_shell.run(QStringList() << get_reg_version_info << expand_property << "CurrentMajorVersionNumber",
+                    &ps_output);
     if (ps_output.toInt() < 10)
         throw std::runtime_error("Multipass support for Hyper-V requires Windows 10 or newer");
     else if (ps_output == "10")
     {
         // Check if it's a version less than 1803; NB: comparing strings, as new style ReleaseId is e.g. "21H2"
-        power_shell.run(QStringList() << get_reg_version_info << expand_property << "ReleaseId", ps_output);
+        power_shell.run(QStringList() << get_reg_version_info << expand_property << "ReleaseId", &ps_output);
         if (ps_output < "1803")
             throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
     }
@@ -158,7 +159,7 @@ void check_hyperv_support()
     // If it's running under a different virtualized environment, we can't check if nesting is
     //   available, so the user is on their own and we'll bubble up any failures at `launch`.
     power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << expand_property << "HypervisorPresent",
-                    ps_output);
+                    &ps_output);
 
     QString hypervisor_present{ps_output};
     // Implies Hyper-V is not running (or any hypervisor for that matter).
@@ -296,7 +297,7 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 
     QString ps_output;
     QStringList resize_cmd = {"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_size};
-    if (!PowerShell::exec(resize_cmd, desc.vm_name, ps_output))
+    if (!PowerShell::exec(resize_cmd, desc.vm_name, &ps_output))
         throw std::runtime_error{error_msg_helper("Failed to resize instance image", ps_output)};
 }
 
@@ -338,7 +339,7 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
     ps_args << expand_property << "Name";
 
     QString ps_output;
-    if (!mp::PowerShell::exec(ps_args, "Hyper-V Switch Creation", ps_output) // TODO should probably cache PS processes
+    if (!mp::PowerShell::exec(ps_args, "Hyper-V Switch Creation", &ps_output) // TODO should probably cache PS processes
         || ps_output != switch_name)
         throw std::runtime_error{error_msg_helper("Could not create external switch", ps_output)};
 
@@ -358,7 +359,7 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
                                 mp::PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
-    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", ps_output))
+    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", &ps_output))
     {
         std::vector<mp::NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))

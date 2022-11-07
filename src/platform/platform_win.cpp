@@ -357,7 +357,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     static const auto ps_args = QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
-    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", ps_output))
+    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", &ps_output))
     {
         std::map<std::string, mp::NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
@@ -620,7 +620,10 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 
     if (handle != INVALID_HANDLE_VALUE)
     {
-        if (!SetFileTime(handle, nullptr, &(filetime_from(atime)), &(filetime_from(mtime))))
+        auto atime_filetime = filetime_from(atime);
+        auto mtime_filetime = filetime_from(mtime);
+
+        if (!SetFileTime(handle, nullptr, &atime_filetime, &mtime_filetime))
         {
             ret = GetLastError();
         }
@@ -638,7 +641,7 @@ QString mp::platform::Platform::get_username() const
 {
     QString username;
     mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
-                         "get-username", username);
+                         "get-username", &username);
     return username.section('\\', 1);
 }
 
@@ -754,7 +757,7 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
                       .split(' ', Qt::SkipEmptyParts);
 
     QString ps_output;
-    if (PowerShell::exec(ps_cmd, "Adapter description from name", ps_output))
+    if (PowerShell::exec(ps_cmd, "Adapter description from name", &ps_output))
     {
         auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts);
         if (output_lines.size() != 1)

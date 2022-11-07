@@ -133,7 +133,7 @@ bool SmbMountHandler::can_user_access_source(const QString& user)
                {QString{"(Get-Acl '%1').Access | ?{($_.IdentityReference -match '%2') -and ($_.FileSystemRights "
                         "-eq 'FullControl')}"}
                     .arg(source, user)},
-               "Get ACLs", output) &&
+               "Get ACLs", &output) &&
            !output.isEmpty();
 }
 

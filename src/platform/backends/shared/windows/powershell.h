@@ -38,9 +38,9 @@ public:
     explicit PowerShell(const std::string& name);
     ~PowerShell();
 
-    bool run(const QStringList& args, QString& output = QString(), bool whisper = false);
+    bool run(const QStringList& args, QString* output = nullptr, bool whisper = false);
 
-    static bool exec(const QStringList& args, const std::string& name, QString& output = QString());
+    static bool exec(const QStringList& args, const std::string& name, QString* output = nullptr);
 
     struct Snippets
     {
