@@ -20,8 +20,8 @@
 #include "daemon_config.h"
 #include "daemon_init_settings.h"
 
-#include <multipass/client_cert_store.h>
 #include <multipass/cli/client_common.h>
+#include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -162,7 +162,7 @@ void install_service()
                                         ),
                           "CreateService"};
 
-    SERVICE_DESCRIPTION description{"Provides a service to create and manage virtual machines"};
+    SERVICE_DESCRIPTION description{const_cast<char*>("Provides a service to create and manage virtual machines")};
     auto changed = ChangeServiceConfig2(service.get(), SERVICE_CONFIG_DESCRIPTION, &description);
     if (!changed)
         throw std::runtime_error(fmt::format("ChangeServiceConfig2 failed: '{}'", last_error_message()));
@@ -377,7 +377,7 @@ try // clang-format on
         if (cmd == "/svc")
         {
             logger->log(mpl::Level::info, "main", "calling service ctrl dispatcher");
-            std::array<SERVICE_TABLE_ENTRY, 2> table{{{"", service_main}, {nullptr, nullptr}}};
+            std::array<SERVICE_TABLE_ENTRY, 2> table{{{const_cast<char*>(""), service_main}, {nullptr, nullptr}}};
             // remove "/svc" from the list of arguments
             service_argv.erase(service_argv.begin() + 1);
             return StartServiceCtrlDispatcher(table.data());
