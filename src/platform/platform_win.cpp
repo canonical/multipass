@@ -246,7 +246,7 @@ std::string create_shadow_config_file(const QString& path)
 void save_profiles(const QString& path, const Json::Value& json_root)
 {
     std::string tmp_file_name = create_shadow_config_file(path);
-    auto tmp_file_removing_guard = sg::make_scope_guard([&tmp_file_name] {
+    auto tmp_file_removing_guard = sg::make_scope_guard([&tmp_file_name]() noexcept {
         std::error_code ec; // ignored, there's an exception in flight and we're in a dtor, so best-effort only
         std::filesystem::remove(tmp_file_name, ec);
     });

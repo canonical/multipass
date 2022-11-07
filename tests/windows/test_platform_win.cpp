@@ -81,10 +81,11 @@ auto guarded_fake_json(const char* contents)
     mock_stdpaths_locate(filename);
 
     json_file.setAutoRemove(false); // we need to release the file but keep it around, so that it can be overwritten
-    auto guard = sg::make_scope_guard([filename = filename.toStdString()] { // we have to remove it ourselves later on
-        std::error_code ec;
-        std::filesystem::remove(filename, ec);
-    });
+    auto guard =
+        sg::make_scope_guard([filename = filename.toStdString()]() noexcept { // we have to remove it ourselves later on
+            std::error_code ec;
+            std::filesystem::remove(filename, ec);
+        });
 
     return std::make_pair(filename, std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
 }
