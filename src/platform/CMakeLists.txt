@@ -26,6 +26,7 @@ function(add_target TARGET_NAME)
       platform_proprietary.cpp
       platform_shared.cpp
       platform_win.cpp)
+    qt6_disable_unicode_defines(${TARGET_NAME})
     target_link_libraries(${TARGET_NAME}
       jsoncpp_static
       shared_win
