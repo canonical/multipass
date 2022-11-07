@@ -129,7 +129,7 @@ QStringList get_bridged_interfaces(const QString& if_name, const QString& ifconf
     int start = ifconfig_output.indexOf(
         QRegularExpression{QStringLiteral("^%1:").arg(if_name), QRegularExpression::MultilineOption});
     int end = ifconfig_output.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption), start + 1);
-    QStringRef ifconfig_entry = ifconfig_output.midRef(start, end - start);
+    auto ifconfig_entry = ifconfig_output.mid(start, end - start);
 
     // Search for the bridged interfaces in the resulting string ref.
     const auto pattern = QStringLiteral("^[ \\t]+member: (?<member>\\w+) flags.*$");
