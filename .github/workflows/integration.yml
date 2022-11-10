@@ -83,7 +83,7 @@ jobs:
             ${{ matrix.vm == 'windows-10' && 'username: ieuser' || '' }}
             ${{ matrix.vm == 'windows-11' && 'username: user' || '' }}
             vmx_config:
-              memsize: 2048
+              memsize: 4096
               vhv.enable: true
               vpmc.enable: true
 
