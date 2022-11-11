@@ -241,6 +241,15 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
             }
         }
     }
+    else
+    {
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("{}:{} {}(): adding default uid mapping", __FILE__, __LINE__, __FUNCTION__));
+
+        auto uid_pair = mount_maps->add_uid_mappings();
+        uid_pair->set_host_id(mcp::getuid());
+        uid_pair->set_instance_id(mp::default_id);
+    }
 
     if (parser->isSet(gid_mappings))
     {
@@ -272,15 +281,10 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
             }
         }
     }
-
-    if (!parser->isSet(uid_mappings) && !parser->isSet(gid_mappings))
+    else
     {
         mpl::log(mpl::Level::debug, category,
-                 fmt::format("{}:{} {}(): adding default uid/gid mapping", __FILE__, __LINE__, __FUNCTION__));
-
-        auto uid_pair = mount_maps->add_uid_mappings();
-        uid_pair->set_host_id(mcp::getuid());
-        uid_pair->set_instance_id(mp::default_id);
+                 fmt::format("{}:{} {}(): adding default gid mapping", __FILE__, __LINE__, __FUNCTION__));
 
         auto gid_pair = mount_maps->add_gid_mappings();
         gid_pair->set_host_id(mcp::getgid());
