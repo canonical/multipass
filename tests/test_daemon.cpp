@@ -329,6 +329,11 @@ struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<st
 {
 };
 
+struct DaemonCreateLaunchPollinateDataTestSuite : public Daemon,
+                                                  public WithParamInterface<std::tuple<std::string, std::string>>
+{
+};
+
 struct DaemonCreateLaunchAliasTestSuite : public Daemon, public FakeAliasConfig, public WithParamInterface<std::string>
 {
     DaemonCreateLaunchAliasTestSuite()
@@ -595,16 +600,18 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_config)
+TEST_P(DaemonCreateLaunchPollinateDataTestSuite, adds_pollinate_user_agent_to_cloud_init_config)
 {
+    const auto [command, alias] = GetParam();
     auto mock_factory = use_a_mock_vm_factory();
     std::vector<std::pair<std::string, std::string>> const& expected_pollinate_map{
         {"path", "/etc/pollinate/add-user-agent"},
         {"content", fmt::format("multipass/version/{} # written by Multipass\n"
                                 "multipass/driver/mock-1234 # written by Multipass\n"
-                                "multipass/host/{}-{} # written by Multipass\n",
-                                multipass::version_string, QSysInfo::productType(), QSysInfo::productVersion())},
-    };
+                                "multipass/host/{}-{} # written by Multipass\n"
+                                "multipass/alias/{} # written by Multipass\n",
+                                multipass::version_string, QSysInfo::productType(), QSysInfo::productVersion(),
+                                alias.empty() ? "default" : alias)}};
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
@@ -620,7 +627,7 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_pollinate_user_agent_to_cloud_init_conf
                 }
             }));
 
-    send_command({GetParam()});
+    send_command({command, alias});
 }
 
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
@@ -1232,6 +1239,8 @@ TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
 }
 
 INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "test_create"));
+INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchPollinateDataTestSuite,
+                         Combine(Values("launch", "test_create"), Values("foo", "")));
 INSTANTIATE_TEST_SUITE_P(Daemon, MinSpaceRespectedSuite,
                          Combine(Values("test_create", "launch"), Values("--memory", "--disk"),
                                  Values("1024m", "2Gb", "987654321")));

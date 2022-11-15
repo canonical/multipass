@@ -104,6 +104,7 @@ public:
 private:
     multipass::ParseCode parse_args(multipass::ArgParser* parser)
     {
+        parser->addPositionalArgument("image", "", "");
         QCommandLineOption diskOption("disk", "", "disk", "");
         QCommandLineOption memOption("memory", "", "memory", "");
         parser->addOptions({diskOption, memOption});
@@ -111,6 +112,9 @@ private:
         auto status = parser->commandParse(this);
         if (status == multipass::ParseCode::Ok)
         {
+            if (!parser->positionalArguments().isEmpty())
+                request.set_image(parser->positionalArguments().first().toStdString());
+
             if (parser->isSet(memOption))
                 request.set_mem_size(parser->value(memOption).toStdString());
 
