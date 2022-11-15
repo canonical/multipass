@@ -146,7 +146,7 @@ TEST_F(TestDaemonMount, invalidTargetPathFails)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_all_mounts_for_instance(_)).Times(1);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -174,7 +174,7 @@ TEST_F(TestDaemonMount, mountExistsDoesNotTryMount)
     });
 
     EXPECT_CALL(*mock_mount_handler, has_instance_already_mounted(_, _)).WillOnce(Return(true));
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -207,7 +207,7 @@ TEST_F(TestDaemonMount, skipStartMountIfInstanceIsNotRunning)
     EXPECT_CALL(*mock_mount_handler, has_instance_already_mounted(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_mount_handler, init_mount(_, _, _)).Times(1);
     EXPECT_CALL(*mock_mount_handler, start_mount(_, _, _, _)).Times(0);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -227,7 +227,7 @@ TEST_F(TestDaemonMount, mountAlreadyDefinedLogsAndContinues)
 {
     std::unordered_map<std::string, mp::VMMount> mounts;
     mounts.emplace(fake_target_path,
-                   mp::VMMount{mount_dir.path().toStdString(), {}, {}, mp::VMMount::MountType::SSHFS});
+                   mp::VMMount{mount_dir.path().toStdString(), {}, {}, mp::VMMount::MountType::Classic});
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
@@ -242,7 +242,7 @@ TEST_F(TestDaemonMount, mountAlreadyDefinedLogsAndContinues)
     EXPECT_CALL(*mock_mount_handler, has_instance_already_mounted(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_mount_handler, init_mount(_, _, _)).Times(1);
     EXPECT_CALL(*mock_mount_handler, start_mount(_, _, _, _)).Times(0);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -278,7 +278,7 @@ TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
     EXPECT_CALL(*mock_mount_handler, has_instance_already_mounted(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_mount_handler, init_mount(_, _, _)).Times(1);
     EXPECT_CALL(*mock_mount_handler, start_mount(_, _, _, _)).Times(1);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -309,7 +309,7 @@ TEST_F(TestDaemonMount, mountFailsSshfsMissing)
     EXPECT_CALL(*mock_mount_handler, has_instance_already_mounted(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_mount_handler, init_mount(_, _, _)).Times(1);
     EXPECT_CALL(*mock_mount_handler, start_mount(_, _, _, _)).WillOnce(Throw(mp::SSHFSMissingError{}));
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -343,7 +343,7 @@ TEST_F(TestDaemonMount, mountFailsErrorMounting)
     EXPECT_CALL(*mock_mount_handler, has_instance_already_mounted(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_mount_handler, init_mount(_, _, _)).Times(1);
     EXPECT_CALL(*mock_mount_handler, start_mount(_, _, _, _)).WillOnce(Throw(std::runtime_error(error_msg)));
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -365,7 +365,7 @@ TEST_F(TestDaemonMount, expectedUidsGidsPassedToInitMount)
 {
     const auto host_uid{1000}, instance_uid{1001}, host_gid{1002}, instance_gid{1003};
     const mp::VMMount mount{mount_dir.path().toStdString(), mp::id_mappings{{host_gid, instance_gid}},
-                            mp::id_mappings{{host_uid, instance_uid}}, mp::VMMount::MountType::SSHFS};
+                            mp::id_mappings{{host_uid, instance_uid}}, mp::VMMount::MountType::Classic};
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
@@ -379,7 +379,7 @@ TEST_F(TestDaemonMount, expectedUidsGidsPassedToInitMount)
 
     EXPECT_CALL(*mock_mount_handler, has_instance_already_mounted(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_mount_handler, init_mount(_, _, mount)).Times(1);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -429,5 +429,5 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
                                    StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(), StrEq("The experimental mounts feature is not implemented on this backend."));
+    EXPECT_THAT(status.error_message(), StrEq("The native mounts feature is not implemented on this backend."));
 }

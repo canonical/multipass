@@ -1352,11 +1352,11 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
     std::unordered_map<std::string, mp::VMMount> mounts;
 
     mounts.emplace("target_1",
-                   mp::VMMount{temp_mount_1, uid_mappings_1, gid_mappings_1, mp::VMMount::MountType::SSHFS});
+                   mp::VMMount{temp_mount_1, uid_mappings_1, gid_mappings_1, mp::VMMount::MountType::Classic});
     mounts.emplace("target_2",
-                   mp::VMMount{temp_mount_2, uid_mappings_2, gid_mappings_2, mp::VMMount::MountType::SSHFS});
+                   mp::VMMount{temp_mount_2, uid_mappings_2, gid_mappings_2, mp::VMMount::MountType::Classic});
     mounts.emplace("target_3",
-                   mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3, mp::VMMount::MountType::SSHFS});
+                   mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3, mp::VMMount::MountType::Classic});
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
@@ -1388,7 +1388,7 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
     mp::id_mappings gid_mappings{{1002, 0}, {1000, 2}};
     std::unordered_map<std::string, mp::VMMount> mounts;
     mounts.emplace("Home", mp::VMMount{mpt::TempDir().path().toStdString(), uid_mappings, gid_mappings,
-                                       mp::VMMount::MountType::SSHFS});
+                                       mp::VMMount::MountType::Classic});
 
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents("52:54:00:73:76:29", std::vector<mp::NetworkInterface>{}, mounts));
