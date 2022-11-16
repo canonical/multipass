@@ -511,7 +511,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             {
                 error_details = fmt::format("Invalid memory size value supplied: {}.", request.mem_size());
             }
-            else if (error == LaunchError::INVALID_HOSTNAME)
+            else if (error == LaunchError::INVALID_HOSTNAME || error == LaunchError::INSTANCE_EXISTS)
             {
                 error_details = fmt::format("Invalid instance name supplied: {}", request.instance_name());
             }
