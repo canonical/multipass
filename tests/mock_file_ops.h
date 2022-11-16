@@ -30,11 +30,19 @@ class MockFileOps : public FileOps
 public:
     using FileOps::FileOps;
 
+    // QDir mock methods
     MOCK_CONST_METHOD0(current, QDir());
     MOCK_CONST_METHOD1(exists, bool(const QDir&));
     MOCK_CONST_METHOD1(isReadable, bool(const QDir&));
     MOCK_CONST_METHOD2(mkpath, bool(const QDir&, const QString& dirName));
     MOCK_CONST_METHOD2(rmdir, bool(QDir&, const QString& dirName));
+
+    // QFileInfo mock methods
+    MOCK_CONST_METHOD1(exists, bool(const QFileInfo&));
+    MOCK_CONST_METHOD1(isDir, bool(const QFileInfo&));
+    MOCK_CONST_METHOD1(isReadable, bool(const QFileInfo&));
+
+    // QFile mock methods
     MOCK_CONST_METHOD1(exists, bool(const QFile&));
     MOCK_CONST_METHOD1(is_open, bool(const QFile&));
     MOCK_CONST_METHOD2(open, bool(QFileDevice&, QIODevice::OpenMode));
@@ -50,9 +58,12 @@ public:
     MOCK_CONST_METHOD1(size, qint64(QFile&));
     MOCK_CONST_METHOD3(write, qint64(QFile&, const char*, qint64));
     MOCK_CONST_METHOD2(write, qint64(QFileDevice&, const QByteArray&));
-    MOCK_CONST_METHOD3(open, void(std::fstream&, const char*, std::ios_base::openmode));
+
+    // QSaveFile mock methods
     MOCK_CONST_METHOD1(commit, bool(QSaveFile&));
 
+    // Mock std methods
+    MOCK_CONST_METHOD3(open, void(std::fstream&, const char*, std::ios_base::openmode));
     MOCK_METHOD(std::unique_ptr<std::ostream>, open_write, (const fs::path& path), (override, const));
     MOCK_METHOD(std::unique_ptr<std::istream>, open_read, (const fs::path& path), (override, const));
     MOCK_METHOD(bool, exists, (const fs::path& path, std::error_code& err), (override, const));

@@ -390,7 +390,7 @@ TEST_F(SftpServer, opendir_not_readable_fails)
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, isReadable(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, isReadable(A<const QDir&>())).WillOnce(Return(false));
 
     auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     auto msg = make_msg(SFTP_OPENDIR);

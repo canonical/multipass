@@ -356,19 +356,19 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
             // Validate source directory of client side mounts
             QFileInfo source_dir(mount_source);
-            if (!source_dir.exists())
+            if (!MP_FILEOPS.exists(source_dir))
             {
                 cerr << "Mount source path \"" << mount_source.toStdString() << "\" does not exist\n";
                 return ParseCode::CommandLineError;
             }
 
-            if (!source_dir.isDir())
+            if (!MP_FILEOPS.isDir(source_dir))
             {
                 cerr << "Mount source path \"" << mount_source.toStdString() << "\" is not a directory\n";
                 return ParseCode::CommandLineError;
             }
 
-            if (!source_dir.isReadable())
+            if (!MP_FILEOPS.isReadable(source_dir))
             {
                 cerr << "Mount source path \"" << mount_source.toStdString() << "\" is not readable\n";
                 return ParseCode::CommandLineError;
