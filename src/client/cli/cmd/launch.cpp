@@ -353,6 +353,27 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             auto mount_source = value.section(':', 0, colon_split);
             auto mount_target = value.section(':', colon_split + 1);
             mount_target = mount_target.isEmpty() ? mount_source : mount_target;
+
+            // Validate source directory of client side mounts
+            QFileInfo source_dir(mount_source);
+            if (!source_dir.exists())
+            {
+                cerr << "Mount source path \"" << mount_source.toStdString() << "\" does not exist\n";
+                return ParseCode::CommandLineError;
+            }
+
+            if (!source_dir.isDir())
+            {
+                cerr << "Mount source path \"" << mount_source.toStdString() << "\" is not a directory\n";
+                return ParseCode::CommandLineError;
+            }
+
+            if (!source_dir.isReadable())
+            {
+                cerr << "Mount source path \"" << mount_source.toStdString() << "\" is not readable\n";
+                return ParseCode::CommandLineError;
+            }
+
             mount_routes.emplace_back(mount_source, mount_target);
         }
     }
