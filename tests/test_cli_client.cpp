@@ -466,7 +466,7 @@ TEST_F(Client, handles_remote_handler_exception)
     std::stringstream fake_cerr;
     auto got = send_command({cmd, key}, trash_stream, fake_cerr);
 
-    EXPECT_THAT(fake_cerr.str(), AllOf(HasSubstr(cmd), HasSubstr(msg), HasSubstr(details)));
+    EXPECT_THAT(fake_cerr.str(), AllOf(HasSubstr(cmd), HasSubstr(msg), Not(HasSubstr(details))));
     EXPECT_EQ(got, mp::CommandFail);
 }
 
