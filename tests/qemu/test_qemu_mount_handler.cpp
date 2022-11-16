@@ -306,7 +306,7 @@ TEST_F(QemuMountHandlerTest, mountFailsOnNotStoppedState)
 
     mp::QemuMountHandler qemu_mount_handler(key_provider);
 
-    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Performance};
+    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
 
     EXPECT_THROW(
         try { qemu_mount_handler.init_mount(&vm, default_target, mount); } catch (const std::runtime_error& e) {
@@ -323,7 +323,7 @@ TEST_F(QemuMountHandlerTest, mountFailsOnNonExistentPath)
 
     mp::QemuMountHandler qemu_mount_handler(key_provider);
 
-    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Performance};
+    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
 
     EXPECT_THROW(
         try { qemu_mount_handler.init_mount(&vm, default_target, mount); } catch (const std::runtime_error& e) {
@@ -340,7 +340,7 @@ TEST_F(QemuMountHandlerTest, mountFailsOnMultipleUIDs)
 
     mp::QemuMountHandler qemu_mount_handler(key_provider);
 
-    const mp::VMMount mount{default_source, {{1, 2}, {3, 4}}, {{5, -1}, {6, 10}}, mp::VMMount::MountType::Performance};
+    const mp::VMMount mount{default_source, {{1, 2}, {3, 4}}, {{5, -1}, {6, 10}}, mp::VMMount::MountType::Native};
 
     EXPECT_THROW(
         try { qemu_mount_handler.init_mount(&vm, default_target, mount); } catch (const std::runtime_error& e) {
@@ -357,7 +357,7 @@ TEST_F(QemuMountHandlerTest, hasInstanceAlreadyMountedReturnsTrueWhenFound)
 
     mp::QemuMountHandler qemu_mount_handler(key_provider);
 
-    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Performance};
+    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
     EXPECT_CALL(vm, add_vm_mount(default_target, mount)).WillOnce(Return());
 
     qemu_mount_handler.init_mount(&vm, default_target, mount);
@@ -372,7 +372,7 @@ TEST_F(QemuMountHandlerTest, hasInstanceAlreadyMountedReturnsFalseWhenFound)
 
     mp::QemuMountHandler qemu_mount_handler(key_provider);
 
-    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Performance};
+    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
     EXPECT_CALL(vm, add_vm_mount(default_target, mount)).WillOnce(Return());
 
     qemu_mount_handler.init_mount(&vm, default_target, mount);
@@ -426,7 +426,7 @@ TEST_F(QemuMountHandlerTest, stopAllMountsDeletesAllMounts)
     EXPECT_CALL(vm, add_vm_mount(_, _)).WillOnce(Return());
     EXPECT_CALL(vm, delete_vm_mount(_)).WillOnce(Return());
 
-    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Performance};
+    const mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
     mp::QemuMountHandler qemu_mount_handler(key_provider);
 
     qemu_mount_handler.init_mount(&vm, default_target, mount);
