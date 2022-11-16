@@ -114,14 +114,29 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     return {name, image, false, request->remote_name(), query_type, true};
 }
 
-auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& time_zone,
-                                   const std::string& username, const std::string& backend_version_string)
+auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const std::string& username,
+                                   const std::string& backend_version_string, const mp::CreateRequest* request)
 {
     auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
+    QString pollinate_alias = QString::fromStdString(request->image());
 
+    if (pollinate_alias.isEmpty())
+    {
+        pollinate_alias = "default";
+    }
+    else if (pollinate_alias.startsWith("http"))
+    {
+        pollinate_alias = "http";
+    }
+    else if (pollinate_alias.startsWith("file"))
+    {
+        pollinate_alias = "file";
+    }
+
+    auto remote_name = request->remote_name();
     auto config = YAML::Load(mp::base_cloud_init_config);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
-    config["timezone"] = time_zone;
+    config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
 
     auto pollinate_user_agent_string =
@@ -129,6 +144,8 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
     pollinate_user_agent_string +=
         fmt::format("multipass/host/{} # written by Multipass\n", multipass::platform::host_version());
+    pollinate_user_agent_string += fmt::format("multipass/alias/{}{} # written by Multipass\n",
+                                               !remote_name.empty() ? remote_name + ":" : "", pollinate_alias);
 
     YAML::Node pollinate_user_agent_node;
     pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
@@ -1455,12 +1472,12 @@ try // clang-format on
 {
     mpl::ClientLogger<MountReply, MountRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                        server};
-    auto mount_type = request->mount_type() == mp::MountRequest_MountType_CLASSIC ? mp::VMMount::MountType::SSHFS
-                                                                                  : mp::VMMount::MountType::Performance;
+    auto mount_type = request->mount_type() == mp::MountRequest_MountType_CLASSIC ? mp::VMMount::MountType::Classic
+                                                                                  : mp::VMMount::MountType::Native;
 
-    if (mount_type == mp::VMMount::MountType::Performance &&
-        (config->mount_handlers.find(mp::VMMount::MountType::Performance) == config->mount_handlers.end()))
-        throw mp::NotImplementedOnThisBackendException("experimental mounts");
+    if (mount_type == mp::VMMount::MountType::Native &&
+        (config->mount_handlers.find(mp::VMMount::MountType::Native) == config->mount_handlers.end()))
+        throw mp::NotImplementedOnThisBackendException("native mounts");
 
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
     {
@@ -2485,8 +2502,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 "",
                 YAML::Node{},
                 YAML::Node{},
-                make_cloud_init_vendor_config(*config->ssh_key_provider, request->time_zone(), config->ssh_username,
-                                              config->factory->get_backend_version_string().toStdString()),
+                make_cloud_init_vendor_config(*config->ssh_key_provider, config->ssh_username,
+                                              config->factory->get_backend_version_string().toStdString(), request),
                 YAML::Node{}};
 
             ClientLaunchData client_launch_data;
