@@ -119,7 +119,7 @@ TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
     EXPECT_CALL(mock_vm, ssh_hostname()).Times(2);
     EXPECT_CALL(mock_vm, ssh_username()).Times(2);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&mock_vm, target_path, mount);
     sshfs_mount_handler.start_mount(&mock_vm, &server, target_path);
 
@@ -163,7 +163,7 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_ex
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
 
     EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, target_path), mp::SSHFSMissingError);
@@ -196,7 +196,7 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_causes_runtime_exception)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
 
     EXPECT_THROW(
@@ -226,7 +226,7 @@ TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
     sshfs_mount_handler.start_mount(&vm, &server, target_path);
 
@@ -264,9 +264,9 @@ TEST_F(SSHFSMountHandlerTest, stop_all_mounts_terminates_all_sshfs_processes)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount1{"/source/one", gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS},
-        mount2{"/source/two", gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS},
-        mount3{"/source/three", gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount1{"/source/one", gid_mappings, uid_mappings, mp::VMMount::MountType::Classic},
+        mount2{"/source/two", gid_mappings, uid_mappings, mp::VMMount::MountType::Classic},
+        mount3{"/source/three", gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, "/target/one", mount1);
     sshfs_mount_handler.init_mount(&vm, "/target/two", mount2);
     sshfs_mount_handler.init_mount(&vm, "/target/three", mount3);
@@ -287,7 +287,7 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_true_when_fou
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
     sshfs_mount_handler.start_mount(&vm, &server, target_path);
 
@@ -303,7 +303,7 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_false_when_no
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
     sshfs_mount_handler.start_mount(&vm, &server, target_path);
 
@@ -319,7 +319,7 @@ TEST_F(SSHFSMountHandlerTest, has_instance_already_mounted_returns_false_when_no
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
     sshfs_mount_handler.start_mount(&vm, &server, target_path);
 
@@ -337,7 +337,7 @@ TEST_F(SSHFSMountHandlerTest, mount_fails_on_nonexist_directory)
 
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     MP_EXPECT_THROW_THAT(sshfs_mount_handler.init_mount(&vm, target_path, mount), std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("Mount path \"{}\" does not exist.", source_path))));
 }
@@ -352,7 +352,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_which_snap_fails)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
 
     EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, target_path), std::runtime_error);
@@ -369,7 +369,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_no_snap_dir_fails)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
 
     EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, target_path), std::runtime_error);
@@ -387,7 +387,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_snap_install_fails)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
 
     EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, target_path), mp::SSHFSMissingError);
@@ -444,7 +444,7 @@ TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
 
     mp::SSHFSMountHandler sshfs_mount_handler(key_provider);
 
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::SSHFS};
+    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     sshfs_mount_handler.init_mount(&vm, target_path, mount);
 
     EXPECT_THROW(sshfs_mount_handler.start_mount(&vm, &server, target_path, std::chrono::milliseconds(1)),

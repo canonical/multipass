@@ -188,11 +188,11 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     if (mount_handlers.empty())
     {
-        mount_handlers[mp::VMMount::MountType::SSHFS] = std::make_unique<SSHFSMountHandler>(*ssh_key_provider);
+        mount_handlers[mp::VMMount::MountType::Classic] = std::make_unique<SSHFSMountHandler>(*ssh_key_provider);
 
         try
         {
-            mount_handlers[mp::VMMount::MountType::Performance] =
+            mount_handlers[mp::VMMount::MountType::Native] =
                 factory->create_performance_mount_handler(*ssh_key_provider);
         }
         catch (const NotImplementedOnThisBackendException& e)

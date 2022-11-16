@@ -104,6 +104,7 @@ public:
 private:
     multipass::ParseCode parse_args(multipass::ArgParser* parser)
     {
+        parser->addPositionalArgument("image", "", "");
         QCommandLineOption diskOption("disk", "", "disk", "");
         QCommandLineOption memOption("memory", "", "memory", "");
         parser->addOptions({diskOption, memOption});
@@ -111,6 +112,9 @@ private:
         auto status = parser->commandParse(this);
         if (status == multipass::ParseCode::Ok)
         {
+            if (!parser->positionalArguments().isEmpty())
+                request.set_image(parser->positionalArguments().first().toStdString());
+
             if (parser->isSet(memOption))
                 request.set_mem_size(parser->value(memOption).toStdString());
 
@@ -315,7 +319,7 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     config_builder.logger = std::make_unique<StubLogger>();
     config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
     config_builder.blueprint_provider = std::make_unique<StubVMBlueprintProvider>();
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::make_unique<StubMountHandler>();
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::make_unique<StubMountHandler>();
 }
 
 void mpt::DaemonTestFixture::SetUp()
