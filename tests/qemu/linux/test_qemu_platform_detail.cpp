@@ -157,13 +157,12 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
     // Tests the order and correctness of the arguments returned
     std::vector<QString> expected_platform_args
     {
-        "--enable-kvm",
 #if defined Q_PROCESSOR_X86
-            "-bios", "OVMF.fd",
+        "-bios", "OVMF.fd",
 #elif defined Q_PROCESSOR_ARM
-            "-bios", "QEMU_EFI.fd",
+        "-bios", "QEMU_EFI.fd",
 #endif
-            "-cpu", "host", "-nic",
+            "--enable-kvm", "-cpu", "host", "-nic",
             QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
                                                tap_name, vm_desc.default_mac_address))
     };
