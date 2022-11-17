@@ -2516,16 +2516,32 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             bool launch_from_blueprint{true};
             try
             {
-                query = config->blueprint_provider->fetch_blueprint_for(request->image(), vm_desc, client_launch_data);
+                auto image = request->image();
+                auto image_qstr = QString::fromStdString(image);
+
+                // If requesting to launch from a yaml file, we assume it contains a Blueprint.
+                if (image_qstr.startsWith("file://") &&
+                    (image_qstr.toLower().endsWith(".yaml") || image_qstr.toLower().endsWith(".yml")))
+                {
+                    auto file_path = image_qstr.remove(0, 7);
+                    auto blueprint_name = QFile(file_path).fileName().chopped(5).toStdString();
+
+                    query = config->blueprint_provider->blueprint_from_file(file_path.toStdString(), blueprint_name,
+                                                                            vm_desc, client_launch_data);
+                }
+                else
+                {
+                    query = config->blueprint_provider->fetch_blueprint_for(image, vm_desc, client_launch_data);
+                }
                 query.name = name;
 
                 // Aliases and default workspace are named in function of the instance name in the Blueprint. If the
                 // user asked for a different name, it will be necessary to change the alias definitions and the
                 // workspace name to reflect it.
-                if (name != request->image())
+                if (name != image)
                 {
                     for (auto& alias_to_define : client_launch_data.aliases_to_be_created)
-                        if (alias_to_define.second.instance == request->image())
+                        if (alias_to_define.second.instance == image)
                         {
                             mpl::log(mpl::Level::trace, category,
                                      fmt::format("Renaming instance on alias \"{}\" from \"{}\" to \"{}\"",
@@ -2534,7 +2550,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                         }
 
                     for (auto& workspace_to_create : client_launch_data.workspaces_to_be_created)
-                        if (workspace_to_create == request->image())
+                        if (workspace_to_create == image)
                         {
                             mpl::log(mpl::Level::trace, category,
                                      fmt::format("Renaming workspace \"{}\" to \"{}\"", workspace_to_create, name));

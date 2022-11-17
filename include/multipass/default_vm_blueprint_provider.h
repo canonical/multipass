@@ -49,6 +49,8 @@ public:
 
     Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc,
                               ClientLaunchData& client_launch_data) override;
+    Query blueprint_from_file(const std::string& path, const std::string& blueprint_name,
+                              VirtualMachineDescription& vm_desc, ClientLaunchData& client_launch_data) override;
     VMImageInfo info_for(const std::string& blueprint_name) override;
     std::vector<VMImageInfo> all_blueprints() override;
     std::string name_from_blueprint(const std::string& blueprint_name) override;
