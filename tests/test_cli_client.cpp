@@ -1239,18 +1239,20 @@ TEST_F(Client, launchCmdMountOptionFailsOnInvalidDir)
                      trash_stream, err),
         mp::ReturnCode::CommandLineError);
     EXPECT_THAT(err.str(), HasSubstr(fmt::format("Mount source path \"{}\" does not exist", fake_source)));
+    err.clear();
 
     EXPECT_EQ(
         send_command({"launch", "--name", instance_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)},
                      trash_stream, err),
         mp::ReturnCode::CommandLineError);
-    EXPECT_THAT(err.str(), HasSubstr(fmt::format("Mount source path \"{}\" does not exist", fake_source)));
+    EXPECT_THAT(err.str(), HasSubstr(fmt::format("Mount source path \"{}\" is not a directory", fake_source)));
+    err.clear();
 
     EXPECT_EQ(
         send_command({"launch", "--name", instance_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)},
                      trash_stream, err),
         mp::ReturnCode::CommandLineError);
-    EXPECT_THAT(err.str(), HasSubstr(fmt::format("Mount source path \"{}\" does not exist", fake_source)));
+    EXPECT_THAT(err.str(), HasSubstr(fmt::format("Mount source path \"{}\" is not readable", fake_source)));
 }
 
 TEST_F(Client, launch_cmd_petenv_mount_option_override_home)
