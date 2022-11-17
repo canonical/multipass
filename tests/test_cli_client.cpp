@@ -42,6 +42,7 @@
 #include <src/client/cli/cmd/remote_settings_handler.h>
 #include <src/daemon/daemon_rpc.h>
 
+#include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
@@ -58,6 +59,7 @@
 #include <utility>
 
 namespace mp = multipass;
+namespace mcp = multipass::cli::platform;
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -227,6 +229,44 @@ struct Client : public Test
             Property(&mp::MountRequest::target_paths, AllOf(Contains(target_info_matcher), SizeIs(1)));
 
         return AllOf(automount_source_matcher, automount_target_matcher);
+    }
+
+    static auto make_mount_id_mappings_matcher(const mp::id_mappings& expected_uid_mappings,
+                                               const mp::id_mappings& expected_gid_mappings)
+    {
+        auto compare_uid_map = [expected_uid_mappings](auto request_uid_mappings) {
+            auto mappings_size = expected_uid_mappings.size();
+            if (mappings_size != (decltype(mappings_size))request_uid_mappings.size())
+                return false;
+
+            for (decltype(mappings_size) i = 0; i < mappings_size; ++i)
+                if (expected_uid_mappings[i].first != request_uid_mappings.at(i).host_id() ||
+                    expected_uid_mappings[i].second != request_uid_mappings.at(i).instance_id())
+                    return false;
+
+            return true;
+        };
+
+        const auto uid_map_matcher = Property(&mp::MountRequest::mount_maps,
+                                              Property(&mp::MountMaps::uid_mappings, ResultOf(compare_uid_map, true)));
+
+        auto compare_gid_map = [expected_gid_mappings](auto request_gid_mappings) {
+            auto mappings_size = expected_gid_mappings.size();
+            if (mappings_size != (decltype(mappings_size))request_gid_mappings.size())
+                return false;
+
+            for (decltype(mappings_size) i = 0; i < mappings_size; ++i)
+                if (expected_gid_mappings[i].first != request_gid_mappings.at(i).host_id() ||
+                    expected_gid_mappings[i].second != request_gid_mappings.at(i).instance_id())
+                    return false;
+
+            return true;
+        };
+
+        const auto gid_map_matcher = Property(&mp::MountRequest::mount_maps,
+                                              Property(&mp::MountMaps::gid_mappings, ResultOf(compare_gid_map, true)));
+
+        return AllOf(uid_map_matcher, gid_map_matcher);
     }
 
     auto make_launch_instance_matcher(const std::string& instance_name)
@@ -1233,6 +1273,48 @@ TEST_F(Client, launch_cmd_cloudinit_url)
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
     EXPECT_EQ(send_command({"launch", "--cloud-init", fake_url.toStdString()}), mp::ReturnCode::Ok);
 }
+
+typedef typename std::tuple<mp::id_mappings, mp::id_mappings, mp::id_mappings, mp::id_mappings> id_test_tuples;
+struct MountIdMappingsTest : public Client, public WithParamInterface<id_test_tuples>
+{
+};
+
+TEST_P(MountIdMappingsTest, mount_cmd_id_mappings)
+{
+    const QTemporaryDir fake_directory{};
+    const auto fake_source = fake_directory.path().toStdString();
+    const auto fake_target = "instance_name:mounted_folder";
+
+    auto [cmdline_uid_mappings, cmdline_gid_mappings, expected_uid_mappings, expected_gid_mappings] = GetParam();
+
+    const auto id_mappings_matcher = make_mount_id_mappings_matcher(expected_uid_mappings, expected_gid_mappings);
+
+    EXPECT_CALL(mock_daemon, mount)
+        .WillOnce(WithArg<1>(check_request_and_return<mp::MountReply, mp::MountRequest>(id_mappings_matcher, ok)));
+
+    std::vector<std::string> cmdline{"mount", fake_source, fake_target};
+
+    for (const auto& uid_element : cmdline_uid_mappings)
+    {
+        cmdline.push_back("--uid-map");
+        cmdline.push_back(std::to_string(uid_element.first) + ":" + std::to_string(uid_element.second));
+    }
+
+    for (const auto& gid_element : cmdline_gid_mappings)
+    {
+        cmdline.push_back("--gid-map");
+        cmdline.push_back(std::to_string(gid_element.first) + ":" + std::to_string(gid_element.second));
+    }
+
+    EXPECT_EQ(send_command(cmdline), mp::ReturnCode::Ok);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Client, MountIdMappingsTest,
+    Values(id_test_tuples{{{500, 600}, {300, 400}}, {{700, 800}}, {{500, 600}, {300, 400}}, {{700, 800}}},
+           id_test_tuples{{}, {{200, 300}}, {{mcp::getuid(), mp::default_id}}, {{200, 300}}},
+           id_test_tuples{{{100, 200}}, {}, {{100, 200}}, {{mcp::getgid(), mp::default_id}}},
+           id_test_tuples{{}, {}, {{mcp::getuid(), mp::default_id}}, {{mcp::getgid(), mp::default_id}}}));
 
 struct TestInvalidNetworkOptions : Client, WithParamInterface<std::vector<std::string>>
 {

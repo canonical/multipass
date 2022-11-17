@@ -83,7 +83,7 @@ jobs:
             ${{ matrix.vm == 'windows-10' && 'username: ieuser' || '' }}
             ${{ matrix.vm == 'windows-11' && 'username: user' || '' }}
             vmx_config:
-              memsize: 2048
+              memsize: 4096
               vhv.enable: true
               vpmc.enable: true
 
@@ -195,7 +195,7 @@ jobs:
               _run $MP set local.driver=${{ matrix.driver }}
 
               # Wait for the daemon to restart
-              _retry_grep 12 5 '^${{ matrix.driver }}$' _run $MP get local.driver
+              _retry_grep 12 5 '^${{ matrix.driver }}' _run $MP get local.driver
 
               # and for the streams to flow down
               _retry_grep 12 5 "\w,lts\W" _run $MP find

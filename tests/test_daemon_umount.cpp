@@ -90,7 +90,7 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_all_mounts_for_instance(mock_instance_name)).Times(2);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -107,7 +107,7 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
 TEST_F(TestDaemonUmount, unmountsMountedTargetWhenInstanceRunning)
 {
     std::unordered_map<std::string, mp::VMMount> mounts;
-    mounts.emplace(fake_target_path, mp::VMMount{"foo", {}, {}, mp::VMMount::MountType::SSHFS});
+    mounts.emplace(fake_target_path, mp::VMMount{"foo", {}, {}, mp::VMMount::MountType::Classic});
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
@@ -118,7 +118,7 @@ TEST_F(TestDaemonUmount, unmountsMountedTargetWhenInstanceRunning)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(1);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -144,7 +144,7 @@ TEST_F(TestDaemonUmount, mountNotFoundInDatabaseHasError)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(0);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -174,7 +174,7 @@ TEST_F(TestDaemonUmount, invalidMountTypeHasError)
     });
 
     EXPECT_CALL(*mock_mount_handler, stop_mount(mock_instance_name, fake_target_path)).Times(0);
-    config_builder.mount_handlers[mp::VMMount::MountType::SSHFS] = std::move(mock_mount_handler);
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
 
     mp::Daemon daemon{config_builder.build()};
 

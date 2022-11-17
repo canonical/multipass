@@ -170,22 +170,30 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 
     name_to_net_device_map.emplace(vm_desc.vm_name, std::make_pair(tap_device_name, vm_desc.default_mac_address));
 
-    return QStringList() << "--enable-kvm"
+    QStringList opts;
+
+    // Work around for Xenial where UEFI images are not one and the same
+    if (!(vm_desc.image.original_release == "16.04 LTS" && vm_desc.image.image_path.contains("disk1.img")))
+    {
 #if defined Q_PROCESSOR_X86
-                         << "-bios"
-                         << "OVMF.fd"
+        opts << "-bios"
+             << "OVMF.fd";
 #elif defined Q_PROCESSOR_ARM
-                         << "-bios"
-                         << "QEMU_EFI.fd"
+        opts << "-bios"
+             << "QEMU_EFI.fd";
 #endif
-                         // Pass host CPU flags to VM
-                         << "-cpu"
-                         << "host"
-                         // Set up the network related args
-                         << "-nic"
-                         << QString::fromStdString(
-                                fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
-                                            tap_device_name, vm_desc.default_mac_address));
+    }
+
+    opts << "--enable-kvm"
+         // Pass host CPU flags to VM
+         << "-cpu"
+         << "host"
+         // Set up the network related args
+         << "-nic"
+         << QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
+                                               tap_device_name, vm_desc.default_mac_address));
+
+    return opts;
 }
 
 // FIXME: after moving to core22, this will be handled by dnsmasq --dhcp-ignore-clid

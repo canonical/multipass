@@ -28,8 +28,8 @@ struct VMMount
 {
     enum class MountType : int
     {
-        SSHFS = 0,
-        Performance = 1
+        Classic = 0,
+        Native = 1
     };
 
     std::string source_path;
