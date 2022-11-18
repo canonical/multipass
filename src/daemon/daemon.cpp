@@ -2523,16 +2523,20 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 if (image_qstr.startsWith("file://") &&
                     (image_qstr.toLower().endsWith(".yaml") || image_qstr.toLower().endsWith(".yml")))
                 {
-                    auto file_path = image_qstr.remove(0, 7);
-                    auto blueprint_name = QFile(file_path).fileName().chopped(5).toStdString();
+                    auto file_info = QFileInfo(image_qstr.remove(0, 7));
+                    auto file_path = file_info.absoluteFilePath();
 
-                    query = config->blueprint_provider->blueprint_from_file(file_path.toStdString(), blueprint_name,
-                                                                            vm_desc, client_launch_data);
+                    auto chop = image_qstr.at(image_qstr.size() - 4) == '.' ? 4 : 5;
+                    image = file_info.fileName().chopped(chop).toStdString();
+
+                    query = config->blueprint_provider->blueprint_from_file(file_path.toStdString(), image, vm_desc,
+                                                                            client_launch_data);
                 }
                 else
                 {
                     query = config->blueprint_provider->fetch_blueprint_for(image, vm_desc, client_launch_data);
                 }
+
                 query.name = name;
 
                 // Aliases and default workspace are named in function of the instance name in the Blueprint. If the

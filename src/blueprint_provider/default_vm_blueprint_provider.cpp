@@ -404,6 +404,8 @@ mp::Query mp::DefaultVMBlueprintProvider::blueprint_from_file(const std::string&
     if (!mp::platform::is_image_url_supported())
         throw std::runtime_error(fmt::format("Launching a Blueprint from a file is not supported"));
 
+    mpl::log(mpl::Level::debug, category, fmt::format("Reading Blueprint '{}' from file {}", blueprint_name, path));
+
     QFileInfo file_info{QString::fromStdString(path)};
 
     if (!mp::utils::valid_hostname(blueprint_name))
@@ -507,6 +509,16 @@ std::string mp::DefaultVMBlueprintProvider::name_from_blueprint(const std::strin
 {
     if (blueprint_map.count(blueprint_name) == 1)
         return blueprint_name;
+
+    auto name_qstr = QString::fromStdString(blueprint_name);
+
+    if (name_qstr.startsWith("file://") &&
+        (name_qstr.toLower().endsWith(".yaml") || name_qstr.toLower().endsWith(".yml")))
+    {
+        auto file_path = name_qstr.remove(0, 7);
+        auto chop = file_path.at(file_path.size() - 4) == '.' ? 4 : 5;
+        return QFileInfo(file_path).fileName().chopped(chop).toStdString();
+    }
 
     return {};
 }
