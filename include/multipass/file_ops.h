@@ -48,6 +48,11 @@ public:
     virtual bool mkpath(const QDir& dir, const QString& dirName) const;
     virtual bool rmdir(QDir& dir, const QString& dirName) const;
 
+    // QFileInfo operations
+    virtual bool exists(const QFileInfo& file) const;
+    virtual bool isDir(const QFileInfo& file) const;
+    virtual bool isReadable(const QFileInfo& file) const;
+
     // QFile operations
     virtual bool exists(const QFile& file) const;
     virtual bool is_open(const QFile& file) const;
