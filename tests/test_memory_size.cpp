@@ -35,7 +35,7 @@ constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overfl
 constexpr auto mega = kilo * kilo;
 constexpr auto giga = kilo * mega;
 
-struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, std::string, long long>>
+struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, long long, std::string, long long>>
 {
     struct UnitSpec
     {
@@ -74,12 +74,20 @@ struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, st
     static auto generate_args()
     {
         const auto values = {0LL, 1LL, 42LL, 1023LL, 1024LL, 2048LL, 2049LL};
+        const auto decimals = {-1LL, 0LL, 25LL, 141562653LL, 999999LL};
         const auto unit_args = generate_unit_args();
-        std::vector<std::tuple<long long, std::string, long long>> ret;
+        std::vector<std::tuple<long long, long long, std::string, long long>> ret;
 
-        for(auto val : values)
-            for(const auto& uarg : unit_args)
-                ret.emplace_back(val, get<0>(uarg), get<1>(uarg));
+        for (const auto& uarg : unit_args)
+        {
+            if (get<1>(uarg) > 1)
+                for (auto val : values)
+                    for (auto dec : decimals)
+                        ret.emplace_back(val, dec, get<0>(uarg), get<1>(uarg));
+            else
+                for (auto val : values)
+                    ret.emplace_back(val, -1LL, get<0>(uarg), get<1>(uarg));
+        }
 
         return ret;
     }
@@ -95,11 +103,16 @@ TEST_P(TestGoodMemorySizeFormats, interpretsValidFormats)
 {
     auto param = GetParam();
     const auto val = get<0>(param);
-    const auto unit = get<1>(param);
-    const auto factor = get<2>(param);
+    const auto dec = get<1>(param);
+    const auto unit = get<2>(param);
+    const auto factor = get<3>(param);
 
-    const auto size = mp::MemorySize{std::to_string(val) + unit};
-    EXPECT_EQ(size.in_bytes(), val * factor);
+    const auto size = dec < 0 ? mp::MemorySize{std::to_string(val) + unit}
+                              : mp::MemorySize{std::to_string(val) + "." + std::to_string(dec) + unit};
+
+    EXPECT_EQ(size.in_bytes(), dec < 0
+                                   ? val * factor
+                                   : val * factor + (long long)((dec * factor) / pow(10, std::to_string(dec).size())));
 }
 
 TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
