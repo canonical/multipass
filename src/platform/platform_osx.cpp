@@ -342,6 +342,16 @@ QString mp::platform::Platform::default_privileged_mounts() const
     return QStringLiteral("true");
 }
 
+bool mp::platform::Platform::is_image_url_supported() const
+{
+    const auto driver = MP_SETTINGS.get(mp::driver_key);
+
+    if (driver == "virtualbox" || driver == "qemu")
+        return check_unlock_code();
+
+    return false;
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = QStringLiteral("/var/root/Library/Preferences/");
@@ -448,16 +458,6 @@ void mp::platform::Platform::remove_alias_script(const std::string& alias) const
 
     if (::unlink(file_path.c_str()))
         throw std::runtime_error(strerror(errno));
-}
-
-bool mp::platform::is_image_url_supported()
-{
-    const auto driver = MP_SETTINGS.get(mp::driver_key);
-
-    if (driver == "virtualbox" || driver == "qemu")
-        return check_unlock_code();
-
-    return false;
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)

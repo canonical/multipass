@@ -500,6 +500,11 @@ QString mp::platform::Platform::default_privileged_mounts() const
     return QStringLiteral("false");
 }
 
+bool mp::platform::Platform::is_image_url_supported() const
+{
+    return check_unlock_code();
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = systemprofile_app_data_path();
@@ -722,11 +727,6 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     }
 
     return 0;
-}
-
-bool mp::platform::is_image_url_supported()
-{
-    return check_unlock_code();
 }
 
 std::function<int()> mp::platform::make_quit_watchdog()
