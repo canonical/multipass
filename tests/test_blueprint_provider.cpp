@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_logger.h"
+#include "mock_platform.h"
 #include "mock_poco_zip_utils.h"
 #include "mock_url_downloader.h"
 #include "path.h"
@@ -775,4 +776,89 @@ TEST_F(VMBlueprintProvider, v2WithoutShaIsCorrectlyPropagated)
     auto query = blueprint_provider.fetch_blueprint_for("minimal", vm_desc, launch_data);
 
     ASSERT_EQ(vm_desc.image.id, "");
+}
+
+//
+// Test loading Blueprints from file.
+//
+
+struct VMBlueprintFileLaunch : public VMBlueprintProvider
+{
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
+    mpt::MockPlatform* mock_platform = attr.first;
+};
+
+TEST_F(VMBlueprintFileLaunch, loadsFile)
+{
+    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
+
+    auto blueprint_path = QString(mpt::test_data_path() + "/blueprints/v1/test-blueprint1.yaml").toStdString();
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    mp::ClientLaunchData dummy_data;
+
+    auto query = blueprint_provider.blueprint_from_file(blueprint_path, "test-blueprint1", vm_desc, dummy_data);
+
+    EXPECT_EQ(query.release, "default");
+    EXPECT_EQ(vm_desc.num_cores, 2);
+    EXPECT_EQ(vm_desc.mem_size, mp::MemorySize("2G"));
+    EXPECT_EQ(vm_desc.disk_space, mp::MemorySize("25G"));
+
+    auto yaml_as_str = mp::utils::emit_yaml(vm_desc.vendor_data_config);
+    EXPECT_THAT(yaml_as_str, AllOf(HasSubstr("runcmd"), HasSubstr("echo \"Have fun!\"")));
+}
+
+TEST_F(VMBlueprintFileLaunch, failsWithNonexistentFile)
+{
+    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    mp::ClientLaunchData dummy_data;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.blueprint_from_file("/blah.yaml", "blah", vm_desc, dummy_data),
+                         mp::InvalidBlueprintException, mpt::match_what(StrEq("Wrong file '/blah.yaml'")));
+}
+
+TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithInvalidHostName)
+{
+    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
+
+    auto blueprint_path =
+        QString(mpt::test_data_path() + "/blueprints/v1/42-invalid-hostname-blueprint.yaml").toStdString();
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    mp::ClientLaunchData dummy_data;
+
+    MP_EXPECT_THROW_THAT(
+        blueprint_provider.blueprint_from_file(blueprint_path, "42-invalid-hostname-blueprint", vm_desc, dummy_data),
+        mp::InvalidBlueprintException,
+        mpt::match_what(StrEq("Invalid Blueprint name \'42-invalid-hostname-blueprint\': must be a valid host name")));
+}
+
+TEST_F(VMBlueprintFileLaunch, failsIfFileLaunchIsUnsupported)
+{
+    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(false));
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    mp::ClientLaunchData dummy_data;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.blueprint_from_file("/blah.yaml", "blah", vm_desc, dummy_data),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Launching a Blueprint from a file is not supported")));
 }
