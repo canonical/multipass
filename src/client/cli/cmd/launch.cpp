@@ -204,8 +204,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                   "cpus", default_cpu_cores);
     QCommandLineOption diskOption(
         {"d", "disk"},
-        QString::fromStdString(fmt::format("Disk space to allocate. Positive decimals, in "
-                                           "bytes, or with K, M, G suffix.\nMinimum: {}, default: {}.",
+        QString::fromStdString(fmt::format("Disk space to allocate. Positive integers, in "
+                                           "bytes, or decimals, with K, M, G suffix.\nMinimum: {}, default: {}.",
                                            min_disk_size, default_disk_size)),
         "disk", QString::fromUtf8(default_disk_size));
 
