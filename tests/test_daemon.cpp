@@ -1259,6 +1259,31 @@ INSTANTIATE_TEST_SUITE_P(Daemon, LaunchImgSizeSuite,
                                  Values("1G", mp::default_disk_size, "10G")));
 INSTANTIATE_TEST_SUITE_P(Daemon, LaunchStorageCheckSuite, Values("test_create", "launch"));
 
+TEST_F(DaemonCreateLaunchTestSuite, blueprintFromFileCallsCorrectFunction)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
+
+    const std::string name{"ultimo-blueprint"};
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(1);
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).Times(1);
+
+    EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _)).Times(0);
+
+    EXPECT_CALL(*mock_blueprint_provider, blueprint_from_file(_, _, _, _)).Times(1);
+
+    EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
+
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"launch", "file://blah.yaml"});
+}
+
 void check_maps_in_json(const QString& file, const mp::id_mappings& expected_gid_mappings,
                         const mp::id_mappings& expected_uid_mappings)
 {
