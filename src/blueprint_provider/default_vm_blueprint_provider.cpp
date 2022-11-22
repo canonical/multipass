@@ -418,7 +418,16 @@ mp::Query mp::DefaultVMBlueprintProvider::blueprint_from_file(const std::string&
         throw InvalidBlueprintException(error_message);
     }
 
-    auto blueprint_config = YAML::LoadFile(path);
+    YAML::Node blueprint_config;
+
+    try
+    {
+        blueprint_config = YAML::LoadFile(path);
+    }
+    catch (const YAML::BadFile&)
+    {
+        throw InvalidBlueprintException(fmt::format("Wrong file \'{}\'", path));
+    }
 
     return blueprint_from_yaml_node(blueprint_config, blueprint_name, vm_desc, client_launch_data, arch, url_downloader,
                                     &needs_update);
