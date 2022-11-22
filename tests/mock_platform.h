@@ -54,6 +54,7 @@ public:
     MOCK_CONST_METHOD0(daemon_config_home, QString());
     MOCK_CONST_METHOD0(default_driver, QString());
     MOCK_CONST_METHOD0(default_privileged_mounts, QString());
+    MOCK_CONST_METHOD0(is_image_url_supported, bool());
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };

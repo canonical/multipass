@@ -401,7 +401,7 @@ mp::Query mp::DefaultVMBlueprintProvider::blueprint_from_file(const std::string&
                                                               VirtualMachineDescription& vm_desc,
                                                               ClientLaunchData& client_launch_data)
 {
-    if (!mp::platform::is_image_url_supported())
+    if (!MP_PLATFORM.is_image_url_supported())
         throw std::runtime_error(fmt::format("Launching a Blueprint from a file is not supported"));
 
     mpl::log(mpl::Level::debug, category, fmt::format("Reading Blueprint '{}' from file {}", blueprint_name, path));
