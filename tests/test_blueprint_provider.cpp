@@ -788,22 +788,36 @@ struct VMBlueprintFileLaunch : public VMBlueprintProvider
     mpt::MockPlatform* mock_platform = attr.first;
 };
 
-TEST_F(VMBlueprintFileLaunch, loadsFile)
+struct VMBlueprintFileLaunchFromFile : public VMBlueprintFileLaunch,
+                                       public WithParamInterface<std::pair<std::string, std::string>>
 {
+};
+
+TEST_P(VMBlueprintFileLaunchFromFile, loadsFile)
+{
+    const auto& [file, blueprint_name] = GetParam();
+
+    mpt::MockURLDownloader mock_url_downloader;
+
+    EXPECT_CALL(mock_url_downloader, download_to(_, _, _, _, _))
+        .WillRepeatedly([](auto, const QString& file_name, auto...) {
+            QFile file(file_name);
+            file.open(QFile::WriteOnly);
+        });
+
     ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
 
-    auto blueprint_path = QString(mpt::test_data_path() + "/blueprints/v1/test-blueprint1.yaml").toStdString();
+    auto blueprint_path = QString(mpt::test_data_path() + "/blueprints/" + QString::fromStdString(file)).toStdString();
 
-    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
-                                                      default_ttl};
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &mock_url_downloader, cache_dir.path(),
+                                                      default_ttl, "multivacs"};
 
     mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
-    auto query = blueprint_provider.blueprint_from_file(blueprint_path, "test-blueprint1", vm_desc, dummy_data);
+    auto query = blueprint_provider.blueprint_from_file(blueprint_path, blueprint_name, vm_desc, dummy_data);
 
-    EXPECT_EQ(query.release, "default");
     EXPECT_EQ(vm_desc.num_cores, 2);
     EXPECT_EQ(vm_desc.mem_size, mp::MemorySize("2G"));
     EXPECT_EQ(vm_desc.disk_space, mp::MemorySize("25G"));
@@ -811,6 +825,10 @@ TEST_F(VMBlueprintFileLaunch, loadsFile)
     auto yaml_as_str = mp::utils::emit_yaml(vm_desc.vendor_data_config);
     EXPECT_THAT(yaml_as_str, AllOf(HasSubstr("runcmd"), HasSubstr("echo \"Have fun!\"")));
 }
+
+INSTANTIATE_TEST_SUITE_P(VMBlueprintFileLaunch, VMBlueprintFileLaunchFromFile,
+                         Values(std::pair{"v1/test-blueprint1.yaml", "test-blueprint1"},
+                                std::pair{"v2/test-blueprint1.yaml", "test-blueprint1"}));
 
 TEST_F(VMBlueprintFileLaunch, failsWithNonexistentFile)
 {
