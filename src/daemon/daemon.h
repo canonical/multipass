@@ -23,6 +23,7 @@
 #include "vm_specs.h"
 
 #include <multipass/delayed_shutdown_timer.h>
+#include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -177,6 +178,7 @@ private:
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
+    std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H
