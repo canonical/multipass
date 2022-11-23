@@ -506,7 +506,7 @@ TEST_F(Client, handles_remote_handler_exception)
     std::stringstream fake_cerr;
     auto got = send_command({cmd, key}, trash_stream, fake_cerr);
 
-    EXPECT_THAT(fake_cerr.str(), AllOf(HasSubstr(cmd), HasSubstr(msg), HasSubstr(details)));
+    EXPECT_THAT(fake_cerr.str(), AllOf(HasSubstr(cmd), HasSubstr(msg), Not(HasSubstr(details))));
     EXPECT_EQ(got, mp::CommandFail);
 }
 
@@ -1226,6 +1226,41 @@ TEST_F(Client, launch_cmd_mount_option)
     EXPECT_CALL(mock_daemon, mount)
         .WillOnce(WithArg<1>(check_request_and_return<mp::MountReply, mp::MountRequest>(mount_matcher, ok)));
     EXPECT_EQ(send_command({"launch", "--name", instance_name, "--mount", fake_source}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launchCmdMountOptionFailsOnInvalidDir)
+{
+    auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mocked_file_ops, exists(A<const QFileInfo&>())).WillOnce(Return(false)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mocked_file_ops, isDir(A<const QFileInfo&>())).WillOnce(Return(false)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mocked_file_ops, isReadable(A<const QFileInfo&>()))
+        .WillOnce(Return(false))
+        .WillRepeatedly(Return(true));
+
+    const auto fake_source = "invalid/dir";
+    const auto fake_target = fake_source;
+    const auto instance_name = "some_instance";
+
+    std::stringstream err;
+    EXPECT_EQ(
+        send_command({"launch", "--name", instance_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)},
+                     trash_stream, err),
+        mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(err.str(), HasSubstr(fmt::format("Mount source path \"{}\" does not exist", fake_source)));
+    err.clear();
+
+    EXPECT_EQ(
+        send_command({"launch", "--name", instance_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)},
+                     trash_stream, err),
+        mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(err.str(), HasSubstr(fmt::format("Mount source path \"{}\" is not a directory", fake_source)));
+    err.clear();
+
+    EXPECT_EQ(
+        send_command({"launch", "--name", instance_name, "--mount", fmt::format("{}:{}", fake_source, fake_target)},
+                     trash_stream, err),
+        mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(err.str(), HasSubstr(fmt::format("Mount source path \"{}\" is not readable", fake_source)));
 }
 
 TEST_F(Client, launch_cmd_petenv_mount_option_override_home)

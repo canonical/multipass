@@ -49,6 +49,21 @@ bool mp::FileOps::exists(const QFile& file) const
     return file.exists();
 }
 
+bool mp::FileOps::isDir(const QFileInfo& file) const
+{
+    return file.isDir();
+}
+
+bool mp::FileOps::exists(const QFileInfo& file) const
+{
+    return file.exists();
+}
+
+bool mp::FileOps::isReadable(const QFileInfo& file) const
+{
+    return file.isReadable();
+}
+
 bool mp::FileOps::is_open(const QFile& file) const
 {
     return file.isOpen();
