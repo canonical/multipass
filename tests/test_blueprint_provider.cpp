@@ -880,3 +880,23 @@ TEST_F(VMBlueprintFileLaunch, failsIfFileLaunchIsUnsupported)
                          std::runtime_error,
                          mpt::match_what(StrEq("Launching a Blueprint from a file is not supported")));
 }
+
+struct NameFromBlueprintTestSuite : public VMBlueprintProvider,
+                                    public WithParamInterface<std::pair<std::string, std::string>>
+{
+};
+
+TEST_P(NameFromBlueprintTestSuite, nameFromBlueprintWorks)
+{
+    const auto& [input, output] = GetParam();
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl};
+
+    EXPECT_EQ(blueprint_provider.name_from_blueprint(input), output);
+}
+
+INSTANTIATE_TEST_SUITE_P(VMBlueprintProvider, NameFromBlueprintTestSuite,
+                         Values(std::pair{"file:///blah/blueprint1.yaml", "blueprint1"},
+                                std::pair{"file:///blah/blueprint2.yml", "blueprint2"},
+                                std::pair{"nonexistent-blueprint", ""}));
