@@ -16,6 +16,7 @@
  */
 
 #include "qemu_virtual_machine.h"
+#include "qemu_mount_handler.h"
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
@@ -584,36 +585,8 @@ void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
     desc.disk_space = new_size;
 }
 
-void mp::QemuVirtualMachine::add_vm_mount(const std::string& target_path, const VMMount& vm_mount)
+mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
+                                                                         std::string target, const VMMount& mount)
 {
-    // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the uuid
-    // must be truncated. First character of mount_tag must also be alpabetical.
-    auto mount_tag = QUuid::createUuidV3(QUuid(), QString::fromStdString(target_path))
-                         .toString(QUuid::WithoutBraces)
-                         .replace("-", "");
-    mount_tag.truncate(30);
-
-    mount_args[target_path] = std::make_pair(
-        vm_mount.source_path,
-        QStringList{
-            {"-virtfs", QString("local,security_model=passthrough,%1%2path=%3,mount_tag=m%4")
-                            .arg(vm_mount.uid_mappings.size() > 0 ? QString("uid_map=%1:%2,")
-                                                                        .arg(vm_mount.uid_mappings.at(0).first)
-                                                                        .arg(vm_mount.uid_mappings.at(0).second == -1
-                                                                                 ? 1000
-                                                                                 : vm_mount.uid_mappings.at(0).second)
-                                                                  : QString("uid_map=1000:1000,"))
-                            .arg(vm_mount.gid_mappings.size() > 0 ? QString("gid_map=%1:%2,")
-                                                                        .arg(vm_mount.gid_mappings.at(0).first)
-                                                                        .arg(vm_mount.gid_mappings.at(0).second == -1
-                                                                                 ? 1000
-                                                                                 : vm_mount.gid_mappings.at(0).second)
-                                                                  : QString("gid_map=1000:1000,"))
-                            .arg(QString::fromStdString(vm_mount.source_path))
-                            .arg(mount_tag)}});
-}
-
-void mp::QemuVirtualMachine::delete_vm_mount(const std::string& target_path)
-{
-    mount_args.erase(target_path);
+    return std::make_unique<QemuMountHandler>(this, ssh_key_provider, target, mount);
 }

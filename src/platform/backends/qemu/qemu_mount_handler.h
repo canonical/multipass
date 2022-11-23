@@ -18,26 +18,23 @@
 #ifndef MULTIPASS_QEMU_MOUNT_HANDLER_H
 #define MULTIPASS_QEMU_MOUNT_HANDLER_H
 
+#include "qemu_virtual_machine.h"
+
 #include <multipass/mount_handler.h>
 
 namespace multipass
 {
-class VirtualMachine;
-
-class QemuMountHandler : public MountHandler
+struct QemuMountHandler : public MountHandler
 {
-public:
-    explicit QemuMountHandler(const SSHKeyProvider& ssh_key_provider);
+    QemuMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, std::string target, const VMMount& mount);
+    ~QemuMountHandler() override;
 
-    void init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount) override;
-    void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
-                     const std::chrono::milliseconds& timeout = std::chrono::minutes(5)) override;
-    void stop_mount(const std::string& instance, const std::string& path) override;
-    void stop_all_mounts_for_instance(const std::string& instance) override;
-    bool has_instance_already_mounted(const std::string& instance, const std::string& path) const override;
+    void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) override;
+    void stop() override;
 
 private:
-    std::unordered_map<std::string, std::unordered_map<std::string, VirtualMachine*>> mounts;
+    QemuVirtualMachine* qemu_vm{};
+    QString tag;
 };
 
 } // namespace multipass
