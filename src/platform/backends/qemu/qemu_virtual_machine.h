@@ -59,7 +59,7 @@ public:
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, std::string target,
-                                             const VMMount& mount) override;
+                                                            const VMMount& mount) override;
     friend struct QemuMountHandler;
 
 signals:

@@ -77,8 +77,8 @@ public:
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size) = 0;
-    virtual std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, std::string target,
-                                                     const VMMount& mount) = 0;
+    virtual std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
+                                                                    std::string target, const VMMount& mount) = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;

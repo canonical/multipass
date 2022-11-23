@@ -62,7 +62,6 @@ protected:
             (source_status.permissions() & fs::perms::owner_read) == fs::perms::none)
             throw std::runtime_error(fmt::format("Mount source path \"{}\" is not readable.", mount.source_path));
     };
-    
 
     template <typename Reply, typename Request>
     static Reply make_reply_from_server(grpc::ServerReaderWriterInterface<Reply, Request>*)
@@ -79,7 +78,6 @@ protected:
     VirtualMachine* vm{};
     const SSHKeyProvider* ssh_key_provider{};
     const std::string target;
-
 };
 } // namespace multipass
 #endif // MULTIPASS_MOUNT_HANDLER_H
