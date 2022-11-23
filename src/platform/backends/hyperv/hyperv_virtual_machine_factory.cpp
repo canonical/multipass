@@ -25,7 +25,6 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <shared/windows/powershell.h>
-#include <shared/windows/smb_mount_handler.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -324,12 +323,6 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
     std::move(adapters.begin(), adapters.end(), std::back_inserter(networks));
 
     return networks;
-}
-
-std::unique_ptr<mp::MountHandler>
-mp::HyperVVirtualMachineFactory::create_performance_mount_handler(const SSHKeyProvider& ssh_key_provider)
-{
-    return std::make_unique<SmbMountHandler>(ssh_key_provider);
 }
 
 std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
