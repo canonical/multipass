@@ -160,12 +160,9 @@ auto blueprints_map_for(const std::string& archive_file_path, bool& needs_update
     return blueprints_map;
 }
 
-std::string get_blueprint_version(const YAML::Node& blueprint_config)
+std::string get_blueprint_version(const YAML::Node& blueprint_instance)
 {
-    if (blueprint_config["blueprint-version"])
-        return blueprint_config["blueprint-version"].as<std::string>();
-
-    if (blueprint_config["images"])
+    if (blueprint_instance["images"])
         return "v2";
 
     return "v1";
@@ -177,18 +174,22 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
 {
     mp::Query query{"", "default", false, "", mp::Query::Type::Alias};
 
-    if (!blueprint_config["blueprint-version"])
-        blueprint_config["blueprint-version"] = get_blueprint_version(blueprint_config);
-
-    mpl::log(mpl::Level::debug, category,
-             fmt::format("Loading Blueprint \"{}\", version {}", blueprint_name,
-                         blueprint_config["blueprint-version"].as<std::string>()));
-
     if (!blueprint_config[instances_key][blueprint_name])
     {
         throw mp::InvalidBlueprintException(
             fmt::format("There are no instance definitions matching Blueprint name \"{}\"", blueprint_name));
     }
+
+    auto blueprint_instance = blueprint_config[instances_key][blueprint_name];
+
+    if (!blueprint_config["blueprint-version"])
+    {
+        blueprint_config["blueprint-version"] = get_blueprint_version(blueprint_instance);
+    }
+
+    mpl::log(mpl::Level::debug, category,
+             fmt::format("Loading Blueprint \"{}\", version {}", blueprint_name,
+                         blueprint_config["blueprint-version"].as<std::string>()));
 
     auto blueprint_aliases = blueprint_config["aliases"];
     if (blueprint_aliases)
@@ -208,8 +209,6 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
             client_launch_data.aliases_to_be_created.emplace(alias_name, alias_definition);
         }
     }
-
-    auto blueprint_instance = blueprint_config[instances_key][blueprint_name];
 
     // TODO: Abstract all of the following YAML schema boilerplate
 
