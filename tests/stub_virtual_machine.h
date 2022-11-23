@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_STUB_VIRTUAL_MACHINE_H
 #define MULTIPASS_STUB_VIRTUAL_MACHINE_H
 
+#include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 
 namespace multipass
@@ -106,12 +107,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void add_vm_mount(const std::string&, const VMMount&) override
+    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, std::string target,
+                                             const VMMount& mount) override
     {
-    }
-
-    void delete_vm_mount(const std::string&) override
-    {
+        // TODO replace with StubMountHandler when writing tests
+        return nullptr;
     }
 };
 } // namespace test
