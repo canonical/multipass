@@ -35,7 +35,7 @@ constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overfl
 constexpr auto mega = kilo * kilo;
 constexpr auto giga = kilo * mega;
 
-struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, std::string, long long>>
+struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, long long, std::string, long long>>
 {
     struct UnitSpec
     {
@@ -74,12 +74,20 @@ struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, st
     static auto generate_args()
     {
         const auto values = {0LL, 1LL, 42LL, 1023LL, 1024LL, 2048LL, 2049LL};
+        const auto decimals = {-1LL, 0LL, 25LL, 141562653LL, 999999LL};
         const auto unit_args = generate_unit_args();
-        std::vector<std::tuple<long long, std::string, long long>> ret;
+        std::vector<std::tuple<long long, long long, std::string, long long>> ret;
 
-        for(auto val : values)
-            for(const auto& uarg : unit_args)
-                ret.emplace_back(val, get<0>(uarg), get<1>(uarg));
+        for (const auto& uarg : unit_args)
+        {
+            if (get<1>(uarg) > 1)
+                for (auto val : values)
+                    for (auto dec : decimals)
+                        ret.emplace_back(val, dec, get<0>(uarg), get<1>(uarg));
+            else
+                for (auto val : values)
+                    ret.emplace_back(val, -1LL, get<0>(uarg), get<1>(uarg));
+        }
 
         return ret;
     }
@@ -95,11 +103,16 @@ TEST_P(TestGoodMemorySizeFormats, interpretsValidFormats)
 {
     auto param = GetParam();
     const auto val = get<0>(param);
-    const auto unit = get<1>(param);
-    const auto factor = get<2>(param);
+    const auto dec = get<1>(param);
+    const auto unit = get<2>(param);
+    const auto factor = get<3>(param);
 
-    const auto size = mp::MemorySize{std::to_string(val) + unit};
-    EXPECT_EQ(size.in_bytes(), val * factor);
+    const auto size = dec < 0 ? mp::MemorySize{std::to_string(val) + unit}
+                              : mp::MemorySize{std::to_string(val) + "." + std::to_string(dec) + unit};
+
+    EXPECT_EQ(size.in_bytes(), dec < 0
+                                   ? val * factor
+                                   : val * factor + (long long)((dec * factor) / pow(10, std::to_string(dec).size())));
 }
 
 TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
@@ -109,8 +122,9 @@ TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
 
 INSTANTIATE_TEST_SUITE_P(MemorySize, TestGoodMemorySizeFormats, ValuesIn(TestGoodMemorySizeFormats::generate_args()));
 INSTANTIATE_TEST_SUITE_P(MemorySize, TestBadMemorySizeFormats,
-                         Values("321BB", "321BK", "1024MM", "1024KM", "1024GK", "K", "", "123.321K", "123.321", "6868i",
-                                "555iB", "486ki", "54Mi", "8i33", "4M2", "-2345", "-5MiB", "K", "4GM"));
+                         Values("321BB", "321BK", "1024MM", "1024KM", "1024GK", "K", "", "123.321", "6868i", "555iB",
+                                "486ki", "54Mi", "8i33", "4M2", "-2345", "-5MiB", "K", "4GM", "256.M", "186000.B",
+                                "3.14", ".5g", "4.2B", "42.", "2048.K", " 268. "));
 
 TEST(MemorySize, defaultConstructsToZero)
 {
@@ -132,6 +146,19 @@ TEST(MemorySize, converts0ToG)
     EXPECT_EQ(mp::MemorySize{"0G"}.in_gigabytes(), 0LL);
 }
 
+TEST(MemorySize, converts0DecimalToG)
+{
+    EXPECT_EQ(mp::MemorySize{"0.0m"}.in_gigabytes(), 0LL);
+}
+
+TEST(MemorySize, convertsHigherUnitToB)
+{
+    constexpr auto val = 65535;
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "K"}.in_bytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "M"}.in_bytes(), val * mega);
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_bytes(), val * giga);
+}
+
 TEST(MemorySize, convertsHigherUnitToK)
 {
     constexpr auto val = 694;
@@ -143,6 +170,27 @@ TEST(MemorySize, convertsHigherUnitToM)
 {
     constexpr auto val = 653;
     EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_megabytes(), val * kilo);
+}
+
+TEST(MemorySize, convertsHigherUnitToBWhenDecimal)
+{
+    constexpr auto val = 0.0625;
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "K"}.in_bytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "M"}.in_bytes(), val * mega);
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_bytes(), val * giga);
+}
+
+TEST(MemorySize, convertsHigherUnitToKWhenDecimal)
+{
+    constexpr auto val = 42.125;
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "M"}.in_kilobytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_kilobytes(), val * mega);
+}
+
+TEST(MemorySize, convertsHigherUnitToMWhenDecimal)
+{
+    constexpr auto val = 22.75;
+    EXPECT_EQ(mp::MemorySize(std::to_string(val) + "G").in_megabytes(), val * kilo);
 }
 
 TEST(MemorySize, convertsLowerUnitToKWhenExactMultiple)
@@ -167,18 +215,24 @@ TEST(MemorySize, convertsLowerUnitToKByFlooringWhenNotMultiple)
 {
     EXPECT_EQ(mp::MemorySize{"1234B"}.in_kilobytes(), 1);
     EXPECT_EQ(mp::MemorySize{"33B"}.in_kilobytes(), 0);
+    EXPECT_EQ(mp::MemorySize{"42.0K"}.in_kilobytes(), 42);
+    EXPECT_EQ(mp::MemorySize{"1.2M"}.in_kilobytes(), 1228);
 }
 
 TEST(MemorySize, convertsLowerUnitToMByFlooringWhenNotMultiple)
 {
     EXPECT_EQ(mp::MemorySize{"5555K"}.in_megabytes(), 5);
     EXPECT_EQ(mp::MemorySize{"5555B"}.in_megabytes(), 0);
+    EXPECT_EQ(mp::MemorySize{"5555.5K"}.in_megabytes(), 5);
+    EXPECT_EQ(mp::MemorySize{"1.5G"}.in_megabytes(), 1536);
 }
 
 TEST(MemorySize, convertsLowerUnitToGByFlooringWhenNotMultiple)
 {
     EXPECT_EQ(mp::MemorySize{"2047M"}.in_gigabytes(), 1);
     EXPECT_EQ(mp::MemorySize{"2047K"}.in_gigabytes(), 0);
+    EXPECT_EQ(mp::MemorySize{"1.4G"}.in_gigabytes(), 1);
+    EXPECT_EQ(mp::MemorySize{"0.9G"}.in_gigabytes(), 0);
 }
 
 TEST(MemorySize, canCompareEqual)
@@ -189,8 +243,13 @@ TEST(MemorySize, canCompareEqual)
     EXPECT_EQ(mp::MemorySize{}, mp::MemorySize{"0B"});
     EXPECT_EQ(mp::MemorySize{"2048"}, mp::MemorySize{"2k"});
     EXPECT_EQ(mp::MemorySize{"2g"}, mp::MemorySize{"2048M"});
-    EXPECT_EQ(mp::MemorySize{"2g"}, mp::MemorySize{"2048M"});
     EXPECT_EQ(mp::MemorySize{"0m"}, mp::MemorySize{"0k"});
+    EXPECT_EQ(mp::MemorySize{"1.5G"}, mp::MemorySize{"1536M"});
+    EXPECT_EQ(mp::MemorySize{"1.0K"}, mp::MemorySize{"1024B"});
+    EXPECT_EQ(mp::MemorySize{"1.0K"}, mp::MemorySize{"1k"});
+    EXPECT_EQ(mp::MemorySize{"3.14K"}, mp::MemorySize{"3215"});
+    EXPECT_EQ(mp::MemorySize{"0.0001G"}, mp::MemorySize{"107374"});
+    EXPECT_EQ(mp::MemorySize{"0.095367432K"}, mp::MemorySize{"97B"});
 }
 
 TEST(MemorySize, canCompareNotEqual)
@@ -199,6 +258,11 @@ TEST(MemorySize, canCompareNotEqual)
     EXPECT_NE(mp::MemorySize{"42g"}, mp::MemorySize{"42m"});
     EXPECT_NE(mp::MemorySize{"123"}, mp::MemorySize{"321"});
     EXPECT_NE(mp::MemorySize{"2352346"}, mp::MemorySize{"0"});
+    EXPECT_NE(mp::MemorySize{"1.5G"}, mp::MemorySize{"1G"});
+    EXPECT_NE(mp::MemorySize{"1.5G"}, mp::MemorySize{"1535M"});
+    EXPECT_NE(mp::MemorySize{"1.2K"}, mp::MemorySize{"1229"});
+    EXPECT_NE(mp::MemorySize{"0.0001G"}, mp::MemorySize{"0"});
+    EXPECT_NE(mp::MemorySize{"2048.5K"}, mp::MemorySize{"2M"});
 }
 
 TEST(MemorySize, canCompareGreater)
@@ -207,6 +271,10 @@ TEST(MemorySize, canCompareGreater)
     EXPECT_GT(mp::MemorySize{"42g"}, mp::MemorySize{"42m"});
     EXPECT_GT(mp::MemorySize{"1234"}, mp::MemorySize{"321"});
     EXPECT_GT(mp::MemorySize{"2352346"}, mp::MemorySize{"0"});
+    EXPECT_GT(mp::MemorySize{"0.5G"}, mp::MemorySize{"511M"});
+    EXPECT_GT(mp::MemorySize{"2.2M"}, mp::MemorySize{"2048K"});
+    EXPECT_GT(mp::MemorySize{"2048.5K"}, mp::MemorySize{"2M"});
+    EXPECT_GT(mp::MemorySize{"0.51G"}, mp::MemorySize{"0.5G"});
 }
 
 TEST(MemorySize, canCompareGreaterEqual)
@@ -215,6 +283,7 @@ TEST(MemorySize, canCompareGreaterEqual)
     EXPECT_GE(mp::MemorySize{"0m"}, mp::MemorySize{"0k"});
     EXPECT_GE(mp::MemorySize{"76"}, mp::MemorySize{"76"});
     EXPECT_GE(mp::MemorySize{"7k"}, mp::MemorySize{"6k"});
+    EXPECT_GE(mp::MemorySize{"1024M"}, mp::MemorySize{"1.0G"});
 }
 
 TEST(MemorySize, canCompareLess)
@@ -223,6 +292,8 @@ TEST(MemorySize, canCompareLess)
     EXPECT_LT(mp::MemorySize{"42g"}, mp::MemorySize{"420g"});
     EXPECT_LT(mp::MemorySize{"123"}, mp::MemorySize{"321"});
     EXPECT_LT(mp::MemorySize{"2352346"}, mp::MemorySize{"55g"});
+    EXPECT_LT(mp::MemorySize{"1024K"}, mp::MemorySize{"1.5M"});
+    EXPECT_LT(mp::MemorySize{"0.5G"}, mp::MemorySize{"0.75G"});
 }
 
 TEST(MemorySize, canCompareLessEqual)
@@ -231,6 +302,7 @@ TEST(MemorySize, canCompareLessEqual)
     EXPECT_LE(mp::MemorySize{"0k"}, mp::MemorySize{"0m"});
     EXPECT_LE(mp::MemorySize{"76"}, mp::MemorySize{"76"});
     EXPECT_LE(mp::MemorySize{"6k"}, mp::MemorySize{"7k"});
+    EXPECT_GE(mp::MemorySize{"1.0G"}, mp::MemorySize{"1024M"});
 }
 
 using mem_repr = std::tuple<std::string, std::string>;

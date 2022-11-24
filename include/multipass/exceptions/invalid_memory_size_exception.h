@@ -30,7 +30,7 @@ class InvalidMemorySizeException : public std::runtime_error
 public:
     InvalidMemorySizeException(const std::string& val)
         : runtime_error(fmt::format("{} is not a valid memory size - need a non-negative integer (in base 10) "
-                                    "followed by the desired unit (e.g. 1234B, 42MiB)",
+                                    "or a decimal followed by K, M, or G (e.g. 1234B, 42MiB, 0.5G)",
                                     val))
     {
     }
