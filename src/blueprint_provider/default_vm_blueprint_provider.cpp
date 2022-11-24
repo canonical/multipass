@@ -216,7 +216,11 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
     {
         auto arch_node = blueprint_instance["images"][arch.toStdString()];
 
-        query.release = arch_node["url"].as<std::string>();
+        if (arch_node["url"])
+            query.release = arch_node["url"].as<std::string>();
+        else
+            throw mp::InvalidBlueprintException(fmt::format("No image URL for architecture {} in Blueprint", arch));
+
         query.query_type = mp::Query::Type::HttpDownload;
 
         if (arch_node["sha256"])
