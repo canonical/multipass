@@ -900,3 +900,21 @@ INSTANTIATE_TEST_SUITE_P(VMBlueprintProvider, NameFromBlueprintTestSuite,
                          Values(std::pair{"file:///blah/blueprint1.yaml", "blueprint1"},
                                 std::pair{"file:///blah/blueprint2.yml", "blueprint2"},
                                 std::pair{"nonexistent-blueprint", ""}));
+
+TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithNoUrl)
+{
+    auto blueprint_path = QString(mpt::test_data_path() + "/blueprints/v2/test-blueprint1.yaml").toStdString();
+
+    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
+                                                      default_ttl, "microvac"};
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    mp::ClientLaunchData dummy_data;
+
+    MP_EXPECT_THROW_THAT(blueprint_provider.blueprint_from_file(blueprint_path, "test-blueprint1", vm_desc, dummy_data),
+                         mp::InvalidBlueprintException,
+                         mpt::match_what(StrEq("No image URL for architecture microvac in Blueprint")));
+}
