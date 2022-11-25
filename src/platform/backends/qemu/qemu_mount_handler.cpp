@@ -31,22 +31,18 @@ constexpr auto category = "qemu-mount-handler";
 
 namespace multipass
 {
-QemuMountHandler::QemuMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, std::string target,
-                                   const VMMount& mount)
-    : MountHandler{vm, ssh_key_provider, target, mount}
+QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider* ssh_key_provider,
+                                   const std::string& target, const VMMount& mount)
+    : MountHandler{vm, ssh_key_provider, target, mount},
+      vm_mount_args{vm->modifiable_mount_args()},
+      // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
+      // uuid must be truncated. First character of tag must also be alpabetical.
+      tag{mp::utils::make_uuid().remove("-").left(30).prepend('m')}
 {
-    if (!(qemu_vm = dynamic_cast<QemuVirtualMachine*>(vm)))
-        throw std::runtime_error{"QEMU mount must be used on a QEMU VM"};
-
-    switch (vm->current_state())
-    {
-    case VirtualMachine::State::off:
-    case VirtualMachine::State::stopped:
-    case VirtualMachine::State::suspended:
-        break;
-    default:
-        throw std::runtime_error("Please shutdown virtual machine before defining native mount.");
-    }
+    using St = VirtualMachine::State;
+    const auto skip_states = {St::off, St::stopped, St::suspended};
+    if (std::find(skip_states.begin(), skip_states.end(), vm->current_state()) == skip_states.end())
+        throw std::runtime_error("Please shutdown the instance before attempting native mounts.");
 
     // Need to ensure no more than one uid/gid map is passed in here.
     if (mount.uid_mappings.size() > 1 || mount.gid_mappings.size() > 1)
@@ -55,24 +51,16 @@ QemuMountHandler::QemuMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh
     mpl::log(mpl::Level::info, category,
              fmt::format("initializing native mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
 
-    // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
-    // uuid must be truncated. First character of tag must also be alpabetical.
-    tag = QUuid::createUuidV3(QUuid(), QString::fromStdString(target))
-              .toString(QUuid::WithoutBraces)
-              .remove("-")
-              .left(30);
-
     const auto uid_map = mount.uid_mappings.empty() ? std::make_pair(1000, 1000) : mount.uid_mappings[0];
     const auto gid_map = mount.gid_mappings.empty() ? std::make_pair(1000, 1000) : mount.gid_mappings[0];
     const auto uid_arg = QString("uid_map=%1:%2,").arg(uid_map.first).arg(uid_map.second == -1 ? 1000 : uid_map.second);
     const auto gid_arg = QString{"gid_map=%1:%2,"}.arg(gid_map.first).arg(gid_map.second == -1 ? 1000 : gid_map.second);
-    qemu_vm->mount_args[target] = {
-        mount.source_path,
-        {"-virtfs", QString("local,security_model=passthrough,%1%2path=%3,mount_tag=m%4")
-                        .arg(uid_arg, gid_arg, QString::fromStdString(mount.source_path), tag)}};
+    vm_mount_args[target] = {mount.source_path,
+                             {"-virtfs", QString("local,security_model=passthrough,%1%2path=%3,mount_tag=%4")
+                                             .arg(uid_arg, gid_arg, QString::fromStdString(mount.source_path), tag)}};
 }
 
-void QemuMountHandler::start(ServerVariant server, std::chrono::milliseconds timeout)
+void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
@@ -93,19 +81,16 @@ void QemuMountHandler::start(ServerVariant server, std::chrono::milliseconds tim
     }
 
     mpu::run_in_ssh_session(
-        session, fmt::format("sudo mount -t 9p m{} {} -o trans=virtio,version=9p2000.L,msize=536870912", tag, target));
+        session, fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912", tag, target));
 }
 
-void QemuMountHandler::stop()
+void QemuMountHandler::stop_impl()
 {
-    if (qemu_vm->mount_args.find(target) == qemu_vm->mount_args.end())
-        return;
-
     mpl::log(mpl::Level::info, category,
              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
-    qemu_vm->mount_args.erase(target);
+    vm_mount_args.erase(target);
 }
 
 QemuMountHandler::~QemuMountHandler()
@@ -119,7 +104,7 @@ QemuMountHandler::~QemuMountHandler()
         mpl::log(
             mpl::Level::warning, category,
             fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
-        qemu_vm->mount_args.erase(target);
+        vm_mount_args.erase(target);
     }
 }
 } // namespace multipass

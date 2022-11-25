@@ -41,7 +41,7 @@ void start_and_block_until_connected(mp::Process* process)
 
     process->start();
 
-    // This blocks and waits either ready_decider to return true, or failure.
+    // This blocks and waits either for "Connected" or for failure.
     event_loop.exec();
 
     QObject::disconnect(stop_conn);
@@ -60,7 +60,7 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
                         "how to install snap support for your instance's distribution.\n\n"
                         "If your distribution's instructions specify enabling classic snap support,\n"
                         "please do that as well.\n\n"
-                        "Alternatively, install `multipass-sshfs` manually inside the instance.",
+                        "Alternatively, install `sshfs` manually inside the instance.",
                         name));
     }
 
@@ -108,41 +108,40 @@ catch (const mp::ExitlessSSHProcessException&)
 
 namespace multipass
 {
-SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, std::string target,
-                                     const VMMount& mount)
-    : MountHandler{vm, ssh_key_provider, target, mount}
+SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider,
+                                     const std::string& target, const VMMount& mount)
+    : MountHandler{vm, ssh_key_provider, target, mount},
+      process{nullptr},
+      config{"",
+             vm->ssh_port(),
+             vm->ssh_username(),
+             vm->vm_name,
+             ssh_key_provider->private_key_as_base64(),
+             mount.source_path,
+             target,
+             mount.uid_mappings,
+             mount.gid_mappings}
 {
     mpl::log(mpl::Level::info, category,
              fmt::format("initializing mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
-
-    config.port = vm->ssh_port();
-    config.username = vm->ssh_username();
-    config.instance = vm->vm_name;
-    config.target_path = target;
-    config.source_path = mount.source_path;
-    config.uid_mappings = mount.uid_mappings;
-    config.gid_mappings = mount.gid_mappings;
-    config.private_key = ssh_key_provider->private_key_as_base64();
 }
 
-void SSHFSMountHandler::start(ServerVariant server, std::chrono::milliseconds timeout)
+void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
 {
-    std::visit(
-        [this, timeout](auto&& server) {
-            SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-            if (has_sshfs(vm->vm_name, session))
-                return;
-
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+    if (!has_sshfs(vm->vm_name, session))
+    {
+        auto visitor = [](auto server) {
             if (server)
             {
                 auto reply = make_reply_from_server(server);
                 reply.set_reply_message("Enabling support for mounting");
                 server->Write(reply);
             }
-
-            install_sshfs_for(vm->vm_name, session, timeout);
-        },
-        server);
+        };
+        std::visit(visitor, server);
+        install_sshfs_for(vm->vm_name, session, timeout);
+    }
 
     // Can't obtain hostname/IP address until instance is running
     config.host = vm->ssh_hostname();
@@ -158,7 +157,7 @@ void SSHFSMountHandler::start(ServerVariant server, std::chrono::milliseconds ti
         {
             // not error as it failing can indicate we need to install sshfs in the VM
             mpl::log(mpl::Level::warning, category,
-                     fmt::format("Mount \"{}\" in instance '{}' has stopped unexpectedly: {}", target, vm->vm_name,
+                     fmt::format("Mount \"{}\" in instance '{}' has stopped unsuccessfully: {}", target, vm->vm_name,
                                  exit_state.failure_message()));
         }
     });
@@ -182,16 +181,14 @@ void SSHFSMountHandler::start(ServerVariant server, std::chrono::milliseconds ti
             fmt::format("{}: {}", process_state.failure_message(), process->read_all_standard_error()));
 }
 
-void SSHFSMountHandler::stop()
+void SSHFSMountHandler::stop_impl()
 {
-    if (!(process && process->running()))
-        return;
-
     mpl::log(mpl::Level::info, category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
     if (process->terminate(); !process->wait_for_finished(5000))
         throw std::runtime_error(
             fmt::format("Failed to terminate SSHFS mount process: {}", process->read_all_standard_error()));
 }
+
 SSHFSMountHandler::~SSHFSMountHandler()
 {
     try

@@ -35,19 +35,34 @@ using ServerVariant = std::variant<grpc::ServerReaderWriterInterface<StartReply,
                                    grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
                                    grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*>;
 
-struct MountHandler : private DisabledCopyMove
+class MountHandler : private DisabledCopyMove
 {
+public:
     using UPtr = std::unique_ptr<MountHandler>;
 
     virtual ~MountHandler() = default;
 
-    virtual void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) = 0;
-    virtual void stop() = 0;
+    void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5))
+    {
+        std::lock_guard active_lock{active_mutex};
+        if (active)
+            return;
+        start_impl(server, timeout);
+        active = true;
+    }
+    void stop()
+    {
+        std::lock_guard active_lock{active_mutex};
+        if (!active)
+            return;
+        stop_impl();
+        active = false;
+    }
 
 protected:
-    MountHandler() = default;
-    MountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, std::string target, const VMMount& mount)
-        : vm{vm}, ssh_key_provider{ssh_key_provider}, target{std::move(target)}
+    MountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
+                 const VMMount& mount)
+        : vm{vm}, ssh_key_provider{ssh_key_provider}, target{target}, active{false}
     {
         std::error_code err;
         auto source_status = MP_FILEOPS.status(mount.source_path, err);
@@ -63,6 +78,9 @@ protected:
             throw std::runtime_error(fmt::format("Mount source path \"{}\" is not readable.", mount.source_path));
     };
 
+    virtual void start_impl(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) = 0;
+    virtual void stop_impl() = 0;
+
     template <typename Reply, typename Request>
     static Reply make_reply_from_server(grpc::ServerReaderWriterInterface<Reply, Request>*)
     {
@@ -75,9 +93,13 @@ protected:
         return Request{};
     }
 
-    VirtualMachine* vm{};
-    const SSHKeyProvider* ssh_key_provider{};
+    VirtualMachine* vm;
+    const SSHKeyProvider* ssh_key_provider;
     const std::string target;
+
+private:
+    bool active;
+    std::mutex active_mutex;
 };
 } // namespace multipass
 #endif // MULTIPASS_MOUNT_HANDLER_H

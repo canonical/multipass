@@ -423,10 +423,7 @@ QString mp::utils::get_multipass_storage()
 
 QString mp::utils::make_uuid()
 {
-    auto uuid = QUuid::createUuid().toString();
-
-    // Remove curly brackets enclosing uuid
-    return uuid.mid(1, uuid.size() - 2);
+    return QUuid::createUuid().toString(QUuid::WithoutBraces);
 }
 
 std::string mp::utils::contents_of(const multipass::Path& file_path)

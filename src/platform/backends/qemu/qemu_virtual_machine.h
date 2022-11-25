@@ -39,6 +39,8 @@ class QemuVirtualMachine final : public QObject, public BaseVirtualMachine
 {
     Q_OBJECT
 public:
+    using MountArgs = std::unordered_map<std::string, std::pair<std::string, QStringList>>;
+
     QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform, VMStatusMonitor& monitor);
     ~QemuVirtualMachine();
 
@@ -58,9 +60,9 @@ public:
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, std::string target,
-                                                            const VMMount& mount) override;
-    friend struct QemuMountHandler;
+    MountArgs& modifiable_mount_args();
+    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
+                                                            const std::string& target, const VMMount& mount) override;
 
 signals:
     void on_delete_memory_snapshot();
@@ -76,7 +78,7 @@ private:
 
     VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
-    std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args;
+    MountArgs mount_args;
     const std::string mac_addr;
     const std::string username;
     QemuPlatform* qemu_platform;

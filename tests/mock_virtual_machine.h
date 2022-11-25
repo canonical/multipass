@@ -63,7 +63,7 @@ struct MockVirtualMachine : public multipass::VirtualMachine
     MOCK_METHOD1(resize_memory, void(const MemorySize& new_size));
     MOCK_METHOD1(resize_disk, void(const MemorySize& new_size));
     MOCK_METHOD(std::unique_ptr<MountHandler>, make_native_mount_handler,
-                (const SSHKeyProvider* ssh_key_provider, std::string target, const VMMount& mount), (override));
+                (const SSHKeyProvider* ssh_key_provider, const std::string& target, const VMMount& mount), (override));
 };
 } // namespace test
 } // namespace multipass

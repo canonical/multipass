@@ -24,18 +24,19 @@
 
 namespace multipass
 {
-struct SSHFSMountHandler : public MountHandler
+class SSHFSMountHandler : public MountHandler
 {
-    SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, std::string target,
+public:
+    SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
                       const VMMount& mount);
     ~SSHFSMountHandler() override;
 
-    void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) override;
-    void stop() override;
+    void start_impl(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) override;
+    void stop_impl() override;
 
 private:
-    SSHFSServerConfig config{};
-    std::unique_ptr<Process> process;
+    Process::UPtr process;
+    SSHFSServerConfig config;
 };
 } // namespace multipass
 #endif // MULTIPASS_SSHFS_MOUNT_HANDLER_H

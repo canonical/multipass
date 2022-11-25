@@ -24,17 +24,18 @@
 
 namespace multipass
 {
-struct QemuMountHandler : public MountHandler
+class QemuMountHandler : public MountHandler
 {
-    QemuMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, std::string target,
+public:
+    QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
                      const VMMount& mount);
     ~QemuMountHandler() override;
 
-    void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) override;
-    void stop() override;
+    void start_impl(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) override;
+    void stop_impl() override;
 
 private:
-    QemuVirtualMachine* qemu_vm{};
+    QemuVirtualMachine::MountArgs& vm_mount_args;
     QString tag;
 };
 

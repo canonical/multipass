@@ -586,7 +586,13 @@ void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
 }
 
 mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                                         std::string target, const VMMount& mount)
+                                                                         const std::string& target,
+                                                                         const VMMount& mount)
 {
     return std::make_unique<QemuMountHandler>(this, ssh_key_provider, target, mount);
+}
+
+mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args()
+{
+    return mount_args;
 }
