@@ -66,27 +66,27 @@ catch (const mp::ExitlessSSHProcessException&)
 
 namespace multipass
 {
-SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, std::string target,
+SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
                                  const VMMount& mount)
-    : MountHandler{vm, ssh_key_provider, target, mount}, share_name{}
+    : MountHandler{vm, ssh_key_provider, target, mount},
+      source{mount.source_path},
+      // share name must be unique and 80 chars max
+      share_name{QString("%1_%2:%3")
+                     .arg(mpu::make_uuid(), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
+                     .left(80)}
 {
     mpl::log(mpl::Level::info, category,
              fmt::format("initializing native mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
-
-    // share name must be unique and 80 chars max
-    share_name = QString("%1:%2_%3")
-                     .arg(QString::fromStdString(vm->vm_name), QString::fromStdString(target), mpu::make_uuid())
-                     .left(80);
-
-    auto source_dir_owner = get_source_dir_owner(QString::fromStdString(mount.source_path));
-    if (!mp::PowerShell::exec({"New-SmbShare", "-Name", share_name, "-Path", QString::fromStdString(mount.source_path),
-                               "-FullAccess", source_dir_owner},
-                              category))
-        throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\"", mount.source_path)};
 }
 
-void SmbMountHandler::start(ServerVariant server, std::chrono::milliseconds timeout)
+void SmbMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
 {
+    auto source_dir_owner = get_source_dir_owner(QString::fromStdString(source));
+    if (!mp::PowerShell::exec({"New-SmbShare", "-Name", share_name, "-Path", QString::fromStdString(source),
+                               "-FullAccess", source_dir_owner},
+                              category))
+        throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\"", source)};
+
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
     const auto [username, password] = std::visit(
@@ -94,7 +94,8 @@ void SmbMountHandler::start(ServerVariant server, std::chrono::milliseconds time
             auto reply = server ? make_reply_from_server(server)
                                 : throw std::runtime_error("Cannot start SMB mount without client connection");
 
-            if (session.exec("dpkg -l | grep cifs-utils").exit_code() != 0)
+            if (session.exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils").read_std_output() !=
+                "installed")
             {
                 reply.set_reply_message("Enabling support for mounting");
                 server->Write(reply);
@@ -144,16 +145,21 @@ void SmbMountHandler::start(ServerVariant server, std::chrono::milliseconds time
     if (mount_exit_code != 0)
         throw std::runtime_error(fmt::format("Error: {}", mount_proc.read_std_error()));
 }
-void SmbMountHandler::stop()
-{
-    if (share_name.isEmpty())
-        return;
 
+void SmbMountHandler::remove_smb_share()
+{
+    if (!PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category))
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
+}
+
+void SmbMountHandler::stop_impl()
+{
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
-    PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category);
-    share_name.clear();
+    remove_smb_share();
 }
+
 SmbMountHandler::~SmbMountHandler()
 {
     try
@@ -165,7 +171,7 @@ SmbMountHandler::~SmbMountHandler()
         mpl::log(
             mpl::Level::warning, category,
             fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
-        PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category);
+        remove_smb_share();
     }
 }
 } // namespace multipass
