@@ -1537,8 +1537,8 @@ try // clang-format on
             continue;
         }
 
-        auto target_path = QDir::cleanPath(QString::fromStdString(path_entry.target_path()));
-        if (mp::utils::invalid_target_path(target_path))
+        auto target_path = QDir::cleanPath(QString::fromStdString(path_entry.target_path())).toStdString();
+        if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
             fmt::format_to(std::back_inserter(errors), "Unable to mount to \"{}\"\n", target_path);
             continue;
@@ -1546,7 +1546,7 @@ try // clang-format on
 
         const auto& mount_handler = config->mount_handlers.at(mount_type);
 
-        if (mount_handler->has_instance_already_mounted(name, target_path.toStdString()))
+        if (mount_handler->has_instance_already_mounted(name, target_path))
         {
             fmt::format_to(std::back_inserter(errors), "\"{}:{}\" is already mounted\n", name, target_path);
             continue;
@@ -1556,13 +1556,13 @@ try // clang-format on
         auto& vm_specs = vm_instance_specs[name];
         VMMount mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
 
-        mount_handler->init_mount(vm.get(), target_path.toStdString(), mount);
+        mount_handler->init_mount(vm.get(), target_path, mount);
 
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
             {
-                config->mount_handlers.at(mount_type)->start_mount(vm.get(), server, target_path.toStdString());
+                config->mount_handlers.at(mount_type)->start_mount(vm.get(), server, target_path);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1575,14 +1575,14 @@ try // clang-format on
             }
         }
 
-        if (vm_specs.mounts.find(target_path.toStdString()) != vm_specs.mounts.end())
+        if (vm_specs.mounts.find(target_path) != vm_specs.mounts.end())
         {
             mpl::log(mpl::Level::info, category,
                      fmt::format("Mount already defined for \"{}:{}\"\n", name, target_path));
             continue;
         }
 
-        vm_specs.mounts[target_path.toStdString()] = mount;
+        vm_specs.mounts[target_path] = mount;
     }
 
     persist_instances();
@@ -1990,11 +1990,11 @@ try // clang-format on
             continue;
         }
 
-        auto target_path = QDir::cleanPath(QString::fromStdString(path_entry.target_path()));
+        auto target_path = QDir::cleanPath(QString::fromStdString(path_entry.target_path())).toStdString();
         auto& mounts = vm_instance_specs[name].mounts;
 
         // Empty target path indicates removing all mounts for the VM instance
-        if (target_path.isEmpty())
+        if (target_path.empty())
         {
             for (const auto& mount_handler : config->mount_handlers)
             {
@@ -2008,7 +2008,7 @@ try // clang-format on
             VMMount::MountType mount_type;
             try
             {
-                mount_type = mounts.at(target_path.toStdString()).mount_type;
+                mount_type = mounts.at(target_path).mount_type;
             }
             catch (const std::out_of_range&)
             {
@@ -2018,14 +2018,14 @@ try // clang-format on
 
             try
             {
-                config->mount_handlers.at(mount_type)->stop_mount(name, target_path.toStdString());
+                config->mount_handlers.at(mount_type)->stop_mount(name, target_path);
             }
             catch (const std::out_of_range&)
             {
                 throw std::runtime_error("Cannot unmount: Invalid mount type stored in the database.");
             }
 
-            mounts.erase(target_path.toStdString());
+            mounts.erase(target_path);
         }
     }
 
