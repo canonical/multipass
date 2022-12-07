@@ -1537,7 +1537,7 @@ try // clang-format on
             continue;
         }
 
-        auto target_path = path_entry.target_path();
+        auto target_path = QDir::cleanPath(QString::fromStdString(path_entry.target_path())).toStdString();
         if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
             fmt::format_to(std::back_inserter(errors), "Unable to mount to \"{}\"\n", target_path);
@@ -1990,7 +1990,7 @@ try // clang-format on
             continue;
         }
 
-        auto target_path = path_entry.target_path();
+        auto target_path = QDir::cleanPath(QString::fromStdString(path_entry.target_path())).toStdString();
         auto& mounts = vm_instance_specs[name].mounts;
 
         // Empty target path indicates removing all mounts for the VM instance
