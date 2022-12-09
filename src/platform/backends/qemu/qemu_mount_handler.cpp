@@ -39,9 +39,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
       // uuid must be truncated. First character of tag must also be alpabetical.
       tag{mp::utils::make_uuid().remove("-").left(30).prepend('m').toStdString()}
 {
-    using St = VirtualMachine::State;
-    const auto skip_states = {St::off, St::stopped, St::suspended};
-    if (std::find(skip_states.begin(), skip_states.end(), vm->current_state()) == skip_states.end())
+    if (vm->current_state() != VirtualMachine::State::off && vm->current_state() != VirtualMachine::State::stopped)
         throw std::runtime_error("Please shutdown the instance before attempting native mounts.");
 
     // Need to ensure no more than one uid/gid map is passed in here.
