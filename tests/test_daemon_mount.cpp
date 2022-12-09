@@ -163,6 +163,37 @@ TEST_F(TestDaemonMount, invalidTargetPathFails)
     EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("Unable to mount to \"{}\"", invalid_path)));
 }
 
+TEST_F(TestDaemonMount, mountIgnoresTrailingSlash)
+{
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = temp_dir->path();
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
+        return std::move(instance_ptr);
+    });
+
+    EXPECT_CALL(*mock_mount_handler, has_instance_already_mounted(_, _)).WillRepeatedly([this](auto, auto path) {
+        return fake_target_path == path;
+    });
+    config_builder.mount_handlers[mp::VMMount::MountType::Classic] = std::move(mock_mount_handler);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::MountRequest request;
+    request.set_source_path(mount_dir.path().toStdString());
+    auto entry = request.add_target_paths();
+    entry->set_instance_name(mock_instance_name);
+    entry->set_target_path(fake_target_path + "/");
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(),
+                HasSubstr(fmt::format("\"{}:{}\" is already mounted", mock_instance_name, fake_target_path)));
+}
+
 TEST_F(TestDaemonMount, mountExistsDoesNotTryMount)
 {
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
