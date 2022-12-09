@@ -119,8 +119,8 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* s
              ssh_key_provider->private_key_as_base64(),
              mount.source_path,
              target,
-             mount.uid_mappings,
-             mount.gid_mappings}
+             mount.gid_mappings,
+             mount.uid_mappings}
 {
     mpl::log(mpl::Level::info, category,
              fmt::format("initializing mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
