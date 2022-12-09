@@ -33,10 +33,10 @@ namespace
 {
 constexpr auto category = "smb-mount-handler";
 
-auto get_source_dir_owner(const QString& source_dir)
+auto get_dir_owner(const QString& dir)
 {
     QString ps_output;
-    QStringList get_acl{"Get-Acl", source_dir};
+    QStringList get_acl{"Get-Acl", dir};
 
     mp::PowerShell::exec(get_acl << mp::PowerShell::Snippets::expand_property << "Owner", category, ps_output);
 
@@ -66,10 +66,30 @@ catch (const mp::ExitlessSSHProcessException&)
 
 namespace multipass
 {
+bool SmbMountHandler::check_smb_share()
+{
+    return PowerShell::exec({"Get-SmbShare", "-Name", share_name}, category);
+}
+
+void SmbMountHandler::create_smb_share()
+{
+    if (check_smb_share() ||
+        !PowerShell::exec({"New-SmbShare", "-Name", share_name, "-Path", source, "-FullAccess", get_dir_owner(source)},
+                          category))
+        throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\"", source)};
+}
+
+void SmbMountHandler::remove_smb_share()
+{
+    if (check_smb_share() && !PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category))
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
+}
+
 SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
                                  const VMMount& mount)
     : MountHandler{vm, ssh_key_provider, target, mount},
-      source{mount.source_path},
+      source{QString::fromStdString(mount.source_path)},
       // share name must be unique and 80 chars max
       share_name{QString("%1_%2:%3")
                      .arg(mpu::make_uuid(), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
@@ -80,13 +100,9 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_k
 }
 
 void SmbMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
+try
 {
-    auto source_dir_owner = get_source_dir_owner(QString::fromStdString(source));
-    if (!mp::PowerShell::exec({"New-SmbShare", "-Name", share_name, "-Path", QString::fromStdString(source),
-                               "-FullAccess", source_dir_owner},
-                              category))
-        throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\"", source)};
-
+    create_smb_share();
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
     const auto [username, password] = std::visit(
@@ -145,16 +161,16 @@ void SmbMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds
     if (mount_exit_code != 0)
         throw std::runtime_error(fmt::format("Error: {}", mount_proc.read_std_error()));
 }
-
-void SmbMountHandler::remove_smb_share()
+catch (...)
 {
-    if (!PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category))
-        mpl::log(mpl::Level::warning, category,
-                 fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
+    remove_smb_share();
+    throw;
 }
 
 void SmbMountHandler::stop_impl()
 {
+    mpl::log(mpl::Level::info, category,
+             fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
     remove_smb_share();

@@ -33,9 +33,11 @@ public:
     void stop_impl() override;
 
 private:
-    std::string source;
+    QString source;
     QString share_name;
 
+    bool check_smb_share();
+    void create_smb_share();
     void remove_smb_share();
 };
 } // namespace multipass
