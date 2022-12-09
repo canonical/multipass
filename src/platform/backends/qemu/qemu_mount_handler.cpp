@@ -37,7 +37,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
       vm_mount_args{vm->modifiable_mount_args()},
       // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
       // uuid must be truncated. First character of tag must also be alpabetical.
-      tag{mp::utils::make_uuid().remove("-").left(30).prepend('m')}
+      tag{mp::utils::make_uuid().remove("-").left(30).prepend('m').toStdString()}
 {
     using St = VirtualMachine::State;
     const auto skip_states = {St::off, St::stopped, St::suspended};
@@ -55,9 +55,10 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
     const auto gid_map = mount.gid_mappings.empty() ? std::make_pair(1000, 1000) : mount.gid_mappings[0];
     const auto uid_arg = QString("uid_map=%1:%2,").arg(uid_map.first).arg(uid_map.second == -1 ? 1000 : uid_map.second);
     const auto gid_arg = QString{"gid_map=%1:%2,"}.arg(gid_map.first).arg(gid_map.second == -1 ? 1000 : gid_map.second);
-    vm_mount_args[target] = {mount.source_path,
-                             {"-virtfs", QString("local,security_model=passthrough,%1%2path=%3,mount_tag=%4")
-                                             .arg(uid_arg, gid_arg, QString::fromStdString(mount.source_path), tag)}};
+    vm_mount_args[tag] = {
+        mount.source_path,
+        {"-virtfs", QString::fromStdString(fmt::format("local,security_model=passthrough,{}{}path={},mount_tag={}",
+                                                       uid_arg, gid_arg, mount.source_path, tag))}};
 }
 
 void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)
@@ -90,7 +91,6 @@ void QemuMountHandler::stop_impl()
              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
-    vm_mount_args.erase(target);
 }
 
 QemuMountHandler::~QemuMountHandler()
@@ -104,7 +104,7 @@ QemuMountHandler::~QemuMountHandler()
         mpl::log(
             mpl::Level::warning, category,
             fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
-        vm_mount_args.erase(target);
     }
+    vm_mount_args.erase(tag);
 }
 } // namespace multipass

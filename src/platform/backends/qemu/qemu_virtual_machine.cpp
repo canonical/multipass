@@ -85,8 +85,7 @@ QStringList get_arguments(const QJsonObject& metadata)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::optional<QJsonObject>& resume_metadata,
-                       const std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args,
-                       const QStringList& platform_args)
+                       const mp::QemuVirtualMachine::MountArgs& mount_args, const QStringList& platform_args)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {

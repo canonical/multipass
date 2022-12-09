@@ -45,8 +45,6 @@ public:
     void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5))
     {
         std::lock_guard active_lock{active_mutex};
-        if (active)
-            return;
         start_impl(server, timeout);
         active = true;
     }

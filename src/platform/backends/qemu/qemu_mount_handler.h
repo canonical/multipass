@@ -36,7 +36,7 @@ public:
 
 private:
     QemuVirtualMachine::MountArgs& vm_mount_args;
-    QString tag;
+    std::string tag;
 };
 
 } // namespace multipass

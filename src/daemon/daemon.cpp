@@ -1512,12 +1512,12 @@ try // clang-format on
                                                                                         : VMMount::MountType::Native;
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
+        vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
         if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
             {
-                auto& mount = vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-                mount->start(server);
+                vm_mounts[target_path]->start(server);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -1566,6 +1566,7 @@ try // clang-format on
                 vm_instance_specs[name].deleted = false;
                 vm_instances[name] = std::move(it->second);
                 deleted_instances.erase(it);
+                init_mounts(name);
             }
             else
             {
@@ -1798,24 +1799,17 @@ try // clang-format on
         }
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
-            auto& vm_mounts = mounts[vm.vm_name];
-            for (auto expiring_it = vm_mounts.begin(); expiring_it != vm_mounts.end();)
-            {
-                // iterator must be advanced before used in order to prevent iterator invalidation caused by
-                // deleting from the iterated map
-                // expiring_it will be invalidated by vm_mounts.erase, so expiring_it must not be used after this point
-                const auto& [target, mount] = *expiring_it++;
+            for (auto& [target, mount] : mounts[vm.vm_name])
                 try
                 {
                     mount->stop();
-                    vm_mounts.erase(target);
                 }
                 catch (const std::runtime_error& e)
                 {
                     throw std::runtime_error{
                         fmt::format("failed to unmount \"{}\" from '{}': {}\n", target, vm.vm_name, e.what())};
                 }
-            }
+
             vm.suspend();
             return grpc::Status::OK;
         });
@@ -1968,7 +1962,6 @@ try // clang-format on
 
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
-        {
             for (auto expiring_it = vm_mounts.begin(); expiring_it != vm_mounts.end();)
             {
                 // iterator must be advanced before used in order to prevent iterator invalidation caused by deleting
@@ -1976,14 +1969,10 @@ try // clang-format on
                 // expiring_it will be invalidated by do_unmount, so it must not be used after this point
                 do_unmount(expiring_it++);
             }
-        }
+        else if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
+            do_unmount(it);
         else
-        {
-            if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
-                do_unmount(it);
-            else
-                fmt::format_to(std::back_inserter(errors), "path \"{}\" is not mounted in '{}'\n", target_path, name);
-        }
+            fmt::format_to(std::back_inserter(errors), "path \"{}\" is not mounted in '{}'\n", target_path, name);
     }
 
     persist_instances();
@@ -2385,8 +2374,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     reply.set_create_message("Starting " + name);
                     server->Write(reply);
 
-                    init_mounts(name);
-
                     vm_instances[name]->start();
 
                     auto future_watcher = create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
@@ -2610,24 +2597,16 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
         }
 
         auto stop_all_mounts = [this](const std::string& name) {
-            auto& vm_mounts = mounts[name];
-            for (auto expiring_it = vm_mounts.begin(); expiring_it != vm_mounts.end();)
-            {
-                // iterator must be advanced before used in order to prevent iterator invalidation caused by
-                // deleting from the iterated map
-                // expiring_it will be invalidated by vm_mounts.erase, so expiring_it must not be used after this point
-                const auto& [target, mount] = *expiring_it++;
+            for (auto& [target, mount] : mounts[name])
                 try
                 {
                     mount->stop();
-                    vm_mounts.erase(target);
                 }
                 catch (const std::runtime_error& e)
                 {
                     throw std::runtime_error{
                         fmt::format("failed to unmount \"{}\" from '{}': {}\n", target, name, e.what())};
                 }
-            }
         };
 
         auto& shutdown_timer = delayed_shutdown_instances[name] =
@@ -2672,8 +2651,10 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
 
 void mp::Daemon::init_mounts(const std::string& name)
 {
+    auto& vm_mounts = mounts[name];
     for (const auto& [target, vm_mount] : vm_instance_specs[name].mounts)
-        mounts[name][target] = make_mount(vm_instances[name].get(), target, vm_mount);
+        if (vm_mounts.find(target) == vm_mounts.end())
+            vm_mounts[target] = make_mount(vm_instances[name].get(), target, vm_mount);
 }
 
 multipass::MountHandler::UPtr multipass::Daemon::make_mount(VirtualMachine* vm, const std::string& target,
@@ -2727,15 +2708,11 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
         {
             std::vector<std::string> invalid_mounts;
             fmt::memory_buffer warnings;
-            auto& vm_spec_mounts = vm_instance_specs[name].mounts;
             auto& vm_mounts = mounts[name];
-            for (const auto& mount_entry : vm_spec_mounts)
-            {
-                auto& target_path = mount_entry.first;
-
+            for (auto& [target, mount] : vm_mounts)
                 try
                 {
-                    vm_mounts[target_path]->start(server);
+                    mount->start(server);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
@@ -2745,13 +2722,13 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 catch (const std::exception& e)
                 {
                     // TODO: Combine these into one warning level log once they are displayed in the cli by default
-                    mpl::log(mpl::Level::info, category, fmt::format("Removing \"{}\": {}\n", target_path, e.what()));
+                    mpl::log(mpl::Level::info, category, fmt::format("Removing \"{}\": {}\n", target, e.what()));
                     fmt::format_to(std::back_inserter(warnings),
-                                   fmt::format("Removing mount \"{}\" from {}: {}\n", target_path, name, e.what()));
-                    invalid_mounts.push_back(target_path);
+                                   fmt::format("Removing mount \"{}\" from '{}': {}\n", target, name, e.what()));
+                    invalid_mounts.push_back(target);
                 }
-            }
 
+            auto& vm_spec_mounts = vm_instance_specs[name].mounts;
             for (const auto& target : invalid_mounts)
             {
                 vm_mounts.erase(target);
