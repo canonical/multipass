@@ -2919,15 +2919,15 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     };
 
     const auto cloud_init_iso_name = "cloud-init-config.iso";
-    auto cloud_init_mount_point = "/Volumes/cidata"; // TODO@no-merge can I really assume this?
-    auto instance_image_db_filename = "multipassd-instance-image-records.json";
-    auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
-    auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
-    auto qemu_vault_dir = fmt::format("{}/vault", qemu_data_dir);
-    auto qemu_instances_dir = fmt::format("{}/instances", qemu_vault_dir);
-    auto qemu_instances_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
-    auto qemu_instance_images_db_path = fmt::format("{}/{}", qemu_vault_dir, instance_image_db_filename);
-    auto hyperkit_instance_image_db_path = fmt::format("{}/vault/{}", data_dir, instance_image_db_filename);
+    const auto cloud_init_mount_point = "/Volumes/cidata"; // TODO@no-merge can I really assume this?
+    const auto instance_image_db_filename = "multipassd-instance-image-records.json";
+    const auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
+    const auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
+    const auto qemu_vault_dir = fmt::format("{}/vault", qemu_data_dir);
+    const auto qemu_instances_dir = fmt::format("{}/instances", qemu_vault_dir);
+    const auto qemu_instances_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
+    const auto qemu_instance_images_db_path = fmt::format("{}/{}", qemu_vault_dir, instance_image_db_filename);
+    const auto hyperkit_instance_image_db_path = fmt::format("{}/vault/{}", data_dir, instance_image_db_filename);
 
     // Create QEMU vault (if not there yet)
     if (std::error_code err; !MP_FILEOPS.create_directories(qemu_vault_dir, err) && err)
@@ -2955,8 +2955,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             reply_msg(fmt::format("Migrating instance from hyperkit to qemu: {}\n", vm_name)); // TODO@nomerge spin it
 
             // Copy instance image to qemu vault
-            auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
-            auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
+            const auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
+            const auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
             mpl::log(mpl::Level::debug, category, fmt::format("Migrating instance files to '{}'", target_directory));
 
             // TODO@no-merge for error handling, may want a scope guard to rollback things on failure (delete dir)
@@ -2964,14 +2964,14 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 throw std::runtime_error{
                     fmt::format("Could not create directory for QEMU instance: {} ", err.message())};
 
-            auto new_image = mp::vault::copy(vm_image.image_path, QString::fromStdString(target_directory));
+            const auto new_image = mp::vault::copy(vm_image.image_path, QString::fromStdString(target_directory));
 
             // Fix image metadata
             QStringList qemuimg_args = QStringList{"check", "-r", "all", new_image};
             auto qemuimg_proc = mp::platform::make_process(
                 std::make_unique<CustomQemuImgProcessSpec>(std::move(qemuimg_args), new_image));
 
-            if (auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
+            if (const auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
                 throw std::runtime_error{
                     fmt::format("Failed to fix image metadata: {}", qemuimg_state.failure_message())}; /*
                                                                           TODO@no-merge include vm name */
@@ -2990,7 +2990,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                         auto unmount_proc = mp::platform::make_process(
                             mp::simple_process_spec("hdiutil", {"unmount", cloud_init_mount_point}));
 
-                        if (auto unmount_state = unmount_proc->execute(); !unmount_state.completed_successfully())
+                        if (const auto unmount_state = unmount_proc->execute(); !unmount_state.completed_successfully())
                             throw std::runtime_error{
                                 fmt::format("Failed to unmount the cloud-init ISO in {}", cloud_init_mount_point)}; /*
                                                                                     TODO@no-merge stop throwing here */
@@ -3003,7 +3003,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             const auto hyperkit_iso_path = hyperkit_instances_dir.filePath(cloud_init_iso_name);
             auto mount_proc =
                 mp::platform::make_process(mp::simple_process_spec("hdiutil", {"mount", hyperkit_iso_path}));
-            if (auto mount_state = mount_proc->execute(); !mount_state.completed_successfully())
+            if (const auto mount_state = mount_proc->execute(); !mount_state.completed_successfully())
                 throw std::runtime_error{fmt::format("Failed to mount the cloud-init ISO for {}: {}", vm_name,
                                                      mount_state.failure_message())};
 
@@ -3023,7 +3023,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             qemu_iso.add_file("meta-data", mpu::emit_cloud_config(meta_data));
 
             // Copy the remaining cloud-init files
-            for (auto filename : {"user-data", "vendor-data"})
+            for (const auto filename : {"user-data", "vendor-data"})
             {
                 auto stream = MP_FILEOPS.open_read(fmt::format("{}/{}", cloud_init_mount_point, filename));
                 auto contents = std::string{std::istreambuf_iterator{*stream}, {}};
