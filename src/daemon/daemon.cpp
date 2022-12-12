@@ -2907,7 +2907,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         return std::tuple(std::move(file), std::move(doc), std::move(json));
     };
 
-    // Utility to write json to a file (with fewer contents than the serialized json will have)
+    // Utility to write json to a (currently shorter) file
     // Precondition: when serialized, the json object must produce more data than the current file contents.
     auto write_longer_json = [](QFile& file, QJsonDocument& doc, const QJsonObject& json) {
         doc.setObject(json);
