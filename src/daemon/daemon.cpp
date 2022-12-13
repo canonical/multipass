@@ -2948,7 +2948,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         std::get<2>(read_json(QString::fromStdString(hyperkit_instance_image_db_path)));
 
     // Migrate instances
-    bool instances_migrated = false;
+    std::set<std::string> instances_migrated{}; // using set to get them sorted
     for (const auto& [vm_name, vm_specs] : vm_instance_specs)
     {
         auto key = QString::fromStdString(vm_name);
@@ -3055,16 +3055,24 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             // Add JSON for QEMU instance
             qemu_instances_json.insert(key, vm_spec_to_json(vm_specs));
-            instances_migrated = true;
+
+            [[maybe_unused]] auto succeeded = instances_migrated.insert(vm_name).second;
+            assert(succeeded);
         }
     }
 
-    if (instances_migrated)
+    std::string outcome_summary{"No instances were migrated."};
+    if (instances_migrated.size())
     {
         // Write QEMU instance and instance-image DBs
         write_longer_json(*qemu_instances_db, qemu_instances_doc, qemu_instances_json);
         write_longer_json(*qemu_instance_images_db, qemu_instance_images_doc, qemu_instance_images_json);
+
+        auto separator = "\n  ";
+        outcome_summary = fmt::format("The following instances were successfully migrated:{}{}", separator,
+                                      fmt::join(instances_migrated, separator));
     }
 
+    reply_msg(std::move(outcome_summary), /* sticky = */ true);
     return grpc::Status::OK;
 }
