@@ -2884,7 +2884,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     mp::SetReply reply{};
     auto reply_msg = [server, &reply](auto&& msg, bool sticky = false) {
         if (sticky)
-            reply.template set_log_line(std::forward<decltype(msg)>(msg));
+            reply.template set_log_line(fmt::format("{}\n", std::forward<decltype(msg)>(msg)));
         else
             reply.template set_reply_message(std::forward<decltype(msg)>(msg));
 
