@@ -2920,8 +2920,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         return grpc::Status::OK;
 
     // Utility to write a msg back to the client
-    mp::SetReply reply{};
-    auto reply_msg = [server, &reply](auto&& msg, bool sticky = false) {
+    auto reply_msg = [server](auto&& msg, bool sticky = false) {
+        mp::SetReply reply{};
         if (sticky)
             reply.template set_log_line(fmt::format("{}\n", std::forward<decltype(msg)>(msg)));
         else
