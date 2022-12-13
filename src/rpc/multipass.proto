@@ -422,6 +422,7 @@ message SetRequest {
 
 message SetReply {
     string log_line = 1;
+    string reply_message = 2;
 }
 
 message KeysRequest {
