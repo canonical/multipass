@@ -32,7 +32,7 @@ static auto reg = []() -> bool {
 }();
 } // namespace
 
-mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : p{p}
+mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : QProcess{p}, p{p}
 {
 }
 

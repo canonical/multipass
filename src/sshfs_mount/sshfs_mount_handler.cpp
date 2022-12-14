@@ -21,6 +21,7 @@
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/utils.h>
 
+#include <QCoreApplication>
 #include <QEventLoop>
 
 namespace mp = multipass;
@@ -171,6 +172,12 @@ void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::millisecon
     mpl::log(mpl::Level::info, category, fmt::format("process arguments '{}'", process->arguments().join(", ")));
 
     start_and_block_until_connected(process.get());
+    // after the process is started, it must be moved to the main thread
+    // when starting an instance that already has mounts defined, it is started in a thread from the global thread pool
+    // this makes the sshfs_server process to be owned by that thread
+    // when stopping the mount from the main thread again, qt will try to send an event from the main thread to the one
+    // in which the process lives this will result in an error since qt can't send events from one thread to another
+    process->moveToThread(QCoreApplication::instance()->thread());
 
     // Check in case sshfs_server stopped, usually due to an error
     auto process_state = process->process_state();
