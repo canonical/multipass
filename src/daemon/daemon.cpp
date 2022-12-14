@@ -970,6 +970,24 @@ public:
     }
 };
 
+template <typename W, typename R>
+void warn_hyperkit_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) // TODO hk migration, remove
+{
+#ifdef MULTIPASS_PLATFORM_APPLE
+    constexpr auto deprecation_warning =
+        "Warning! The hyperkit driver is deprecated and will be removed in an upcoming release. When you are ready to "
+        "have your instances migrated, please stop them (multipass stop --all) and switch to the qemu driver "
+        "(multipass set local.driver=qemu).\n\n";
+
+    if (MP_SETTINGS.get(mp::driver_key) == "hyperkit")
+    {
+        W reply{};
+        reply.set_log_line(deprecation_warning);
+        server.Write(reply);
+    }
+#endif
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1161,6 +1179,7 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<LaunchReply, LaunchRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                          server};
 
@@ -1208,6 +1227,7 @@ void mp::Daemon::find(const FindRequest* request, grpc::ServerReaderWriterInterf
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<FindReply, FindRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     FindReply response;
@@ -1310,6 +1330,7 @@ void mp::Daemon::info(const InfoRequest* request, grpc::ServerReaderWriterInterf
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     InfoReply response;
@@ -1462,6 +1483,7 @@ void mp::Daemon::list(const ListRequest* request, grpc::ServerReaderWriterInterf
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<ListReply, ListRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     ListReply response;
@@ -1691,6 +1713,7 @@ void mp::Daemon::recover(const RecoverRequest* request,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<RecoverReply, RecoverRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
@@ -1732,6 +1755,7 @@ void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<SSHInfoReply, SSHInfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
     SSHInfoReply response;
@@ -1792,6 +1816,7 @@ void mp::Daemon::start(const StartRequest* request, grpc::ServerReaderWriterInte
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<StartReply, StartRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                        server};
 
@@ -1911,6 +1936,7 @@ void mp::Daemon::suspend(const SuspendRequest* request,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<SuspendReply, SuspendRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
@@ -1964,6 +1990,7 @@ void mp::Daemon::restart(const RestartRequest* request,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<RestartReply, RestartRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
