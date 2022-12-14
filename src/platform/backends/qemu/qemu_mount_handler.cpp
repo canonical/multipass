@@ -83,26 +83,25 @@ void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)
         session, fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912", tag, target));
 }
 
-void QemuMountHandler::stop_impl()
+void QemuMountHandler::stop_impl(bool force)
+try
 {
     mpl::log(mpl::Level::info, category,
              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
 }
+catch (const std::exception& e)
+{
+    if (!force)
+        throw;
+    mpl::log(mpl::Level::warning, category,
+             fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
+}
 
 QemuMountHandler::~QemuMountHandler()
 {
-    try
-    {
-        stop();
-    }
-    catch (const std::exception& e)
-    {
-        mpl::log(
-            mpl::Level::warning, category,
-            fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
-    }
+    stop(/*force=*/true);
     vm_mount_args.erase(tag);
 }
 } // namespace multipass

@@ -45,15 +45,18 @@ public:
     void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5))
     {
         std::lock_guard active_lock{active_mutex};
+        if (active)
+            return;
         start_impl(server, timeout);
         active = true;
     }
-    void stop()
+
+    void stop(bool force = false)
     {
         std::lock_guard active_lock{active_mutex};
         if (!active)
             return;
-        stop_impl();
+        stop_impl(force);
         active = false;
     }
 
@@ -76,8 +79,8 @@ protected:
             throw std::runtime_error(fmt::format("Mount source path \"{}\" is not readable.", mount.source_path));
     };
 
-    virtual void start_impl(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) = 0;
-    virtual void stop_impl() = 0;
+    virtual void start_impl(ServerVariant server, std::chrono::milliseconds timeout) = 0;
+    virtual void stop_impl(bool force) = 0;
 
     template <typename Reply, typename Request>
     static Reply make_reply_from_server(grpc::ServerReaderWriterInterface<Reply, Request>*)

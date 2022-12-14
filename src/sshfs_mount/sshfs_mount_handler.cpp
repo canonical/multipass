@@ -188,25 +188,24 @@ void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::millisecon
             fmt::format("{}: {}", process_state.failure_message(), process->read_all_standard_error()));
 }
 
-void SSHFSMountHandler::stop_impl()
+void SSHFSMountHandler::stop_impl(bool force)
 {
     mpl::log(mpl::Level::info, category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
     if (process->terminate(); !process->wait_for_finished(5000))
-        throw std::runtime_error(
-            fmt::format("Failed to terminate SSHFS mount process: {}", process->read_all_standard_error()));
+    {
+        auto err = fmt::format("Failed to terminate SSHFS mount process: {}", process->read_all_standard_error());
+        if (force)
+            mpl::log(
+                mpl::Level::warning, category,
+                fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, err));
+        else
+            throw std::runtime_error{err};
+    }
+    process.reset();
 }
 
 SSHFSMountHandler::~SSHFSMountHandler()
 {
-    try
-    {
-        stop();
-    }
-    catch (const std::exception& e)
-    {
-        mpl::log(
-            mpl::Level::warning, category,
-            fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
-    }
+    stop(/*force=*/true);
 }
 } // namespace multipass

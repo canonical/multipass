@@ -1797,16 +1797,8 @@ try // clang-format on
         }
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
-            for (auto& [target, mount] : mounts[vm.vm_name])
-                try
-                {
-                    mount->stop();
-                }
-                catch (const std::runtime_error& e)
-                {
-                    throw std::runtime_error{
-                        fmt::format("failed to unmount \"{}\" from '{}': {}\n", target, vm.vm_name, e.what())};
-                }
+            for (auto& [_, mount] : mounts[vm.vm_name])
+                mount->stop(/*force=*/true);
 
             vm.suspend();
             return grpc::Status::OK;
@@ -1839,8 +1831,12 @@ try // clang-format on
         return status_promise->set_value(status);
     }
 
-    status = cmd_vms(instances,
-                     std::bind(&Daemon::reboot_vm, this, std::placeholders::_1)); // 1st pass to reboot all targets
+    status = cmd_vms(instances, [this](auto& vm) {
+        for (auto& [_, mount] : mounts[vm.vm_name])
+            mount->stop(/*force=*/true);
+
+        return reboot_vm(vm);
+    }); // 1st pass to reboot all targets
 
     if (!status.ok())
     {
@@ -1948,8 +1944,8 @@ try // clang-format on
             try
             {
                 mount->stop();
-                vm_mounts.erase(expiring_it);
                 vm_spec_mounts.erase(target);
+                vm_mounts.erase(expiring_it);
             }
             catch (const std::runtime_error& e)
             {
@@ -2595,16 +2591,8 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
         }
 
         auto stop_all_mounts = [this](const std::string& name) {
-            for (auto& [target, mount] : mounts[name])
-                try
-                {
-                    mount->stop();
-                }
-                catch (const std::runtime_error& e)
-                {
-                    throw std::runtime_error{
-                        fmt::format("failed to unmount \"{}\" from '{}': {}\n", target, name, e.what())};
-                }
+            for (auto& [_, mount] : mounts[name])
+                mount->stop(/*force=*/true);
         };
 
         auto& shutdown_timer = delayed_shutdown_instances[name] =
