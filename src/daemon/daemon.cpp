@@ -965,6 +965,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             spec.state = VirtualMachine::State::stopped;
         }
 
+        if (!spec.deleted)
+            init_mounts(name);
         std::unique_lock lock{start_mutex};
         if (spec.state == VirtualMachine::State::running &&
             vm_instances[name]->current_state() != VirtualMachine::State::running &&
@@ -974,8 +976,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
             multipass::top_catch_all(name, [this, &name, &lock]() {
-                init_mounts(name);
-
                 vm_instances[name]->start();
                 lock.unlock();
                 on_restart(name);
@@ -1719,8 +1719,6 @@ try // clang-format on
         else if (state != VirtualMachine::State::running && state != VirtualMachine::State::starting &&
                  state != VirtualMachine::State::restarting)
         {
-            init_mounts(name);
-
             vm->start();
         }
     }
