@@ -1347,7 +1347,8 @@ try // clang-format on
                 if (extra_ipv4 != management_ip)
                     info->add_ipv4(extra_ipv4);
 
-            auto current_release = mpu::run_in_ssh_session(session, "lsb_release -ds");
+            auto current_release =
+                mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
             info->set_current_release(!current_release.empty() ? current_release : original_release);
         }
     }
