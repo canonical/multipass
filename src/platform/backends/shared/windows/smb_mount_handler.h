@@ -29,8 +29,8 @@ public:
                     const VMMount& mount);
     ~SmbMountHandler() override;
 
-    void start_impl(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5)) override;
-    void stop_impl() override;
+    void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
+    void stop_impl(bool force) override;
 
 private:
     QString source;
