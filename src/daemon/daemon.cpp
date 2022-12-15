@@ -2901,7 +2901,6 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     assert(config->factory->get_backend_version_string() == "hyperkit" &&
            "can only migrate when hyperkit is in effect");
 
-    // TODO@no-merge throw in consts in variables
     // TODO@no-merge homogenise failure messages
 
     if (vm_instance_specs.empty())
@@ -2950,7 +2949,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     };
 
     const auto cloud_init_iso_name = "cloud-init-config.iso";
-    const auto cloud_init_mount_point = "/Volumes/cidata"; // TODO@no-merge can I really assume this?
+    const auto cloud_init_mount_point = "/Volumes/cidata";
     const auto instance_image_db_filename = "multipassd-instance-image-records.json";
     const auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
     const auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
