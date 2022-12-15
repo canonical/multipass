@@ -3042,8 +3042,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             // TODO@no-merge for error handling, may want a scope guard to rollback things on failure (delete dir)
             if (std::error_code err; !MP_FILEOPS.create_directories(target_directory, err) && err)
-                throw std::runtime_error{
-                    fmt::format("Could not create directory for QEMU instance: {} ", err.message())};
+                throw HyperkitMigrationRecoverableError{vm_name, "could not create directory for QEMU instance",
+                                                        err.message()};
 
             const auto new_image = mp::vault::copy(vm_image.image_path, QString::fromStdString(target_directory));
 
@@ -3053,9 +3053,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 std::make_unique<CustomQemuImgProcessSpec>(std::move(qemuimg_args), new_image));
 
             if (const auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
-                throw std::runtime_error{
-                    fmt::format("Failed to fix image metadata: {}", qemuimg_state.failure_message())}; /*
-                                                                          TODO@no-merge include vm name */
+                throw HyperkitMigrationRecoverableError{vm_name, "could not fix image metadata",
+                                                        qemuimg_state.failure_message()};
 
             // Verify if the default mount point for the cloud-init ISO is available
             if (QFile::exists(cloud_init_mount_point))
@@ -3074,7 +3073,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                         if (const auto unmount_state = unmount_proc->execute(); !unmount_state.completed_successfully())
                             throw std::runtime_error{
                                 fmt::format("Failed to unmount the cloud-init ISO in {}", cloud_init_mount_point)}; /*
-                                                                                    TODO@no-merge stop throwing here */
+                                                                                 TODO@no-merge make this recoverable */
                     }
                 });
             });
@@ -3085,8 +3084,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             auto mount_proc =
                 mp::platform::make_process(mp::simple_process_spec("hdiutil", {"mount", hyperkit_iso_path}));
             if (const auto mount_state = mount_proc->execute(); !mount_state.completed_successfully())
-                throw std::runtime_error{fmt::format("Failed to mount the cloud-init ISO for {}: {}", vm_name,
-                                                     mount_state.failure_message())};
+                throw HyperkitMigrationRecoverableError{vm_name, "could not mount cloud-init ISO",
+                                                        mount_state.failure_message()};
 
             // Create a network-config file to give the new interface (w/ new MAC address) DHCP and the previous name
             YAML::Node network_data;
@@ -3109,8 +3108,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 auto stream = MP_FILEOPS.open_read(fmt::format("{}/{}", cloud_init_mount_point, filename));
                 auto contents = std::string{std::istreambuf_iterator{*stream}, {}};
                 if (stream->fail())
-                    throw std::runtime_error{fmt::format("Could not read cloud-init config file {} for {}: {}",
-                                                         filename, vm_name, std::strerror(errno))};
+                    throw HyperkitMigrationRecoverableError{
+                        vm_name, fmt::format("could not read cloud-init config file '{}'", filename),
+                        std::strerror(errno)};
 
                 qemu_iso.add_file(filename, contents);
             }
@@ -3121,7 +3121,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             auto instance_image_record = hyperkit_instance_images_json[key].toObject();
             auto image_record = instance_image_record["image"].toObject();
             if (image_record.isEmpty()) // true if either the image or instance objects were empty/absent
-                throw std::runtime_error{"Failed to migrate instance image: corrupted image records"};
+                throw HyperkitMigrationRecoverableError{vm_name, "could not update instance image",
+                                                        "corrupted image records"};
 
             image_record.insert("path", new_image);
             image_record.insert("kernel_path", "");
@@ -3134,7 +3135,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             [[maybe_unused]] auto succeeded = instances_migrated.insert(vm_name).second;
             assert(succeeded);
-        }
+        } // TODO@no-merge catch recoverable and keep going
     }
 
     std::string outcome_summary{"No instances were migrated."};
