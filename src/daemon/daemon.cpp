@@ -3022,6 +3022,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         std::get<2>(read_json(QString::fromStdString(hyperkit_instance_image_db_path)));
 
     // Migrate instances
+    auto ret = grpc::Status::OK;
     std::set<std::string> instances_migrated{}; // using set to get them sorted
     for (const auto& [vm_name, vm_specs] : vm_instance_specs)
     {
@@ -3142,7 +3143,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
             catch (const HyperkitMigrationRecoverableError& e)
             {
                 mpl::log(mpl::Level::error, category, e.what());
-                // TODO@no-merge update return code
+                if (ret.ok())
+                    ret = grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Faulty migration"};
             }
         }
     }
@@ -3164,5 +3166,5 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     }
 
     reply_msg(std::move(outcome_summary), /* sticky = */ true);
-    return grpc::Status::OK;
+    return ret;
 }
