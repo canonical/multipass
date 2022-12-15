@@ -991,6 +991,17 @@ void warn_hyperkit_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) 
 #endif
 }
 
+class HyperkitMigrationRecoverableError : public std::runtime_error // TODO hk migration, remove
+{
+public:
+    template <typename Str1, typename Str2, typename Str3>
+    HyperkitMigrationRecoverableError(Str1&& instance, Str2&& cause, Str3&& details)
+        : runtime_error{fmt::format("Failed to migrate {}; cause: {}; details: {}", std::forward<Str1>(instance),
+                                    std::forward<Str2>(cause), std::forward<Str3>(details))}
+    {
+    }
+};
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
