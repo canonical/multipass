@@ -3089,7 +3089,7 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     }
 
     std::string outcome_summary{"No instances were migrated."};
-    if (instances_migrated.size())
+    if (!instances_migrated.empty())
     {
         // Write QEMU instance and instance-image DBs
         write_longer_json(*qemu_instances_db, qemu_instances_doc, qemu_instances_json);
