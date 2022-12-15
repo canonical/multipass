@@ -3095,12 +3095,13 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         write_longer_json(*qemu_instances_db, qemu_instances_doc, qemu_instances_json);
         write_longer_json(*qemu_instance_images_db, qemu_instance_images_doc, qemu_instance_images_json);
 
-        const auto separator = "\n  ";
-        auto hint_delete = "Multipass retained the original hyperkit instances, but they take space on disk. You can "
-                           "delete them (multipass delete --purge <instance-name>) when you are confident that their "
-                           "migrated counterparts are intact, by temporarily  moving back to hyperkit.";
+        constexpr auto separator = "\n  ";
+        constexpr auto hint_delete =
+            "Multipass retained the original hyperkit instances, but they take space on disk. You can "
+            "delete them (multipass delete --purge <instance-name>) when you are confident that their "
+            "migrated counterparts are intact, by temporarily  moving back to hyperkit.";
         outcome_summary = fmt::format("The following instances were successfully migrated:{}{}\n\n{}", separator,
-                                      fmt::join(instances_migrated, separator), std::move(hint_delete));
+                                      fmt::join(instances_migrated, separator), hint_delete);
     }
 
     reply_msg(std::move(outcome_summary), /* sticky = */ true);
