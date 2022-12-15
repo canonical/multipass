@@ -3041,11 +3041,16 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
             try
             {
-                // TODO@no-merge for error handling, may want a scope guard to rollback things on failure (delete dir)
                 if (std::error_code err; !MP_FILEOPS.create_directories(target_directory, err) && err)
                     throw HyperkitMigrationRecoverableError{vm_name, "could not create directory for QEMU instance",
                                                             err.message()};
 
+                // Set up a scope guard to remove the directory for the instance (unless we dismiss it when done)
+                auto rmdir_guard = sg::make_scope_guard([&target_directory]() noexcept {
+                    mp::top_catch_all(category, [&target_directory] {
+                        std::filesystem::remove_all(target_directory); // overload that throws on error
+                    });
+                });
                 const auto new_image = mp::vault::copy(vm_image.image_path, QString::fromStdString(target_directory));
 
                 // Fix image metadata
@@ -3139,6 +3144,8 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
                 [[maybe_unused]] auto succeeded = instances_migrated.insert(vm_name).second;
                 assert(succeeded);
+
+                rmdir_guard.dismiss(); // we succeeded migrating the instance, so don't roll back
             }
             catch (const HyperkitMigrationRecoverableError& e)
             {
