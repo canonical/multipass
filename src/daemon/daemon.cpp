@@ -3026,13 +3026,13 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     std::set<std::string> instances_migrated{}; // using set to get them sorted
     for (const auto& [vm_name, vm_specs] : vm_instance_specs)
     {
-        auto key = QString::fromStdString(vm_name);
         if (deleted_instances.find(vm_name) != deleted_instances.cend())
             reply_msg(fmt::format("Cannot migrate {}: instance is deleted", vm_name), /* sticky = */ true);
         else if (auto st = vm_instances[vm_name]->current_state();
                  st != VirtualMachine::State::off && st != VirtualMachine::State::stopped)
             reply_msg(fmt::format("Cannot migrate {}: instance needs to be stopped", vm_name), /* sticky = */ true);
-        else if (qemu_instances_json.contains(key) || qemu_instance_images_json.contains(key))
+        else if (auto key = QString::fromStdString(vm_name);
+                 qemu_instances_json.contains(key) || qemu_instance_images_json.contains(key))
             reply_msg(fmt::format("Cannot migrate {}: name already taken by a qemu instance", vm_name),
                       /* sticky = */ true);
         else if (const auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
