@@ -191,6 +191,7 @@ void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::millisecon
 void SSHFSMountHandler::stop_impl(bool force)
 {
     mpl::log(mpl::Level::info, category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
+    QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr);
     if (process->terminate(); !process->wait_for_finished(5000))
     {
         auto err = fmt::format("Failed to terminate SSHFS mount process: {}", process->read_all_standard_error());
