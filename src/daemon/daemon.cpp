@@ -2951,8 +2951,6 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     assert(config->factory->get_backend_version_string() == "hyperkit" &&
            "can only migrate when hyperkit is in effect");
 
-    // TODO@no-merge homogenise failure messages
-
     if (vm_instance_specs.empty())
         return grpc::Status::OK;
 
@@ -3057,23 +3055,24 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                                                         qemuimg_state.failure_message()};
 
             // Verify if the default mount point for the cloud-init ISO is available
-            if (QFile::exists(cloud_init_mount_point))
+            if (QFile::exists(cloud_init_mount_point)) // This we can't recover from
                 throw std::runtime_error{"Cannot mount cloud-init ISO: mount point already exists"}; /* By requiring the
                 default mount point to be available (which will virtually always be the case), we avoid having to parse
                 the output of the mounting tool. */
 
             // Set up a scope guard to unmount the cloud-init ISO when we're done
-            const auto unmount_guard = sg::make_scope_guard([&cloud_init_mount_point]() noexcept {
-                mp::top_catch_all(category, [&cloud_init_mount_point] {
+            const auto unmount_guard = sg::make_scope_guard([&cloud_init_mount_point, &vm_name = vm_name]() noexcept {
+                mp::top_catch_all(category, [&cloud_init_mount_point, &vm_name = vm_name] {
                     if (QFile::exists(cloud_init_mount_point))
                     {
                         auto unmount_proc = mp::platform::make_process(
                             mp::simple_process_spec("hdiutil", {"unmount", cloud_init_mount_point}));
 
                         if (const auto unmount_state = unmount_proc->execute(); !unmount_state.completed_successfully())
-                            throw std::runtime_error{
-                                fmt::format("Failed to unmount the cloud-init ISO in {}", cloud_init_mount_point)}; /*
-                                                                                 TODO@no-merge make this recoverable */
+                            throw HyperkitMigrationRecoverableError{
+                                vm_name,
+                                fmt::format("failed to unmount the cloud-init ISO in '{}'", cloud_init_mount_point),
+                                unmount_state.failure_message()};
                     }
                 });
             });
