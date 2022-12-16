@@ -3035,12 +3035,17 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         else if (qemu_instances_json.contains(key) || qemu_instance_images_json.contains(key))
             reply_msg(fmt::format("Cannot migrate {}: name already taken by a qemu instance", vm_name),
                       /* sticky = */ true);
+        else if (const auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
+                 vm_image.original_release.find("16.04") != std::string::npos)
+            reply_msg(fmt::format("Cannot migrate {}: Xenial instances cannot be migrated :/ consider extracting your "
+                                  "data manually.",
+                                  vm_name),
+                      /* sticky = */ true);
         else
         {
             reply_msg(fmt::format("Migrating instance from hyperkit to qemu: {}", vm_name));
 
             // Copy instance image to qemu vault
-            const auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
             const auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
             mpl::log(mpl::Level::debug, category, fmt::format("Migrating instance files to '{}'", target_directory));
 
