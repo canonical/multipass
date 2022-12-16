@@ -2990,6 +2990,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
         auto key = QString::fromStdString(vm_name);
         if (deleted_instances.find(vm_name) != deleted_instances.cend())
             reply_msg(fmt::format("Cannot migrate {}: instance is deleted", vm_name), /* sticky = */ true);
+        else if (auto st = vm_instances[vm_name]->current_state();
+                 st != VirtualMachine::State::off && st != VirtualMachine::State::stopped)
+            reply_msg(fmt::format("Cannot migrate {}: instance needs to be stopped", vm_name), /* sticky = */ true);
         else if (qemu_instances_json.contains(key) || qemu_instance_images_json.contains(key))
             reply_msg(fmt::format("Cannot migrate {}: name already taken by a qemu instance", vm_name),
                       /* sticky = */ true);
