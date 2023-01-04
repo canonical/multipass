@@ -111,6 +111,7 @@ jobs:
       run: |
         sudo apt-get install ccache
         ccache --max-size=2G
+        mkdir ${HOME}/.ccache
         /snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache
 
         # Find common base between main and HEAD to use as cache key.
