@@ -288,38 +288,8 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     };
 
     const auto alias_width = width([](const auto& alias) -> int { return alias.first.length(); }, 7);
-    /*mp::format::column_width(aliases.cbegin(),
-                             aliases.cend(),
-                             [](const auto& ctx) -> int {
-                                return mp::format::column_width(
-                                    ctx.second.cbegin(),
-                                    ctx.second.cend(),
-                                    [](const auto& alias) -> int { return alias.first.length(); },
-                                    7); },
-                             7);*/
-
     const auto instance_width = width([](const auto& alias) -> int { return alias.second.instance.length(); }, 10);
-    /*mp::format::column_width(aliases.cbegin(),
-                             aliases.cend(),
-                             [](const auto& ctx) -> int {
-                                return mp::format::column_width(
-                                    ctx.second.cbegin(),
-                                    ctx.second.cend(),
-                                    [](const auto& alias) -> int { return alias.second.instance.length(); },
-                                    10); },
-                             10);*/
-
     const auto command_width = width([](const auto& alias) -> int { return alias.second.command.length(); }, 9);
-    /*mp::format::column_width(aliases.cbegin(),
-                             aliases.cend(),
-                             [](const auto& ctx) -> int {
-                                return mp::format::column_width(
-                                    ctx.second.cbegin(),
-                                    ctx.second.cend(),
-                                    [](const auto& alias) -> int { return alias.second.command.length(); },
-                                    9); },
-                             9);*/
-
     const auto context_width = mp::format::column_width(
         aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.first.length(); }, 10);
 

@@ -133,20 +133,23 @@ std::string mp::CSVFormatter::format(const VersionReply& reply, const std::strin
 
 std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 {
-    /*
     fmt::memory_buffer buf;
-    fmt::format_to(std::back_inserter(buf), "Alias,Instance,Command,Working directory\n");
+    fmt::format_to(std::back_inserter(buf), "Alias,Instance,Command,Context,Working directory\n");
 
-    for (const auto& elt : sort_dict(aliases))
+    for (const auto& context : sort_dict(aliases))
     {
-        const auto& name = elt.first;
-        const auto& def = elt.second;
+        const auto& context_name = context.first;
+        const auto& context_contents = context.second;
 
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{}\n", name, def.instance, def.command,
-                       def.working_directory);
+        for (const auto& elt : sort_dict(context_contents))
+        {
+            const auto& name = elt.first;
+            const auto& def = elt.second;
+
+            fmt::format_to(std::back_inserter(buf), "{},{},{},{},{}\n", name, def.instance, def.command, context_name,
+                           def.working_directory);
+        }
     }
 
     return fmt::to_string(buf);
-    */
-    return std::string{"TODO"};
 }

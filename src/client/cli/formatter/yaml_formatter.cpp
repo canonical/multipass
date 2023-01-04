@@ -226,26 +226,34 @@ std::string mp::YamlFormatter::format(const VersionReply& reply, const std::stri
 
 std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
-    /*
     YAML::Node aliases_list, aliases_node;
 
-    for (const auto& elt : sort_dict(aliases))
+    for (const auto& context : sort_dict(aliases))
     {
-        const auto& alias = elt.first;
-        const auto& def = elt.second;
+        YAML::Node context_node;
 
-        YAML::Node alias_node;
-        alias_node["alias"] = alias;
-        alias_node["command"] = def.command;
-        alias_node["instance"] = def.instance;
-        alias_node["working-directory"] = def.working_directory;
+        const auto& context_name = context.first;
+        const auto& context_contents = context.second;
 
-        aliases_node.push_back(alias_node);
+        for (const auto& elt : sort_dict(context_contents))
+        {
+            const auto& name = elt.first;
+            const auto& def = elt.second;
+
+            YAML::Node alias_node;
+            alias_node["alias"] = name;
+            alias_node["command"] = def.command;
+            alias_node["instance"] = def.instance;
+            alias_node["working-directory"] = def.working_directory;
+
+            context_node.push_back(alias_node);
+        }
+
+        aliases_node[context_name] = context_node;
     }
 
+    aliases_list["active_context"] = aliases.active_context_name();
     aliases_list["aliases"] = aliases_node;
 
     return mpu::emit_yaml(aliases_list);
-    */
-    return std::string{"TODO"};
 }
