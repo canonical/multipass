@@ -226,6 +226,7 @@ std::string mp::YamlFormatter::format(const VersionReply& reply, const std::stri
 
 std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
+    /*
     YAML::Node aliases_list, aliases_node;
 
     for (const auto& elt : sort_dict(aliases))
@@ -245,4 +246,6 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
     aliases_list["aliases"] = aliases_node;
 
     return mpu::emit_yaml(aliases_list);
+    */
+    return std::string{"TODO"};
 }

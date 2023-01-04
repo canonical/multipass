@@ -26,21 +26,30 @@
 #include <unordered_map>
 #include <vector>
 
+class QJsonObject;
+
 namespace multipass
 {
+
+// The alias dictionary is basically a mapping between strings and contexts. The string represents the context name
+// and the associated context is itself a map relating alias names to alias definitions.
 class AliasDict
 {
 public:
-    typedef AliasMap DictType;
+    typedef std::unordered_map<std::string, AliasContext> DictType;
     typedef typename DictType::key_type key_type;
     typedef typename DictType::mapped_type mapped_type;
     typedef typename DictType::size_type size_type;
 
     AliasDict(Terminal* term);
     ~AliasDict();
+    void set_active_context(const std::string& new_active_context);
+    std::string active_context_name() const;
+    const AliasContext& get_active_context() const;
     bool add_alias(const std::string& alias, const AliasDefinition& command);
-    bool exists_alias(const std::string& alias);
+    bool exists_alias(const std::string& alias) const;
     bool remove_alias(const std::string& alias);
+    bool remove_context(const std::string& context);
     std::vector<std::string> remove_aliases_for_instance(const std::string& instance);
     std::optional<AliasDefinition> get_alias(const std::string& alias) const;
     DictType::iterator begin()
@@ -61,7 +70,7 @@ public:
     }
     bool empty() const
     {
-        return aliases.empty();
+        return (aliases.empty() || (aliases.size() == 1 && get_active_context().empty()));
     }
     size_type size() const
     {
@@ -76,13 +85,17 @@ public:
             aliases.clear();
         }
     }
+    QJsonObject to_json() const;
 
 private:
     void load_dict();
     void save_dict();
+    void sanitize_contexts();
+
+    std::string active_context;
+    DictType aliases;
 
     bool modified = false;
-    DictType aliases;
     std::string aliases_file;
     std::ostream& cout;
     std::ostream& cerr;

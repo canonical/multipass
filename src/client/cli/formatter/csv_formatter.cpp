@@ -133,6 +133,7 @@ std::string mp::CSVFormatter::format(const VersionReply& reply, const std::strin
 
 std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 {
+    /*
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "Alias,Instance,Command,Working directory\n");
 
@@ -146,4 +147,6 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
     }
 
     return fmt::to_string(buf);
+    */
+    return std::string{"TODO"};
 }
