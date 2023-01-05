@@ -65,7 +65,7 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Easily create, control and connect to Ubu
 
 if (MSVC)
   # multipassd depends on qemu-img.exe indirectly (called to convert qcow images to VHDX format)
-  find_program(QEMU_IMG qemu-img.exe)
+  find_program(QEMU_IMG qemu-img.exe PATH_SUFFIXES "qemu")
   if (NOT QEMU_IMG)
     message(FATAL_ERROR "qemu-img not found!")
   endif()
