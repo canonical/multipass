@@ -321,7 +321,7 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: crazy-max/ghaction-chocolatey@v1
       with:
-        args: install --yes qemu-img openssl
+        args: install --yes qemu openssl
 
     - name: Install Qt
       if: ${{ runner.os == 'Windows' }}
