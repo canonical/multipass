@@ -22,9 +22,9 @@ SETTINGS_FILE="$3/var/root/Library/Preferences/multipassd/multipassd.conf"
 DRIVER_KEY='local.driver'
 if [ -f "$SETTINGS_FILE" ]; then
   if ! grep -q "$DRIVER_KEY" "$SETTINGS_FILE"; then
-    echo "$DRIVER_KEY=hyperkit" >> "$SETTINGS_FILE" # fortunately we have only a single [General] section, which Qt
-                                                    # doesn't require in order to be able to read settings, so this
-                                                    # should be OK even if the file is currently empty
+    echo -e "\n$DRIVER_KEY=hyperkit" >> "$SETTINGS_FILE" # fortunately we have only a single [General] section, which Qt
+                                                         # doesn't require in order to be able to read settings, so this
+                                                         # should be OK even if the file is currently empty.
   fi
 fi
 
