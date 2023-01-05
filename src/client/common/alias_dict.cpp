@@ -36,8 +36,6 @@ namespace mpu = multipass::utils;
 
 namespace
 {
-static constexpr auto default_context_name = "default";
-
 void check_working_directory_string(const std::string& dir)
 {
     if (dir != "map" && dir != "default")

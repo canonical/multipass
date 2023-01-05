@@ -30,6 +30,7 @@ class QJsonObject;
 
 namespace multipass
 {
+static constexpr auto default_context_name = "default";
 
 // The alias dictionary is basically a mapping between strings and contexts. The string represents the context name
 // and the associated context is itself a map relating alias names to alias definitions.
@@ -78,11 +79,13 @@ public:
     }
     void clear()
     {
-        if (!aliases.empty())
+        if (!empty())
         {
             modified = true;
 
             aliases.clear();
+            active_context = default_context_name;
+            aliases[default_context_name] = AliasContext();
         }
     }
     QJsonObject to_json() const;
