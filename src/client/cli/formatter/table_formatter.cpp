@@ -282,9 +282,9 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
             [&, get_width, minimum_width](const auto& ctx) -> int {
                 return mp::format::column_width(
                     ctx.second.cbegin(), ctx.second.cend(),
-                    [&get_width](const auto& alias) -> int { return get_width(alias); }, minimum_width);
+                    [&get_width](const auto& alias) -> int { return get_width(alias); }, minimum_width, 2);
             },
-            minimum_width);
+            minimum_width, 0);
     };
 
     const auto alias_width = width([](const auto& alias) -> int { return alias.first.length(); }, 7);
