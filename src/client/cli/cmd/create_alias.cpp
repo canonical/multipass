@@ -22,9 +22,12 @@
 
 multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases, const std::string& alias_name,
                                                    const AliasDefinition& alias_definition, std::ostream& cout,
-                                                   std::ostream& cerr)
+                                                   std::ostream& cerr, std::optional<const std::string> context)
 {
     bool empty_before_add = aliases.empty();
+
+    if (context)
+        aliases.set_active_context(*context);
 
     if (!aliases.add_alias(alias_name, alias_definition))
         return ReturnCode::CommandLineError;
