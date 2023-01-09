@@ -71,10 +71,15 @@ mp::AliasDict::~AliasDict()
 
 void mp::AliasDict::set_active_context(const std::string& new_active_context)
 {
-    active_context = new_active_context;
+    if (new_active_context != active_context)
+    {
+        modified = true;
+        active_context = new_active_context;
+    }
 
     // When switching active context, make sure that a context associated with the new active context exists.
-    aliases.try_emplace(active_context, mp::AliasContext{});
+    if (aliases.try_emplace(active_context, mp::AliasContext{}).second)
+        modified = true;
 }
 
 std::string mp::AliasDict::active_context_name() const
@@ -127,6 +132,10 @@ bool mp::AliasDict::remove_context(const std::string& context)
     if (aliases.erase(context) > 0)
     {
         modified = true;
+
+        if (active_context == context)
+            set_active_context(default_context_name);
+
         return true;
     }
 
