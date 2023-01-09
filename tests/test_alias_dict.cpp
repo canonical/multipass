@@ -578,4 +578,156 @@ INSTANTIATE_TEST_SUITE_P(
                            std::vector<std::string>{}, std::vector<std::string>{"lsz"}),
            std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}}, csv_head,
                            std::vector<std::string>{}, std::vector<std::string>{"lsz", "lsp"})));
+
+TEST_F(AliasDictionary, unexistingActiveContextThrows)
+{
+    std::string file_contents{"{\n"
+                              "    \"active-context\": \"inconsistent\",\n"
+                              "    \"contexts\": {\n"
+                              "        \"default\": {\n"
+                              "        }\n"
+                              "    }\n"
+                              "}\n"};
+
+    mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
+
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.active_context_name(), "inconsistent");
+    MP_ASSERT_THROW_THAT(dict.get_active_context(), std::runtime_error,
+                         mpt::match_what(HasSubstr("active context \"inconsistent\" does not exist in dictionary")));
+}
+
+TEST_F(AliasDictionary, removeContextWorks)
+{
+    std::string file_contents{"{\n"
+                              "    \"active-context\": \"default\",\n"
+                              "    \"contexts\": {\n"
+                              "        \"default\": {\n"
+                              "            \"alias1\": {\n"
+                              "                \"command\": \"first_command\",\n"
+                              "                \"instance\": \"first_instance\",\n"
+                              "                \"working-directory\": \"map\"\n"
+                              "            }\n"
+                              "        },\n"
+                              "        \"another\": {\n"
+                              "            \"alias2\": {\n"
+                              "                \"command\": \"second_command\",\n"
+                              "                \"instance\": \"second_instance\",\n"
+                              "                \"working-directory\": \"default\"\n"
+                              "            }\n"
+                              "        }\n"
+                              "    }\n"
+                              "}\n"};
+
+    mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
+
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    ASSERT_EQ(dict.size(), 2u);
+    ASSERT_EQ(dict.active_context_name(), "default");
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+
+    dict.set_active_context("another");
+    ASSERT_EQ(dict.active_context_name(), "another");
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+    auto a2 = dict.get_alias("alias2");
+    ASSERT_TRUE(a2);
+
+    dict.remove_context("another");
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.active_context_name(), "default");
+
+    dict.set_active_context("another");
+    ASSERT_EQ(dict.get_active_context().size(), 0u);
+}
+
+TEST_F(AliasDictionary, removeDefaultContextWorks)
+{
+    std::string file_contents{"{\n"
+                              "    \"active-context\": \"default\",\n"
+                              "    \"contexts\": {\n"
+                              "        \"default\": {\n"
+                              "            \"alias1\": {\n"
+                              "                \"command\": \"first_command\",\n"
+                              "                \"instance\": \"first_instance\",\n"
+                              "                \"working-directory\": \"map\"\n"
+                              "            }\n"
+                              "        },\n"
+                              "        \"another\": {\n"
+                              "            \"alias2\": {\n"
+                              "                \"command\": \"second_command\",\n"
+                              "                \"instance\": \"second_instance\",\n"
+                              "                \"working-directory\": \"default\"\n"
+                              "            }\n"
+                              "        }\n"
+                              "    }\n"
+                              "}\n"};
+
+    mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
+
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    ASSERT_EQ(dict.size(), 2u);
+    ASSERT_EQ(dict.active_context_name(), "default");
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+
+    dict.set_active_context("another");
+    ASSERT_EQ(dict.active_context_name(), "another");
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+    auto a2 = dict.get_alias("alias2");
+    ASSERT_TRUE(a2);
+
+    dict.set_active_context("default");
+    ASSERT_EQ(dict.size(), 2u);
+    ASSERT_EQ(dict.active_context_name(), "default");
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+
+    dict.remove_context("default");
+
+    // Removing the default context just empties it.
+    ASSERT_EQ(dict.size(), 2u);
+    ASSERT_EQ(dict.get_active_context().size(), 0u);
+
+    dict.set_active_context("another");
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+}
+
+TEST_F(AliasDictionary, removingUnexistingContextDoesNothing)
+{
+    std::string file_contents{"{\n"
+                              "    \"active-context\": \"default\",\n"
+                              "    \"contexts\": {\n"
+                              "        \"default\": {\n"
+                              "            \"alias1\": {\n"
+                              "                \"command\": \"first_command\",\n"
+                              "                \"instance\": \"first_instance\",\n"
+                              "                \"working-directory\": \"map\"\n"
+                              "            }\n"
+                              "        }\n"
+                              "    }\n"
+                              "}\n"};
+
+    mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
+
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.active_context_name(), "default");
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+
+    dict.remove_context("unexisting");
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.active_context_name(), "default");
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+}
 } // namespace

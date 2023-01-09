@@ -88,6 +88,8 @@ namespace
 {
 const qint64 default_total_bytes{16'106'127'360}; // 15G
 
+const std::string csv_header{"Alias,Instance,Command,Context,Working directory\n"};
+
 struct StubNameGenerator : public mp::NameGenerator
 {
     explicit StubNameGenerator(std::string name) : name{std::move(name)}
@@ -673,8 +675,9 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = alias_name + "," + name + "," + alias_command + "," + name + "," + alias_wdir + "\n";
-    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_csv_string));
+    auto expected_csv_string =
+        csv_header + alias_name + "," + name + "," + alias_command + "," + name + "," + alias_wdir + "\n";
+    EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspace)
@@ -918,9 +921,9 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliasesWith
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string =
-        alias_name + "," + command_line_name + "," + alias_command + "," + command_line_name + "," + alias_wdir + "\n";
-    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_csv_string));
+    auto expected_csv_string = csv_header + alias_name + "," + command_line_name + "," + alias_command + "," +
+                               command_line_name + "," + alias_wdir + "\n";
+    EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
 TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
@@ -963,14 +966,62 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
     std::stringstream cout_stream;
     send_command({"launch", name}, cout_stream);
 
-    // EXPECT_THAT(cout_stream.str(), HasSubstr("Warning: unable to create alias " + alias_name));
+    cout_stream.str("");
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,default,map\n" + alias_name +
+                               "," + name + "," + alias_command + "," + name + "," + alias_wdir + "\n";
+    EXPECT_EQ(cout_stream.str(), expected_csv_string);
+}
+
+TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliasesIfClashing)
+{
+    typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
+
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
+
+    static constexpr int num_cores = 4;
+    const mp::MemorySize mem_size{"4G"};
+    const mp::MemorySize disk_space{"25G"};
+    const std::string release{"focal"};
+    const std::string remote{"release"};
+    const std::string alias_name{"aliasname"};
+    const std::string alias_command{"aliascommand"};
+    const std::string alias_wdir{"map"};
+
+    // The easiest way of creating a clash is to name the instance like the default alias context.
+    const std::string name{"default"};
+
+    populate_db_file(AliasesVector{{alias_name, {"original_instance", "a_command", "map"}}});
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
+        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
+
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+
+    auto alias = std::make_optional(std::make_pair(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir}));
+
+    EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
+        .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, alias));
+
+    EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
+
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream cout_stream;
+    send_command({"launch", name}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Warning: unable to create alias " + alias_name));
 
     cout_stream.str("");
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = alias_name + ",original_instance,a_command,default,map\n" + alias_name + "," + name +
-                               "," + alias_command + "," + name + "," + alias_wdir + "\n";
-    EXPECT_THAT(cout_stream.str(), HasSubstr(expected_csv_string));
+    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,default,map\n";
+    EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
 TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
