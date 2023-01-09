@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2022 Canonical, Ltd.
+ * Copyright (C) 2017-2023 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,12 +101,13 @@ bool mp::PowerShell::run(const QStringList& args, QString& output, bool whisper)
     bool cmdlet_code{false};
     auto pid = powershell_proc->process_id();
     auto notice_level = whisper ? mpl::Level::trace : mpl::Level::debug;
+    const auto cmdlet = args.join(" ");
 
-    mpl::log(notice_level, name, fmt::format("[{}] Cmdlet: '{}'", pid, args.join(" ")));
+    mpl::log(notice_level, name, fmt::format("[{}] Cmdlet: '{}'", pid, cmdlet));
 
     // Have Powershell echo a unique string to differentiate between the cmdlet
     // output and the cmdlet exit status output
-    if (write(args.join(" ").toUtf8() + "\n") && write(echo_cmdlet.toUtf8()))
+    if (write((cmdlet + "\n").toUtf8()) && write(echo_cmdlet.toUtf8()))
     {
         QString powershell_output;
         auto cmdlet_exit_found{false};
