@@ -55,7 +55,8 @@ TEST_F(AliasDictionary, works_with_empty_file)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    ASSERT_TRUE(dict.empty());
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
 TEST_F(AliasDictionary, works_with_empty_database)
@@ -66,7 +67,8 @@ TEST_F(AliasDictionary, works_with_empty_database)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    ASSERT_TRUE(dict.empty());
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
 TEST_F(AliasDictionary, works_with_unexisting_file)
@@ -75,7 +77,8 @@ TEST_F(AliasDictionary, works_with_unexisting_file)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    ASSERT_TRUE(dict.empty());
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
 TEST_F(AliasDictionary, works_with_broken_file)
@@ -86,10 +89,11 @@ TEST_F(AliasDictionary, works_with_broken_file)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    ASSERT_TRUE(dict.empty());
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
-TEST_F(AliasDictionary, skips_correctly_broken_entries)
+TEST_F(AliasDictionary, SkipsCorrectlyBrokenEntriesOldFormat)
 {
     std::string file_contents{"{\n"
                               "    \"alias1\": {\n"
@@ -112,7 +116,54 @@ TEST_F(AliasDictionary, skips_correctly_broken_entries)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
-    ASSERT_EQ(dict.size(), 2u);
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.active_context_name(), "default");
+    ASSERT_EQ(dict.get_active_context().size(), 2u);
+
+    auto a1 = dict.get_alias("alias1");
+    ASSERT_TRUE(a1);
+    ASSERT_EQ(a1->instance, "first_instance");
+    ASSERT_EQ(a1->command, "first_command");
+    ASSERT_EQ(a1->working_directory, "map");
+
+    auto a2 = dict.get_alias("alias2");
+    ASSERT_TRUE(a2);
+    ASSERT_EQ(a2->instance, "second_instance");
+    ASSERT_EQ(a2->command, "second_command");
+    ASSERT_EQ(a2->working_directory, "default");
+}
+
+TEST_F(AliasDictionary, SkipsCorrectlyBrokenEntries)
+{
+    std::string file_contents{"{\n"
+                              "    \"active-context\": \"default\",\n"
+                              "    \"contexts\": {\n"
+                              "        \"default\": {\n"
+                              "            \"alias1\": {\n"
+                              "                \"command\": \"first_command\",\n"
+                              "                \"instance\": \"first_instance\",\n"
+                              "                \"working-directory\": \"map\"\n"
+                              "            },\n"
+                              "            \"empty_entry\": {\n"
+                              "            },\n"
+                              "            \"alias2\": {\n"
+                              "                \"command\": \"second_command\",\n"
+                              "                \"instance\": \"second_instance\",\n"
+                              "                \"working-directory\": \"default\"\n"
+                              "            }\n"
+                              "        }\n"
+                              "    }\n"
+                              "}\n"};
+
+    mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
+
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.active_context_name(), "default");
+    ASSERT_EQ(dict.get_active_context().size(), 2u);
 
     auto a1 = dict.get_alias("alias1");
     ASSERT_TRUE(a1);
@@ -219,9 +270,11 @@ TEST_P(WriteReadTestsuite, writes_and_reads_files)
     }
 
     // We test with this const/non-const iterators and size().
-    ASSERT_EQ((size_t)std::distance(reader.cbegin(), reader.cend()), (size_t)aliases_vector.size());
-    ASSERT_EQ((size_t)std::distance(reader.begin(), reader.end()), (size_t)aliases_vector.size());
-    ASSERT_EQ(reader.size(), aliases_vector.size());
+    ASSERT_EQ((size_t)std::distance(reader.get_active_context().cbegin(), reader.get_active_context().cend()),
+              (size_t)aliases_vector.size());
+    ASSERT_EQ((size_t)std::distance(reader.get_active_context().begin(), reader.get_active_context().end()),
+              (size_t)aliases_vector.size());
+    ASSERT_EQ(reader.get_active_context().size(), aliases_vector.size());
 }
 
 INSTANTIATE_TEST_SUITE_P(AliasDictionary, WriteReadTestsuite,
@@ -268,11 +321,13 @@ TEST_F(AliasDictionary, correctly_removes_alias)
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
+    ASSERT_EQ(dict.active_context_name(), "default");
     dict.add_alias("alias", mp::AliasDefinition{"instance", "command", "map"});
     ASSERT_FALSE(dict.empty());
 
     ASSERT_TRUE(dict.remove_alias("alias"));
-    ASSERT_TRUE(dict.empty());
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
 TEST_F(AliasDictionary, works_when_removing_unexisting_alias)
@@ -282,10 +337,12 @@ TEST_F(AliasDictionary, works_when_removing_unexisting_alias)
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("alias", mp::AliasDefinition{"instance", "command", "map"});
-    ASSERT_FALSE(dict.empty());
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_FALSE(dict.get_active_context().empty());
 
     ASSERT_FALSE(dict.remove_alias("unexisting"));
-    ASSERT_FALSE(dict.empty());
+    ASSERT_EQ(dict.size(), 1u);
+    ASSERT_FALSE(dict.get_active_context().empty());
 }
 
 TEST_F(AliasDictionary, clearWorks)
@@ -374,32 +431,34 @@ TEST_P(FormatterTestsuite, table)
     ASSERT_EQ(mp::YamlFormatter().format(dict), yaml_output);
 }
 
-const std::string csv_head{"Alias,Instance,Command,Working directory\n"};
+const std::string csv_head{"Alias,Instance,Command,Context,Working directory\n"};
 
-INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTestsuite,
-                         Values(std::make_tuple(AliasesVector{}, csv_head, "{\n    \"aliases\": [\n    ]\n}\n",
-                                                "No aliases defined.\n", "aliases: ~\n"),
-                                std::make_tuple(AliasesVector{{"lsp", {"primary", "ls", "map"}},
-                                                              {"llp", {"primary", "ls", "map"}}},
-                                                csv_head + "llp,primary,ls,map\nlsp,primary,ls,map\n",
-                                                "{\n    \"aliases\": [\n        {\n"
-                                                "            \"alias\": \"llp\",\n"
-                                                "            \"command\": \"ls\",\n"
-                                                "            \"instance\": \"primary\",\n"
-                                                "            \"working-directory\": \"map\"\n"
-                                                "        },\n"
-                                                "        {\n"
-                                                "            \"alias\": \"lsp\",\n"
-                                                "            \"command\": \"ls\",\n"
-                                                "            \"instance\": \"primary\",\n"
-                                                "            \"working-directory\": \"map\"\n"
-                                                "        }\n    ]\n}\n",
-                                                "Alias  Instance  Command  Working directory\n"
-                                                "llp    primary   ls       map\n"
-                                                "lsp    primary   ls       map\n",
-                                                "aliases:\n  - alias: llp\n    command: ls\n    instance: primary\n"
-                                                "    working-directory: map\n  - alias: lsp\n    command: ls\n"
-                                                "    instance: primary\n    working-directory: map\n")));
+INSTANTIATE_TEST_SUITE_P(
+    AliasDictionary, FormatterTestsuite,
+    Values(std::make_tuple(AliasesVector{}, csv_head,
+                           "{\n    \"active-context\": \"default\",\n    \"contexts\": {\n        \"default\": {\n"
+                           "        }\n    }\n}\n",
+                           "No aliases defined.\n", "active_context: default\naliases:\n  default: ~\n"),
+           std::make_tuple(
+               AliasesVector{{"lsp", {"primary", "ls", "map"}}, {"llp", {"primary", "ls", "map"}}},
+               csv_head + "llp,primary,ls,default,map\nlsp,primary,ls,default,map\n",
+               "{\n    \"active-context\": \"default\",\n    \"contexts\": {\n"
+               "        \"default\": {\n"
+               "            \"llp\": {\n"
+               "                \"command\": \"ls\",\n"
+               "                \"instance\": \"primary\",\n"
+               "                \"working-directory\": \"map\"\n"
+               "            },\n"
+               "            \"lsp\": {\n"
+               "                \"command\": \"ls\",\n"
+               "                \"instance\": \"primary\",\n"
+               "                \"working-directory\": \"map\"\n"
+               "            }\n        }\n    }\n}\n",
+               "Alias  Instance  Command  Context   Working directory\n"
+               "llp    primary   ls       default   map\nlsp    primary   ls       default   map\n",
+               "active_context: default\naliases:\n  default:\n"
+               "    - alias: llp\n      command: ls\n      instance: primary\n      working-directory: map\n"
+               "    - alias: lsp\n      command: ls\n      instance: primary\n      working-directory: map\n")));
 
 struct RemoveInstanceTestsuite : public AliasDictionary,
                                  public WithParamInterface<std::pair<AliasesVector, std::vector<std::string>>>
@@ -418,7 +477,7 @@ TEST_P(RemoveInstanceTestsuite, removes_instance_aliases)
 
     dict.remove_aliases_for_instance("instance_to_remove");
 
-    ASSERT_EQ(dict.size(), remaining_aliases.size());
+    ASSERT_EQ(dict.get_active_context().size(), remaining_aliases.size());
 
     for (auto remaining_alias : remaining_aliases)
         ASSERT_TRUE(dict.get_alias(remaining_alias));
@@ -505,9 +564,9 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary, DaemonAliasTestsuite,
-    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,map\n",
+    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,default,map\n",
                            std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}}, csv_head + "lsp,primary,ls,map\n",
+           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}}, csv_head + "lsp,primary,ls,default,map\n",
                            std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
                            csv_head, std::vector<std::string>{"lsp", "lsz"}, std::vector<std::string>{}),
@@ -515,7 +574,7 @@ INSTANTIATE_TEST_SUITE_P(
                            csv_head, std::vector<std::string>{}, std::vector<std::string>{"lsp", "lsz"}),
            std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
                            csv_head, std::vector<std::string>{"lsp"}, std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,map\n",
+           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,default,map\n",
                            std::vector<std::string>{}, std::vector<std::string>{"lsz"}),
            std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}}, csv_head,
                            std::vector<std::string>{}, std::vector<std::string>{"lsz", "lsp"})));

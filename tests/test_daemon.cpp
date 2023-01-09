@@ -673,7 +673,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = alias_name + "," + name + "," + alias_command + "," + alias_wdir + "\n";
+    auto expected_csv_string = alias_name + "," + name + "," + alias_command + "," + name + "," + alias_wdir + "\n";
     EXPECT_THAT(cout_stream.str(), HasSubstr(expected_csv_string));
 }
 
@@ -918,7 +918,8 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliasesWith
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = alias_name + "," + command_line_name + "," + alias_command + "," + alias_wdir + "\n";
+    auto expected_csv_string =
+        alias_name + "," + command_line_name + "," + alias_command + "," + command_line_name + "," + alias_wdir + "\n";
     EXPECT_THAT(cout_stream.str(), HasSubstr(expected_csv_string));
 }
 
@@ -940,6 +941,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
     const std::string alias_command{"aliascommand"};
     const std::string alias_wdir{"map"};
 
+    // This makes the alias be defined in the default context. Launching an instance will define it in another context.
     populate_db_file(AliasesVector{{alias_name, {"original_instance", "a_command", "map"}}});
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
@@ -961,12 +963,13 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
     std::stringstream cout_stream;
     send_command({"launch", name}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Warning: unable to create alias " + alias_name));
+    // EXPECT_THAT(cout_stream.str(), HasSubstr("Warning: unable to create alias " + alias_name));
 
     cout_stream.str("");
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = alias_name + ",original_instance,a_command,map\n";
+    auto expected_csv_string = alias_name + ",original_instance,a_command,default,map\n" + alias_name + "," + name +
+                               "," + alias_command + "," + name + "," + alias_wdir + "\n";
     EXPECT_THAT(cout_stream.str(), HasSubstr(expected_csv_string));
 }
 
