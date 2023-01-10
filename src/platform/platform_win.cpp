@@ -27,6 +27,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
+#include "backends/shared/windows/powershell.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
@@ -56,6 +57,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <map>
 
 #include <libssh/sftp.h>
 
@@ -517,6 +519,43 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
 int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
 {
     return 0;
+}
+
+bool mp::platform::Platform::set_permissions(const multipass::Path path, const QFileDevice::Permissions perms) const
+{
+    if (!perms)
+        return false;
+
+    constexpr auto log_category = "winperms";
+    std::map<int, QString> perms_map{{0x7, "F"},   {0x6, "R,W"}, {0x5, "RX"}, {0x4, "R"},
+                                     {0x3, "W,X"}, {0x2, "W"},   {0x1, "X"}};
+    QStringList cmd{"icacls", path, "/inheritance:r", ";", "icacls", path};
+
+    // Translate to Windows SIDs
+    if (perms & 0x0007)
+        cmd << "/grant"
+            << QString::fromStdString(fmt::format("*S-1-1-0:`(OI`)`(CI`)`({}`)",
+                                                  perms_map[(int)(perms & 0x0007)])); // Other (Unix) => World (Windows)
+    if (perms & 0x0070)
+        cmd << "/grant"
+            << QString::fromStdString(
+                   fmt::format("*S-1-3-1:`(OI`)`(CI`)`({}`)",
+                               perms_map[(int)((perms & 0x0070) >> 4)])); // Group (Unix) => Creator Group (Windows)
+    if (perms & 0x0700)
+        cmd << "/grant"
+            << QString::fromStdString(fmt::format(
+                   "*$([System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value):`(OI`)`(CI`)`({}`)",
+                   perms_map[(int)((perms & 0x0700) >> 8)])); // User (Unix) => Specific user (Windows)
+    if (perms & 0x7000)
+        cmd << "/grant"
+            << QString::fromStdString(
+                   fmt::format("*S-1-3-4:`(OI`)`(CI`)`({}`)",
+                               perms_map[(int)((perms & 0x7000) >> 12)])); // Owner (Unix) => Owner Rights (Windows)
+    cmd << "/t"
+        << "/c"
+        << "/q";
+
+    return multipass::PowerShell::exec(cmd, log_category);
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
