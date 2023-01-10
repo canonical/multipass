@@ -36,10 +36,10 @@ namespace
 constexpr auto chain_name = "multipass_client_certs.pem";
 constexpr auto category = "client cert store";
 
-auto load_certs_from_file(const multipass::Path& cert_dir)
+auto load_certs_from_file(const QDir& cert_dir)
 {
     QList<QSslCertificate> certs;
-    auto path = QDir(cert_dir).filePath(chain_name);
+    auto path = cert_dir.filePath(chain_name);
 
     QFile cert_file{path};
 
@@ -54,10 +54,11 @@ auto load_certs_from_file(const multipass::Path& cert_dir)
 } // namespace
 
 mp::ClientCertStore::ClientCertStore(const multipass::Path& data_dir)
-    : cert_dir{QDir(data_dir).filePath(mp::authenticated_certs_dir)},
+    : cert_dir(mp::utils::make_dir(data_dir, mp::authenticated_certs_dir,
+                                   QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner)),
       authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
-    mpl::log(mpl::Level::trace, category, fmt::format("Loading client certs from {}", cert_dir));
+    mpl::log(mpl::Level::trace, category, fmt::format("Loading client certs from {}", cert_dir.absolutePath()));
 }
 
 void mp::ClientCertStore::add_cert(const std::string& pem_cert)
@@ -72,8 +73,7 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
     if (verify_cert(cert))
         return;
 
-    QDir dir{mp::utils::make_dir(cert_dir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner)};
-    QSaveFile file{dir.filePath(chain_name)};
+    QSaveFile file{cert_dir.filePath(chain_name)};
     if (!MP_FILEOPS.open(file, QIODevice::WriteOnly))
         throw std::runtime_error("failed to create file to store certificate");
 
@@ -96,8 +96,7 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
 
 std::string mp::ClientCertStore::PEM_cert_chain() const
 {
-    QDir dir{cert_dir};
-    auto path = dir.filePath(chain_name);
+    auto path = cert_dir.filePath(chain_name);
     if (QFile::exists(path))
         return mp::utils::contents_of(path);
     return {};

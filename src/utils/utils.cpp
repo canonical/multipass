@@ -22,6 +22,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -389,7 +390,7 @@ mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name, const QFile
 
     if (permissions)
     {
-        QFile::setPermissions(dir_path, permissions);
+        MP_PLATFORM.set_permissions(dir_path, permissions);
     }
 
     return dir_path;
