@@ -23,13 +23,11 @@
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/openssh_key_provider.h>
-#include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -186,25 +184,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(), cache_directory, manifest_ttl);
     }
 
-    if (mount_handlers.empty())
-    {
-        mount_handlers[mp::VMMount::MountType::Classic] = std::make_unique<SSHFSMountHandler>(*ssh_key_provider);
-
-        try
-        {
-            mount_handlers[mp::VMMount::MountType::Native] =
-                factory->create_performance_mount_handler(*ssh_key_provider);
-        }
-        catch (const NotImplementedOnThisBackendException& e)
-        {
-            mpl::log(mpl::Level::info, "daemon_config",
-                     fmt::format("Cannot set performance mount handler: {}", e.what()));
-        }
-    }
-
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
         std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
         std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), std::move(client_cert_store),
         std::move(update_prompt), multiplexing_logger, std::move(network_proxy), std::move(blueprint_provider),
-        std::move(mount_handlers), cache_directory, data_directory, server_address, ssh_username, image_refresh_timer});
+        cache_directory, data_directory, server_address, ssh_username, image_refresh_timer});
 }

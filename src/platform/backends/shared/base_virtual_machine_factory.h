@@ -65,11 +65,6 @@ public:
         throw NotImplementedOnThisBackendException("networks");
     };
 
-    MountHandler::UPtr create_performance_mount_handler(const SSHKeyProvider& ssh_key_provider) override
-    {
-        throw NotImplementedOnThisBackendException("performance mounts");
-    };
-
 protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override
     {

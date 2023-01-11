@@ -44,8 +44,8 @@ struct TestQemuVMProcessSpec : public Test
                                              {},
                                              {}};
     const QStringList platform_args{{"--enable-kvm", "-nic", "tap,ifname=tap_device,script=no,downscript=no"}};
-    const std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args{
-        {"path/to/target",
+    const mp::QemuVirtualMachine::MountArgs mount_args{
+        {"mount_tag",
          {"path/to/source",
           {"-virtfs", "local,security_model=passthrough,uid_map=1000:1000,gid_map=1000:1000,path=path/to/"
                       "target,mount_tag=m810e457178f448d9afffc9d950d726"}}}};
