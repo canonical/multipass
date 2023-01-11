@@ -18,20 +18,17 @@
 #ifndef MULTIPASS_MOUNT_HANDLER_H
 #define MULTIPASS_MOUNT_HANDLER_H
 
-#include <multipass/disabled_copy_move.h>
-#include <multipass/id_mappings.h>
+#include <multipass/file_ops.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/vm_mount.h>
 
 #include <chrono>
-#include <memory>
-#include <string>
 #include <variant>
 
 namespace multipass
 {
 class VirtualMachine;
-struct VMMount;
 
 using ServerVariant = std::variant<grpc::ServerReaderWriterInterface<StartReply, StartRequest>*,
                                    grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*,
@@ -45,31 +42,65 @@ public:
 
     virtual ~MountHandler() = default;
 
-    // Used to set up anything host side related
-    virtual void init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount) = 0;
-    virtual void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
-                             const std::chrono::milliseconds& timeout = std::chrono::minutes(5)) = 0;
-    virtual void stop_mount(const std::string& instance, const std::string& path) = 0;
-    virtual void stop_all_mounts_for_instance(const std::string& instance) = 0;
-    virtual bool has_instance_already_mounted(const std::string& instance, const std::string& path) const = 0;
+    void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5))
+    {
+        std::lock_guard active_lock{active_mutex};
+        if (active)
+            return;
+        start_impl(server, timeout);
+        active = true;
+    }
+
+    void stop(bool force = false)
+    {
+        std::lock_guard active_lock{active_mutex};
+        if (!active)
+            return;
+        stop_impl(force);
+        active = false;
+    }
 
 protected:
-    MountHandler(const SSHKeyProvider& ssh_key_provider) : ssh_key_provider(&ssh_key_provider){};
+    MountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
+                 const VMMount& mount)
+        : vm{vm}, ssh_key_provider{ssh_key_provider}, target{target}, active{false}
+    {
+        std::error_code err;
+        auto source_status = MP_FILEOPS.status(mount.source_path, err);
+        if (source_status.type() == fs::file_type::not_found)
+            throw std::runtime_error(fmt::format("Mount source path \"{}\" does not exist.", mount.source_path));
+        if (err)
+            throw std::runtime_error(
+                fmt::format("Mount source path \"{}\" is not accessible: {}.", mount.source_path, err.message()));
+        if (source_status.type() != fs::file_type::directory)
+            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not a directory.", mount.source_path));
+        if (source_status.permissions() != fs::perms::unknown &&
+            (source_status.permissions() & fs::perms::owner_read) == fs::perms::none)
+            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not readable.", mount.source_path));
+    };
+
+    virtual void start_impl(ServerVariant server, std::chrono::milliseconds timeout) = 0;
+    virtual void stop_impl(bool force) = 0;
 
     template <typename Reply, typename Request>
-    Reply make_reply_from_server(grpc::ServerReaderWriterInterface<Reply, Request>&)
+    static Reply make_reply_from_server(grpc::ServerReaderWriterInterface<Reply, Request>*)
     {
         return Reply{};
     }
 
     template <typename Reply, typename Request>
-    Request make_request_from_server(grpc::ServerReaderWriterInterface<Reply, Request>&)
+    static Request make_request_from_server(grpc::ServerReaderWriterInterface<Reply, Request>*)
     {
         return Request{};
     }
 
+    VirtualMachine* vm;
     const SSHKeyProvider* ssh_key_provider;
-};
+    const std::string target;
 
+private:
+    bool active;
+    std::mutex active_mutex;
+};
 } // namespace multipass
 #endif // MULTIPASS_MOUNT_HANDLER_H

@@ -1387,8 +1387,9 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
     mp::id_mappings uid_mappings{{1002, 0}, {1000, 0}, {1001, 1}};
     mp::id_mappings gid_mappings{{1002, 0}, {1000, 2}};
     std::unordered_map<std::string, mp::VMMount> mounts;
-    mounts.emplace("Home", mp::VMMount{mpt::TempDir().path().toStdString(), uid_mappings, gid_mappings,
-                                       mp::VMMount::MountType::Classic});
+    mpt::TempDir dir;
+    mounts.emplace("Home",
+                   mp::VMMount{dir.path().toStdString(), uid_mappings, gid_mappings, mp::VMMount::MountType::Classic});
 
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents("52:54:00:73:76:29", std::vector<mp::NetworkInterface>{}, mounts));
