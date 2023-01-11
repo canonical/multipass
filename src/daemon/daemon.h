@@ -23,6 +23,7 @@
 #include "vm_specs.h"
 
 #include <multipass/delayed_shutdown_timer.h>
+#include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -145,6 +146,7 @@ private:
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
     void init_mounts(const std::string& name);
+    MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
 
     struct AsyncOperationStatus
     {
@@ -177,6 +179,7 @@ private:
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
+    std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H

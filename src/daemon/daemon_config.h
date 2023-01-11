@@ -23,7 +23,6 @@
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/logging/multiplexing_logger.h>
-#include <multipass/mount_handler.h>
 #include <multipass/name_generator.h>
 #include <multipass/path.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -34,7 +33,6 @@
 #include <multipass/vm_blueprint_provider.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
-#include <multipass/vm_mount.h>
 
 #include <QNetworkProxy>
 
@@ -58,7 +56,6 @@ struct DaemonConfig
     const std::shared_ptr<logging::MultiplexingLogger> logger;
     const std::unique_ptr<QNetworkProxy> network_proxy;
     const std::unique_ptr<VMBlueprintProvider> blueprint_provider;
-    const std::unordered_map<VMMount::MountType, std::unique_ptr<MountHandler>> mount_handlers;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
@@ -80,7 +77,6 @@ struct DaemonConfigBuilder
     std::unique_ptr<logging::Logger> logger;
     std::unique_ptr<QNetworkProxy> network_proxy;
     std::unique_ptr<VMBlueprintProvider> blueprint_provider;
-    std::unordered_map<VMMount::MountType, std::unique_ptr<MountHandler>> mount_handlers;
     multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;

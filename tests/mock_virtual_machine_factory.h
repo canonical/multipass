@@ -20,7 +20,6 @@
 
 #include "common.h"
 
-#include <multipass/mount_handler.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
@@ -46,7 +45,6 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                  VMImageVault::UPtr(std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&));
     MOCK_METHOD1(configure, void(VirtualMachineDescription&));
     MOCK_CONST_METHOD0(networks, std::vector<NetworkInterfaceInfo>());
-    MOCK_METHOD(MountHandler::UPtr, create_performance_mount_handler, (const SSHKeyProvider&), (override));
 
     // originally protected:
     MOCK_METHOD1(create_bridge_with, std::string(const NetworkInterfaceInfo&));
