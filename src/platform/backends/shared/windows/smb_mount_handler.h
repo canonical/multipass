@@ -20,27 +20,25 @@
 
 #include <multipass/mount_handler.h>
 
-#include <unordered_map>
-
 namespace multipass
 {
-class VirtualMachine;
-
 class SmbMountHandler : public MountHandler
 {
 public:
-    explicit SmbMountHandler(const SSHKeyProvider& ssh_key_provider);
+    SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
+                    const VMMount& mount);
+    ~SmbMountHandler() override;
 
-    void init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount) override;
-    void start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
-                     const std::chrono::milliseconds& timeout = std::chrono::minutes(5)) override;
-    void stop_mount(const std::string& instance, const std::string& path) override;
-    void stop_all_mounts_for_instance(const std::string& instance) override;
-    bool has_instance_already_mounted(const std::string& instance, const std::string& path) const override;
+    void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
+    void stop_impl(bool force) override;
 
 private:
-    std::unordered_map<std::string, std::unordered_map<std::string, std::pair<QString, VirtualMachine*>>> smb_mount_map;
-};
+    QString source;
+    QString share_name;
 
+    bool check_smb_share();
+    void create_smb_share();
+    void remove_smb_share();
+};
 } // namespace multipass
 #endif // MULTIPASS_SMB_MOUNT_HANDLER_H
