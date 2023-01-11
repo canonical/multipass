@@ -327,6 +327,7 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: jurplel/install-qt-action@v2
       with:
+        version: '5.15.1'
         setup-python: false
       timeout-minutes: 10
 

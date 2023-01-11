@@ -26,6 +26,7 @@
 
 #include <shared/shared_backend_utils.h>
 #include <shared/windows/powershell.h>
+#include <shared/windows/smb_mount_handler.h>
 
 #include <fmt/format.h>
 
@@ -307,4 +308,11 @@ void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
 
     QStringList resize_cmd = {"Resize-VHD", "-Path", image_path, "-SizeBytes", QString::number(new_size.in_bytes())};
     checked_ps_run(*power_shell, resize_cmd, "Could not resize disk");
+}
+
+mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const mp::SSHKeyProvider* ssh_key_provider,
+                                                                           const std::string& target,
+                                                                           const mp::VMMount& mount)
+{
+    return std::make_unique<SmbMountHandler>(this, ssh_key_provider, target, mount);
 }

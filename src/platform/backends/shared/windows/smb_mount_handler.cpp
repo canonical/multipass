@@ -19,219 +19,174 @@
 #include "powershell.h"
 
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
-#include <multipass/format.h>
-#include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
-#include <multipass/vm_mount.h>
-
-#include <filesystem>
 
 #include <QHostInfo>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
 constexpr auto category = "smb-mount-handler";
 
-auto get_source_dir_owner(const QString& source_dir)
+auto get_dir_owner(const QString& dir)
 {
     QString ps_output;
-    QStringList get_acl{"Get-Acl", source_dir};
+    QStringList get_acl{"Get-Acl", dir};
 
     mp::PowerShell::exec(get_acl << mp::PowerShell::Snippets::expand_property << "Owner", category, ps_output);
 
     return ps_output;
 }
 
-auto create_smb_share_for(const std::string& source_path, const QString& vm_name, const QString& source_dir_owner)
-{
-    auto share_name = QString("%1_%2").arg(
-        vm_name, QString::fromStdString(std::filesystem::path(source_path).filename().generic_string()));
-
-    mp::PowerShell::exec({"New-SmbShare", "-Name", share_name, "-Path", QString::fromStdString(source_path),
-                          "-FullAccess", source_dir_owner},
-                         category);
-
-    return share_name;
-}
-
-auto remove_smb_share_for(const QString& share_name)
-{
-    return mp::PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category);
-}
-
 void install_cifs_for(const std::string& name, mp::SSHSession& session, const std::chrono::milliseconds& timeout)
+try
 {
-    try
-    {
-        mpl::log(mpl::Level::info, category, fmt::format("Installing cifs-utils in \'{}\'", name));
+    mpl::log(mpl::Level::info, category, fmt::format("Installing cifs-utils in '{}'", name));
 
-        auto proc = session.exec("sudo apt-get install -y cifs-utils");
-        if (proc.exit_code(timeout) != 0)
-        {
-            auto error_msg = proc.read_std_error();
-            mpl::log(
-                mpl::Level::warning, category,
-                fmt::format("Failed to install \'cifs-utils\', error message: \'{}\'", mp::utils::trim_end(error_msg)));
-            throw std::runtime_error("Failed to install cifs-utils");
-        }
-    }
-    catch (const mp::ExitlessSSHProcessException&)
+    auto proc = session.exec("sudo apt-get install -y cifs-utils");
+    if (proc.exit_code(timeout) != 0)
     {
-        mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'cifs-utils' in '{}'", name));
-        throw std::runtime_error("Timeout installing cifs-utils");
+        auto error_msg = proc.read_std_error();
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Failed to install 'cifs-utils', error message: '{}'", mp::utils::trim_end(error_msg)));
+        throw std::runtime_error("Failed to install cifs-utils");
     }
+}
+catch (const mp::ExitlessSSHProcessException&)
+{
+    mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'cifs-utils' in '{}'", name));
+    throw std::runtime_error("Timeout installing cifs-utils");
 }
 } // namespace
 
-mp::SmbMountHandler::SmbMountHandler(const SSHKeyProvider& ssh_key_provider) : MountHandler(ssh_key_provider)
+namespace multipass
 {
+bool SmbMountHandler::check_smb_share()
+{
+    return PowerShell::exec({"Get-SmbShare", "-Name", share_name}, category);
 }
 
-void mp::SmbMountHandler::init_mount(VirtualMachine* vm, const std::string& target_path, const VMMount& vm_mount)
+void SmbMountHandler::create_smb_share()
+{
+    if (check_smb_share() ||
+        !PowerShell::exec({"New-SmbShare", "-Name", share_name, "-Path", source, "-FullAccess", get_dir_owner(source)},
+                          category))
+        throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\"", source)};
+}
+
+void SmbMountHandler::remove_smb_share()
+{
+    if (check_smb_share() && !PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category))
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
+}
+
+SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
+                                 const VMMount& mount)
+    : MountHandler{vm, ssh_key_provider, target, mount},
+      source{QString::fromStdString(mount.source_path)},
+      // share name must be unique and 80 chars max
+      share_name{QString("%1_%2:%3")
+                     .arg(mpu::make_uuid(), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
+                     .left(80)}
 {
     mpl::log(mpl::Level::info, category,
-             fmt::format("initializing native mount {} => {} in {}", vm_mount.source_path, target_path, vm->vm_name));
-
-    auto source_dir_owner = get_source_dir_owner(QString::fromStdString(vm_mount.source_path));
-
-    auto share_name = create_smb_share_for(vm_mount.source_path, QString::fromStdString(vm->vm_name), source_dir_owner);
-
-    smb_mount_map[vm->vm_name][target_path] = std::make_pair(share_name, vm);
+             fmt::format("initializing native mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
 }
 
-void mp::SmbMountHandler::start_mount(VirtualMachine* vm, ServerVariant server, const std::string& target_path,
-                                      const std::chrono::milliseconds& timeout)
+void SmbMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
+try
 {
+    create_smb_share();
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
     const auto [username, password] = std::visit(
-        [this, vm, &session, &timeout](auto&& server) {
-            if (!server)
-            {
-                throw std::runtime_error("Cannot start Windows mount without client connection");
-            }
+        [this, &session, timeout](auto&& server) {
+            auto reply = server ? make_reply_from_server(server)
+                                : throw std::runtime_error("Cannot start SMB mount without client connection");
 
-            auto reply = make_reply_from_server(*server);
-
-            if (session.exec("dpkg -l | grep cifs-utils").exit_code() != 0)
+            if (session.exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils").read_std_output() !=
+                "installed")
             {
                 reply.set_reply_message("Enabling support for mounting");
                 server->Write(reply);
-
                 install_cifs_for(vm->vm_name, session, timeout);
             }
 
             reply.set_credentials_requested(true);
             if (!server->Write(reply))
-            {
                 throw std::runtime_error("Cannot request user credentials from client. Aborting...");
-            }
 
-            auto request = make_request_from_server(*server);
+            auto request = make_request_from_server(server);
             if (!server->Read(&request))
-            {
                 throw std::runtime_error("Cannot get user credentials from client. Aborting...");
-            }
 
             return std::make_pair(request.user_credentials().username(), request.user_credentials().password());
         },
         server);
 
     if (password.empty())
-    {
-        throw std::runtime_error("A password is required for Windows mounts.");
-    }
+        throw std::runtime_error("A password is required for SMB mounts.");
 
     const std::string credentials_path{"/root/.smb_credentials"};
 
     // The following mkdir in the instance will be replaced with refactored code
-    auto mkdir_proc = session.exec(fmt::format("mkdir -p {}", target_path));
+    auto mkdir_proc = session.exec(fmt::format("mkdir -p {}", target));
     if (mkdir_proc.exit_code() != 0)
-    {
-        throw std::runtime_error(fmt::format("Cannot create {} in instance '{}': {}", target_path, vm->vm_name,
-                                             mkdir_proc.read_std_error()));
-    }
+        throw std::runtime_error(
+            fmt::format("Cannot create \"{}\" in instance '{}': {}", target, vm->vm_name, mkdir_proc.read_std_error()));
 
     auto creds_proc = session.exec(
         fmt::format("sudo bash -c 'echo \"username={}\npassword={}\" > {}'", username, password, credentials_path));
-
     if (creds_proc.exit_code() != 0)
-    {
         throw std::runtime_error(
             fmt::format("Cannot create credentials file in instance: {}", creds_proc.read_std_error()));
-    }
 
     auto hostname = QHostInfo::localHostName();
-    const auto [share_name, _] = smb_mount_map[vm->vm_name][target_path];
-
     auto mount_proc =
         session.exec(fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)", hostname,
-                                 share_name, target_path, credentials_path));
-
+                                 share_name, target, credentials_path));
     auto mount_exit_code = mount_proc.exit_code();
 
     auto rm_proc = session.exec(fmt::format("sudo rm {}", credentials_path));
     if (rm_proc.exit_code() != 0)
-    {
         mpl::log(mpl::Level::warning, category,
                  fmt::format("Failed deleting credentials file in \'{}\': {}", vm->vm_name, rm_proc.read_std_error()));
-    }
 
     if (mount_exit_code != 0)
-    {
         throw std::runtime_error(fmt::format("Error: {}", mount_proc.read_std_error()));
-    }
+}
+catch (...)
+{
+    remove_smb_share();
+    throw;
 }
 
-void mp::SmbMountHandler::stop_mount(const std::string& instance, const std::string& path)
+void SmbMountHandler::stop_impl(bool force)
+try
 {
-    const auto [share_name, vm] = smb_mount_map[instance][path];
-
+    mpl::log(mpl::Level::info, category,
+             fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-
-    auto umount_proc = session.exec(fmt::format("sudo umount {}", path));
-    if (umount_proc.exit_code() != 0)
-    {
-        throw std::runtime_error(fmt::format("Cannot unmount share in instance: {}", umount_proc.read_std_error()));
-    }
-
-    if (!remove_smb_share_for(share_name))
-    {
-        mpl::log(mpl::Level::warning, category,
-                 fmt::format("Failed removing share \"{}\" for \"{}\"", share_name, instance));
-    }
-
-    smb_mount_map[instance].erase(path);
+    mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
+    remove_smb_share();
 }
-
-void mp::SmbMountHandler::stop_all_mounts_for_instance(const std::string& instance) // clang-format off
-try // clang-format on
+catch (const std::exception& e)
 {
-    const auto& mount_info = smb_mount_map.at(instance);
-
-    if (mount_info.empty())
-    {
-        throw std::out_of_range("");
-    }
-
-    for (auto it = mount_info.cbegin(); it != mount_info.cend();)
-    {
-        stop_mount(instance, it++->first);
-    }
+    if (!force)
+        throw;
+    mpl::log(mpl::Level::warning, category,
+             fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
+    remove_smb_share();
 }
-catch (const std::out_of_range&)
+
+SmbMountHandler::~SmbMountHandler()
 {
-    mpl::log(mpl::Level::info, category, fmt::format("No mounts to stop for instance \"{}\"", instance));
+    stop(/*force=*/true);
 }
-
-bool mp::SmbMountHandler::has_instance_already_mounted(const std::string& instance, const std::string& path) const
-{
-    auto entry = smb_mount_map.find(instance);
-
-    return entry != smb_mount_map.end() && entry->second.find(path) != entry->second.end();
-}
+} // namespace multipass
