@@ -42,7 +42,6 @@ public:
     QString get_backend_version_string() override;
     QString get_backend_directory_name() override;
     std::vector<NetworkInterfaceInfo> networks() const override;
-    std::unique_ptr<MountHandler> create_performance_mount_handler(const SSHKeyProvider& ssh_key_provider) override;
 
 private:
     QemuPlatform::UPtr qemu_platform;

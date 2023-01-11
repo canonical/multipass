@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_STUB_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_STUB_VIRTUAL_MACHINE_FACTORY_H
 
-#include "stub_mount_handler.h"
 #include "stub_virtual_machine.h"
 #include "stub_vm_image_vault.h"
 
@@ -74,11 +73,6 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
                                                      const days& days_to_expire) override
     {
         return std::make_unique<StubVMImageVault>();
-    }
-
-    MountHandler::UPtr create_performance_mount_handler(const SSHKeyProvider& ssh_key_provider) override
-    {
-        return std::make_unique<StubMountHandler>();
     }
 };
 }
