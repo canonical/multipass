@@ -2638,9 +2638,29 @@ grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::func
 void mp::Daemon::init_mounts(const std::string& name)
 {
     auto& vm_mounts = mounts[name];
-    for (const auto& [target, vm_mount] : vm_instance_specs[name].mounts)
+    auto& vm_spec_mounts = vm_instance_specs[name].mounts;
+    std::vector<std::string> mounts_to_remove;
+    for (const auto& [target, vm_mount] : vm_spec_mounts)
+    {
         if (vm_mounts.find(target) == vm_mounts.end())
-            vm_mounts[target] = make_mount(vm_instances[name].get(), target, vm_mount);
+            try
+            {
+                vm_mounts[target] = make_mount(vm_instances[name].get(), target, vm_mount);
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::warning, category,
+                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", vm_mount.source_path,
+                                     target, name, e.what()));
+                mounts_to_remove.push_back(target);
+            }
+    }
+
+    for (const auto& mount_target : mounts_to_remove)
+        vm_spec_mounts.erase(mount_target);
+
+    if (!mounts_to_remove.empty())
+        persist_instances();
 }
 
 multipass::MountHandler::UPtr multipass::Daemon::make_mount(VirtualMachine* vm, const std::string& target,
