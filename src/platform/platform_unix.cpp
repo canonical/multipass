@@ -65,7 +65,7 @@ int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
 
 bool mp::platform::Platform::set_permissions(const mp::Path path, const QFileDevice::Permissions permissions) const
 {
-    return permissions ? QFile::setPermissions(path, permissions) : false;
+    return QFile::setPermissions(path, permissions);
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
