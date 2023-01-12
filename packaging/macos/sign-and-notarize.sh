@@ -142,6 +142,7 @@ function entitlements {
 function codesign_binaries {
     DIR="$1"
     # sign every file in the directory
+    find "${DIR}" -name '*.plist' -exec chmod u+w {} +
     find "${DIR}" -type f -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
             $( entitlements ) \
