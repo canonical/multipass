@@ -26,15 +26,15 @@ namespace multipass
 {
 namespace platform
 {
-constexpr auto unlock_code{"honeyed-bigeye"};
+constexpr auto unlock_code{"fatherly-sheatfish"};
 // clang-format off
 const std::unordered_set<std::string> supported_release_aliases{"core",   "core16", "core18", "core20", "core22",
                                                                 "default", "ubuntu", "lts",
                                                                 "16.04", "x", "xenial",
                                                                 "18.04", "b", "bionic",
                                                                 "20.04", "f", "focal",
-                                                                "21.10", "i", "impish",
-                                                                "22.04", "j", "jammy"};
+                                                                "22.04", "j", "jammy",
+                                                                "22.10", "k", "kinetic"};
 // clang-format on
 const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18", "core20", "core22"};
 const std::unordered_set<std::string> supported_snapcraft_aliases{"core18", "18.04",  "core20",
