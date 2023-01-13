@@ -78,11 +78,11 @@ private:
 
     VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
-    MountArgs mount_args;
     const std::string mac_addr;
     const std::string username;
     QemuPlatform* qemu_platform;
     VMStatusMonitor* monitor;
+    MountArgs mount_args;
     std::string saved_error_msg;
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
