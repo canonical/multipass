@@ -2650,8 +2650,8 @@ void mp::Daemon::init_mounts(const std::string& name)
             catch (const std::exception& e)
             {
                 mpl::log(mpl::Level::warning, category,
-                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", vm_mount.source_path,
-                                     target, name, e.what()));
+                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", vm_mount.source_path, target, name,
+                                     e.what()));
                 mounts_to_remove.push_back(target);
             }
     }
