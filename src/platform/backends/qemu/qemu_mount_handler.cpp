@@ -36,10 +36,19 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
     : MountHandler{vm, ssh_key_provider, target, mount},
       vm_mount_args{vm->modifiable_mount_args()},
       // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
-      // uuid must be truncated. First character of tag must also be alpabetical.
-      tag{mp::utils::make_uuid().remove("-").left(30).prepend('m').toStdString()}
+      // uuid must be truncated. First character of tag must also be alphabetical.
+      tag{mp::utils::make_uuid(target).remove("-").left(30).prepend('m').toStdString()}
 {
-    if (vm->current_state() != VirtualMachine::State::off && vm->current_state() != VirtualMachine::State::stopped)
+    auto state = vm->current_state();
+    if (state == VirtualMachine::State::suspended && vm_mount_args.find(tag) != vm_mount_args.end())
+    {
+        mpl::log(
+            mpl::Level::info, category,
+            fmt::format("Found native mount {} => {} in '{}' while suspended", mount.source_path, target, vm->vm_name));
+        return;
+    }
+
+    if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
         throw std::runtime_error("Please shutdown the instance before attempting native mounts.");
 
     // Need to ensure no more than one uid/gid map is passed in here.
