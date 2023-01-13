@@ -89,12 +89,12 @@ QStringList mp::QemuVMProcessSpec::arguments() const
              << "-nographic";
         // Cloud-init disk
         args << "-cdrom" << desc.cloud_init_iso;
+    }
 
-        for (const auto& [_, mount_data] : mount_args)
-        {
-            const auto& [__, mount_args] = mount_data;
-            args << mount_args;
-        }
+    for (const auto& [_, mount_data] : mount_args)
+    {
+        const auto& [__, mount_args] = mount_data;
+        args << mount_args;
     }
 
     return args;
