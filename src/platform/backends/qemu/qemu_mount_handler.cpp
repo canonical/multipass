@@ -73,17 +73,16 @@ void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
     // Split the path in existing and missing parts
-    const auto& [leading, missing] = mpu::get_path_split(session, target);
-    const auto default_uid = std::stoi(mpu::run_in_ssh_session(session, "id -u"));
-    mpl::log(mpl::Level::debug, category,
-             fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, default_uid));
-    const auto default_gid = std::stoi(mpu::run_in_ssh_session(session, "id -g"));
-    mpl::log(mpl::Level::debug, category,
-             fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, default_gid));
-
     // We need to create the part of the path which does not still exist, and set then the correct ownership.
-    if (missing != ".")
+    if (const auto& [leading, missing] = mpu::get_path_split(session, target); missing != ".")
     {
+        const auto default_uid = std::stoi(mpu::run_in_ssh_session(session, "id -u"));
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, default_uid));
+        const auto default_gid = std::stoi(mpu::run_in_ssh_session(session, "id -g"));
+        mpl::log(mpl::Level::debug, category,
+                 fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, default_gid));
+
         mpu::make_target_dir(session, leading, missing);
         mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
     }
