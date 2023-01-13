@@ -452,7 +452,8 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
     process_factory->register_callback(handle_external_process_calls);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
-    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_)).WillOnce(Return(QJsonObject({{"machine_type", machine_type}})));
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(QJsonObject({{"machine_type", machine_type}})));
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -494,7 +495,7 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
-        .WillOnce(Return(QJsonObject({{"arguments", QJsonArray{"-hi_there", "-hows_it_going"}}})));
+        .WillRepeatedly(Return(QJsonObject({{"arguments", QJsonArray{"-hi_there", "-hows_it_going"}}})));
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 

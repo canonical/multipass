@@ -40,7 +40,6 @@
 #include <QString>
 #include <QStringList>
 #include <QTemporaryFile>
-#include <QUuid>
 
 #include <cassert>
 
@@ -54,6 +53,9 @@ namespace
 constexpr auto suspend_tag = "suspend";
 constexpr auto machine_type_key = "machine_type";
 constexpr auto arguments_key = "arguments";
+constexpr auto mount_data_key = "mount_data";
+constexpr auto mount_source_key = "source";
+constexpr auto mount_arguments_key = "arguments";
 
 bool use_cdrom_set(const QJsonObject& metadata)
 {
@@ -82,6 +84,23 @@ QStringList get_arguments(const QJsonObject& metadata)
         }
     }
     return args;
+}
+
+auto mount_args_from_json(const QJsonObject& object)
+{
+    mp::QemuVirtualMachine::MountArgs mount_args;
+    auto mount_data_map = object[mount_data_key].toObject();
+    for (const auto& tag : mount_data_map.keys())
+    {
+        const auto mount_data = mount_data_map[tag].toObject();
+        const auto source = mount_data[mount_source_key];
+        const auto args = mount_data[mount_arguments_key].toArray();
+        if (!source.isString() || !std::all_of(args.begin(), args.end(), std::mem_fn(&QJsonValue::isString)))
+            continue;
+        mount_args[tag.toStdString()] = {source.toString().toStdString(),
+                                         QVariant{args.toVariantList()}.toStringList()};
+    }
+    return mount_args;
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::optional<QJsonObject>& resume_metadata,
@@ -177,11 +196,25 @@ auto get_qemu_machine_type(const QStringList& platform_args)
     return machine_type;
 }
 
-auto generate_metadata(const QStringList& platform_args, const QStringList& proc_args)
+auto mount_args_to_json(const mp::QemuVirtualMachine::MountArgs& mount_args)
+{
+    QJsonObject object;
+    for (const auto& [tag, mount_data] : mount_args)
+    {
+        const auto& [source, args] = mount_data;
+        object[QString::fromStdString(tag)] = QJsonObject{{mount_source_key, QString::fromStdString(source)},
+                                                          {mount_arguments_key, QJsonArray::fromStringList(args)}};
+    }
+    return object;
+}
+
+auto generate_metadata(const QStringList& platform_args, const QStringList& proc_args,
+                       const mp::QemuVirtualMachine::MountArgs& mount_args)
 {
     QJsonObject metadata;
     metadata[machine_type_key] = get_qemu_machine_type(platform_args);
     metadata[arguments_key] = QJsonArray::fromStringList(proc_args);
+    metadata[mount_data_key] = mount_args_to_json(mount_args);
     return metadata;
 }
 } // namespace
@@ -194,7 +227,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       mac_addr{desc.default_mac_address},
       username{desc.ssh_username},
       qemu_platform{qemu_platform},
-      monitor{&monitor}
+      monitor{&monitor},
+      mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
     QObject::connect(
         this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
@@ -259,8 +293,14 @@ void mp::QemuVirtualMachine::start()
     }
     else
     {
-        monitor->update_metadata_for(
-            vm_name, generate_metadata(qemu_platform->vmstate_platform_args(), vm_process->arguments()));
+        // remove the mount arguments from the rest of the arguments, as they are stored separately for easier retrieval
+        auto proc_args = vm_process->arguments();
+        for (const auto& [_, mount_data] : mount_args)
+            for (const auto& arg : mount_data.second)
+                proc_args.removeOne(arg);
+
+        monitor->update_metadata_for(vm_name,
+                                     generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args));
     }
 
     vm_process->start();
