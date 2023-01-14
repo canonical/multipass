@@ -129,7 +129,7 @@ std::string qenum_to_string(RegisteredQtEnum val);
 
 // other helpers
 QString get_multipass_storage();
-QString make_uuid();
+QString make_uuid(const std::optional<std::string>& seed = std::nullopt);
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
                     Args&&... args);
