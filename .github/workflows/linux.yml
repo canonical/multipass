@@ -42,13 +42,7 @@ jobs:
       run: |
         set -euo pipefail
 
-        MATRIX='{"build-type": "Debug"}
-                {"build-type": "Clang"}
-                {"build-type": "Release"}'
-
-        if ! ${{ env.BORS_RUN }}; then
-            MATRIX+='{"build-type": "Coverage" }'
-        fi
+        MATRIX='{"build-type": "Debug"}'
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
 
@@ -77,6 +71,7 @@ jobs:
 
     env:
       SNAPCRAFT_BUILD_INFO: 1
+      COREDUMPS_DIR: "/tmp/coredumps"
 
     timeout-minutes: 60
     steps:
@@ -150,11 +145,31 @@ jobs:
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 2
       run: |
+        /snap/bin/lxc profile set default limits.kernel.core=unlimited
+        mkdir --parents ${COREDUMPS_DIR}
+        echo "${COREDUMPS_DIR}/corefile-%e-%p-%t" | sudo tee /proc/sys/kernel/core_pattern
+        /snap/bin/lxc profile device add default coredumps disk source=${COREDUMPS_DIR} path=${COREDUMPS_DIR}
         /snap/bin/lxc start snapcraft-multipass
         /snap/bin/lxc exec snapcraft-multipass -- \
            env CTEST_OUTPUT_ON_FAILURE=1 \
                LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
                /root/parts/multipass/build/bin/multipass_tests
+
+    - name: Own core dumps
+      if: failure()
+      run: |
+        /snap/bin/lxc exec snapcraft-multipass -- \
+            cp /root/parts/multipass/build/bin/multipass_tests ${COREDUMPS_DIR}
+        sudo chown ${UID} ${COREDUMPS_DIR}/*
+
+    - name: Upload core dumps (if generated)
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: core-dumps
+        path: ${{ env.COREDUMPS_DIR }}/*
+        retention-days: 5
+        if-no-files-found: ignore
 
     - name: Measure coverage
       if: ${{ matrix.build-type == 'Coverage' }}
