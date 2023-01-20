@@ -541,6 +541,7 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon, DaemonSlot
     EXPECT_TRUE(is_ready(status_future));
 
     thread->quit();
+    thread->wait();
 
     return status_future.get();
 }
