@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2022 Canonical, Ltd.
+ * Copyright (C) 2021-2023 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,6 +61,12 @@ public:
     {
         assert(qsettings);
         qsettings->setValue(key, value);
+    }
+
+    virtual void remove(const QString& key)
+    {
+        assert(qsettings);
+        qsettings->remove(key);
     }
 
     QVariant value(const QString& key, const QVariant& default_value = QVariant()) const
