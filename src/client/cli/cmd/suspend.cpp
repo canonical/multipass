@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 Canonical, Ltd.
+ * Copyright (C) 2019-2023 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,9 +43,18 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
+    auto streaming_callback = [this,
+                               &spinner](mp::SuspendReply& reply,
+                                         grpc::ClientReaderWriterInterface<SuspendRequest, SuspendReply>* client) {
+        if (!reply.log_line().empty())
+        {
+            spinner.print(cerr, reply.log_line());
+        }
+    };
+
     spinner.start(instance_action_message_for(request.instance_names(), "Suspending "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::suspend, request, on_success, on_failure);
+    return dispatch(&RpcMethod::suspend, request, on_success, on_failure, streaming_callback);
 }
 
 std::string cmd::Suspend::name() const
