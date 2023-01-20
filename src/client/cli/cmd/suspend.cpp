@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include "animated_spinner.h"
+#include "common_callbacks.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
@@ -43,18 +44,10 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    auto streaming_callback = [this,
-                               &spinner](mp::SuspendReply& reply,
-                                         grpc::ClientReaderWriterInterface<SuspendRequest, SuspendReply>* client) {
-        if (!reply.log_line().empty())
-        {
-            spinner.print(cerr, reply.log_line());
-        }
-    };
-
     spinner.start(instance_action_message_for(request.instance_names(), "Suspending "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::suspend, request, on_success, on_failure, streaming_callback);
+    return dispatch(&RpcMethod::suspend, request, on_success, on_failure,
+                    make_logging_spinner_callback<SuspendRequest, SuspendReply>(spinner, cerr));
 }
 
 std::string cmd::Suspend::name() const
