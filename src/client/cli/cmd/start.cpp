@@ -16,7 +16,9 @@
  */
 
 #include "start.h"
+
 #include "animated_spinner.h"
+#include "common_callbacks.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -104,27 +106,6 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status, details);
     };
 
-    auto streaming_callback = [this, &spinner](mp::StartReply& reply,
-                                               grpc::ClientReaderWriterInterface<StartRequest, StartReply>* client) {
-        if (!reply.log_line().empty())
-        {
-            spinner.print(cerr, reply.log_line());
-        }
-
-        if (reply.credentials_requested())
-        {
-            spinner.stop();
-
-            return cmd::handle_user_password(client, term);
-        }
-
-        if (const auto& msg = reply.reply_message(); !msg.empty())
-        {
-            spinner.stop();
-            spinner.start(msg);
-        }
-    };
-
     request.set_verbosity_level(parser->verbosityLevel());
 
     std::unique_ptr<multipass::utils::Timer> timer;
@@ -137,6 +118,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
     }
 
     ReturnCode return_code;
+    auto streaming_callback = make_iterative_spinner_callback<StartRequest, StartReply>(spinner, *term);
     do
     {
         spinner.start(instance_action_message_for(request.instance_names(), "Starting "));

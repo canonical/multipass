@@ -19,6 +19,9 @@
 
 #include "animated_spinner.h"
 
+#include <multipass/cli/client_common.h>
+#include <multipass/terminal.h>
+
 #include <grpc++/grpc++.h>
 
 namespace multipass
@@ -30,6 +33,30 @@ auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& strea
         if (!reply.log_line().empty())
         {
             spinner.print(stream, reply.log_line());
+        }
+    };
+}
+
+template <typename Request, typename Reply>
+auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
+{
+    return [&spinner, &term](const Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
+        if (!reply.log_line().empty())
+        {
+            spinner.print(term.cerr(), reply.log_line());
+        }
+
+        if (reply.credentials_requested())
+        {
+            spinner.stop();
+
+            return cmd::handle_user_password(client, &term);
+        }
+
+        if (const auto& msg = reply.reply_message(); !msg.empty())
+        {
+            spinner.stop();
+            spinner.start(msg);
         }
     };
 }

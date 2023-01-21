@@ -16,8 +16,10 @@
  */
 
 #include "mount.h"
-#include "common_cli.h"
+
 #include "animated_spinner.h"
+#include "common_callbacks.h"
+#include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
@@ -83,26 +85,7 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    auto streaming_callback = [this, &spinner](mp::MountReply& reply,
-                                               grpc::ClientReaderWriterInterface<MountRequest, MountReply>* client) {
-        if (!reply.log_line().empty())
-        {
-            spinner.print(cerr, reply.log_line());
-        }
-
-        if (reply.credentials_requested())
-        {
-            spinner.stop();
-
-            return cmd::handle_user_password(client, term);
-        }
-
-        if (const auto& msg = reply.reply_message(); !msg.empty())
-        {
-            spinner.stop();
-            spinner.start(msg);
-        }
-    };
+    auto streaming_callback = make_iterative_spinner_callback<MountRequest, MountReply>(spinner, *term);
 
     request.set_verbosity_level(parser->verbosityLevel());
 
