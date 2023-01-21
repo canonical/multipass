@@ -38,9 +38,9 @@ struct MockTimerSyncFuncs : public mpu::TimerSyncFuncs
     using TimerSyncFuncs::TimerSyncFuncs;
 
     MOCK_CONST_METHOD1(notify_all, void(std::condition_variable&));
-    MOCK_CONST_METHOD2(wait, void(std::condition_variable&, std::unique_lock<std::mutex>&));
-    MOCK_CONST_METHOD3(wait_for, std::cv_status(std::condition_variable&, std::unique_lock<std::mutex>&,
-                                                const std::chrono::duration<int, std::milli>&));
+    MOCK_CONST_METHOD3(wait, void(std::condition_variable&, std::unique_lock<std::mutex>&, std::function<bool()>));
+    MOCK_CONST_METHOD4(wait_for, bool(std::condition_variable&, std::unique_lock<std::mutex>&,
+                                      const std::chrono::duration<int, std::milli>&, std::function<bool()>));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockTimerSyncFuncs, TimerSyncFuncs);
 };
@@ -77,7 +77,7 @@ struct TestTimer : public testing::Test
         timer_lock.lock();
     }
 
-    auto make_mock_wait_for(std::cv_status timeout_status)
+    auto make_mock_wait_for(const bool& timeout_status)
     {
         return [this, timeout_status](std::unique_lock<std::mutex>& timer_lock) {
             mock_wait(timer_lock, timer_running);
@@ -129,8 +129,8 @@ struct TestTimer : public testing::Test
 
 TEST_F(TestTimer, times_out)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
+        .WillOnce(WithArg<1>(make_mock_wait_for(false)));
 
     t.start();
     ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out yet";
@@ -146,8 +146,8 @@ TEST_F(TestTimer, times_out)
 
 TEST_F(TestTimer, stops)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
+        .WillOnce(WithArg<1>(make_mock_wait_for(true)));
 
     t.start();
 
@@ -162,8 +162,8 @@ TEST_F(TestTimer, stops)
 
 TEST_F(TestTimer, pauses)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
+        .WillOnce(WithArg<1>(make_mock_wait_for(true)));
     EXPECT_CALL(*mock_timer_sync_funcs, wait);
 
     t.start();
@@ -182,11 +182,11 @@ TEST_F(TestTimer, pauses)
 TEST_F(TestTimer, resumes)
 {
     // The initial start
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
+        .WillOnce(WithArg<1>(make_mock_wait_for(true)));
 
     // After resume() is called, there should be less time left than the default timeout
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Lt(default_timeout))).WillOnce(Return(std::cv_status::timeout));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Lt(default_timeout), _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_timer_sync_funcs, wait);
 
     t.start();
@@ -211,8 +211,8 @@ TEST_F(TestTimer, resumes)
 
 TEST_F(TestTimer, stops_paused)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
+        .WillOnce(WithArg<1>(make_mock_wait_for(true)));
     EXPECT_CALL(*mock_timer_sync_funcs, wait);
 
     t.start();
@@ -232,8 +232,8 @@ TEST_F(TestTimer, stops_paused)
 
 TEST_F(TestTimer, cancels)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
+        .WillOnce(WithArg<1>(make_mock_wait_for(true)));
 
     // Don't use the TestTimer mpu::Timer since we are testing it going out of scope
     {
@@ -249,9 +249,9 @@ TEST_F(TestTimer, cancels)
 
 TEST_F(TestTimer, restarts)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
+        .WillOnce(WithArg<1>(make_mock_wait_for(true)))
+        .WillOnce(WithArg<1>(make_mock_wait_for(false)));
 
     t.start();
 
@@ -298,8 +298,8 @@ TEST_F(TestTimer, stopped_ignores_resume)
 
 TEST_F(TestTimer, running_ignores_resume)
 {
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout)))
-        .WillOnce(WithArg<1>(make_mock_wait_for(std::cv_status::no_timeout)));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
+        .WillOnce(WithArg<1>(make_mock_wait_for(true)));
 
     t.start();
 
