@@ -39,3 +39,18 @@ TEST(CommonCallbacks, logging_spinner_callback_logs)
     EXPECT_THAT(out.str(), MatchesRegex(R"(\s*)")); /* this is not empty because print stops, stop clears, and clear
                                                        prints carriage returns and spaces */
 }
+
+TEST(CommonCallbacks, logging_spinner_callback_ignores_empty_log)
+{
+    std::ostringstream out, err;
+    mp::AnimatedSpinner spinner{out};
+
+    mp::PurgeReply reply;
+
+    auto cb = mp::make_logging_spinner_callback<mp::PurgeRequest, mp::PurgeReply>(spinner, err);
+    cb(reply, nullptr);
+
+    EXPECT_TRUE(err.str().empty());
+    EXPECT_THAT(out.str(), MatchesRegex(R"(\s*)")); /* this is not empty because print stops, stop clears, and clear
+                                                       prints carriage returns and spaces */
+}
