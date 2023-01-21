@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 Canonical, Ltd.
+ * Copyright (C) 2019-2023 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ public:
     MOCK_METHOD1(setIniCodec, void(const char* codec_name));
     MOCK_METHOD0(sync, void());
     MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
+    MOCK_METHOD1(remove, void(const QString&));
 };
 
 class MockQSettingsProvider : public WrappedQSettingsFactory

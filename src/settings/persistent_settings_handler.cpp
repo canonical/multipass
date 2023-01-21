@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2022 Canonical, Ltd.
+ * Copyright (C) 2021-2023 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,13 @@
 
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/file_ops.h>
+#include <multipass/logging/log.h>
 #include <multipass/settings/persistent_settings_handler.h>
 
 #include <cassert>
 
 namespace mp = multipass;
+namespace mpl = mp::logging;
 
 namespace
 {
@@ -56,14 +58,28 @@ void check_status(const mp::WrappedQSettings& qsettings, const QString& attempte
                                      : QStringLiteral("access error (consider running with an administrative role)")};
 }
 
-QString checked_get(const mp::WrappedQSettings& qsettings, const QString& key, const QString& fallback,
-                    std::mutex& mutex)
+QString checked_get(mp::WrappedQSettings& qsettings, const QString& key, const mp::SettingSpec& spec, std::mutex& mutex)
 {
     std::lock_guard<std::mutex> lock{mutex};
 
+    const auto& fallback = spec.get_default();
     auto ret = qsettings.value(key, fallback).toString();
 
     check_status(qsettings, QStringLiteral("read"));
+
+    try
+    {
+        spec.interpret(ret); // check validity of what we read from disk
+    }
+    catch (const mp::InvalidSettingException& e)
+    {
+        mpl::log(mpl::Level::warning, "settings", fmt::format("{}. Resetting '{}'.", e.what(), key));
+        qsettings.remove(key);
+        qsettings.sync();
+        check_status(qsettings, "reset");
+        ret = fallback;
+    }
+
     return ret;
 }
 
@@ -86,9 +102,9 @@ mp::PersistentSettingsHandler::PersistentSettingsHandler(QString filename, Setti
 // TODO try installing yaml backend
 QString mp::PersistentSettingsHandler::get(const QString& key) const
 {
-    const auto& default_ret = get_setting(key).get_default(); // make sure the key is valid before reading from disk
+    const auto& setting_spec = get_setting(key); // make sure the key is valid before reading from disk
     auto settings_file = persistent_settings(filename);
-    return checked_get(*settings_file, key, default_ret, mutex);
+    return checked_get(*settings_file, key, setting_spec, mutex);
 }
 
 auto mp::PersistentSettingsHandler::get_setting(const QString& key) const -> const SettingSpec&
