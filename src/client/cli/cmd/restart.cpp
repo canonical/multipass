@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2022 Canonical, Ltd.
+ * Copyright (C) 2017-2023 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,8 +61,11 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
             return cmd::handle_user_password(client, term);
         }
 
-        spinner.stop();
-        spinner.start(reply.reply_message());
+        if (const auto& msg = reply.reply_message(); !msg.empty())
+        {
+            spinner.stop();
+            spinner.start(msg);
+        }
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
