@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Canonical, Ltd.
+ * Copyright (C) 2020-2023 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -139,12 +139,12 @@ TEST(PlatformWin, no_extra_daemon_settings)
     EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
 }
 
-TEST(PlatformOSX, test_default_driver)
+TEST(PlatformWin, test_default_driver)
 {
     EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("hyperv", "virtualbox"));
 }
 
-TEST(PlatformOSX, test_default_privileged_mounts)
+TEST(PlatformWin, test_default_privileged_mounts)
 {
     EXPECT_EQ(MP_PLATFORM.default_privileged_mounts(), "false");
 }
