@@ -30,6 +30,12 @@ using namespace testing;
 
 struct TestSpinnerCallbacks : public Test
 {
+    auto cleanStreamMatcher()
+    {
+        return MatchesRegex(R"(\s*)"); /* A "clear" stream can either be empty or made up of spaces carriage returns and
+                                          spaces */
+    }
+
     std::ostringstream out, err;
     std::istringstream in;
     mpt::StubTerminal term{out, err, in};
@@ -59,8 +65,8 @@ TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackLogs)
     make_callback()(reply, nullptr);
 
     EXPECT_THAT(err.str(), StrEq(log));
-    EXPECT_THAT(out.str(), MatchesRegex(R"(\s*)")); /* this is not empty because print stops, stop clears, and clear
-                                                       prints carriage returns and spaces */
+    EXPECT_THAT(out.str(), cleanStreamMatcher()); /* this is not empty because print stops, stop clears, and clear
+                                                     prints carriage returns and spaces */
 }
 
 TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackIgnoresEmptyLog)
@@ -69,8 +75,7 @@ TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackIgnoresEmptyLog)
     make_callback()(reply, nullptr);
 
     EXPECT_THAT(err.str(), IsEmpty());
-    EXPECT_THAT(out.str(), MatchesRegex(R"(\s*)")); /* this is not empty because print stops, stop clears, and clear
-                                                       prints carriage returns and spaces */
+    EXPECT_THAT(out.str(), cleanStreamMatcher());
 }
 
 INSTANTIATE_TEST_SUITE_P(TestLoggingSpinnerCallbacks, TestLoggingSpinnerCallbacks, Values(false, true));
@@ -120,5 +125,5 @@ TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesCredentialRequest)
     cb(reply, &mock_client);
 
     EXPECT_THAT(err.str(), IsEmpty());
-    EXPECT_THAT(out.str(), MatchesRegex(R"(\s*)")); // TODO@ricab extract
+    EXPECT_THAT(out.str(), cleanStreamMatcher());
 }
