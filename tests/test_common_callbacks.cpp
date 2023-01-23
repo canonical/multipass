@@ -49,7 +49,7 @@ struct TestLoggingSpinnerCallbacks : public TestSpinnerCallbacks, public WithPar
     }
 };
 
-TEST_P(TestLoggingSpinnerCallbacks, logging_spinner_callback_logs)
+TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackLogs)
 {
     constexpr auto log = "message in a bottle";
 
@@ -63,7 +63,7 @@ TEST_P(TestLoggingSpinnerCallbacks, logging_spinner_callback_logs)
                                                        prints carriage returns and spaces */
 }
 
-TEST_P(TestLoggingSpinnerCallbacks, logging_spinner_callback_ignores_empty_log)
+TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackIgnoresEmptyLog)
 {
     mp::MountReply reply;
     make_callback()(reply, nullptr);
@@ -75,7 +75,7 @@ TEST_P(TestLoggingSpinnerCallbacks, logging_spinner_callback_ignores_empty_log)
 
 INSTANTIATE_TEST_SUITE_P(TestLoggingSpinnerCallbacks, TestLoggingSpinnerCallbacks, Values(false, true));
 
-TEST_F(TestSpinnerCallbacks, iterative_spinner_callback_updates_spinner_message)
+TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackUpdatesSpinnerMessage)
 {
     constexpr auto msg = "answer";
 
@@ -89,7 +89,7 @@ TEST_F(TestSpinnerCallbacks, iterative_spinner_callback_updates_spinner_message)
     EXPECT_THAT(out.str(), HasSubstr(msg));
 }
 
-TEST_F(TestSpinnerCallbacks, iterative_spinner_callback_ignores_empty_message)
+TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackIgnoresEmptyMessage)
 {
     mp::StartReply reply;
 
@@ -100,7 +100,7 @@ TEST_F(TestSpinnerCallbacks, iterative_spinner_callback_ignores_empty_message)
     EXPECT_THAT(out.str(), IsEmpty());
 }
 
-TEST_F(TestSpinnerCallbacks, iterative_spinner_callback_handles_credential_request)
+TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesCredentialRequest)
 {
     constexpr auto usr = "ubuntu", pwd = "xyz";
     auto [mock_client_platform, guard] = mpt::MockClientPlatform::inject<StrictMock>();
