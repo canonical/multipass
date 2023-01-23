@@ -22,6 +22,9 @@
 
 #include <QString>
 
+#include <string>
+#include <utility>
+
 #define MP_CLIENT_PLATFORM multipass::cli::platform::Platform::instance()
 
 namespace multipass
