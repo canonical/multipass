@@ -18,7 +18,11 @@
 #ifndef MULTIPASS_CLIENT_PLATFORM_H
 #define MULTIPASS_CLIENT_PLATFORM_H
 
+#include <multipass/singleton.h>
+
 #include <QString>
+
+#define MP_CLIENT_PLATFORM multipass::cli::platform::Platform::instance()
 
 namespace multipass
 {
@@ -31,13 +35,25 @@ namespace cli
 {
 namespace platform
 {
+class Platform : public Singleton<Platform>
+{
+public:
+    Platform(const Singleton::PrivatePass&) noexcept;
+
+    virtual std::pair<std::string, std::string> get_user_password(Terminal* term) const;
+};
+
 void parse_transfer_entry(const QString& entry, QString& path, QString& instance_name);
 int getuid();
 int getgid();
 void open_multipass_shell(const QString& instance_name); // precondition: requires a valid instance name
 QStringList gui_tray_notification_strings();
-std::pair<std::string, std::string> get_user_password(Terminal* term);
 }
 }
 }
+
+inline multipass::cli::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
+{
+}
+
 #endif // MULTIPASS_CLIENT_PLATFORM_H
