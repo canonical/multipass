@@ -86,3 +86,14 @@ TEST_F(TestSpinnerCallbacks, iterative_spinner_callback_updates_spinner_message)
     EXPECT_THAT(err.str(), IsEmpty());
     EXPECT_THAT(out.str(), HasSubstr(msg));
 }
+
+TEST_F(TestSpinnerCallbacks, iterative_spinner_callback_ignores_empty_message)
+{
+    mp::StartReply reply;
+
+    auto cb = mp::make_iterative_spinner_callback<mp::StartRequest, mp::StartReply>(spinner, term);
+    cb(reply, nullptr);
+
+    EXPECT_THAT(err.str(), IsEmpty());
+    EXPECT_THAT(out.str(), IsEmpty());
+}
