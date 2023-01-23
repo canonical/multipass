@@ -16,6 +16,7 @@
 
 #include "common.h"
 
+#include <src/client/cli/cmd/animated_spinner.h>
 #include <src/client/cli/cmd/common_callbacks.h>
 
 #include <sstream>
@@ -23,10 +24,14 @@
 namespace mp = multipass;
 using namespace testing;
 
-TEST(CommonCallbacks, logging_spinner_callback_logs)
+struct TestSpinnerCallbacks : public Test
 {
     std::ostringstream out, err;
     mp::AnimatedSpinner spinner{out};
+};
+
+TEST_F(TestSpinnerCallbacks, logging_spinner_callback_logs)
+{
     constexpr auto log = "message in a bottle";
 
     mp::PurgeReply reply;
@@ -40,11 +45,8 @@ TEST(CommonCallbacks, logging_spinner_callback_logs)
                                                        prints carriage returns and spaces */
 }
 
-TEST(CommonCallbacks, logging_spinner_callback_ignores_empty_log)
+TEST_F(TestSpinnerCallbacks, logging_spinner_callback_ignores_empty_log)
 {
-    std::ostringstream out, err;
-    mp::AnimatedSpinner spinner{out};
-
     mp::PurgeReply reply;
 
     auto cb = mp::make_logging_spinner_callback<mp::PurgeRequest, mp::PurgeReply>(spinner, err);
