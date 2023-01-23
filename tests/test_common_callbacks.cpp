@@ -72,3 +72,17 @@ TEST_P(TestLoggingSpinnerCallbacks, logging_spinner_callback_ignores_empty_log)
 }
 
 INSTANTIATE_TEST_SUITE_P(TestLoggingSpinnerCallbacks, TestLoggingSpinnerCallbacks, Values(false, true));
+
+TEST_F(TestSpinnerCallbacks, iterative_spinner_callback_updates_spinner_message)
+{
+    constexpr auto msg = "answer";
+
+    mp::MountReply reply;
+    reply.set_reply_message(msg);
+
+    auto cb = mp::make_iterative_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, term);
+    cb(reply, nullptr);
+
+    EXPECT_THAT(err.str(), IsEmpty());
+    EXPECT_THAT(out.str(), HasSubstr(msg));
+}
