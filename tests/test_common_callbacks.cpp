@@ -66,7 +66,7 @@ TEST_P(TestLoggingSpinnerCallbacks, logging_spinner_callback_ignores_empty_log)
     mp::MountReply reply;
     make_callback()(reply, nullptr);
 
-    EXPECT_TRUE(err.str().empty());
+    EXPECT_THAT(err.str(), IsEmpty());
     EXPECT_THAT(out.str(), MatchesRegex(R"(\s*)")); /* this is not empty because print stops, stop clears, and clear
                                                        prints carriage returns and spaces */
 }
