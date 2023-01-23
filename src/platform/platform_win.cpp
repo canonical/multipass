@@ -50,6 +50,7 @@
 
 #include <json/json.h>
 
+#include <aclapi.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -302,6 +303,42 @@ QString systemprofile_app_data_path()
 
     return ret;
 }
+
+bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
+{
+    PACL pDacl;
+    EXPLICIT_ACCESS ea;
+    ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
+
+    ea.grfAccessPermissions = access_mask;
+    ea.grfAccessMode = SET_ACCESS;
+    ea.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+    ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+    ea.Trustee.ptstrName = (LPTSTR)pSid;
+
+    SetEntriesInAcl(1, &ea, NULL, &pDacl);
+    auto success = SetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, pDacl, NULL);
+    LocalFree(pDacl);
+
+    return success;
+}
+
+DWORD convert_permissions(int unix_perms)
+{
+    if (unix_perms & 0x7)
+        return GENERIC_ALL;
+
+    DWORD access_mask = 0;
+    if (unix_perms & 0x4)
+        access_mask |= GENERIC_READ;
+    if (unix_perms & 0x2)
+        access_mask |= GENERIC_WRITE;
+    if (unix_perms |= 0x1)
+        access_mask |= GENERIC_EXECUTE;
+
+    return access_mask;
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -523,39 +560,49 @@ int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
 
 bool mp::platform::Platform::set_permissions(const multipass::Path path, const QFileDevice::Permissions perms) const
 {
-    if (!perms)
-        return false;
+    LPSTR lpPath = _strdup(path.toStdString().c_str());
+    PACL deny = NULL;
+    DWORD dwSize = SECURITY_MAX_SID_SIZE;
+    auto success = true;
 
-    constexpr auto log_category = "winperms";
-    std::map<int, QString> perms_map{{0x7, "F"},   {0x6, "R,W"}, {0x5, "RX"}, {0x4, "R"},
-                                     {0x3, "W,X"}, {0x2, "W"},   {0x1, "X"}};
-    QStringList cmd{"icacls", path, "/inheritance:r", ";", "icacls", path};
+    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, NULL, deny);
 
-    // Translate to Windows SIDs
     if (perms & 0x0007)
-        cmd << "/grant"
-            << QString::fromStdString(fmt::format("*S-1-1-0:`(OI`)`(CI`)`({}`)",
-                                                  perms_map[(int)(perms & 0x0007)])); // Other (Unix) => World (Windows)
+    {
+        PSID pSid = (PSID)LocalAlloc(LPTR, dwSize);
+        CreateWellKnownSid(WinWorldSid, NULL, pSid, &dwSize);
+        success &= set_specific_perms(lpPath, pSid, convert_permissions((int)(perms & 0x0007)));
+        LocalFree(pSid);
+    }
     if (perms & 0x0070)
-        cmd << "/grant"
-            << QString::fromStdString(
-                   fmt::format("*S-1-3-1:`(OI`)`(CI`)`({}`)",
-                               perms_map[(int)((perms & 0x0070) >> 4)])); // Group (Unix) => Creator Group (Windows)
+    {
+        PSID pSid = (PSID)LocalAlloc(LPTR, dwSize);
+        CreateWellKnownSid(WinCreatorGroupSid, NULL, pSid, &dwSize);
+        success &= set_specific_perms(lpPath, pSid, convert_permissions((int)((perms & 0x0070) >> 4)));
+        LocalFree(pSid);
+    }
     if (perms & 0x0700)
-        cmd << "/grant"
-            << QString::fromStdString(fmt::format(
-                   "*$([System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value):`(OI`)`(CI`)`({}`)",
-                   perms_map[(int)((perms & 0x0700) >> 8)])); // User (Unix) => Specific user (Windows)
-    if (perms & 0x7000)
-        cmd << "/grant"
-            << QString::fromStdString(
-                   fmt::format("*S-1-3-4:`(OI`)`(CI`)`({}`)",
-                               perms_map[(int)((perms & 0x7000) >> 12)])); // Owner (Unix) => Owner Rights (Windows)
-    cmd << "/t"
-        << "/c"
-        << "/q";
+    {
+        HANDLE hToken;
+        DWORD pTokenDwSize = 0;
+        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken);
+        GetTokenInformation(hToken, TokenUser, NULL, 0, &pTokenDwSize);
+        PTOKEN_USER pTokenUser = (PTOKEN_USER)LocalAlloc(LPTR, pTokenDwSize);
+        GetTokenInformation(hToken, TokenUser, pTokenUser, pTokenDwSize, &pTokenDwSize);
 
-    return multipass::PowerShell::exec(cmd, log_category);
+        success &= set_specific_perms(lpPath, pTokenUser->User.Sid, convert_permissions((int)((perms & 0x0700) >> 8)));
+        LocalFree(pTokenUser);
+        CloseHandle(hToken);
+    }
+    if (perms & 0x7000)
+    {
+        PSID pSid = (PSID)LocalAlloc(LPTR, dwSize);
+        CreateWellKnownSid(WinCreatorOwnerSid, NULL, pSid, &dwSize);
+        success &= set_specific_perms(lpPath, pSid, convert_permissions((int)((perms & 0x7000) >> 12)));
+        LocalFree(pSid);
+    }
+
+    return success;
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
