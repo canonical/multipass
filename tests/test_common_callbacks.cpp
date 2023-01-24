@@ -22,6 +22,7 @@
 #include <src/client/cli/cmd/animated_spinner.h>
 #include <src/client/cli/cmd/common_callbacks.h>
 
+#include <regex>
 #include <sstream>
 
 namespace mp = multipass;
@@ -30,10 +31,13 @@ using namespace testing;
 
 struct TestSpinnerCallbacks : public Test
 {
-    auto cleanStreamMatcher()
+    auto clearStreamMatcher()
     {
-        return MatchesRegex(R"(\s*)"); /* A "clear" stream can either be empty or made up of spaces carriage returns and
-                                          spaces */
+        static const std::regex clear_regex{R"(\s*)"}; /* A "clear" stream can either be empty or made up of whitespaces
+                                                          (including carriage returns) */
+        return Truly([](const auto& str) {
+            return std::regex_match(str, clear_regex); // (gtest regex not cutting it on macOS)
+        });
     }
 
     std::ostringstream out, err;
@@ -65,7 +69,7 @@ TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackLogs)
     make_callback()(reply, nullptr);
 
     EXPECT_THAT(err.str(), StrEq(log));
-    EXPECT_THAT(out.str(), cleanStreamMatcher()); /* this is not empty because print stops, stop clears, and clear
+    EXPECT_THAT(out.str(), clearStreamMatcher()); /* this is not empty because print stops, stop clears, and clear
                                                      prints carriage returns and spaces */
 }
 
@@ -75,7 +79,7 @@ TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackIgnoresEmptyLog)
     make_callback()(reply, nullptr);
 
     EXPECT_THAT(err.str(), IsEmpty());
-    EXPECT_THAT(out.str(), cleanStreamMatcher());
+    EXPECT_THAT(out.str(), clearStreamMatcher());
 }
 
 INSTANTIATE_TEST_SUITE_P(TestLoggingSpinnerCallbacks, TestLoggingSpinnerCallbacks, Values(false, true));
@@ -125,5 +129,5 @@ TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesCredentialRequest)
     cb(reply, &mock_client);
 
     EXPECT_THAT(err.str(), IsEmpty());
-    EXPECT_THAT(out.str(), cleanStreamMatcher());
+    EXPECT_THAT(out.str(), clearStreamMatcher());
 }
