@@ -30,9 +30,10 @@ namespace multipass
 {
 namespace test
 {
-struct MockVirtualMachine : public multipass::VirtualMachine
+template <typename T = VirtualMachine, typename = std::enable_if_t<std::is_base_of_v<VirtualMachine, T>>>
+struct MockVirtualMachineT : public T
 {
-    MockVirtualMachine(const std::string vm_name) : VirtualMachine{vm_name}
+    MockVirtualMachineT(const std::string vm_name) : T{vm_name}
     {
         ON_CALL(*this, current_state()).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port()).WillByDefault(Return(42));
@@ -65,6 +66,8 @@ struct MockVirtualMachine : public multipass::VirtualMachine
     MOCK_METHOD(std::unique_ptr<MountHandler>, make_native_mount_handler,
                 (const SSHKeyProvider* ssh_key_provider, const std::string& target, const VMMount& mount), (override));
 };
+
+using MockVirtualMachine = MockVirtualMachineT<>;
 } // namespace test
 } // namespace multipass
 #endif // MULTIPASS_MOCK_VIRTUAL_MACHINE_H
