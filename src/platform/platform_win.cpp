@@ -572,8 +572,6 @@ int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
 bool mp::platform::Platform::set_permissions(const multipass::Path path, const QFileDevice::Permissions perms) const
 {
     LPSTR lpPath = _strdup(path.toStdString().c_str());
-    // PACL deny = NULL;
-    // DWORD dwSize = SECURITY_MAX_SID_SIZE;
     auto success = true;
 
     SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
