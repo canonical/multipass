@@ -324,6 +324,17 @@ bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
     return success;
 }
 
+bool set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_mask)
+{
+    DWORD dwSize = SECURITY_MAX_SID_SIZE;
+    PSID pSid = static_cast<PSID>(LocalAlloc(LPTR, dwSize));
+    CreateWellKnownSid(sid_type, nullptr, pSid, &dwSize);
+    auto success = set_specific_perms(path, pSid, access_mask);
+    LocalFree(pSid);
+
+    return success;
+}
+
 DWORD convert_permissions(int unix_perms)
 {
     if (unix_perms & 0x7)
@@ -561,26 +572,16 @@ int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
 bool mp::platform::Platform::set_permissions(const multipass::Path path, const QFileDevice::Permissions perms) const
 {
     LPSTR lpPath = _strdup(path.toStdString().c_str());
-    PACL deny = NULL;
-    DWORD dwSize = SECURITY_MAX_SID_SIZE;
+    // PACL deny = NULL;
+    // DWORD dwSize = SECURITY_MAX_SID_SIZE;
     auto success = true;
 
-    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, NULL, deny);
+    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
 
     if (perms & 0x0007)
-    {
-        PSID pSid = (PSID)LocalAlloc(LPTR, dwSize);
-        CreateWellKnownSid(WinWorldSid, NULL, pSid, &dwSize);
-        success &= set_specific_perms(lpPath, pSid, convert_permissions((int)(perms & 0x0007)));
-        LocalFree(pSid);
-    }
+        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions((int)(perms & 0x0007)));
     if (perms & 0x0070)
-    {
-        PSID pSid = (PSID)LocalAlloc(LPTR, dwSize);
-        CreateWellKnownSid(WinCreatorGroupSid, NULL, pSid, &dwSize);
-        success &= set_specific_perms(lpPath, pSid, convert_permissions((int)((perms & 0x0070) >> 4)));
-        LocalFree(pSid);
-    }
+        success &= set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions((int)((perms & 0x0070) >> 4)));
     if (perms & 0x0700)
     {
         HANDLE hToken;
@@ -595,12 +596,7 @@ bool mp::platform::Platform::set_permissions(const multipass::Path path, const Q
         CloseHandle(hToken);
     }
     if (perms & 0x7000)
-    {
-        PSID pSid = (PSID)LocalAlloc(LPTR, dwSize);
-        CreateWellKnownSid(WinCreatorOwnerSid, NULL, pSid, &dwSize);
-        success &= set_specific_perms(lpPath, pSid, convert_permissions((int)((perms & 0x7000) >> 12)));
-        LocalFree(pSid);
-    }
+        success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions((int)((perms & 0x7000) >> 12)));
 
     return success;
 }
