@@ -19,6 +19,7 @@
 #include "common.h"
 
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/format.h>
 #include <multipass/memory_size.h>
 
 #include <string>
@@ -34,6 +35,12 @@ namespace
 constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overflow if we used only 4bytes here
 constexpr auto mega = kilo * kilo;
 constexpr auto giga = kilo * mega;
+
+template <typename Num>
+std::string to_str(Num val) // alternative to std::to_string that ignores locale
+{
+    return fmt::format("{}", val);
+}
 
 struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, long long, std::string, long long>>
 {
@@ -107,12 +114,11 @@ TEST_P(TestGoodMemorySizeFormats, interpretsValidFormats)
     const auto unit = get<2>(param);
     const auto factor = get<3>(param);
 
-    const auto size = dec < 0 ? mp::MemorySize{std::to_string(val) + unit}
-                              : mp::MemorySize{std::to_string(val) + "." + std::to_string(dec) + unit};
+    const auto size =
+        dec < 0 ? mp::MemorySize{to_str(val) + unit} : mp::MemorySize{to_str(val) + "." + to_str(dec) + unit};
 
-    EXPECT_EQ(size.in_bytes(), dec < 0
-                                   ? val * factor
-                                   : val * factor + (long long)((dec * factor) / pow(10, std::to_string(dec).size())));
+    EXPECT_EQ(size.in_bytes(),
+              dec < 0 ? val * factor : val * factor + (long long)((dec * factor) / pow(10, to_str(dec).size())));
 }
 
 TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
@@ -154,61 +160,61 @@ TEST(MemorySize, converts0DecimalToG)
 TEST(MemorySize, convertsHigherUnitToB)
 {
     constexpr auto val = 65535;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "K"}.in_bytes(), val * kilo);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "M"}.in_bytes(), val * mega);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_bytes(), val * giga);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "K"}.in_bytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "M"}.in_bytes(), val * mega);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "G"}.in_bytes(), val * giga);
 }
 
 TEST(MemorySize, convertsHigherUnitToK)
 {
     constexpr auto val = 694;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "M"}.in_kilobytes(), val * kilo);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_kilobytes(), val * mega);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "M"}.in_kilobytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "G"}.in_kilobytes(), val * mega);
 }
 
 TEST(MemorySize, convertsHigherUnitToM)
 {
     constexpr auto val = 653;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_megabytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "G"}.in_megabytes(), val * kilo);
 }
 
 TEST(MemorySize, convertsHigherUnitToBWhenDecimal)
 {
     constexpr auto val = 0.0625;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "K"}.in_bytes(), val * kilo);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "M"}.in_bytes(), val * mega);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_bytes(), val * giga);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "K"}.in_bytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "M"}.in_bytes(), val * mega);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "G"}.in_bytes(), val * giga);
 }
 
 TEST(MemorySize, convertsHigherUnitToKWhenDecimal)
 {
     constexpr auto val = 42.125;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "M"}.in_kilobytes(), val * kilo);
-    EXPECT_EQ(mp::MemorySize{std::to_string(val) + "G"}.in_kilobytes(), val * mega);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "M"}.in_kilobytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{to_str(val) + "G"}.in_kilobytes(), val * mega);
 }
 
 TEST(MemorySize, convertsHigherUnitToMWhenDecimal)
 {
     constexpr auto val = 22.75;
-    EXPECT_EQ(mp::MemorySize(std::to_string(val) + "G").in_megabytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize(to_str(val) + "G").in_megabytes(), val * kilo);
 }
 
 TEST(MemorySize, convertsLowerUnitToKWhenExactMultiple)
 {
     constexpr auto val = 2;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val * kilo)}.in_kilobytes(), val);
+    EXPECT_EQ(mp::MemorySize{to_str(val * kilo)}.in_kilobytes(), val);
 }
 
 TEST(MemorySize, convertsLowerUnitToMWhenExactMultiple)
 {
     constexpr auto val = 456;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val * giga)}.in_megabytes(), val * kilo);
+    EXPECT_EQ(mp::MemorySize{to_str(val * giga)}.in_megabytes(), val * kilo);
 }
 
 TEST(MemorySize, convertsLowerUnitToGWhenExactMultiple)
 {
     constexpr auto val = 99;
-    EXPECT_EQ(mp::MemorySize{std::to_string(val * giga)}.in_gigabytes(), val);
+    EXPECT_EQ(mp::MemorySize{to_str(val * giga)}.in_gigabytes(), val);
 }
 
 TEST(MemorySize, convertsLowerUnitToKByFlooringWhenNotMultiple)
