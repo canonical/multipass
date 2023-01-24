@@ -62,26 +62,33 @@ catch (const mp::ExitlessSSHProcessException&)
     mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'cifs-utils' in '{}'", name));
     throw std::runtime_error("Timeout installing cifs-utils");
 }
+
+auto quote(const QString& string)
+{
+    return "'" + string + "'";
+}
+
 } // namespace
 
 namespace multipass
 {
+
 bool SmbMountHandler::check_smb_share()
 {
-    return PowerShell::exec({"Get-SmbShare", "-Name", share_name}, category);
+    return PowerShell::exec({"Get-SmbShare", "-Name", quote(share_name)}, category);
 }
 
 void SmbMountHandler::create_smb_share()
 {
-    if (check_smb_share() ||
-        !PowerShell::exec({"New-SmbShare", "-Name", share_name, "-Path", source, "-FullAccess", get_dir_owner(source)},
-                          category))
+    if (check_smb_share() || !PowerShell::exec({"New-SmbShare", "-Name", quote(share_name), "-Path", quote(source),
+                                                "-FullAccess", quote(get_dir_owner(source))},
+                                               category))
         throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\"", source)};
 }
 
 void SmbMountHandler::remove_smb_share()
 {
-    if (check_smb_share() && !PowerShell::exec({"Remove-SmbShare", "-Name", share_name, "-Force"}, category))
+    if (check_smb_share() && !PowerShell::exec({"Remove-SmbShare", "-Name", quote(share_name), "-Force"}, category))
         mpl::log(mpl::Level::warning, category,
                  fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
 }
