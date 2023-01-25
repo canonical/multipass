@@ -475,7 +475,7 @@ INSTANTIATE_TEST_SUITE_P(
                "                \"working-directory\": \"map\"\n"
                "            }\n        }\n    }\n}\n",
                "Alias  Instance  Command  Context   Working directory\n"
-               "llp    primary   ls       default   map\nlsp    primary   ls       default   map\n",
+               "llp    primary   ls       default*  map\nlsp    primary   ls       default*  map\n",
                "active_context: default\naliases:\n  default:\n"
                "    - alias: llp\n      command: ls\n      instance: primary\n      working-directory: map\n"
                "    - alias: lsp\n      command: ls\n      instance: primary\n      working-directory: map\n")));
