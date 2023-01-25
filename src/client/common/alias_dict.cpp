@@ -165,9 +165,24 @@ std::vector<std::string> mp::AliasDict::remove_aliases_for_instance(const std::s
 
 std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
 {
+    std::string::size_type dot_pos;
+
     try
     {
         return aliases.at(active_context).at(alias);
+    }
+    catch (const std::out_of_range&)
+    {
+        if ((dot_pos = alias.find('.')) == std::string::npos)
+            return std::nullopt;
+    }
+
+    std::string context = alias.substr(0, dot_pos);
+    std::string alias_only = alias.substr(dot_pos + 1);
+
+    try
+    {
+        return aliases.at(context).at(alias_only);
     }
     catch (const std::out_of_range&)
     {
