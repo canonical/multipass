@@ -586,7 +586,7 @@ bool mp::platform::Platform::set_permissions(const multipass::Path path, const Q
         DWORD pTokenDwSize = 0;
         OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken);
         GetTokenInformation(hToken, TokenUser, NULL, 0, &pTokenDwSize);
-        PTOKEN_USER pTokenUser = (PTOKEN_USER)LocalAlloc(LPTR, pTokenDwSize);
+        PTOKEN_USER pTokenUser = static_cast<PTOKEN_USER>(LocalAlloc(LPTR, pTokenDwSize));
         GetTokenInformation(hToken, TokenUser, pTokenUser, pTokenDwSize, &pTokenDwSize);
 
         success &= set_specific_perms(lpPath, pTokenUser->User.Sid, convert_permissions((int)((perms & 0x0700) >> 8)));
