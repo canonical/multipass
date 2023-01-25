@@ -36,7 +36,8 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         auto size = reply.purged_instances_size();
         for (auto i = 0; i < size; ++i)
         {
-            const auto removed_aliases = aliases.remove_aliases_for_instance(reply.purged_instances(i));
+            const auto purged_instance = reply.purged_instances(i);
+            const auto removed_aliases = aliases.remove_aliases_for_instance(purged_instance);
 
             for (const auto& removed_alias : removed_aliases)
             {
@@ -49,6 +50,8 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
                     cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), removed_alias);
                 }
             }
+
+            aliases.remove_context(purged_instance);
         }
 
         return mp::ReturnCode::Ok;
