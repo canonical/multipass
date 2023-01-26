@@ -109,6 +109,11 @@ struct Daemon : public mpt::DaemonTestFixture
             return mock_utils.Utils::filesystem_bytes_available(data_directory);
         });
 
+        ON_CALL(mock_utils, make_dir(_, _, _))
+            .WillByDefault([this](const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions) {
+                return mock_utils.Utils::make_dir(a_dir, name, permissions);
+            });
+
         EXPECT_CALL(mock_platform, get_blueprints_url_override()).WillRepeatedly([] { return QString{}; });
         EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
         EXPECT_CALL(mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
