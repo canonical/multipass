@@ -37,6 +37,8 @@ public:
     MOCK_CONST_METHOD3(run_cmd_for_status, bool(const QString&, const QStringList&, const int));
     MOCK_METHOD2(make_file_with_content, void(const std::string&, const std::string&));
     MOCK_METHOD3(make_file_with_content, void(const std::string&, const std::string&, const bool&));
+    MOCK_METHOD3(make_dir, Path(const QDir&, const QString&, QFileDevice::Permissions));
+    MOCK_METHOD2(make_dir, Path(const QDir&, QFileDevice::Permissions));
     MOCK_CONST_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
     MOCK_CONST_METHOD0(get_kernel_version, std::string());
     MOCK_CONST_METHOD1(generate_scrypt_hash_for, QString(const QString&));

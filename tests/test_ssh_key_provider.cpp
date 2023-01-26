@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "file_operations.h"
+#include "mock_utils.h"
 #include "temp_dir.h"
 
 #include <multipass/ssh/openssh_key_provider.h>
@@ -71,7 +72,7 @@ TEST_F(SSHKeyProvider, imports_existing_key)
                               "Yy460TKDO1em0N9GlXfsYgiSFJv1WmD7M/kvGpGxSERcnR4+bBd2BQ==\n"
                               "-----END RSA PRIVATE KEY-----\n";
 
-    auto ssh_keys_path = mp::utils::make_dir(key_dir.path(), "ssh-keys");
+    auto ssh_keys_path = MP_UTILS.make_dir(key_dir.path(), "ssh-keys");
     mpt::make_file_with_content(QDir{ssh_keys_path}.filePath("id_rsa"), key_data);
 
     mp::OpenSSHKeyProvider key_provider{key_dir.path()};

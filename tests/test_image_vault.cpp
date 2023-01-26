@@ -317,7 +317,7 @@ TEST_F(ImageVault, image_purged_expired)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
 
-    QDir images_dir{mp::utils::make_dir(cache_dir.path(), "images")};
+    QDir images_dir{MP_UTILS.make_dir(cache_dir.path(), "images")};
     auto file_name = images_dir.filePath("mock_image.img");
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
@@ -337,7 +337,7 @@ TEST_F(ImageVault, image_exists_not_expired)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
 
-    QDir images_dir{mp::utils::make_dir(cache_dir.path(), "images")};
+    QDir images_dir{MP_UTILS.make_dir(cache_dir.path(), "images")};
     auto file_name = images_dir.filePath("mock_image.img");
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
@@ -357,7 +357,7 @@ TEST_F(ImageVault, invalid_image_dir_is_removed)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
 
-    QDir invalid_image_dir(mp::utils::make_dir(cache_dir.path(), "vault/images/invalid_image"));
+    QDir invalid_image_dir(MP_UTILS.make_dir(cache_dir.path(), "vault/images/invalid_image"));
     auto file_name = invalid_image_dir.filePath("mock_image.img");
 
     mpt::make_file_with_content(file_name);

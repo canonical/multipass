@@ -19,6 +19,7 @@
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
+#include "mock_utils.h"
 #include "temp_dir.h"
 
 #include <multipass/client_cert_store.h>
@@ -60,7 +61,8 @@ struct ClientCertStore : public testing::Test
 {
     ClientCertStore()
     {
-        cert_dir = mp::utils::make_dir(temp_dir.path(), mp::authenticated_certs_dir);
+        cert_dir = MP_UTILS.make_dir(temp_dir.path(), mp::authenticated_certs_dir,
+                                     QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
     }
     mpt::TempDir temp_dir;
     mp::Path cert_dir;

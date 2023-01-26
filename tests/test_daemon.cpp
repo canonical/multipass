@@ -1336,9 +1336,9 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     // Create a temp folder containing three subfolders, and create mount points for all of them.
     auto temp_mount_dir = QDir(mpt::TempDir().path());
-    auto temp_mount_1 = make_dir(temp_mount_dir, QString("a"), QFileDevice::Permissions{}).toStdString();
-    auto temp_mount_2 = make_dir(temp_mount_dir, QString("b"), QFileDevice::Permissions{}).toStdString();
-    auto temp_mount_3 = make_dir(temp_mount_dir, QString("c"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_1 = MP_UTILS.make_dir(temp_mount_dir, QString("a"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_2 = MP_UTILS.make_dir(temp_mount_dir, QString("b"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_3 = MP_UTILS.make_dir(temp_mount_dir, QString("c"), QFileDevice::Permissions{}).toStdString();
 
     mp::id_mappings uid_mappings_1{{123, 321}};
     mp::id_mappings gid_mappings_1{{456, 654}};

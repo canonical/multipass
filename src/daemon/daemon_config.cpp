@@ -113,14 +113,14 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (cache_directory.isEmpty())
     {
         if (!storage_path.isEmpty())
-            cache_directory = mp::utils::make_dir(storage_path, "cache");
+            cache_directory = MP_UTILS.make_dir(storage_path, "cache");
         else
             cache_directory = MP_STDPATHS.writableLocation(StandardPaths::CacheLocation);
     }
     if (data_directory.isEmpty())
     {
         if (!storage_path.isEmpty())
-            data_directory = mp::utils::make_dir(storage_path, "data");
+            data_directory = MP_UTILS.make_dir(storage_path, "data");
         else
             data_directory = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
     }
@@ -154,7 +154,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         }
 
         vault = factory->create_image_vault(
-            hosts, url_downloader.get(), mp::utils::make_dir(cache_directory, factory->get_backend_directory_name()),
+            hosts, url_downloader.get(), MP_UTILS.make_dir(cache_directory, factory->get_backend_directory_name()),
             mp::utils::backend_directory_path(data_directory, factory->get_backend_directory_name()), days_to_expire);
     }
     if (name_generator == nullptr)
@@ -164,7 +164,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
     if (cert_provider == nullptr)
-        cert_provider = std::make_unique<mp::SSLCertProvider>(mp::utils::make_dir(data_directory, "certificates"),
+        cert_provider = std::make_unique<mp::SSLCertProvider>(MP_UTILS.make_dir(data_directory, "certificates"),
                                                               server_name_from(server_address));
     if (client_cert_store == nullptr)
         client_cert_store = std::make_unique<mp::ClientCertStore>(data_directory);
