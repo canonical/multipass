@@ -25,4 +25,5 @@ target_link_libraries(shared_win
   Qt5::Core
   fmt
   logger
+  sftp_client
   utils)
