@@ -603,7 +603,8 @@ TEST_F(Client, transfer_cmd_local_source_instance_target)
     auto mocked_sftp_client_p = mocked_sftp_client.get();
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient).WillOnce(Return(std::move(mocked_sftp_client)));
-    EXPECT_CALL(*mocked_sftp_client_p, push).WillOnce(Return(true));
+    EXPECT_CALL(*mocked_sftp_client_p, push).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mocked_sftp_client_p, is_remote_dir).WillOnce(Return(true));
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
@@ -612,7 +613,7 @@ TEST_F(Client, transfer_cmd_local_source_instance_target)
             return grpc::Status{};
         });
 
-    EXPECT_EQ(send_command({"transfer", "foo", "test-vm:bar"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"transfer", "foo", "C:\\Users\\file", "test-vm:bar"}), mp::ReturnCode::Ok);
 }
 
 TEST_F(Client, transfer_cmd_help_ok)
