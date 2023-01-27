@@ -19,6 +19,7 @@
 #include "powershell.h"
 
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
@@ -140,7 +141,7 @@ try
     if (password.empty())
         throw std::runtime_error("A password is required for SMB mounts.");
 
-    const std::string credentials_path{"/root/.smb_credentials"};
+    const std::string credentials_path{"/tmp/.smb_credentials"};
 
     // The following mkdir in the instance will be replaced with refactored code
     auto mkdir_proc = session.exec(fmt::format("mkdir -p {}", target));
@@ -148,11 +149,10 @@ try
         throw std::runtime_error(
             fmt::format("Cannot create \"{}\" in instance '{}': {}", target, vm->vm_name, mkdir_proc.read_std_error()));
 
-    auto creds_proc = session.exec(
-        fmt::format("sudo bash -c 'echo \"username={}\npassword={}\" > {}'", username, password, credentials_path));
-    if (creds_proc.exit_code() != 0)
-        throw std::runtime_error(
-            fmt::format("Cannot create credentials file in instance: {}", creds_proc.read_std_error()));
+    auto sftp_client = MP_SFTPUTILS.make_SFTPClient(vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(),
+                                                    ssh_key_provider->private_key_as_base64());
+    std::istringstream smb_creds(fmt::format("username={}\npassword={}", username, password));
+    sftp_client->from_cin(smb_creds, credentials_path, false);
 
     auto hostname = QHostInfo::localHostName();
     auto mount_proc =
