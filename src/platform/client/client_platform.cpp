@@ -57,7 +57,7 @@ int mcp::getgid()
     return ::getgid();
 }
 
-std::pair<std::string, std::string> mcp::get_user_password(mp::Terminal*)
+std::pair<std::string, std::string> mcp::Platform::get_user_password(mp::Terminal*) const
 {
     return {};
 }
