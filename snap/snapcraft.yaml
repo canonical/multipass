@@ -11,11 +11,11 @@ license: GPL-3.0
 
 adopt-info: multipass
 confinement: strict
-base: core20
+base: core22
 
 layout:
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
+  /usr/lib/$CRAFT_ARCH_TRIPLET/qemu:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qemu
   /usr/share/X11:
     bind: $SNAP/usr/share/X11
   /etc/fonts:
@@ -27,9 +27,9 @@ layout:
 
 environment:
   # GDK pixbuf
-  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/gdk-pixbuf-2.0/2.10.0/loaders
+  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${CRAFT_ARCH_TRIPLET}/gdk-pixbuf-2.0/2.10.0/loaders
   GDK_PIXBUF_MODULE_FILE: $SNAP_COMMON/loaders.cache
-  ARCH_TRIPLET: ${SNAPCRAFT_ARCH_TRIPLET}
+  ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET}
 
 plugs:
   all-home:
@@ -41,10 +41,10 @@ apps:
     command: bin/launch-multipassd
     environment:
       LD_LIBRARY_PATH: &library-path
-        $SNAP/lib:$SNAP/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+        $SNAP/lib:$SNAP/lib/$CRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET
       PATH: &path
         $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
-      QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/plugins
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
       XDG_CONFIG_HOME: &daemon-config $SNAP_DATA/config
@@ -69,7 +69,7 @@ apps:
       <<: &client-environment
         LD_LIBRARY_PATH: *library-path
         PATH: *path
-        QT_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/plugins
+        QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/plugins
         XDG_DATA_HOME: $SNAP_USER_DATA/data
         XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
@@ -125,13 +125,14 @@ parts:
     - on amd64: [libgl1]
     - on armhf: [libgles2-mesa]
     - on arm64: [libgles2-mesa]
+    - libc6
     - libpng16-16
     - libqt5core5a
     - libqt5gui5
     - libqt5network5
     - libqt5widgets5
     - libqt5x11extras5
-    - libssl1.1
+    - libssl3
     - libxml2
     - dnsmasq-base
     - dnsmasq-utils
@@ -142,18 +143,18 @@ parts:
     - -DMULTIPASS_ENABLE_TESTS=off
     - -DMULTIPASS_UPSTREAM=origin
     override-build: |
-      snapcraftctl build
+      craftctl default
       set -e
-      mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/
-      echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
-      cat ../src/completions/bash/multipass >> ${SNAPCRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
+      mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
+      echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
+      cat ../src/completions/bash/multipass >> ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
-      snapcraftctl set-version ${VERSION}
-      snapcraftctl set-grade $( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
-      sed -i -e 's@^Icon=\(.\+\)$@Icon=/usr/share/icons/hicolor/scalable/apps/\1.svg@' ${SNAPCRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
+      craftctl set version=${VERSION}
+      craftctl set grade=$( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
+      sed -i -e 's@^Icon=\(.\+\)$@Icon=/usr/share/icons/hicolor/scalable/apps/\1.svg@' ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
 
-      cd ${SNAPCRAFT_PART_SRC}/3rd-party
-      find . -name 'LICENSE*' -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${SNAPCRAFT_PART_INSTALL}/licenses/FILE
+      cd ${CRAFT_PART_SRC}/3rd-party
+      find . -name 'LICENSE*' -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
 
   qemu:
     source: https://github.com/canonical/qemu.git
@@ -194,7 +195,7 @@ parts:
     - --disable-vduse-blk-export
     - --firmwarepath=/snap/multipass/current/qemu/
     - --prefix=/usr
-    - --libdir=/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+    - --libdir=/usr/lib/$CRAFT_ARCH_TRIPLET
     - --libexecdir=/usr/lib/qemu
     - --enable-strip
     build-packages:
@@ -216,7 +217,7 @@ parts:
     override-pull: |-
       [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
 
-      snapcraftctl pull
+      craftctl default
     override-build: |-
       [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
 
@@ -225,16 +226,16 @@ parts:
       QEMUARCH="$(uname -m)"
       sed -i "s/^unset target_list$/target_list=\"${QEMUARCH}-softmmu\"/" configure
 
-      patch -p1 < "${SNAPCRAFT_PROJECT_DIR}/snap/local/patches/define-ubuntu-machine-types.patch"
+      patch -p1 < "${CRAFT_PROJECT_DIR}/snap/local/patches/define-ubuntu-machine-types.patch"
 
       set +ex
-      snapcraftctl build
+      craftctl default
     prime:
     - usr/bin/qemu-system-*
     - usr/bin/qemu-img*
     - usr/bin/virtfs-proxy-helper*
     - usr/bin/virtiofsd*
-    - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/*
+    - usr/lib/$CRAFT_ARCH_TRIPLET/*
     - lib/*/libpixman*so*
     - qemu/keymaps*
     - qemu/efi-virtio.rom*
@@ -262,7 +263,7 @@ parts:
     plugin: nil
     override-pull: ""
     stage-packages:
-    - try: [msr-tools]
+    - on amd64: [msr-tools]
 
   terminal:
     plugin: nil
@@ -273,12 +274,12 @@ parts:
       - fonts-freefont-ttf
       - libglib2.0-0
     override-build: |
-      snapcraftctl build
-      update-mime-database $SNAPCRAFT_PART_INSTALL/usr/share/mime
-      rm -f $SNAPCRAFT_PART_INSTALL/usr/share/applications/exo-*
-      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/
-      echo "[Icon Theme]" > $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/index.theme
-      echo "Inherits=DMZ-White" >> $SNAPCRAFT_PART_INSTALL/usr/share/icons/default/index.theme
+      craftctl default
+      update-mime-database $CRAFT_PART_INSTALL/usr/share/mime
+      rm -f $CRAFT_PART_INSTALL/usr/share/applications/exo-*
+      mkdir -p $CRAFT_PART_INSTALL/usr/share/icons/default/
+      echo "[Icon Theme]" > $CRAFT_PART_INSTALL/usr/share/icons/default/index.theme
+      echo "Inherits=DMZ-White" >> $CRAFT_PART_INSTALL/usr/share/icons/default/index.theme
     stage:
       - -usr/share/doc
     organize:
