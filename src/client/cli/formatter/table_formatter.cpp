@@ -220,9 +220,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
 
         if (reply.blueprints_info().empty())
             fmt::format_to(std::back_inserter(buf), "No blueprints found.\n");
-
-        if (reply.show_images())
-            fmt::format_to(std::back_inserter(buf), "\n");
+        fmt::format_to(std::back_inserter(buf), "\n");
     }
 
     if (reply.show_images())
@@ -244,6 +242,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
 
         if (reply.images_info().empty())
             fmt::format_to(std::back_inserter(buf), "No images found.\n");
+        fmt::format_to(std::back_inserter(buf), "\n");
     }
 
     return fmt::to_string(buf);

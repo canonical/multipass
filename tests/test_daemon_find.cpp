@@ -97,7 +97,7 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
                                     HasSubstr(blueprint_description_for(blueprint1_name)), HasSubstr(blueprint2_name),
                                     HasSubstr(blueprint_description_for(blueprint2_name))));
 
-    EXPECT_EQ(total_lines_of_output(stream), 9);
+    EXPECT_EQ(total_lines_of_output(stream), 10);
 }
 
 TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
@@ -145,7 +145,7 @@ TEST_F(DaemonFind, queryForBlueprintReturnsExpectedData)
     EXPECT_THAT(stream.str(), AllOf(HasSubstr(blueprint_name), HasSubstr(blueprint_description_for(blueprint_name))));
     EXPECT_THAT(stream.str(), Not(HasSubstr("No images found.")));
 
-    EXPECT_EQ(total_lines_of_output(stream), 2);
+    EXPECT_EQ(total_lines_of_output(stream), 3);
 }
 
 TEST_F(DaemonFind, unknownQueryReturnsEmpty)
@@ -199,5 +199,5 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
                                     HasSubstr(fmt::format("{}{}", remote_name, mpt::another_alias)),
                                     HasSubstr(mpt::another_release_info)));
 
-    EXPECT_EQ(total_lines_of_output(stream), 6);
+    EXPECT_EQ(total_lines_of_output(stream), 7);
 }
