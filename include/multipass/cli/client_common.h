@@ -58,7 +58,7 @@ template <typename Request, typename Reply>
 void handle_user_password(grpc::ClientReaderWriterInterface<Request, Reply>* client, Terminal* term)
 {
     Request request;
-    const auto [username, password] = multipass::cli::platform::get_user_password(term);
+    const auto [username, password] = MP_CLIENT_PLATFORM.get_user_password(term);
 
     request.mutable_user_credentials()->set_username(username);
     request.mutable_user_credentials()->set_password(password);

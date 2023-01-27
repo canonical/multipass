@@ -1,4 +1,4 @@
-# Copyright © 2017-2022 Canonical Ltd.
+# Copyright © 2017-2023 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -62,6 +62,7 @@ add_executable(multipass_tests
   test_client_cert_store.cpp
   test_client_common.cpp
   test_cloud_init_iso.cpp
+  test_common_callbacks.cpp
   test_constants.cpp
   test_custom_image_host.cpp
   test_daemon.cpp

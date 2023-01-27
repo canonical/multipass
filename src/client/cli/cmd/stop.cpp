@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2022 Canonical, Ltd.
+ * Copyright (C) 2017-2023 Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include "animated_spinner.h"
+#include "common_callbacks.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
@@ -48,7 +49,8 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
 
     spinner.start(instance_action_message_for(request.instance_names(), "Stopping "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::stop, request, on_success, on_failure);
+    return dispatch(&RpcMethod::stop, request, on_success, on_failure,
+                    make_logging_spinner_callback<StopRequest, StopReply>(spinner, cerr));
 }
 
 std::string cmd::Stop::name() const { return "stop"; }
