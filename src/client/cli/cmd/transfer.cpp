@@ -25,6 +25,8 @@
 
 #include <fmt/std.h>
 
+#include <QRegularExpression>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace mcp = multipass::cli::platform;
@@ -163,9 +165,16 @@ std::vector<std::pair<std::string, fs::path>> cmd::Transfer::args_to_instance_an
     instance_entry_args.reserve(args.size());
     for (const auto& entry : args)
     {
+        // this is needed so that Windows absolute paths are not split at the colon following the drive letter
+        if (QRegularExpression{R"(^[A-Za-z]:\\.*)"}.match(entry).hasMatch())
+        {
+            instance_entry_args.emplace_back("", entry.toStdString());
+            continue;
+        }
+
         const auto source_components = entry.split(':');
         const auto instance_name = source_components.size() == 1 ? "" : source_components.first().toStdString();
-        const auto file_path = source_components.size() == 1 ? source_components.first() : source_components.at(1);
+        const auto file_path = source_components.size() == 1 ? source_components.first() : entry.section(':', 1);
         if (!instance_name.empty())
             request.add_instance_name()->append(instance_name);
         instance_entry_args.emplace_back(instance_name, file_path.isEmpty() ? "." : file_path.toStdString());
