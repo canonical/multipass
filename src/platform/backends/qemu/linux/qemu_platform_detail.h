@@ -40,7 +40,6 @@ public:
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;
     void platform_health_check() override;
-    void release_mac_with_different_hostname(const std::string& hw_addr, const std::string& name) override;
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
 
 private:

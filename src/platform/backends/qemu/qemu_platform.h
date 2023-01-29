@@ -45,7 +45,6 @@ public:
     virtual std::optional<IPAddress> get_ip_for(const std::string& hw_addr) = 0;
     virtual void remove_resources_for(const std::string&) = 0;
     virtual void platform_health_check() = 0;
-    virtual void release_mac_with_different_hostname(const std::string& hw_addr, const std::string& name){};
     virtual QStringList vmstate_platform_args()
     {
         return {};

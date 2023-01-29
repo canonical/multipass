@@ -82,8 +82,7 @@ mp::DNSMasqServer::~DNSMasqServer()
     }
 }
 
-// FIXME: after moving to core22, go to the old way of just returning the ip address
-std::optional<std::pair<mp::IPAddress, std::string>> mp::DNSMasqServer::get_ip_and_host_for(const std::string& hw_addr)
+std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw_addr)
 {
     // DNSMasq leases entries consist of:
     // <lease expiration> <mac addr> <ipv4> <name> * * *
@@ -91,32 +90,30 @@ std::optional<std::pair<mp::IPAddress, std::string>> mp::DNSMasqServer::get_ip_a
     const std::string delimiter{" "};
     const int hw_addr_idx{1};
     const int ipv4_idx{2};
-    const int host_name_idx{3};
     std::ifstream leases_file{path};
     std::string line;
     while (getline(leases_file, line))
     {
         const auto fields = mp::utils::split(line, delimiter);
-        if (fields.size() > 3 && fields[hw_addr_idx] == hw_addr)
-            return {{fields[ipv4_idx], fields[host_name_idx]}};
+        if (fields.size() > 2 && fields[hw_addr_idx] == hw_addr)
+            return fields[ipv4_idx];
     }
     return std::nullopt;
 }
 
 void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
 {
-    auto ip_and_host = get_ip_and_host_for(hw_addr);
-    if (!ip_and_host)
+    auto ip = get_ip_for(hw_addr);
+    if (!ip)
     {
         mpl::log(mpl::Level::warning, "dnsmasq", fmt::format("attempting to release non-existant addr: {}", hw_addr));
         return;
     }
 
-    auto ip = ip_and_host.value().first;
     QProcess dhcp_release;
     QObject::connect(&dhcp_release, &QProcess::errorOccurred, [&ip, &hw_addr](QProcess::ProcessError error) {
         mpl::log(mpl::Level::warning, "dnsmasq",
-                 fmt::format("failed to release ip addr {} with mac {}: {}", ip.as_string(), hw_addr,
+                 fmt::format("failed to release ip addr {} with mac {}: {}", ip.value().as_string(), hw_addr,
                              utils::qenum_to_string(error)));
     });
 
@@ -124,14 +121,14 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
         if (exit_code == 0 && exit_status == QProcess::NormalExit)
             return;
 
-        auto msg =
-            fmt::format("failed to release ip addr {} with mac {}, exit_code: {}", ip.as_string(), hw_addr, exit_code);
+        auto msg = fmt::format("failed to release ip addr {} with mac {}, exit_code: {}", ip.value().as_string(),
+                               hw_addr, exit_code);
         mpl::log(mpl::Level::warning, "dnsmasq", msg);
     };
     QObject::connect(&dhcp_release, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
                      log_exit_status);
 
-    dhcp_release.start("dhcp_release", QStringList() << bridge_name << QString::fromStdString(ip.as_string())
+    dhcp_release.start("dhcp_release", QStringList() << bridge_name << QString::fromStdString(ip.value().as_string())
                                                      << QString::fromStdString(hw_addr));
 
     dhcp_release.waitForFinished();
