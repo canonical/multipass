@@ -73,7 +73,7 @@ QStringList mcp::gui_tray_notification_strings()
     return {"Multipass is in your Notification area", "Right-click on the icon in the taskbar for available options"};
 }
 
-std::pair<std::string, std::string> mcp::get_user_password(mp::Terminal* term)
+std::pair<std::string, std::string> mcp::Platform::get_user_password(mp::Terminal* term) const
 {
     if (term->is_live())
     {
