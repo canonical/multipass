@@ -49,6 +49,7 @@
 
 #include <json/json.h>
 
+#include <aclapi.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -300,6 +301,53 @@ QString systemprofile_app_data_path()
 
     return ret;
 }
+
+bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
+{
+    PACL pDacl;
+    EXPLICIT_ACCESS ea;
+    ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
+
+    ea.grfAccessPermissions = access_mask;
+    ea.grfAccessMode = SET_ACCESS;
+    ea.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+    ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+    ea.Trustee.ptstrName = (LPTSTR)pSid;
+
+    SetEntriesInAcl(1, &ea, NULL, &pDacl);
+    auto success = SetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, pDacl, NULL);
+    LocalFree(pDacl);
+
+    return success;
+}
+
+bool set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_mask)
+{
+    DWORD dwSize = SECURITY_MAX_SID_SIZE;
+    PSID pSid = static_cast<PSID>(LocalAlloc(LPTR, dwSize));
+    CreateWellKnownSid(sid_type, nullptr, pSid, &dwSize);
+    auto success = set_specific_perms(path, pSid, access_mask);
+    LocalFree(pSid);
+
+    return success;
+}
+
+DWORD convert_permissions(int unix_perms)
+{
+    if (unix_perms & 0x7)
+        return GENERIC_ALL;
+
+    DWORD access_mask = 0;
+    if (unix_perms & 0x4)
+        access_mask |= GENERIC_READ;
+    if (unix_perms & 0x2)
+        access_mask |= GENERIC_WRITE;
+    if (unix_perms |= 0x1)
+        access_mask |= GENERIC_EXECUTE;
+
+    return access_mask;
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -517,6 +565,36 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
 int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
 {
     return 0;
+}
+
+bool mp::platform::Platform::set_permissions(const multipass::Path path, const QFileDevice::Permissions perms) const
+{
+    LPSTR lpPath = _strdup(path.toStdString().c_str());
+    auto success = true;
+
+    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
+
+    if (perms & 0x0007)
+        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions((int)(perms & 0x0007)));
+    if (perms & 0x0070)
+        success &= set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions((int)((perms & 0x0070) >> 4)));
+    if (perms & 0x0700)
+    {
+        HANDLE hToken;
+        DWORD pTokenDwSize = 0;
+        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken);
+        GetTokenInformation(hToken, TokenUser, NULL, 0, &pTokenDwSize);
+        PTOKEN_USER pTokenUser = static_cast<PTOKEN_USER>(LocalAlloc(LPTR, pTokenDwSize));
+        GetTokenInformation(hToken, TokenUser, pTokenUser, pTokenDwSize, &pTokenDwSize);
+
+        success &= set_specific_perms(lpPath, pTokenUser->User.Sid, convert_permissions((int)((perms & 0x0700) >> 8)));
+        LocalFree(pTokenUser);
+        CloseHandle(hToken);
+    }
+    if (perms & 0x7000)
+        success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions((int)((perms & 0x7000) >> 12)));
+
+    return success;
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
