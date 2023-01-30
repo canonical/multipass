@@ -116,7 +116,7 @@ void delete_virtual_switch(const QString& bridge_name)
 
 mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
     : bridge_name{multipass_bridge_name},
-      network_dir{mp::utils::make_dir(QDir(data_dir), "network")},
+      network_dir{MP_UTILS.make_dir(QDir(data_dir), "network")},
       subnet{MP_BACKEND.get_subnet(network_dir, bridge_name)},
       dnsmasq_server{init_nat_network(network_dir, bridge_name, subnet)},
       firewall_config{MP_FIREWALL_CONFIG_FACTORY.make_firewall_config(bridge_name, subnet)}
@@ -136,8 +136,7 @@ mp::QemuPlatformDetail::~QemuPlatformDetail()
 
 std::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
 {
-    auto ip_and_host = dnsmasq_server->get_ip_and_host_for(hw_addr);
-    return ip_and_host ? std::make_optional(ip_and_host.value().first) : std::nullopt;
+    return dnsmasq_server->get_ip_for(hw_addr);
 }
 
 void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
@@ -194,14 +193,6 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
                                                tap_device_name, vm_desc.default_mac_address));
 
     return opts;
-}
-
-// FIXME: after moving to core22, this will be handled by dnsmasq --dhcp-ignore-clid
-void multipass::QemuPlatformDetail::release_mac_with_different_hostname(const std::string& hw_addr,
-                                                                        const std::string& name)
-{
-    if (auto ip_and_host = dnsmasq_server->get_ip_and_host_for(hw_addr); ip_and_host && ip_and_host->second != name)
-        dnsmasq_server->release_mac(hw_addr);
 }
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const

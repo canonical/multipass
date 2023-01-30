@@ -19,6 +19,7 @@
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
+#include "mock_utils.h"
 #include "temp_dir.h"
 
 #include <multipass/client_cert_store.h>
@@ -60,7 +61,8 @@ struct ClientCertStore : public testing::Test
 {
     ClientCertStore()
     {
-        cert_dir = mp::utils::make_dir(temp_dir.path(), mp::authenticated_certs_dir);
+        cert_dir = MP_UTILS.make_dir(temp_dir.path(), mp::authenticated_certs_dir,
+                                     QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
     }
     mpt::TempDir temp_dir;
     mp::Path cert_dir;
@@ -102,6 +104,14 @@ TEST_F(ClientCertStore, add_cert_stores_certificate)
 
     const auto content = cert_store.PEM_cert_chain();
     EXPECT_THAT(content, StrEq(cert_data));
+}
+
+TEST_F(ClientCertStore, certStoreLocksDownDir)
+{
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils, make_dir(_, _, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
+
+    mp::ClientCertStore cert_store{temp_dir.path()};
 }
 
 TEST_F(ClientCertStore, verifyCertEmptyStoreReturnsFalse)

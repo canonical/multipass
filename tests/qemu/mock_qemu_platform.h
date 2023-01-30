@@ -39,7 +39,6 @@ struct MockQemuPlatform : public QemuPlatform
     MOCK_METHOD1(get_ip_for, std::optional<IPAddress>(const std::string&));
     MOCK_METHOD1(remove_resources_for, void(const std::string&));
     MOCK_METHOD0(platform_health_check, void());
-    MOCK_METHOD2(release_mac_with_different_hostname, void(const std::string&, const std::string&));
     MOCK_METHOD0(vmstate_platform_args, QStringList());
     MOCK_METHOD1(vm_platform_args, QStringList(const VirtualMachineDescription&));
     MOCK_METHOD0(get_directory_name, QString());

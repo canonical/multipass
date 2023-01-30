@@ -66,7 +66,7 @@ struct TestClientCommon : public mpt::DaemonTestFixture
 
 TEST_F(TestClientCommon, usesCommonCertWhenItExists)
 {
-    const auto common_cert_dir = mp::utils::make_dir(temp_dir.path(), QString(mp::common_client_cert_dir).remove(0, 1));
+    const auto common_cert_dir = MP_UTILS.make_dir(temp_dir.path(), QString(mp::common_client_cert_dir).remove(0, 1));
     const auto common_client_cert_file = common_cert_dir + "/" + mp::client_cert_file;
     const auto common_client_key_file = common_cert_dir + "/" + mp::client_key_file;
 
@@ -79,7 +79,7 @@ TEST_F(TestClientCommon, usesCommonCertWhenItExists)
 TEST_F(TestClientCommon, usesExistingGuiCert)
 {
     const auto common_cert_dir = temp_dir.path() + mp::common_client_cert_dir;
-    const auto gui_cert_dir = mp::utils::make_dir(temp_dir.path(), QString(mp::gui_client_cert_dir).remove(0, 1));
+    const auto gui_cert_dir = MP_UTILS.make_dir(temp_dir.path(), QString(mp::gui_client_cert_dir).remove(0, 1));
     const auto gui_client_cert_file = gui_cert_dir + "/" + mp::client_cert_file;
     const auto gui_client_key_file = gui_cert_dir + "/" + mp::client_key_file;
 
@@ -95,10 +95,10 @@ TEST_F(TestClientCommon, usesExistingGuiCert)
 TEST_F(TestClientCommon, failsGuiCertUsesExistingCliCert)
 {
     const auto common_cert_dir = temp_dir.path() + mp::common_client_cert_dir;
-    const auto gui_cert_dir = mp::utils::make_dir(temp_dir.path(), QString(mp::gui_client_cert_dir).remove(0, 1));
+    const auto gui_cert_dir = MP_UTILS.make_dir(temp_dir.path(), QString(mp::gui_client_cert_dir).remove(0, 1));
     const auto gui_client_cert_file = gui_cert_dir + "/" + mp::client_cert_file;
     const auto gui_client_key_file = gui_cert_dir + "/" + mp::client_key_file;
-    const auto cli_cert_dir = mp::utils::make_dir(temp_dir.path(), QString(mp::cli_client_cert_dir).remove(0, 1));
+    const auto cli_cert_dir = MP_UTILS.make_dir(temp_dir.path(), QString(mp::cli_client_cert_dir).remove(0, 1));
     const auto cli_client_cert_file = cli_cert_dir + "/" + mp::client_cert_file;
     const auto cli_client_key_file = cli_cert_dir + "/" + mp::client_key_file;
 
@@ -121,10 +121,10 @@ TEST_F(TestClientCommon, failsGuiCertUsesExistingCliCert)
 TEST_F(TestClientCommon, noValidCertsCreatesNewCommonCert)
 {
     const auto common_cert_dir = temp_dir.path() + mp::common_client_cert_dir;
-    const auto gui_cert_dir = mp::utils::make_dir(temp_dir.path(), QString(mp::gui_client_cert_dir).remove(0, 1));
+    const auto gui_cert_dir = MP_UTILS.make_dir(temp_dir.path(), QString(mp::gui_client_cert_dir).remove(0, 1));
     const auto gui_client_cert_file = gui_cert_dir + "/" + mp::client_cert_file;
     const auto gui_client_key_file = gui_cert_dir + "/" + mp::client_key_file;
-    const auto cli_cert_dir = mp::utils::make_dir(temp_dir.path(), QString(mp::cli_client_cert_dir).remove(0, 1));
+    const auto cli_cert_dir = MP_UTILS.make_dir(temp_dir.path(), QString(mp::cli_client_cert_dir).remove(0, 1));
     const auto cli_client_cert_file = cli_cert_dir + "/" + mp::client_cert_file;
     const auto cli_client_key_file = cli_cert_dir + "/" + mp::client_key_file;
 

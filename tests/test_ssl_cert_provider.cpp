@@ -31,7 +31,7 @@ struct SSLCertProvider : public testing::Test
 {
     SSLCertProvider()
     {
-        cert_dir = mp::utils::make_dir(temp_dir.path(), "test-cert");
+        cert_dir = MP_UTILS.make_dir(temp_dir.path(), "test-cert");
     }
     mpt::TempDir temp_dir;
     mp::Path cert_dir;

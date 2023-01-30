@@ -22,6 +22,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -366,7 +367,7 @@ void mp::utils::link_autostart_file(const QDir& link_dir, const QString& autosta
     }
 }
 
-mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name, const QFileDevice::Permissions permissions)
+mp::Path mp::Utils::make_dir(const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions)
 {
     mp::Path dir_path;
     bool success{false};
@@ -389,13 +390,13 @@ mp::Path mp::utils::make_dir(const QDir& a_dir, const QString& name, const QFile
 
     if (permissions)
     {
-        QFile::setPermissions(dir_path, permissions);
+        MP_PLATFORM.set_permissions(dir_path, permissions);
     }
 
     return dir_path;
 }
 
-mp::Path mp::utils::make_dir(const QDir& dir, const QFileDevice::Permissions permissions)
+mp::Path mp::Utils::make_dir(const QDir& dir, QFileDevice::Permissions permissions)
 {
     return make_dir(dir, QString(), permissions);
 }
@@ -501,7 +502,7 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
 
     if (!config_file.exists())
     {
-        make_dir({}, QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
+        MP_UTILS.make_dir({}, QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
         config_file.open(QIODevice::WriteOnly);
     }
 }
