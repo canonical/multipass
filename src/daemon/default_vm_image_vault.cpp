@@ -357,7 +357,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                 const auto image_dir_name =
                     QString("%1-%2").arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2),
                                          QLocale::c().toString(last_modified, "yyyyMMdd"));
-                const auto image_dir = mp::utils::make_dir(images_dir, image_dir_name);
+                const auto image_dir = MP_UTILS.make_dir(images_dir, image_dir_name);
 
                 // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
                 // QtConcurrent::run()
@@ -410,7 +410,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             else
             {
                 const auto image_dir =
-                    mp::utils::make_dir(images_dir, QString("%1-%2").arg(info.release).arg(info.version));
+                    MP_UTILS.make_dir(images_dir, QString("%1-%2").arg(info.release).arg(info.version));
 
                 // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
                 // QtConcurrent::run()
@@ -633,7 +633,7 @@ QString mp::DefaultVMImageVault::extract_image_from(const std::string& instance_
                                                     const ProgressMonitor& monitor)
 {
     const auto name = QString::fromStdString(instance_name);
-    const QDir output_dir{mp::utils::make_dir(instances_dir, name)};
+    const QDir output_dir{MP_UTILS.make_dir(instances_dir, name)};
     QFileInfo file_info{source_image.image_path};
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = output_dir.filePath(image_name);
@@ -645,7 +645,7 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
                                                          const VMImage& prepared_image)
 {
     auto name = QString::fromStdString(instance_name);
-    auto output_dir = mp::utils::make_dir(instances_dir, name);
+    auto output_dir = MP_UTILS.make_dir(instances_dir, name);
 
     return {mp::vault::copy(prepared_image.image_path, output_dir),
             mp::vault::copy(prepared_image.kernel_path, output_dir),

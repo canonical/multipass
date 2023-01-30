@@ -278,6 +278,11 @@ TEST_F(Daemon, data_path_with_storage_valid)
 
     EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(mp::utils::get_multipass_storage()));
 
+    ON_CALL(mock_utils, make_dir(_, _, _))
+        .WillByDefault([this](const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions) {
+            return mock_utils.Utils::make_dir(a_dir, name, permissions);
+        });
+
     config_builder.data_directory = "";
     config_builder.cache_directory = "";
     auto config = config_builder.build();
@@ -1329,6 +1334,11 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
 
 TEST_F(Daemon, writesAndReadsMountsInJson)
 {
+    ON_CALL(mock_utils, make_dir(_, _, _))
+        .WillByDefault([this](const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions) {
+            return mock_utils.Utils::make_dir(a_dir, name, permissions);
+        });
+
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     std::string mac_addr("52:54:00:23:11:97");
@@ -1336,9 +1346,9 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     // Create a temp folder containing three subfolders, and create mount points for all of them.
     auto temp_mount_dir = QDir(mpt::TempDir().path());
-    auto temp_mount_1 = make_dir(temp_mount_dir, QString("a"), QFileDevice::Permissions{}).toStdString();
-    auto temp_mount_2 = make_dir(temp_mount_dir, QString("b"), QFileDevice::Permissions{}).toStdString();
-    auto temp_mount_3 = make_dir(temp_mount_dir, QString("c"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_1 = MP_UTILS.make_dir(temp_mount_dir, QString("a"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_2 = MP_UTILS.make_dir(temp_mount_dir, QString("b"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_3 = MP_UTILS.make_dir(temp_mount_dir, QString("c"), QFileDevice::Permissions{}).toStdString();
 
     mp::id_mappings uid_mappings_1{{123, 321}};
     mp::id_mappings gid_mappings_1{{456, 654}};
