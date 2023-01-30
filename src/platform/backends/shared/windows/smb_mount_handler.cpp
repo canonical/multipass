@@ -49,7 +49,7 @@ try
 {
     mpl::log(mpl::Level::info, category, fmt::format("Installing cifs-utils in '{}'", name));
 
-    auto proc = session.exec("sudo apt-get install -y cifs-utils");
+    auto proc = session.exec("sudo apt-get update && sudo apt-get install -y cifs-utils");
     if (proc.exit_code(timeout) != 0)
     {
         auto error_msg = proc.read_std_error();
