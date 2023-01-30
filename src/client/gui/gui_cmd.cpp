@@ -28,6 +28,7 @@
 
 #include <QApplication>
 #include <QDesktopServices>
+#include <QLockFile>
 #include <QStyle>
 #include <QtConcurrent/QtConcurrent>
 
@@ -97,6 +98,13 @@ void set_input_state_for(QList<QAction*> actions, const mp::InstanceStatus& stat
 
 mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
 {
+    QLockFile is_running{QDir::tempPath() + "/multipass_gui_running"};
+    if (!is_running.tryLock())
+    {
+        cout << "Application is already running";
+        return ReturnCode::Ok;
+    }
+
     if (!QSystemTrayIcon::isSystemTrayAvailable())
     {
         cerr << "System tray not supported\n";
