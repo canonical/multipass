@@ -27,7 +27,6 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
-#include "backends/shared/windows/powershell.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "platform_proprietary.h"
@@ -58,7 +57,6 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <map>
 
 #include <libssh/sftp.h>
 
