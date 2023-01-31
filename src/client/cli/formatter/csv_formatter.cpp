@@ -141,11 +141,8 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
         const auto& context_name = context.first;
         const auto& context_contents = context.second;
 
-        for (const auto& elt : sort_dict(context_contents))
+        for (const auto& [name, def] : sort_dict(context_contents))
         {
-            const auto& name = elt.first;
-            const auto& def = elt.second;
-
             fmt::format_to(std::back_inserter(buf), "{},{},{},{},{}\n", name, def.instance, def.command, context_name,
                            def.working_directory);
         }

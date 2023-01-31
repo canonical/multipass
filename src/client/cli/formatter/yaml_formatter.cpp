@@ -228,18 +228,12 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
     YAML::Node aliases_list, aliases_node;
 
-    for (const auto& context : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sort_dict(aliases))
     {
         YAML::Node context_node;
 
-        const auto& context_name = context.first;
-        const auto& context_contents = context.second;
-
-        for (const auto& elt : sort_dict(context_contents))
+        for (const auto& [name, def] : sort_dict(context_contents))
         {
-            const auto& name = elt.first;
-            const auto& def = elt.second;
-
             YAML::Node alias_node;
             alias_node["alias"] = name;
             alias_node["command"] = def.command;

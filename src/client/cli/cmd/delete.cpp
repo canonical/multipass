@@ -41,17 +41,17 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 
             for (const auto& removed_alias : removed_aliases)
             {
+                const auto& [removal_context, removed_alias_name] = removed_alias;
                 try
                 {
-                    MP_PLATFORM.remove_alias_script(removed_alias);
+                    MP_PLATFORM.remove_alias_script(removal_context + "." + removed_alias_name);
                 }
                 catch (const std::runtime_error& e)
                 {
-                    cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), removed_alias);
+                    cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n", e.what(),
+                                        removal_context, removed_alias_name);
                 }
             }
-
-            aliases.remove_context(purged_instance);
         }
 
         return mp::ReturnCode::Ok;

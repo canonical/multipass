@@ -142,25 +142,59 @@ bool mp::AliasDict::remove_context(const std::string& context)
     return false;
 }
 
-std::vector<std::string> mp::AliasDict::remove_aliases_for_instance(const std::string& instance)
+// This function removes the context called as the instance, and then it iterates through all the remaining contexts
+// to see if there are aliases defined for the instance.
+std::vector<std::pair<std::string, std::string>> mp::AliasDict::remove_aliases_for_instance(const std::string& instance)
 {
-    std::vector<std::string> removed_aliases;
+    std::vector<std::pair<std::string, std::string>> removed_aliases;
 
-    auto& context = aliases[active_context];
+    remove_context(instance);
 
-    for (auto it = context.begin(); it != context.end();)
+    const auto old_context_name = active_context;
+
+    for (auto dict_it = begin(); dict_it != end(); ++dict_it)
+        for (auto context_it = dict_it->second.begin(); context_it != dict_it->second.end(); ++context_it)
+            if (context_it->second.instance == instance)
+                removed_aliases.emplace_back(std::make_pair(dict_it->first, context_it->first));
+
+    for (auto pair_to_remove : removed_aliases)
     {
-        if (it->second.instance == instance)
-        {
-            modified = true;
-            removed_aliases.push_back(it->first);
-            it = context.erase(it);
-        }
-        else
-            ++it;
+        auto [context_from, removed_alias] = pair_to_remove;
+
+        set_active_context(context_from);
+        remove_alias(removed_alias);
     }
 
+    active_context = old_context_name;
+
     return removed_aliases;
+}
+
+std::optional<std::pair<std::string, std::string>> mp::AliasDict::get_context_and_alias(const std::string& alias) const
+{
+    try
+    {
+        if (aliases.at(active_context).count(alias) > 0)
+            return std::make_pair(active_context, alias);
+    }
+    catch (const std::out_of_range&)
+    {
+    }
+
+    std::string::size_type dot_pos = alias.rfind('.');
+
+    if (dot_pos == std::string::npos)
+        return std::nullopt;
+
+    std::string context = alias.substr(0, dot_pos);
+
+    if (aliases.count(context) == 0)
+        return std::nullopt;
+
+    std::string alias_only = alias.substr(dot_pos + 1);
+
+    return (aliases.at(context).count(alias_only) == 0 ? std::nullopt
+                                                       : std::make_optional(std::make_pair(context, alias_only)));
 }
 
 std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const

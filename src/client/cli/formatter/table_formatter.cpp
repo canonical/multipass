@@ -298,18 +298,12 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     fmt::format_to(std::back_inserter(buf), row_format, "Alias", alias_width, "Instance", instance_width, "Command",
                    command_width, "Context", context_width, "Working directory");
 
-    for (const auto& context : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sort_dict(aliases))
     {
-        const auto& context_name = context.first;
-        const auto& context_contents = context.second;
-
         std::string shown_context = context_name == aliases.active_context_name() ? context_name + "*" : context_name;
 
-        for (const auto& elt : sort_dict(context_contents))
+        for (const auto& [name, def] : sort_dict(context_contents))
         {
-            const auto& name = elt.first;
-            const auto& def = elt.second;
-
             fmt::format_to(std::back_inserter(buf), row_format, name, alias_width, def.instance, instance_width,
                            def.command, command_width, shown_context, context_width, def.working_directory);
         }
