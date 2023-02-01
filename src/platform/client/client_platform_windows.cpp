@@ -18,10 +18,11 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/terminal.h>
+#include <shared/windows/powershell.h>
 
 #include <QFileInfo>
-#include <QString>
 #include <QProcess>
+#include <QString>
 
 #include <fcntl.h>
 #include <io.h>
@@ -79,8 +80,11 @@ std::pair<std::string, std::string> mcp::Platform::get_user_password(mp::Termina
     {
         mp::PassphrasePrompter prompter(term);
         auto password = prompter.prompt("Please enter your user password to allow Windows mounts");
+        QString username;
+        mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
+                             "get-username", username);
 
-        return {qEnvironmentVariable("USERNAME").toStdString(), password};
+        return {username.section('\\', 1).toStdString(), password};
     }
 
     return {};

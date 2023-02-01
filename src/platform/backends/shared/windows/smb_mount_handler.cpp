@@ -16,7 +16,6 @@
  */
 
 #include "smb_mount_handler.h"
-#include "powershell.h"
 
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/ssh/sftp_utils.h>
@@ -33,16 +32,6 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto category = "smb-mount-handler";
-
-auto get_dir_owner(const QString& dir)
-{
-    QString ps_output;
-    QStringList get_acl{"Get-Acl", dir};
-
-    mp::PowerShell::exec(get_acl << mp::PowerShell::Snippets::expand_property << "Owner", category, ps_output);
-
-    return ps_output;
-}
 
 void install_cifs_for(const std::string& name, mp::SSHSession& session, const std::chrono::milliseconds& timeout)
 try
@@ -73,44 +62,58 @@ auto quote(const QString& string)
 
 namespace multipass
 {
-
-bool SmbMountHandler::check_smb_share()
+bool SmbMountHandler::smb_share_exists()
 {
-    return PowerShell::exec({"Get-SmbShare", "-Name", quote(share_name)}, category);
+    return powershell->run({"Get-SmbShare", "-Name", quote(share_name)});
 }
 
-void SmbMountHandler::create_smb_share()
+void SmbMountHandler::create_smb_share(const QString& user)
 {
-    if (check_smb_share() || !PowerShell::exec({"New-SmbShare", "-Name", quote(share_name), "-Path", quote(source),
-                                                "-FullAccess", quote(get_dir_owner(source))},
-                                               category))
+    if (smb_share_exists())
+        return;
+
+    if (!can_user_access_source(user))
+        throw std::runtime_error{fmt::format("cannot access \"{}\"", source)};
+
+    if (!powershell->run({"New-SmbShare", "-Name", quote(share_name), "-Path", quote(source), "-FullAccess", user}))
         throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\"", source)};
 }
 
 void SmbMountHandler::remove_smb_share()
 {
-    if (check_smb_share() && !PowerShell::exec({"Remove-SmbShare", "-Name", quote(share_name), "-Force"}, category))
+    if (smb_share_exists() && !powershell->run({"Remove-SmbShare", "-Name", quote(share_name), "-Force"}))
         mpl::log(mpl::Level::warning, category,
                  fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
+}
+
+bool SmbMountHandler::can_user_access_source(const QString& user)
+{
+    QString output;
+    return powershell->run(
+               {QString{"(Get-Acl '%1').Access | ?{($_.IdentityReference -match '%2') -and ($_.FileSystemRights "
+                        "-eq 'FullControl')}"}
+                    .arg(source, user)},
+               output) &&
+           !output.isEmpty();
 }
 
 SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
                                  const VMMount& mount)
     : MountHandler{vm, ssh_key_provider, target, mount},
       source{QString::fromStdString(mount.source_path)},
+      powershell{std::make_unique<PowerShell>(category)},
       // share name must be unique and 80 chars max
       share_name{QString("%1_%2:%3")
-                     .arg(mpu::make_uuid(), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
+                     .arg(mpu::make_uuid(target), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
                      .left(80)}
 {
     mpl::log(mpl::Level::info, category,
-             fmt::format("initializing native mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
+             fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
 }
 
 void SmbMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
 try
 {
-    create_smb_share();
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
     const auto [username, password] = std::visit(
@@ -140,6 +143,8 @@ try
 
     if (password.empty())
         throw std::runtime_error("A password is required for SMB mounts.");
+
+    create_smb_share(QString::fromStdString(username));
 
     const std::string credentials_path{"/tmp/.smb_credentials"};
 
