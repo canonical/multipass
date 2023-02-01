@@ -363,6 +363,9 @@ try // clang-format on
         std::string cmd{argv[1]};
         if (cmd == "/install")
         {
+            QCoreApplication app(argc, argv);
+            QCoreApplication::setApplicationName(mp::daemon_name);
+            QCoreApplication::setApplicationVersion(mp::version_string);
             create_client_cert_if_necessary();
             install_service();
             return EXIT_SUCCESS;

@@ -92,4 +92,10 @@ if(MSVC)
 
   file(GLOB SSL_DLLS "${OPENSSL_INCLUDE_DIR}/../*.dll")
   install(FILES ${SSL_DLLS} DESTINATION bin COMPONENT multipassd)
+
+  file(GLOB QT_TLS_PLUGIN_FILES "${PACKAGE_PREFIX_DIR}/plugins/tls/*.dll")
+  install(FILES ${QT_TLS_PLUGIN_FILES} DESTINATION bin/tls COMPONENT multipassd)
+
+  file(GLOB QT_NETWORKINFORMATION_PLUGIN_FILES "${PACKAGE_PREFIX_DIR}/plugins/networkinformation/*.dll")
+  install(FILES ${QT_NETWORKINFORMATION_PLUGIN_FILES} DESTINATION bin/networkinformation COMPONENT multipassd)
 endif()
