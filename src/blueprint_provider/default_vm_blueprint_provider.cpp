@@ -41,7 +41,12 @@ namespace mpl = multipass::logging;
 namespace
 {
 const QString github_blueprints_archive_name{"multipass-blueprints.zip"};
-const QStringList blueprint_dir_versions{"v2", "v1"}; // The folders where to read definitions, sorted by precedence.
+
+// The folders where to read definitions. The list is sorted by precedence.
+constexpr auto version_v1{"v1"};
+constexpr auto version_v2{"v2"};
+const QStringList blueprint_dir_versions{version_v2, version_v1};
+
 constexpr auto category = "blueprint provider";
 
 static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the {} Blueprint"};
@@ -50,13 +55,13 @@ const auto instances_key{"instances"};
 
 bool runs_on(const std::string& blueprint_name, const YAML::Node& blueprint_node, const std::string& arch)
 {
-    if (blueprint_node["blueprint-version"].as<std::string>() == "v1")
+    if (blueprint_node["blueprint-version"].as<std::string>() == version_v1)
     {
         if (blueprint_node[runs_on_key])
         {
             try
             {
-                std::vector<std::string> runs_on = blueprint_node[runs_on_key].as<std::vector<std::string>>();
+                const auto runs_on = blueprint_node[runs_on_key].as<std::vector<std::string>>();
 
                 return std::find(runs_on.cbegin(), runs_on.cend(), arch) != runs_on.cend();
             }
@@ -66,7 +71,9 @@ bool runs_on(const std::string& blueprint_name, const YAML::Node& blueprint_node
             }
         }
         else
+        {
             return true;
+        }
     }
 
     if (blueprint_node[instances_key] && blueprint_node[instances_key][blueprint_name] &&
@@ -78,7 +85,9 @@ bool runs_on(const std::string& blueprint_name, const YAML::Node& blueprint_node
                 return true;
         }
         else
+        {
             return false;
+        }
     }
 
     throw mp::InvalidBlueprintException(fmt::format(bad_conversion_template, instances_key, blueprint_name));
@@ -90,7 +99,7 @@ auto blueprints_map_for(const std::string& archive_file_path, bool& needs_update
     std::ifstream zip_stream{archive_file_path, std::ios::binary};
     auto zip_archive = MP_POCOZIPUTILS.zip_archive_for(zip_stream);
 
-    for (auto blueprint_dir_version : blueprint_dir_versions)
+    for (const auto& blueprint_dir_version : blueprint_dir_versions)
     {
         for (auto it = zip_archive.headerBegin(); it != zip_archive.headerEnd(); ++it)
         {
@@ -212,7 +221,7 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
 
     // TODO: Abstract all of the following YAML schema boilerplate
 
-    if (blueprint_config["blueprint-version"].as<std::string>() == "v2")
+    if (blueprint_config["blueprint-version"].as<std::string>() == version_v2)
     {
         auto arch_node = blueprint_instance["images"][arch.toStdString()];
 
@@ -234,7 +243,9 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
             vm_desc.image.id = sha256_string;
         }
         else
+        {
             mpl::log(mpl::Level::debug, category, "No SHA256 to check");
+        }
     }
     else if (blueprint_instance["image"])
     {
