@@ -207,9 +207,21 @@ std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& a
     }
     catch (const std::out_of_range&)
     {
-        if ((dot_pos = alias.find('.')) == std::string::npos)
-            return std::nullopt;
     }
+
+    // If the alias is not on the current context, look for it in the rest of the contexts. But make sure there is only
+    // one existing alias with that name.
+
+    auto unique_alias_in_all_contexts = get_alias_from_all_contexts(alias);
+
+    if (unique_alias_in_all_contexts)
+        return unique_alias_in_all_contexts;
+
+    // If the alias given was not found, then it is in the form "context.alias": the input string must be split.
+
+    // No dot, no alias.
+    if ((dot_pos = alias.find('.')) == std::string::npos)
+        return std::nullopt;
 
     std::string context = alias.substr(0, dot_pos);
     std::string alias_only = alias.substr(dot_pos + 1);
@@ -404,4 +416,30 @@ void mp::AliasDict::sanitize_contexts()
         for (const auto& context : empty_contexts)
             aliases.erase(context);
     }
+}
+
+std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_all_contexts(const std::string& alias) const
+{
+    const AliasDefinition* ret;
+    bool found{false};
+
+    for (const auto& context : aliases)
+    {
+        const auto& context_dict = context.second;
+
+        auto found_alias = context_dict.find(alias);
+
+        if (found_alias != context_dict.cend())
+        {
+            if (found) // This means that the alias exists in more than one context.
+                return std::nullopt;
+            else
+            {
+                found = true;
+                ret = &(found_alias->second);
+            }
+        }
+    }
+
+    return found ? std::make_optional(*ret) : std::nullopt;
 }

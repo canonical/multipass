@@ -95,6 +95,7 @@ private:
     void load_dict();
     void save_dict();
     void sanitize_contexts();
+    std::optional<AliasDefinition> get_alias_from_all_contexts(const std::string& alias) const;
 
     std::string active_context;
     DictType aliases;
