@@ -39,7 +39,7 @@ mpt::fetch_image_lambda(const std::string& release, const std::string& remote, c
 {
     return [&release, &remote, must_have_checksum](
                const mp::FetchType& fetch_type, const mp::Query& query, const mp::VMImageVault::PrepareAction& prepare,
-               const mp::ProgressMonitor& monitor, const bool unlock, const std::optional<std::string> checksum) {
+               const mp::ProgressMonitor& monitor, const bool unlock, const std::optional<std::string>& checksum) {
         EXPECT_EQ(query.release, release);
         if (remote.empty())
         {

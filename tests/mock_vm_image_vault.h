@@ -44,7 +44,7 @@ public:
     };
 
     MOCK_METHOD6(fetch_image, VMImage(const FetchType&, const Query&, const PrepareAction&, const ProgressMonitor&,
-                                      const bool, const std::optional<std::string>));
+                                      const bool, const std::optional<std::string>&));
     MOCK_METHOD1(remove, void(const std::string&));
     MOCK_METHOD1(has_record_for, bool(const std::string&));
     MOCK_METHOD0(prune_expired_images, void());
