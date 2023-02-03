@@ -556,11 +556,18 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     mpt::MockPlatform* mock_platform = attr.first;
 
     ON_CALL(*mock_platform, create_alias_script(_, _)).WillByDefault(Return());
+
     for (const auto& removed_alias : expected_removed_aliases)
-        EXPECT_CALL(*mock_platform, remove_alias_script("default." + removed_alias));
+    {
+        EXPECT_CALL(*mock_platform, remove_alias_script("default." + removed_alias)).Times(1);
+        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias)).Times(1);
+    }
+
     for (const auto& removed_alias : expected_failed_removal)
+    {
         EXPECT_CALL(*mock_platform, remove_alias_script("default." + removed_alias))
             .WillOnce(Throw(std::runtime_error("foo")));
+    }
 
     mpt::TempDir temp_dir;
     QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
