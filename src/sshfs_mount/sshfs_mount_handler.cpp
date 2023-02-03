@@ -114,7 +114,7 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* s
     : MountHandler{vm, ssh_key_provider, target, mount},
       process{nullptr},
       config{"",
-             vm->ssh_port(),
+             0,
              vm->ssh_username(),
              vm->vm_name,
              ssh_key_provider->private_key_as_base64(),
@@ -146,6 +146,8 @@ void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::millisecon
 
     // Can't obtain hostname/IP address until instance is running
     config.host = vm->ssh_hostname();
+    config.port = vm->ssh_port();
+
     process = platform::make_sshfs_server_process(config);
 
     QObject::connect(process.get(), &Process::finished, [this](const ProcessState& exit_state) {
