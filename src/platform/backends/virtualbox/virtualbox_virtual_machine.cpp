@@ -278,15 +278,14 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
                 fmt::format("Could not find a port available to listen on: {}", socket.serverError()));
         }
 
-        port.emplace(socket.serverPort());
-        socket.close();
-
         mpu::process_log_on_error("VBoxManage", {"controlvm", name, "natpf1", "delete", "ssh"},
                                   "Could not delete SSH port forwarding: {}", name);
 
         mpu::process_throw_on_error(
             "VBoxManage", {"controlvm", name, "natpf1", QString::fromStdString(fmt::format("ssh,tcp,,{},,22", *port))},
             "Could not add SSH port forwarding: {}", name);
+
+        port.emplace(socket.serverPort());
     }
     return *port;
 }
