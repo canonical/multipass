@@ -282,7 +282,8 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
                                   "Could not delete SSH port forwarding: {}", name);
 
         mpu::process_throw_on_error(
-            "VBoxManage", {"controlvm", name, "natpf1", QString::fromStdString(fmt::format("ssh,tcp,,{},,22", *port))},
+            "VBoxManage",
+            {"controlvm", name, "natpf1", QString::fromStdString(fmt::format("ssh,tcp,,{},,22", socket.serverPort()))},
             "Could not add SSH port forwarding: {}", name);
 
         port.emplace(socket.serverPort());
