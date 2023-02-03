@@ -49,6 +49,7 @@ public:
     const AliasContext& get_active_context() const;
     bool add_alias(const std::string& alias, const AliasDefinition& command);
     bool exists_alias(const std::string& alias) const;
+    bool is_alias_unique(const std::string& alias) const;
     bool remove_alias(const std::string& alias);
     bool remove_context(const std::string& context);
     std::vector<std::pair<std::string, std::string>> remove_aliases_for_instance(const std::string& instance);

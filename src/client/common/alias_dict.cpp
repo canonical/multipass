@@ -113,7 +113,20 @@ bool mp::AliasDict::add_alias(const std::string& alias, const mp::AliasDefinitio
 
 bool mp::AliasDict::exists_alias(const std::string& alias) const
 {
-    return (aliases.count(active_context) && aliases.at(active_context).count(alias));
+    for (const auto& [_, context_dict] : aliases)
+    {
+        if (context_dict.find(alias) != context_dict.cend())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool mp::AliasDict::is_alias_unique(const std::string& alias) const
+{
+    return get_alias_from_all_contexts(alias) ? true : false;
 }
 
 bool mp::AliasDict::remove_alias(const std::string& alias)
@@ -153,9 +166,15 @@ std::vector<std::pair<std::string, std::string>> mp::AliasDict::remove_aliases_f
     const auto old_context_name = active_context;
 
     for (auto dict_it = begin(); dict_it != end(); ++dict_it)
+    {
         for (auto context_it = dict_it->second.begin(); context_it != dict_it->second.end(); ++context_it)
+        {
             if (context_it->second.instance == instance)
+            {
                 removed_aliases.emplace_back(std::make_pair(dict_it->first, context_it->first));
+            }
+        }
+    }
 
     for (auto pair_to_remove : removed_aliases)
     {
@@ -407,14 +426,20 @@ void mp::AliasDict::sanitize_contexts()
     std::vector<std::string> empty_contexts;
 
     for (auto& context : aliases)
+    {
         if (context.first != active_context && context.second.empty())
+        {
             empty_contexts.push_back(context.first);
+        }
+    }
 
     if (!empty_contexts.empty())
     {
         modified = true;
         for (const auto& context : empty_contexts)
+        {
             aliases.erase(context);
+        }
     }
 }
 
@@ -423,16 +448,16 @@ std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_all_contexts(co
     const AliasDefinition* ret;
     bool found{false};
 
-    for (const auto& context : aliases)
+    for (const auto& [_, context_dict] : aliases)
     {
-        const auto& context_dict = context.second;
-
         auto found_alias = context_dict.find(alias);
 
         if (found_alias != context_dict.cend())
         {
             if (found) // This means that the alias exists in more than one context.
+            {
                 return std::nullopt;
+            }
             else
             {
                 found = true;
