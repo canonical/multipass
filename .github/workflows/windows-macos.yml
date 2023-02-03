@@ -312,9 +312,9 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v2
       with:
-        key: ccache${{ secrets.CCACHE_VERSION  }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.key }}
+        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
-          ccache${{ secrets.CCACHE_VERSION }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
+          ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
         path: ${{ env.CCACHE_DIR }}
 
     - name: Install Dependencies from Choco
