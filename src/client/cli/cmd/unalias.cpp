@@ -44,6 +44,11 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
         try
         {
             MP_PLATFORM.remove_alias_script(context_from + "." + alias_only);
+
+            if (!aliases.exists_alias(alias_only))
+            {
+                MP_PLATFORM.remove_alias_script(alias_only);
+            }
         }
         catch (std::runtime_error& e)
         {

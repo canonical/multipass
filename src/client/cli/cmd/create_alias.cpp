@@ -51,6 +51,24 @@ multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases, const std
         return ReturnCode::CommandLineError;
     }
 
+    try
+    {
+        if (aliases.is_alias_unique(alias_name))
+        {
+            MP_PLATFORM.create_alias_script(alias_name, alias_definition);
+        }
+    }
+    catch (std::runtime_error& e)
+    {
+        aliases.remove_alias(alias_name);
+        aliases.set_active_context(old_context_name);
+        MP_PLATFORM.remove_alias_script(aliases.active_context_name() + "." + alias_name);
+
+        cerr << fmt::format("Error when creating script for alias: {}\n", e.what());
+
+        return ReturnCode::CommandLineError;
+    }
+
     aliases.set_active_context(old_context_name);
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS

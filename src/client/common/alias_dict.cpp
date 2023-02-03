@@ -176,10 +176,8 @@ std::vector<std::pair<std::string, std::string>> mp::AliasDict::remove_aliases_f
         }
     }
 
-    for (auto pair_to_remove : removed_aliases)
+    for (auto [context_from, removed_alias] : removed_aliases)
     {
-        auto [context_from, removed_alias] = pair_to_remove;
-
         set_active_context(context_from);
         remove_alias(removed_alias);
     }
