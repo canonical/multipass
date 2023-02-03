@@ -557,9 +557,10 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 
     ON_CALL(*mock_platform, create_alias_script(_, _)).WillByDefault(Return());
     for (const auto& removed_alias : expected_removed_aliases)
-        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias));
+        EXPECT_CALL(*mock_platform, remove_alias_script("default." + removed_alias));
     for (const auto& removed_alias : expected_failed_removal)
-        EXPECT_CALL(*mock_platform, remove_alias_script(removed_alias)).WillOnce(Throw(std::runtime_error("foo")));
+        EXPECT_CALL(*mock_platform, remove_alias_script("default." + removed_alias))
+            .WillOnce(Throw(std::runtime_error("foo")));
 
     mpt::TempDir temp_dir;
     QString filename(temp_dir.path() + "/multipassd-vm-instances.json");
@@ -575,8 +576,8 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
         send_command(command, cout, cerr);
 
     for (const auto& removed_alias : expected_failed_removal)
-        EXPECT_THAT(cerr.str(),
-                    HasSubstr(fmt::format("Warning: 'foo' when removing alias script for {}\n", removed_alias)));
+        EXPECT_THAT(cerr.str(), HasSubstr(fmt::format("Warning: 'foo' when removing alias script for default.{}\n",
+                                                      removed_alias)));
 
     send_command({"aliases", "--format", "csv"}, cout);
     EXPECT_EQ(cout.str(), expected_output);
