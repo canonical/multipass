@@ -35,14 +35,16 @@ class MockVMImageVault : public VMImageVault
 public:
     MockVMImageVault()
     {
-        ON_CALL(*this, fetch_image(_, _, _, _)).WillByDefault([this](auto, auto, const PrepareAction& prepare, auto) {
-            return VMImage{dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}, {}, {}, {}};
-        });
+        ON_CALL(*this, fetch_image(_, _, _, _, _, _))
+            .WillByDefault([this](auto, auto, const PrepareAction& prepare, auto, auto, auto) {
+                return VMImage{dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}, {}, {}, {}};
+            });
         ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
         ON_CALL(*this, minimum_image_size_for(_)).WillByDefault(Return(MemorySize{"1048576"}));
     };
 
-    MOCK_METHOD4(fetch_image, VMImage(const FetchType&, const Query&, const PrepareAction&, const ProgressMonitor&));
+    MOCK_METHOD6(fetch_image, VMImage(const FetchType&, const Query&, const PrepareAction&, const ProgressMonitor&,
+                                      const bool, const std::optional<std::string>&));
     MOCK_METHOD1(remove, void(const std::string&));
     MOCK_METHOD1(has_record_for, bool(const std::string&));
     MOCK_METHOD0(prune_expired_images, void());
