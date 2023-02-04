@@ -461,7 +461,7 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     auto mock_image_vault = std::make_unique<NaggyMock<mpt::MockVMImageVault>>();
 
     EXPECT_CALL(*mock_image_vault, remove(_)).WillRepeatedly(Return());
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _)).WillRepeatedly(Return(mp::VMImage{}));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillRepeatedly(Return(mp::VMImage{}));
     EXPECT_CALL(*mock_image_vault, prune_expired_images()).WillRepeatedly(Return());
     EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
 
