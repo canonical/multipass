@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_STUB_VIRTUAL_MACHINE_H
 #define MULTIPASS_STUB_VIRTUAL_MACHINE_H
 
-#include <multipass/mount_handler.h>
+#include "stub_mount_handler.h"
 #include <multipass/virtual_machine.h>
 
 namespace multipass
@@ -110,8 +110,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target, const VMMount& mount) override
     {
-        // TODO replace with StubMountHandler when writing tests
-        throw std::runtime_error{"StubMountHandler will be added later"};
+        return std::make_unique<StubMountHandler>();
     }
 };
 } // namespace test

@@ -45,7 +45,7 @@ public:
     void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5))
     {
         std::lock_guard active_lock{active_mutex};
-        if (active)
+        if (is_active())
             return;
         start_impl(server, timeout);
         active = true;
@@ -54,13 +54,14 @@ public:
     void stop(bool force = false)
     {
         std::lock_guard active_lock{active_mutex};
-        if (!active)
+        if (!is_active())
             return;
         stop_impl(force);
         active = false;
     }
 
 protected:
+    MountHandler() = default;
     MountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
                  const VMMount& mount)
         : vm{vm}, ssh_key_provider{ssh_key_provider}, target{target}, active{false}
@@ -101,6 +102,10 @@ protected:
 private:
     bool active;
     std::mutex active_mutex;
+    virtual bool is_active()
+    {
+        return active;
+    }
 };
 } // namespace multipass
 #endif // MULTIPASS_MOUNT_HANDLER_H

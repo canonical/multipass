@@ -35,7 +35,7 @@ namespace multipass
 class QemuPlatform;
 class VMStatusMonitor;
 
-class QemuVirtualMachine final : public QObject, public BaseVirtualMachine
+class QemuVirtualMachine : public QObject, public BaseVirtualMachine
 {
     Q_OBJECT
 public:
@@ -60,13 +60,18 @@ public:
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
-    MountArgs& modifiable_mount_args();
+    virtual MountArgs& modifiable_mount_args();
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target, const VMMount& mount) override;
 
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();
+
+protected:
+    QemuVirtualMachine(const std::string& name) : BaseVirtualMachine{name}
+    {
+    }
 
 private:
     void on_started();

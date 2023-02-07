@@ -18,6 +18,7 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
+#include "mock_mount_handler.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
@@ -135,4 +136,77 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
 
     EXPECT_THAT(status.error_message(),
                 HasSubstr(fmt::format("Cannot start the instance \'{}\' while suspending", mock_instance_name)));
+}
+
+TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
+{
+    const std::string fake_target_path{"/home/luke/skywalker"}, fake_source_path{"/home/han/solo"};
+    const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
+    const mp::VMMount mount{fake_source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
+    std::unordered_map<std::string, mp::VMMount> mounts{{fake_target_path, mount}};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+
+    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
+    EXPECT_CALL(*mock_mount_handler, start_impl).Times(1);
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, make_native_mount_handler).WillOnce(Return(std::move(mock_mount_handler)));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::StartRequest request;
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
+
+    EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonStart, removingMountOnFailedStart)
+{
+    const std::string fake_target_path{"/home/luke/skywalker"}, fake_source_path{"/home/han/solo"};
+    const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
+    const mp::VMMount mount{fake_source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
+    std::unordered_map<std::string, mp::VMMount> mounts{{fake_target_path, mount}};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+
+    auto error = "failed to start mount";
+    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
+    EXPECT_CALL(*mock_mount_handler, start_impl).WillOnce(Throw(std::runtime_error{error}));
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, make_native_mount_handler).WillOnce(Return(std::move(mock_mount_handler)));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    auto log = fmt::format("Removing mount \"{}\" from '{}': {}\n", fake_target_path, mock_instance_name, error);
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> server;
+    EXPECT_CALL(server, Write(Property(&mp::StartReply::log_line, Eq(log)), _));
+
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::StartRequest request;
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
+    EXPECT_TRUE(status.ok());
 }
