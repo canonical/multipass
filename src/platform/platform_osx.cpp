@@ -333,12 +333,8 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::Platform::default_driver() const
 {
-    assert(HYPERKIT_ENABLED || QEMU_ENABLED);
-
-    if (HYPERKIT_ENABLED)
-        return QStringLiteral("hyperkit");
-    else
-        return QStringLiteral("qemu");
+    assert(QEMU_ENABLED);
+    return QStringLiteral("qemu");
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
