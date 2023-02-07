@@ -978,9 +978,9 @@ void warn_hyperkit_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) 
 {
 #ifdef MULTIPASS_PLATFORM_APPLE
     constexpr auto deprecation_warning =
-        "*** Warning! The hyperkit driver is deprecated and will be removed in an upcoming release. ***\n\n"
+        "*** Warning! The Hyperkit driver is deprecated and will be removed in an upcoming release. ***\n\n"
         "When you are ready to have your instances migrated, please stop them (multipass stop --all) and "
-        "switch to the qemu driver (multipass set local.driver=qemu).\n\n";
+        "switch to the QEMU driver (multipass set local.driver=qemu).\n\n";
 
     if (MP_SETTINGS.get(mp::driver_key) == "hyperkit")
     {
@@ -3137,9 +3137,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
         constexpr auto separator = "\n  ";
         constexpr auto hint_delete =
-            "Multipass retained the original hyperkit instances, but they take space on disk.\n\n"
-            "When you are happy with the newly migrated instances, you can temporarily switch to "
-            "the hyperkit driver and delete the old instance(s) (multipass delete --purge <instance-name>).";
+            "Multipass retained the original instances, but they take space on disk.\n\n"
+            "When you are happy with the newly migrated instances, you can temporarily switch back to "
+            "the Hyperkit driver and delete the old instance(s) (multipass delete --purge <instance-name>).";
         outcome_summary = fmt::format("The following instances were successfully migrated:{}{}\n\n{}", separator,
                                       fmt::join(instances_migrated, separator), hint_delete);
     }
