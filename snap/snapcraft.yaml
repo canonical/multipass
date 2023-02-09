@@ -92,6 +92,23 @@ apps:
       - wayland
       - x11
       - system-observe
+  desktop-gui:
+    extensions: [ gnome ]
+    environment: &_client-environment
+      XDG_DATA_HOME: $SNAP_USER_DATA
+      XDG_DATA_DIRS: $SNAP/usr/share
+      GDK_GL: gles
+    command: bin/desktop_gui
+    command-chain: [bin/set-xdg-data-home]
+    plugs:
+      - desktop
+      - desktop-legacy
+      - gsettings
+      - network
+      - opengl
+      - unity7
+      - wayland
+      - x11
 
 parts:
   libvirt:
@@ -143,6 +160,7 @@ parts:
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
     - -DMULTIPASS_UPSTREAM=origin
+    - -DMULTIPASS_ENABLE_FLUTTER_GUI=off
     override-build: |
       craftctl default
       set -e
@@ -158,6 +176,10 @@ parts:
       find . -name 'LICENSE*' -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
 
   qemu:
+    build-environment:
+    - LD_LIBRARY_PATH: ""
+    - XDG_DATA_DIRS: /root/stage/usr/share:/usr/share
+    - PKG_CONFIG_PATH: ""
     source: https://github.com/canonical/qemu.git
     source-type: git
     source-branch: multipass-8.0.0+9p-uid-gid-map
@@ -288,3 +310,11 @@ parts:
   glue:
     plugin: dump
     source: snap-wrappers
+
+  desktop-gui:
+    plugin: flutter
+    source: ./src/client/desktop_gui
+    flutter-channel: stable
+    flutter-target: lib/main.dart
+    organize:
+      /root/parts/desktop-gui/build/build/linux/x64/release/bundle: bin/
