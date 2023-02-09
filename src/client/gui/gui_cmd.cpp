@@ -303,7 +303,7 @@ void cmd::GuiCmd::create_menu()
 
     about_client_version.setEnabled(false);
     about_daemon_version.setEnabled(false);
-    about_copyright.setText("Copyright © 2017-2022 Canonical Ltd.");
+    about_copyright.setText("Copyright (C) Canonical, Ltd.");
     about_copyright.setEnabled(false);
 
     about_menu.insertActions(0, {&autostart_option, &about_client_version, &about_daemon_version, &about_copyright});
