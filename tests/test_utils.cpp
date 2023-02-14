@@ -537,6 +537,11 @@ TEST(Utils, has_only_digits_works)
     EXPECT_FALSE(mp::utils::has_only_digits("0123456789:'`'"));
 }
 
+TEST(Utils, randomBytesReturnCorrectSize)
+{
+    EXPECT_THAT(MP_UTILS.random_bytes(4), SizeIs(4));
+}
+
 TEST(Utils, validate_server_address_throws_on_invalid_address)
 {
     EXPECT_THROW(mp::utils::validate_server_address("unix"), std::runtime_error);
