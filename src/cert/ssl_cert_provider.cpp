@@ -105,29 +105,6 @@ private:
     std::unique_ptr<EVP_PKEY, decltype(EVP_PKEY_free)*> key{EVP_PKEY_new(), EVP_PKEY_free};
 };
 
-long random_long()
-{
-    long out{0};
-    std::array<uint8_t, 4> bytes;
-
-#ifdef MULTIPASS_COMPILER_GCC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
-
-    RAND_bytes(bytes.data(), bytes.size());
-
-#ifdef MULTIPASS_COMPILER_GCC
-#pragma GCC diagnostic pop
-#endif
-
-    out |= bytes[0];
-    out |= bytes[1] << 8u;
-    out |= bytes[2] << 16u;
-    out |= bytes[3] << 24u;
-    return out;
-}
-
 std::vector<unsigned char> as_vector(const std::string& v)
 {
     return {v.begin(), v.end()};
@@ -148,7 +125,12 @@ public:
         if (x509 == nullptr)
             throw std::runtime_error("Failed to allocate x509 cert structure");
 
-        ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), random_long());
+        long big_num{0};
+        auto rand_bytes = MP_UTILS.random_bytes(4);
+        for (unsigned int i = 0; i < 4u; i++)
+            big_num |= rand_bytes[i] << i * 8u;
+
+        ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), big_num);
         X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
         X509_gmtime_adj(X509_get_notAfter(x509.get()), 31536000L);
 
