@@ -160,6 +160,8 @@ public:
 
     // scrypt hash generator
     virtual QString generate_scrypt_hash_for(const QString& passphrase) const;
+
+    virtual std::vector<uint8_t> random_bytes(size_t len);
 };
 } // namespace multipass
 
