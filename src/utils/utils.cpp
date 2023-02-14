@@ -46,6 +46,7 @@
 #include <sstream>
 
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -438,6 +439,24 @@ std::string mp::utils::contents_of(const multipass::Path& file_path)
     std::stringstream stream;
     stream << in.rdbuf();
     return stream.str();
+}
+
+std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
+{
+    std::vector<uint8_t> bytes(len, 0);
+
+#ifdef MULTIPASS_COMPILER_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
+    RAND_bytes(bytes.data(), bytes.size());
+
+#ifdef MULTIPASS_COMPILER_GCC
+#pragma GCC diagnostic pop
+#endif
+
+    return bytes;
 }
 
 bool mp::utils::has_only_digits(const std::string& value)
