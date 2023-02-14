@@ -76,7 +76,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
                      .arg(QCoreApplication::applicationDirPath())
                      .arg(host_arch)
               << "-cpu"
-              << (host_arch == "aarch64" ? "cortex-a72" : "host")
+              << "host"
               // Set up the network related args
               << "-nic"
               << QString::fromStdString(
