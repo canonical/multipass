@@ -347,6 +347,11 @@ QString mp::platform::Platform::default_privileged_mounts() const
     return QStringLiteral("true");
 }
 
+bool mp::platform::Platform::is_image_url_supported() const
+{
+    return true;
+}
+
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>
 {
@@ -442,11 +447,6 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
     return std::make_unique<logging::JournaldLogger>(level);
-}
-
-bool mp::platform::is_image_url_supported()
-{
-    return true;
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
