@@ -1,0 +1,21 @@
+description: The first test blueprint, v2 variation
+version: 0.1
+
+aliases:
+  lst: test-blueprint1:ls
+  lsp: test-blueprint1:pwd
+
+instances:
+  test-blueprint1:
+    images:
+        multivacs:
+            url: https://some-multivacs-image.img
+            sha256: https://some-multivacs-image.sha256 
+    limits:
+      min-cpu: 2
+      min-mem: 2G
+      min-disk: 25G
+    cloud-init:
+      vendor-data: |
+        runcmd:
+          echo "Have fun!"
