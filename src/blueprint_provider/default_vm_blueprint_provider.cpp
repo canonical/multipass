@@ -170,7 +170,7 @@ std::string get_blueprint_version(const YAML::Node& blueprint_instance)
 
 mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::string& blueprint_name,
                                    mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& client_launch_data,
-                                   const QString& arch, mp::URLDownloader* url_downloader, bool* needs_update)
+                                   const QString& arch, mp::URLDownloader* url_downloader, bool& needs_update)
 {
     mp::Query query{"", "default", false, "", mp::Query::Type::Alias};
 
@@ -259,7 +259,7 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
         }
         else
         {
-            *needs_update = true;
+            needs_update = true;
             throw mp::InvalidBlueprintException("Unsupported image scheme in Blueprint");
         }
     }
@@ -281,7 +281,7 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
         }
         catch (const YAML::BadConversion&)
         {
-            *needs_update = true;
+            needs_update = true;
             throw mp::InvalidBlueprintException(fmt::format("Minimum CPU value in Blueprint is invalid"));
         }
     }
@@ -305,7 +305,7 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
         }
         catch (const mp::InvalidMemorySizeException&)
         {
-            *needs_update = true;
+            needs_update = true;
             throw mp::InvalidBlueprintException(fmt::format("Minimum memory size value in Blueprint is invalid"));
         }
     }
@@ -329,7 +329,7 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
         }
         catch (const mp::InvalidMemorySizeException&)
         {
-            *needs_update = true;
+            needs_update = true;
             throw mp::InvalidBlueprintException(fmt::format("Minimum disk space value in Blueprint is invalid"));
         }
     }
@@ -350,7 +350,7 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
         }
         catch (const YAML::BadConversion&)
         {
-            *needs_update = true;
+            needs_update = true;
             throw mp::InvalidBlueprintException(
                 fmt::format("Cannot convert cloud-init data for the {} Blueprint", blueprint_name));
         }
@@ -396,7 +396,7 @@ mp::Query mp::DefaultVMBlueprintProvider::fetch_blueprint_for(const std::string&
     auto& blueprint_config = blueprint_map.at(blueprint_name);
 
     return blueprint_from_yaml_node(blueprint_config, blueprint_name, vm_desc, client_launch_data, arch, url_downloader,
-                                    &needs_update);
+                                    needs_update);
 }
 
 mp::Query mp::DefaultVMBlueprintProvider::blueprint_from_file(const std::string& path,
@@ -433,7 +433,7 @@ mp::Query mp::DefaultVMBlueprintProvider::blueprint_from_file(const std::string&
     }
 
     return blueprint_from_yaml_node(blueprint_config, blueprint_name, vm_desc, client_launch_data, arch, url_downloader,
-                                    &needs_update);
+                                    needs_update);
 }
 
 mp::VMImageInfo mp::DefaultVMBlueprintProvider::info_for(const std::string& blueprint_name)
