@@ -314,5 +314,6 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                                                            const std::string& target,
                                                                            const mp::VMMount& mount)
 {
-    return std::make_unique<SmbMountHandler>(this, ssh_key_provider, target, mount);
+    return std::make_unique<SmbMountHandler>(this, ssh_key_provider, target, mount,
+                                             QFileInfo{image_path}.absolutePath());
 }
