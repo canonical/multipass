@@ -32,7 +32,7 @@ class MockClientPlatform : public cli::platform::Platform
 {
 public:
     using Platform::Platform;
-    MOCK_METHOD((std::pair<std::string, std::string>), get_user_password, (Terminal*), (const, override));
+    MOCK_METHOD((std::string), get_password, (Terminal*), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockClientPlatform, Platform);
 };
