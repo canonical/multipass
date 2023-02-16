@@ -635,6 +635,14 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
     return ret;
 }
 
+QString mp::platform::Platform::get_username() const
+{
+    QString username;
+    mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
+                         "get-username", username);
+    return username.section('\\', 1);
+}
+
 QDir mp::platform::Platform::get_alias_scripts_folder() const
 {
     QDir aliases_folder;
