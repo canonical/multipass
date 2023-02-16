@@ -112,19 +112,15 @@ TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackIgnoresEmptyMessage)
 
 TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesCredentialRequest)
 {
-    constexpr auto usr = "ubuntu", pwd = "xyz";
+    constexpr auto pwd = "xyz";
     auto [mock_client_platform, guard] = mpt::MockClientPlatform::inject<StrictMock>();
     mpt::MockClientReaderWriter<mp::RestartRequest, mp::RestartReply> mock_client;
 
     mp::RestartReply reply;
-    reply.set_credentials_requested(true);
+    reply.set_password_requested(true);
 
-    EXPECT_CALL(*mock_client_platform, get_user_password(&term)).WillOnce(Return(std::pair{usr, pwd}));
-    EXPECT_CALL(mock_client, Write(Property(&mp::RestartRequest::user_credentials,
-                                            AllOf(Property(&mp::UserCredentials::username, StrEq(usr)),
-                                                  Property(&mp::UserCredentials::password, StrEq(pwd)))),
-                                   _))
-        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_client_platform, get_password(&term)).WillOnce(Return(pwd));
+    EXPECT_CALL(mock_client, Write(Property(&mp::RestartRequest::password, StrEq(pwd)), _)).WillOnce(Return(true));
 
     auto cb = mp::make_iterative_spinner_callback<mp::RestartRequest, mp::RestartReply>(spinner, term);
     cb(reply, &mock_client);
