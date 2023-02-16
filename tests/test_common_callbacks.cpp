@@ -110,7 +110,7 @@ TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackIgnoresEmptyMessage)
     EXPECT_THAT(out.str(), IsEmpty());
 }
 
-TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesCredentialRequest)
+TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesPasswordRequest)
 {
     constexpr auto pwd = "xyz";
     auto [mock_client_platform, guard] = mpt::MockClientPlatform::inject<StrictMock>();
