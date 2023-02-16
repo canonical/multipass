@@ -84,6 +84,11 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
     return ::lutimes(path, tv);
 }
 
+QString mp::platform::Platform::get_username() const
+{
+    return {};
+}
+
 std::string mp::platform::Platform::alias_path_message() const
 {
     return fmt::format("You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for\n"
