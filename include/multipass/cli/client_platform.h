@@ -43,8 +43,8 @@ class Platform : public Singleton<Platform>
 public:
     Platform(const Singleton::PrivatePass&) noexcept;
 
-    virtual std::pair<std::string, std::string> get_user_password(Terminal* term) const;
     virtual void enable_ansi_escape_chars() const;
+    virtual std::string get_password(Terminal* term) const;
 };
 
 void parse_transfer_entry(const QString& entry, QString& path, QString& instance_name);
