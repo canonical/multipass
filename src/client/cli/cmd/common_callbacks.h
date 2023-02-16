@@ -46,11 +46,11 @@ auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
             spinner.print(term.cerr(), reply.log_line());
         }
 
-        if (reply.credentials_requested())
+        if (reply.password_requested())
         {
             spinner.stop();
 
-            return cmd::handle_user_password(client, &term);
+            return cmd::handle_password(client, &term);
         }
 
         if (const auto& msg = reply.reply_message(); !msg.empty())

@@ -43,7 +43,7 @@ class Platform : public Singleton<Platform>
 public:
     Platform(const Singleton::PrivatePass&) noexcept;
 
-    virtual std::pair<std::string, std::string> get_user_password(Terminal* term) const;
+    virtual std::string get_password(Terminal* term) const;
     virtual void enable_ansi_escape_chars() const;
 };
 
@@ -52,9 +52,9 @@ int getuid();
 int getgid();
 void open_multipass_shell(const QString& instance_name); // precondition: requires a valid instance name
 QStringList gui_tray_notification_strings();
-}
-}
-}
+} // namespace platform
+} // namespace cli
+} // namespace multipass
 
 inline multipass::cli::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
 {
