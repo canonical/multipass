@@ -18,12 +18,10 @@
 #include "aes.h"
 
 #include <multipass/utils.h>
-#include <multipass/logging/log.h>
 
 #include <openssl/evp.h>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 
 using EVP_CIPHER_CTX_free_ptr = std::unique_ptr<EVP_CIPHER_CTX, decltype(&::EVP_CIPHER_CTX_free)>;
 
