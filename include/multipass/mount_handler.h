@@ -45,39 +45,42 @@ public:
     void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5))
     {
         std::lock_guard active_lock{active_mutex};
-        if (is_active())
-            return;
-        start_impl(server, timeout);
+        if (!is_active())
+            start_impl(server, timeout);
         active = true;
     }
 
     void stop(bool force = false)
     {
         std::lock_guard active_lock{active_mutex};
-        if (!is_active())
-            return;
-        stop_impl(force);
+        if (is_active())
+            stop_impl(force);
         active = false;
+    }
+
+    virtual bool is_active()
+    {
+        return active;
     }
 
 protected:
     MountHandler() = default;
     MountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
-                 const VMMount& mount)
-        : vm{vm}, ssh_key_provider{ssh_key_provider}, target{target}, active{false}
+                 const std::string& source)
+        : vm{vm}, ssh_key_provider{ssh_key_provider}, target{target}, source{source}, active{false}
     {
         std::error_code err;
-        auto source_status = MP_FILEOPS.status(mount.source_path, err);
+        auto source_status = MP_FILEOPS.status(source, err);
         if (source_status.type() == fs::file_type::not_found)
-            throw std::runtime_error(fmt::format("Mount source path \"{}\" does not exist.", mount.source_path));
+            throw std::runtime_error(fmt::format("Mount source path \"{}\" does not exist.", source));
         if (err)
             throw std::runtime_error(
-                fmt::format("Mount source path \"{}\" is not accessible: {}.", mount.source_path, err.message()));
+                fmt::format("Mount source path \"{}\" is not accessible: {}.", source, err.message()));
         if (source_status.type() != fs::file_type::directory)
-            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not a directory.", mount.source_path));
+            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not a directory.", source));
         if (source_status.permissions() != fs::perms::unknown &&
             (source_status.permissions() & fs::perms::owner_read) == fs::perms::none)
-            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not readable.", mount.source_path));
+            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not readable.", source));
     };
 
     virtual void start_impl(ServerVariant server, std::chrono::milliseconds timeout) = 0;
@@ -98,14 +101,10 @@ protected:
     VirtualMachine* vm;
     const SSHKeyProvider* ssh_key_provider;
     const std::string target;
+    const std::string source;
 
-private:
     bool active;
     std::mutex active_mutex;
-    virtual bool is_active()
-    {
-        return active;
-    }
 };
 } // namespace multipass
 #endif // MULTIPASS_MOUNT_HANDLER_H
