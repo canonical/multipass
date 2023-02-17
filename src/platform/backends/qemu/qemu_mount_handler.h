@@ -33,6 +33,7 @@ public:
 
     void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
     void stop_impl(bool force) override;
+    bool is_active() override;
 
 private:
     QemuVirtualMachine::MountArgs& vm_mount_args;
