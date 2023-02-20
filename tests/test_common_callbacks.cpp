@@ -33,8 +33,9 @@ struct TestSpinnerCallbacks : public Test
 {
     auto clearStreamMatcher()
     {
-        static const std::regex clear_regex{R"(\s*)"}; /* A "clear" stream can either be empty or made up of whitespaces
-                                                          (including carriage returns) */
+        static const std::regex clear_regex{
+            R"(\u001B\[2K\u001B\[0E|^$)"}; /* A "clear" stream should have nothing on the current
+                                     line and the cursor in the leftmost position */
         return Truly([](const auto& str) {
             return std::regex_match(str, clear_regex); // (gtest regex not cutting it on macOS)
         });
@@ -70,7 +71,7 @@ TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackLogs)
 
     EXPECT_THAT(err.str(), StrEq(log));
     EXPECT_THAT(out.str(), clearStreamMatcher()); /* this is not empty because print stops, stop clears, and clear
-                                                     prints carriage returns and spaces */
+                                                     prints ANSI escape characters to clear the line */
 }
 
 TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackIgnoresEmptyLog)
