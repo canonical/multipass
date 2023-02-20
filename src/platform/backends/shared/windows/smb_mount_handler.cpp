@@ -99,7 +99,7 @@ bool SmbMountHandler::can_user_access_source(const QString& user)
 
 SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
                                  const VMMount& mount)
-    : MountHandler{vm, ssh_key_provider, target, mount},
+    : MountHandler{vm, ssh_key_provider, target, mount.source_path},
       source{QString::fromStdString(mount.source_path)},
       powershell{std::make_unique<PowerShell>(category)},
       // share name must be unique and 80 chars max
@@ -109,6 +109,22 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_k
 {
     mpl::log(mpl::Level::info, category,
              fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
+}
+
+bool SmbMountHandler::is_active()
+try
+{
+    return active && smb_share_exists() &&
+           !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
+                .exec(fmt::format("findmnt --type cifs | grep '{} //{}/{}'", target, QHostInfo::localHostName(),
+                                  share_name))
+                .exit_code();
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::warning, category,
+             fmt::format("Failed checking SSHFS mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
+    return false;
 }
 
 void SmbMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
