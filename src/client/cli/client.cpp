@@ -45,6 +45,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
+#include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -103,6 +104,8 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Version>();
 
     sort_commands();
+
+    MP_CLIENT_PLATFORM.enable_ansi_escape_chars();
 }
 
 void mp::Client::sort_commands()
