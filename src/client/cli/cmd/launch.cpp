@@ -324,7 +324,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
 
         if (parser->isSet(memOptionDeprecated))
-            cout << "warning: \"--mem\" long option will be deprecated in favour of \"--memory\" in a future release."
+            cout << "warning: \"--mem\" long option will be deprecated in favour of \"--memory\" in a future release. "
                     "Please update any scripts, etc.\n";
 
         auto arg_mem_size = parser->isSet(memOption) ? parser->value(memOption).toStdString()

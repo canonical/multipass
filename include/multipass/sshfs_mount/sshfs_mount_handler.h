@@ -20,6 +20,7 @@
 
 #include <multipass/mount_handler.h>
 #include <multipass/process/process.h>
+#include <multipass/qt_delete_later_unique_ptr.h>
 #include <multipass/sshfs_server_config.h>
 
 namespace multipass
@@ -33,9 +34,10 @@ public:
 
     void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
     void stop_impl(bool force) override;
+    bool is_active() override;
 
 private:
-    Process::UPtr process;
+    qt_delete_later_unique_ptr<Process> process;
     SSHFSServerConfig config;
 };
 } // namespace multipass

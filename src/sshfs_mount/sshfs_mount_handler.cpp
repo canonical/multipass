@@ -23,9 +23,11 @@
 
 #include <QCoreApplication>
 #include <QEventLoop>
+#include <QThread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -96,7 +98,7 @@ try
     {
         auto error_msg = proc.read_std_error();
         mpl::log(mpl::Level::warning, category,
-                 fmt::format("Failed to install 'multipass-sshfs': {}", mp::utils::trim_end(error_msg)));
+                 fmt::format("Failed to install 'multipass-sshfs': {}", mpu::trim_end(error_msg)));
         throw mp::SSHFSMissingError();
     }
 }
@@ -111,7 +113,7 @@ namespace multipass
 {
 SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider,
                                      const std::string& target, const VMMount& mount)
-    : MountHandler{vm, ssh_key_provider, target, mount},
+    : MountHandler{vm, ssh_key_provider, target, mount.source_path},
       process{nullptr},
       config{"",
              0,
@@ -125,6 +127,21 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* s
 {
     mpl::log(mpl::Level::info, category,
              fmt::format("initializing mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
+}
+
+bool SSHFSMountHandler::is_active()
+try
+{
+    return active && process && process->running() &&
+           !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
+                .exec(fmt::format("findmnt --type fuse.sshfs | grep '{} :{}'", target, source))
+                .exit_code();
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::warning, category,
+             fmt::format("Failed checking SSHFS mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
+    return false;
 }
 
 void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
@@ -148,7 +165,9 @@ void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::millisecon
     config.host = vm->ssh_hostname();
     config.port = vm->ssh_port();
 
-    process = platform::make_sshfs_server_process(config);
+    if (process)
+        process.reset();
+    process.reset(platform::make_sshfs_server_process(config).release());
 
     QObject::connect(process.get(), &Process::finished, [this](const ProcessState& exit_state) {
         if (exit_state.completed_successfully())
@@ -167,7 +186,7 @@ void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::millisecon
     QObject::connect(process.get(), &Process::error_occurred, [this](auto error, auto error_string) {
         mpl::log(mpl::Level::error, category,
                  fmt::format("There was an error with sshfs_server for instance '{}' with path \"{}\": {} - {}",
-                             vm->vm_name, target, utils::qenum_to_string(error), error_string));
+                             vm->vm_name, target, mpu::qenum_to_string(error), error_string));
     });
 
     mpl::log(mpl::Level::info, category, fmt::format("process program '{}'", process->program()));
