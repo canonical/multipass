@@ -1928,8 +1928,7 @@ try // clang-format on
         }
 
         status = cmd_vms(instances_to_suspend, [this](auto& vm) {
-            for (auto& [_, mount] : mounts[vm.vm_name])
-                mount->stop(/*force=*/true);
+            stop_mounts(vm.vm_name);
 
             vm.suspend();
             return grpc::Status::OK;
@@ -1964,8 +1963,7 @@ try // clang-format on
     }
 
     status = cmd_vms(instances, [this](auto& vm) {
-        for (auto& [_, mount] : mounts[vm.vm_name])
-            mount->stop(/*force=*/true);
+        stop_mounts(vm.vm_name);
 
         return reboot_vm(vm);
     }); // 1st pass to reboot all targets
@@ -2257,6 +2255,7 @@ void mp::Daemon::on_suspend()
 
 void mp::Daemon::on_restart(const std::string& name)
 {
+    stop_mounts(name);
     auto future_watcher = create_future_watcher([this, &name]() {
         auto virtual_machine = vm_instances[name];
         std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
@@ -2684,11 +2683,7 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
                      fmt::format("Cannot open ssh session on \"{}\" shutdown: {}", name, e.what()));
         }
 
-        auto stop_all_mounts = [this](const std::string& name) {
-            for (auto& [_, mount] : mounts[name])
-                mount->stop(/*force=*/true);
-        };
-
+        auto stop_all_mounts = [this](const std::string& name) { stop_mounts(name); };
         auto& shutdown_timer = delayed_shutdown_instances[name] =
             std::make_unique<DelayedShutdownTimer>(&vm, std::move(session), stop_all_mounts);
 
@@ -2755,6 +2750,12 @@ void mp::Daemon::init_mounts(const std::string& name)
 
     if (!mounts_to_remove.empty())
         persist_instances();
+}
+
+void multipass::Daemon::stop_mounts(const std::string& name)
+{
+    for (auto& [_, mount] : mounts[name])
+        mount->stop(/*force=*/true);
 }
 
 multipass::MountHandler::UPtr multipass::Daemon::make_mount(VirtualMachine* vm, const std::string& target,

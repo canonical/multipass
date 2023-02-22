@@ -33,7 +33,7 @@ namespace multipass
 {
 QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider* ssh_key_provider,
                                    const std::string& target, const VMMount& mount)
-    : MountHandler{vm, ssh_key_provider, target, mount},
+    : MountHandler{vm, ssh_key_provider, target, mount.source_path},
       vm_mount_args{vm->modifiable_mount_args()},
       // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
       // uuid must be truncated. First character of tag must also be alphabetical.
@@ -42,9 +42,8 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
     auto state = vm->current_state();
     if (state == VirtualMachine::State::suspended && vm_mount_args.find(tag) != vm_mount_args.end())
     {
-        mpl::log(
-            mpl::Level::info, category,
-            fmt::format("Found native mount {} => {} in '{}' while suspended", mount.source_path, target, vm->vm_name));
+        mpl::log(mpl::Level::info, category,
+                 fmt::format("Found native mount {} => {} in '{}' while suspended", source, target, vm->vm_name));
         return;
     }
 
@@ -56,16 +55,30 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
         throw std::runtime_error("Only one mapping per native mount allowed.");
 
     mpl::log(mpl::Level::info, category,
-             fmt::format("initializing native mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
+             fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
 
     const auto uid_map = mount.uid_mappings.empty() ? std::make_pair(1000, 1000) : mount.uid_mappings[0];
     const auto gid_map = mount.gid_mappings.empty() ? std::make_pair(1000, 1000) : mount.gid_mappings[0];
     const auto uid_arg = QString("uid_map=%1:%2,").arg(uid_map.first).arg(uid_map.second == -1 ? 1000 : uid_map.second);
     const auto gid_arg = QString{"gid_map=%1:%2,"}.arg(gid_map.first).arg(gid_map.second == -1 ? 1000 : gid_map.second);
     vm_mount_args[tag] = {
-        mount.source_path,
+        source,
         {"-virtfs", QString::fromStdString(fmt::format("local,security_model=passthrough,{}{}path={},mount_tag={}",
-                                                       uid_arg, gid_arg, mount.source_path, tag))}};
+                                                       uid_arg, gid_arg, source, tag))}};
+}
+
+bool QemuMountHandler::is_active()
+try
+{
+    return active && !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
+                          .exec(fmt::format("findmnt --type 9p | grep '{} {}'", target, tag))
+                          .exit_code();
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::warning, category,
+             fmt::format("Failed checking 9p mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
+    return false;
 }
 
 void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)

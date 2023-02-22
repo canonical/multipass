@@ -89,6 +89,11 @@ std::string command_chown(const std::string& parent, const std::string& missing,
                        missing.substr(0, missing.find_first_of('/')));
 }
 
+std::string command_findmnt(const std::string& target)
+{
+    return fmt::format("findmnt --type 9p | grep '{} {}'", target, tag_from_target(target));
+}
+
 struct QemuMountHandlerTest : public ::Test
 {
     QemuMountHandlerTest()
@@ -138,12 +143,15 @@ struct QemuMountHandlerTest : public ::Test
     NiceMock<MockQemuVirtualMachine> vm{"my_instance"};
     mp::QemuVirtualMachine::MountArgs mount_args;
     mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
-    CommandOutputs command_outputs{{"echo $PWD/target", {"/home/ubuntu/target"}},
-                                   {command_get_existing_parent("/home/ubuntu/target"), {"/home/ubuntu/target"}},
-                                   {"id -u", {"1000"}},
-                                   {"id -g", {"1000"}},
-                                   {command_mount(default_target), {""}},
-                                   {command_umount(default_target), {""}}};
+    CommandOutputs command_outputs{
+        {"echo $PWD/target", {"/home/ubuntu/target"}},
+        {command_get_existing_parent("/home/ubuntu/target"), {"/home/ubuntu/target"}},
+        {"id -u", {"1000"}},
+        {"id -g", {"1000"}},
+        {command_mount(default_target), {""}},
+        {command_umount(default_target), {""}},
+        {command_findmnt(default_target), {""}},
+    };
 };
 
 struct QemuMountHandlerFailCommand : public QemuMountHandlerTest, public testing::WithParamInterface<std::string>
