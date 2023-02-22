@@ -11,3 +11,9 @@ parts
 prime
 stage
 snap/.snapcraft/state
+
+# Flutter build artifacts
+src/client/desktop_gui/build
+src/client/desktop_gui/.dart_tool
+src/client/desktop_gui/lib/*.dart
+src/client/desktop_gui/flutter*.log
