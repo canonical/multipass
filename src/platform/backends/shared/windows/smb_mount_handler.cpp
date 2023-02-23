@@ -189,8 +189,7 @@ try
 
     mpl::log(mpl::Level::info, category, "Successfully decrypted credentials");
 
-    const auto tokens = mp::utils::split(rtext, "=");
-    return tokens.at(1);
+    return rtext;
 }
 catch (const std::exception& e)
 {
@@ -254,26 +253,36 @@ try
 
     const auto username = MP_PLATFORM.get_username();
     const auto user_id = mpu::make_uuid(username.toStdString());
+    const auto iv_filename = user_id + ".iv";
+    const auto cred_filename = user_id + ".cifs";
 
-    const auto password = std::visit(
-        [this, &session, timeout, &user_id](auto&& server) {
-            auto reply = server ? make_reply_from_server(server)
-                                : throw std::runtime_error("Cannot start SMB mount without client connection");
-            std::string password;
-
-            if (session.exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils").read_std_output() !=
-                "installed")
+    if (session.exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils").read_std_output() !=
+        "installed")
+    {
+        auto visitor = [](auto server) {
+            if (server)
             {
+                auto reply = make_reply_from_server(server);
                 reply.set_reply_message("Enabling support for mounting");
                 server->Write(reply);
-                install_cifs_for(vm->vm_name, session, timeout);
             }
+        };
 
-            auto iv_filename = user_id + ".iv";
-            auto cred_filename = user_id + ".cifs";
+        std::visit(visitor, server);
+        install_cifs_for(vm->vm_name, session, timeout);
+    }
 
-            if (password = decrypt_credentials_from_file(cred_filename, iv_filename); password.empty())
-            {
+    const auto rtext = decrypt_credentials_from_file(cred_filename, iv_filename);
+    const auto tokens = mp::utils::split(rtext, "=");
+    auto password = tokens.at(1);
+
+    if (password.empty())
+    {
+        password = std::visit(
+            [this, &session, timeout](auto&& server) {
+                auto reply = server ? make_reply_from_server(server)
+                                    : throw std::runtime_error("Cannot get password without client connection");
+
                 reply.set_password_requested(true);
                 if (!server->Write(reply))
                     throw std::runtime_error("Cannot request password from client. Aborting...");
@@ -282,16 +291,15 @@ try
                 if (!server->Read(&request))
                     throw std::runtime_error("Cannot get password from client. Aborting...");
 
-                password = request.password();
-                if (password.empty())
-                    throw std::runtime_error("A password is required for SMB mounts.");
+                return request.password();
+            },
+            server);
 
-                encrypt_credentials_to_file(cred_filename, iv_filename, fmt::format("password={}", password));
-            }
+        if (password.empty())
+            throw std::runtime_error("A password is required for SMB mounts.");
 
-            return password;
-        },
-        server);
+        encrypt_credentials_to_file(cred_filename, iv_filename, fmt::format("password={}", password));
+    }
 
     create_smb_share(username);
 
