@@ -111,10 +111,10 @@ void SmbMountHandler::remove_smb_share()
                  fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
 }
 
-void SmbMountHandler::remove_cred_files()
+void SmbMountHandler::remove_cred_files(const QString& user_id)
 {
-    auto iv_filename = mpu::make_uuid(username.toStdString()) + ".iv";
-    auto cred_filename = mpu::make_uuid(username.toStdString()) + ".cifs";
+    auto iv_filename = user_id + ".iv";
+    auto cred_filename = user_id + ".cifs";
 
     QFile cred_file{cred_dir.filePath(cred_filename)};
     QFile iv_file{cred_dir.filePath(iv_filename)};
@@ -139,31 +139,30 @@ bool SmbMountHandler::can_user_access_source(const QString& user)
 
 void SmbMountHandler::encrypt_credentials_to_file(const QString& cred_filename, const QString& iv_filename,
                                                   const std::string& ptext)
+try
 {
-    try
-    {
-        std::string ctext;
-        QFile cred_file{cred_dir.filePath(cred_filename)};
-        QFile iv_file{cred_dir.filePath(iv_filename)};
-        auto iv = MP_UTILS.random_bytes(MP_AES.aes_256_block_size());
+    std::string ctext;
+    QFile cred_file{cred_dir.filePath(cred_filename)};
+    QFile iv_file{cred_dir.filePath(iv_filename)};
+    auto iv = MP_UTILS.random_bytes(MP_AES.aes_256_block_size());
 
-        MP_AES.encrypt(enc_key, iv, ptext, ctext);
+    MP_AES.encrypt(enc_key, iv, ptext, ctext);
 
-        MP_FILEOPS.open(iv_file, QIODevice::WriteOnly);
-        MP_FILEOPS.write(iv_file, (const char*)(iv.data()), MP_AES.aes_256_block_size());
+    MP_FILEOPS.open(iv_file, QIODevice::WriteOnly);
+    MP_FILEOPS.write(iv_file, (const char*)(iv.data()), MP_AES.aes_256_block_size());
 
-        MP_FILEOPS.open(cred_file, QIODevice::WriteOnly);
-        MP_FILEOPS.write(cred_file, (const char*)(ctext.data()), ctext.size());
+    MP_FILEOPS.open(cred_file, QIODevice::WriteOnly);
+    MP_FILEOPS.write(cred_file, (const char*)(ctext.data()), ctext.size());
 
-        mpl::log(mpl::Level::info, category, "Successfully encrypted credentials");
-    }
-    catch (const std::exception& e)
-    {
-        mpl::log(mpl::Level::warning, category, fmt::format("Failed to encrypt credentials to file: {}", e.what()));
-    }
+    mpl::log(mpl::Level::info, category, "Successfully encrypted credentials");
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::warning, category, fmt::format("Failed to encrypt credentials to file: {}", e.what()));
 }
 
 std::string SmbMountHandler::decrypt_credentials_from_file(const QString& cred_filename, const QString& iv_filename)
+try
 {
     std::vector<uint8_t> iv;
     std::string ctext;
@@ -193,6 +192,11 @@ std::string SmbMountHandler::decrypt_credentials_from_file(const QString& cred_f
     const auto tokens = mp::utils::split(rtext, "=");
     return tokens.at(1);
 }
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::warning, category, fmt::format("Failed to decrypt credentials from file: {}", e.what()));
+    return {};
+}
 
 SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
                                  const VMMount& mount, const mp::Path& cred_dir)
@@ -202,8 +206,7 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_k
       share_name{QString("%1_%2:%3")
                      .arg(mpu::make_uuid(), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
                      .left(80)},
-      cred_dir{cred_dir},
-      username{MP_PLATFORM.get_username()}
+      cred_dir{cred_dir}
 {
     mpl::log(mpl::Level::info, category,
              fmt::format("Initializing native mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
@@ -211,7 +214,6 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_k
     auto data_location{MP_PLATFORM.multipass_storage_location() + "\\data"};
     auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys",
                                             QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner)};
-
     auto key_file = QFile{QDir{enc_key_dir_path}.filePath("aes.key")};
 
     if (MP_FILEOPS.exists(key_file))
@@ -250,8 +252,11 @@ try
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
+    const auto username = MP_PLATFORM.get_username();
+    const auto user_id = mpu::make_uuid(username.toStdString());
+
     const auto password = std::visit(
-        [this, &session, timeout](auto&& server) {
+        [this, &session, timeout, &user_id](auto&& server) {
             auto reply = server ? make_reply_from_server(server)
                                 : throw std::runtime_error("Cannot start SMB mount without client connection");
             std::string password;
@@ -264,18 +269,11 @@ try
                 install_cifs_for(vm->vm_name, session, timeout);
             }
 
-            auto iv_filename = mpu::make_uuid(username.toStdString()) + ".iv";
-            auto cred_filename = mpu::make_uuid(username.toStdString()) + ".cifs";
+            auto iv_filename = user_id + ".iv";
+            auto cred_filename = user_id + ".cifs";
 
-            try
+            if (password = decrypt_credentials_from_file(cred_filename, iv_filename); password.empty())
             {
-                password = decrypt_credentials_from_file(cred_filename, iv_filename);
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::info, category,
-                         fmt::format("Failed to decrypt credentials from file: {}", e.what()));
-
                 reply.set_password_requested(true);
                 if (!server->Write(reply))
                     throw std::runtime_error("Cannot request password from client. Aborting...");
@@ -322,11 +320,13 @@ try
                  fmt::format("Failed deleting credentials file in \'{}\': {}", vm->vm_name, rm_proc.read_std_error()));
 
     if (mount_exit_code != 0)
+    {
+        remove_cred_files(user_id);
         throw std::runtime_error(fmt::format("Error: {}", mount_proc.read_std_error()));
+    }
 }
 catch (...)
 {
-    remove_cred_files();
     remove_smb_share();
     throw;
 }

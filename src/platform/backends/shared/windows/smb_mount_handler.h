@@ -39,14 +39,13 @@ public:
 private:
     QString source;
     QString share_name;
-    QString username;
     QDir cred_dir;
     std::vector<uint8_t> enc_key;
 
     bool smb_share_exists();
     void create_smb_share(const QString& user);
     void remove_smb_share();
-    void remove_cred_files();
+    void remove_cred_files(const QString& user_id);
     bool can_user_access_source(const QString& user);
     void encrypt_credentials_to_file(const QString& cred_filename, const QString& iv_filename,
                                      const std::string& ptext);
