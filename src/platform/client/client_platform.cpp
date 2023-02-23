@@ -61,3 +61,8 @@ std::pair<std::string, std::string> mcp::Platform::get_user_password(mp::Termina
 {
     return {};
 }
+
+void mcp::Platform::enable_ansi_escape_chars() const
+{
+    return;
+}
