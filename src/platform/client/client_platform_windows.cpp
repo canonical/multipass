@@ -26,6 +26,7 @@
 
 #include <fcntl.h>
 #include <io.h>
+#include <windows.h>
 
 namespace mp = multipass;
 namespace mcp = multipass::cli::platform;
@@ -88,4 +89,14 @@ std::pair<std::string, std::string> mcp::Platform::get_user_password(mp::Termina
     }
 
     return {};
+}
+
+void mcp::Platform::enable_ansi_escape_chars() const
+{
+    HANDLE handleOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD consoleMode;
+
+    GetConsoleMode(handleOut, &consoleMode);
+    consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(handleOut, consoleMode);
 }
