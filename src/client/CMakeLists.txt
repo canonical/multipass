@@ -15,3 +15,7 @@
 add_subdirectory(cli)
 add_subdirectory(common)
 add_subdirectory(gui)
+
+if(MULTIPASS_ENABLE_FLUTTER_GUI)
+  add_subdirectory(desktop_gui)
+endif(MULTIPASS_ENABLE_FLUTTER_GUI)
