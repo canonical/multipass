@@ -3,7 +3,7 @@ set(FETCHCONTENT_QUIET FALSE)
 
 FetchContent_Declare(gRPC
   GIT_REPOSITORY https://github.com/CanonicalLtd/grpc.git
-  GIT_TAG multipass
+  GIT_TAG ba8e7f72
   GIT_SHALLOW TRUE
   GIT_SUBMODULES "third_party/abseil-cpp third_party/cares/cares third_party/protobuf third_party/re2 third_party/zlib"
   GIT_SUBMODULES_RECURSE false
@@ -76,7 +76,7 @@ target_link_libraries(gRPC INTERFACE
   zlibstatic)
 
 if (NOT MSVC)
-  target_compile_options(gRPC INTERFACE "-Wno-unused-parameter")
+  target_compile_options(gRPC INTERFACE "-Wno-unused-parameter" "-Wno-non-virtual-dtor")
 endif ()
 
 # YAML C++
