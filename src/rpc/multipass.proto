@@ -39,6 +39,7 @@ service Rpc {
     rpc set (stream SetRequest) returns (stream SetReply);
     rpc keys (stream KeysRequest) returns (stream KeysReply);
     rpc authenticate (stream AuthenticateRequest) returns (stream AuthenticateReply);
+    rpc snapshot (stream SnapshotRequest) returns (stream SnapshotReply);
 }
 
 message LaunchRequest {
@@ -447,4 +448,15 @@ message AuthenticateRequest {
 
 message AuthenticateReply {
     string log_line = 1;
+}
+
+message SnapshotRequest {
+    string instance = 1;
+    string snapshot = 2;
+    string comment = 3;
+}
+
+message SnapshotReply {
+    string snapshot = 1; // automatically generated unless specifically requested
+    string log_line = 2;
 }
