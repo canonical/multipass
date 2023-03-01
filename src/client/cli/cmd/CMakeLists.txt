@@ -36,6 +36,7 @@ add_library(commands STATIC
   restart.cpp
   set.cpp
   shell.cpp
+  snapshot.cpp
   start.cpp
   stop.cpp
   suspend.cpp
