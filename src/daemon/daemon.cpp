@@ -916,12 +916,12 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
-void add_aliases(mp::FindReply& response, const std::string& remote_name, const mp::VMImageInfo& info,
+template <typename T>
+void add_aliases(T entry, const std::string& remote_name, const mp::VMImageInfo& info,
                  const std::string& default_remote)
 {
     if (!info.aliases.empty())
     {
-        auto entry = response.add_images_info();
         for (const auto& alias : info.aliases)
         {
             auto alias_entry = entry->add_aliases_info();
@@ -1251,30 +1251,21 @@ try // clang-format on
                     config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
                                                  Query::Type::Alias, request->allow_unsupported()});
 
-                for (const auto& [remote, info] : vm_images_info)
+                for (auto& [remote, info] : vm_images_info)
                 {
                     std::string name;
                     if (info.aliases.contains(QString::fromStdString(request->search_string())))
-                    {
-                        name = request->search_string();
-                    }
+                        info.aliases = QStringList({QString::fromStdString(request->search_string())});
                     else
-                    {
-                        name = info.id.toStdString();
-                        name.resize(12);
-                    }
+                        info.aliases = QStringList({info.id.left(12)});
 
-                    auto entry = response.add_images_info();
-                    entry->set_os(info.os.toStdString());
-                    entry->set_release(info.release_title.toStdString());
-                    entry->set_version(info.version.toStdString());
-                    auto alias_entry = entry->add_aliases_info();
-                    if (!request->remote_name().empty() ||
-                        (request->remote_name().empty() && vm_images_info.size() > 1 && remote != default_remote))
-                    {
-                        alias_entry->set_remote_name(remote);
-                    }
-                    alias_entry->set_alias(name);
+                    add_aliases(response.add_images_info(),
+                                !request->remote_name().empty() ||
+                                        (request->remote_name().empty() && vm_images_info.size() > 1 &&
+                                         remote != default_remote)
+                                    ? remote
+                                    : "",
+                                info, "");
                 }
             }
             catch (const std::exception&)
@@ -1291,23 +1282,12 @@ try // clang-format on
             {
                 VMImageInfo info = config->blueprint_provider->info_for(request->search_string());
 
-                std::string name;
                 if (info.aliases.contains(QString::fromStdString(request->search_string())))
-                {
-                    name = request->search_string();
-                }
+                    info.aliases = QStringList({QString::fromStdString(request->search_string())});
                 else
-                {
-                    name = info.id.toStdString();
-                    name.resize(12);
-                }
+                    info.aliases = QStringList({info.id.left(12)});
 
-                auto entry = response.add_blueprints_info();
-                entry->set_os(info.os.toStdString());
-                entry->set_release(info.release_title.toStdString());
-                entry->set_version(info.version.toStdString());
-                auto alias_entry = entry->add_aliases_info();
-                alias_entry->set_alias(name);
+                add_aliases(response.add_blueprints_info(), "", info, "");
             }
             catch (const std::exception&)
             {
@@ -1329,7 +1309,7 @@ try // clang-format on
                     if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
                         images_found.find(info.release_title.toStdString()) == images_found.end())
                     {
-                        add_aliases(response, remote, info, default_remote);
+                        add_aliases(response.add_images_info(), remote, info, default_remote);
                         images_found.insert(info.release_title.toStdString());
                     }
                 };
@@ -1343,21 +1323,7 @@ try // clang-format on
             auto vm_blueprints_info = config->blueprint_provider->all_blueprints();
 
             for (const auto& info : vm_blueprints_info)
-            {
-                if (!info.aliases.empty())
-                {
-                    auto entry = response.add_blueprints_info();
-                    for (const auto& alias : info.aliases)
-                    {
-                        auto alias_entry = entry->add_aliases_info();
-                        alias_entry->set_alias(alias.toStdString());
-                    }
-
-                    entry->set_os(info.os.toStdString());
-                    entry->set_release(info.release_title.toStdString());
-                    entry->set_version(info.version.toStdString());
-                }
-            }
+                add_aliases(response.add_blueprints_info(), "", info, "");
         }
     }
     else
@@ -1367,9 +1333,7 @@ try // clang-format on
         auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
 
         for (const auto& info : vm_images_info)
-        {
-            add_aliases(response, remote, info, "");
-        }
+            add_aliases(response.add_images_info(), remote, info, "");
     }
 
     server->Write(response);
