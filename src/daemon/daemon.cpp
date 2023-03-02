@@ -369,6 +369,81 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
     }
     return reconstructed_records;
 }
+int list_instances(bool show_deleted) {
+    std::vector<instance::Instance> instances = instance::list_all();
+    std::vector<instance::Instance> deleted_instances = instance::list_deleted();
+
+    if (instances.empty() && deleted_instances.empty()) {
+        std::cout << "No instances found." << std::endl;
+        return EXIT_SUCCESS;
+    }
+
+    // Sort instances by name.
+    std::sort(instances.begin(), instances.end(), [](const auto& a, const auto& b) {
+        return a.get_name() < b.get_name();
+    });
+
+    // Print info for each instance.
+    for (const auto& inst : instances) {
+        std::cout << "Name: " << inst.get_name() << std::endl;
+        std::cout << "State: " << inst.get_state() << std::endl;
+        std::cout << "IPv4: " << inst.get_ipv4() << std::endl;
+        std::cout << "Release: " << inst.get_release() << std::endl;
+        std::cout << "Image hash: " << inst.get_image_hash() << std::endl;
+        std::cout << std::endl;
+    }
+
+    // If show_deleted flag is set, print info for each deleted instance.
+    if (show_deleted) {
+        for (const auto& inst : deleted_instances) {
+            std::cout << "Name: " << inst.get_name() << std::endl;
+            std::cout << "State: " << inst.get_state() << std::endl;
+            std::cout << "IPv4: " << inst.get_ipv4() << std::endl;
+            std::cout << "Release: " << inst.get_release() << std::endl;
+            std::cout << "Image hash: " << inst.get_image_hash() << std::endl;
+            std::cout << std::endl;
+        }
+    }
+
+    return EXIT_SUCCESS;
+}
+
+int info_main(int argc, char* argv[]) {
+    // Parse command-line arguments.
+    bool show_deleted = false;
+    std::vector<std::string> instances;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--all") == 0) {
+            show_deleted = true;
+        } else {
+            instances.push_back(argv[i]);
+        }
+    }
+
+    // If no instances were specified, list all instances.
+    if (instances.empty()) {
+        return list_instances(show_deleted);
+    }
+
+    // Print info for each specified instance.
+    for (const auto& inst : instances) {
+        instance::Instance instance(inst);
+        if (!instance.exists()) {
+            std::cerr << "Instance not found: " << inst << std::endl;
+            return EXIT_FAILURE;
+        }
+        std::cout << "Name: " << instance.get_name() << std::endl;
+        std::cout << "State: " << instance.get_state() << std::endl;
+        std::cout << "IPv4: " << instance.get_ipv4() << std::endl;
+        std::cout << "Release: " << instance.get_release() << std::endl;
+        std::cout << "Image hash: " << instance.get_image_hash() << std::endl;
+        std::cout << std::endl;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+
 
 QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfaces)
 {
