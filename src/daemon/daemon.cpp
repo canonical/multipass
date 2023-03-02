@@ -3058,7 +3058,9 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                 auto qemuimg_proc = mp::platform::make_process(
                     std::make_unique<CustomQemuImgProcessSpec>(std::move(qemuimg_args), new_image));
 
-                if (const auto qemuimg_state = qemuimg_proc->execute(); !qemuimg_state.completed_successfully())
+                const auto repair_timeout = 300000; // allow 5 minutes to repair large images
+                if (const auto qemuimg_state = qemuimg_proc->execute(repair_timeout);
+                    !qemuimg_state.completed_successfully())
                     throw HyperkitMigrationRecoverableError{vm_name, "could not fix image metadata",
                                                             qemuimg_state.failure_message()};
 
