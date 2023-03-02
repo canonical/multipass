@@ -667,8 +667,8 @@ Forward-info: downstream decision
      /* Defaults for the latest behaviour inherited from the base class */
  }
  
--DEFINE_SPAPR_MACHINE(7_1, "7.1", true);
-+DEFINE_SPAPR_MACHINE(7_1, "7.1", false);
+-DEFINE_SPAPR_MACHINE(7_2, "7.2", true);
++DEFINE_SPAPR_MACHINE(7_2, "7.2", false);
  
  /*
   * pseries-6.2
@@ -757,8 +757,8 @@ Forward-info: downstream decision
  static void ccw_machine_7_0_class_options(MachineClass *mc)
  {
  }
--DEFINE_CCW_MACHINE(7_1, "7.1", true);
-+DEFINE_CCW_MACHINE(7_1, "7.1", false);
+-DEFINE_CCW_MACHINE(7_2, "7.2", true);
++DEFINE_CCW_MACHINE(7_2, "7.2", false);
  
  static void ccw_machine_6_2_instance_options(MachineState *machine)
  {
