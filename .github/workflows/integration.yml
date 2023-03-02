@@ -131,6 +131,8 @@ jobs:
                   [ $RC -eq 0 ] || _run sudo cat /Library/Logs/Multipass/multipassd.log
                   # Authenticate the root user
                   _run $MP set local.passphrase=foobar || true
+                  # Sleep 20 seconds to allow daemon to restart
+                  sleep 20
                   _run sudo $MP authenticate foobar || true
                   ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
                   _run sudo rm -rf /Library/Logs/Multipass
