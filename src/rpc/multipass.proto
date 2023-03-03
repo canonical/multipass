@@ -446,6 +446,7 @@ message SnapshotRequest {
     string instance = 1;
     string snapshot = 2;
     string comment = 3;
+    int32 verbosity_level = 4;
 }
 
 message SnapshotReply {
