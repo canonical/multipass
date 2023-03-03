@@ -57,5 +57,28 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
         {"comment", "m"}, "An optional free comment to associate with the snapshot.", "comment"};
     parser->addOption(comment_opt);
 
-    return parser->commandParse(this); // TODO@ricab implement
+    if (auto status = parser->commandParse(this); status != ParseCode::Ok)
+        return status;
+
+    const auto positional_args = parser->positionalArguments();
+    const auto num_args = positional_args.count();
+    if (num_args < 1)
+    {
+        cerr << "Need the name of an instance to snapshot.\n";
+        return ParseCode::CommandLineError;
+    }
+
+    if (num_args > 2)
+    {
+        cerr << "Too many arguments supplied\n";
+        return ParseCode::CommandLineError;
+    }
+
+    request.set_instance(positional_args.first().toStdString());
+    request.set_comment(parser->value(comment_opt).toStdString());
+
+    if (num_args == 2)
+        request.set_snapshot(positional_args.at(1).toStdString());
+
+    return ParseCode::Ok;
 }
