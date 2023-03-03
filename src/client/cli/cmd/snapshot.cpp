@@ -18,6 +18,7 @@
 #include "snapshot.h"
 
 #include "animated_spinner.h"
+#include "common_callbacks.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -44,7 +45,8 @@ mp::ReturnCode cmd::Snapshot::run(mp::ArgParser* parser)
     };
 
     spinner.start("Taking snapshot ");
-    return dispatch(&RpcMethod::snapshot, request, on_success, on_failure);
+    return dispatch(&RpcMethod::snapshot, request, on_success, on_failure,
+                    make_logging_spinner_callback<SnapshotRequest, SnapshotReply>(spinner, cerr));
 }
 
 std::string cmd::Snapshot::name() const
