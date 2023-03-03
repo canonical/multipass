@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart' as grpc;
 
 import 'generated/multipass.pbgrpc.dart';
+import 'grpc_client.dart';
+
+typedef Status = InstanceStatus_Status;
 
 class ChannelCredentials extends grpc.ChannelCredentials {
   final List<int> certificateChain;
@@ -70,25 +73,20 @@ final grpcClient = Provider(
     final address = getDaemonAddress();
     final certDir = '${getDataDirectory()}/multipass-client-certificate';
 
-    return RpcClient(grpc.ClientChannel(
+    var channelCredentials = ChannelCredentials(
+      authority: 'localhost',
+      certificate: File('$certDir/multipass_cert.pem').readAsBytesSync(),
+      certificateKey: File('$certDir/multipass_cert_key.pem').readAsBytesSync(),
+    );
+
+    return GrpcClient(RpcClient(grpc.ClientChannel(
       address,
       port: Platform.isWindows ? 50051 : 0,
-      options: grpc.ChannelOptions(
-        credentials: ChannelCredentials(
-          authority: 'localhost',
-          certificate: File('$certDir/multipass_cert.pem').readAsBytesSync(),
-          certificateKey:
-              File('$certDir/multipass_cert_key.pem').readAsBytesSync(),
-        ),
-      ),
-    ));
+      options: grpc.ChannelOptions(credentials: channelCredentials),
+    )));
   },
 );
 
-final vmsInfo = StreamProvider((ref) async* {
-  final client = ref.watch(grpcClient);
-  await for (final _ in Stream.periodic(const Duration(seconds: 1))) {
-    print('${DateTime.now()} Polling daemon');
-    yield await client.info(Stream.value(InfoRequest())).single;
-  }
-});
+final infoStreamProvider = StreamProvider(
+  (ref) => ref.watch(grpcClient).infoStream(),
+);
