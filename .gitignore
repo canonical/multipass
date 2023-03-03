@@ -1,5 +1,5 @@
 .idea
-cmake-build-debug
+cmake-build-*
 CMakeLists.txt.user
 
 # only care about the encrypted file
@@ -15,5 +15,6 @@ snap/.snapcraft/state
 # Flutter build artifacts
 src/client/desktop_gui/build
 src/client/desktop_gui/.dart_tool
-src/client/desktop_gui/lib/*.dart
 src/client/desktop_gui/flutter*.log
+.flutter-plugins
+.flutter-plugins-dependencies
