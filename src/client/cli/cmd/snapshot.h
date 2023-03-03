@@ -34,6 +34,7 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
+    SnapshotRequest request;
 };
 } // namespace multipass::cmd
 
