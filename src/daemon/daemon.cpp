@@ -2353,8 +2353,16 @@ try
     mpl::ClientLogger<SnapshotReply, SnapshotRequest> logger{mpl::level_from(request->verbosity_level()),
                                                              *config->logger, server};
 
-    sleep(3); // TODO@ricab placeholder; implement
-    mpl::log(mpl::Level::debug, category, "Snapshot placeholder");
+    { // TODO@ricab replace placeholder implementation
+        sleep(3);
+
+        mpl::log(mpl::Level::debug, category, "Snapshot placeholder");
+
+        SnapshotReply reply;
+        auto snapshot_name = request->snapshot();
+        reply.set_snapshot(snapshot_name.empty() ? "placeholder-name" : snapshot_name);
+        server->Write(reply);
+    }
 
     status_promise->set_value(grpc::Status::OK);
 }
