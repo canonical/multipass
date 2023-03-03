@@ -1,15 +1,27 @@
+include(FetchContent)
+set(FETCHCONTENT_QUIET FALSE)
+
+FetchContent_Declare(gRPC
+  GIT_REPOSITORY https://github.com/CanonicalLtd/grpc.git
+  GIT_TAG ba8e7f72
+  GIT_SHALLOW TRUE
+  GIT_SUBMODULES "third_party/abseil-cpp third_party/cares/cares third_party/protobuf third_party/re2 third_party/zlib"
+  GIT_SUBMODULES_RECURSE false
+  GIT_PROGRESS TRUE
+)
+set(gRPC_SSL_PROVIDER "package" CACHE STRING "Provider of ssl library")
+
+FetchContent_MakeAvailable(gRPC)
+
 # Workaround for zlib placing its generated zconf.h file in the build dir,
 # and protobuf not knowing so finding the system version instead
-include_directories(${CMAKE_BINARY_DIR}/3rd-party/grpc/third_party/zlib)
+include_directories(${grpc_SOURCE_DIR}/third_party/zlib)
+
+set_property(DIRECTORY ${grpc_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
 
 if (MSVC)
   add_compile_options(-wd5045) #Disable warning about Spectre mitigation
 endif()
-
-set(gRPC_SSL_PROVIDER "package" CACHE STRING "Provider of ssl library")
-
-# Add the subdir here to avoid polluting their cmake scope
-add_subdirectory(grpc EXCLUDE_FROM_ALL)
 
 # Generates gRPC and protobuf C++ sources and headers from the given .proto files
 #
@@ -64,7 +76,7 @@ target_link_libraries(gRPC INTERFACE
   zlibstatic)
 
 if (NOT MSVC)
-  target_compile_options(gRPC INTERFACE "-Wno-unused-parameter")
+  target_compile_options(gRPC INTERFACE "-Wno-unused-parameter" "-Wno-non-virtual-dtor")
 endif ()
 
 # YAML C++

@@ -1,7 +1,3 @@
-[submodule "3rd-party/grpc"]
-	path = 3rd-party/grpc
-	url = https://github.com/CanonicalLtd/grpc.git
-	ignore = dirty
 [submodule "3rd-party/yaml-cpp"]
 	path = 3rd-party/yaml-cpp
 	url = https://github.com/canonical/yaml-cpp.git
