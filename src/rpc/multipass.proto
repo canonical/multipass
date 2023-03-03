@@ -426,7 +426,7 @@ message SetReply {
 }
 
 message KeysRequest {
-    int32 verbosity_level = 3;
+    int32 verbosity_level = 1;
 }
 
 message KeysReply {
