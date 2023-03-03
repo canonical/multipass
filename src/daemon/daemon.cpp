@@ -683,6 +683,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_set, &daemon, &mp::Daemon::set);
     QObject::connect(&rpc, &mp::DaemonRpc::on_keys, &daemon, &mp::Daemon::keys);
     QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
 }
 
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
@@ -2250,6 +2251,24 @@ try
         return status_promise->set_value(
             grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Passphrase is not correct. Please try again."));
     }
+
+    status_promise->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::snapshot(const mp::SnapshotRequest* request,
+                          grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
+                          std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<SnapshotReply, SnapshotRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                             *config->logger, server};
+
+    sleep(3); // TODO@ricab placeholder; implement
+    mpl::log(mpl::Level::debug, category, "Snapshot placeholder");
 
     status_promise->set_value(grpc::Status::OK);
 }
