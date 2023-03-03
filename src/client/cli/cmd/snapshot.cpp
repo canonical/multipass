@@ -16,6 +16,8 @@
  */
 
 #include "snapshot.h"
+
+#include "animated_spinner.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -25,7 +27,24 @@ namespace cmd = mp::cmd;
 
 mp::ReturnCode cmd::Snapshot::run(mp::ArgParser* parser)
 {
-    return parser->returnCodeFrom(parse_args(parser)); // TODO@ricab implement
+    if (auto ret = parse_args(parser); ret != ParseCode::Ok)
+        return parser->returnCodeFrom(ret);
+
+    AnimatedSpinner spinner{cout};
+
+    auto on_success = [this, &spinner](mp::SnapshotReply& reply) {
+        spinner.stop();
+        fmt::print(cout, "Snapshot taken: {}.{}\n", request.instance(), reply.snapshot());
+        return ReturnCode::Ok;
+    };
+
+    auto on_failure = [this, &spinner](grpc::Status& status) {
+        spinner.stop();
+        return standard_failure_handler_for(name(), cerr, status);
+    };
+
+    spinner.start("Taking snapshot ");
+    return dispatch(&RpcMethod::snapshot, request, on_success, on_failure);
 }
 
 std::string cmd::Snapshot::name() const
