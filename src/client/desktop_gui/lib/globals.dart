@@ -48,7 +48,10 @@ getDaemonAddress() {
   }
 }
 
-getDataDirectory() {
+String getDataDirectory() {
+  final customDir = Platform.environment['MULTIPASS_DATA_DIRECTORY'];
+  if (customDir != null) return customDir;
+
   if (Platform.isLinux) {
     return Platform.environment['SNAP_NAME'] == 'multipass'
         ? '${Platform.environment['SNAP_USER_DATA']!}/data'
@@ -65,9 +68,7 @@ getDataDirectory() {
 final grpcClient = Provider(
   (_) {
     final address = getDaemonAddress();
-    print(address);
     final certDir = '${getDataDirectory()}/multipass-client-certificate';
-    print(certDir);
 
     return RpcClient(grpc.ClientChannel(
       address,
