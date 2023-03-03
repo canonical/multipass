@@ -99,5 +99,7 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
     if (num_args == 2)
         request.set_snapshot(positional_args.at(1).toStdString());
 
+    request.set_verbosity_level(parser->verbosityLevel());
+
     return ParseCode::Ok;
 }
