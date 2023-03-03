@@ -93,18 +93,8 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    request.set_show_images(true);
-    request.set_show_blueprints(true);
-
-    if (parser->isSet(showImagesOption))
-    {
-        request.set_show_blueprints(false);
-    }
-
-    if (parser->isSet(showBlueprintsOption))
-    {
-        request.set_show_images(false);
-    }
+    request.set_show_images(!parser->isSet(showBlueprintsOption));
+    request.set_show_blueprints(!parser->isSet(showImagesOption));
 
     if (parser->positionalArguments().count() > 1)
     {
