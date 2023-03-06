@@ -355,10 +355,11 @@ TEST_F(VMBlueprintProvider, infoForReturnsExpectedInfo)
 
     auto blueprint = blueprint_provider.info_for("test-blueprint2");
 
-    ASSERT_EQ(blueprint.aliases.size(), 1);
-    EXPECT_EQ(blueprint.aliases[0], "test-blueprint2");
-    EXPECT_EQ(blueprint.release_title, "Another test blueprint");
-    EXPECT_EQ(blueprint.version, "0.1");
+    ASSERT_TRUE(blueprint);
+    ASSERT_EQ(blueprint->aliases.size(), 1);
+    EXPECT_EQ(blueprint->aliases[0], "test-blueprint2");
+    EXPECT_EQ(blueprint->release_title, "Another test blueprint");
+    EXPECT_EQ(blueprint->version, "0.1");
 }
 
 TEST_F(VMBlueprintProvider, allBlueprintsReturnsExpectedInfo)
@@ -644,9 +645,10 @@ TEST_F(VMBlueprintProvider, infoForCompatibleReturnsExpectedInfo)
 
     auto blueprint = blueprint_provider.info_for("arch-only");
 
-    ASSERT_EQ(blueprint.aliases.size(), 1);
-    EXPECT_EQ(blueprint.aliases[0], "arch-only");
-    EXPECT_EQ(blueprint.release_title, "An arch-only blueprint");
+    ASSERT_TRUE(blueprint);
+    ASSERT_EQ(blueprint->aliases.size(), 1);
+    EXPECT_EQ(blueprint->aliases[0], "arch-only");
+    EXPECT_EQ(blueprint->release_title, "An arch-only blueprint");
 }
 
 TEST_F(VMBlueprintProvider, allBlueprintsReturnsExpectedInfoForArch)

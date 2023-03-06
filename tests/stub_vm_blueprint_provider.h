@@ -38,7 +38,7 @@ struct StubVMBlueprintProvider final : public VMBlueprintProvider
         throw InvalidBlueprintException("");
     }
 
-    VMImageInfo info_for(const std::string& blueprint_name) override
+    std::optional<VMImageInfo> info_for(const std::string& blueprint_name) override
     {
         return VMImageInfo();
     }

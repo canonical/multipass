@@ -25,6 +25,7 @@
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -1147,14 +1148,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     }
                     return true;
                 };
-                try
-                {
-                    config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
-                }
-                catch (const std::exception& e)
-                {
-                    mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
-                }
+
+                config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
             });
         }
     });
