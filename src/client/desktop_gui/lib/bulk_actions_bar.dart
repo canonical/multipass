@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'generated/multipass.pbgrpc.dart';
 import 'globals.dart';
 import 'grpc_client.dart';
 import 'vms_screen.dart';
@@ -19,28 +18,28 @@ class BulkActionsBar extends ConsumerWidget {
 
   Iterable<BulkAction> _actions(
     GrpcClient client,
-    Map<String, InfoReply_Info> vms,
+    Map<String, Status> vms,
   ) {
     return [
       BulkAction(
         label: 'Start',
         icon: Icons.play_arrow,
-        action: vms.values.any((e) => [Status.STOPPED, Status.SUSPENDED]
-                .contains(e.instanceStatus.status))
+        action: vms.values.contains(Status.STOPPED) ||
+                vms.values.contains(Status.SUSPENDED)
             ? () => client.start(vms.keys)
             : null,
       ),
       BulkAction(
         label: 'Stop',
         icon: Icons.stop,
-        action: vms.values.any((e) => e.instanceStatus.status == Status.RUNNING)
+        action: vms.values.contains(Status.RUNNING)
             ? () => client.stop(vms.keys)
             : null,
       ),
       BulkAction(
         label: 'Suspend',
         icon: Icons.pause,
-        action: vms.values.any((e) => e.instanceStatus.status == Status.RUNNING)
+        action: vms.values.contains(Status.RUNNING)
             ? () => client.suspend(vms.keys)
             : null,
       ),
@@ -84,7 +83,11 @@ class BulkActionsBar extends ConsumerWidget {
     return Container(
       color: const Color(0xff313033),
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Row(children: _actions(client, vms).map(_buildButton).toList()),
+      child: Row(
+        children: _actions(client, vms.map(infoToStatusMap))
+            .map(_buildButton)
+            .toList(),
+      ),
     );
   }
 }

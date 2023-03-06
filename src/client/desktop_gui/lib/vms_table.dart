@@ -2,27 +2,21 @@ import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:filesize/filesize.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'generated/multipass.pbgrpc.dart';
+import 'globals.dart';
 import 'instance_actions_button.dart';
+import 'vms_screen.dart';
 
-class VMsTable extends StatefulWidget {
-  final Iterable<InfoReply_Info>? infos;
-  final ValueSetter<Map<String, InfoReply_Info>>? onSelect;
-  final Map<String, InfoReply_Info> selected;
-
-  const VMsTable({
-    super.key,
-    this.infos,
-    this.selected = const {},
-    this.onSelect,
-  });
+class VMsTable extends ConsumerStatefulWidget {
+  const VMsTable({super.key});
 
   @override
-  State<VMsTable> createState() => _VMsTableState();
+  ConsumerState<VMsTable> createState() => _VMsTableState();
 }
 
-class _VMsTableState extends State<VMsTable> {
+class _VMsTableState extends ConsumerState<VMsTable> {
   int? sortIndex;
   bool sortAscending = true;
   String Function(InfoReply_Info)? sortExtractor;
@@ -59,21 +53,14 @@ class _VMsTableState extends State<VMsTable> {
         onSort: e.value == null ? null : _extractorToSortCallback(e.value),
       ));
 
-  Iterable<InfoReply_Info> get sortedInfos => sortExtractor == null
-      ? widget.infos ?? []
-      : (widget.infos ?? []).sorted((a, b) =>
-          (sortIndex != null ? 1 : 0) *
-          (sortAscending ? 1 : -1) *
-          sortExtractor!(a).compareTo(sortExtractor!(b)));
-
-  DataRow2 _buildRow(InfoReply_Info info) {
+  DataRow2 _buildRow(InfoReply_Info info, bool selected) {
     return DataRow2(
-      selected: widget.selected.containsKey(info.name),
-      onSelectChanged: (select) => widget.onSelect?.call(
-        select!
-            ? ({...widget.selected}..[info.name] = info)
-            : ({...widget.selected}..remove(info.name)),
-      ),
+      selected: selected,
+      onSelectChanged: (select) => ref
+          .read(selectedVMsProvider.notifier)
+          .update((selected) => select!
+              ? ({...selected}..[info.name] = info)
+              : ({...selected}..remove(info.name))),
       cells: [
         DataCell(Text(info.name)),
         DataCell(Text(info.instanceStatus.status.name.toLowerCase())),
@@ -94,22 +81,46 @@ class _VMsTableState extends State<VMsTable> {
 
   @override
   Widget build(BuildContext context) {
-    final infos = sortedInfos;
+    final runningOnly = ref.watch(runningOnlyProvider);
+    final searchName = ref.watch(searchNameProvider);
+    final selectedVMs = ref.watch(selectedVMsProvider);
+    final infos = ref.watch(infoStreamProvider).when(
+        data: (reply) => reply.info,
+        loading: () => null,
+        error: (error, stackTrace) {
+          print(error);
+          print(stackTrace);
+          return ref.read(infoStreamProvider).valueOrNull?.info ?? [];
+        });
+
+    final emptyWidget = infos == null
+        ? const Align(
+            alignment: Alignment.topCenter,
+            child: LinearProgressIndicator(),
+          )
+        : const Center(child: Text("No instances"));
+
+    final filteredInfos = (infos ?? [])
+        .where((info) => info.name.contains(searchName))
+        .where((info) =>
+            !runningOnly || info.instanceStatus.status == Status.RUNNING);
+
+    final sortedInfos = sortExtractor == null || sortIndex == null
+        ? filteredInfos
+        : filteredInfos.sorted((a, b) =>
+            (sortAscending ? 1 : -1) *
+            sortExtractor!(a).compareTo(sortExtractor!(b)));
 
     return DataTable2(
-      empty: widget.infos == null
-          ? const Align(
-              alignment: Alignment.topCenter,
-              child: LinearProgressIndicator(),
-            )
-          : const Center(child: Text("No instances")),
+      empty: emptyWidget,
       sortColumnIndex: sortIndex,
       sortAscending: sortAscending,
-      onSelectAll: (select) => widget.onSelect?.call(
-        select! ? {for (final info in infos) info.name: info} : {},
-      ),
+      onSelectAll: (select) => ref.read(selectedVMsProvider.notifier).state =
+          select! ? {for (final info in sortedInfos) info.name: info} : {},
       columns: _headers.toList(),
-      rows: infos.map(_buildRow).toList(),
+      rows: sortedInfos
+          .map((info) => _buildRow(info, selectedVMs.containsKey(info.name)))
+          .toList(),
     );
   }
 }

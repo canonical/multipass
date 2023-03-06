@@ -1,4 +1,4 @@
-import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'bulk_actions_bar.dart';
 import 'generated/multipass.pbgrpc.dart';
 import 'globals.dart';
+import 'running_only_switch.dart';
 import 'vms_table.dart';
 
 final runningOnlyProvider = StateProvider((_) => false);
@@ -16,38 +17,31 @@ final selectedVMsProvider = StateProvider((ref) {
   return <String, InfoReply_Info>{};
 });
 
+MapEntry<String, Status> infoToStatusMap(String key, InfoReply_Info value) {
+  return MapEntry(key, value.instanceStatus.status);
+}
+
 class VMsScreen extends ConsumerWidget {
   const VMsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final runningOnly = ref.watch(runningOnlyProvider);
-    final searchName = ref.watch(searchNameProvider);
-    final selectedVMs = ref.watch(selectedVMsProvider);
-    final infos = ref.watch(infoStreamProvider).when(
-        data: (reply) => reply.info,
-        loading: () => null,
-        error: (error, stackTrace) {
-          print(error);
-          print(stackTrace);
-          return ref.read(infoStreamProvider).valueOrNull?.info ?? [];
-        });
-
+    // this updates the map of selected VMs
     ref.listen(infoStreamProvider.select((reply) {
-      return reply.valueOrNull?.info.map((e) => e.name) ?? [];
+      final infos = reply.valueOrNull?.info ?? [];
+      return {for (final info in infos) info.name: info};
     }), (previous, next) {
-      if (!const IterableEquality().equals(previous, next)) {
-        ref.read(selectedVMsProvider.notifier).update((state) => {
-              for (final name in next)
-                if (state.containsKey(name)) name: state[name]!
-            });
+      if (!mapEquals(
+        previous?.map(infoToStatusMap),
+        next.map(infoToStatusMap),
+      )) {
+        ref.read(selectedVMsProvider.notifier).update(
+              (state) => Map.fromEntries(
+                next.entries.where((e) => state.containsKey(e.key)),
+              ),
+            );
       }
     });
-
-    final filteredInfos = infos
-        ?.where((info) => info.name.contains(searchName))
-        .where((info) =>
-            !runningOnly || info.instanceStatus.status == Status.RUNNING);
 
     final textWithLink = RichText(
       text: TextSpan(children: [
@@ -63,65 +57,52 @@ class VMsScreen extends ConsumerWidget {
       ]),
     );
 
-    final onlyRunningSwitch = SizedBox(
-      height: 30,
-      child: FittedBox(
-        child: Switch(
-          value: runningOnly,
-          onChanged: infos?.isEmpty ?? true
-              ? null
-              : (value) => ref.read(runningOnlyProvider.notifier).state = value,
-        ),
-      ),
-    );
-
-    final searchBoxStyle = InputDecoration(
-      hintText: 'Search by name',
-      fillColor: const Color(0xffe3dee2),
-      filled: true,
-      suffixIcon: const Icon(Icons.search, color: Colors.black),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(50),
-        borderSide: BorderSide.none,
-      ),
-    );
     final searchBox = SizedBox(
       width: 385,
       height: 40,
       child: TextField(
-        decoration: searchBoxStyle,
+        decoration: InputDecoration(
+          hintText: 'Search by name',
+          fillColor: const Color(0xffe3dee2),
+          filled: true,
+          suffixIcon: const Icon(Icons.search, color: Colors.black),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(50),
+            borderSide: BorderSide.none,
+          ),
+        ),
         textAlignVertical: TextAlignVertical.bottom,
         onChanged: (name) => ref.read(searchNameProvider.notifier).state = name,
       ),
     );
 
+    var numberOfInstances = Consumer(
+      builder: (_, ref, __) {
+        final n = ref.watch(infoStreamProvider
+            .select((reply) => reply.valueOrNull?.info.length ?? 0));
+        return Text(
+          'Instance ($n)',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        );
+      },
+    );
+
     return Padding(
       padding: const EdgeInsets.all(15),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(
-          'Instance (${infos?.length ?? 0})',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        ),
+        numberOfInstances,
         const Divider(),
         textWithLink,
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 15),
           child: Row(children: [
-            onlyRunningSwitch,
-            const Text('Only show running instances.'),
+            const RunningOnlySwitch(),
             const Spacer(),
             searchBox,
           ]),
         ),
         const BulkActionsBar(),
-        Expanded(
-          child: VMsTable(
-            infos: filteredInfos,
-            selected: selectedVMs,
-            onSelect: (newNames) =>
-                ref.read(selectedVMsProvider.notifier).state = newNames,
-          ),
-        ),
+        const Expanded(child: VMsTable()),
       ]),
     );
   }
