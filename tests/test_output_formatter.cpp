@@ -1141,13 +1141,6 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "    version: latest\n"
      "    remote: \"\"\n"
      "images:\n"
-     "  lts:\n"
-     "    aliases:\n"
-     "      []\n"
-     "    os: Ubuntu\n"
-     "    release: 18.04 LTS\n"
-     "    version: 20190516\n"
-     "    remote: \"\"\n"
      "  \"daily:19.10\":\n"
      "    aliases:\n"
      "      - eoan\n"
@@ -1155,7 +1148,14 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "    os: Ubuntu\n"
      "    release: 19.10\n"
      "    version: 20190516\n"
-     "    remote: daily\n",
+     "    remote: daily\n"
+     "  lts:\n"
+     "    aliases:\n"
+     "      []\n"
+     "    os: Ubuntu\n"
+     "    release: 18.04 LTS\n"
+     "    version: 20190516\n"
+     "    remote: \"\"\n",
      "yaml_find_multiple"},
     {&yaml_formatter, &find_multiple_reply_duplicate_image,
      "errors:\n"

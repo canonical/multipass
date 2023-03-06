@@ -917,7 +917,7 @@ bool is_ipv4_valid(const std::string& ipv4)
 }
 
 template <typename T>
-void add_aliases(T entry, const std::string& remote_name, const mp::VMImageInfo& info,
+void add_aliases(const T& entry, const std::string& remote_name, const mp::VMImageInfo& info,
                  const std::string& default_remote)
 {
     if (!info.aliases.empty())
