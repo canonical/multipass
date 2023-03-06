@@ -31,7 +31,7 @@ struct MockVMBlueprintProvider : public VMBlueprintProvider
     MOCK_METHOD3(fetch_blueprint_for, Query(const std::string&, VirtualMachineDescription&, ClientLaunchData&));
     MOCK_METHOD4(blueprint_from_file,
                  Query(const std::string&, const std::string&, VirtualMachineDescription&, ClientLaunchData&));
-    MOCK_METHOD1(info_for, VMImageInfo(const std::string&));
+    MOCK_METHOD1(info_for, std::optional<VMImageInfo>(const std::string&));
     MOCK_METHOD0(all_blueprints, std::vector<VMImageInfo>());
     MOCK_METHOD1(name_from_blueprint, std::string(const std::string&));
     MOCK_METHOD1(blueprint_timeout, int(const std::string&));
