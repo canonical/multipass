@@ -139,7 +139,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
         return "No instances found.\n";
 
     const auto name_column_width = mp::format::column_width(
-        instances.begin(), instances.end(), [](const auto& interface) -> int { return interface.name().length(); }, 24);
+        instances.begin(), instances.end(), [](const auto& instance) -> int { return instance.name().length(); }, 24);
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
 
