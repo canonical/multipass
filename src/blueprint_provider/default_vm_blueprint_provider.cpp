@@ -54,6 +54,58 @@ static constexpr auto bad_conversion_template{"Cannot convert \'{}\' key for the
 const auto runs_on_key{"runs-on"};
 const auto instances_key{"instances"};
 
+struct MinResourceInfo
+{
+    const int min_cpus{};
+    const std::string min_mem_size_str;
+    const std::string min_disk_space_str;
+    const std::string whole_min_resource_info_str;
+};
+
+[[nodiscard]]
+MinResourceInfo query_min_resource_info(const YAML::Node& limits_min_resource_node, const std::string& blueprint_name, bool& needs_update)
+{
+    const auto& limits_min_cpu_node = limits_min_resource_node["min-cpu"];
+
+    int min_cpus{};
+    std::string min_cpu_info_str;
+    try{
+        if (limits_min_cpu_node)
+        {
+            min_cpus = limits_min_cpu_node.as<int>();
+            min_cpu_info_str = fmt::format(", {} CPUs", min_cpus);
+        }
+    }
+    catch (const YAML::BadConversion&)
+    {
+        needs_update = true;
+        throw mp::InvalidBlueprintException(fmt::format("Minimum CPU value in Blueprint is invalid"));
+    }
+
+    const auto& limits_min_mem_node = limits_min_resource_node["min-mem"];
+    std::string min_mem_size_str;
+    std::string min_mem_info_str;
+    if (limits_min_mem_node)
+    {
+        min_mem_size_str = limits_min_mem_node.as<std::string>();
+        min_mem_info_str = fmt::format(", {} of memory", min_mem_size_str);
+    }
+
+    const auto& limits_min_disk_node = limits_min_resource_node["min-disk"];
+    std::string min_disk_space_str;
+    std::string min_disk_info_str;
+    if (limits_min_disk_node)
+    {
+        min_disk_space_str = limits_min_disk_node.as<std::string>();
+        min_disk_info_str = fmt::format(", {} of disk space", min_disk_space_str);
+    }
+
+    const std::string whole_min_resource_info_str = fmt::format("The {} requires at least{}{}{}.", blueprint_name, min_cpu_info_str, min_mem_info_str, min_disk_info_str);
+
+    return {min_cpus, min_mem_size_str, min_disk_space_str, whole_min_resource_info_str};
+}
+
+
 bool runs_on(const std::string& blueprint_name, const YAML::Node& blueprint_node, const std::string& arch)
 {
     if (blueprint_node["blueprint-version"].as<std::string>() == version_v1)
@@ -264,35 +316,26 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
         }
     }
 
+    const auto minResourceInfo = query_min_resource_info(blueprint_instance["limits"], blueprint_name, needs_update);
+
     if (blueprint_instance["limits"]["min-cpu"])
     {
-        try
+        if (vm_desc.num_cores == 0)
         {
-            auto min_cpus = blueprint_instance["limits"]["min-cpu"].as<int>();
-
-            if (vm_desc.num_cores == 0)
-            {
-                vm_desc.num_cores = min_cpus;
-            }
-            else if (vm_desc.num_cores < min_cpus)
-            {
-                throw mp::BlueprintMinimumException("Number of CPUs", std::to_string(min_cpus));
-            }
+            vm_desc.num_cores = minResourceInfo.min_cpus;
         }
-        catch (const YAML::BadConversion&)
+        else if (vm_desc.num_cores < minResourceInfo.min_cpus)
         {
-            needs_update = true;
-            throw mp::InvalidBlueprintException(fmt::format("Minimum CPU value in Blueprint is invalid"));
+            throw mp::BlueprintMinimumException{"Number of CPUs", std::to_string(minResourceInfo.min_cpus),
+                                                minResourceInfo.whole_min_resource_info_str};
         }
     }
 
     if (blueprint_instance["limits"]["min-mem"])
     {
-        auto min_mem_size_str{blueprint_instance["limits"]["min-mem"].as<std::string>()};
-
         try
         {
-            mp::MemorySize min_mem_size{min_mem_size_str};
+            mp::MemorySize min_mem_size{minResourceInfo.min_mem_size_str};
 
             if (vm_desc.mem_size.in_bytes() == 0)
             {
@@ -300,7 +343,8 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
             }
             else if (vm_desc.mem_size < min_mem_size)
             {
-                throw mp::BlueprintMinimumException("Memory size", min_mem_size_str);
+                throw mp::BlueprintMinimumException("Memory size", minResourceInfo.min_mem_size_str,
+                                                    minResourceInfo.whole_min_resource_info_str);
             }
         }
         catch (const mp::InvalidMemorySizeException&)
@@ -312,11 +356,9 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
 
     if (blueprint_instance["limits"]["min-disk"])
     {
-        auto min_disk_space_str{blueprint_instance["limits"]["min-disk"].as<std::string>()};
-
         try
         {
-            mp::MemorySize min_disk_space{min_disk_space_str};
+            mp::MemorySize min_disk_space{minResourceInfo.min_disk_space_str};
 
             if (vm_desc.disk_space.in_bytes() == 0)
             {
@@ -324,7 +366,8 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
             }
             else if (vm_desc.disk_space < min_disk_space)
             {
-                throw mp::BlueprintMinimumException("Disk space", min_disk_space_str);
+                throw mp::BlueprintMinimumException("Disk space", minResourceInfo.min_disk_space_str,
+                                                    minResourceInfo.whole_min_resource_info_str);
             }
         }
         catch (const mp::InvalidMemorySizeException&)

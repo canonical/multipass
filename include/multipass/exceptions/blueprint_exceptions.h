@@ -32,6 +32,11 @@ public:
         : runtime_error(fmt::format("Requested {} is less than Blueprint minimum of {}", type, min_val))
     {
     }
+
+    BlueprintMinimumException(const std::string& type, const std::string& min_val, const std::string& min_resource_str)
+        : runtime_error(fmt::format("Requested {} is less than Blueprint minimum of {}", type, min_val) + "\n" + min_resource_str)
+    {
+    }
 };
 
 class InvalidBlueprintException : public std::runtime_error
