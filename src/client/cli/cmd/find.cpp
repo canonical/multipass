@@ -70,15 +70,12 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
                                   "Ubuntu release version, codename or alias.",
                                   "[<remote:>][<string>]");
     QCommandLineOption unsupportedOption("show-unsupported", "Show unsupported cloud images as well");
-    QCommandLineOption showImagesOption("images", "Show only images");
-    QCommandLineOption showBlueprintsOption("blueprints", "Show only blueprints");
-    parser->addOptions({unsupportedOption, showImagesOption, showBlueprintsOption});
-
+    QCommandLineOption imagesOnlyOption("only-images", "Show only images");
+    QCommandLineOption blueprintsOnlyOption("only-blueprints", "Show only blueprints");
     QCommandLineOption formatOption(
         "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
         "format", "table");
-
-    parser->addOption(formatOption);
+    parser->addOptions({unsupportedOption, imagesOnlyOption, blueprintsOnlyOption, formatOption});
 
     auto status = parser->commandParse(this);
 
@@ -87,14 +84,14 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    if (parser->isSet(showImagesOption) && parser->isSet(showBlueprintsOption))
+    if (parser->isSet(imagesOnlyOption) && parser->isSet(blueprintsOnlyOption))
     {
-        cerr << "Specify one of \"--images\", \"--blueprints\" or omit to fetch both\n";
+        cerr << "Specify one of \"--only-images\", \"--only-blueprints\" or omit to fetch both\n";
         return ParseCode::CommandLineError;
     }
 
-    request.set_show_images(!parser->isSet(showBlueprintsOption));
-    request.set_show_blueprints(!parser->isSet(showImagesOption));
+    request.set_show_images(!parser->isSet(blueprintsOnlyOption));
+    request.set_show_blueprints(!parser->isSet(imagesOnlyOption));
 
     if (parser->positionalArguments().count() > 1)
     {
