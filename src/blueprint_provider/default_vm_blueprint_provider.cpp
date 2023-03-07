@@ -67,9 +67,10 @@ std::string leftTrimAndReplaceLastCommaWithAnd(std::string inputStr)
     if (inputStr.empty())
         return {};
 
-    size_t lastCommaPos = inputStr.find_last_of(',');
-    // replace the last comman with "and" and left trim (remove the front comma) the string
-    return inputStr.replace(lastCommaPos, 1, " and").substr(1, inputStr.size() - 1);
+    // trim leftest comma first and replace the last comma with " and" if that last comma exist
+    auto leftTrimmedStr = inputStr.substr(1, inputStr.size() - 1);
+    const auto lastCommaPos = leftTrimmedStr.find_last_of(',');
+    return lastCommaPos != std::string::npos ? leftTrimmedStr.replace(lastCommaPos, 1, " and") : leftTrimmedStr;
 }
 
 [[nodiscard]] MinResourceInfo query_min_resource_info(const YAML::Node& limits_min_resource_node,
