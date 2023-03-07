@@ -62,14 +62,25 @@ struct MinResourceInfo
     const std::string whole_min_resource_info_str;
 };
 
-[[nodiscard]]
-MinResourceInfo query_min_resource_info(const YAML::Node& limits_min_resource_node, const std::string& blueprint_name, bool& needs_update)
+std::string leftTrimAndReplaceLastCommaWithAnd(std::string inputStr)
+{
+    if (inputStr.empty())
+        return {};
+
+    size_t lastCommaPos = inputStr.find_last_of(',');
+    // replace the last comman with "and" and left trim (remove the front comma) the string
+    return inputStr.replace(lastCommaPos, 1, " and").substr(1, inputStr.size() - 1);
+}
+
+[[nodiscard]] MinResourceInfo query_min_resource_info(const YAML::Node& limits_min_resource_node,
+                                                      const std::string& blueprint_name, bool& needs_update)
 {
     const auto& limits_min_cpu_node = limits_min_resource_node["min-cpu"];
 
     int min_cpus{};
     std::string min_cpu_info_str;
-    try{
+    try
+    {
         if (limits_min_cpu_node)
         {
             min_cpus = limits_min_cpu_node.as<int>();
@@ -100,11 +111,12 @@ MinResourceInfo query_min_resource_info(const YAML::Node& limits_min_resource_no
         min_disk_info_str = fmt::format(", {} of disk space", min_disk_space_str);
     }
 
-    const std::string whole_min_resource_info_str = fmt::format("The {} requires at least{}{}{}.", blueprint_name, min_cpu_info_str, min_mem_info_str, min_disk_info_str);
+    const std::string whole_min_resource_info_str =
+        fmt::format("The {} requires at least{}.", blueprint_name,
+                    leftTrimAndReplaceLastCommaWithAnd(min_cpu_info_str + min_mem_info_str + min_disk_info_str));
 
     return {min_cpus, min_mem_size_str, min_disk_space_str, whole_min_resource_info_str};
 }
-
 
 bool runs_on(const std::string& blueprint_name, const YAML::Node& blueprint_node, const std::string& arch)
 {
