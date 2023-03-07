@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_SMB_MOUNT_HANDLER_H
 #define MULTIPASS_SMB_MOUNT_HANDLER_H
 
-#include "powershell.h"
 #include <multipass/mount_handler.h>
 
 namespace multipass
@@ -35,7 +34,6 @@ public:
 
 private:
     QString source;
-    std::unique_ptr<PowerShell> powershell;
     QString share_name;
 
     bool smb_share_exists();
