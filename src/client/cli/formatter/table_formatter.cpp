@@ -41,6 +41,7 @@ std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
                        fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
                        fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
     }
+    fmt::format_to(std::back_inserter(buf), "\n");
 
     return fmt::to_string(buf);
 }
@@ -228,9 +229,6 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
         {
             if (!reply.images_info().empty())
                 fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Image"));
-
-            if (!reply.images_info().empty() && !reply.blueprints_info().empty())
-                fmt::format_to(std::back_inserter(buf), "\n");
 
             if (!reply.blueprints_info().empty())
                 fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint"));

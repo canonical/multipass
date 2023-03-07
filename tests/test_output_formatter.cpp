@@ -1015,11 +1015,13 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&table_formatter, &empty_find_reply_only_blueprints, "No blueprints found.\n", "table_find_empty_only_blueprints"},
     {&table_formatter, &find_one_reply,
      "Image                       Aliases           Version          Description\n"
-     "ubuntu                                        20190516         Ubuntu 18.04 LTS\n",
+     "ubuntu                                        20190516         Ubuntu 18.04 LTS\n"
+     "\n",
      "table_find_one_image"},
     {&table_formatter, &find_one_blueprint_reply,
      "Blueprint                   Aliases           Version          Description\n"
-     "anbox-cloud-appliance                         latest           Anbox Cloud Appliance\n",
+     "anbox-cloud-appliance                         latest           Anbox Cloud Appliance\n"
+     "\n",
      "table_find_one_blueprint"},
     {&table_formatter, &find_multiple_reply,
      "Image                       Aliases           Version          Description\n"
@@ -1027,16 +1029,19 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "daily:19.10                 eoan,devel        20190516         Ubuntu 19.10\n"
      "\n"
      "Blueprint                   Aliases           Version          Description\n"
-     "anbox-cloud-appliance                         latest           Anbox Cloud Appliance\n",
+     "anbox-cloud-appliance                         latest           Anbox Cloud Appliance\n"
+     "\n",
      "table_find_multiple"},
     {&table_formatter, &find_one_reply_no_os,
      "Image                       Aliases           Version          Description\n"
-     "snapcraft:core18                              20190520         Snapcraft builder for core18\n",
+     "snapcraft:core18                              20190520         Snapcraft builder for core18\n"
+     "\n",
      "table_find_no_os"},
     {&table_formatter, &find_multiple_reply_duplicate_image,
      "Image                       Aliases           Version          Description\n"
      "core18                                        20190520         Ubuntu Core 18\n"
-     "snapcraft:core18                              20190520         Snapcraft builder for core18\n",
+     "snapcraft:core18                              20190520         Snapcraft builder for core18\n"
+     "\n",
      "table_find_multiple_duplicate_image"},
     {&json_formatter, &empty_find_reply, json_empty_find_reply, "json_find_empty"},
     {&json_formatter, &empty_find_reply_only_images, json_empty_find_reply, "json_find_empty_only_images"},
