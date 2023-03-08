@@ -517,12 +517,19 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
             try
             {
                 auto info = info_for(record.second.query);
+                if (!info)
+                    throw mp::ImageNotFoundException(record.second.query.release, record.second.query.remote_name);
+
                 if (info->id.toStdString() != record.first)
                 {
                     keys_to_update.push_back(record.first);
                 }
             }
-            catch (const std::exception& e)
+            catch (const mp::UnsupportedImageException& e)
+            {
+                mpl::log(mpl::Level::warning, category, fmt::format("Skipping update: {}", e.what()));
+            }
+            catch (const mp::ImageNotFoundException& e)
             {
                 mpl::log(mpl::Level::warning, category, fmt::format("Skipping update: {}", e.what()));
             }

@@ -226,7 +226,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
     if (query.query_type == Query::Type::Alias)
     {
-        if (auto image_info = info_for(query); image_info.has_value())
+        if (auto image_info = info_for(query); image_info)
             info = *image_info;
         else
             throw mp::ImageNotFoundException(query.release, query.remote_name);
