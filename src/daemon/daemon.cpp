@@ -570,18 +570,15 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     //       later that accomplish the same thing.
     try
     {
-        blueprint_provider.info_for(request->image());
+        if (auto image_query = query_from(request, "");
+            !blueprint_provider.info_for(request->image()) &&
+            (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty()))
+            throw mp::ImageNotFoundException(request->image(), request->remote_name());
     }
     catch (const mp::IncompatibleBlueprintException&)
     {
         throw std::runtime_error(
             fmt::format("The \"{}\" Blueprint is not compatible with this host.", request->image()));
-    }
-    catch (const std::out_of_range&)
-    {
-        auto image_query = query_from(request, "");
-        if (image_query.query_type == mp::Query::Type::Alias)
-            vault.all_info_for(image_query);
     }
 }
 
@@ -1149,7 +1146,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     return true;
                 };
 
-                config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
+                try
+                {
+                    config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
+                }
+                catch (const std::exception& e)
+                {
+                    mpl::log(mpl::Level::error, category, fmt::format("Error updating images: {}", e.what()));
+                }
             });
         }
     });
@@ -1243,18 +1247,21 @@ try // clang-format on
             vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
                                                           Query::Type::Alias, request->allow_unsupported()});
         }
-        catch (const std::exception&)
+        catch (const std::exception& e)
         {
-            try
-            {
-                vm_images_info.push_back(
-                    std::make_pair("", config->blueprint_provider->info_for(request->search_string())));
-            }
-            catch (const std::exception&)
-            {
-                throw std::runtime_error(
-                    fmt::format("Unable to find an image or Blueprint matching \"{}\"", request->search_string()));
-            }
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("An unexpected error occurred while fetching images: {}", e.what()));
+        }
+
+        try
+        {
+            if (auto info = config->blueprint_provider->info_for(request->search_string()); info)
+                vm_images_info.push_back(std::make_pair("", info.value()));
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, category,
+                     fmt::format("An unexpected error occurred while fetching blueprints: {}", e.what()));
         }
 
         for (const auto& [remote, info] : vm_images_info)

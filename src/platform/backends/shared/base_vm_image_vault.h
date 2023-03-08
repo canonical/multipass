@@ -79,7 +79,7 @@ protected:
         {
             for (const auto& image_host : image_hosts)
             {
-                auto info = image_host->info_for(query);
+                info = image_host->info_for(query);
 
                 if (info)
                     break;

@@ -202,7 +202,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
     fmt::memory_buffer buf;
 
     if (reply.images_info().empty())
-        return "No images found.\n";
+        return "No images or Blueprints found.\n";
 
     fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
 
