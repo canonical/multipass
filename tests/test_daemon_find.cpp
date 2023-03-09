@@ -18,7 +18,6 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
-#include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_vm_blueprint_provider.h"
@@ -31,7 +30,6 @@
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
-namespace mpl = multipass::logging;
 using namespace testing;
 
 namespace
