@@ -678,7 +678,7 @@ TEST_F(ImageVault, all_info_for_remote_given_returns_expected_data)
     EXPECT_EQ(second_image_info.version.toStdString(), mpt::another_image_version);
 }
 
-TEST_F(ImageVault, all_info_for_no_images_returned_throws)
+TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -686,6 +686,5 @@ TEST_F(ImageVault, all_info_for_no_images_returned_throws)
     const std::string name{"foo"};
     EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{}));
 
-    MP_EXPECT_THROW_THAT(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}), std::runtime_error,
-                         mpt::match_what(HasSubstr(fmt::format("Unable to find an image matching \"{}\"", name))));
+    EXPECT_TRUE(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}).empty());
 }

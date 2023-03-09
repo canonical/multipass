@@ -83,12 +83,12 @@ TEST_F(VMBlueprintProvider, fetchBlueprintForUnknownBlueprintThrows)
     EXPECT_THROW(blueprint_provider.fetch_blueprint_for("phony", vm_desc, dummy_data), std::out_of_range);
 }
 
-TEST_F(VMBlueprintProvider, infoForUnknownBlueprintThrows)
+TEST_F(VMBlueprintProvider, infoForUnknownBlueprintReturnsEmpty)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    EXPECT_THROW(blueprint_provider.info_for("phony"), std::out_of_range);
+    EXPECT_EQ(blueprint_provider.info_for("phony"), std::nullopt);
 }
 
 TEST_F(VMBlueprintProvider, invalidImageSchemeThrows)
@@ -616,26 +616,26 @@ TEST_F(VMBlueprintProvider, invalidRunsOnThrows)
         mpt::match_what(StrEq(fmt::format("Cannot convert \'description\' key for the {} Blueprint", blueprint))));
 }
 
-TEST_F(VMBlueprintProvider, fetchInvalidRunsOnThrows)
+TEST_F(VMBlueprintProvider, fetchForInvalidReturnsEmpty)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
     const std::string blueprint{"invalid-arch"};
-    // This call fails with an std::out_of_range exception because the Blueprint is invalid and was filtered out by
+    // This call fails with an std::nullopt exception because the Blueprint is invalid and was filtered out by
     // blueprints_map_for() at provider construction.
-    EXPECT_THROW(blueprint_provider.info_for(blueprint), std::out_of_range);
+    EXPECT_EQ(blueprint_provider.info_for(blueprint), std::nullopt);
 }
 
-TEST_F(VMBlueprintProvider, infoForIncompatibleThrows)
+TEST_F(VMBlueprintProvider, infoForIncompatibleReturnsEmpty)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
     const std::string blueprint{"arch-only"};
-    // This call fails with an std::out_of_range exception because the Blueprint is invalid and was filtered out by
+    // This call fails with an std::nullopt exception because the Blueprint is invalid and was filtered out by
     // blueprints_map_for() at provider construction.
-    EXPECT_THROW(blueprint_provider.info_for(blueprint), std::out_of_range);
+    EXPECT_EQ(blueprint_provider.info_for(blueprint), std::nullopt);
 }
 
 TEST_F(VMBlueprintProvider, infoForCompatibleReturnsExpectedInfo)
@@ -675,7 +675,7 @@ TEST_F(VMBlueprintProvider, v2WithNoInstancesKeyNotAdded)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    EXPECT_THROW(blueprint_provider.info_for("no-instances"), std::out_of_range);
+    EXPECT_EQ(blueprint_provider.info_for("no-instances"), std::nullopt);
 }
 
 TEST_F(VMBlueprintProvider, v2WithNoBlueprintKeyNotAdded)
@@ -683,7 +683,7 @@ TEST_F(VMBlueprintProvider, v2WithNoBlueprintKeyNotAdded)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    EXPECT_THROW(blueprint_provider.info_for("no-blueprint"), std::out_of_range);
+    EXPECT_EQ(blueprint_provider.info_for("no-blueprint"), std::nullopt);
 }
 
 TEST_F(VMBlueprintProvider, v2WithNoImagesKeyNotAdded)
@@ -691,7 +691,7 @@ TEST_F(VMBlueprintProvider, v2WithNoImagesKeyNotAdded)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    EXPECT_THROW(blueprint_provider.info_for("no-images"), std::out_of_range);
+    EXPECT_EQ(blueprint_provider.info_for("no-images"), std::nullopt);
 }
 
 TEST_F(VMBlueprintProvider, v2WithNoUrlKeyNotAdded)
@@ -699,7 +699,7 @@ TEST_F(VMBlueprintProvider, v2WithNoUrlKeyNotAdded)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl, "multivacs"};
 
-    EXPECT_THROW(blueprint_provider.info_for("no-url"), std::out_of_range);
+    EXPECT_EQ(blueprint_provider.info_for("no-url"), std::nullopt);
 }
 
 TEST_F(VMBlueprintProvider, v2MininalDefinitionAdded)

@@ -21,13 +21,27 @@
 #include "common.h"
 
 #include <multipass/vm_blueprint_provider.h>
+#include <multipass/vm_image_info.h>
 
 namespace multipass
 {
 namespace test
 {
-struct MockVMBlueprintProvider : public VMBlueprintProvider
+class MockVMBlueprintProvider : public VMBlueprintProvider
 {
+public:
+    MockVMBlueprintProvider()
+    {
+        ON_CALL(*this, info_for(_)).WillByDefault([this](const auto& blueprint_name) {
+            mp::VMImageInfo info;
+
+            info.aliases.append(QString::fromStdString(blueprint_name));
+            info.release_title = QString::fromStdString(fmt::format("This is the {} blueprint", blueprint_name));
+
+            return info;
+        });
+    };
+
     MOCK_METHOD3(fetch_blueprint_for, Query(const std::string&, VirtualMachineDescription&, ClientLaunchData&));
     MOCK_METHOD4(blueprint_from_file,
                  Query(const std::string&, const std::string&, VirtualMachineDescription&, ClientLaunchData&));
