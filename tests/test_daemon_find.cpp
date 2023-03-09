@@ -133,8 +133,6 @@ TEST_F(DaemonFind, queryForBlueprintReturnsExpectedData)
 
     static constexpr auto blueprint_name = "foo";
 
-    EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
-
     config_builder.vault = std::move(mock_image_vault);
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     mp::Daemon daemon{config_builder.build()};
