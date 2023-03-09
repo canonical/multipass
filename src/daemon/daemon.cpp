@@ -1250,7 +1250,8 @@ try // clang-format on
         catch (const std::exception& e)
         {
             mpl::log(mpl::Level::warning, category,
-                     fmt::format("An unexpected error occurred while fetching images: {}", e.what()));
+                     fmt::format("An unexpected error occurred while fetching images matching \"{}\": {}",
+                                 request->search_string(), e.what()));
         }
 
         try
@@ -1261,7 +1262,8 @@ try // clang-format on
         catch (const std::exception& e)
         {
             mpl::log(mpl::Level::warning, category,
-                     fmt::format("An unexpected error occurred while fetching blueprints: {}", e.what()));
+                     fmt::format("An unexpected error occurred while fetching blueprints matching \"{}\": {}",
+                                 request->search_string(), e.what()));
         }
 
         for (const auto& [remote, info] : vm_images_info)
