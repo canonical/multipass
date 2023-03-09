@@ -18,6 +18,7 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
+#include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_vm_blueprint_provider.h"
@@ -30,6 +31,7 @@
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+namespace mpl = multipass::logging;
 using namespace testing;
 
 namespace
@@ -103,6 +105,7 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
 TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce([](const mp::Query& query) {
         mpt::MockImageHost mock_image_host;
@@ -113,6 +116,7 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
     });
 
     config_builder.vault = std::move(mock_image_vault);
+    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -120,7 +124,7 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
 
     EXPECT_THAT(stream.str(), AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info)));
 
-    EXPECT_EQ(total_lines_of_output(stream), 2);
+    EXPECT_EQ(total_lines_of_output(stream), 3);
 }
 
 TEST_F(DaemonFind, queryForBlueprintReturnsExpectedData)
@@ -131,15 +135,6 @@ TEST_F(DaemonFind, queryForBlueprintReturnsExpectedData)
     static constexpr auto blueprint_name = "foo";
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
-
-    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce([](auto...) {
-        mp::VMImageInfo info;
-
-        info.aliases.append(blueprint_name);
-        info.release_title = QString::fromStdString(blueprint_description_for(blueprint_name));
-
-        return info;
-    });
 
     config_builder.vault = std::move(mock_image_vault);
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
@@ -153,14 +148,14 @@ TEST_F(DaemonFind, queryForBlueprintReturnsExpectedData)
     EXPECT_EQ(total_lines_of_output(stream), 2);
 }
 
-TEST_F(DaemonFind, unknownQueryReturnsError)
+TEST_F(DaemonFind, unknownQueryReturnsEmpty)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
 
-    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce(Throw(std::out_of_range("")));
+    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce(Return(std::nullopt));
 
     config_builder.vault = std::move(mock_image_vault);
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
@@ -168,10 +163,9 @@ TEST_F(DaemonFind, unknownQueryReturnsError)
 
     constexpr auto phony_name = "phony";
     std::stringstream stream;
-    send_command({"find", phony_name}, trash_stream, stream);
+    send_command({"find", phony_name}, stream, trash_stream);
 
-    EXPECT_THAT(stream.str(),
-                HasSubstr(fmt::format("Unable to find an image or Blueprint matching \"{}\"", phony_name)));
+    EXPECT_THAT(stream.str(), HasSubstr("No images or Blueprints found."));
 }
 
 TEST_F(DaemonFind, forByRemoteReturnsExpectedData)

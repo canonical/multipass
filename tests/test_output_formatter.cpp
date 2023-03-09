@@ -934,7 +934,7 @@ const auto find_one_reply_no_os = construct_find_one_reply_no_os();
 const auto find_multiple_reply_duplicate_image = construct_find_multiple_reply_duplicate_image();
 
 const std::vector<FormatterParamType> find_formatter_outputs{
-    {&table_formatter, &empty_find_reply, "No images found.\n", "table_find_empty"},
+    {&table_formatter, &empty_find_reply, "No images or Blueprints found.\n", "table_find_empty"},
     {&table_formatter, &find_one_reply,
      "Image                       Aliases           Version          Description\n"
      "ubuntu                                        20190516         Ubuntu 18.04 LTS\n",
