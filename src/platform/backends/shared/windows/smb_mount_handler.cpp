@@ -17,6 +17,8 @@
 
 #include "smb_mount_handler.h"
 
+#include "powershell.h"
+
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/ssh_session.h>
@@ -24,6 +26,9 @@
 #include <multipass/virtual_machine.h>
 
 #include <QHostInfo>
+
+#include <lm.h>
+#pragma comment(lib, "Netapi32.lib")
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -64,7 +69,13 @@ namespace multipass
 {
 bool SmbMountHandler::smb_share_exists()
 {
-    return powershell->run({"Get-SmbShare", "-Name", quote(share_name)});
+    PSHARE_INFO_0 share_info;
+
+    auto res = NetShareGetInfo(nullptr, reinterpret_cast<LPWSTR>(share_name.data()), 0, (LPBYTE*)&share_info);
+
+    NetApiBufferFree(share_info);
+
+    return res == 0;
 }
 
 void SmbMountHandler::create_smb_share(const QString& user)
@@ -75,25 +86,39 @@ void SmbMountHandler::create_smb_share(const QString& user)
     if (!can_user_access_source(user))
         throw std::runtime_error{fmt::format("cannot access \"{}\"", source)};
 
-    if (!powershell->run({"New-SmbShare", "-Name", quote(share_name), "-Path", quote(source), "-FullAccess", user}))
-        throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\"", source)};
+    DWORD parm_err = 0;
+    SHARE_INFO_2 share_info;
+    share_info.shi2_netname = reinterpret_cast<LPWSTR>(share_name.data());
+    share_info.shi2_remark = L"Multipass mount share";
+    share_info.shi2_type = STYPE_DISKTREE;
+    share_info.shi2_permissions = 0;
+    share_info.shi2_max_uses = -1;
+    share_info.shi2_current_uses = 0;
+    share_info.shi2_path = reinterpret_cast<LPWSTR>(source.data());
+    share_info.shi2_passwd = nullptr;
+
+    if (NetShareAdd(nullptr, 2, (LPBYTE)&share_info, &parm_err) != 0)
+        throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\": {}", source, parm_err)};
 }
 
 void SmbMountHandler::remove_smb_share()
 {
-    if (smb_share_exists() && !powershell->run({"Remove-SmbShare", "-Name", quote(share_name), "-Force"}))
+    if (smb_share_exists() && NetShareDel(nullptr, reinterpret_cast<LPWSTR>(share_name.data()), 0) != 0)
         mpl::log(mpl::Level::warning, category,
                  fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
 }
 
 bool SmbMountHandler::can_user_access_source(const QString& user)
 {
+    // TODO: I tried to use the proper Windows API to get ACL permissions for the user being passed in, but
+    // alas, the API is very convoluted. At some point, another attempt should be made to use the proper
+    // API though...
     QString output;
-    return powershell->run(
+    return PowerShell::exec(
                {QString{"(Get-Acl '%1').Access | ?{($_.IdentityReference -match '%2') -and ($_.FileSystemRights "
                         "-eq 'FullControl')}"}
                     .arg(source, user)},
-               output) &&
+               "Get ACLs", output) &&
            !output.isEmpty();
 }
 
@@ -101,7 +126,6 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_k
                                  const VMMount& mount)
     : MountHandler{vm, ssh_key_provider, target, mount.source_path},
       source{QString::fromStdString(mount.source_path)},
-      powershell{std::make_unique<PowerShell>(category)},
       // share name must be unique and 80 chars max
       share_name{QString("%1_%2:%3")
                      .arg(mpu::make_uuid(target), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
