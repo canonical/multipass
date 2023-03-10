@@ -2790,10 +2790,33 @@ TEST_F(Client, delete_cmd_accepts_purge_option)
 }
 
 // find cli tests
-TEST_F(Client, find_cmd_unsupported_option_ok)
+TEST_F(Client, findCmdUnsupportedOptionOk)
 {
     EXPECT_CALL(mock_daemon, find(_, _));
     EXPECT_THAT(send_command({"find", "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, findCmdFailsOnMultipleConditions)
+{
+    EXPECT_THAT(send_command({"find"
+                              "--only-blueprints",
+                              "--only-images"}),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, findCmdTooManyArgsFails)
+{
+    EXPECT_THAT(send_command({"find", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, findCmdMultipleColonsFails)
+{
+    EXPECT_THAT(send_command({"find", "foo::bar"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, findCmdHelpOk)
+{
+    EXPECT_THAT(send_command({"find", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
 // get/set cli tests

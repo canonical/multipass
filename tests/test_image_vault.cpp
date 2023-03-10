@@ -19,6 +19,7 @@
 #include "disabling_macros.h"
 #include "file_operations.h"
 #include "mock_image_host.h"
+#include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "path.h"
 #include "stub_url_downloader.h"
@@ -30,6 +31,8 @@
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
+#include <multipass/exceptions/image_vault_exceptions.h>
+#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/format.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
@@ -40,6 +43,7 @@
 #include <QUrl>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
@@ -687,4 +691,61 @@ TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
     EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{}));
 
     EXPECT_TRUE(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}).empty());
+}
+
+TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)
+{
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
+    vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor, false, std::nullopt);
+
+    EXPECT_CALL(host, info_for(_)).WillOnce(Throw(mp::UnsupportedImageException(default_query.release)));
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(mpl::Level::warning, mpt::MockLogger::make_cstring_matcher(StrEq("image vault")),
+                    mpt::MockLogger::make_cstring_matcher(StrEq(fmt::format(
+                        "Skipping update: The {} release is no longer supported.", default_query.release)))));
+
+    EXPECT_NO_THROW(vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
+}
+
+TEST_F(ImageVault, updateImagesLogsWarningOnEmptyVault)
+{
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
+    vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor, false, std::nullopt);
+
+    EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(mpl::Level::warning, mpt::MockLogger::make_cstring_matcher(StrEq("image vault")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        StrEq(fmt::format("Skipping update: Unable to find an image matching \"{}\" in remote \"{}\".",
+                                          default_query.release, default_query.remote_name)))));
+
+    EXPECT_NO_THROW(vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
+}
+
+TEST_F(ImageVault, fetchLocalImageThrowsOnEmptyVault)
+{
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
+
+    EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
+
+    EXPECT_THROW(
+        vault.fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, stub_monitor, false, std::nullopt),
+        mp::ImageNotFoundException);
+}
+
+TEST_F(ImageVault, fetchRemoteImageThrowsOnMissingKernel)
+{
+    mp::Query query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
+
+    EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
+
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor, false, std::nullopt),
+                 mp::ImageNotFoundException);
 }

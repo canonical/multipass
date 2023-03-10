@@ -30,6 +30,7 @@
 #include <src/platform/backends/lxd/lxd_vm_image_vault.h>
 
 #include <multipass/exceptions/aborted_download_exception.h>
+#include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/vm_image.h>
@@ -1133,4 +1134,27 @@ TEST_F(LXDImageVault, invalid_local_file_image_throws)
     MP_EXPECT_THROW_THAT(
         image_vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor, false, std::nullopt),
         std::runtime_error, mpt::match_what(StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
+}
+
+TEST_F(LXDImageVault, updateImagesThrowsOnMissingImage)
+{
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto, auto request, auto) {
+        auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+        auto url = request.url().toString();
+
+        if (op == "GET" && url.contains("1.0/images"))
+        {
+            return new mpt::MockLocalSocketReply(mpt::image_info_update_source_info);
+        }
+
+        return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
+                                    base_url, cache_dir.path(),     mp::days{0}};
+
+    EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
+
+    EXPECT_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor),
+                 mp::ImageNotFoundException);
 }
