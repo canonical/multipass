@@ -5,62 +5,81 @@ class GrpcClient {
 
   GrpcClient(this._client);
 
-  Future<StartReply> start(Iterable<String> names) {
-    final instanceNames = InstanceNames(instanceName: names);
-    return _client
-        .start(Stream.value(StartRequest(instanceNames: instanceNames)))
-        .single;
+  Future<StartReply?> start(Iterable<String> names) async {
+    final replyStream = _client.start(Stream.value(StartRequest(
+      instanceNames: InstanceNames(instanceName: names),
+    )));
+    await for (final reply in replyStream) {
+      return reply;
+    }
+    return null;
   }
 
-  Future<StopReply> stop(Iterable<String> names) {
-    final instanceNames = InstanceNames(instanceName: names);
-    return _client
-        .stop(Stream.value(StopRequest(instanceNames: instanceNames)))
-        .single;
+  Future<StopReply?> stop(Iterable<String> names) async {
+    final replyStream = _client.stop(Stream.value(StopRequest(
+      instanceNames: InstanceNames(instanceName: names),
+    )));
+    await for (final reply in replyStream) {
+      return reply;
+    }
+    return null;
   }
 
-  Future<SuspendReply> suspend(Iterable<String> names) {
-    final instanceNames = InstanceNames(instanceName: names);
-    return _client
-        .suspend(Stream.value(SuspendRequest(instanceNames: instanceNames)))
-        .single;
+  Future<SuspendReply?> suspend(Iterable<String> names) async {
+    final replyStream = _client.suspend(Stream.value(SuspendRequest(
+      instanceNames: InstanceNames(instanceName: names),
+    )));
+    await for (final reply in replyStream) {
+      return reply;
+    }
+    return null;
   }
 
-  Future<RestartReply> restart(Iterable<String> names) {
-    final instanceNames = InstanceNames(instanceName: names);
-    return _client
-        .restart(Stream.value(RestartRequest(instanceNames: instanceNames)))
-        .single;
+  Future<RestartReply?> restart(Iterable<String> names) async {
+    final replyStream = _client.restart(Stream.value(RestartRequest(
+      instanceNames: InstanceNames(instanceName: names),
+    )));
+    await for (final reply in replyStream) {
+      return reply;
+    }
+    return null;
   }
 
-  Future<DeleteReply> delete(Iterable<String> names) {
-    final instanceNames = InstanceNames(instanceName: names);
-    return _client
-        .delet(Stream.value(DeleteRequest(instanceNames: instanceNames)))
-        .single;
+  Future<DeleteReply?> delete(Iterable<String> names) async {
+    final replyStream = _client.delet(Stream.value(DeleteRequest(
+      instanceNames: InstanceNames(instanceName: names),
+    )));
+    await for (final reply in replyStream) {
+      return reply;
+    }
+    return null;
   }
 
-  Future<RecoverReply> recover(Iterable<String> names) {
-    final instanceNames = InstanceNames(instanceName: names);
-    return _client
-        .recover(Stream.value(RecoverRequest(instanceNames: instanceNames)))
-        .single;
+  Future<RecoverReply?> recover(Iterable<String> names) async {
+    final replyStream = _client.recover(Stream.value(RecoverRequest(
+      instanceNames: InstanceNames(instanceName: names),
+    )));
+    await for (final reply in replyStream) {
+      return reply;
+    }
+    return null;
   }
 
-  Future<DeleteReply> purge(Iterable<String> names) {
-    final instanceNames = InstanceNames(instanceName: names);
-    return _client
-        .delet(Stream.value(DeleteRequest(
-          instanceNames: instanceNames,
-          purge: true,
-        )))
-        .single;
+  Future<DeleteReply?> purge(Iterable<String> names) async {
+    final replyStream = _client.delet(Stream.value(DeleteRequest(
+      instanceNames: InstanceNames(instanceName: names),
+      purge: true,
+    )));
+    await for (final reply in replyStream) {
+      return reply;
+    }
+    return null;
   }
 
   Stream<InfoReply> infoStream() async* {
     await for (final _ in Stream.periodic(const Duration(seconds: 1))) {
       try {
-        yield await _client.info(Stream.value(InfoRequest())).single;
+        yield await _client.info(Stream.value(InfoRequest())).last;
       } catch (e, stackTrace) {
         yield* Stream.error(e, stackTrace);
       }
