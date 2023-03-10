@@ -22,7 +22,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
   String Function(InfoReply_Info)? sortExtractor;
 
   DataColumnSortCallback _extractorToSortCallback(
-    String Function(InfoReply_Info)? extractor,
+    String Function(InfoReply_Info) extractor,
   ) =>
       (index, ascending) => setState(() {
             sortIndex = (sortIndex == index && ascending) ? null : index;
@@ -50,7 +50,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
         size: e.key.size,
         numeric: e.key.numeric,
         fixedWidth: e.key.fixedWidth,
-        onSort: e.value == null ? null : _extractorToSortCallback(e.value),
+        onSort: e.value == null ? null : _extractorToSortCallback(e.value!),
       ));
 
   DataRow2 _buildRow(InfoReply_Info info, bool selected) {
@@ -81,6 +81,8 @@ class _VMsTableState extends ConsumerState<VMsTable> {
 
   @override
   Widget build(BuildContext context) {
+    dataTableShowLogs = false;
+
     final runningOnly = ref.watch(runningOnlyProvider);
     final searchName = ref.watch(searchNameProvider);
     final selectedVMs = ref.watch(selectedVMsProvider);
@@ -105,7 +107,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
         .where((info) =>
             !runningOnly || info.instanceStatus.status == Status.RUNNING);
 
-    final sortedInfos = sortExtractor == null || sortIndex == null
+    final sortedInfos = sortIndex == null
         ? filteredInfos
         : filteredInfos.sorted((a, b) =>
             (sortAscending ? 1 : -1) *
