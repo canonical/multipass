@@ -150,7 +150,7 @@ jobs:
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 2
       run: |
-        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list`
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         /snap/bin/lxc --project snapcraft start $instance_name
         /snap/bin/lxc --project snapcraft exec $instance_name -- \
            env CTEST_OUTPUT_ON_FAILURE=1 \
@@ -161,7 +161,7 @@ jobs:
       if: ${{ matrix.build-type == 'Coverage' }}
       timeout-minutes: 5
       run: |
-        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list`
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         /snap/bin/lxc --project snapcraft start $instance_name
 
         # Wait for snapd to actually finish- in particular, that snaps are mounted
