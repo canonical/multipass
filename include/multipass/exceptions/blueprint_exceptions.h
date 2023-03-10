@@ -39,13 +39,13 @@ public:
     }
 
 private:
-    static std::string left_trim_and_replace_last_comma_with_and(const std::string& inputStr)
+    static std::string left_trim_and_replace_last_comma_with_and(const std::string& input_str)
     {
-        if (inputStr.empty())
+        if (input_str.empty())
             return {};
 
         // trim leftest comma first and replace the last comma with " and" if that last comma exist
-        auto left_trimmed_str = inputStr.substr(1, inputStr.size() - 1);
+        auto left_trimmed_str = input_str.substr(1, input_str.size() - 1);
         const auto last_comma_pos = left_trimmed_str.find_last_of(',');
         return last_comma_pos != std::string::npos ? left_trimmed_str.replace(last_comma_pos, 1, " and")
                                                    : left_trimmed_str;
