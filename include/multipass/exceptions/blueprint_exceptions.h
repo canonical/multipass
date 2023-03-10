@@ -23,20 +23,57 @@
 #include <stdexcept>
 #include <string>
 
+#include <yaml-cpp/yaml.h>
+
 namespace multipass
 {
+
 class BlueprintMinimumException : public std::runtime_error
 {
 public:
-    BlueprintMinimumException(const std::string& type, const std::string& min_val)
-        : runtime_error(fmt::format("Requested {} is less than Blueprint minimum of {}", type, min_val))
+    BlueprintMinimumException(const std::string& type, const YAML::Node& limits_min_resource_node,
+                              const std::string& blueprint_name)
+        : runtime_error(fmt::format("Requested {} is less than Blueprint minimum.", type) + "\n" +
+                        query_min_resource_info(limits_min_resource_node, blueprint_name))
     {
     }
 
-    BlueprintMinimumException(const std::string& type, const std::string& min_val, const std::string& min_resource_str)
-        : runtime_error(fmt::format("Requested {} is less than Blueprint minimum of {}", type, min_val) + "\n" +
-                        min_resource_str)
+private:
+    static std::string left_trim_and_replace_last_comma_with_and(const std::string& inputStr)
     {
+        if (inputStr.empty())
+            return {};
+
+        // trim leftest comma first and replace the last comma with " and" if that last comma exist
+        auto left_trimmed_str = inputStr.substr(1, inputStr.size() - 1);
+        const auto last_comma_pos = left_trimmed_str.find_last_of(',');
+        return last_comma_pos != std::string::npos ? left_trimmed_str.replace(last_comma_pos, 1, " and")
+                                                   : left_trimmed_str;
+    }
+
+    [[nodiscard]] static std::string query_min_resource_info(const YAML::Node& limits_min_resource_node,
+                                                             const std::string& blueprint_name)
+    {
+        const auto& limits_min_cpu_node = limits_min_resource_node["min-cpu"];
+        // limits_min_cpu_node.as<int>() can not throw here because query_min_resource_info function is only called in
+        // BlueprintMinimumException branch
+        const std::string min_cpu_info_str =
+            limits_min_cpu_node ? fmt::format(", {} CPUs", limits_min_cpu_node.as<int>()) : std::string();
+
+        const auto& limits_min_mem_node = limits_min_resource_node["min-mem"];
+        const std::string min_mem_info_str =
+            limits_min_mem_node ? fmt::format(", {} of memory", limits_min_mem_node.as<std::string>()) : std::string();
+
+        const auto& limits_min_disk_node = limits_min_resource_node["min-disk"];
+        const std::string min_disk_info_str =
+            limits_min_disk_node ? fmt::format(", {} of disk space", limits_min_disk_node.as<std::string>())
+                                 : std::string();
+
+        const std::string whole_min_resource_info_str = fmt::format(
+            "The {} requires at least{}.", blueprint_name,
+            left_trim_and_replace_last_comma_with_and(min_cpu_info_str + min_mem_info_str + min_disk_info_str));
+
+        return whole_min_resource_info_str;
     }
 };
 
