@@ -8,6 +8,21 @@ import 'grpc_client.dart';
 
 typedef Status = InstanceStatus_Status;
 
+extension IterableExtension on Iterable<String> {
+  String joinWithAnd() {
+    final n = length;
+    if (n == 0) {
+      return '';
+    }
+
+    if (n == 1) {
+      return first;
+    }
+
+    return '${take(n - 1).join(', ')} and $last';
+  }
+}
+
 class ChannelCredentials extends grpc.ChannelCredentials {
   final List<int> certificateChain;
   final List<int> certificateKey;

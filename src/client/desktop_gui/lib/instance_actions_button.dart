@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'globals.dart';
 import 'grpc_client.dart';
+import 'instance_action.dart';
 
 class InstanceActionsButton extends ConsumerWidget {
   final Status status;
@@ -10,26 +11,58 @@ class InstanceActionsButton extends ConsumerWidget {
 
   const InstanceActionsButton(this.status, this.name, {super.key});
 
-  Map<String, void Function()> actions(GrpcClient client) {
-    return {
-      if (status == Status.RUNNING) 'Stop': () => client.stop([name]),
-      if (status == Status.RUNNING) 'Suspend': () => client.suspend([name]),
-      if (status == Status.RUNNING) 'Restart': () => client.restart([name]),
-      if (status == Status.DELETED) 'Recover': () => client.recover([name]),
-      if (status == Status.DELETED) 'Purge': () => client.purge([name]),
-      if ([Status.STOPPED, Status.SUSPENDED].contains(status))
-        'Start': () => client.start([name]),
-      if (status != Status.DELETED) 'Delete': () => client.delete([name]),
-    };
-  }
+  List<InstanceAction> actions(GrpcClient client) => [
+        InstanceAction(
+          name: 'Start',
+          instances: [name],
+          function: client.start,
+        ),
+        InstanceAction(
+          name: 'Stop',
+          instances: [name],
+          function: client.stop,
+        ),
+        InstanceAction(
+          name: 'Suspend',
+          instances: [name],
+          function: client.suspend,
+        ),
+        InstanceAction(
+          name: 'Restart',
+          instances: [name],
+          function: client.restart,
+        ),
+        InstanceAction(
+          name: 'Delete',
+          instances: [name],
+          function: client.delete,
+        ),
+        InstanceAction(
+          name: 'Recover',
+          instances: [name],
+          function: client.recover,
+        ),
+        InstanceAction(
+          name: 'Purge',
+          instances: [name],
+          function: client.purge,
+        ),
+      ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<void>(
-        icon: const Icon(Icons.more_vert),
-        splashRadius: 20,
-        itemBuilder: (_) => actions(ref.watch(grpcClient))
-            .entries
-            .map((e) => PopupMenuItem(onTap: e.value, child: Text(e.key)))
-            .toList(),
-      );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final client = ref.watch(grpcClient);
+
+    return PopupMenuButton<void>(
+      icon: const Icon(Icons.more_vert),
+      splashRadius: 20,
+      itemBuilder: (_) => actions(client)
+          .map((action) => PopupMenuItem(
+                enabled: action.allowedStatuses.contains(status),
+                onTap: () => instanceActionsSnackBar(context, action),
+                child: Text(action.name),
+              ))
+          .toList(),
+    );
+  }
 }
