@@ -223,8 +223,8 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 }
 
 template <typename T>
-std::string resolve_new_instance_name(const std::string& requested_name, const std::string& blueprint_name,
-                                      mp::NameGenerator& name_gen, const T& currently_used_names)
+auto name_from(const std::string& requested_name, const std::string& blueprint_name, mp::NameGenerator& name_gen,
+               const T& currently_used_names)
 {
     if (!requested_name.empty())
     {
@@ -2365,29 +2365,27 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and timeout below) will
     //       need a refactoring to do so.
-    const std::string blueprint_name = config->blueprint_provider->name_from_blueprint(request->image());
-    const std::string new_instance_name =
-        resolve_new_instance_name(checked_args.instance_name, blueprint_name, *config->name_generator, vm_instances);
+    auto name = name_from(checked_args.instance_name, config->blueprint_provider->name_from_blueprint(request->image()),
+                          *config->name_generator, vm_instances);
 
-    if (vm_instances.find(new_instance_name) != vm_instances.end() ||
-        deleted_instances.find(new_instance_name) != deleted_instances.end())
+    if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
         CreateError create_error;
         create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
 
         return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                                                      fmt::format("instance \"{}\" already exists", new_instance_name),
+                                                      fmt::format("instance \"{}\" already exists", name),
                                                       create_error.SerializeAsString()));
     }
 
-    if (preparing_instances.find(new_instance_name) != preparing_instances.end())
+    if (preparing_instances.find(name) != preparing_instances.end())
     {
         CreateError create_error;
         create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
 
-        return status_promise->set_value(grpc::Status(
-            grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is being prepared", new_instance_name),
-            create_error.SerializeAsString()));
+        return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                                      fmt::format("instance \"{}\" is being prepared", name),
+                                                      create_error.SerializeAsString()));
     }
 
     if (!instances_running(vm_instances))
@@ -2395,16 +2393,16 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and name above) will
     //       need a refactoring to do so.
-    const auto timeout = timeout_for(request->timeout(), config->blueprint_provider->blueprint_timeout(blueprint_name));
+    auto timeout = timeout_for(request->timeout(), config->blueprint_provider->blueprint_timeout(name));
 
-    preparing_instances.insert(new_instance_name);
+    preparing_instances.insert(name);
 
     auto prepare_future_watcher = new QFutureWatcher<VMFullDescription>();
     auto log_level = mpl::level_from(request->verbosity_level());
 
     QObject::connect(
         prepare_future_watcher, &QFutureWatcher<VMFullDescription>::finished,
-        [this, server, status_promise, new_instance_name, timeout, start, prepare_future_watcher, log_level] {
+        [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level] {
             mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
             try
@@ -2415,60 +2413,59 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 auto& vm_aliases = vm_client_data.aliases_to_be_created;
                 auto& vm_workspaces = vm_client_data.workspaces_to_be_created;
 
-                vm_instance_specs[new_instance_name] = {vm_desc.num_cores,
-                                                        vm_desc.mem_size,
-                                                        vm_desc.disk_space,
-                                                        vm_desc.default_mac_address,
-                                                        vm_desc.extra_interfaces,
-                                                        config->ssh_username,
-                                                        VirtualMachine::State::off,
-                                                        {},
-                                                        false,
-                                                        QJsonObject()};
-                vm_instances[new_instance_name] = config->factory->create_virtual_machine(vm_desc, *this);
-                preparing_instances.erase(new_instance_name);
+                vm_instance_specs[name] = {vm_desc.num_cores,
+                                           vm_desc.mem_size,
+                                           vm_desc.disk_space,
+                                           vm_desc.default_mac_address,
+                                           vm_desc.extra_interfaces,
+                                           config->ssh_username,
+                                           VirtualMachine::State::off,
+                                           {},
+                                           false,
+                                           QJsonObject()};
+                vm_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+                preparing_instances.erase(name);
 
                 persist_instances();
 
                 if (start)
                 {
                     LaunchReply reply;
-                    reply.set_create_message("Starting " + new_instance_name);
+                    reply.set_create_message("Starting " + name);
                     server->Write(reply);
 
-                    vm_instances[new_instance_name]->start();
+                    vm_instances[name]->start();
 
-                    auto future_watcher =
-                        create_future_watcher([this, server, new_instance_name, vm_aliases, vm_workspaces] {
-                            LaunchReply reply;
-                            reply.set_vm_instance_name(new_instance_name);
-                            config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                    auto future_watcher = create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
+                        LaunchReply reply;
+                        reply.set_vm_instance_name(name);
+                        config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
 
-                            // Attach the aliases to be created by the CLI to the last message.
-                            for (const auto& blueprint_alias : vm_aliases)
-                            {
-                                mpl::log(mpl::Level::debug, category,
-                                         fmt::format("Adding alias '{}' to RPC reply", blueprint_alias.first));
-                                auto alias = reply.add_aliases_to_be_created();
-                                alias->set_name(blueprint_alias.first);
-                                alias->set_instance(blueprint_alias.second.instance);
-                                alias->set_command(blueprint_alias.second.command);
-                                alias->set_working_directory(blueprint_alias.second.working_directory);
-                            }
+                        // Attach the aliases to be created by the CLI to the last message.
+                        for (const auto& blueprint_alias : vm_aliases)
+                        {
+                            mpl::log(mpl::Level::debug, category,
+                                     fmt::format("Adding alias '{}' to RPC reply", blueprint_alias.first));
+                            auto alias = reply.add_aliases_to_be_created();
+                            alias->set_name(blueprint_alias.first);
+                            alias->set_instance(blueprint_alias.second.instance);
+                            alias->set_command(blueprint_alias.second.command);
+                            alias->set_working_directory(blueprint_alias.second.working_directory);
+                        }
 
-                            // Now attach the workspaces.
-                            for (const auto& blueprint_workspace : vm_workspaces)
-                            {
-                                mpl::log(mpl::Level::debug, category,
-                                         fmt::format("Adding workspace '{}' to RPC reply", blueprint_workspace));
-                                reply.add_workspaces_to_be_created(blueprint_workspace);
-                            }
+                        // Now attach the workspaces.
+                        for (const auto& blueprint_workspace : vm_workspaces)
+                        {
+                            mpl::log(mpl::Level::debug, category,
+                                     fmt::format("Adding workspace '{}' to RPC reply", blueprint_workspace));
+                            reply.add_workspaces_to_be_created(blueprint_workspace);
+                        }
 
-                            server->Write(reply);
-                        });
-                    future_watcher->setFuture(QtConcurrent::run(
-                        this, &Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>, server,
-                        std::vector<std::string>{new_instance_name}, timeout, status_promise, std::string()));
+                        server->Write(reply);
+                    });
+                    future_watcher->setFuture(
+                        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>, server,
+                                          std::vector<std::string>{name}, timeout, status_promise, std::string()));
                 }
                 else
                 {
@@ -2477,9 +2474,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             }
             catch (const std::exception& e)
             {
-                preparing_instances.erase(new_instance_name);
-                release_resources(new_instance_name);
-                vm_instances.erase(new_instance_name);
+                preparing_instances.erase(name);
+                release_resources(name);
+                vm_instances.erase(name);
                 persist_instances();
                 status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
@@ -2487,14 +2484,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             delete prepare_future_watcher;
         });
 
-    auto make_vm_description = [this, server, request, new_instance_name, checked_args,
-                                log_level]() mutable -> VMFullDescription {
+    auto make_vm_description = [this, server, request, name, checked_args, log_level]() mutable -> VMFullDescription {
         mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try
         {
             CreateReply reply;
-            reply.set_create_message("Creating " + new_instance_name);
+            reply.set_create_message("Creating " + name);
             server->Write(reply);
 
             Query query;
@@ -2502,7 +2498,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 request->num_cores(),
                 MemorySize{request->mem_size().empty() ? "0b" : request->mem_size()},
                 MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
-                new_instance_name,
+                name,
                 "",
                 {},
                 config->ssh_username,
@@ -2540,30 +2536,28 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     query = config->blueprint_provider->fetch_blueprint_for(image, vm_desc, client_launch_data);
                 }
 
-                query.name = new_instance_name;
+                query.name = name;
 
                 // Aliases and default workspace are named in function of the instance name in the Blueprint. If the
                 // user asked for a different name, it will be necessary to change the alias definitions and the
                 // workspace name to reflect it.
-                if (new_instance_name != image)
+                if (name != image)
                 {
                     for (auto& alias_to_define : client_launch_data.aliases_to_be_created)
                         if (alias_to_define.second.instance == image)
                         {
                             mpl::log(mpl::Level::trace, category,
                                      fmt::format("Renaming instance on alias \"{}\" from \"{}\" to \"{}\"",
-                                                 alias_to_define.first, alias_to_define.second.instance,
-                                                 new_instance_name));
-                            alias_to_define.second.instance = new_instance_name;
+                                                 alias_to_define.first, alias_to_define.second.instance, name));
+                            alias_to_define.second.instance = name;
                         }
 
                     for (auto& workspace_to_create : client_launch_data.workspaces_to_be_created)
                         if (workspace_to_create == image)
                         {
                             mpl::log(mpl::Level::trace, category,
-                                     fmt::format("Renaming workspace \"{}\" to \"{}\"", workspace_to_create,
-                                                 new_instance_name));
-                            workspace_to_create = new_instance_name;
+                                     fmt::format("Renaming workspace \"{}\" to \"{}\"", workspace_to_create, name));
+                            workspace_to_create = name;
                         }
                 }
             }
@@ -2571,7 +2565,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             {
                 // Blueprint not found, move on
                 launch_from_blueprint = false;
-                query = query_from(request, new_instance_name);
+                query = query_from(request, name);
                 vm_desc.mem_size = checked_args.mem_size;
             }
 
@@ -2582,9 +2576,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 return server->Write(create_reply);
             };
 
-            auto prepare_action = [this, server, &new_instance_name](const VMImage& source_image) -> VMImage {
+            auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
                 CreateReply reply;
-                reply.set_create_message("Preparing image for " + new_instance_name);
+                reply.set_create_message("Preparing image for " + name);
                 server->Write(reply);
 
                 return config->factory->prepare_source_image(source_image);
@@ -2604,7 +2598,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 image_size, vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
                 config->data_directory);
 
-            reply.set_create_message("Configuring " + new_instance_name);
+            reply.set_create_message("Configuring " + name);
             server->Write(reply);
 
             config->factory->prepare_networking(checked_args.extra_interfaces);
@@ -2625,7 +2619,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-            vm_desc.meta_data_config = make_cloud_init_meta_config(new_instance_name);
+            vm_desc.meta_data_config = make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
 
