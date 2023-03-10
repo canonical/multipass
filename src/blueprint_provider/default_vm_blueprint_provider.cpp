@@ -442,10 +442,11 @@ std::optional<mp::VMImageInfo> mp::DefaultVMBlueprintProvider::info_for(const st
 
     static constexpr auto missing_key_template{"The \'{}\' key is required for the {} Blueprint"};
 
-    if (blueprint_map.find(blueprint_name) == blueprint_map.end())
+    YAML::Node blueprint_config;
+    if (auto it = blueprint_map.find(blueprint_name); it != blueprint_map.end())
+        blueprint_config = it->second;
+    else
         return std::nullopt;
-
-    auto& blueprint_config = blueprint_map.at(blueprint_name);
 
     VMImageInfo image_info;
     image_info.aliases.append(QString::fromStdString(blueprint_name));
@@ -500,10 +501,8 @@ std::vector<mp::VMImageInfo> mp::DefaultVMBlueprintProvider::all_blueprints()
         try
         {
             auto info = info_for(key);
-            if (info)
-                blueprint_info.push_back(*info);
-            else
-                mpl::log(mpl::Level::warning, category, fmt::format("No blueprint found with name: \"{}\"", key));
+            assert(info && "key missing from blueprint map");
+            blueprint_info.push_back(*info);
         }
         catch (const InvalidBlueprintException& e)
         {

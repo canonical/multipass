@@ -570,10 +570,12 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     //       later that accomplish the same thing.
     try
     {
-        if (auto image_query = query_from(request, "");
-            !blueprint_provider.info_for(request->image()) &&
-            (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty()))
-            throw mp::ImageNotFoundException(request->image(), request->remote_name());
+        if (!blueprint_provider.info_for(request->image()))
+        {
+            auto image_query = query_from(request, "");
+            if (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty())
+                throw mp::ImageNotFoundException(request->image(), request->remote_name());
+        }
     }
     catch (const mp::IncompatibleBlueprintException&)
     {
@@ -1262,18 +1264,18 @@ try // clang-format on
 
             for (auto& [remote, info] : vm_images_info)
             {
-                std::string name;
                 if (info.aliases.contains(QString::fromStdString(request->search_string())))
                     info.aliases = QStringList({QString::fromStdString(request->search_string())});
                 else
                     info.aliases = QStringList({info.id.left(12)});
 
-                add_aliases(response.mutable_images_info(),
-                            !request->remote_name().empty() || (request->remote_name().empty() &&
-                                                                vm_images_info.size() > 1 && remote != default_remote)
-                                ? remote
-                                : "",
-                            info, "");
+                auto remote_name =
+                    (!request->remote_name().empty() ||
+                     (request->remote_name().empty() && vm_images_info.size() > 1 && remote != default_remote))
+                        ? remote
+                        : "";
+
+                add_aliases(response.mutable_images_info(), remote_name, info, "");
             }
         }
 
