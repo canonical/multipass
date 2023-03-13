@@ -32,7 +32,7 @@ class MockVMBlueprintProvider : public VMBlueprintProvider
 public:
     MockVMBlueprintProvider()
     {
-        ON_CALL(*this, info_for(_)).WillByDefault([this](const auto& blueprint_name) {
+        ON_CALL(*this, info_for(_)).WillByDefault([](const auto& blueprint_name) {
             mp::VMImageInfo info;
 
             info.aliases.append(QString::fromStdString(blueprint_name));
