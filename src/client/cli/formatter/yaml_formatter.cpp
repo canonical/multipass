@@ -147,6 +147,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
             mounts[mount.target_path()] = mount_node;
         }
         instance_node["mounts"] = mounts;
+        instance_node["snapshots"] = info.num_snapshots();
 
         info_node[info.name()].push_back(instance_node);
     }

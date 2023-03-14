@@ -71,6 +71,7 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
         instance_info.insert("image_release", QString::fromStdString(info.image_release()));
         instance_info.insert("release", QString::fromStdString(info.current_release()));
         instance_info.insert("cpu_count", QString::fromStdString(info.cpu_count()));
+        instance_info.insert("snapshots", QString::number(info.num_snapshots()));
 
         QJsonArray load;
         if (!info.load().empty())
