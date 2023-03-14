@@ -16,5 +16,30 @@
  */
 
 #include "base_snapshot.h"
+#include "daemon/vm_specs.h" // TODO@ricab move this
+
+#include <multipass/vm_mount.h>
 
 namespace mp = multipass;
+
+mp::BaseSnapshot::BaseSnapshot(std::string name, std::string comment, const mp::Snapshot* parent, int num_cores,
+                               mp::MemorySize mem_size, mp::MemorySize disk_space, mp::VirtualMachine::State state,
+                               std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata)
+    : name{std::move(name)},
+      comment{std::move(comment)},
+      parent{parent},
+      num_cores{num_cores},
+      mem_size{mem_size},
+      disk_space{disk_space},
+      state{state},
+      mounts{std::move(mounts)},
+      metadata{std::move(metadata)}
+{
+}
+
+mp::BaseSnapshot::BaseSnapshot(std::string name, std::string comment, const mp::Snapshot* parent,
+                               const mp::VMSpecs& specs)
+    : BaseSnapshot{std::move(name),  std::move(comment), parent,       specs.num_cores, specs.mem_size,
+                   specs.disk_space, specs.state,        specs.mounts, specs.metadata}
+{
+}

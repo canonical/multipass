@@ -18,17 +18,37 @@
 #ifndef MULTIPASS_BASE_SNAPSHOT_H
 #define MULTIPASS_BASE_SNAPSHOT_H
 
-#include <multipass/memory_size.h>
 #include <multipass/snapshot.h>
+
+#include <multipass/memory_size.h>
+#include <multipass/vm_mount.h>
+
+#include <QJsonObject>
 
 namespace multipass
 {
+class VMSpecs;
 
 class BaseSnapshot : public Snapshot
 {
 public:
-};
+    BaseSnapshot(std::string name, std::string comment, const Snapshot* parent, int num_cores, MemorySize mem_size,
+                 MemorySize disk_space, VirtualMachine::State state, std::unordered_map<std::string, VMMount> mounts,
+                 QJsonObject metadata);
 
+    BaseSnapshot(std::string name, std::string comment, const Snapshot* parent, const VMSpecs& specs);
+
+private:
+    std::string name;
+    std::string comment;
+    const Snapshot* parent;
+    int num_cores;
+    MemorySize mem_size;
+    MemorySize disk_space;
+    VirtualMachine::State state;
+    std::unordered_map<std::string, VMMount> mounts;
+    QJsonObject metadata;
+};
 } // namespace multipass
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H
