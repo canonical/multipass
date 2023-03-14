@@ -35,16 +35,16 @@ class Snapshot : private DisabledCopyMove
 public:
     virtual ~Snapshot() = default;
 
-    virtual const std::string& get_name() const = 0;
-    virtual const std::string& get_comment() const = 0;
-    virtual const Snapshot* get_parent() const = 0;
+    virtual const std::string& get_name() const noexcept = 0;
+    virtual const std::string& get_comment() const noexcept = 0;
+    virtual const Snapshot* get_parent() const noexcept = 0;
 
-    virtual int get_num_cores() const = 0;
-    virtual MemorySize get_mem_size() const = 0;
-    virtual MemorySize get_disk_space() const = 0;
-    virtual VirtualMachine::State get_state() const = 0;
-    virtual const std::unordered_map<std::string, VMMount>& get_mounts() const = 0;
-    virtual const QJsonObject& get_metadata() const = 0;
+    virtual int get_num_cores() const noexcept = 0;
+    virtual MemorySize get_mem_size() const noexcept = 0;
+    virtual MemorySize get_disk_space() const noexcept = 0;
+    virtual VirtualMachine::State get_state() const noexcept = 0;
+    virtual const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept = 0;
+    virtual const QJsonObject& get_metadata() const noexcept = 0;
 };
 } // namespace multipass
 
