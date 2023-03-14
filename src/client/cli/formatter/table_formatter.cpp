@@ -135,6 +135,8 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
             }
         }
 
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", info.num_snapshots());
+
         fmt::format_to(std::back_inserter(buf), "\n");
     }
 
