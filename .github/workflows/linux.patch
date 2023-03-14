@@ -1,21 +1,21 @@
 diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
-index 2853b71f..0b4136fa 100644
+index 3fdefb04..f2ebe7b8 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -93,6 +93,7 @@ parts:
+@@ -127,6 +127,7 @@ parts:
      - on arm64: [libgles2-mesa-dev]
      - on armhf: [libgles2-mesa-dev]
      - build-essential
 +    - ccache
      - git
-     - golang
      - libapparmor-dev
-@@ -123,6 +124,8 @@ parts:
-     - -DCMAKE_INSTALL_PREFIX=/
+     - libqt5x11extras5-dev
+@@ -159,6 +160,8 @@ parts:
      - -DMULTIPASS_ENABLE_TESTS=off
      - -DMULTIPASS_UPSTREAM=origin
+     - -DMULTIPASS_ENABLE_FLUTTER_GUI=off
 +    - -DCMAKE_C_COMPILER_LAUNCHER=ccache
 +    - -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
      override-build: |
-       snapcraftctl build
+       craftctl default
        set -e
