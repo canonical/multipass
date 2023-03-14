@@ -74,7 +74,7 @@ long long in_bytes(const std::string& mem_value)
 }
 } // namespace
 
-mp::MemorySize::MemorySize() : bytes{0LL}
+mp::MemorySize::MemorySize() noexcept : bytes{0LL}
 {
 }
 
