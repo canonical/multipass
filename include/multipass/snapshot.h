@@ -29,6 +29,7 @@ class QJsonObject;
 namespace multipass
 {
 class MemorySize;
+struct VMMount;
 
 class Snapshot : private DisabledCopyMove
 {
