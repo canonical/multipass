@@ -218,6 +218,7 @@ message InfoReply {
         repeated string ipv6 = 12;
         MountInfo mount_info = 13;
         string cpu_count = 14;
+        int32 num_snapshots = 15;
     }
     repeated Info info = 1;
     string log_line = 2;
