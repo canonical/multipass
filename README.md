@@ -135,7 +135,7 @@ multipass help <command>
 
 # Get involved!
 
-Here's a set of steps to build and run your own build of Multipass:
+Here's a set of steps to build and run your own build of Multipass. Please note that the following instructions are for building Multipass for Linux only. These instructions do not support building packages for macOS or Windows systems.
 
 ## Build Dependencies
 
