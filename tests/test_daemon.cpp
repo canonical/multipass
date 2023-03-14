@@ -1560,6 +1560,18 @@ constexpr auto valid_template = R"(
     "ssh_username": "ubuntu",
     "state": 1
 }})";
+constexpr auto deleted_template = R"(
+"{}": {{
+    "deleted": true,
+    "disk_space": "3232323232",
+    "mac_addr": "ab:cd:ef:12:34:{}",
+    "mem_size": "2323232323",
+    "metadata": {{}},
+    "mounts": [],
+    "num_cores": 4,
+    "ssh_username": "ubuntu",
+    "state": 1
+}})";
 
 TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometimes writen for purged instances
 {
@@ -2082,5 +2094,26 @@ TEST_F(Daemon, launch_fails_with_incompatible_blueprint)
     std::stringstream err_stream;
     send_command({"launch", "foo"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(), HasSubstr("The \"foo\" Blueprint is not compatible with this host."));
+}
+
+TEST_F(Daemon, info_all_returns_all_instances)
+{
+    const std::string good_instance_name{"good-instance"}, deleted_instance_name{"deleted-instance"};
+    const auto good_instance_json = fmt::format(valid_template, good_instance_name, "10");
+    const auto deleted_instance_json = fmt::format(deleted_template, deleted_instance_name, "11");
+    const auto instances_json = fmt::format("{{{}, {}}}", good_instance_json, deleted_instance_json);
+    const auto [temp_dir, __] = plant_instance_json(instances_json);
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    const auto names_matcher = UnorderedElementsAre(Property(&mp::InfoReply::Info::name, good_instance_name),
+                                                    Property(&mp::InfoReply::Info::name, deleted_instance_name));
+
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
+    EXPECT_CALL(mock_server, Write(Property(&mp::InfoReply::info, names_matcher), _)).WillOnce(Return(true));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
 }
 } // namespace
