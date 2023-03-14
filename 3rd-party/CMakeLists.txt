@@ -76,7 +76,7 @@ target_link_libraries(gRPC INTERFACE
   zlibstatic)
 
 if (NOT MSVC)
-  target_compile_options(gRPC INTERFACE "-Wno-unused-parameter" "-Wno-non-virtual-dtor")
+  target_compile_options(gRPC INTERFACE "-Wno-unused-parameter" "-Wno-non-virtual-dtor" "-Wno-pedantic")
 endif ()
 
 # YAML C++

@@ -2365,8 +2365,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and timeout below) will
     //       need a refactoring to do so.
-    auto name = name_from(checked_args.instance_name, config->blueprint_provider->name_from_blueprint(request->image()),
-                          *config->name_generator, vm_instances);
+    const std::string blueprint_name = config->blueprint_provider->name_from_blueprint(request->image());
+    auto name = name_from(checked_args.instance_name, blueprint_name, *config->name_generator, vm_instances);
 
     if (vm_instances.find(name) != vm_instances.end() || deleted_instances.find(name) != deleted_instances.end())
     {
@@ -2393,7 +2393,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and name above) will
     //       need a refactoring to do so.
-    auto timeout = timeout_for(request->timeout(), config->blueprint_provider->blueprint_timeout(name));
+    auto timeout = timeout_for(request->timeout(), config->blueprint_provider->blueprint_timeout(blueprint_name));
 
     preparing_instances.insert(name);
 
