@@ -27,7 +27,7 @@
 
 namespace multipass
 {
-class VMSpecs;
+struct VMSpecs;
 
 class BaseSnapshot : public Snapshot
 {
