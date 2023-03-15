@@ -51,6 +51,8 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
+    const bool load_config_file = false;
+    set_option(SSH_OPTIONS_PROCESS_CONFIG, &load_config_file);
 
     SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
     if (key_provider)
