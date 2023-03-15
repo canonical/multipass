@@ -366,6 +366,16 @@ grpc::Status mp::DaemonRpc::keys(grpc::ServerContext* context, grpc::ServerReade
         std::bind(&DaemonRpc::on_keys, this, &request, server, std::placeholders::_1), client_cert_from(context));
 }
 
+grpc::Status mp::DaemonRpc::snapshot(grpc::ServerContext* context,
+                                     grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server)
+{
+    SnapshotRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_snapshot, this, &request, server, std::placeholders::_1), client_cert_from(context));
+}
+
 template <typename OperationSignal>
 grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert)
 {
