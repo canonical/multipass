@@ -15,11 +15,10 @@
  *
  */
 
-#include <multipass/cli/table_formatter.h>
-
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/table_formatter.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 
@@ -27,6 +26,25 @@ namespace mp = multipass;
 
 namespace
 {
+std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+                          std::string type)
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", type, "Aliases", "Version", "Description");
+    for (const auto& image : images_info)
+    {
+        auto aliases = image.aliases_info();
+        mp::format::filter_aliases(aliases);
+
+        fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", mp::format::image_string_for(aliases[0]),
+                       fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
+                       fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
+    }
+    fmt::format_to(std::back_inserter(buf), "\n");
+
+    return fmt::to_string(buf);
+}
 
 std::string to_usage(const std::string& usage, const std::string& total)
 {
@@ -201,20 +219,34 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    if (reply.images_info().empty())
-        return "No images found.\n";
-
-    fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
-
-    for (const auto& image : reply.images_info())
+    if (reply.show_images() && reply.show_blueprints())
     {
-        auto aliases = image.aliases_info();
+        if (reply.images_info().empty() && reply.blueprints_info().empty())
+        {
+            fmt::format_to(std::back_inserter(buf), "No images or blueprints found.\n");
+        }
+        else
+        {
+            if (!reply.images_info().empty())
+                fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Image"));
 
-        mp::format::filter_aliases(aliases);
-
-        fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", mp::format::image_string_for(aliases[0]),
-                       fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
-                       fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
+            if (!reply.blueprints_info().empty())
+                fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint"));
+        }
+    }
+    else if (reply.show_images() && !reply.show_blueprints())
+    {
+        if (reply.images_info().empty())
+            fmt::format_to(std::back_inserter(buf), "No images found.\n");
+        else
+            fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Image"));
+    }
+    else if (!reply.show_images() && reply.show_blueprints())
+    {
+        if (reply.blueprints_info().empty())
+            fmt::format_to(std::back_inserter(buf), "No blueprints found.\n");
+        else
+            fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint"));
     }
 
     return fmt::to_string(buf);

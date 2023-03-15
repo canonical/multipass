@@ -25,6 +25,7 @@
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -569,18 +570,17 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     //       later that accomplish the same thing.
     try
     {
-        blueprint_provider.info_for(request->image());
+        if (!blueprint_provider.info_for(request->image()))
+        {
+            auto image_query = query_from(request, "");
+            if (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty())
+                throw mp::ImageNotFoundException(request->image(), request->remote_name());
+        }
     }
     catch (const mp::IncompatibleBlueprintException&)
     {
         throw std::runtime_error(
             fmt::format("The \"{}\" Blueprint is not compatible with this host.", request->image()));
-    }
-    catch (const std::out_of_range&)
-    {
-        auto image_query = query_from(request, "");
-        if (image_query.query_type == mp::Query::Type::Alias)
-            vault.all_info_for(image_query);
     }
 }
 
@@ -918,12 +918,12 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
-void add_aliases(mp::FindReply& response, const std::string& remote_name, const mp::VMImageInfo& info,
-                 const std::string& default_remote)
+void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container, const std::string& remote_name,
+                 const mp::VMImageInfo& info, const std::string& default_remote)
 {
     if (!info.aliases.empty())
     {
-        auto entry = response.add_images_info();
+        auto entry = container->Add();
         for (const auto& alias : info.aliases)
         {
             auto alias_entry = entry->add_aliases_info();
@@ -1147,6 +1147,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     }
                     return true;
                 };
+
                 try
                 {
                     config->vault->update_images(config->factory->fetch_type(), prepare_action, download_monitor);
@@ -1237,80 +1238,99 @@ try // clang-format on
     mpl::ClientLogger<FindReply, FindRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     FindReply response;
+    response.set_show_images(request->show_images());
+    response.set_show_blueprints(request->show_blueprints());
+
     const auto default_remote{"release"};
 
     if (!request->search_string().empty())
     {
-        std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
+        if (request->show_images())
+        {
+            std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
 
-        try
-        {
-            vm_images_info = config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
-                                                          Query::Type::Alias, request->allow_unsupported()});
-        }
-        catch (const std::exception&)
-        {
             try
             {
-                vm_images_info.push_back(
-                    std::make_pair("", config->blueprint_provider->info_for(request->search_string())));
+                vm_images_info =
+                    config->vault->all_info_for({"", request->search_string(), false, request->remote_name(),
+                                                 Query::Type::Alias, request->allow_unsupported()});
             }
-            catch (const std::exception&)
+            catch (const std::exception& e)
             {
-                throw std::runtime_error(
-                    fmt::format("Unable to find an image or Blueprint matching \"{}\"", request->search_string()));
+                mpl::log(mpl::Level::warning, category,
+                         fmt::format("An unexpected error occurred while fetching images matching \"{}\": {}",
+                                     request->search_string(), e.what()));
+            }
+
+            for (auto& [remote, info] : vm_images_info)
+            {
+                if (info.aliases.contains(QString::fromStdString(request->search_string())))
+                    info.aliases = QStringList({QString::fromStdString(request->search_string())});
+                else
+                    info.aliases = QStringList({info.id.left(12)});
+
+                auto remote_name =
+                    (!request->remote_name().empty() ||
+                     (request->remote_name().empty() && vm_images_info.size() > 1 && remote != default_remote))
+                        ? remote
+                        : "";
+
+                add_aliases(response.mutable_images_info(), remote_name, info, "");
             }
         }
 
-        for (const auto& [remote, info] : vm_images_info)
+        if (request->show_blueprints())
         {
-            std::string name;
-            if (info.aliases.contains(QString::fromStdString(request->search_string())))
+            std::optional<VMImageInfo> info;
+            try
             {
-                name = request->search_string();
+                info = config->blueprint_provider->info_for(request->search_string());
             }
-            else
+            catch (const std::exception& e)
             {
-                name = info.id.toStdString();
-                name.resize(12);
+                mpl::log(mpl::Level::warning, category,
+                         fmt::format("An unexpected error occurred while fetching blueprints matching \"{}\": {}",
+                                     request->search_string(), e.what()));
             }
 
-            auto entry = response.add_images_info();
-            entry->set_os(info.os.toStdString());
-            entry->set_release(info.release_title.toStdString());
-            entry->set_version(info.version.toStdString());
-            auto alias_entry = entry->add_aliases_info();
-            if (!request->remote_name().empty() ||
-                (request->remote_name().empty() && vm_images_info.size() > 1 && remote != default_remote))
+            if (info)
             {
-                alias_entry->set_remote_name(remote);
+                if ((*info).aliases.contains(QString::fromStdString(request->search_string())))
+                    (*info).aliases = QStringList({QString::fromStdString(request->search_string())});
+                else
+                    (*info).aliases = QStringList({(*info).id.left(12)});
+
+                add_aliases(response.mutable_blueprints_info(), "", *info, "");
             }
-            alias_entry->set_alias(name);
         }
     }
     else if (request->remote_name().empty())
     {
-        for (const auto& image_host : config->image_hosts)
+        if (request->show_images())
         {
-            std::unordered_set<std::string> images_found;
-            auto action = [&images_found, &default_remote, request, &response](const std::string& remote,
-                                                                               const mp::VMImageInfo& info) {
-                if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                    images_found.find(info.release_title.toStdString()) == images_found.end())
-                {
-                    add_aliases(response, remote, info, default_remote);
-                    images_found.insert(info.release_title.toStdString());
-                }
-            };
+            for (const auto& image_host : config->image_hosts)
+            {
+                std::unordered_set<std::string> images_found;
+                auto action = [&images_found, &default_remote, request, &response](const std::string& remote,
+                                                                                   const mp::VMImageInfo& info) {
+                    if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                        images_found.find(info.release_title.toStdString()) == images_found.end())
+                    {
+                        add_aliases(response.mutable_images_info(), remote, info, default_remote);
+                        images_found.insert(info.release_title.toStdString());
+                    }
+                };
 
-            image_host->for_each_entry_do(action);
+                image_host->for_each_entry_do(action);
+            }
         }
 
-        auto vm_blueprints_info = config->blueprint_provider->all_blueprints();
-
-        for (const auto& info : vm_blueprints_info)
+        if (request->show_blueprints())
         {
-            add_aliases(response, "", info, "");
+            auto vm_blueprints_info = config->blueprint_provider->all_blueprints();
+
+            for (const auto& info : vm_blueprints_info)
+                add_aliases(response.mutable_blueprints_info(), "", info, "");
         }
     }
     else
@@ -1320,10 +1340,9 @@ try // clang-format on
         auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
 
         for (const auto& info : vm_images_info)
-        {
-            add_aliases(response, remote, info, "");
-        }
+            add_aliases(response.mutable_images_info(), remote, info, "");
     }
+
     server->Write(response);
     status_promise->set_value(grpc::Status::OK);
 }

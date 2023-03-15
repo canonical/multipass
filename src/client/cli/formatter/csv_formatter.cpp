@@ -16,12 +16,36 @@
  */
 
 #include <multipass/cli/csv_formatter.h>
-
 #include <multipass/cli/format_utils.h>
-
 #include <multipass/format.h>
 
 namespace mp = multipass;
+
+namespace
+{
+std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+                          std::string type)
+{
+    fmt::memory_buffer buf;
+
+    for (const auto& image : images_info)
+    {
+        auto aliases = image.aliases_info();
+
+        mp::format::filter_aliases(aliases);
+
+        auto image_id = aliases[0].remote_name().empty()
+                            ? aliases[0].alias()
+                            : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
+
+        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{},{}\n", image_id, aliases[0].remote_name(),
+                       fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"), image.os(), image.release(),
+                       image.version(), type);
+    }
+
+    return fmt::to_string(buf);
+}
+} // namespace
 
 std::string mp::CSVFormatter::format(const InfoReply& reply) const
 {
@@ -88,21 +112,9 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version\n");
-
-    for (const auto& image : reply.images_info())
-    {
-        auto aliases = image.aliases_info();
-
-        mp::format::filter_aliases(aliases);
-
-        auto image_id = aliases[0].remote_name().empty()
-                            ? aliases[0].alias()
-                            : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{}\n", image_id, aliases[0].remote_name(),
-                       fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"), image.os(), image.release(),
-                       image.version());
-    }
+    fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version,Type\n");
+    fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Cloud Image"));
+    fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint"));
 
     return fmt::to_string(buf);
 }

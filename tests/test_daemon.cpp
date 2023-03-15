@@ -1524,7 +1524,7 @@ TEST_F(Daemon, fails_with_image_not_found_also_if_image_is_also_non_bridgeable)
     });
 
     auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
-    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce(Throw(std::out_of_range("")));
+    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce(Return(std::nullopt));
 
     config_builder.vault = std::move(mock_image_vault);
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);

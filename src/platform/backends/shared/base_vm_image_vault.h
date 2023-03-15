@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_BASE_VM_IMAGE_VAULT_H
 #define MULTIPASS_BASE_VM_IMAGE_VAULT_H
 
-#include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
@@ -63,37 +62,31 @@ public:
         else
             static_cast<void>(std::any_of(image_hosts.begin(), image_hosts.end(), grab_imgs)); // intentional discard
 
-        if (images_info.empty())
-            throw ImageNotFoundException(query.release);
-
         return images_info;
     };
 
 protected:
-    virtual VMImageInfo info_for(const Query& query) const
+    virtual std::optional<VMImageInfo> info_for(const Query& query) const
     {
+        std::optional<VMImageInfo> info;
+
         if (!query.remote_name.empty())
         {
             auto image_host = image_host_for(query.remote_name);
-            auto info = image_host->info_for(query);
-
-            if (info != std::nullopt)
-                return *info;
+            info = image_host->info_for(query);
         }
         else
         {
             for (const auto& image_host : image_hosts)
             {
-                auto info = image_host->info_for(query);
+                info = image_host->info_for(query);
 
                 if (info)
-                {
-                    return *info;
-                }
+                    break;
             }
         }
 
-        throw ImageNotFoundException(query.release);
+        return info;
     };
 
 private:

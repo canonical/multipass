@@ -19,6 +19,7 @@
 #include "lxd_request.h"
 
 #include <multipass/exceptions/aborted_download_exception.h>
+#include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -195,7 +196,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
             {
                 const auto info = info_for(image_query);
 
-                source_image.original_release = info.release_title.toStdString();
+                source_image.original_release = info->release_title.toStdString();
             }
             catch (const std::exception&)
             {
@@ -225,7 +226,11 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type, const 
 
     if (query.query_type == Query::Type::Alias)
     {
-        info = info_for(query);
+        if (auto image_info = info_for(query); image_info)
+            info = *image_info;
+        else
+            throw mp::ImageNotFoundException(query.release, query.remote_name);
+
         id = info.id;
 
         source_image.id = id.toStdString();
@@ -410,13 +415,15 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const Prepa
             try
             {
                 auto info = info_for(query);
+                if (!info)
+                    throw mp::ImageNotFoundException(query.release, query.remote_name);
 
-                if (info.id != id)
+                if (info->id != id)
                 {
                     mpl::log(mpl::Level::info, category,
                              fmt::format("Updating {} source image to latest", query.release));
 
-                    lxd_download_image(info, query, monitor, image_info["last_used_at"].toString());
+                    lxd_download_image(*info, query, monitor, image_info["last_used_at"].toString());
 
                     lxd_request(manager, "DELETE", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
                 }

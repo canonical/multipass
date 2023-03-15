@@ -15,10 +15,9 @@
  *
  */
 
-#include <multipass/cli/json_formatter.h>
-
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
+#include <multipass/cli/json_formatter.h>
 #include <multipass/utils.h>
 
 #include <QJsonArray>
@@ -26,6 +25,36 @@
 #include <QJsonObject>
 
 namespace mp = multipass;
+
+namespace
+{
+QJsonObject format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+{
+    QJsonObject images_obj;
+
+    for (const auto& image : images_info)
+    {
+        QJsonObject image_obj;
+        image_obj.insert("os", QString::fromStdString(image.os()));
+        image_obj.insert("release", QString::fromStdString(image.release()));
+        image_obj.insert("version", QString::fromStdString(image.version()));
+
+        QJsonArray aliases_arr;
+        auto aliases = image.aliases_info();
+        mp::format::filter_aliases(aliases);
+
+        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
+            aliases_arr.append(QString::fromStdString(alias->alias()));
+
+        image_obj.insert("aliases", aliases_arr);
+        image_obj.insert("remote", QString::fromStdString(aliases[0].remote_name()));
+
+        images_obj.insert(QString::fromStdString(mp::format::image_string_for(aliases[0])), image_obj);
+    }
+
+    return images_obj;
+}
+} // namespace
 
 std::string mp::JsonFormatter::format(const InfoReply& reply) const
 {
@@ -173,33 +202,10 @@ std::string mp::JsonFormatter::format(const NetworksReply& reply) const
 std::string mp::JsonFormatter::format(const FindReply& reply) const
 {
     QJsonObject find_json;
-    QJsonObject images;
 
     find_json.insert("errors", QJsonArray());
-
-    for (const auto& image : reply.images_info())
-    {
-        QJsonObject image_obj;
-        image_obj.insert("os", QString::fromStdString(image.os()));
-        image_obj.insert("release", QString::fromStdString(image.release()));
-        image_obj.insert("version", QString::fromStdString(image.version()));
-
-        QJsonArray aliases_arr;
-        auto aliases = image.aliases_info();
-        mp::format::filter_aliases(aliases);
-
-        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
-        {
-            aliases_arr.append(QString::fromStdString(alias->alias()));
-        }
-        image_obj.insert("aliases", aliases_arr);
-
-        image_obj.insert("remote", QString::fromStdString(aliases[0].remote_name()));
-
-        images.insert(QString::fromStdString(mp::format::image_string_for(aliases[0])), image_obj);
-    }
-
-    find_json.insert("images", images);
+    find_json.insert("blueprints", format_images(reply.blueprints_info()));
+    find_json.insert("images", format_images(reply.images_info()));
 
     return QString(QJsonDocument(find_json).toJson()).toStdString();
 }
