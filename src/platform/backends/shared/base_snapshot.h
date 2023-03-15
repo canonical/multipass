@@ -32,11 +32,11 @@ struct VMSpecs;
 class BaseSnapshot : public Snapshot
 {
 public:
-    BaseSnapshot(std::string name, std::string comment, const Snapshot* parent, int num_cores, MemorySize mem_size,
-                 MemorySize disk_space, VirtualMachine::State state, std::unordered_map<std::string, VMMount> mounts,
-                 QJsonObject metadata);
+    BaseSnapshot(const std::string& name, const std::string& comment, const Snapshot* parent, int num_cores,
+                 MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
+                 std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata);
 
-    BaseSnapshot(std::string name, std::string comment, const Snapshot* parent, const VMSpecs& specs);
+    BaseSnapshot(const std::string& name, const std::string& comment, const Snapshot* parent, const VMSpecs& specs);
 
     const std::string& get_name() const noexcept override;
     const std::string& get_comment() const noexcept override;
