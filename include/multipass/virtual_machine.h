@@ -27,6 +27,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace multipass
@@ -35,6 +36,7 @@ class MemorySize;
 class SSHKeyProvider;
 struct VMMount;
 class MountHandler;
+class Snapshot;
 
 class VirtualMachine : private DisabledCopyMove
 {
@@ -80,6 +82,9 @@ public:
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                                     const std::string& target,
                                                                     const VMMount& mount) = 0;
+
+    using SnapshotMap = std::unordered_map<std::string, std::unique_ptr<Snapshot>>;
+    virtual const SnapshotMap& get_snapshots() const noexcept = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
