@@ -19,12 +19,20 @@
 
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
+#include <multipass/snapshot.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace multipass
 {
+
+BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name)
+    : VirtualMachine(state, vm_name){};
+
+BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
+
+BaseVirtualMachine::~BaseVirtualMachine() = default; // Snapshot is now fully defined, this can call unique_ptr's dtor
 
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {
