@@ -34,6 +34,7 @@ add_library(commands STATIC
   recover.cpp
   remote_settings_handler.cpp
   restart.cpp
+  restore.cpp
   set.cpp
   shell.cpp
   snapshot.cpp
