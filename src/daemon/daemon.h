@@ -139,6 +139,10 @@ public slots:
                           grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
                           std::promise<grpc::Status>* status_promise);
 
+    virtual void restore(const RestoreRequest* request,
+                         grpc::ServerReaderWriterInterface<RestoreReply, RestoreRequest>* server,
+                         std::promise<grpc::Status>* status_promise);
+
 private:
     void release_resources(const std::string& instance);
     std::string check_instance_operational(const std::string& instance_name) const;
