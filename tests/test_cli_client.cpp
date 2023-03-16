@@ -136,6 +136,10 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest> * server)),
                 (override));
+    MOCK_METHOD(grpc::Status, restore,
+                (grpc::ServerContext * context,
+                 (grpc::ServerReaderWriter<mp::RestoreReply, mp::RestoreRequest> * server)),
+                (override));
 };
 
 struct Client : public Test
@@ -3102,6 +3106,43 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 
     EXPECT_THAT(help_cmd_launch.str(), Ne(""));
     EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
+}
+
+// restore cli tests
+TEST_F(Client, restoreCmdHelpOk)
+{
+    EXPECT_EQ(send_command({"restore", "--help"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, restoreCmdGoodArgsOk)
+{
+    EXPECT_CALL(mock_daemon, restore);
+    EXPECT_EQ(send_command({"restore", "foo.snapshot1", "--destructive"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, restoreCmdTooFewArgsFails)
+{
+    EXPECT_EQ(send_command({"restore", "--destructive"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, restoreCmdTooManyArgsFails)
+{
+    EXPECT_EQ(send_command({"restore", "foo.snapshot1", "bar.snapshot2"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, restoreCmdMissingInstanceFails)
+{
+    EXPECT_EQ(send_command({"restore", ".snapshot1"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, restoreCmdMissingSnapshotFails)
+{
+    EXPECT_EQ(send_command({"restore", "foo."}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, restoreCmdInvalidOptionFails)
+{
+    EXPECT_EQ(send_command({"restore", "--foo"}), mp::ReturnCode::CommandLineError);
 }
 
 // authenticate cli tests
