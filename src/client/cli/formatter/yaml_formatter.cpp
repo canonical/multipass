@@ -15,14 +15,12 @@
  *
  */
 
-#include <multipass/cli/yaml_formatter.h>
-
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
-#include <multipass/utils.h>
-
+#include <multipass/cli/yaml_formatter.h>
 #include <multipass/format.h>
+#include <multipass/utils.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -30,6 +28,36 @@
 
 namespace mp = multipass;
 namespace mpu = multipass::utils;
+
+namespace
+{
+std::map<std::string, YAML::Node>
+format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+{
+    std::map<std::string, YAML::Node> images_node;
+
+    for (const auto& image : images_info)
+    {
+        YAML::Node image_node;
+        image_node["aliases"] = std::vector<std::string>{};
+
+        auto aliases = image.aliases_info();
+        mp::format::filter_aliases(aliases);
+
+        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
+            image_node["aliases"].push_back(alias->alias());
+
+        image_node["os"] = image.os();
+        image_node["release"] = image.release();
+        image_node["version"] = image.version();
+        image_node["remote"] = aliases[0].remote_name();
+
+        images_node[mp::format::image_string_for(aliases[0])] = image_node;
+    }
+
+    return images_node;
+}
+} // namespace
 
 std::string mp::YamlFormatter::format(const InfoReply& reply) const
 {
@@ -167,29 +195,8 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
 {
     YAML::Node find;
     find["errors"] = std::vector<YAML::Node>{};
-    find["images"] = std::map<std::string, YAML::Node>{};
-
-    for (const auto& image : reply.images_info())
-    {
-        YAML::Node image_node;
-        image_node["aliases"] = std::vector<std::string>{};
-
-        auto aliases = image.aliases_info();
-        mp::format::filter_aliases(aliases);
-
-        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
-        {
-            image_node["aliases"].push_back(alias->alias());
-        }
-
-        image_node["os"] = image.os();
-        image_node["release"] = image.release();
-        image_node["version"] = image.version();
-
-        image_node["remote"] = aliases[0].remote_name();
-
-        find["images"][mp::format::image_string_for(aliases[0])] = image_node;
-    }
+    find["blueprints"] = format_images(reply.blueprints_info());
+    find["images"] = format_images(reply.images_info());
 
     return mpu::emit_yaml(find);
 }

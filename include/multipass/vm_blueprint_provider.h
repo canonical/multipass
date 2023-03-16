@@ -24,6 +24,7 @@
 #include "virtual_machine_description.h"
 #include "vm_image_info.h"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -38,7 +39,7 @@ public:
                                       ClientLaunchData& client_launch_data) = 0;
     virtual Query blueprint_from_file(const std::string& path, const std::string& blueprint_name,
                                       VirtualMachineDescription& vm_desc, ClientLaunchData& client_launch_data) = 0;
-    virtual VMImageInfo info_for(const std::string& blueprint_name) = 0;
+    virtual std::optional<VMImageInfo> info_for(const std::string& blueprint_name) = 0;
     virtual std::vector<VMImageInfo> all_blueprints() = 0;
     virtual std::string name_from_blueprint(const std::string& blueprint_name) = 0;
     virtual int blueprint_timeout(const std::string& blueprint_name) = 0;

@@ -19,6 +19,7 @@
 
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
+#include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/json_writer.h>
 #include <multipass/logging/log.h>
@@ -374,8 +375,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
         else
         {
             const auto info = info_for(query);
+            if (!info)
+                throw mp::ImageNotFoundException(query.release, query.remote_name);
 
-            id = info.id.toStdString();
+            id = info->id.toStdString();
 
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             if (!query.name.empty())
@@ -414,12 +417,12 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             else
             {
                 const auto image_dir =
-                    MP_UTILS.make_dir(images_dir, QString("%1-%2").arg(info.release).arg(info.version));
+                    MP_UTILS.make_dir(images_dir, QString("%1-%2").arg(info->release).arg(info->version));
 
                 // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
                 // QtConcurrent::run()
                 future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this,
-                                                     info, source_image, image_dir, fetch_type, prepare, monitor));
+                                                     *info, source_image, image_dir, fetch_type, prepare, monitor));
 
                 in_progress_image_fetches[id] = future;
             }
@@ -514,12 +517,19 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
             try
             {
                 auto info = info_for(record.second.query);
-                if (info.id.toStdString() != record.first)
+                if (!info)
+                    throw mp::ImageNotFoundException(record.second.query.release, record.second.query.remote_name);
+
+                if (info->id.toStdString() != record.first)
                 {
                     keys_to_update.push_back(record.first);
                 }
             }
             catch (const mp::UnsupportedImageException& e)
+            {
+                mpl::log(mpl::Level::warning, category, fmt::format("Skipping update: {}", e.what()));
+            }
+            catch (const mp::ImageNotFoundException& e)
             {
                 mpl::log(mpl::Level::warning, category, fmt::format("Skipping update: {}", e.what()));
             }
@@ -713,7 +723,10 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
 mp::VMImageInfo mp::DefaultVMImageVault::get_kernel_query_info(const std::string& name)
 {
     Query kernel_query{name, "default", false, "", Query::Type::Alias};
-    return info_for(kernel_query);
+    auto info = info_for(kernel_query);
+    if (!info)
+        throw mp::ImageNotFoundException("default", "");
+    return *info;
 }
 
 namespace

@@ -436,12 +436,17 @@ mp::Query mp::DefaultVMBlueprintProvider::blueprint_from_file(const std::string&
                                     needs_update);
 }
 
-mp::VMImageInfo mp::DefaultVMBlueprintProvider::info_for(const std::string& blueprint_name)
+std::optional<mp::VMImageInfo> mp::DefaultVMBlueprintProvider::info_for(const std::string& blueprint_name)
 {
     update_blueprints();
 
     static constexpr auto missing_key_template{"The \'{}\' key is required for the {} Blueprint"};
-    auto& blueprint_config = blueprint_map.at(blueprint_name);
+
+    YAML::Node blueprint_config;
+    if (auto it = blueprint_map.find(blueprint_name); it != blueprint_map.end())
+        blueprint_config = it->second;
+    else
+        return std::nullopt;
 
     VMImageInfo image_info;
     image_info.aliases.append(QString::fromStdString(blueprint_name));
@@ -495,7 +500,9 @@ std::vector<mp::VMImageInfo> mp::DefaultVMBlueprintProvider::all_blueprints()
     {
         try
         {
-            blueprint_info.push_back(info_for(key));
+            auto info = info_for(key);
+            assert(info && "key missing from blueprint map");
+            blueprint_info.push_back(*info);
         }
         catch (const InvalidBlueprintException& e)
         {
