@@ -860,12 +860,12 @@ grpc::Status grpc_status_for_selection(const InstanceSelection& selection, const
 
 // careful to keep the original `names` around while the returned selection is in use!
 template <typename InstanceNames>
-std::pair<grpc::Status, InstanceSelection>
+std::pair<InstanceSelection, grpc::Status>
 select_instances_and_react(InstanceTable& operating_instances, InstanceTable& deleted_instances,
                            const InstanceNames& names, InstanceGroup no_name_means, const SelectionReaction& reaction)
 {
     auto instance_selection = select_instances(operating_instances, deleted_instances, names, no_name_means);
-    return {grpc_status_for_selection(instance_selection, reaction), instance_selection};
+    return {instance_selection, grpc_status_for_selection(instance_selection, reaction)};
 }
 
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
@@ -2092,7 +2092,7 @@ try // clang-format on
     mpl::ClientLogger<StopReply, StopRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
 
-    auto [status, instance_selection] =
+    auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
                                    InstanceGroup::Operating, require_operating_instances_reaction);
 
