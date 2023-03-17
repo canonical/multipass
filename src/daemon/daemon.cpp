@@ -694,10 +694,11 @@ enum class InstanceGroup
 };
 
 using InstanceTable = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>;
-using InstanceTrail = std::variant<InstanceTable::iterator, // viable instances
-                                   InstanceTable::iterator, // deleted instances
-                                   std::string>;            // missing instances
+using InstanceTrail = std::variant<InstanceTable::iterator,                    // viable instances
+                                   InstanceTable::iterator,                    // deleted instances
+                                   std::reference_wrapper<const std::string>>; // missing instances
 
+// careful to keep the original `name` around while the returned trail is in use!
 [[maybe_unused]] // TODO@ricab remove
 InstanceTrail
 find_instance(InstanceTable& viable_instances, InstanceTable& deleted_instances, const std::string& name)
@@ -715,7 +716,7 @@ struct InstanceSelection
 {
     InstanceIndex viable_selection;
     InstanceIndex deleted_selection;
-    std::vector<std::string> missing_instances;
+    std::vector<std::reference_wrapper<const std::string>> missing_instances;
 };
 
 // TODO@ricab sprinkle reserves below
@@ -730,6 +731,7 @@ select_all(InstanceTable& instances)
     return selection;
 }
 
+// careful to keep the original `name` around while the provided `selection` is in use!
 [[maybe_unused]] // TODO@ricab remove
 void rank_instance(const std::string& name, const InstanceTrail& trail, InstanceSelection& selection)
 {
@@ -742,11 +744,12 @@ void rank_instance(const std::string& name, const InstanceTrail& trail, Instance
         selection.deleted_selection.push_back(std::get<1>(trail));
         break;
     case 2:
-        selection.missing_instances.push_back(name);
+        selection.missing_instances.push_back(std::get<2>(trail));
         break;
     }
 }
 
+// careful to keep the original `names` around while the returned selection is in use!
 template <typename InstanceNames>
 InstanceSelection select_instances(InstanceTable& viable_instances, InstanceTable& deleted_instances,
                                    const InstanceNames& names, InstanceGroup no_name_means)
