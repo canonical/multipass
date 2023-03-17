@@ -78,7 +78,9 @@
 #include <cstring> // TODO hk migration, remove
 #include <functional>
 #include <iterator> // TODO hk migration, remove
+#include <optional>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -647,7 +649,7 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format(sshfs_error_template, instance_name));
 }
 
-auto grpc_status_for(fmt::memory_buffer& errors)
+auto grpc_status_for(fmt::memory_buffer& errors) // TODO@ricab do we still need this? if so, relocate
 {
     if (!errors.size())
         return grpc::Status::OK;
@@ -712,11 +714,12 @@ find_instance(InstanceTable& viable_instances, InstanceTable& deleted_instances,
 }
 
 using InstanceIndex = std::vector<InstanceTable::iterator>;
+using MissingInstanceList = std::vector<std::reference_wrapper<const std::string>>;
 struct InstanceSelection
 {
     InstanceIndex viable_selection;
     InstanceIndex deleted_selection;
-    std::vector<std::reference_wrapper<const std::string>> missing_instances;
+    MissingInstanceList missing_instances;
 };
 
 // TODO@ricab sprinkle reserves below
@@ -774,6 +777,63 @@ InstanceSelection select_instances(InstanceTable& viable_instances, InstanceTabl
     return ret;
 }
 
+struct SelectionReaction
+{
+    struct ReactionComponent
+    {
+        grpc::StatusCode status_code;
+        std::optional<std::string> message_template = std::nullopt;
+    } viable_reaction, deleted_reaction, missing_reaction;
+};
+
+using SelectionComponent = std::variant<InstanceIndex, MissingInstanceList>;
+[[maybe_unused]] // TODO@ricab remove
+grpc::StatusCode
+react_to_selection_component(const SelectionComponent& selection_component,
+                             const SelectionReaction::ReactionComponent& reaction_component, fmt::memory_buffer& errors)
+{ // TODO@ricab streamline this function
+    auto get_instance_name = [](auto instance_element) {
+        using T = std::decay_t<decltype(instance_element)>;
+
+        if constexpr (std::is_same_v<T, InstanceIndex::value_type>)
+            return instance_element->first;
+        else
+        {
+            static_assert(std::is_same_v<T, MissingInstanceList::value_type>);
+            return instance_element.get();
+        }
+    };
+
+    auto visitor = [&reaction_component, &errors, &get_instance_name](const auto& component) {
+        auto status_code = grpc::StatusCode::OK;
+
+        if (!component.empty())
+        {
+            const auto& msg_opt = reaction_component.message_template;
+            status_code = reaction_component.status_code;
+
+            if (msg_opt)
+            {
+                const auto& msg = *msg_opt;
+                auto error_inserter = std::back_inserter(errors);
+
+                for (const auto& instance_element : component) // can be an iterator into an InstanceTable or a name
+                {
+                    const auto& instance_name = get_instance_name(instance_element);
+
+                    if (status_code)
+                        fmt::format_to(error_inserter, msg, instance_name);
+                    else
+                        mpl::log(mpl::Level::debug, category, fmt::format(msg, instance_name));
+                }
+            }
+        }
+
+        return status_code;
+    };
+
+    return std::visit(visitor, selection_component);
+}
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
 grpc::Status validate_requested_instances(const Instances& instances, const InstanceMap& vms,
                                           InstanceCheck check_instance)
