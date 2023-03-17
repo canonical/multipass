@@ -2086,12 +2086,20 @@ try // clang-format on
     mpl::ClientLogger<StopReply, StopRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
 
-    auto [instances, status] =
-        find_requested_instances(request->instance_names().instance_name(), vm_instances,
-                                 std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
+    auto instance_selection = select_instances(vm_instances, deleted_instances,
+                                               request->instance_names().instance_name(), InstanceGroup::Viable);
 
+    auto selection_reaction =
+        SelectionReaction{{grpc::StatusCode::OK},
+                          {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted\n"},
+                          {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
+
+    auto status = grpc_status_for_selection(instance_selection, selection_reaction);
     if (status.ok())
     {
+        assert(instance_selection.deleted_selection.empty());
+        assert(instance_selection.missing_instances.empty());
+
         std::function<grpc::Status(VirtualMachine&)> operation;
         if (request->cancel_shutdown())
             operation = std::bind(&Daemon::cancel_vm_shutdown, this, std::placeholders::_1);
@@ -2099,7 +2107,7 @@ try // clang-format on
             operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
                                   std::chrono::minutes(request->time_minutes()));
 
-        status = cmd_vms(instances, operation);
+        status = cmd_vms_bis(instance_selection.viable_selection, operation);
     }
 
     status_promise->set_value(status);
