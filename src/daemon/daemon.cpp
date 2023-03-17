@@ -782,6 +782,11 @@ struct SelectionReaction
     } operating_reaction, deleted_reaction, missing_reaction;
 };
 
+const SelectionReaction require_operating_instances_reaction{
+    {grpc::StatusCode::OK},
+    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted\n"},
+    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
+
 using SelectionComponent = std::variant<InstanceIndex, MissingInstanceList>;
 grpc::StatusCode react_to_component(const SelectionComponent& selection_component,
                                     const SelectionReaction::ReactionComponent& reaction_component,
@@ -2087,13 +2092,9 @@ try // clang-format on
     mpl::ClientLogger<StopReply, StopRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
 
-    auto selection_reaction =
-        SelectionReaction{{grpc::StatusCode::OK},
-                          {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted\n"},
-                          {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
     auto [status, instance_selection] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
-                                   InstanceGroup::Operating, selection_reaction);
+                                   InstanceGroup::Operating, require_operating_instances_reaction);
 
     if (status.ok())
     {
