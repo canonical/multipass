@@ -860,6 +860,25 @@ grpc_status_for_selection(const InstanceSelection& selection, const SelectionRea
                        : grpc::Status::OK;
 }
 
+using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
+[[maybe_unused]] // TODO@ricab remove
+grpc::Status
+cmd_vms_bis(const InstanceIndex& tgts, const VMCommand& cmd) // TODO@ricab rename
+{ /* TODO: use this in commands, rather than repeating the same logic.
+  std::function involves some overhead, but it should be negligible here and
+  it gives clear error messages on type mismatch (!= templated callable). */
+    for (const auto& tgt : tgts)
+    {
+        auto vm_ptr = tgt->second;
+        assert(vm_ptr && "no nulls please");
+
+        if (auto st = cmd(*vm_ptr); !st.ok())
+            return st; // Fail early
+    }
+
+    return grpc::Status::OK;
+}
+
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
 grpc::Status validate_requested_instances(const Instances& instances, const InstanceMap& vms,
                                           InstanceCheck check_instance)
@@ -2908,6 +2927,7 @@ grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
     return grpc::Status::OK;
 }
 
+// TODO@ricab remove this
 grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd)
 { /* TODO: use this in commands, rather than repeating the same logic.
   std::function involves some overhead, but it should be negligible here and
