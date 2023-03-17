@@ -80,6 +80,7 @@
 #include <iterator> // TODO hk migration, remove
 #include <stdexcept>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace mp = multipass;
@@ -685,10 +686,95 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
 }
 
+enum class InstanceGroup
+{
+    Viable,
+    Deleted,
+    All
+};
+
+using InstanceTable = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>;
+using InstanceTrail = std::variant<InstanceTable::iterator, // viable instances
+                                   InstanceTable::iterator, // deleted instances
+                                   std::string>;            // missing instances
+
+[[maybe_unused]] // TODO@ricab remove
+InstanceTrail
+find_instance(InstanceTable& viable_instances, InstanceTable& deleted_instances, const std::string& name)
+{
+    if (auto it = viable_instances.find(name); it != std::end(viable_instances))
+        return InstanceTrail{std::in_place_index<0>, it};
+    else if (it = deleted_instances.find(name); it != std::end(deleted_instances))
+        return InstanceTrail{std::in_place_index<1>, it};
+    else
+        return {name};
+}
+
+using InstanceIndex = std::vector<InstanceTable::iterator>;
+struct InstanceSelection
+{
+    InstanceIndex viable_selection;
+    InstanceIndex deleted_selection;
+    std::vector<std::string> missing_instances;
+};
+
+// TODO@ricab sprinkle reserves below
+[[maybe_unused]] // TODO@ricab remove
+InstanceIndex
+select_all(InstanceTable& instances)
+{
+    InstanceIndex selection;
+    for (auto it = instances.begin(); it != instances.end(); ++it)
+        selection.push_back(it);
+
+    return selection;
+}
+
+[[maybe_unused]] // TODO@ricab remove
+void rank_instance(const std::string& name, const InstanceTrail& trail, InstanceSelection& selection)
+{
+    switch (trail.index())
+    {
+    case 0:
+        selection.viable_selection.push_back(std::get<0>(trail));
+        break;
+    case 1:
+        selection.deleted_selection.push_back(std::get<1>(trail));
+        break;
+    case 2:
+        selection.missing_instances.push_back(name);
+        break;
+    }
+}
+
+template <typename InstanceNames>
+InstanceSelection select_instances(InstanceTable& viable_instances, InstanceTable& deleted_instances,
+                                   const InstanceNames& names, InstanceGroup no_name_means)
+{
+    InstanceSelection ret{};
+    if (names.empty())
+    {
+        if (no_name_means == InstanceGroup::Viable || no_name_means == InstanceGroup::All)
+            ret.viable_selection = select_all(viable_instances);
+        if (no_name_means == InstanceGroup::Deleted || no_name_means == InstanceGroup::All)
+            ret.deleted_selection = select_all(deleted_instances);
+    }
+    else
+    {
+        for (const auto& name : names)
+        {
+            auto trail = find_instance(viable_instances, deleted_instances, name);
+            rank_instance(name, trail, ret);
+        }
+    }
+
+    return ret;
+}
+
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
 grpc::Status validate_requested_instances(const Instances& instances, const InstanceMap& vms,
                                           InstanceCheck check_instance)
-{
+{ // TODO@ricab replace this
     fmt::memory_buffer errors;
     for (const auto& name : instances)
         fmt::format_to(std::back_inserter(errors), check_instance(name));
@@ -699,7 +785,7 @@ grpc::Status validate_requested_instances(const Instances& instances, const Inst
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
 auto find_requested_instances(const Instances& instances, const InstanceMap& vms, InstanceCheck check_instance)
     -> std::pair<std::vector<typename Instances::value_type>, grpc::Status>
-{ // TODO: use this in commands that currently duplicate the same kind of code
+{ // TODO@ricab replace this
     auto status = validate_requested_instances(instances, vms, check_instance);
     auto valid_instances = std::vector<typename Instances::value_type>{};
 
@@ -720,7 +806,7 @@ auto find_instances_to_delete(const Instances& instances, const InstanceMap& ope
                               const InstanceMap& trashed_vms)
     -> std::tuple<std::vector<typename Instances::value_type>, std::vector<typename Instances::value_type>,
                   grpc::Status>
-{
+{ // TODO@ricab replace this
     fmt::memory_buffer errors;
     std::vector<typename Instances::value_type> operational_instances_to_delete, trashed_instances_to_delete;
 
