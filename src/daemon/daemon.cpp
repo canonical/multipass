@@ -701,9 +701,8 @@ using InstanceTrail = std::variant<InstanceTable::iterator,                    /
                                    std::reference_wrapper<const std::string>>; // missing instances
 
 // careful to keep the original `name` around while the returned trail is in use!
-[[maybe_unused]] // TODO@ricab remove
-InstanceTrail
-find_instance(InstanceTable& operating_instances, InstanceTable& deleted_instances, const std::string& name)
+InstanceTrail find_instance(InstanceTable& operating_instances, InstanceTable& deleted_instances,
+                            const std::string& name)
 {
     if (auto it = operating_instances.find(name); it != std::end(operating_instances))
         return InstanceTrail{std::in_place_index<0>, it};
@@ -723,9 +722,7 @@ struct InstanceSelection
 };
 
 // TODO@ricab sprinkle reserves below
-[[maybe_unused]] // TODO@ricab remove
-InstanceIndex
-select_all(InstanceTable& instances)
+InstanceIndex select_all(InstanceTable& instances)
 {
     InstanceIndex selection;
     for (auto it = instances.begin(); it != instances.end(); ++it)
@@ -735,7 +732,6 @@ select_all(InstanceTable& instances)
 }
 
 // careful to keep the original `name` around while the provided `selection` is in use!
-[[maybe_unused]] // TODO@ricab remove
 void rank_instance(const std::string& name, const InstanceTrail& trail, InstanceSelection& selection)
 {
     switch (trail.index())
@@ -787,10 +783,9 @@ struct SelectionReaction
 };
 
 using SelectionComponent = std::variant<InstanceIndex, MissingInstanceList>;
-[[maybe_unused]] // TODO@ricab remove
-grpc::StatusCode
-react_to_component(const SelectionComponent& selection_component,
-                   const SelectionReaction::ReactionComponent& reaction_component, fmt::memory_buffer& errors)
+grpc::StatusCode react_to_component(const SelectionComponent& selection_component,
+                                    const SelectionReaction::ReactionComponent& reaction_component,
+                                    fmt::memory_buffer& errors)
 { // TODO@ricab streamline this function
     auto get_instance_name = [](auto instance_element) {
         using T = std::decay_t<decltype(instance_element)>;
@@ -836,9 +831,7 @@ react_to_component(const SelectionComponent& selection_component,
 }
 
 // Only the last bad status code is used
-[[maybe_unused]] // TODO@ricab remove
-grpc::Status
-grpc_status_for_selection(const InstanceSelection& selection, const SelectionReaction& reaction)
+grpc::Status grpc_status_for_selection(const InstanceSelection& selection, const SelectionReaction& reaction)
 {
     fmt::memory_buffer errors;
     auto status_code = grpc::StatusCode::OK;
@@ -871,9 +864,7 @@ select_instances_and_react(InstanceTable& operating_instances, InstanceTable& de
 }
 
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
-[[maybe_unused]] // TODO@ricab remove
-grpc::Status
-cmd_vms_bis(const InstanceIndex& tgts, const VMCommand& cmd) // TODO@ricab rename
+grpc::Status cmd_vms_bis(const InstanceIndex& tgts, const VMCommand& cmd) // TODO@ricab rename
 { /* TODO: use this in commands, rather than repeating the same logic.
   std::function involves some overhead, but it should be negligible here and
   it gives clear error messages on type mismatch (!= templated callable). */
