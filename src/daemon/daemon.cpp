@@ -690,22 +690,22 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 
 enum class InstanceGroup
 {
-    Viable,
+    Operating,
     Deleted,
     All
 };
 
 using InstanceTable = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>;
-using InstanceTrail = std::variant<InstanceTable::iterator,                    // viable instances
+using InstanceTrail = std::variant<InstanceTable::iterator,                    // operating instances
                                    InstanceTable::iterator,                    // deleted instances
                                    std::reference_wrapper<const std::string>>; // missing instances
 
 // careful to keep the original `name` around while the returned trail is in use!
 [[maybe_unused]] // TODO@ricab remove
 InstanceTrail
-find_instance(InstanceTable& viable_instances, InstanceTable& deleted_instances, const std::string& name)
+find_instance(InstanceTable& operating_instances, InstanceTable& deleted_instances, const std::string& name)
 {
-    if (auto it = viable_instances.find(name); it != std::end(viable_instances))
+    if (auto it = operating_instances.find(name); it != std::end(operating_instances))
         return InstanceTrail{std::in_place_index<0>, it};
     else if (it = deleted_instances.find(name); it != std::end(deleted_instances))
         return InstanceTrail{std::in_place_index<1>, it};
@@ -717,7 +717,7 @@ using InstanceIndex = std::vector<InstanceTable::iterator>;
 using MissingInstanceList = std::vector<std::reference_wrapper<const std::string>>;
 struct InstanceSelection
 {
-    InstanceIndex viable_selection;
+    InstanceIndex operating_selection;
     InstanceIndex deleted_selection;
     MissingInstanceList missing_instances;
 };
@@ -741,7 +741,7 @@ void rank_instance(const std::string& name, const InstanceTrail& trail, Instance
     switch (trail.index())
     {
     case 0:
-        selection.viable_selection.push_back(std::get<0>(trail));
+        selection.operating_selection.push_back(std::get<0>(trail));
         break;
     case 1:
         selection.deleted_selection.push_back(std::get<1>(trail));
@@ -754,14 +754,14 @@ void rank_instance(const std::string& name, const InstanceTrail& trail, Instance
 
 // careful to keep the original `names` around while the returned selection is in use!
 template <typename InstanceNames>
-InstanceSelection select_instances(InstanceTable& viable_instances, InstanceTable& deleted_instances,
+InstanceSelection select_instances(InstanceTable& operating_instances, InstanceTable& deleted_instances,
                                    const InstanceNames& names, InstanceGroup no_name_means)
 {
     InstanceSelection ret{};
     if (names.empty())
     {
-        if (no_name_means == InstanceGroup::Viable || no_name_means == InstanceGroup::All)
-            ret.viable_selection = select_all(viable_instances);
+        if (no_name_means == InstanceGroup::Operating || no_name_means == InstanceGroup::All)
+            ret.operating_selection = select_all(operating_instances);
         if (no_name_means == InstanceGroup::Deleted || no_name_means == InstanceGroup::All)
             ret.deleted_selection = select_all(deleted_instances);
     }
@@ -769,7 +769,7 @@ InstanceSelection select_instances(InstanceTable& viable_instances, InstanceTabl
     {
         for (const auto& name : names)
         {
-            auto trail = find_instance(viable_instances, deleted_instances, name);
+            auto trail = find_instance(operating_instances, deleted_instances, name);
             rank_instance(name, trail, ret);
         }
     }
@@ -783,14 +783,14 @@ struct SelectionReaction
     {
         grpc::StatusCode status_code;
         std::optional<std::string> message_template = std::nullopt;
-    } viable_reaction, deleted_reaction, missing_reaction;
+    } operating_reaction, deleted_reaction, missing_reaction;
 };
 
 using SelectionComponent = std::variant<InstanceIndex, MissingInstanceList>;
 [[maybe_unused]] // TODO@ricab remove
 grpc::StatusCode
-react_to_selection_component(const SelectionComponent& selection_component,
-                             const SelectionReaction::ReactionComponent& reaction_component, fmt::memory_buffer& errors)
+react_to_component(const SelectionComponent& selection_component,
+                   const SelectionReaction::ReactionComponent& reaction_component, fmt::memory_buffer& errors)
 { // TODO@ricab streamline this function
     auto get_instance_name = [](auto instance_element) {
         using T = std::decay_t<decltype(instance_element)>;
@@ -843,11 +843,11 @@ grpc_status_for_selection(const InstanceSelection& selection, const SelectionRea
     fmt::memory_buffer errors;
     auto status_code = grpc::StatusCode::OK;
 
-    if (auto code = react_to_selection_component(selection.viable_selection, reaction.viable_reaction, errors); code)
+    if (auto code = react_to_component(selection.operating_selection, reaction.operating_reaction, errors); code)
         status_code = code;
-    if (auto code = react_to_selection_component(selection.deleted_selection, reaction.deleted_reaction, errors); code)
+    if (auto code = react_to_component(selection.deleted_selection, reaction.deleted_reaction, errors); code)
         status_code = code;
-    if (auto code = react_to_selection_component(selection.missing_instances, reaction.missing_reaction, errors); code)
+    if (auto code = react_to_component(selection.missing_instances, reaction.missing_reaction, errors); code)
         status_code = code;
 
     // Remove trailing newline due to grpc adding one of it's own
@@ -2087,7 +2087,7 @@ try // clang-format on
                                                      server};
 
     auto instance_selection = select_instances(vm_instances, deleted_instances,
-                                               request->instance_names().instance_name(), InstanceGroup::Viable);
+                                               request->instance_names().instance_name(), InstanceGroup::Operating);
 
     auto selection_reaction =
         SelectionReaction{{grpc::StatusCode::OK},
@@ -2107,7 +2107,7 @@ try // clang-format on
             operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
                                   std::chrono::minutes(request->time_minutes()));
 
-        status = cmd_vms_bis(instance_selection.viable_selection, operation);
+        status = cmd_vms_bis(instance_selection.operating_selection, operation);
     }
 
     status_promise->set_value(status);
