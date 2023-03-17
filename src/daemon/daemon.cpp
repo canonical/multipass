@@ -1468,9 +1468,11 @@ try // clang-format on
             info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
             info->set_memory_total(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $2}'"));
             info->set_disk_usage(mpu::run_in_ssh_session(
-                session, "df --output=used $(awk '$2 == \"/\" { print $1 }' /proc/mounts) -B1 | sed 1d"));
+                session,
+                "df --output=used $(sudo fdisk -l | grep 'Linux filesystem' | awk '{print $1}') -B1 | sed 1d"));
             info->set_disk_total(mpu::run_in_ssh_session(
-                session, "df --output=size $(awk '$2 == \"/\" { print $1 }' /proc/mounts) -B1 | sed 1d"));
+                session,
+                "df --output=size $(sudo fdisk -l | grep 'Linux filesystem' | awk '{print $1}') -B1 | sed 1d"));
             info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
 
             std::string management_ip = vm->management_ipv4();
