@@ -860,6 +860,16 @@ grpc_status_for_selection(const InstanceSelection& selection, const SelectionRea
                        : grpc::Status::OK;
 }
 
+// careful to keep the original `names` around while the returned selection is in use!
+template <typename InstanceNames>
+std::pair<grpc::Status, InstanceSelection>
+select_instances_and_react(InstanceTable& operating_instances, InstanceTable& deleted_instances,
+                           const InstanceNames& names, InstanceGroup no_name_means, const SelectionReaction& reaction)
+{
+    auto instance_selection = select_instances(operating_instances, deleted_instances, names, no_name_means);
+    return {grpc_status_for_selection(instance_selection, reaction), instance_selection};
+}
+
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
 [[maybe_unused]] // TODO@ricab remove
 grpc::Status
@@ -2086,15 +2096,14 @@ try // clang-format on
     mpl::ClientLogger<StopReply, StopRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
 
-    auto instance_selection = select_instances(vm_instances, deleted_instances,
-                                               request->instance_names().instance_name(), InstanceGroup::Operating);
-
     auto selection_reaction =
         SelectionReaction{{grpc::StatusCode::OK},
                           {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted\n"},
                           {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
+    auto [status, instance_selection] =
+        select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
+                                   InstanceGroup::Operating, selection_reaction);
 
-    auto status = grpc_status_for_selection(instance_selection, selection_reaction);
     if (status.ok())
     {
         assert(instance_selection.deleted_selection.empty());
