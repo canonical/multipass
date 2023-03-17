@@ -834,6 +834,32 @@ react_to_selection_component(const SelectionComponent& selection_component,
 
     return std::visit(visitor, selection_component);
 }
+
+// Only the last bad status code is used
+[[maybe_unused]] // TODO@ricab remove
+grpc::Status
+grpc_status_for_selection(const InstanceSelection& selection, const SelectionReaction& reaction)
+{
+    fmt::memory_buffer errors;
+    auto status_code = grpc::StatusCode::OK;
+
+    if (auto code = react_to_selection_component(selection.viable_selection, reaction.viable_reaction, errors); code)
+        status_code = code;
+    if (auto code = react_to_selection_component(selection.deleted_selection, reaction.deleted_reaction, errors); code)
+        status_code = code;
+    if (auto code = react_to_selection_component(selection.missing_instances, reaction.missing_reaction, errors); code)
+        status_code = code;
+
+    // Remove trailing newline due to grpc adding one of it's own
+    // TODO@ricab use join instead?
+    auto error_string = fmt::to_string(errors);
+    if (!error_string.empty() && error_string.back() == '\n')
+        error_string.pop_back();
+
+    return status_code ? grpc::Status{status_code, fmt::format("The following errors occurred:\n{}", error_string), ""}
+                       : grpc::Status::OK;
+}
+
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
 grpc::Status validate_requested_instances(const Instances& instances, const InstanceMap& vms,
                                           InstanceCheck check_instance)
