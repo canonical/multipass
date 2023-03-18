@@ -1895,30 +1895,25 @@ try // clang-format on
     mpl::ClientLogger<RecoverReply, RecoverRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
-    const auto [instances, status] =
-        find_requested_instances(request->instance_names().instance_name(), deleted_instances,
-                                 std::bind(&Daemon::check_instance_exists, this, std::placeholders::_1));
+    const SelectionReaction custom_reaction{{grpc::StatusCode::OK, "instance \"{}\" does not need to be recovered"},
+                                            {grpc::StatusCode::OK},
+                                            {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
+
+    auto [instance_selection, status] =
+        select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
+                                   InstanceGroup::Deleted, custom_reaction);
 
     if (status.ok())
     {
-        for (const auto& name : instances)
+        for (const auto& vm_it : instance_selection.deleted_selection)
         {
-            auto it = deleted_instances.find(name);
-            if (it != std::end(deleted_instances))
-            {
-                assert(vm_instance_specs[name].deleted);
-                vm_instance_specs[name].deleted = false;
-                vm_instances[name] = std::move(it->second);
-                deleted_instances.erase(it);
-                init_mounts(name);
-            }
-            else
-            {
-                mpl::log(mpl::Level::debug, category,
-                         fmt::format("instance \"{}\" does not need to be recovered", name));
-            }
+            const auto name = vm_it->first;
+            assert(vm_instance_specs[name].deleted);
+            vm_instance_specs[name].deleted = false;
+            vm_instances[name] = std::move(vm_it->second);
+            deleted_instances.erase(vm_it);
+            init_mounts(name);
         }
-
         persist_instances();
     }
 
