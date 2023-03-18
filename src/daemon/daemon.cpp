@@ -2137,33 +2137,13 @@ try // clang-format on
     mpl::ClientLogger<SuspendReply, SuspendRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
-    fmt::memory_buffer errors;
-    std::vector<decltype(vm_instances)::key_type> instances_to_suspend;
-    for (const auto& name : request->instance_names().instance_name())
-    {
-        auto it = vm_instances.find(name);
-        if (it == vm_instances.end())
-        {
-            it = deleted_instances.find(name);
-            if (it == deleted_instances.end())
-                fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
-            else
-                fmt::format_to(std::back_inserter(errors), "instance \"{}\" is deleted\n", name);
-            continue;
-        }
-        instances_to_suspend.push_back(name);
-    }
+    auto [instance_selection, status] =
+        select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
+                                   InstanceGroup::Operating, require_operating_instances_reaction);
 
-    auto status = grpc_status_for(errors);
     if (status.ok())
     {
-        if (instances_to_suspend.empty())
-        {
-            for (auto& pair : vm_instances)
-                instances_to_suspend.push_back(pair.first);
-        }
-
-        status = cmd_vms(instances_to_suspend, [this](auto& vm) {
+        status = cmd_vms_bis(instance_selection.operating_selection, [this](auto& vm) {
             stop_mounts(vm.vm_name);
 
             vm.suspend();
