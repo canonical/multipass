@@ -644,25 +644,6 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     return ret;
 }
 
-auto grpc_status_for_mount_error(const std::string& instance_name)
-{
-    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format(sshfs_error_template, instance_name));
-}
-
-auto grpc_status_for(fmt::memory_buffer& errors) // TODO@ricab do we still need this? if so, relocate
-{
-    if (!errors.size())
-        return grpc::Status::OK;
-
-    // Remove trailing newline due to grpc adding one of it's own
-    auto error_string = fmt::to_string(errors);
-    if (error_string.back() == '\n')
-        error_string.pop_back();
-
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        fmt::format("The following errors occurred:\n{}", error_string), "");
-}
-
 auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 {
     QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create);
@@ -861,6 +842,25 @@ grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection,
 
     return status_code ? grpc::Status{status_code, fmt::format("The following errors occurred:\n{}", error_string), ""}
                        : grpc::Status::OK;
+}
+
+auto grpc_status_for_mount_error(const std::string& instance_name)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format(sshfs_error_template, instance_name));
+}
+
+auto grpc_status_for(fmt::memory_buffer& errors)
+{
+    if (!errors.size())
+        return grpc::Status::OK;
+
+    // Remove trailing newline due to grpc adding one of it's own
+    auto error_string = fmt::to_string(errors);
+    if (error_string.back() == '\n')
+        error_string.pop_back();
+
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        fmt::format("The following errors occurred:\n{}", error_string), "");
 }
 
 // careful to keep the original `names` around while the returned selection is in use!
