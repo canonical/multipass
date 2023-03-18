@@ -2992,14 +2992,13 @@ void mp::Daemon::init_mounts(const std::string& name)
         persist_instances();
 }
 
-void multipass::Daemon::stop_mounts(const std::string& name)
+void mp::Daemon::stop_mounts(const std::string& name)
 {
     for (auto& [_, mount] : mounts[name])
         mount->stop(/*force=*/true);
 }
 
-multipass::MountHandler::UPtr multipass::Daemon::make_mount(VirtualMachine* vm, const std::string& target,
-                                                            const VMMount& mount)
+mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
 {
     return mount.mount_type == VMMount::MountType::Classic
                ? std::make_unique<SSHFSMountHandler>(vm, config->ssh_key_provider.get(), target, mount)
