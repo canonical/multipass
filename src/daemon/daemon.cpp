@@ -2193,18 +2193,19 @@ try // clang-format on
                                                          server};
     DeleteReply response;
 
-    const auto [operational_instances_to_delete, trashed_instances_to_delete, status] =
-        find_instances_to_delete(request->instance_names().instance_name(), vm_instances, deleted_instances);
+    auto [instance_selection, status] =
+        select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
+                                   InstanceGroup::All, require_existing_instances_reaction);
 
     if (status.ok())
     {
         const bool purge = request->purge();
 
-        for (const auto& name : operational_instances_to_delete)
+        for (const auto& vm_it : instance_selection.operating_selection)
         {
+            const auto& name = vm_it->first;
+            auto& instance = vm_it->second;
             assert(!vm_instance_specs[name].deleted);
-
-            auto& instance = vm_instances[name];
 
             if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
                 delayed_shutdown_instances.erase(name);
@@ -2223,17 +2224,18 @@ try // clang-format on
                 vm_instance_specs[name].deleted = true;
             }
 
-            vm_instances.erase(name);
+            vm_instances.erase(vm_it);
         }
 
         if (purge)
         {
-            for (const auto& name : trashed_instances_to_delete)
+            for (const auto& vm_it : instance_selection.deleted_selection)
             {
+                const auto& name = vm_it->first;
                 assert(vm_instance_specs[name].deleted);
-                release_resources(name);
-                deleted_instances.erase(name);
                 response.add_purged_instances(name);
+                release_resources(name);
+                deleted_instances.erase(vm_it);
             }
         }
 
