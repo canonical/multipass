@@ -712,19 +712,19 @@ InstanceTrail find_instance(InstanceTable& operating_instances, InstanceTable& d
         return {name};
 }
 
-using InstanceIndex = std::vector<InstanceTable::iterator>;
+using LinearInstanceSelection = std::vector<InstanceTable::iterator>;
 using MissingInstanceList = std::vector<std::reference_wrapper<const std::string>>;
-struct InstanceSelection
+struct InstanceSelectionReport
 {
-    InstanceIndex operating_selection;
-    InstanceIndex deleted_selection;
+    LinearInstanceSelection operating_selection;
+    LinearInstanceSelection deleted_selection;
     MissingInstanceList missing_instances;
 };
 
 // TODO@ricab sprinkle reserves below
-InstanceIndex select_all(InstanceTable& instances)
+LinearInstanceSelection select_all(InstanceTable& instances)
 {
-    InstanceIndex selection;
+    LinearInstanceSelection selection;
     for (auto it = instances.begin(); it != instances.end(); ++it)
         selection.push_back(it);
 
@@ -732,7 +732,7 @@ InstanceIndex select_all(InstanceTable& instances)
 }
 
 // careful to keep the original `name` around while the provided `selection` is in use!
-void rank_instance(const std::string& name, const InstanceTrail& trail, InstanceSelection& selection)
+void rank_instance(const std::string& name, const InstanceTrail& trail, InstanceSelectionReport& selection)
 {
     switch (trail.index())
     {
@@ -750,10 +750,10 @@ void rank_instance(const std::string& name, const InstanceTrail& trail, Instance
 
 // careful to keep the original `names` around while the returned selection is in use!
 template <typename InstanceNames>
-InstanceSelection select_instances(InstanceTable& operating_instances, InstanceTable& deleted_instances,
-                                   const InstanceNames& names, InstanceGroup no_name_means)
+InstanceSelectionReport select_instances(InstanceTable& operating_instances, InstanceTable& deleted_instances,
+                                         const InstanceNames& names, InstanceGroup no_name_means)
 {
-    InstanceSelection ret{};
+    InstanceSelectionReport ret{};
     if (names.empty())
     {
         if (no_name_means == InstanceGroup::Operating || no_name_means == InstanceGroup::All)
@@ -787,7 +787,7 @@ const SelectionReaction require_operating_instances_reaction{
     {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted\n"},
     {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
 
-using SelectionComponent = std::variant<InstanceIndex, MissingInstanceList>;
+using SelectionComponent = std::variant<LinearInstanceSelection, MissingInstanceList>;
 grpc::StatusCode react_to_component(const SelectionComponent& selection_component,
                                     const SelectionReaction::ReactionComponent& reaction_component,
                                     fmt::memory_buffer& errors)
@@ -795,7 +795,7 @@ grpc::StatusCode react_to_component(const SelectionComponent& selection_componen
     auto get_instance_name = [](auto instance_element) {
         using T = std::decay_t<decltype(instance_element)>;
 
-        if constexpr (std::is_same_v<T, InstanceIndex::value_type>)
+        if constexpr (std::is_same_v<T, LinearInstanceSelection::value_type>)
             return instance_element->first;
         else
         {
@@ -836,7 +836,7 @@ grpc::StatusCode react_to_component(const SelectionComponent& selection_componen
 }
 
 // Only the last bad status code is used
-grpc::Status grpc_status_for_selection(const InstanceSelection& selection, const SelectionReaction& reaction)
+grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection, const SelectionReaction& reaction)
 {
     fmt::memory_buffer errors;
     auto status_code = grpc::StatusCode::OK;
@@ -860,7 +860,7 @@ grpc::Status grpc_status_for_selection(const InstanceSelection& selection, const
 
 // careful to keep the original `names` around while the returned selection is in use!
 template <typename InstanceNames>
-std::pair<InstanceSelection, grpc::Status>
+std::pair<InstanceSelectionReport, grpc::Status>
 select_instances_and_react(InstanceTable& operating_instances, InstanceTable& deleted_instances,
                            const InstanceNames& names, InstanceGroup no_name_means, const SelectionReaction& reaction)
 {
@@ -869,7 +869,7 @@ select_instances_and_react(InstanceTable& operating_instances, InstanceTable& de
 }
 
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
-grpc::Status cmd_vms_bis(const InstanceIndex& tgts, const VMCommand& cmd) // TODO@ricab rename
+grpc::Status cmd_vms_bis(const LinearInstanceSelection& tgts, const VMCommand& cmd) // TODO@ricab rename
 { /* TODO: use this in commands, rather than repeating the same logic.
   std::function involves some overhead, but it should be negligible here and
   it gives clear error messages on type mismatch (!= templated callable). */
@@ -885,7 +885,7 @@ grpc::Status cmd_vms_bis(const InstanceIndex& tgts, const VMCommand& cmd) // TOD
     return grpc::Status::OK;
 }
 
-std::vector<std::string> names_from(const InstanceIndex& instances)
+std::vector<std::string> names_from(const LinearInstanceSelection& instances)
 {
     std::vector<std::string> ret;
     ret.reserve(instances.size());
