@@ -155,6 +155,7 @@ private:
         std::promise<grpc::Status>* status_promise;
     };
 
+    // These async_* methods need to operate on instance names and look up the VMs again, lest they be gone or moved.
     template <typename Reply, typename Request>
     std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
                                                         grpc::ServerReaderWriterInterface<Reply, Request>* server);

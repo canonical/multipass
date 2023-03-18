@@ -885,6 +885,16 @@ grpc::Status cmd_vms_bis(const InstanceIndex& tgts, const VMCommand& cmd) // TOD
     return grpc::Status::OK;
 }
 
+std::vector<std::string> names_from(const InstanceIndex& instances)
+{
+    std::vector<std::string> ret;
+    ret.reserve(instances.size());
+    std::transform(std::cbegin(instances), std::cend(instances), std::back_inserter(ret),
+                   [](const auto& item) { return item->first; });
+
+    return ret;
+}
+
 template <typename Instances, typename InstanceMap, typename InstanceCheck>
 grpc::Status validate_requested_instances(const Instances& instances, const InstanceMap& vms,
                                           InstanceCheck check_instance)
@@ -2179,16 +2189,17 @@ try // clang-format on
 
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
-    auto [instances, status] =
-        find_requested_instances(request->instance_names().instance_name(), vm_instances,
-                                 std::bind(&Daemon::check_instance_operational, this, std::placeholders::_1));
+    auto [instance_selection, status] =
+        select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
+                                   InstanceGroup::Operating, require_operating_instances_reaction);
 
     if (!status.ok())
     {
         return status_promise->set_value(status);
     }
 
-    status = cmd_vms(instances, [this](auto& vm) {
+    const auto& instance_targets = instance_selection.operating_selection;
+    status = cmd_vms_bis(instance_targets, [this](auto& vm) {
         stop_mounts(vm.vm_name);
 
         return reboot_vm(vm);
@@ -2200,8 +2211,10 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
+
     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
-                                                server, instances, timeout, status_promise, std::string()));
+                                                server, names_from(instance_targets), timeout, status_promise,
+                                                std::string()));
 }
 catch (const std::exception& e)
 {
