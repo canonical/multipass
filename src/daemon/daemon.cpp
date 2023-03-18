@@ -875,9 +875,9 @@ select_instances_and_react(InstanceTable& operating_instances, InstanceTable& de
 
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
 grpc::Status cmd_vms_bis(const LinearInstanceSelection& tgts, const VMCommand& cmd) // TODO@ricab rename
-{ /* TODO: use this in commands, rather than repeating the same logic.
-  std::function involves some overhead, but it should be negligible here and
-  it gives clear error messages on type mismatch (!= templated callable). */
+{
+    // std::function involves some overhead, but it should be negligible here and
+    // it gives clear error messages on type mismatch (!= templated callable).
     for (const auto& tgt : tgts)
     {
         auto vm_ptr = tgt->second;
