@@ -787,6 +787,11 @@ const SelectionReaction require_operating_instances_reaction{
     {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted\n"},
     {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
 
+const SelectionReaction require_existing_instances_reaction{
+    {grpc::StatusCode::OK},
+    {grpc::StatusCode::OK},
+    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
+
 using SelectionComponent = std::variant<LinearInstanceSelection, MissingInstanceList>;
 grpc::StatusCode react_to_component(const SelectionComponent& selection_component,
                                     const SelectionReaction::ReactionComponent& reaction_component,
@@ -1569,42 +1574,12 @@ try // clang-format on
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     InfoReply response;
-
-    fmt::memory_buffer errors;
     bool have_mounts = false;
-    std::vector<decltype(vm_instances)::key_type> instances_for_info;
-
-    if (request->instance_names().instance_name().empty())
-    {
-        for (auto& pair : vm_instances)
-            instances_for_info.push_back(pair.first);
-        for (auto& pair : deleted_instances)
-            instances_for_info.push_back(pair.first);
-    }
-    else
-    {
-        for (const auto& name : request->instance_names().instance_name())
-            instances_for_info.push_back(name);
-    }
-
-    for (const auto& name : instances_for_info)
-    {
-        auto it = vm_instances.find(name);
-        bool deleted{false};
-        if (it == vm_instances.end())
-        {
-            it = deleted_instances.find(name);
-            if (it == deleted_instances.end())
-            {
-                fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
-                continue;
-            }
-            deleted = true;
-        }
-
+    bool deleted = false;
+    auto fetch_info = [&](VirtualMachine& vm) {
+        const auto& name = vm.vm_name;
         auto info = response.add_info();
-        auto& vm = it->second;
-        auto present_state = vm->current_state();
+        auto present_state = vm.current_state();
         info->set_name(name);
         if (deleted)
         {
@@ -1673,8 +1648,7 @@ try // clang-format on
 
         if (!request->no_runtime_information() && mp::utils::is_running(present_state))
         {
-            mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                   *config->ssh_key_provider};
+            mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
 
             info->set_load(mpu::run_in_ssh_session(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
             info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
@@ -1687,8 +1661,8 @@ try // clang-format on
                 "df --output=size $(sudo fdisk -l | grep 'Linux filesystem' | awk '{print $1}') -B1 | sed 1d"));
             info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
 
-            std::string management_ip = vm->management_ipv4();
-            auto all_ipv4 = vm->get_all_ipv4(*config->ssh_key_provider);
+            std::string management_ip = vm.management_ipv4();
+            auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
 
             if (is_ipv4_valid(management_ip))
                 info->add_ipv4(management_ip);
@@ -1703,14 +1677,23 @@ try // clang-format on
                 mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
             info->set_current_release(!current_release.empty() ? current_release : original_release);
         }
+        return grpc::Status::OK;
+    };
+
+    auto [instance_selection, status] =
+        select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
+                                   InstanceGroup::All, require_existing_instances_reaction);
+
+    if (status.ok())
+    {
+        cmd_vms_bis(instance_selection.operating_selection, fetch_info);
+        deleted = true;
+        cmd_vms_bis(instance_selection.deleted_selection, fetch_info);
+        server->Write(response);
     }
 
     if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
         mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
-
-    auto status = grpc_status_for(errors);
-    if (status.ok())
-        server->Write(response);
 
     status_promise->set_value(status);
 }
