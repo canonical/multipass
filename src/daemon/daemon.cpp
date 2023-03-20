@@ -887,7 +887,7 @@ std::string make_start_error_details(const InstanceSelectionReport& instance_sel
 }
 
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
-grpc::Status cmd_vms_bis(const LinearInstanceSelection& tgts, const VMCommand& cmd) // TODO@ricab rename
+grpc::Status cmd_vms(const LinearInstanceSelection& tgts, const VMCommand& cmd)
 {
     // std::function involves some overhead, but it should be negligible here and
     // it gives clear error messages on type mismatch (!= templated callable).
@@ -1638,9 +1638,9 @@ try // clang-format on
 
     if (status.ok())
     {
-        cmd_vms_bis(instance_selection.operating_selection, fetch_info);
+        cmd_vms(instance_selection.operating_selection, fetch_info);
         deleted = true;
-        cmd_vms_bis(instance_selection.deleted_selection, fetch_info);
+        cmd_vms(instance_selection.deleted_selection, fetch_info);
 
         if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
             mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
@@ -2039,7 +2039,7 @@ try // clang-format on
             operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
                                   std::chrono::minutes(request->time_minutes()));
 
-        status = cmd_vms_bis(instance_selection.operating_selection, operation);
+        status = cmd_vms(instance_selection.operating_selection, operation);
     }
 
     status_promise->set_value(status);
@@ -2064,7 +2064,7 @@ try // clang-format on
 
     if (status.ok())
     {
-        status = cmd_vms_bis(instance_selection.operating_selection, [this](auto& vm) {
+        status = cmd_vms(instance_selection.operating_selection, [this](auto& vm) {
             stop_mounts(vm.vm_name);
 
             vm.suspend();
@@ -2100,7 +2100,7 @@ try // clang-format on
     }
 
     const auto& instance_targets = instance_selection.operating_selection;
-    status = cmd_vms_bis(instance_targets, [this](auto& vm) {
+    status = cmd_vms(instance_targets, [this](auto& vm) {
         stop_mounts(vm.vm_name);
 
         return reboot_vm(vm);
