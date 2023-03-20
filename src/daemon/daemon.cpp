@@ -1926,8 +1926,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::start(const StartRequest* request, // TODO@ricab move to new scheme
-                       grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
+void mp::Daemon::start(const StartRequest* request, grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -1940,74 +1939,73 @@ try // clang-format on
     if (!instances_running(vm_instances))
         config->factory->hypervisor_health_check();
 
-    mp::StartError start_error;
-    auto* errors = start_error.mutable_instance_errors();
-    bool have_mounts = false;
+    const SelectionReaction custom_reaction{
+        {grpc::StatusCode::OK}, {grpc::StatusCode::ABORTED}, {grpc::StatusCode::ABORTED}};
+    auto [instance_selection, status] =
+        select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
+                                   InstanceGroup::Operating, custom_reaction);
 
-    std::vector<decltype(vm_instances)::key_type> vms;
-    for (const auto& name : request->instance_names().instance_name())
+    if (!status.ok())
     {
-        auto it = vm_instances.find(name);
-        if (it == vm_instances.end())
-            errors->insert({name, deleted_instances.find(name) == deleted_instances.end()
-                                      ? mp::StartError::DOES_NOT_EXIST
-                                      : mp::StartError::INSTANCE_DELETED});
-        else
-        {
-            if (!vm_instance_specs[name].mounts.empty())
-                have_mounts = true;
-            if (it->second->current_state() == VirtualMachine::State::delayed_shutdown)
-                delayed_shutdown_instances.erase(name);
-            else if (it->second->current_state() != VirtualMachine::State::running)
-                vms.push_back(name);
-        }
+        mp::StartError start_error;
+        auto* errors = start_error.mutable_instance_errors();
+
+        for (const auto& vm_it : instance_selection.deleted_selection)
+            errors->insert({vm_it->first, mp::StartError::INSTANCE_DELETED});
+        for (const auto& name : instance_selection.missing_instances)
+            errors->insert({name, mp::StartError::DOES_NOT_EXIST});
+
+        return status_promise->set_value({status.error_code(), "instance(s) missing", start_error.SerializeAsString()});
     }
 
-    if (start_error.instance_errors_size())
-        return status_promise->set_value(
-            grpc::Status(grpc::StatusCode::ABORTED, "instance(s) missing", start_error.SerializeAsString()));
+    bool complain_disabled_mounts = !MP_SETTINGS.get_as<bool>(mp::mounts_key);
 
-    if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
-        mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
-
-    if (request->instance_names().instance_name().empty())
-    {
-        for (auto& pair : vm_instances)
-        {
-            if (pair.second->current_state() == VirtualMachine::State::running)
-                continue;
-            vms.push_back(pair.first);
-        }
-    }
+    std::vector<std::string> starting_vms{};
+    starting_vms.reserve(instance_selection.operating_selection.size());
 
     fmt::memory_buffer start_errors;
-    for (const auto& name : vms)
+    for (auto& vm_it : instance_selection.operating_selection)
     {
         std::lock_guard lock{start_mutex};
-        auto& vm = vm_instances.find(name)->second;
-        auto state = vm->current_state();
-        if (state == VirtualMachine::State::unknown)
+        const auto& name = vm_it->first;
+        auto& vm = *vm_it->second;
+        switch (vm.current_state())
+        {
+        case VirtualMachine::State::unknown:
         {
             auto error_string = fmt::format("Instance \'{}\' is already running, but in an unknown state", name);
             mpl::log(mpl::Level::warning, category, error_string);
             fmt::format_to(std::back_inserter(start_errors), error_string);
             continue;
         }
-        else if (state == VirtualMachine::State::suspending)
-        {
+        case VirtualMachine::State::suspending:
             fmt::format_to(std::back_inserter(start_errors), "Cannot start the instance \'{}\' while suspending", name);
             continue;
+        case VirtualMachine::State::delayed_shutdown:
+            delayed_shutdown_instances.erase(name);
+            continue;
+        case VirtualMachine::State::running:
+            continue;
+        case VirtualMachine::State::starting:
+        case VirtualMachine::State::restarting:
+            break;
+        default:
+            if (complain_disabled_mounts && !vm_instance_specs[name].mounts.empty())
+            {
+                complain_disabled_mounts = false; // I shall say zis only once
+                mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
+            }
+
+            vm.start();
         }
-        else if (state != VirtualMachine::State::running && state != VirtualMachine::State::starting &&
-                 state != VirtualMachine::State::restarting)
-        {
-            vm->start();
-        }
+
+        starting_vms.push_back(vm_it->first);
     }
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
-                                                server, vms, timeout, status_promise, fmt::to_string(start_errors)));
+                                                server, starting_vms, timeout, status_promise,
+                                                fmt::to_string(start_errors)));
 }
 catch (const std::exception& e)
 {
