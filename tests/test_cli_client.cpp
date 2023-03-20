@@ -3179,6 +3179,46 @@ TEST_F(Client, restoreCmdInvalidOptionFails)
     EXPECT_EQ(send_command({"restore", "--foo"}), mp::ReturnCode::CommandLineError);
 }
 
+struct RestoreCommandClient : public Client
+{
+    RestoreCommandClient()
+    {
+        EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
+        EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
+        EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
+    }
+
+    std::ostringstream cerr, cout;
+    std::istringstream cin;
+    mpt::MockTerminal mock_terminal;
+};
+
+TEST_F(RestoreCommandClient, restoreCmdConfirmsDesruction)
+{
+    cin.str("invalid input\nyes\n");
+
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(true));
+    EXPECT_CALL(mock_terminal, cout_is_live()).WillOnce(Return(true));
+
+    EXPECT_CALL(mock_daemon, restore(_, _)).WillOnce([](auto, auto* server) {
+        mp::RestoreRequest request;
+        server->Read(&request);
+
+        EXPECT_FALSE(request.destructive());
+        return grpc::Status{};
+    });
+
+    EXPECT_EQ(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal), mp::ReturnCode::Ok);
+    EXPECT_TRUE(cout.str().find("Please answer yes/no"));
+}
+
+TEST_F(RestoreCommandClient, restoreCmdNotDestructiveNotLiveTermFails)
+{
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(false));
+
+    EXPECT_EQ(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal), mp::ReturnCode::CommandFail);
+}
+
 // authenticate cli tests
 TEST_F(Client, authenticateCmdGoodPassphraseOk)
 {
