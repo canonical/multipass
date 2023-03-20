@@ -136,6 +136,10 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest> * server)),
                 (override));
+    MOCK_METHOD(grpc::Status, snapshot,
+                (grpc::ServerContext * context,
+                 (grpc::ServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest> * server)),
+                (override));
     MOCK_METHOD(grpc::Status, restore,
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::RestoreReply, mp::RestoreRequest> * server)),
@@ -3108,6 +3112,34 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 
     EXPECT_THAT(help_cmd_launch.str(), Ne(""));
     EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
+}
+
+// snapshot cli tests
+TEST_F(Client, snapshotCmdHelpOk)
+{
+    EXPECT_EQ(send_command({"snapshot", "--help"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, snapshotCmdGoodArgsOk)
+{
+    EXPECT_CALL(mock_daemon, snapshot);
+    EXPECT_EQ(send_command({"snapshot", "foo", "rocky"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, snapshotCmdTooFewArgsFails)
+{
+    EXPECT_EQ(send_command({"snapshot", "-m", "Who controls the past controls the future"}),
+              mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, snapshotCmdTooManyArgsFails)
+{
+    EXPECT_EQ(send_command({"snaphot", "foo", "bar"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, snapshotCmdInvalidOptionFails)
+{
+    EXPECT_EQ(send_command({"snapshot", "--snap"}), mp::ReturnCode::CommandLineError);
 }
 
 // restore cli tests
