@@ -900,67 +900,6 @@ std::vector<std::string> names_from(const LinearInstanceSelection& instances)
     return ret;
 }
 
-template <typename Instances, typename InstanceMap, typename InstanceCheck>
-grpc::Status validate_requested_instances(const Instances& instances, const InstanceMap& vms,
-                                          InstanceCheck check_instance)
-{ // TODO@ricab replace this
-    fmt::memory_buffer errors;
-    for (const auto& name : instances)
-        fmt::format_to(std::back_inserter(errors), check_instance(name));
-
-    return grpc_status_for(errors);
-}
-
-template <typename Instances, typename InstanceMap, typename InstanceCheck>
-auto find_requested_instances(const Instances& instances, const InstanceMap& vms, InstanceCheck check_instance)
-    -> std::pair<std::vector<typename Instances::value_type>, grpc::Status>
-{ // TODO@ricab replace this
-    auto status = validate_requested_instances(instances, vms, check_instance);
-    auto valid_instances = std::vector<typename Instances::value_type>{};
-
-    if (status.ok())
-    {
-        if (instances.empty())
-            for (const auto& vm_item : vms)
-                valid_instances.push_back(vm_item.first);
-        else
-            std::copy(std::cbegin(instances), std::cend(instances), std::back_inserter(valid_instances));
-    }
-
-    return std::make_pair(valid_instances, status);
-}
-
-template <typename Instances, typename InstanceMap>
-auto find_instances_to_delete(const Instances& instances, const InstanceMap& operational_vms,
-                              const InstanceMap& trashed_vms)
-    -> std::tuple<std::vector<typename Instances::value_type>, std::vector<typename Instances::value_type>,
-                  grpc::Status>
-{ // TODO@ricab replace this
-    fmt::memory_buffer errors;
-    std::vector<typename Instances::value_type> operational_instances_to_delete, trashed_instances_to_delete;
-
-    for (const auto& name : instances)
-        if (operational_vms.find(name) != operational_vms.end())
-            operational_instances_to_delete.push_back(name);
-        else if (trashed_vms.find(name) != trashed_vms.end())
-            trashed_instances_to_delete.push_back(name);
-        else
-            fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
-
-    auto status = grpc_status_for(errors);
-
-    if (status.ok() && operational_instances_to_delete.empty() && trashed_instances_to_delete.empty())
-    { // target all instances
-        const auto get_first = [](const auto& pair) { return pair.first; };
-        std::transform(std::cbegin(operational_vms), std::cend(operational_vms),
-                       std::back_inserter(operational_instances_to_delete), get_first);
-        std::transform(std::cbegin(trashed_vms), std::cend(trashed_vms),
-                       std::back_inserter(trashed_instances_to_delete), get_first);
-    }
-
-    return std::make_tuple(operational_instances_to_delete, trashed_instances_to_delete, status);
-}
-
 template <typename Instances>
 auto instances_running(const Instances& instances)
 {
@@ -1986,7 +1925,8 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::start(const StartRequest* request, grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
+void mp::Daemon::start(const StartRequest* request, // TODO@ricab move to new scheme
+                       grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
@@ -2905,21 +2845,6 @@ grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
     else
         mpl::log(mpl::Level::debug, category,
                  fmt::format("no delayed shutdown to cancel on instance \"{}\"", vm.vm_name));
-
-    return grpc::Status::OK;
-}
-
-// TODO@ricab remove this
-grpc::Status mp::Daemon::cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd)
-{ /* TODO: use this in commands, rather than repeating the same logic.
-  std::function involves some overhead, but it should be negligible here and
-  it gives clear error messages on type mismatch (!= templated callable). */
-    for (const auto& tgt : tgts)
-    {
-        const auto st = cmd(*vm_instances.at(tgt));
-        if (!st.ok())
-            return st; // Fail early
-    }
 
     return grpc::Status::OK;
 }
