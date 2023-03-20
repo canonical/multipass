@@ -136,7 +136,7 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     if (ret != ReturnCode::Ok)
         return ret;
 
-    auto got_petenv = request.instance_name() == petenv_name.toStdString();
+    auto got_petenv = instance_name == petenv_name;
     if (!got_petenv && mount_routes.empty())
         return ret;
 
