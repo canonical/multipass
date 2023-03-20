@@ -1877,7 +1877,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::ssh_info(const SSHInfoRequest* request,
+void mp::Daemon::ssh_info(const SSHInfoRequest* request, // TODO@ricab move to new scheme
                           grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>* server,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
@@ -2453,28 +2453,6 @@ void mp::Daemon::release_resources(const std::string& instance)
 
         vm_instance_specs.erase(spec_it);
     }
-}
-
-std::string mp::Daemon::check_instance_operational(const std::string& instance_name) const
-{
-    if (vm_instances.find(instance_name) == std::cend(vm_instances))
-    {
-        if (deleted_instances.find(instance_name) == std::cend(deleted_instances))
-            return fmt::format("instance \"{}\" does not exist\n", instance_name);
-        else
-            return fmt::format("instance \"{}\" is deleted\n", instance_name);
-    }
-
-    return {};
-}
-
-std::string mp::Daemon::check_instance_exists(const std::string& instance_name) const
-{
-    if (vm_instances.find(instance_name) == std::cend(vm_instances) &&
-        deleted_instances.find(instance_name) == std::cend(deleted_instances))
-        return fmt::format("instance \"{}\" does not exist\n", instance_name);
-
-    return {};
 }
 
 void mp::Daemon::create_vm(const CreateRequest* request,

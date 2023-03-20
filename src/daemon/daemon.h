@@ -137,8 +137,6 @@ public slots:
 
 private:
     void release_resources(const std::string& instance);
-    std::string check_instance_operational(const std::string& instance_name) const;
-    std::string check_instance_exists(const std::string& instance_name) const;
     void create_vm(const CreateRequest* request, grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise, bool start);
     grpc::Status reboot_vm(VirtualMachine& vm);
