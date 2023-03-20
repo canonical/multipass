@@ -89,6 +89,7 @@ void mp::XzImageDecoder::decode_to(const Path& decoded_image_path, const Progres
     const auto file_size = xz_file.size();
     qint64 total_bytes_extracted{0};
 
+    auto last_progress = -1;
     while (true)
     {
         if (decode_buf.in_pos == decode_buf.in_size)
@@ -97,7 +98,9 @@ void mp::XzImageDecoder::decode_to(const Path& decoded_image_path, const Progres
             decode_buf.in_pos = 0;
             total_bytes_extracted += decode_buf.in_size;
             auto progress = (total_bytes_extracted / (float)file_size) * 100;
-            monitor(LaunchProgress::EXTRACT, progress);
+            if (last_progress != progress)
+                monitor(LaunchProgress::EXTRACT, progress);
+            last_progress = progress;
         }
 
         if (!verify_decode(xz_dec_run(xz_decoder.get(), &decode_buf)))
