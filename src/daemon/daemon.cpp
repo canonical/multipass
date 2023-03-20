@@ -873,6 +873,19 @@ select_instances_and_react(InstanceTable& operating_instances, InstanceTable& de
     return {instance_selection, grpc_status_for_selection(instance_selection, reaction)};
 }
 
+std::string make_start_error_details(const InstanceSelectionReport& instance_selection)
+{
+    mp::StartError start_error;
+    auto* errors = start_error.mutable_instance_errors();
+
+    for (const auto& vm_it : instance_selection.deleted_selection)
+        errors->insert({vm_it->first, mp::StartError::INSTANCE_DELETED});
+    for (const auto& name : instance_selection.missing_instances)
+        errors->insert({name, mp::StartError::DOES_NOT_EXIST});
+
+    return start_error.SerializeAsString();
+}
+
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
 grpc::Status cmd_vms_bis(const LinearInstanceSelection& tgts, const VMCommand& cmd) // TODO@ricab rename
 {
@@ -1946,17 +1959,8 @@ try // clang-format on
                                    InstanceGroup::Operating, custom_reaction);
 
     if (!status.ok())
-    {
-        mp::StartError start_error;
-        auto* errors = start_error.mutable_instance_errors();
-
-        for (const auto& vm_it : instance_selection.deleted_selection)
-            errors->insert({vm_it->first, mp::StartError::INSTANCE_DELETED});
-        for (const auto& name : instance_selection.missing_instances)
-            errors->insert({name, mp::StartError::DOES_NOT_EXIST});
-
-        return status_promise->set_value({status.error_code(), "instance(s) missing", start_error.SerializeAsString()});
-    }
+        return status_promise->set_value(
+            {status.error_code(), "instance(s) missing", make_start_error_details(instance_selection)});
 
     bool complain_disabled_mounts = !MP_SETTINGS.get_as<bool>(mp::mounts_key);
 
