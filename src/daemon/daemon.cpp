@@ -1628,11 +1628,12 @@ try // clang-format on
         cmd_vms_bis(instance_selection.operating_selection, fetch_info);
         deleted = true;
         cmd_vms_bis(instance_selection.deleted_selection, fetch_info);
+
+        if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
+            mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
+
         server->Write(response);
     }
-
-    if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
-        mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
 
     status_promise->set_value(status);
 }
