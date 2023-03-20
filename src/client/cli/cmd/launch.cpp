@@ -136,12 +136,16 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
     if (ret != ReturnCode::Ok)
         return ret;
 
+    auto got_petenv = request.instance_name() == petenv_name.toStdString();
+    if (!got_petenv && mount_routes.empty())
+        return ret;
+
     if (MP_SETTINGS.get_as<bool>(mounts_key))
     {
         auto has_home_mount = std::count_if(mount_routes.begin(), mount_routes.end(),
                                             [](const auto& route) { return route.second == home_automount_dir; });
 
-        if (request.instance_name() == petenv_name.toStdString() && !has_home_mount)
+        if (got_petenv && !has_home_mount)
         {
             try
             {
