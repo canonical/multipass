@@ -59,7 +59,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
       onSelectChanged: (select) => ref
           .read(selectedVMsProvider.notifier)
           .update((selected) => select!
-              ? ({...selected}..[info.name] = info)
+              ? ({...selected, info.name: info.instanceStatus.status})
               : ({...selected}..remove(info.name))),
       cells: [
         DataCell(Text(info.name)),
@@ -118,7 +118,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
       sortColumnIndex: sortIndex,
       sortAscending: sortAscending,
       onSelectAll: (select) => ref.read(selectedVMsProvider.notifier).state =
-          select! ? {for (final info in sortedInfos) info.name: info} : {},
+          select! ? infosToStatusMap(sortedInfos) : {},
       columns: _headers.toList(),
       rows: sortedInfos
           .map((info) => _buildRow(info, selectedVMs.containsKey(info.name)))

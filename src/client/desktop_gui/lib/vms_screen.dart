@@ -10,38 +10,25 @@ import 'vms_table.dart';
 
 final runningOnlyProvider = StateProvider((_) => false);
 final searchNameProvider = StateProvider((_) => '');
-final selectedVMsProvider = StateProvider((ref) {
+final selectedVMsProvider = StateProvider<Map<String, Status>>((ref) {
   ref.watch(runningOnlyProvider);
   ref.watch(searchNameProvider);
-  return <String, InfoReply_Info>{};
-});
+  ref.listen(vmStatusesProvider, (_, next) {
+    ref.controller.update(
+      (state) => Map.fromEntries(
+        next.entries.where((e) => state.containsKey(e.key)),
+      ),
+    );
+  });
 
-MapEntry<String, Status> infoToStatusMap(String key, InfoReply_Info value) {
-  return MapEntry(key, value.instanceStatus.status);
-}
+  return {};
+});
 
 class VMsScreen extends ConsumerWidget {
   const VMsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // this updates the map of selected VMs
-    ref.listen(infoStreamProvider.select((reply) {
-      final infos = reply.valueOrNull?.info ?? [];
-      return {for (final info in infos) info.name: info};
-    }), (previous, next) {
-      if (!mapEquals(
-        previous?.map(infoToStatusMap),
-        next.map(infoToStatusMap),
-      )) {
-        ref.read(selectedVMsProvider.notifier).update(
-              (state) => Map.fromEntries(
-                next.entries.where((e) => state.containsKey(e.key)),
-              ),
-            );
-      }
-    });
-
     final textWithLink = RichText(
       text: TextSpan(children: [
         const TextSpan(
