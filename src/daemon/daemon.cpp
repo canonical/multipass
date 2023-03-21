@@ -2507,17 +2507,12 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         find_instance_and_react(operative_instances, deleted_instances, name, require_missing_instances_reaction);
 
     assert(status.ok() == (instance_trail.index() == 2));
-    if (status.ok() && preparing_instances.find(name) != preparing_instances.end())
-        status = {grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is being prepared", name), ""};
-
     if (!status.ok())
-    {
-        CreateError create_error;
-        create_error.add_error_codes(CreateError::INSTANCE_EXISTS); // TODO@ricab do we still need this?
-        status = {status.error_code(), status.error_message(), create_error.SerializeAsString()};
-
         return status_promise->set_value(status);
-    }
+
+    if (preparing_instances.find(name) != preparing_instances.end())
+        return status_promise->set_value(
+            {grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is being prepared", name), ""});
 
     if (!instances_running(operative_instances))
         config->factory->hypervisor_health_check();
