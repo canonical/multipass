@@ -1878,7 +1878,7 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::ssh_info(const SSHInfoRequest* request, // TODO@ricab move to new scheme
+void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>* server,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
@@ -1892,47 +1892,15 @@ try // clang-format on
     auto [instance_selection, status] = select_instances_and_react(
         vm_instances, deleted_instances, request->instance_name(), InstanceGroup::None, custom_reaction);
 
-    if (!status.ok())
-        return status_promise->set_value(status);
-
-    SSHInfoReply response;
-
-    for (const auto& vm_it : instance_selection.operating_selection)
+    if (status.ok())
     {
-        const auto& name = vm_it->first;
-        auto* vm = vm_it->second.get();
-        if (vm->current_state() == VirtualMachine::State::unknown)
-            throw std::runtime_error("Cannot retrieve credentials in unknown state");
-
-        if (!mp::utils::is_running(vm->current_state()))
-        {
-            return status_promise->set_value(
-                grpc::Status(grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is not running", name)));
-        }
-
-        if (vm->state == VirtualMachine::State::delayed_shutdown)
-        {
-            if (delayed_shutdown_instances[name]->get_time_remaining() <= std::chrono::minutes(1))
-            {
-                return status_promise->set_value(
-                    grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
-                                 fmt::format("\"{}\" is scheduled to shut down in less than a minute, use "
-                                             "'multipass stop --cancel {}' to cancel the shutdown.",
-                                             name, name),
-                                 ""));
-            }
-        }
-
-        mp::SSHInfo ssh_info;
-        ssh_info.set_host(vm->ssh_hostname());
-        ssh_info.set_port(vm->ssh_port());
-        ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
-        ssh_info.set_username(vm->ssh_username());
-        (*response.mutable_ssh_info())[name] = ssh_info;
+        SSHInfoReply response;
+        auto operation = std::bind(&Daemon::get_ssh_info_for_vm, this, std::placeholders::_1, std::ref(response));
+        if ((status = cmd_vms(instance_selection.operating_selection, operation)).ok())
+            server->Write(response);
     }
 
-    server->Write(response);
-    status_promise->set_value(grpc::Status::OK);
+    status_promise->set_value(status);
 }
 catch (const std::exception& e)
 {
@@ -2826,6 +2794,33 @@ grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
     else
         mpl::log(mpl::Level::debug, category,
                  fmt::format("no delayed shutdown to cancel on instance \"{}\"", vm.vm_name));
+
+    return grpc::Status::OK;
+}
+
+grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response)
+{
+    const auto& name = vm.vm_name;
+    if (vm.current_state() == VirtualMachine::State::unknown)
+        throw std::runtime_error("Cannot retrieve credentials in unknown state");
+
+    if (!mp::utils::is_running(vm.current_state()))
+        return grpc::Status{grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is not running", name)};
+
+    if (vm.state == VirtualMachine::State::delayed_shutdown &&
+        delayed_shutdown_instances[name]->get_time_remaining() <= std::chrono::minutes(1))
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("\"{}\" is scheduled to shut down in less than a minute, use "
+                                        "'multipass stop --cancel {}' to cancel the shutdown.",
+                                        name, name),
+                            ""};
+
+    mp::SSHInfo ssh_info;
+    ssh_info.set_host(vm.ssh_hostname());
+    ssh_info.set_port(vm.ssh_port());
+    ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
+    ssh_info.set_username(vm.ssh_username());
+    (*response.mutable_ssh_info())[name] = ssh_info;
 
     return grpc::Status::OK;
 }

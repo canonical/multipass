@@ -142,6 +142,7 @@ private:
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
+    grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
