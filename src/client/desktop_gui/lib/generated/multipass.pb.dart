@@ -877,6 +877,8 @@ class FindRequest extends $pb.GeneratedMessage {
     ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'remoteName')
     ..a<$core.int>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'verbosityLevel', $pb.PbFieldType.O3)
     ..aOB(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'allowUnsupported')
+    ..aOB(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'showImages')
+    ..aOB(6, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'showBlueprints')
     ..hasRequiredFields = false
   ;
 
@@ -886,6 +888,8 @@ class FindRequest extends $pb.GeneratedMessage {
     $core.String? remoteName,
     $core.int? verbosityLevel,
     $core.bool? allowUnsupported,
+    $core.bool? showImages,
+    $core.bool? showBlueprints,
   }) {
     final _result = create();
     if (searchString != null) {
@@ -899,6 +903,12 @@ class FindRequest extends $pb.GeneratedMessage {
     }
     if (allowUnsupported != null) {
       _result.allowUnsupported = allowUnsupported;
+    }
+    if (showImages != null) {
+      _result.showImages = showImages;
+    }
+    if (showBlueprints != null) {
+      _result.showBlueprints = showBlueprints;
     }
     return _result;
   }
@@ -958,6 +968,24 @@ class FindRequest extends $pb.GeneratedMessage {
   $core.bool hasAllowUnsupported() => $_has(3);
   @$pb.TagNumber(4)
   void clearAllowUnsupported() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get showImages => $_getBF(4);
+  @$pb.TagNumber(5)
+  set showImages($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasShowImages() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearShowImages() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get showBlueprints => $_getBF(5);
+  @$pb.TagNumber(6)
+  set showBlueprints($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasShowBlueprints() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearShowBlueprints() => clearField(6);
 }
 
 class FindReply_AliasInfo extends $pb.GeneratedMessage {
@@ -1106,19 +1134,34 @@ class FindReply_ImageInfo extends $pb.GeneratedMessage {
 
 class FindReply extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'FindReply', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'multipass'), createEmptyInstance: create)
-    ..pc<FindReply_ImageInfo>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'imagesInfo', $pb.PbFieldType.PM, subBuilder: FindReply_ImageInfo.create)
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'logLine')
+    ..aOB(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'showImages')
+    ..aOB(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'showBlueprints')
+    ..pc<FindReply_ImageInfo>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'imagesInfo', $pb.PbFieldType.PM, subBuilder: FindReply_ImageInfo.create)
+    ..pc<FindReply_ImageInfo>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'blueprintsInfo', $pb.PbFieldType.PM, subBuilder: FindReply_ImageInfo.create)
+    ..aOS(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'logLine')
     ..hasRequiredFields = false
   ;
 
   FindReply._() : super();
   factory FindReply({
+    $core.bool? showImages,
+    $core.bool? showBlueprints,
     $core.Iterable<FindReply_ImageInfo>? imagesInfo,
+    $core.Iterable<FindReply_ImageInfo>? blueprintsInfo,
     $core.String? logLine,
   }) {
     final _result = create();
+    if (showImages != null) {
+      _result.showImages = showImages;
+    }
+    if (showBlueprints != null) {
+      _result.showBlueprints = showBlueprints;
+    }
     if (imagesInfo != null) {
       _result.imagesInfo.addAll(imagesInfo);
+    }
+    if (blueprintsInfo != null) {
+      _result.blueprintsInfo.addAll(blueprintsInfo);
     }
     if (logLine != null) {
       _result.logLine = logLine;
@@ -1147,16 +1190,37 @@ class FindReply extends $pb.GeneratedMessage {
   static FindReply? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<FindReply_ImageInfo> get imagesInfo => $_getList(0);
+  $core.bool get showImages => $_getBF(0);
+  @$pb.TagNumber(1)
+  set showImages($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasShowImages() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearShowImages() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get logLine => $_getSZ(1);
+  $core.bool get showBlueprints => $_getBF(1);
   @$pb.TagNumber(2)
-  set logLine($core.String v) { $_setString(1, v); }
+  set showBlueprints($core.bool v) { $_setBool(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasLogLine() => $_has(1);
+  $core.bool hasShowBlueprints() => $_has(1);
   @$pb.TagNumber(2)
-  void clearLogLine() => clearField(2);
+  void clearShowBlueprints() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<FindReply_ImageInfo> get imagesInfo => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $core.List<FindReply_ImageInfo> get blueprintsInfo => $_getList(3);
+
+  @$pb.TagNumber(5)
+  $core.String get logLine => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set logLine($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasLogLine() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLogLine() => clearField(5);
 }
 
 class InstanceNames extends $pb.GeneratedMessage {
@@ -4214,7 +4278,7 @@ class SetReply extends $pb.GeneratedMessage {
 
 class KeysRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'KeysRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'multipass'), createEmptyInstance: create)
-    ..a<$core.int>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'verbosityLevel', $pb.PbFieldType.O3)
+    ..a<$core.int>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'verbosityLevel', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -4249,14 +4313,14 @@ class KeysRequest extends $pb.GeneratedMessage {
   static KeysRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<KeysRequest>(create);
   static KeysRequest? _defaultInstance;
 
-  @$pb.TagNumber(3)
+  @$pb.TagNumber(1)
   $core.int get verbosityLevel => $_getIZ(0);
-  @$pb.TagNumber(3)
+  @$pb.TagNumber(1)
   set verbosityLevel($core.int v) { $_setSignedInt32(0, v); }
-  @$pb.TagNumber(3)
+  @$pb.TagNumber(1)
   $core.bool hasVerbosityLevel() => $_has(0);
-  @$pb.TagNumber(3)
-  void clearVerbosityLevel() => clearField(3);
+  @$pb.TagNumber(1)
+  void clearVerbosityLevel() => clearField(1);
 }
 
 class KeysReply extends $pb.GeneratedMessage {

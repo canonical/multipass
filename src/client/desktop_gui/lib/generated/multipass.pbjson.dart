@@ -177,17 +177,22 @@ const FindRequest$json = const {
     const {'1': 'remote_name', '3': 2, '4': 1, '5': 9, '10': 'remoteName'},
     const {'1': 'verbosity_level', '3': 3, '4': 1, '5': 5, '10': 'verbosityLevel'},
     const {'1': 'allow_unsupported', '3': 4, '4': 1, '5': 8, '10': 'allowUnsupported'},
+    const {'1': 'show_images', '3': 5, '4': 1, '5': 8, '10': 'showImages'},
+    const {'1': 'show_blueprints', '3': 6, '4': 1, '5': 8, '10': 'showBlueprints'},
   ],
 };
 
 /// Descriptor for `FindRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List findRequestDescriptor = $convert.base64Decode('CgtGaW5kUmVxdWVzdBIjCg1zZWFyY2hfc3RyaW5nGAEgASgJUgxzZWFyY2hTdHJpbmcSHwoLcmVtb3RlX25hbWUYAiABKAlSCnJlbW90ZU5hbWUSJwoPdmVyYm9zaXR5X2xldmVsGAMgASgFUg52ZXJib3NpdHlMZXZlbBIrChFhbGxvd191bnN1cHBvcnRlZBgEIAEoCFIQYWxsb3dVbnN1cHBvcnRlZA==');
+final $typed_data.Uint8List findRequestDescriptor = $convert.base64Decode('CgtGaW5kUmVxdWVzdBIjCg1zZWFyY2hfc3RyaW5nGAEgASgJUgxzZWFyY2hTdHJpbmcSHwoLcmVtb3RlX25hbWUYAiABKAlSCnJlbW90ZU5hbWUSJwoPdmVyYm9zaXR5X2xldmVsGAMgASgFUg52ZXJib3NpdHlMZXZlbBIrChFhbGxvd191bnN1cHBvcnRlZBgEIAEoCFIQYWxsb3dVbnN1cHBvcnRlZBIfCgtzaG93X2ltYWdlcxgFIAEoCFIKc2hvd0ltYWdlcxInCg9zaG93X2JsdWVwcmludHMYBiABKAhSDnNob3dCbHVlcHJpbnRz');
 @$core.Deprecated('Use findReplyDescriptor instead')
 const FindReply$json = const {
   '1': 'FindReply',
   '2': const [
-    const {'1': 'images_info', '3': 1, '4': 3, '5': 11, '6': '.multipass.FindReply.ImageInfo', '10': 'imagesInfo'},
-    const {'1': 'log_line', '3': 2, '4': 1, '5': 9, '10': 'logLine'},
+    const {'1': 'show_images', '3': 1, '4': 1, '5': 8, '10': 'showImages'},
+    const {'1': 'show_blueprints', '3': 2, '4': 1, '5': 8, '10': 'showBlueprints'},
+    const {'1': 'images_info', '3': 3, '4': 3, '5': 11, '6': '.multipass.FindReply.ImageInfo', '10': 'imagesInfo'},
+    const {'1': 'blueprints_info', '3': 4, '4': 3, '5': 11, '6': '.multipass.FindReply.ImageInfo', '10': 'blueprintsInfo'},
+    const {'1': 'log_line', '3': 5, '4': 1, '5': 9, '10': 'logLine'},
   ],
   '3': const [FindReply_AliasInfo$json, FindReply_ImageInfo$json],
 };
@@ -213,7 +218,7 @@ const FindReply_ImageInfo$json = const {
 };
 
 /// Descriptor for `FindReply`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List findReplyDescriptor = $convert.base64Decode('CglGaW5kUmVwbHkSPwoLaW1hZ2VzX2luZm8YASADKAsyHi5tdWx0aXBhc3MuRmluZFJlcGx5LkltYWdlSW5mb1IKaW1hZ2VzSW5mbxIZCghsb2dfbGluZRgCIAEoCVIHbG9nTGluZRpCCglBbGlhc0luZm8SHwoLcmVtb3RlX25hbWUYASABKAlSCnJlbW90ZU5hbWUSFAoFYWxpYXMYAiABKAlSBWFsaWFzGpIBCglJbWFnZUluZm8SDgoCb3MYASABKAlSAm9zEhgKB3JlbGVhc2UYAiABKAlSB3JlbGVhc2USGAoHdmVyc2lvbhgDIAEoCVIHdmVyc2lvbhJBCgxhbGlhc2VzX2luZm8YBCADKAsyHi5tdWx0aXBhc3MuRmluZFJlcGx5LkFsaWFzSW5mb1ILYWxpYXNlc0luZm8=');
+final $typed_data.Uint8List findReplyDescriptor = $convert.base64Decode('CglGaW5kUmVwbHkSHwoLc2hvd19pbWFnZXMYASABKAhSCnNob3dJbWFnZXMSJwoPc2hvd19ibHVlcHJpbnRzGAIgASgIUg5zaG93Qmx1ZXByaW50cxI/CgtpbWFnZXNfaW5mbxgDIAMoCzIeLm11bHRpcGFzcy5GaW5kUmVwbHkuSW1hZ2VJbmZvUgppbWFnZXNJbmZvEkcKD2JsdWVwcmludHNfaW5mbxgEIAMoCzIeLm11bHRpcGFzcy5GaW5kUmVwbHkuSW1hZ2VJbmZvUg5ibHVlcHJpbnRzSW5mbxIZCghsb2dfbGluZRgFIAEoCVIHbG9nTGluZRpCCglBbGlhc0luZm8SHwoLcmVtb3RlX25hbWUYASABKAlSCnJlbW90ZU5hbWUSFAoFYWxpYXMYAiABKAlSBWFsaWFzGpIBCglJbWFnZUluZm8SDgoCb3MYASABKAlSAm9zEhgKB3JlbGVhc2UYAiABKAlSB3JlbGVhc2USGAoHdmVyc2lvbhgDIAEoCVIHdmVyc2lvbhJBCgxhbGlhc2VzX2luZm8YBCADKAsyHi5tdWx0aXBhc3MuRmluZFJlcGx5LkFsaWFzSW5mb1ILYWxpYXNlc0luZm8=');
 @$core.Deprecated('Use instanceNamesDescriptor instead')
 const InstanceNames$json = const {
   '1': 'InstanceNames',
@@ -795,12 +800,12 @@ final $typed_data.Uint8List setReplyDescriptor = $convert.base64Decode('CghTZXRS
 const KeysRequest$json = const {
   '1': 'KeysRequest',
   '2': const [
-    const {'1': 'verbosity_level', '3': 3, '4': 1, '5': 5, '10': 'verbosityLevel'},
+    const {'1': 'verbosity_level', '3': 1, '4': 1, '5': 5, '10': 'verbosityLevel'},
   ],
 };
 
 /// Descriptor for `KeysRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List keysRequestDescriptor = $convert.base64Decode('CgtLZXlzUmVxdWVzdBInCg92ZXJib3NpdHlfbGV2ZWwYAyABKAVSDnZlcmJvc2l0eUxldmVs');
+final $typed_data.Uint8List keysRequestDescriptor = $convert.base64Decode('CgtLZXlzUmVxdWVzdBInCg92ZXJib3NpdHlfbGV2ZWwYASABKAVSDnZlcmJvc2l0eUxldmVs');
 @$core.Deprecated('Use keysReplyDescriptor instead')
 const KeysReply$json = const {
   '1': 'KeysReply',
