@@ -774,24 +774,26 @@ const SelectionReaction require_existing_instances_reaction{
     {grpc::StatusCode::OK},
     {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist\n"}};
 
+template <typename InstanceElem> // call only with InstanceTable::iterator or std::reference_wrapper<std::string>
+const std::string& get_instance_name(InstanceElem instance_element)
+{
+    using T = std::decay_t<decltype(instance_element)>;
+
+    if constexpr (std::is_same_v<T, LinearInstanceSelection::value_type>)
+        return instance_element->first;
+    else
+    {
+        static_assert(std::is_same_v<T, MissingInstanceList::value_type>);
+        return instance_element.get();
+    }
+}
+
 using SelectionComponent = std::variant<LinearInstanceSelection, MissingInstanceList>;
 grpc::StatusCode react_to_component(const SelectionComponent& selection_component,
                                     const SelectionReaction::ReactionComponent& reaction_component,
                                     fmt::memory_buffer& errors)
-{ // TODO@ricab streamline this function
-    auto get_instance_name = [](auto instance_element) {
-        using T = std::decay_t<decltype(instance_element)>;
-
-        if constexpr (std::is_same_v<T, LinearInstanceSelection::value_type>)
-            return instance_element->first;
-        else
-        {
-            static_assert(std::is_same_v<T, MissingInstanceList::value_type>);
-            return instance_element.get();
-        }
-    };
-
-    auto visitor = [&reaction_component, &errors, &get_instance_name](const auto& component) {
+{
+    auto visitor = [&reaction_component, &errors](const auto& component) {
         auto status_code = grpc::StatusCode::OK;
 
         if (!component.empty())
