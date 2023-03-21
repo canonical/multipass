@@ -671,6 +671,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 
 enum class InstanceGroup
 {
+    None,
     Operating,
     Deleted,
     All
@@ -735,7 +736,7 @@ InstanceSelectionReport select_instances(InstanceTable& operating_instances, Ins
                                          const InstanceNames& names, InstanceGroup no_name_means)
 {
     InstanceSelectionReport ret{};
-    if (names.empty())
+    if (names.empty() && no_name_means != InstanceGroup::None)
     {
         if (no_name_means == InstanceGroup::Operating || no_name_means == InstanceGroup::All)
             ret.operating_selection = select_all(operating_instances);
