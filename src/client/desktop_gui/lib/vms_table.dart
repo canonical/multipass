@@ -4,8 +4,8 @@ import 'package:filesize/filesize.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'generated/multipass.pbgrpc.dart';
 import 'globals.dart';
+import 'grpc_client.dart';
 import 'instance_actions_button.dart';
 import 'vms_screen.dart';
 
@@ -86,13 +86,13 @@ class _VMsTableState extends ConsumerState<VMsTable> {
     final runningOnly = ref.watch(runningOnlyProvider);
     final searchName = ref.watch(searchNameProvider);
     final selectedVMs = ref.watch(selectedVMsProvider);
-    final infos = ref.watch(infoStreamProvider).when(
-        data: (reply) => reply.info,
+    final infos = ref.watch(vmInfosStreamProvider).when(
+        data: (infos) => infos,
         loading: () => null,
         error: (error, stackTrace) {
           print(error);
           print(stackTrace);
-          return ref.read(infoStreamProvider).valueOrNull?.info ?? [];
+          return ref.read(vmInfosStreamProvider).valueOrNull;
         });
 
     final emptyWidget = infos == null

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'globals.dart';
+import 'grpc_client.dart';
 import 'vms_screen.dart';
 
 class RunningOnlySwitch extends ConsumerWidget {
@@ -10,8 +10,9 @@ class RunningOnlySwitch extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final runningOnly = ref.watch(runningOnlyProvider);
-    final hasInstances = ref.watch(infoStreamProvider
-        .select((reply) => reply.valueOrNull?.info.isNotEmpty ?? false));
+    final hasInstances = ref.watch(
+      vmInfosProvider.select((infos) => infos.isNotEmpty),
+    );
 
     return Row(
       children: [

@@ -51,7 +51,7 @@ class InstanceActionsButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final client = ref.watch(grpcClient);
+    final client = ref.watch(grpcClientProvider);
 
     return PopupMenuButton<void>(
       icon: const Icon(Icons.more_vert),

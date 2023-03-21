@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'bulk_actions_bar.dart';
-import 'generated/multipass.pbgrpc.dart';
 import 'globals.dart';
+import 'grpc_client.dart';
 import 'running_only_switch.dart';
 import 'vms_table.dart';
 
@@ -78,8 +77,7 @@ class VMsScreen extends ConsumerWidget {
 
     var numberOfInstances = Consumer(
       builder: (_, ref, __) {
-        final n = ref.watch(infoStreamProvider
-            .select((reply) => reply.valueOrNull?.info.length ?? 0));
+        final n = ref.watch(vmInfosProvider.select((infos) => infos.length));
         return Text(
           'Instance ($n)',
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),

@@ -81,8 +81,8 @@ class BulkActionsBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final client = ref.watch(grpcClient);
-    final vms = ref.watch(selectedVMsProvider).map(infoToStatusMap);
+    final client = ref.watch(grpcClientProvider);
+    final vms = ref.watch(selectedVMsProvider);
     final statuses = vms.values.toSet();
 
     return Container(
