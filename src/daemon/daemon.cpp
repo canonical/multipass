@@ -2917,7 +2917,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 catch (const std::exception& e)
                 {
                     auto msg = fmt::format("Removing mount \"{}\" from '{}': {}\n", target, name, e.what());
-                    mpl::log(mpl::Level::info, category, msg);
+                    mpl::log(mpl::Level::warning, category, msg);
                     fmt::format_to(std::back_inserter(warnings), msg);
                     invalid_mounts.push_back(target);
                 }
