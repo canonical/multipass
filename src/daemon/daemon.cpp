@@ -767,12 +767,12 @@ struct SelectionReaction
 const SelectionReaction require_operating_instances_reaction{
     {grpc::StatusCode::OK},
     {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted\n"},
-    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
+    {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist\n"}};
 
 const SelectionReaction require_existing_instances_reaction{
+    {grpc::StatusCode::OK}, // hands off clang-format
     {grpc::StatusCode::OK},
-    {grpc::StatusCode::OK},
-    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
+    {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist\n"}};
 
 using SelectionComponent = std::variant<LinearInstanceSelection, MissingInstanceList>;
 grpc::StatusCode react_to_component(const SelectionComponent& selection_component,
@@ -1887,10 +1887,9 @@ try // clang-format on
     mpl::ClientLogger<SSHInfoReply, SSHInfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
-    auto custom_reaction = require_operating_instances_reaction;
-    custom_reaction.missing_reaction.status_code = grpc::StatusCode::NOT_FOUND; // TODO@no-merge can we use this in all?
-    auto [instance_selection, status] = select_instances_and_react(
-        vm_instances, deleted_instances, request->instance_name(), InstanceGroup::None, custom_reaction);
+    auto [instance_selection, status] =
+        select_instances_and_react(vm_instances, deleted_instances, request->instance_name(), InstanceGroup::None,
+                                   require_operating_instances_reaction);
 
     if (status.ok())
     {
