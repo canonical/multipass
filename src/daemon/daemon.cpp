@@ -703,10 +703,11 @@ struct InstanceSelectionReport
     MissingInstanceList missing_instances;
 };
 
-// TODO@ricab sprinkle reserves below
 LinearInstanceSelection select_all(InstanceTable& instances)
 {
     LinearInstanceSelection selection;
+    selection.reserve(instances.size());
+
     for (auto it = instances.begin(); it != instances.end(); ++it)
         selection.push_back(it);
 
