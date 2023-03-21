@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'globals.dart';
 import 'grpc_client.dart';
 import 'instance_action.dart';
+import 'snackbar.dart';
 import 'vms_screen.dart';
 
 class BulkAction extends InstanceAction {
@@ -61,7 +62,7 @@ class BulkActionsBar extends ConsumerWidget {
           icon: Icon(action.icon),
           label: Text(action.name),
           onPressed: action.allowedStatuses.intersection(statuses).isNotEmpty
-              ? () => instanceActionsSnackBar(context, action)
+              ? () => showInstanceActionSnackBar(context, action)
               : null,
           style: ButtonStyle(
             padding: const MaterialStatePropertyAll(EdgeInsets.all(8)),

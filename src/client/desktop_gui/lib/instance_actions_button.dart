@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'globals.dart';
 import 'grpc_client.dart';
 import 'instance_action.dart';
+import 'snackbar.dart';
 
 class InstanceActionsButton extends ConsumerWidget {
   final Status status;
@@ -59,7 +60,7 @@ class InstanceActionsButton extends ConsumerWidget {
       itemBuilder: (_) => actions(client)
           .map((action) => PopupMenuItem(
                 enabled: action.allowedStatuses.contains(status),
-                onTap: () => instanceActionsSnackBar(context, action),
+                onTap: () => showInstanceActionSnackBar(context, action),
                 child: Text(action.name),
               ))
           .toList(),

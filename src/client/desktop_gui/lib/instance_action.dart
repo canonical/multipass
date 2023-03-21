@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 import 'globals.dart';
 
 const actionPastTenses = {
@@ -47,69 +45,4 @@ class InstanceAction {
   })  : pastTense = actionPastTenses[name]!,
         continuousTense = actionContinuousTenses[name]!,
         allowedStatuses = actionAllowedStatuses[name]!;
-}
-
-void instanceActionsSnackBar(BuildContext context, InstanceAction action) {
-  final scaffold = ScaffoldMessenger.of(context);
-  final instances = action.instances.joinWithAnd();
-  final closeButton = IconButton(
-    onPressed: () => scaffold.hideCurrentSnackBar(),
-    iconSize: 20,
-    padding: EdgeInsets.zero,
-    constraints: const BoxConstraints(maxHeight: 20, maxWidth: 20),
-    icon: const Icon(Icons.close),
-    color: Colors.white,
-  );
-
-  scaffold.clearSnackBars();
-  scaffold.showSnackBar(SnackBar(
-      dismissDirection: DismissDirection.none,
-      behavior: SnackBarBehavior.floating,
-      duration: const Duration(days: 1),
-      margin: const EdgeInsets.all(20)
-          .copyWith(bottom: MediaQuery.of(context).size.height - 80),
-      content: FutureBuilder(
-        future: action.function(action.instances),
-        builder: (_, snapshot) {
-          if (snapshot.hasError) {
-            return Row(
-              children: [
-                const Icon(Icons.circle, color: Colors.red, size: 10),
-                const SizedBox(width: 5),
-                Text(
-                  'Failed to ${action.name.toLowerCase()} $instances: ${snapshot.error}.',
-                ),
-                const Spacer(),
-                closeButton,
-              ],
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.done) {
-            return Row(
-              children: [
-                const Icon(Icons.circle, color: Colors.green, size: 10),
-                const SizedBox(width: 5),
-                Text(
-                  'Successfully ${action.pastTense.toLowerCase()} $instances.',
-                ),
-                const Spacer(),
-                closeButton,
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 3),
-              ),
-              const SizedBox(width: 10),
-              Text('${action.continuousTense} $instances...'),
-            ],
-          );
-        },
-      )));
 }
