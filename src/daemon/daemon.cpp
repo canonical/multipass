@@ -860,6 +860,55 @@ grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection,
     return grpc_status_for(errors, status_code);
 }
 
+grpc::Status grpc_status_for_instance_trail(const InstanceTrail& trail, const SelectionReaction& reaction)
+{
+    const std::string* instance_name = nullptr;
+    const SelectionReaction::ReactionComponent* relevant_reaction_component = nullptr;
+
+    switch (trail.index())
+    {
+    case 0:
+        instance_name = &std::get<0>(trail)->first;
+        relevant_reaction_component = &reaction.operative_reaction;
+        break;
+    case 1:
+        instance_name = &std::get<1>(trail)->first;
+        relevant_reaction_component = &reaction.deleted_reaction;
+        break;
+    case 2:
+        instance_name = &std::get<2>(trail).get();
+        relevant_reaction_component = &reaction.missing_reaction;
+        break;
+    default:
+        assert(trail.index() && false && "shouldn't be here");
+    }
+
+    assert(relevant_reaction_component && instance_name);
+
+    const auto& status_code = relevant_reaction_component->status_code;
+    if (const auto& msg_opt = relevant_reaction_component->message_template; msg_opt)
+    {
+        const auto& msg = fmt::format(*msg_opt, *instance_name);
+        if (status_code)
+            return grpc::Status{status_code, msg, ""};
+
+        mpl::log(mpl::Level::debug, category, msg);
+    }
+
+    return grpc::Status{status_code, "", ""};
+}
+
+[[maybe_unused]] // TODO@ricab remove
+std::pair<InstanceTrail, grpc::Status>
+find_instance_and_react(InstanceTable& operative_instances, InstanceTable& deleted_instances, const std::string& name,
+                        const SelectionReaction& reaction)
+{
+    auto trail = find_instance(operative_instances, deleted_instances, name);
+    auto status = grpc_status_for_instance_trail(trail, reaction);
+
+    return {std::move(trail), status};
+}
+
 // careful to keep the original `names` around while the returned selection is in use!
 template <typename InstanceNames>
 std::pair<InstanceSelectionReport, grpc::Status>
