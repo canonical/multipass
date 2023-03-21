@@ -170,7 +170,7 @@ private:
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
-    std::unordered_map<std::string, VirtualMachine::ShPtr> vm_instances;
+    std::unordered_map<std::string, VirtualMachine::ShPtr> operative_instances;
     std::unordered_map<std::string, VirtualMachine::ShPtr> deleted_instances;
     std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
