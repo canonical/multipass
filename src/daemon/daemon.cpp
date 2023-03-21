@@ -766,13 +766,13 @@ struct SelectionReaction
 
 const SelectionReaction require_operating_instances_reaction{
     {grpc::StatusCode::OK},
-    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted\n"},
-    {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist\n"}};
+    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted"},
+    {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
 
 const SelectionReaction require_existing_instances_reaction{
     {grpc::StatusCode::OK}, // hands off clang-format
     {grpc::StatusCode::OK},
-    {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist\n"}};
+    {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
 
 template <typename InstanceElem> // call only with InstanceTable::iterator or std::reference_wrapper<std::string>
 const std::string& get_instance_name(InstanceElem instance_element)
@@ -804,14 +804,16 @@ grpc::StatusCode react_to_component(const SelectionComponent& selection_componen
             if (msg_opt)
             {
                 const auto& msg = *msg_opt;
-                auto error_inserter = std::back_inserter(errors);
-
                 for (const auto& instance_element : component) // can be an iterator into an InstanceTable or a name
                 {
                     const auto& instance_name = get_instance_name(instance_element);
 
                     if (status_code)
-                        fmt::format_to(error_inserter, msg, instance_name);
+                    {
+                        if (errors.size())
+                            errors.push_back('\n');
+                        fmt::format_to(std::back_inserter(errors), msg, instance_name);
+                    }
                     else
                         mpl::log(mpl::Level::debug, category, fmt::format(msg, instance_name));
                 }
@@ -837,13 +839,8 @@ grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection,
     if (auto code = react_to_component(selection.missing_instances, reaction.missing_reaction, errors); code)
         status_code = code;
 
-    // Remove trailing newline due to grpc adding one of it's own
-    // TODO@ricab use join instead?
-    auto error_string = fmt::to_string(errors);
-    if (!error_string.empty() && error_string.back() == '\n')
-        error_string.pop_back();
-
-    return status_code ? grpc::Status{status_code, fmt::format("The following errors occurred:\n{}", error_string), ""}
+    return status_code ? grpc::Status{status_code,
+                                      fmt::format("The following errors occurred:\n{}", fmt::to_string(errors)), ""}
                        : grpc::Status::OK;
 }
 
@@ -1851,9 +1848,10 @@ try // clang-format on
     mpl::ClientLogger<RecoverReply, RecoverRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
+    // TODO@ricab base this on something else?
     const SelectionReaction custom_reaction{{grpc::StatusCode::OK, "instance \"{}\" does not need to be recovered"},
                                             {grpc::StatusCode::OK},
-                                            {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist\n"}};
+                                            {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist"}};
 
     auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
