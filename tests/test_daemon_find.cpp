@@ -198,3 +198,56 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
 
     EXPECT_EQ(total_lines_of_output(stream), 4);
 }
+
+TEST_F(DaemonFind, invalidRemoteNameAndEmptySearchString)
+{
+    const NiceMock<mpt::MockImageHost> mock_image_host;
+    auto mock_image_vault = std::make_unique<NiceMock<const mpt::MockVMImageVault>>();
+
+    constexpr std::string_view remote_name = "nonsense";
+    const std::string error_msg = fmt::format(
+        "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.", remote_name);
+
+    EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg](auto...) {
+        throw std::runtime_error(error_msg);
+        return nullptr;
+    });
+
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    const std::string full_name = std::string(remote_name) + ":";
+    std::stringstream cerr_Stream;
+    // std::cout is the place holder here.
+    send_command({"find", full_name}, std::cout, cerr_Stream);
+
+    EXPECT_THAT(cerr_Stream.str(), HasSubstr(error_msg));
+    EXPECT_EQ(total_lines_of_output(cerr_Stream), 1);
+}
+
+TEST_F(DaemonFind, invalidRemoteNameAndNonEmptySearchString)
+{
+    const NiceMock<mpt::MockImageHost> mock_image_host;
+    auto mock_image_vault = std::make_unique<NiceMock<const mpt::MockVMImageVault>>();
+
+    constexpr std::string_view remote_name = "nonsense";
+    const std::string error_msg = fmt::format(
+        "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.", remote_name);
+
+    EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg](auto...) {
+        throw std::runtime_error(error_msg);
+        return nullptr;
+    });
+
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    constexpr std::string_view search_string = "default";
+    const std::string full_name = std::string(remote_name) + ":" + std::string(search_string);
+    std::stringstream cerr_Stream;
+    // std::cout is the place holder here.
+    send_command({"find", full_name}, std::cout, cerr_Stream);
+
+    EXPECT_THAT(cerr_Stream.str(), HasSubstr(error_msg));
+    EXPECT_EQ(total_lines_of_output(cerr_Stream), 1);
+}
