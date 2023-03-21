@@ -2916,11 +2916,9 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 }
                 catch (const std::exception& e)
                 {
-                    // TODO@ricab remove obsolete TODO
-                    // TODO: Combine these into one warning level log once they are displayed in the cli by default
-                    mpl::log(mpl::Level::info, category, fmt::format("Removing \"{}\": {}\n", target, e.what()));
-                    fmt::format_to(std::back_inserter(warnings),
-                                   fmt::format("Removing mount \"{}\" from '{}': {}\n", target, name, e.what()));
+                    auto msg = fmt::format("Removing mount \"{}\" from '{}': {}\n", target, name, e.what());
+                    mpl::log(mpl::Level::info, category, msg);
+                    fmt::format_to(std::back_inserter(warnings), msg);
                     invalid_mounts.push_back(target);
                 }
 
