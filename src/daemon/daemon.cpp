@@ -831,6 +831,18 @@ grpc::StatusCode react_to_component(const SelectionComponent& selection_componen
     return std::visit(visitor, selection_component);
 }
 
+auto grpc_status_for_mount_error(const std::string& instance_name)
+{
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format(sshfs_error_template, instance_name));
+}
+
+auto grpc_status_for(fmt::memory_buffer& errors, grpc::StatusCode status_code = grpc::StatusCode::INVALID_ARGUMENT)
+{
+    return errors.size() ? grpc::Status(status_code,
+                                        fmt::format("The following errors occurred:\n{}", fmt::to_string(errors)), "")
+                         : grpc::Status::OK;
+}
+
 // Only the last bad status code is used
 grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection, const SelectionReaction& reaction)
 {
@@ -844,21 +856,7 @@ grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection,
     if (auto code = react_to_component(selection.missing_instances, reaction.missing_reaction, errors); code)
         status_code = code;
 
-    return status_code ? grpc::Status{status_code,
-                                      fmt::format("The following errors occurred:\n{}", fmt::to_string(errors)), ""}
-                       : grpc::Status::OK;
-}
-
-auto grpc_status_for_mount_error(const std::string& instance_name)
-{
-    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format(sshfs_error_template, instance_name));
-}
-
-auto grpc_status_for(fmt::memory_buffer& errors) // TODO@ricab reuse
-{
-    return errors.size() ? grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                                        fmt::format("The following errors occurred:\n{}", fmt::to_string(errors)), "")
-                         : grpc::Status::OK;
+    return grpc_status_for(errors, status_code);
 }
 
 // careful to keep the original `names` around while the returned selection is in use!
