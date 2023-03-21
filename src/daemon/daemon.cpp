@@ -1844,14 +1844,12 @@ try // clang-format on
     mpl::ClientLogger<RecoverReply, RecoverRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
-    // TODO@ricab base this on something else?
-    const SelectionReaction custom_reaction{{grpc::StatusCode::OK, "instance \"{}\" does not need to be recovered"},
-                                            {grpc::StatusCode::OK},
-                                            {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" does not exist"}};
+    auto recover_reaction = require_existing_instances_reaction;
+    recover_reaction.operating_reaction.message_template = "instance \"{}\" does not need to be recovered";
 
     auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
-                                   InstanceGroup::Deleted, custom_reaction);
+                                   InstanceGroup::Deleted, recover_reaction);
 
     if (status.ok())
     {
