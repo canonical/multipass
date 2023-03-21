@@ -123,7 +123,8 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
     create_menu();
     tray_icon.show();
 
-    QFile first_run_file(MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation) + "/first_run");
+    QDir data_dir{MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation)};
+    QFile first_run_file(data_dir.filePath("first_run"));
 
     if (!first_run_file.exists())
     {
@@ -131,6 +132,10 @@ mp::ReturnCode cmd::GuiCmd::run(mp::ArgParser* parser)
         // A platform dependent mechanism is used to get the messages via a QStringList.
         auto notification_area_strings = mp::cli::platform::gui_tray_notification_strings();
         tray_icon.showMessage(notification_area_strings[0], notification_area_strings[1], tray_icon.icon());
+
+        if (!data_dir.exists())
+            data_dir.mkpath(".");
+
         first_run_file.open(QIODevice::WriteOnly);
         first_run_file.close();
     }
