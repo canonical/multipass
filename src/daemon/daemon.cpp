@@ -789,12 +789,12 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_error(fmt::memory_buffer& errors, Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer, Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
 {
-    if (errors.size())
-        errors.push_back('\n');
+    if (buffer.size())
+        buffer.push_back('\n');
 
-    return fmt::format_to(std::back_inserter(errors), std::forward<Ts>(fmt_params)...);
+    return fmt::format_to(std::back_inserter(buffer), std::forward<Ts>(fmt_params)...);
 }
 
 using SelectionComponent = std::variant<LinearInstanceSelection, MissingInstanceList>;
@@ -818,7 +818,7 @@ grpc::StatusCode react_to_component(const SelectionComponent& selection_componen
                     const auto& instance_name = get_instance_name(instance_element);
 
                     if (status_code)
-                        add_error(errors, msg, instance_name);
+                        add_fmt_to(errors, msg, instance_name);
                     else
                         mpl::log(mpl::Level::debug, category, fmt::format(msg, instance_name));
                 }
@@ -1784,21 +1784,21 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            add_error(errors, "instance '{}' does not exist", name);
+            add_fmt_to(errors, "instance '{}' does not exist", name);
             continue;
         }
         auto& vm = it->second;
 
         if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
-            add_error(errors, "unable to mount to \"{}\"", target_path);
+            add_fmt_to(errors, "unable to mount to \"{}\"", target_path);
             continue;
         }
 
         auto& vm_mounts = mounts[name];
         if (vm_mounts.find(target_path) != vm_mounts.end())
         {
-            add_error(errors, "\"{}\" is already mounted in '{}'", target_path, name);
+            add_fmt_to(errors, "\"{}\" is already mounted in '{}'", target_path, name);
             continue;
         }
 
@@ -1819,7 +1819,7 @@ try // clang-format on
             }
             catch (const std::exception& e)
             {
-                add_error(errors, "error mounting \"{}\": {}", target_path, e.what());
+                add_fmt_to(errors, "error mounting \"{}\": {}", target_path, e.what());
                 vm_mounts.erase(target_path);
                 continue;
             }
@@ -2169,7 +2169,7 @@ try // clang-format on
 
         if (vm_instances.find(name) == vm_instances.end())
         {
-            add_error(errors, "instance '{}' does not exist", name);
+            add_fmt_to(errors, "instance '{}' does not exist", name);
             continue;
         }
 
@@ -2186,7 +2186,7 @@ try // clang-format on
             }
             catch (const std::runtime_error& e)
             {
-                add_error(errors, "failed to unmount \"{}\" from '{}': {}", target, name, e.what());
+                add_fmt_to(errors, "failed to unmount \"{}\" from '{}': {}", target, name, e.what());
             }
         };
 
@@ -2202,7 +2202,7 @@ try // clang-format on
         else if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
             do_unmount(it);
         else
-            add_error(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
+            add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
     }
 
     persist_instances();
@@ -2913,7 +2913,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    add_error(errors, sshfs_error_template, name);
+                    add_fmt_to(errors, sshfs_error_template, name);
                     break;
                 }
                 catch (const std::exception& e)
@@ -2991,7 +2991,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
     for (const auto& future : start_synchronizer.futures())
         if (auto error = future.result(); !error.empty())
-            add_error(errors, error);
+            add_fmt_to(errors, error);
 
     if (server && std::is_same<Reply, StartReply>::value)
     {
