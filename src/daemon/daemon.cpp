@@ -788,6 +788,15 @@ const std::string& get_instance_name(InstanceElem instance_element)
     }
 }
 
+template <typename... Ts>
+auto add_error(fmt::memory_buffer& errors, Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
+{
+    if (errors.size())
+        errors.push_back('\n');
+
+    return fmt::format_to(std::back_inserter(errors), std::forward<Ts>(fmt_params)...);
+}
+
 using SelectionComponent = std::variant<LinearInstanceSelection, MissingInstanceList>;
 grpc::StatusCode react_to_component(const SelectionComponent& selection_component,
                                     const SelectionReaction::ReactionComponent& reaction_component,
@@ -809,11 +818,7 @@ grpc::StatusCode react_to_component(const SelectionComponent& selection_componen
                     const auto& instance_name = get_instance_name(instance_element);
 
                     if (status_code)
-                    {
-                        if (errors.size())
-                            errors.push_back('\n');
-                        fmt::format_to(std::back_inserter(errors), msg, instance_name);
-                    }
+                        add_error(errors, msg, instance_name);
                     else
                         mpl::log(mpl::Level::debug, category, fmt::format(msg, instance_name));
                 }
@@ -849,18 +854,11 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format(sshfs_error_template, instance_name));
 }
 
-auto grpc_status_for(fmt::memory_buffer& errors)
+auto grpc_status_for(fmt::memory_buffer& errors) // TODO@ricab reuse
 {
-    if (!errors.size())
-        return grpc::Status::OK;
-
-    // Remove trailing newline due to grpc adding one of it's own
-    auto error_string = fmt::to_string(errors);
-    if (error_string.back() == '\n')
-        error_string.pop_back();
-
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        fmt::format("The following errors occurred:\n{}", error_string), "");
+    return errors.size() ? grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                        fmt::format("The following errors occurred:\n{}", fmt::to_string(errors)), "")
+                         : grpc::Status::OK;
 }
 
 // careful to keep the original `names` around while the returned selection is in use!
@@ -1786,21 +1784,21 @@ try // clang-format on
         auto it = vm_instances.find(name);
         if (it == vm_instances.end())
         {
-            fmt::format_to(std::back_inserter(errors), "instance '{}' does not exist\n", name);
+            add_error(errors, "instance '{}' does not exist", name);
             continue;
         }
         auto& vm = it->second;
 
         if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
         {
-            fmt::format_to(std::back_inserter(errors), "unable to mount to \"{}\"\n", target_path);
+            add_error(errors, "unable to mount to \"{}\"", target_path);
             continue;
         }
 
         auto& vm_mounts = mounts[name];
         if (vm_mounts.find(target_path) != vm_mounts.end())
         {
-            fmt::format_to(std::back_inserter(errors), "\"{}\" is already mounted in '{}'\n", target_path, name);
+            add_error(errors, "\"{}\" is already mounted in '{}'", target_path, name);
             continue;
         }
 
@@ -1821,7 +1819,7 @@ try // clang-format on
             }
             catch (const std::exception& e)
             {
-                fmt::format_to(std::back_inserter(errors), "error mounting \"{}\": {}", target_path, e.what());
+                add_error(errors, "error mounting \"{}\": {}", target_path, e.what());
                 vm_mounts.erase(target_path);
                 continue;
             }
@@ -2171,7 +2169,7 @@ try // clang-format on
 
         if (vm_instances.find(name) == vm_instances.end())
         {
-            fmt::format_to(std::back_inserter(errors), "instance '{}' does not exist\n", name);
+            add_error(errors, "instance '{}' does not exist", name);
             continue;
         }
 
@@ -2188,8 +2186,7 @@ try // clang-format on
             }
             catch (const std::runtime_error& e)
             {
-                fmt::format_to(std::back_inserter(errors), "failed to unmount \"{}\" from '{}': {}\n", target, name,
-                               e.what());
+                add_error(errors, "failed to unmount \"{}\" from '{}': {}", target, name, e.what());
             }
         };
 
@@ -2205,7 +2202,7 @@ try // clang-format on
         else if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
             do_unmount(it);
         else
-            fmt::format_to(std::back_inserter(errors), "path \"{}\" is not mounted in '{}'\n", target_path, name);
+            add_error(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
     }
 
     persist_instances();
@@ -2916,11 +2913,12 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    fmt::format_to(std::back_inserter(errors), sshfs_error_template + "\n", name);
+                    add_error(errors, sshfs_error_template, name);
                     break;
                 }
                 catch (const std::exception& e)
                 {
+                    // TODO@ricab remove obsolete TODO
                     // TODO: Combine these into one warning level log once they are displayed in the cli by default
                     mpl::log(mpl::Level::info, category, fmt::format("Removing \"{}\": {}\n", target, e.what()));
                     fmt::format_to(std::back_inserter(warnings),
@@ -2992,13 +2990,8 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     }
 
     for (const auto& future : start_synchronizer.futures())
-    {
-        auto error = future.result();
-        if (!error.empty())
-        {
-            fmt::format_to(std::back_inserter(errors), "{}\n", error);
-        }
-    }
+        if (auto error = future.result(); !error.empty())
+            add_error(errors, error);
 
     if (server && std::is_same<Reply, StartReply>::value)
     {
