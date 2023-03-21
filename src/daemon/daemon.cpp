@@ -672,21 +672,21 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
 enum class InstanceGroup
 {
     None,
-    Operating,
+    Operative,
     Deleted,
     All
 };
 
 using InstanceTable = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>;
-using InstanceTrail = std::variant<InstanceTable::iterator,                    // operating instances
+using InstanceTrail = std::variant<InstanceTable::iterator,                    // operative instances
                                    InstanceTable::iterator,                    // deleted instances
                                    std::reference_wrapper<const std::string>>; // missing instances
 
 // careful to keep the original `name` around while the returned trail is in use!
-InstanceTrail find_instance(InstanceTable& operating_instances, InstanceTable& deleted_instances,
+InstanceTrail find_instance(InstanceTable& operative_instances, InstanceTable& deleted_instances,
                             const std::string& name)
 {
-    if (auto it = operating_instances.find(name); it != std::end(operating_instances))
+    if (auto it = operative_instances.find(name); it != std::end(operative_instances))
         return InstanceTrail{std::in_place_index<0>, it};
     else if (it = deleted_instances.find(name); it != std::end(deleted_instances))
         return InstanceTrail{std::in_place_index<1>, it};
@@ -698,7 +698,7 @@ using LinearInstanceSelection = std::vector<InstanceTable::iterator>;
 using MissingInstanceList = std::vector<std::reference_wrapper<const std::string>>;
 struct InstanceSelectionReport
 {
-    LinearInstanceSelection operating_selection;
+    LinearInstanceSelection operative_selection;
     LinearInstanceSelection deleted_selection;
     MissingInstanceList missing_instances;
 };
@@ -720,7 +720,7 @@ void rank_instance(const std::string& name, const InstanceTrail& trail, Instance
     switch (trail.index())
     {
     case 0:
-        selection.operating_selection.push_back(std::get<0>(trail));
+        selection.operative_selection.push_back(std::get<0>(trail));
         break;
     case 1:
         selection.deleted_selection.push_back(std::get<1>(trail));
@@ -733,14 +733,14 @@ void rank_instance(const std::string& name, const InstanceTrail& trail, Instance
 
 // careful to keep the original `names` around while the returned selection is in use!
 template <typename InstanceNames>
-InstanceSelectionReport select_instances(InstanceTable& operating_instances, InstanceTable& deleted_instances,
+InstanceSelectionReport select_instances(InstanceTable& operative_instances, InstanceTable& deleted_instances,
                                          const InstanceNames& names, InstanceGroup no_name_means)
 {
     InstanceSelectionReport ret{};
     if (names.empty() && no_name_means != InstanceGroup::None)
     {
-        if (no_name_means == InstanceGroup::Operating || no_name_means == InstanceGroup::All)
-            ret.operating_selection = select_all(operating_instances);
+        if (no_name_means == InstanceGroup::Operative || no_name_means == InstanceGroup::All)
+            ret.operative_selection = select_all(operative_instances);
         if (no_name_means == InstanceGroup::Deleted || no_name_means == InstanceGroup::All)
             ret.deleted_selection = select_all(deleted_instances);
     }
@@ -748,7 +748,7 @@ InstanceSelectionReport select_instances(InstanceTable& operating_instances, Ins
     {
         for (const auto& name : names)
         {
-            auto trail = find_instance(operating_instances, deleted_instances, name);
+            auto trail = find_instance(operative_instances, deleted_instances, name);
             rank_instance(name, trail, ret);
         }
     }
@@ -762,10 +762,10 @@ struct SelectionReaction
     {
         grpc::StatusCode status_code;
         std::optional<std::string> message_template = std::nullopt;
-    } operating_reaction, deleted_reaction, missing_reaction;
+    } operative_reaction, deleted_reaction, missing_reaction;
 };
 
-const SelectionReaction require_operating_instances_reaction{
+const SelectionReaction require_operative_instances_reaction{
     {grpc::StatusCode::OK},
     {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted"},
     {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
@@ -850,7 +850,7 @@ grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection,
     fmt::memory_buffer errors;
     auto status_code = grpc::StatusCode::OK;
 
-    if (auto code = react_to_component(selection.operating_selection, reaction.operating_reaction, errors); code)
+    if (auto code = react_to_component(selection.operative_selection, reaction.operative_reaction, errors); code)
         status_code = code;
     if (auto code = react_to_component(selection.deleted_selection, reaction.deleted_reaction, errors); code)
         status_code = code;
@@ -863,10 +863,10 @@ grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection,
 // careful to keep the original `names` around while the returned selection is in use!
 template <typename InstanceNames>
 std::pair<InstanceSelectionReport, grpc::Status>
-select_instances_and_react(InstanceTable& operating_instances, InstanceTable& deleted_instances,
+select_instances_and_react(InstanceTable& operative_instances, InstanceTable& deleted_instances,
                            const InstanceNames& names, InstanceGroup no_name_means, const SelectionReaction& reaction)
 {
-    auto instance_selection = select_instances(operating_instances, deleted_instances, names, no_name_means);
+    auto instance_selection = select_instances(operative_instances, deleted_instances, names, no_name_means);
     return {instance_selection, grpc_status_for_selection(instance_selection, reaction)};
 }
 
@@ -1635,7 +1635,7 @@ try // clang-format on
 
     if (status.ok())
     {
-        cmd_vms(instance_selection.operating_selection, fetch_info);
+        cmd_vms(instance_selection.operative_selection, fetch_info);
         deleted = true;
         cmd_vms(instance_selection.deleted_selection, fetch_info);
 
@@ -1846,7 +1846,7 @@ try // clang-format on
                                                            server};
 
     auto recover_reaction = require_existing_instances_reaction;
-    recover_reaction.operating_reaction.message_template = "instance \"{}\" does not need to be recovered";
+    recover_reaction.operative_reaction.message_template = "instance \"{}\" does not need to be recovered";
 
     auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
@@ -1884,13 +1884,13 @@ try // clang-format on
 
     auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_name(), InstanceGroup::None,
-                                   require_operating_instances_reaction);
+                                   require_operative_instances_reaction);
 
     if (status.ok())
     {
         SSHInfoReply response;
         auto operation = std::bind(&Daemon::get_ssh_info_for_vm, this, std::placeholders::_1, std::ref(response));
-        if ((status = cmd_vms(instance_selection.operating_selection, operation)).ok())
+        if ((status = cmd_vms(instance_selection.operative_selection, operation)).ok())
             server->Write(response);
     }
 
@@ -1918,7 +1918,7 @@ try // clang-format on
         {grpc::StatusCode::OK}, {grpc::StatusCode::ABORTED}, {grpc::StatusCode::ABORTED}};
     auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
-                                   InstanceGroup::Operating, custom_reaction);
+                                   InstanceGroup::Operative, custom_reaction);
 
     if (!status.ok())
         return status_promise->set_value(
@@ -1927,10 +1927,10 @@ try // clang-format on
     bool complain_disabled_mounts = !MP_SETTINGS.get_as<bool>(mp::mounts_key);
 
     std::vector<std::string> starting_vms{};
-    starting_vms.reserve(instance_selection.operating_selection.size());
+    starting_vms.reserve(instance_selection.operative_selection.size());
 
     fmt::memory_buffer start_errors;
-    for (auto& vm_it : instance_selection.operating_selection)
+    for (auto& vm_it : instance_selection.operative_selection)
     {
         std::lock_guard lock{start_mutex};
         const auto& name = vm_it->first;
@@ -1987,7 +1987,7 @@ try // clang-format on
 
     auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
-                                   InstanceGroup::Operating, require_operating_instances_reaction);
+                                   InstanceGroup::Operative, require_operative_instances_reaction);
 
     if (status.ok())
     {
@@ -2001,7 +2001,7 @@ try // clang-format on
             operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
                                   std::chrono::minutes(request->time_minutes()));
 
-        status = cmd_vms(instance_selection.operating_selection, operation);
+        status = cmd_vms(instance_selection.operative_selection, operation);
     }
 
     status_promise->set_value(status);
@@ -2022,11 +2022,11 @@ try // clang-format on
 
     auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
-                                   InstanceGroup::Operating, require_operating_instances_reaction);
+                                   InstanceGroup::Operative, require_operative_instances_reaction);
 
     if (status.ok())
     {
-        status = cmd_vms(instance_selection.operating_selection, [this](auto& vm) {
+        status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
             stop_mounts(vm.vm_name);
 
             vm.suspend();
@@ -2054,14 +2054,14 @@ try // clang-format on
 
     auto [instance_selection, status] =
         select_instances_and_react(vm_instances, deleted_instances, request->instance_names().instance_name(),
-                                   InstanceGroup::Operating, require_operating_instances_reaction);
+                                   InstanceGroup::Operative, require_operative_instances_reaction);
 
     if (!status.ok())
     {
         return status_promise->set_value(status);
     }
 
-    const auto& instance_targets = instance_selection.operating_selection;
+    const auto& instance_targets = instance_selection.operative_selection;
     status = cmd_vms(instance_targets, [this](auto& vm) {
         stop_mounts(vm.vm_name);
 
@@ -2101,7 +2101,7 @@ try // clang-format on
     {
         const bool purge = request->purge();
 
-        for (const auto& vm_it : instance_selection.operating_selection)
+        for (const auto& vm_it : instance_selection.operative_selection)
         {
             const auto& name = vm_it->first;
             auto& instance = vm_it->second;
