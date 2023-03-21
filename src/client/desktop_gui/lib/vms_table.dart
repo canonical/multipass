@@ -19,10 +19,10 @@ class VMsTable extends ConsumerStatefulWidget {
 class _VMsTableState extends ConsumerState<VMsTable> {
   int? sortIndex;
   bool sortAscending = true;
-  String Function(InfoReply_Info)? sortExtractor;
+  String Function(VmInfo)? sortExtractor;
 
   DataColumnSortCallback _extractorToSortCallback(
-    String Function(InfoReply_Info) extractor,
+    String Function(VmInfo) extractor,
   ) =>
       (index, ascending) => setState(() {
             sortIndex = (sortIndex == index && ascending) ? null : index;
@@ -31,17 +31,17 @@ class _VMsTableState extends ConsumerState<VMsTable> {
           });
 
   late final _headers = {
-    const DataColumn2(label: Text('Name')): (InfoReply_Info info) => info.name,
-    const DataColumn2(label: Text('State'), fixedWidth: 130):
-        (InfoReply_Info info) => info.instanceStatus.status.name,
+    const DataColumn2(label: Text('Name')): (VmInfo info) => info.name,
+    const DataColumn2(label: Text('State'), fixedWidth: 130): (VmInfo info) =>
+        info.instanceStatus.status.name,
     const DataColumn2(label: Text('Memory usage'), numeric: true): null,
     const DataColumn2(label: Text('Disk usage'), numeric: true): null,
     const DataColumn2(label: Text('CPU(s)'), size: ColumnSize.S, numeric: true):
-        (InfoReply_Info info) => info.cpuCount,
+        (VmInfo info) => info.cpuCount,
     const DataColumn2(label: Text('Load'), numeric: true): null,
     const DataColumn2(label: Text('Image'), size: ColumnSize.L):
-        (InfoReply_Info info) => info.currentRelease,
-    const DataColumn2(label: Text('Ipv4')): (InfoReply_Info info) =>
+        (VmInfo info) => info.currentRelease,
+    const DataColumn2(label: Text('Ipv4')): (VmInfo info) =>
         info.ipv4.firstOrNull ?? '',
     const DataColumn2(label: Text('Actions'), fixedWidth: 75, numeric: true):
         null,
@@ -53,7 +53,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
         onSort: e.value == null ? null : _extractorToSortCallback(e.value!),
       ));
 
-  DataRow2 _buildRow(InfoReply_Info info, bool selected) {
+  DataRow2 _buildRow(VmInfo info, bool selected) {
     return DataRow2(
       selected: selected,
       onSelectChanged: (select) => ref

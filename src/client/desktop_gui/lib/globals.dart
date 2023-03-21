@@ -1,6 +1,7 @@
 import 'generated/multipass.pbgrpc.dart';
 
 typedef Status = InstanceStatus_Status;
+typedef VmInfo = InfoReply_Info;
 
 extension IterableExtension on Iterable<String> {
   String joinWithAnd() {
