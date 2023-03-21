@@ -1886,22 +1886,21 @@ try // clang-format on
     warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<SSHInfoReply, SSHInfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
+
+    auto custom_reaction = require_operating_instances_reaction;
+    custom_reaction.missing_reaction.status_code = grpc::StatusCode::NOT_FOUND; // TODO@no-merge can we use this in all?
+    auto [instance_selection, status] = select_instances_and_react(
+        vm_instances, deleted_instances, request->instance_name(), InstanceGroup::None, custom_reaction);
+
+    if (!status.ok())
+        return status_promise->set_value(status);
+
     SSHInfoReply response;
 
-    for (const auto& name : request->instance_name())
+    for (const auto& vm_it : instance_selection.operating_selection)
     {
-        auto it = vm_instances.find(name);
-        if (it == vm_instances.end())
-        {
-            if (deleted_instances.find(name) == deleted_instances.end())
-                return status_promise->set_value(
-                    grpc::Status{grpc::StatusCode::NOT_FOUND, fmt::format("instance \"{}\" does not exist", name)});
-            else
-                return status_promise->set_value(
-                    grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is deleted", name)});
-        }
-
-        auto& vm = it->second;
+        const auto& name = vm_it->first;
+        auto* vm = vm_it->second.get();
         if (vm->current_state() == VirtualMachine::State::unknown)
             throw std::runtime_error("Cannot retrieve credentials in unknown state");
 
