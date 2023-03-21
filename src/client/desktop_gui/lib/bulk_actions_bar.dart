@@ -86,14 +86,10 @@ class BulkActionsBar extends ConsumerWidget {
     final vms = ref.watch(selectedVMsProvider);
     final statuses = vms.values.toSet();
 
-    return Container(
-      color: const Color(0xff313033),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Row(
-        children: actions(client, vms)
-            .map((action) => _buildButton(context, action, statuses))
-            .toList(),
-      ),
+    return Row(
+      children: actions(client, vms)
+          .map((action) => _buildButton(context, action, statuses))
+          .toList(),
     );
   }
 }

@@ -72,6 +72,38 @@ class VMsScreen extends ConsumerWidget {
       },
     );
 
+    var launchButton = ElevatedButton.icon(
+      icon: const Icon(Icons.add),
+      label: const Text('Launch new instance'),
+      onPressed: () => Scaffold.of(context).openEndDrawer(),
+      style: const ButtonStyle(
+        iconColor: MaterialStatePropertyAll(Colors.white),
+        foregroundColor: MaterialStatePropertyAll(Colors.white),
+        backgroundColor: MaterialStatePropertyAll(Color(0xff006ada)),
+      ),
+    );
+
+    final vmsWithActionBar = Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        children: [
+          Container(
+            color: const Color(0xff313033),
+            padding: const EdgeInsets.all(8).copyWith(left: 4),
+            child: Row(
+              children: [
+                const BulkActionsBar(),
+                const Spacer(),
+                launchButton,
+              ],
+            ),
+          ),
+          const Expanded(child: VMsTable()),
+        ],
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.all(15),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -86,8 +118,7 @@ class VMsScreen extends ConsumerWidget {
             searchBox,
           ]),
         ),
-        const BulkActionsBar(),
-        const Expanded(child: VMsTable()),
+        Expanded(child: vmsWithActionBar),
       ]),
     );
   }

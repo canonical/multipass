@@ -145,7 +145,7 @@ class GrpcClient {
 
   Future<List<FindReply_ImageInfo>> find() {
     return _client
-        .find(Stream.value(FindRequest()))
+        .find(Stream.value(FindRequest(showBlueprints: true, showImages: true)))
         .single
         .then((r) => r.imagesInfo);
   }
