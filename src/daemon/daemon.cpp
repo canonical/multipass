@@ -775,6 +775,11 @@ const SelectionReaction require_existing_instances_reaction{
     {grpc::StatusCode::OK},
     {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
 
+const SelectionReaction require_missing_instances_reaction{
+    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" already exists"},
+    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" already exists"},
+    {grpc::StatusCode::OK}};
+
 template <typename InstanceElem> // call only with InstanceTable::iterator or std::reference_wrapper<std::string>
 const std::string& get_instance_name(InstanceElem instance_element)
 {
@@ -898,10 +903,10 @@ grpc::Status grpc_status_for_instance_trail(const InstanceTrail& trail, const Se
     return grpc::Status{status_code, "", ""};
 }
 
-[[maybe_unused]] // TODO@ricab remove
-std::pair<InstanceTrail, grpc::Status>
-find_instance_and_react(InstanceTable& operative_instances, InstanceTable& deleted_instances, const std::string& name,
-                        const SelectionReaction& reaction)
+std::pair<InstanceTrail, grpc::Status> find_instance_and_react(InstanceTable& operative_instances,
+                                                               InstanceTable& deleted_instances,
+                                                               const std::string& name,
+                                                               const SelectionReaction& reaction)
 {
     auto trail = find_instance(operative_instances, deleted_instances, name);
     auto status = grpc_status_for_instance_trail(trail, reaction);
@@ -2498,25 +2503,20 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     const std::string blueprint_name = config->blueprint_provider->name_from_blueprint(request->image());
     auto name = name_from(checked_args.instance_name, blueprint_name, *config->name_generator, operative_instances);
 
-    if (operative_instances.find(name) != operative_instances.end() ||
-        deleted_instances.find(name) != deleted_instances.end())
+    auto [instance_trail, status] =
+        find_instance_and_react(operative_instances, deleted_instances, name, require_missing_instances_reaction);
+
+    assert(status.ok() == (instance_trail.index() == 2));
+    if (status.ok() && preparing_instances.find(name) != preparing_instances.end())
+        status = {grpc::StatusCode::INVALID_ARGUMENT, fmt::format("instance \"{}\" is being prepared", name), ""};
+
+    if (!status.ok())
     {
         CreateError create_error;
-        create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
+        create_error.add_error_codes(CreateError::INSTANCE_EXISTS); // TODO@ricab do we still need this?
+        status = {status.error_code(), status.error_message(), create_error.SerializeAsString()};
 
-        return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                                                      fmt::format("instance \"{}\" already exists", name),
-                                                      create_error.SerializeAsString()));
-    }
-
-    if (preparing_instances.find(name) != preparing_instances.end())
-    {
-        CreateError create_error;
-        create_error.add_error_codes(CreateError::INSTANCE_EXISTS);
-
-        return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                                                      fmt::format("instance \"{}\" is being prepared", name),
-                                                      create_error.SerializeAsString()));
+        return status_promise->set_value(status);
     }
 
     if (!instances_running(operative_instances))
