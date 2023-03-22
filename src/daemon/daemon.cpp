@@ -1368,6 +1368,8 @@ try // clang-format on
     {
         for (auto& pair : vm_instances)
             instances_for_info.push_back(pair.first);
+        for (auto& pair : deleted_instances)
+            instances_for_info.push_back(pair.first);
     }
     else
     {
