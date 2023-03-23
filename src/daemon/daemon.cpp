@@ -2422,18 +2422,28 @@ try
     mpl::ClientLogger<SnapshotReply, SnapshotRequest> logger{mpl::level_from(request->verbosity_level()),
                                                              *config->logger, server};
 
-    { // TODO@snapshots replace placeholder implementation
-        sleep(3);
+    const auto& instance_name = request->instance();
+    auto [instance_trail, status] = find_instance_and_react(operative_instances, deleted_instances, instance_name,
+                                                            require_operative_instances_reaction);
 
-        mpl::log(mpl::Level::debug, category, "Snapshot placeholder");
+    if (status.ok())
+    {
+        assert(instance_trail.index() == 0);
+        auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+        assert(vm_ptr);
+
+        const auto spec_it = vm_instance_specs.find(instance_name);
+        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
+
+        const auto& snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
+        // TODO@ricab persist generic snapshot info
 
         SnapshotReply reply;
-        auto snapshot_name = request->snapshot();
-        reply.set_snapshot(snapshot_name.empty() ? "placeholder-name" : snapshot_name);
+        reply.set_snapshot(snapshot.get_name());
         server->Write(reply);
     }
 
-    status_promise->set_value(grpc::Status::OK);
+    status_promise->set_value(status);
 }
 catch (const std::exception& e)
 {
