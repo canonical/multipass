@@ -640,6 +640,7 @@ QString mp::platform::Platform::get_username() const
     QString username;
     mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
                          "get-username", username);
+    mpl::log(mpl::Level::error, "category", username.toStdString());
     return username.section('\\', 1);
 }
 

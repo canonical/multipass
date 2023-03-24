@@ -25,18 +25,24 @@ namespace mp = multipass;
 
 using EVP_CIPHER_CTX_free_ptr = std::unique_ptr<EVP_CIPHER_CTX, decltype(&::EVP_CIPHER_CTX_free)>;
 
+namespace
+{
+constexpr int key_size = 32;
+constexpr int block_size = 16;
+} // namespace
+
 mp::AES::AES(const Singleton<AES>::PrivatePass& pass) noexcept : Singleton<AES>::Singleton{pass}
 {
 }
 
 int mp::AES::aes_256_key_size()
 {
-    return 32;
+    return key_size;
 }
 
 int mp::AES::aes_256_block_size()
 {
-    return 16;
+    return block_size;
 }
 
 void mp::AES::decrypt(const std::vector<uint8_t> key, const std::vector<uint8_t> iv, const std::string& ctext,
