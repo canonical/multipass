@@ -75,8 +75,14 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
 const Snapshot& BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
                                                   const std::string& comment)
 {
-    static BaseSnapshot ret{{}, {}, nullptr, specs}; // TODO@ricab placeholder impl
-    return ret;
+    // TODO@ricab generate name
+    // TODO@ricab figure out parent
+    // TODO@ricab generate implementation-specific snapshot instead
+    const auto [it, success] =
+        snapshots.try_emplace(name, std::make_unique<BaseSnapshot>(name, comment, nullptr, specs));
+
+    // TODO@ricab refuse repeated
+    return *it->second;
 }
 
 } // namespace multipass
