@@ -30,7 +30,8 @@ set(LIB_INSTALL_DIR lib)
 set(BIN_INSTALL_DIR bin)
 
 set(BUILD_SHARED_LIBS ON)
-set(GLOBAL_CLIENT_CONFIG "/etc/ssh/ssh_config")
+# space instead of empty string because empty string restults in non-defined GLOBAL_CLIENT_CONFIG in config.h
+set(GLOBAL_CLIENT_CONFIG " ")
 set(GLOBAL_BIND_CONFIG "/etc/ssh/libssh_server_config")
 
 include_directories(${LIBSSH_INCLUDE_DIRS})
