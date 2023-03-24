@@ -274,7 +274,7 @@ try
 
     const auto rtext = decrypt_credentials_from_file(cred_filename, iv_filename);
     const auto tokens = mp::utils::split(rtext, "=");
-    auto password = tokens.at(1);
+    auto password = tokens.size() == 2 ? tokens.at(1) : "";
 
     if (password.empty())
     {
