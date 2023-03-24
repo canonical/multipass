@@ -40,7 +40,7 @@ class BaseVirtualMachine : public VirtualMachine
 public:
     BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name);
     BaseVirtualMachine(const std::string& vm_name);
-    ~BaseVirtualMachine(); // allow composing unique_ptr to fwd-declared Snapshots
+    ~BaseVirtualMachine(); // allow composing unique_ptr to fwd-declared Snapshots NOLINT(modernize-use-override)
 
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
@@ -51,6 +51,7 @@ public:
     };
 
     const SnapshotMap& get_snapshots() const noexcept override;
+    const Snapshot& take_snapshot(const VMSpecs& specs, const std::string& name, const std::string& comment) override;
 
 protected:
     SnapshotMap snapshots;
