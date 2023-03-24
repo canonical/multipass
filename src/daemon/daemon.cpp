@@ -43,6 +43,7 @@
 #include <multipass/process/simple_process_spec.h>  // TODO hk migration, remove
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
+#include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/standard_paths.h> // TODO hk migration, remove
