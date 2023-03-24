@@ -35,6 +35,7 @@ namespace multipass
 class MemorySize;
 class SSHKeyProvider;
 struct VMMount;
+struct VMSpecs;
 class MountHandler;
 class Snapshot;
 
@@ -85,6 +86,8 @@ public:
 
     using SnapshotMap = std::unordered_map<std::string, std::unique_ptr<Snapshot>>;
     virtual const SnapshotMap& get_snapshots() const noexcept = 0;
+    virtual const Snapshot& take_snapshot(const VMSpecs& specs, const std::string& name,
+                                          const std::string& comment) = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;

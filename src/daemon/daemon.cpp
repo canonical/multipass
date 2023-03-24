@@ -39,6 +39,7 @@
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
+#include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
