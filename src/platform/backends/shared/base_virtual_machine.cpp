@@ -85,16 +85,26 @@ const Snapshot& BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const st
     if (success)
     {
         head_snapshot = it->second.get();
-        mpl::log(mpl::Level::debug, vm_name,
-                 fmt::format("New snapshot: {}; Total snapshots: {}", it->first, snapshots.size()));
-    }
-    else
-    {
-        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
-        throw SnapshotNameTaken{vm_name, it->first};
+
+        if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
+        {
+            auto num_snapshots = snapshots.size();
+            auto* parent = head_snapshot->get_parent();
+            // TODO@ricab release lock
+
+            assert(bool(parent) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
+            const auto& parent_name = parent ? parent->get_name() : "<None>";
+
+            mpl::log(log_detail_lvl, vm_name,
+                     fmt::format("New snapshot: {}; Descendant of: {}; Total snapshots: {}", name, parent_name,
+                                 num_snapshots));
+        }
+
+        return *head_snapshot;
     }
 
-    return *it->second;
+    mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
+    throw SnapshotNameTaken{vm_name, it->first};
 }
 
 } // namespace multipass
