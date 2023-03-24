@@ -58,9 +58,7 @@ template <typename Request, typename Reply>
 void handle_password(grpc::ClientReaderWriterInterface<Request, Reply>* client, Terminal* term)
 {
     Request request;
-    const auto password = MP_CLIENT_PLATFORM.get_password(term);
-
-    request.set_password(password);
+    request.set_password(MP_CLIENT_PLATFORM.get_password(term));
     client->Write(request);
 }
 }
