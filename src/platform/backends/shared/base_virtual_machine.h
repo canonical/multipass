@@ -55,6 +55,7 @@ public:
 
 protected:
     SnapshotMap snapshots;
+    Snapshot* head_snapshot = nullptr;
 };
 
 inline auto multipass::BaseVirtualMachine::get_snapshots() const noexcept -> const SnapshotMap&

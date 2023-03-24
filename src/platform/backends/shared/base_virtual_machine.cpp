@@ -77,13 +77,14 @@ const Snapshot& BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const st
                                                   const std::string& comment)
 {
     // TODO@ricab generate name
-    // TODO@ricab figure out parent
     // TODO@ricab generate implementation-specific snapshot instead
+    // TODO@ricab lock
     const auto [it, success] =
-        snapshots.try_emplace(name, std::make_unique<BaseSnapshot>(name, comment, nullptr, specs));
+        snapshots.try_emplace(name, std::make_unique<BaseSnapshot>(name, comment, head_snapshot, specs));
 
     if (success)
     {
+        head_snapshot = it->second.get();
         mpl::log(mpl::Level::debug, vm_name,
                  fmt::format("New snapshot: {}; Total snapshots: {}", it->first, snapshots.size()));
     }
