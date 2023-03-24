@@ -60,7 +60,7 @@ auto instance_state_for(const QString& name)
     {
         auto state = vmstate_match.captured(1);
 
-        mpl::log(mpl::Level::debug, name.toStdString(), fmt::format("Got VMState: {}", state.toStdString()));
+        mpl::log(mpl::Level::trace, name.toStdString(), fmt::format("Got VMState: {}", state.toStdString()));
 
         if (state == "starting" || state == "restoring")
         {
