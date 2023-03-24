@@ -16,6 +16,7 @@
  */
 
 #include "base_virtual_machine.h"
+#include "base_snapshot.h" // TODO@ricab may be able to remove this
 
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
@@ -69,6 +70,13 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
     }
 
     return all_ipv4;
+}
+
+const Snapshot& BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
+                                                  const std::string& comment)
+{
+    static BaseSnapshot ret{{}, {}, nullptr, specs}; // TODO@ricab placeholder impl
+    return ret;
 }
 
 } // namespace multipass
