@@ -60,7 +60,7 @@ public:
 protected:
     SnapshotMap snapshots;
     Snapshot* head_snapshot = nullptr;
-    std::shared_mutex snapshot_mutex; // TODO@ricab will probably want this to be mutable
+    std::shared_mutex snapshot_mutex; // TODO@snapshots will probably want this to be mutable
     std::mutex transfer_mutex;
 };
 
