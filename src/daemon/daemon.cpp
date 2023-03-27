@@ -2436,11 +2436,16 @@ try
         const auto spec_it = vm_instance_specs.find(instance_name);
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
 
-        const auto& snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
-        // TODO@ricab persist generic snapshot info
-
         SnapshotReply reply;
-        reply.set_snapshot(snapshot.get_name());
+
+        {
+            const auto& [snapshot, lock] =
+                vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
+            // TODO@ricab persist generic snapshot info
+
+            reply.set_snapshot(snapshot.get_name());
+        }
+
         server->Write(reply);
     }
 
