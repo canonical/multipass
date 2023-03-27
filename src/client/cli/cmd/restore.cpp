@@ -97,28 +97,20 @@ mp::ParseCode cmd::Restore::parse_args(mp::ArgParser* parser)
 
     if (num_args > 1)
     {
-        cerr << "Too many arguments supplied\n";
+        cerr << "Too many arguments supplied.\n";
         return ParseCode::CommandLineError;
     }
 
-    auto instance = parser->positionalArguments().at(0);
-    auto instance_name = instance.section('.', 0, 0);
-    auto snapshot_name = instance.section('.', 1);
-
-    if (instance_name.isEmpty())
+    const auto tokens = parser->positionalArguments().at(0).split('.');
+    if (tokens.size() != 2 || tokens[0].isEmpty() || tokens[1].isEmpty())
     {
-        cerr << "Need the name of an instance to restore.\n";
+        cerr << "Invalid format. Specify the instance to restore and snapshot to use in the form "
+                "<instance>.<spanshot>.\n";
         return ParseCode::CommandLineError;
     }
 
-    if (snapshot_name.isEmpty())
-    {
-        cerr << "Need the name of a snapshot to restore from.\n";
-        return ParseCode::CommandLineError;
-    }
-
-    request.set_instance(instance_name.toStdString());
-    request.set_snapshot(snapshot_name.toStdString());
+    request.set_instance(tokens[0].toStdString());
+    request.set_snapshot(tokens[1].toStdString());
     request.set_destructive(parser->isSet(destructive));
 
     if (!parser->isSet(destructive))
@@ -127,7 +119,7 @@ mp::ParseCode cmd::Restore::parse_args(mp::ArgParser* parser)
         {
             try
             {
-                request.set_destructive(confirm_destruction(instance_name));
+                request.set_destructive(confirm_destruction(tokens[0]));
             }
             catch (const mp::PromptException& e)
             {
