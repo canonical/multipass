@@ -28,6 +28,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/file_ops.h> // TODO hk migration, remove
@@ -2444,6 +2445,10 @@ try
     }
 
     status_promise->set_value(status);
+}
+catch (const SnapshotNameTaken& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const std::exception& e)
 {
