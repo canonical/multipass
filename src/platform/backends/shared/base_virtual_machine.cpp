@@ -73,38 +73,50 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
     return all_ipv4;
 }
 
-const Snapshot& BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
-                                                  const std::string& comment)
+BaseVirtualMachine::LockingConstSnapshotRef
+BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name, const std::string& comment)
 {
     // TODO@ricab generate name
     // TODO@ricab generate implementation-specific snapshot instead
-    // TODO@ricab lock
-    const auto [it, success] =
-        snapshots.try_emplace(name, std::make_unique<BaseSnapshot>(name, comment, head_snapshot, specs));
 
-    if (success)
     {
-        head_snapshot = it->second.get();
+        std::unique_lock write_lock{snapshot_mutex};
 
-        if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
+        const auto [it, success] =
+            snapshots.try_emplace(name, std::make_unique<BaseSnapshot>(name, comment, head_snapshot, specs));
+
+        if (success)
         {
-            auto num_snapshots = snapshots.size();
-            auto* parent = head_snapshot->get_parent();
-            // TODO@ricab release lock
+            head_snapshot = it->second.get();
 
-            assert(bool(parent) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
-            const auto& parent_name = parent ? parent->get_name() : "<None>";
+            // No writing from this point on
+            std::shared_lock read_lock{snapshot_mutex, std::defer_lock};
+            { // TODO@snapshots might as well make this into a generic util
+                std::unique_lock transfer_lock{transfer_mutex}; // lock transfer from write to read lock
 
-            mpl::log(log_detail_lvl, vm_name,
-                     fmt::format("New snapshot: {}; Descendant of: {}; Total snapshots: {}", name, parent_name,
-                                 num_snapshots));
+                write_lock.unlock();
+                read_lock.lock();
+            }
+
+            if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
+            {
+                auto num_snapshots = snapshots.size();
+                auto* parent = head_snapshot->get_parent();
+
+                assert(bool(parent) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
+                const auto& parent_name = parent ? parent->get_name() : "<None>";
+
+                mpl::log(log_detail_lvl, vm_name,
+                         fmt::format("New snapshot: {}; Descendant of: {}; Total snapshots: {}", name, parent_name,
+                                     num_snapshots));
+            }
+
+            return {*head_snapshot, std::move(read_lock)};
         }
-
-        return *head_snapshot;
     }
 
     mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
-    throw SnapshotNameTaken{vm_name, it->first};
+    throw SnapshotNameTaken{vm_name, name};
 }
 
 } // namespace multipass
