@@ -18,6 +18,7 @@
 #include "base_virtual_machine.h"
 #include "base_snapshot.h" // TODO@ricab may be able to remove this
 
+#include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
@@ -65,7 +66,7 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
         }
         catch (const SSHException& e)
         {
-            mpl::log(mpl::Level::debug, "base_vm", fmt::format("Error getting extra IP addresses: {}", e.what()));
+            mpl::log(mpl::Level::debug, vm_name, fmt::format("Error getting extra IP addresses: {}", e.what()));
         }
     }
 
@@ -81,7 +82,17 @@ const Snapshot& BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const st
     const auto [it, success] =
         snapshots.try_emplace(name, std::make_unique<BaseSnapshot>(name, comment, nullptr, specs));
 
-    // TODO@ricab refuse repeated
+    if (success)
+    {
+        mpl::log(mpl::Level::debug, vm_name,
+                 fmt::format("New snapshot: {}; Total snapshots: {}", it->first, snapshots.size()));
+    }
+    else
+    {
+        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
+        throw SnapshotNameTaken{vm_name, it->first};
+    }
+
     return *it->second;
 }
 
