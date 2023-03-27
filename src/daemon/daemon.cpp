@@ -2441,7 +2441,7 @@ try
         {
             const auto& [snapshot, lock] =
                 vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
-            // TODO@ricab persist generic snapshot info
+            // TODO@snapshots persist generic snapshot info
 
             reply.set_snapshot(snapshot.get_name());
         }
