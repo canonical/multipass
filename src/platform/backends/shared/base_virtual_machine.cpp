@@ -16,7 +16,7 @@
  */
 
 #include "base_virtual_machine.h"
-#include "base_snapshot.h" // TODO@ricab may be able to remove this
+#include "base_snapshot.h" // TODO@snapshots may be able to remove this
 
 #include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/ssh_exception.h>
@@ -76,8 +76,8 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
 BaseVirtualMachine::LockingConstSnapshotRef
 BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name, const std::string& comment)
 {
-    // TODO@ricab generate name
-    // TODO@ricab generate implementation-specific snapshot instead
+    // TODO@snapshots generate name
+    // TODO@snapshots generate implementation-specific snapshot instead
 
     {
         std::unique_lock write_lock{snapshot_mutex};
