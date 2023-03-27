@@ -2383,7 +2383,7 @@ try
     mpl::ClientLogger<RestoreReply, RestoreRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
-    { // TODO@ricab replace placeholder implementation
+    { // TODO@snapshots replace placeholder implementation
 
         sleep(3);
 
