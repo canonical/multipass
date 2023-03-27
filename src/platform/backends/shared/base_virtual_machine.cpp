@@ -104,7 +104,7 @@ BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
                 auto* parent = head_snapshot->get_parent();
 
                 assert(bool(parent) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
-                const auto& parent_name = parent ? parent->get_name() : "<None>";
+                const auto& parent_name = parent ? parent->get_name() : "--";
 
                 mpl::log(log_detail_lvl, vm_name,
                          fmt::format("New snapshot: {}; Descendant of: {}; Total snapshots: {}", name, parent_name,
