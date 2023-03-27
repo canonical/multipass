@@ -123,9 +123,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return snapshots;
     }
 
-    const Snapshot& take_snapshot(const VMSpecs& specs, const std::string& name, const std::string& comment) override
+    LockingConstSnapshotRef take_snapshot(const VMSpecs& specs, const std::string& name,
+                                          const std::string& comment) override
     {
-        return snapshot;
+        return {snapshot, std::shared_lock<std::shared_mutex>{}};
     }
 
     SnapshotMap snapshots{};
