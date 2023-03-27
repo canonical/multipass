@@ -29,6 +29,9 @@
 #include <QRegularExpression>
 #include <QString>
 
+#include <mutex>
+#include <shared_mutex>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
@@ -51,11 +54,14 @@ public:
     };
 
     const SnapshotMap& get_snapshots() const noexcept override;
-    const Snapshot& take_snapshot(const VMSpecs& specs, const std::string& name, const std::string& comment) override;
+    LockingConstSnapshotRef take_snapshot(const VMSpecs& specs, const std::string& name,
+                                          const std::string& comment) override;
 
 protected:
     SnapshotMap snapshots;
     Snapshot* head_snapshot = nullptr;
+    std::shared_mutex snapshot_mutex; // TODO@ricab will probably want this to be mutable
+    std::mutex transfer_mutex;
 };
 
 inline auto multipass::BaseVirtualMachine::get_snapshots() const noexcept -> const SnapshotMap&
