@@ -2357,7 +2357,7 @@ try
     mpl::ClientLogger<SnapshotReply, SnapshotRequest> logger{mpl::level_from(request->verbosity_level()),
                                                              *config->logger, server};
 
-    { // TODO@ricab replace placeholder implementation
+    { // TODO@snapshots replace placeholder implementation
         sleep(3);
 
         mpl::log(mpl::Level::debug, category, "Snapshot placeholder");
