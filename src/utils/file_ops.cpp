@@ -144,14 +144,14 @@ void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base
     stream.open(filename, mode);
 }
 
-std::unique_ptr<std::ostream> mp::FileOps::open_write(const fs::path& path) const
+std::unique_ptr<std::ostream> mp::FileOps::open_write(const fs::path& path, std::ios_base::openmode mode) const
 {
-    return std::make_unique<std::ofstream>(path);
+    return std::make_unique<std::ofstream>(path, mode);
 }
 
-std::unique_ptr<std::istream> mp::FileOps::open_read(const fs::path& path) const
+std::unique_ptr<std::istream> mp::FileOps::open_read(const fs::path& path, std::ios_base::openmode mode) const
 {
-    return std::make_unique<std::ifstream>(path);
+    return std::make_unique<std::ifstream>(path, mode);
 }
 
 bool mp::FileOps::exists(const fs::path& path, std::error_code& err) const

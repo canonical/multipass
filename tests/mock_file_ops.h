@@ -64,8 +64,10 @@ public:
 
     // Mock std methods
     MOCK_CONST_METHOD3(open, void(std::fstream&, const char*, std::ios_base::openmode));
-    MOCK_METHOD(std::unique_ptr<std::ostream>, open_write, (const fs::path& path), (override, const));
-    MOCK_METHOD(std::unique_ptr<std::istream>, open_read, (const fs::path& path), (override, const));
+    MOCK_METHOD(std::unique_ptr<std::ostream>, open_write, (const fs::path& path, std::ios_base::openmode mode),
+                (override, const));
+    MOCK_METHOD(std::unique_ptr<std::istream>, open_read, (const fs::path& path, std::ios_base::openmode mode),
+                (override, const));
     MOCK_METHOD(bool, exists, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(bool, is_directory, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(bool, create_directory, (const fs::path& path, std::error_code& err), (override, const));
