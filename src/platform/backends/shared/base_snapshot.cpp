@@ -16,7 +16,7 @@
  */
 
 #include "base_snapshot.h"
-#include "daemon/vm_specs.h" // TODO@ricab move this
+#include "daemon/vm_specs.h" // TODO@snapshots move this
 
 #include <multipass/vm_mount.h>
 
