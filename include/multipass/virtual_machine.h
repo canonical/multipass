@@ -27,14 +27,20 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+#include <shared_mutex> // TODO@snapshots replace with generic utility for safe const refs
+#include <utility>      // TODO@snapshots replace with generic utility for safe const refs
 
 namespace multipass
 {
 class MemorySize;
 class SSHKeyProvider;
 struct VMMount;
+struct VMSpecs;
 class MountHandler;
+class Snapshot;
 
 class VirtualMachine : private DisabledCopyMove
 {
@@ -80,6 +86,14 @@ public:
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                                     const std::string& target,
                                                                     const VMMount& mount) = 0;
+
+    using SnapshotMap = std::unordered_map<std::string, std::unique_ptr<Snapshot>>;
+    virtual const SnapshotMap& get_snapshots() const noexcept = 0; // TODO@snapshots lock it
+
+    using LockingConstSnapshotRef =
+        std::pair<const Snapshot&, std::shared_lock<std::shared_mutex>>; // TODO@snapshots generalize
+    virtual LockingConstSnapshotRef take_snapshot(const VMSpecs& specs, const std::string& name,
+                                                  const std::string& comment) = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;

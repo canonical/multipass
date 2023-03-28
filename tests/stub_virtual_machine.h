@@ -19,6 +19,7 @@
 #define MULTIPASS_STUB_VIRTUAL_MACHINE_H
 
 #include "stub_mount_handler.h"
+#include "stub_snapshot.h"
 #include <multipass/virtual_machine.h>
 
 namespace multipass
@@ -116,6 +117,20 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
         return std::make_unique<StubMountHandler>();
     }
+
+    const SnapshotMap& get_snapshots() const noexcept override
+    {
+        return snapshots;
+    }
+
+    LockingConstSnapshotRef take_snapshot(const VMSpecs& specs, const std::string& name,
+                                          const std::string& comment) override
+    {
+        return {snapshot, std::shared_lock<std::shared_mutex>{}};
+    }
+
+    SnapshotMap snapshots{};
+    StubSnapshot snapshot;
 };
 } // namespace test
 } // namespace multipass

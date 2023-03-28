@@ -28,6 +28,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/file_ops.h> // TODO hk migration, remove
@@ -43,6 +44,7 @@
 #include <multipass/process/simple_process_spec.h>  // TODO hk migration, remove
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
+#include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/standard_paths.h> // TODO hk migration, remove
@@ -2404,18 +2406,37 @@ try
     mpl::ClientLogger<SnapshotReply, SnapshotRequest> logger{mpl::level_from(request->verbosity_level()),
                                                              *config->logger, server};
 
-    { // TODO@snapshots replace placeholder implementation
-        sleep(3);
+    const auto& instance_name = request->instance();
+    auto [instance_trail, status] = find_instance_and_react(operative_instances, deleted_instances, instance_name,
+                                                            require_operative_instances_reaction);
 
-        mpl::log(mpl::Level::debug, category, "Snapshot placeholder");
+    if (status.ok())
+    {
+        assert(instance_trail.index() == 0);
+        auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+        assert(vm_ptr);
+
+        const auto spec_it = vm_instance_specs.find(instance_name);
+        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
 
         SnapshotReply reply;
-        auto snapshot_name = request->snapshot();
-        reply.set_snapshot(snapshot_name.empty() ? "placeholder-name" : snapshot_name);
+
+        {
+            const auto& [snapshot, lock] =
+                vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
+            // TODO@snapshots persist generic snapshot info
+
+            reply.set_snapshot(snapshot.get_name());
+        }
+
         server->Write(reply);
     }
 
-    status_promise->set_value(grpc::Status::OK);
+    status_promise->set_value(status);
+}
+catch (const SnapshotNameTaken& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const std::exception& e)
 {
