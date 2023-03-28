@@ -33,6 +33,7 @@
 #include "cmd/recover.h"
 #include "cmd/remote_settings_handler.h"
 #include "cmd/restart.h"
+#include "cmd/restore.h"
 #include "cmd/set.h"
 #include "cmd/shell.h"
 #include "cmd/snapshot.h"
@@ -92,6 +93,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Networks>();
     add_command<cmd::Mount>();
     add_command<cmd::Recover>();
+    add_command<cmd::Restore>();
     add_command<cmd::Set>();
     add_command<cmd::Shell>();
     add_command<cmd::Snapshot>();
