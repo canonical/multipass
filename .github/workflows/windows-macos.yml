@@ -99,7 +99,7 @@ jobs:
       run: |
         MATRIX='{"include": ['
         [[ '${{ github.event.pull_request.draft }}' != 'true' && '${{ github.event.client_payload.draft }}' != 'true' ]] && MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "multipass-macos-10.15", "arch": "x86_64", "target": "10.15"},'
+        MATRIX+='{"runs-on": "multipass-macos-11-x64", "arch": "x86_64", "target": "11"},'
         MATRIX+='{"runs-on": "multipass-macos-11-arm", "arch": "arm64", "target": "11"}'
         MATRIX+=']}'
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
