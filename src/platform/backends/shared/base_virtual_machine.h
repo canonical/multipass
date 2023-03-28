@@ -29,6 +29,9 @@
 #include <QRegularExpression>
 #include <QString>
 
+#include <mutex>
+#include <shared_mutex>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
@@ -38,8 +41,9 @@ namespace multipass
 class BaseVirtualMachine : public VirtualMachine
 {
 public:
-    BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name) : VirtualMachine(state, vm_name){};
-    BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
+    BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name);
+    BaseVirtualMachine(const std::string& vm_name);
+    ~BaseVirtualMachine(); // allow composing unique_ptr to fwd-declared Snapshots NOLINT(modernize-use-override)
 
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
@@ -48,7 +52,23 @@ public:
     {
         throw NotImplementedOnThisBackendException("native mounts");
     };
+
+    const SnapshotMap& get_snapshots() const noexcept override;
+    LockingConstSnapshotRef take_snapshot(const VMSpecs& specs, const std::string& name,
+                                          const std::string& comment) override;
+
+protected:
+    SnapshotMap snapshots;
+    Snapshot* head_snapshot = nullptr;
+    std::shared_mutex snapshot_mutex; // TODO@snapshots will probably want this to be mutable
+    std::mutex transfer_mutex;
 };
+
+inline auto multipass::BaseVirtualMachine::get_snapshots() const noexcept -> const SnapshotMap&
+{
+    return snapshots;
+}
+
 } // namespace multipass
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_H
