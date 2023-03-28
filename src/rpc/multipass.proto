@@ -205,26 +205,64 @@ message InstanceStatus {
     Status status = 1;
 }
 
-message InfoReply {
-    message Info {
-        string name = 1;
-        InstanceStatus instance_status = 2;
-        string image_release = 3;
-        string current_release = 4;
-        string id = 5;
-        string load = 6;
-        string memory_usage = 7;
-        string memory_total = 8;
-        string disk_usage = 9;
-        string disk_total = 10;
-        repeated string ipv4 = 11;
-        repeated string ipv6 = 12;
-        MountInfo mount_info = 13;
-        string cpu_count = 14;
-        int32 num_snapshots = 15;
+message InstanceSpecificDetails {
+    string image_release = 1;
+    string current_release = 2;
+    string id = 3;
+    string load = 4;
+    string memory_usage = 5;
+    string disk_usage = 6;
+    repeated string ipv4 = 7;
+    repeated string ipv6 = 8;
+    int32 num_snapshots = 9;
+}
+
+message SnapshotSpecificDetails {
+    string snapshot_name = 1;
+    string size = 2;
+    int32 creation_timestamp = 3; // TODO@snapshots use timestamp type
+    string parent = 4;
+    repeated string children = 5;
+    string comment = 6;
+}
+
+message DetailedInfoItem {
+    string instance_name = 1;
+    InstanceStatus instance_status = 2;
+    string memory_total = 3;
+    string disk_total = 4;
+    string cpu_count = 5;
+    MountInfo mount_info = 6;
+
+    oneof extra_info {
+        InstanceSpecificDetails instance_info = 7;
+        SnapshotSpecificDetails snapshot_info = 8;
     }
-    repeated Info info = 1;
-    string log_line = 2;
+}
+
+message SnapshotOverviewInfoItem {
+    string instance_name = 1;
+    string snapshot_name = 2;
+    string parent = 3;
+    string comment = 4;
+}
+
+message DetailedInfoReport {
+    repeated DetailedInfoItem details = 1;
+}
+
+message SnapshotOverviewInfoReport {
+    repeated SnapshotOverviewInfoItem overview = 1;
+}
+
+message InfoReply {
+    oneof info_contents
+    {
+        DetailedInfoReport details = 1;
+        SnapshotOverviewInfoReport snapshot_overview = 2;
+    }
+
+    string log_line = 3;
 }
 
 message ListRequest {
