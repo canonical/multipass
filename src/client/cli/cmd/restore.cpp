@@ -104,7 +104,7 @@ mp::ParseCode cmd::Restore::parse_args(mp::ArgParser* parser)
     const auto tokens = parser->positionalArguments().at(0).split('.');
     if (tokens.size() != 2 || tokens[0].isEmpty() || tokens[1].isEmpty())
     {
-        cerr << "Invalid format. Specify the instance to restore and snapshot to use in the form "
+        cerr << "Invalid format. Please specify the instance to restore and snapshot to use in the form "
                 "<instance>.<spanshot>.\n";
         return ParseCode::CommandLineError;
     }
