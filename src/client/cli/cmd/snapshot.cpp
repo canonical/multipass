@@ -67,16 +67,13 @@ QString cmd::Snapshot::description() const
 mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("instance", "The instance to take a snapshot of.");
-    parser->addPositionalArgument(
-        "snapshot",
-        "An optional name for the snapshot (default: \"snapshotN\", where N is an index number, i.e. the next "
-        "non-negative integer that has not been used to generate a snapshot name for <instance> yet, and which is "
-        "currently available).",
-        "[snapshot]");
-
+    QCommandLineOption name_opt({"n", "name"},
+                                "An optional name for the snapshot (default: \"snapshotN\", where N is one plus the "
+                                "number of snapshot that were ever taken for <instance>.",
+                                "name");
     QCommandLineOption comment_opt{
-        {"comment", "m"}, "An optional free comment to associate with the snapshot.", "comment"};
-    parser->addOption(comment_opt);
+        {"comment", "c", "m"}, "An optional free comment to associate with the snapshot.", "comment"};
+    parser->addOptions({name_opt, comment_opt});
 
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
@@ -89,7 +86,7 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    if (num_args > 2)
+    if (num_args > 1)
     {
         cerr << "Too many arguments supplied\n";
         return ParseCode::CommandLineError;
@@ -97,10 +94,7 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
 
     request.set_instance(positional_args.first().toStdString());
     request.set_comment(parser->value(comment_opt).toStdString());
-
-    if (num_args == 2)
-        request.set_snapshot(positional_args.at(1).toStdString());
-
+    request.set_snapshot(parser->value(name_opt).toStdString());
     request.set_verbosity_level(parser->verbosityLevel());
 
     return ParseCode::Ok;

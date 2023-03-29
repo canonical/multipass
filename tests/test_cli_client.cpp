@@ -3118,10 +3118,40 @@ TEST_F(Client, snapshotCmdHelpOk)
     EXPECT_EQ(send_command({"snapshot", "--help"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, snapshotCmdGoodArgsOk)
+TEST_F(Client, snapshotCmdNoOptionsOk)
 {
     EXPECT_CALL(mock_daemon, snapshot);
-    EXPECT_EQ(send_command({"snapshot", "foo", "rocky"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"snapshot", "foo"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, snapshotCmdNameAlternativesOk)
+{
+    EXPECT_CALL(mock_daemon, snapshot).Times(2);
+    EXPECT_EQ(send_command({"snapshot", "-n", "bar", "foo"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"snapshot", "--name", "bar", "foo"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, snapshotCmdNameConsumesArg)
+{
+    EXPECT_CALL(mock_daemon, snapshot).Times(0);
+    EXPECT_EQ(send_command({"snapshot", "--name", "foo"}), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"snapshot", "-n", "foo"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, snapshotCmdCommentOptionAlternativesOk)
+{
+    EXPECT_CALL(mock_daemon, snapshot).Times(3);
+    EXPECT_EQ(send_command({"snapshot", "--comment", "a comment", "foo"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"snapshot", "-c", "a comment", "foo"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"snapshot", "-m", "a comment", "foo"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, snapshotCmdCommentConsumesArg)
+{
+    EXPECT_CALL(mock_daemon, snapshot).Times(0);
+    EXPECT_EQ(send_command({"snapshot", "--comment", "foo"}), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"snapshot", "-c", "foo"}), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"snapshot", "-m", "foo"}), mp::ReturnCode::CommandLineError);
 }
 
 TEST_F(Client, snapshotCmdTooFewArgsFails)
@@ -3132,7 +3162,7 @@ TEST_F(Client, snapshotCmdTooFewArgsFails)
 
 TEST_F(Client, snapshotCmdTooManyArgsFails)
 {
-    EXPECT_EQ(send_command({"snaphot", "foo", "bar"}), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"snapshot", "foo", "bar"}), mp::ReturnCode::CommandLineError);
 }
 
 TEST_F(Client, snapshotCmdInvalidOptionFails)
