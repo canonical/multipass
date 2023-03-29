@@ -24,6 +24,28 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+namespace
+{
+std::vector<mp::InstanceOrSnapshot> add_instance_and_snapshot_names(const mp::ArgParser* parser)
+{
+    std::vector<mp::InstanceOrSnapshot> instance_snapshot_names;
+
+    for (const auto& arg : parser->positionalArguments())
+    {
+        const auto tokens = arg.split('.');
+
+        mp::InstanceOrSnapshot inst_snap_name;
+        inst_snap_name.set_instance_name(tokens[0].toStdString());
+        if (tokens.size() > 1)
+            inst_snap_name.set_snapshot_name(tokens[1].toStdString());
+
+        instance_snapshot_names.push_back(inst_snap_name);
+    }
+
+    return instance_snapshot_names;
+}
+} // namespace
+
 mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -85,7 +107,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
+    for (const auto& item : add_instance_and_snapshot_names(parser))
+        request.add_instances_snapshots()->CopyFrom(item);
     request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
