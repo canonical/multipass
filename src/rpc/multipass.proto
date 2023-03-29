@@ -233,7 +233,7 @@ message SnapshotDetails {
 }
 
 message DetailedInfoItem {
-    string instance_name = 1;
+    string name = 1;
     InstanceStatus instance_status = 2;
     string memory_total = 3;
     string disk_total = 4;
