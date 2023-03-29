@@ -64,20 +64,22 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
 
     info_json.insert("errors", QJsonArray());
 
-    for (const auto& info : reply.info())
+    for (const auto& info : reply.details().details())
     {
+        const auto& instance_details = info.instance_info();
+
         QJsonObject instance_info;
         instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(info.instance_status())));
-        instance_info.insert("image_hash", QString::fromStdString(info.id()));
-        instance_info.insert("image_release", QString::fromStdString(info.image_release()));
-        instance_info.insert("release", QString::fromStdString(info.current_release()));
+        instance_info.insert("image_hash", QString::fromStdString(instance_details.id()));
+        instance_info.insert("image_release", QString::fromStdString(instance_details.image_release()));
+        instance_info.insert("release", QString::fromStdString(instance_details.current_release()));
         instance_info.insert("cpu_count", QString::fromStdString(info.cpu_count()));
-        instance_info.insert("snapshots", QString::number(info.num_snapshots()));
+        instance_info.insert("snapshots", QString::number(instance_details.num_snapshots()));
 
         QJsonArray load;
-        if (!info.load().empty())
+        if (!instance_details.load().empty())
         {
-            auto loads = mp::utils::split(info.load(), " ");
+            auto loads = mp::utils::split(instance_details.load(), " ");
             for (const auto& entry : loads)
                 load.append(std::stod(entry));
         }
@@ -85,8 +87,8 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
 
         QJsonObject disks;
         QJsonObject disk;
-        if (!info.disk_usage().empty())
-            disk.insert("used", QString::fromStdString(info.disk_usage()));
+        if (!instance_details.disk_usage().empty())
+            disk.insert("used", QString::fromStdString(instance_details.disk_usage()));
         if (!info.disk_total().empty())
             disk.insert("total", QString::fromStdString(info.disk_total()));
 
@@ -95,14 +97,14 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
         instance_info.insert("disks", disks);
 
         QJsonObject memory;
-        if (!info.memory_usage().empty())
-            memory.insert("used", std::stoll(info.memory_usage()));
+        if (!instance_details.memory_usage().empty())
+            memory.insert("used", std::stoll(instance_details.memory_usage()));
         if (!info.memory_total().empty())
             memory.insert("total", std::stoll(info.memory_total()));
         instance_info.insert("memory", memory);
 
         QJsonArray ipv4_addrs;
-        for (const auto& ip : info.ipv4())
+        for (const auto& ip : instance_details.ipv4())
             ipv4_addrs.append(QString::fromStdString(ip));
         instance_info.insert("ipv4", ipv4_addrs);
 
