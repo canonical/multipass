@@ -3126,6 +3126,22 @@ TEST_F(Client, snapshotCmdGoodArgsOk)
     EXPECT_EQ(send_command({"snapshot", "foo", "rocky"}), mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, snapshotCmdCommentOptionAlternativesOk)
+{
+    EXPECT_CALL(mock_daemon, snapshot).Times(3);
+    EXPECT_EQ(send_command({"snapshot", "--comment", "a comment", "foo"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"snapshot", "-c", "a comment", "foo"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"snapshot", "-m", "a comment", "foo"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, snapshotCmdCommentConsumesArg)
+{
+    EXPECT_CALL(mock_daemon, snapshot).Times(0);
+    EXPECT_EQ(send_command({"snapshot", "--comment", "foo"}), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"snapshot", "-c", "foo"}), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(send_command({"snapshot", "-m", "foo"}), mp::ReturnCode::CommandLineError);
+}
+
 TEST_F(Client, snapshotCmdTooFewArgsFails)
 {
     EXPECT_EQ(send_command({"snapshot", "-m", "Who controls the past controls the future"}),
