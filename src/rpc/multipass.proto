@@ -220,12 +220,12 @@ message SnapshotFundamentalInfo {
     string snapshot_name = 1;
     string parent = 2;
     string comment = 3;
+    int32 creation_timestamp = 4; // TODO@snapshots use timestamp type
 }
 
 message SnapshotSpecificDetails {
     SnapshotFundamentalInfo fundamentals = 1;
     string size = 2;
-    int32 creation_timestamp = 3; // TODO@snapshots use timestamp type
     repeated string children = 4;
 }
 
