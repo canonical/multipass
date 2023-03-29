@@ -66,7 +66,7 @@ message LaunchRequest {
     repeated NetworkOptions network_options = 12;
     bool permission_to_bridge = 13;
     int32 timeout = 14;
-    UserCredentials user_credentials = 15;
+    string password = 15;
 }
 
 message LaunchError {
@@ -119,7 +119,7 @@ message LaunchReply {
     repeated string nets_need_bridging = 9;
     repeated Alias aliases_to_be_created = 10;
     repeated string workspaces_to_be_created = 11;
-    bool credentials_requested = 12;
+    bool password_requested = 12;
 }
 
 message PurgeRequest {
@@ -265,11 +265,6 @@ message TargetPathInfo {
     string target_path = 2;
 }
 
-message UserCredentials {
-    string username = 1;
-    string password = 2;
-}
-
 message MountRequest {
     enum MountType {
         CLASSIC = 0;
@@ -280,13 +275,13 @@ message MountRequest {
     MountMaps mount_maps = 3;
     int32 verbosity_level = 4;
     MountType mount_type = 5;
-    UserCredentials user_credentials = 6;
+    string password = 6;
 }
 
 message MountReply {
     string log_line = 1;
     string reply_message = 2;
-    bool credentials_requested = 3;
+    bool password_requested = 3;
 }
 
 message PingRequest {
@@ -335,14 +330,14 @@ message StartRequest {
     InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
     int32 timeout = 3;
-    UserCredentials user_credentials = 4;
+    string password = 4;
 }
 
 message StartReply {
     string log_line = 1;
     string reply_message = 2;
     UpdateInfo update_info = 3;
-    bool credentials_requested = 4;
+    bool password_requested = 4;
 }
 
 message StopRequest {
@@ -369,14 +364,14 @@ message RestartRequest {
     InstanceNames instance_names = 1;
     int32 verbosity_level = 2;
     int32 timeout = 3;
-    UserCredentials user_credentials = 4;
+    string password = 4;
 }
 
 message RestartReply {
     string log_line = 1;
     string reply_message = 2;
     UpdateInfo update_info = 3;
-    bool credentials_requested = 4;
+    bool password_requested = 4;
 }
 
 message DeleteRequest {

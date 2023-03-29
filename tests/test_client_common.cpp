@@ -146,17 +146,13 @@ TEST_F(TestClientCommon, noValidCertsCreatesNewCommonCert)
     EXPECT_FALSE(QFile::exists(cli_cert_dir));
 }
 
-TEST(TestClientHandleUserPassword, defaultHasNoUsernameAndPassword)
+TEST(TestClientHandleUserPassword, defaultHasNoPassword)
 {
     auto client = std::make_unique<mpt::MockClientReaderWriter<mp::MountRequest, mp::MountReply>>();
     std::stringstream trash_stream;
     mpt::StubTerminal term(trash_stream, trash_stream, trash_stream);
 
-    EXPECT_CALL(*client, Write(Property(&mp::MountRequest::user_credentials,
-                                        AllOf(Property(&mp::UserCredentials::username, IsEmpty()),
-                                              Property(&mp::UserCredentials::password, IsEmpty()))),
-                               _))
-        .Times(1);
+    EXPECT_CALL(*client, Write(Property(&mp::MountRequest::password, IsEmpty()), _)).Times(1);
 
-    mp::cmd::handle_user_password(client.get(), &term);
+    mp::cmd::handle_password(client.get(), &term);
 }

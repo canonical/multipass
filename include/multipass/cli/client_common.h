@@ -55,14 +55,10 @@ bool update_available(const UpdateInfo& update_info);
 std::string update_notice(const multipass::UpdateInfo& update_info);
 
 template <typename Request, typename Reply>
-void handle_user_password(grpc::ClientReaderWriterInterface<Request, Reply>* client, Terminal* term)
+void handle_password(grpc::ClientReaderWriterInterface<Request, Reply>* client, Terminal* term)
 {
     Request request;
-    const auto [username, password] = MP_CLIENT_PLATFORM.get_user_password(term);
-
-    request.mutable_user_credentials()->set_username(username);
-    request.mutable_user_credentials()->set_password(password);
-
+    request.set_password(MP_CLIENT_PLATFORM.get_password(term));
     client->Write(request);
 }
 }
