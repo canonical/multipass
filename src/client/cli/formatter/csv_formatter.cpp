@@ -55,12 +55,17 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
         "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
         "total,Mounts,AllIPv4,CPU(s),Snapshots\n");
 
-    for (const auto& info : format::sorted(reply.info()))
+    for (const auto& info : format::sorted(reply.details().details()))
     {
+        const auto& instance_details = info.instance_info();
+
         fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
-                       mp::format::status_string_for(info.instance_status()), info.ipv4_size() ? info.ipv4(0) : "",
-                       info.ipv6_size() ? info.ipv6(0) : "", info.current_release(), info.id(), info.image_release(),
-                       info.load(), info.disk_usage(), info.disk_total(), info.memory_usage(), info.memory_total());
+                       mp::format::status_string_for(info.instance_status()),
+                       instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
+                       instance_details.ipv6_size() ? instance_details.ipv6(0) : "", instance_details.current_release(),
+                       instance_details.id(), instance_details.image_release(), instance_details.load(),
+                       instance_details.disk_usage(), info.disk_total(), instance_details.memory_usage(),
+                       info.memory_total());
 
         auto mount_paths = info.mount_info().mount_paths();
         for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
@@ -68,8 +73,8 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
             fmt::format_to(std::back_inserter(buf), "{} => {};", mount->source_path(), mount->target_path());
         }
 
-        fmt::format_to(std::back_inserter(buf), ",\"{}\";,{},{}\n", fmt::join(info.ipv4(), ","), info.cpu_count(),
-                       info.num_snapshots());
+        fmt::format_to(std::back_inserter(buf), ",\"{}\";,{},{}\n", fmt::join(instance_details.ipv4(), ","),
+                       info.cpu_count(), instance_details.num_snapshots());
     }
     return fmt::to_string(buf);
 }
