@@ -218,7 +218,7 @@ message InstanceSpecificDetails {
     int32 num_snapshots = 9;
 }
 
-message SnapshotFundamentalInfo {
+message SnapshotFundamentals {
     string snapshot_name = 1;
     string parent = 2;
     string comment = 3;
@@ -226,7 +226,7 @@ message SnapshotFundamentalInfo {
 }
 
 message SnapshotSpecificDetails {
-    SnapshotFundamentalInfo fundamentals = 1;
+    SnapshotFundamentals fundamentals = 1;
     string size = 2;
     repeated string children = 4;
 }
@@ -247,7 +247,7 @@ message DetailedInfoItem {
 
 message SnapshotOverviewInfoItem {
     string instance_name = 1;
-    SnapshotFundamentalInfo fundamentals = 2;
+    SnapshotFundamentals fundamentals = 2;
 }
 
 message DetailedInfoReport {
