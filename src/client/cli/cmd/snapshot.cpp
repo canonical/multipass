@@ -75,7 +75,7 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
         "[snapshot]");
 
     QCommandLineOption comment_opt{
-        {"comment", "m"}, "An optional free comment to associate with the snapshot.", "comment"};
+        {"comment", "c", "m"}, "An optional free comment to associate with the snapshot.", "comment"};
     parser->addOption(comment_opt);
 
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)
