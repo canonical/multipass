@@ -54,7 +54,7 @@ function(generate_grpc_cpp SRCS DEST)
       "${DEST}/${FIL_WE}.pb.cc"
       "${DEST}/${FIL_WE}.pb.h"
       COMMAND $<TARGET_FILE:protoc>
-      ARGS --grpc_out=${DEST} --cpp_out=${DEST} --proto_path=${FIL_DIR} --plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin> ${ABS_FIL}
+      ARGS --grpc_out=${DEST} --cpp_out=${DEST} --proto_path=${FIL_DIR} --proto_path=${grpc_SOURCE_DIR}/third_party/protobuf/src --plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin> ${ABS_FIL}
       DEPENDS ${ABS_FIL} protoc grpc_cpp_plugin
       COMMENT "Running gRPC C++ protocol buffer compiler on ${FIL}"
       VERBATIM)
