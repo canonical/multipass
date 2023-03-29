@@ -158,8 +158,8 @@ message FindReply {
 }
 
 message InstanceOrSnapshot {
-    repeated string instance_name = 1;
-    repeated string snapshot_name = 2; // if this is present, the msg specifies a snapshot; otherwise, an instance
+    string instance_name = 1;
+    string snapshot_name = 2; // if this is present, the msg specifies a snapshot; otherwise, an instance
 }
 
 message InfoRequest {
