@@ -65,28 +65,29 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
     info_node["errors"].push_back(YAML::Null);
 
-    for (const auto& info : format::sorted(reply.info()))
+    for (const auto& info : format::sorted(reply.details().details()))
     {
+        const auto& instance_details = info.instance_info();
         YAML::Node instance_node;
 
         instance_node["state"] = mp::format::status_string_for(info.instance_status());
-        instance_node["image_hash"] = info.id();
-        instance_node["image_release"] = info.image_release();
-        if (info.current_release().empty())
+        instance_node["image_hash"] = instance_details.id();
+        instance_node["image_release"] = instance_details.image_release();
+        if (instance_details.current_release().empty())
             instance_node["release"] = YAML::Null;
         else
-            instance_node["release"] = info.current_release();
+            instance_node["release"] = instance_details.current_release();
 
         instance_node["cpu_count"] = YAML::Null;
         if (!info.cpu_count().empty())
             instance_node["cpu_count"] = info.cpu_count();
 
-        if (!info.load().empty())
+        if (!instance_details.load().empty())
         {
             // The VM returns load info in the default C locale
             auto current_loc = std::locale();
             std::locale::global(std::locale("C"));
-            auto loads = mp::utils::split(info.load(), " ");
+            auto loads = mp::utils::split(instance_details.load(), " ");
             for (const auto& entry : loads)
                 instance_node["load"].push_back(entry);
             std::locale::global(current_loc);
@@ -95,8 +96,8 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         YAML::Node disk;
         disk["used"] = YAML::Null;
         disk["total"] = YAML::Null;
-        if (!info.disk_usage().empty())
-            disk["used"] = info.disk_usage();
+        if (!instance_details.disk_usage().empty())
+            disk["used"] = instance_details.disk_usage();
         if (!info.disk_total().empty())
             disk["total"] = info.disk_total();
 
@@ -108,15 +109,15 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         YAML::Node memory;
         memory["usage"] = YAML::Null;
         memory["total"] = YAML::Null;
-        if (!info.memory_usage().empty())
-            memory["usage"] = std::stoll(info.memory_usage());
+        if (!instance_details.memory_usage().empty())
+            memory["usage"] = std::stoll(instance_details.memory_usage());
         if (!info.memory_total().empty())
             memory["total"] = std::stoll(info.memory_total());
 
         instance_node["memory"] = memory;
 
         instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
-        for (const auto& ip : info.ipv4())
+        for (const auto& ip : instance_details.ipv4())
             instance_node["ipv4"].push_back(ip);
 
         YAML::Node mounts;
@@ -147,7 +148,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
             mounts[mount.target_path()] = mount_node;
         }
         instance_node["mounts"] = mounts;
-        instance_node["snapshots"] = info.num_snapshots();
+        instance_node["snapshots"] = instance_details.num_snapshots();
 
         info_node[info.name()].push_back(instance_node);
     }
