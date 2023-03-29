@@ -122,7 +122,7 @@ catch (const SFTPError& e)
 
 void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_path)
 {
-    auto local_file = MP_FILEOPS.open_read(source_path);
+    auto local_file = MP_FILEOPS.open_read(source_path, std::ios_base::in | std::ios_base::binary);
     if (local_file->fail())
         throw SFTPError{"cannot open local file {}: {}", source_path, strerror(errno)};
 
@@ -139,7 +139,7 @@ void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_p
 
 void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_path)
 {
-    auto local_file = MP_FILEOPS.open_write(target_path);
+    auto local_file = MP_FILEOPS.open_write(target_path, std::ios_base::out | std::ios_base::binary);
     if (local_file->fail())
         throw SFTPError{"cannot open local file {}: {}", target_path, strerror(errno)};
 
