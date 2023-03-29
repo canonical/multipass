@@ -75,17 +75,14 @@ QStringList mcp::gui_tray_notification_strings()
     return {"Multipass is in your Notification area", "Right-click on the icon in the taskbar for available options"};
 }
 
-std::pair<std::string, std::string> mcp::Platform::get_user_password(mp::Terminal* term) const
+std::string mcp::Platform::get_password(mp::Terminal* term) const
 {
     if (term->is_live())
     {
         mp::PassphrasePrompter prompter(term);
         auto password = prompter.prompt("Please enter your user password to allow Windows mounts");
-        QString username;
-        mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
-                             "get-username", username);
 
-        return {username.section('\\', 1).toStdString(), password};
+        return password;
     }
 
     return {};

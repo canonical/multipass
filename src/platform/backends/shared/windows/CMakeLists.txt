@@ -14,6 +14,7 @@
 
 set (CMAKE_AUTOMOC ON)
 add_library(shared_win STATIC
+  aes.cpp
   powershell.cpp
   process_factory.cpp
   smb_mount_handler.cpp)
@@ -25,5 +26,6 @@ target_link_libraries(shared_win
   Qt5::Core
   fmt
   logger
+  OpenSSL::Crypto
   sftp_client
   utils)

@@ -19,6 +19,9 @@
 #define MULTIPASS_SMB_MOUNT_HANDLER_H
 
 #include <multipass/mount_handler.h>
+#include <multipass/path.h>
+
+#include <vector>
 
 namespace multipass
 {
@@ -26,7 +29,7 @@ class SmbMountHandler : public MountHandler
 {
 public:
     SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
-                    const VMMount& mount);
+                    const VMMount& mount, const multipass::Path& cred_dir);
     ~SmbMountHandler() override;
 
     void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
@@ -36,11 +39,17 @@ public:
 private:
     QString source;
     QString share_name;
+    QDir cred_dir;
+    std::vector<uint8_t> enc_key;
 
     bool smb_share_exists();
     void create_smb_share(const QString& user);
     void remove_smb_share();
+    void remove_cred_files(const QString& user_id);
     bool can_user_access_source(const QString& user);
+    void encrypt_credentials_to_file(const QString& cred_filename, const QString& iv_filename,
+                                     const std::string& ptext);
+    std::string decrypt_credentials_from_file(const QString& cred_filename, const QString& iv_filename);
 };
 } // namespace multipass
 #endif // MULTIPASS_SMB_MOUNT_HANDLER_H
