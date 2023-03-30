@@ -1,8 +1,6 @@
+import 'package:desktop_gui/sidebar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'launch_panel.dart';
-import 'vms_screen.dart';
 
 main() {
   runApp(ProviderScope(
@@ -12,18 +10,21 @@ main() {
         useMaterial3: true,
         colorSchemeSeed: Colors.white,
       ),
-      home: Scaffold(
-        body: const VMsScreen(),
-        drawerScrimColor: Colors.transparent,
-        endDrawer: Drawer(
-          surfaceTintColor: Colors.transparent,
-          width: 420,
-          elevation: 5,
-          shadowColor: Colors.black,
-          shape: const Border(),
-          child: LaunchPanel(),
-        ),
-      ),
+      home: const App(),
     ),
   ));
+}
+
+class App extends ConsumerWidget {
+  const App({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sidebarKey = ref.watch(sidebarKeyProvider);
+
+    return Row(children: [
+      const SideBar(),
+      Expanded(child: sidebarWidgets[sidebarKey]!),
+    ]);
+  }
 }

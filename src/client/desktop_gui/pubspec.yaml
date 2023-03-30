@@ -16,6 +16,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.2.0
+  flutter_svg: ^2.0.4
   grpc: ^3.1.0
   protobuf: ^2.1.0
   rxdart: ^0.27.7
@@ -28,3 +29,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/
