@@ -19,6 +19,7 @@ dependencies:
   grpc: ^3.1.0
   protobuf: ^2.1.0
   rxdart: ^0.27.7
+  url_launcher: ^6.1.10
 
 dev_dependencies:
   flutter_test:
