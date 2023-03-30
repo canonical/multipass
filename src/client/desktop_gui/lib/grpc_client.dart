@@ -149,6 +149,13 @@ class GrpcClient {
         .single
         .then((r) => r.imagesInfo);
   }
+
+  Future<String> version() {
+    return _client
+        .version(Stream.value(VersionRequest()))
+        .single
+        .then((reply) => reply.version);
+  }
 }
 
 class CustomChannelCredentials extends ChannelCredentials {
