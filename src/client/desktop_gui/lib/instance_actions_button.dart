@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -54,16 +56,47 @@ class InstanceActionsButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final client = ref.watch(grpcClientProvider);
 
+    final normalActions = actions(client).map(
+      (action) => PopupMenuItem(
+        enabled: action.allowedStatuses.contains(status),
+        onTap: () => showInstanceActionSnackBar(context, action),
+        child: Text(action.name),
+      ),
+    );
+
+    final shellAction = PopupMenuItem(
+      enabled:
+          [Status.RUNNING, Status.SUSPENDED, Status.STOPPED].contains(status),
+      onTap: () {
+        if (status == Status.RUNNING) {
+          openShell(name);
+        } else {
+          showInstanceActionSnackBar(
+            context,
+            InstanceAction(
+              name: 'Start',
+              instances: [name],
+              function: (names) =>
+                  client.start(names).then((_) => openShell(name)),
+            ),
+          );
+        }
+      },
+      child: const Text('Shell'),
+    );
+
     return PopupMenuButton<void>(
       icon: const Icon(Icons.more_vert),
       splashRadius: 20,
-      itemBuilder: (_) => actions(client)
-          .map((action) => PopupMenuItem(
-                enabled: action.allowedStatuses.contains(status),
-                onTap: () => showInstanceActionSnackBar(context, action),
-                child: Text(action.name),
-              ))
-          .toList(),
+      itemBuilder: (_) => [shellAction, ...normalActions],
     );
   }
+}
+
+void openShell(String instanceName) {
+  Process.run(
+    Platform.resolvedExecutable,
+    [],
+    environment: {'MULTIPASS_SHELL_INTO': instanceName},
+  );
 }

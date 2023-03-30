@@ -6,7 +6,7 @@ import 'grpc_client.dart';
 import 'help.dart';
 import 'vms_screen.dart';
 
-final sidebarKeyProvider = StateProvider((_) => HelpScreen.sidebarKey);
+final sidebarKeyProvider = StateProvider((_) => VMsScreen.sidebarKey);
 final sidebarWidgets = {
   VMsScreen.sidebarKey: const VMsScreen(),
   HelpScreen.sidebarKey: const HelpScreen(),

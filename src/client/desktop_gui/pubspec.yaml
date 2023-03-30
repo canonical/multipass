@@ -1,4 +1,4 @@
-name: desktop_gui
+name: Multipass
 description: Multipass GUI application
 publish_to: 'none'
 
@@ -15,12 +15,15 @@ dependencies:
   filesize: ^2.0.1
   flutter:
     sdk: flutter
+  flutter_pty: ^0.3.1
   flutter_riverpod: ^2.2.0
   flutter_svg: ^2.0.4
   grpc: ^3.1.0
   protobuf: ^2.1.0
   rxdart: ^0.27.7
   url_launcher: ^6.1.10
+  window_manager: ^0.3.1
+  xterm: ^3.4.1
 
 dev_dependencies:
   flutter_test:

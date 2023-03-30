@@ -1,11 +1,35 @@
-import 'package:desktop_gui/sidebar.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 
-main() {
+import 'shell_terminal.dart';
+import 'sidebar.dart';
+
+main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+
+  final shellInto = Platform.environment['MULTIPASS_SHELL_INTO'];
+
+  final windowOptions = WindowOptions(
+    title: shellInto ?? 'Multipass',
+    size: shellInto == null ? const Size(1750, 800) : null,
+    center: true,
+  );
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  if (shellInto != null) {
+    runApp(MaterialApp(home: ShellTerminal(instance: shellInto)));
+    return;
+  }
+
   runApp(ProviderScope(
     child: MaterialApp(
-      title: 'Multipass',
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.white,
