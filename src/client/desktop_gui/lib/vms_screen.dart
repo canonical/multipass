@@ -1,11 +1,15 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'bulk_actions_bar.dart';
 import 'globals.dart';
 import 'grpc_client.dart';
+import 'help.dart';
+import 'launch_panel.dart';
 import 'running_only_switch.dart';
+import 'sidebar.dart';
 import 'vms_table.dart';
 
 final runningOnlyProvider = StateProvider((_) => false);
@@ -24,41 +28,83 @@ final selectedVMsProvider = StateProvider<Map<String, Status>>((ref) {
   return {};
 });
 
-class VMsScreen extends ConsumerWidget {
+final vmScreenScaffold = GlobalKey<ScaffoldMessengerState>();
+
+final documentationUrl = Uri.parse(
+  'https://multipass.run/docs/use-an-instance',
+);
+
+class VMsScreen extends StatelessWidget {
+  static const sidebarKey = 'instances';
+
   const VMsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final textWithLink = RichText(
-      text: TextSpan(children: [
-        const TextSpan(
-          style: TextStyle(color: Colors.black),
-          text: 'This table shows the list of instances or virtual machines'
-              ' created and managed by Multipass. ',
-        ),
-        TextSpan(
-            style: const TextStyle(color: Colors.blue),
-            text: 'Learn more about instances.',
-            recognizer: TapGestureRecognizer()..onTap = () {})
-      ]),
-    );
+  Widget build(BuildContext context) {
+    final textWithLink = Consumer(builder: (_, ref, __) {
+      final hasInstances = ref.watch(
+        vmInfosProvider.select((infos) => infos.isNotEmpty),
+      );
+
+      return hasInstances
+          ? RichText(
+              text: TextSpan(
+                children: [
+                  const TextSpan(
+                    style: TextStyle(color: Colors.black),
+                    text:
+                        'This table shows the list of instances or virtual machines'
+                        ' created and managed by Multipass. ',
+                  ),
+                  TextSpan(
+                    style: const TextStyle(color: Colors.blue),
+                    text: 'Learn more about instances.',
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => launchUrl(documentationUrl),
+                  )
+                ],
+              ),
+            )
+          : RichText(
+              text: TextSpan(
+                children: [
+                  const TextSpan(
+                    style: TextStyle(color: Colors.black),
+                    text:
+                        'Launch a new instance to start. Read more about how to ',
+                  ),
+                  TextSpan(
+                    style: const TextStyle(color: Colors.blue),
+                    text: 'get started on Multipass.',
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => ref
+                          .read(sidebarKeyProvider.notifier)
+                          .state = HelpScreen.sidebarKey,
+                  )
+                ],
+              ),
+            );
+    });
 
     final searchBox = SizedBox(
       width: 385,
       height: 40,
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Search by name',
-          fillColor: const Color(0xffe3dee2),
-          filled: true,
-          suffixIcon: const Icon(Icons.search, color: Colors.black),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(50),
-            borderSide: BorderSide.none,
+      child: Consumer(
+        builder: (_, ref, __) => TextField(
+          decoration: InputDecoration(
+            hintText: 'Search by name',
+            fillColor: const Color(0xffe3dee2),
+            filled: true,
+            suffixIcon: const Icon(Icons.search, color: Colors.black),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(50),
+              borderSide: BorderSide.none,
+            ),
           ),
+          textAlignVertical: TextAlignVertical.bottom,
+          onChanged: (name) =>
+              ref.read(searchNameProvider.notifier).state = name,
         ),
-        textAlignVertical: TextAlignVertical.bottom,
-        onChanged: (name) => ref.read(searchNameProvider.notifier).state = name,
       ),
     );
 
@@ -72,16 +118,18 @@ class VMsScreen extends ConsumerWidget {
       },
     );
 
-    var launchButton = ElevatedButton.icon(
-      icon: const Icon(Icons.add),
-      label: const Text('Launch new instance'),
-      onPressed: () => Scaffold.of(context).openEndDrawer(),
-      style: const ButtonStyle(
-        iconColor: MaterialStatePropertyAll(Colors.white),
-        foregroundColor: MaterialStatePropertyAll(Colors.white),
-        backgroundColor: MaterialStatePropertyAll(Color(0xff006ada)),
-      ),
-    );
+    var launchButton = Builder(builder: (context) {
+      return ElevatedButton.icon(
+        icon: const Icon(Icons.add),
+        label: const Text('Launch new instance'),
+        onPressed: () => Scaffold.of(context).openEndDrawer(),
+        style: const ButtonStyle(
+          iconColor: MaterialStatePropertyAll(Colors.white),
+          foregroundColor: MaterialStatePropertyAll(Colors.white),
+          backgroundColor: MaterialStatePropertyAll(Color(0xff006ada)),
+        ),
+      );
+    });
 
     final vmsWithActionBar = Container(
       clipBehavior: Clip.antiAlias,
@@ -104,22 +152,39 @@ class VMsScreen extends ConsumerWidget {
       ),
     );
 
-    return Padding(
-      padding: const EdgeInsets.all(15),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        numberOfInstances,
-        const Divider(),
-        textWithLink,
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          child: Row(children: [
-            const RunningOnlySwitch(),
-            const Spacer(),
-            searchBox,
-          ]),
+    return ScaffoldMessenger(
+      key: vmScreenScaffold,
+      child: Scaffold(
+        drawerScrimColor: Colors.transparent,
+        endDrawer: Drawer(
+          surfaceTintColor: Colors.transparent,
+          width: 420,
+          elevation: 5,
+          shadowColor: Colors.black,
+          shape: const Border(),
+          child: LaunchPanel(),
         ),
-        Expanded(child: vmsWithActionBar),
-      ]),
+        body: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              numberOfInstances,
+              const Divider(),
+              textWithLink,
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: Row(children: [
+                  const RunningOnlySwitch(),
+                  const Spacer(),
+                  searchBox,
+                ]),
+              ),
+              Expanded(child: vmsWithActionBar),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -3,27 +3,23 @@ import 'package:flutter/material.dart';
 
 import 'globals.dart';
 import 'instance_action.dart';
+import 'vms_screen.dart';
 
 void showSnackBarMessage(BuildContext context, String message,
     {bool failure = false}) {
-  final scaffold = ScaffoldMessenger.of(context);
-  final content = _snackBarMessage(scaffold, message, failure: failure);
-  _showSnackBar(context, scaffold, content);
+  _showSnackBar(context, _snackBarMessage(message, failure: failure));
 }
 
 void showInstanceActionSnackBar(BuildContext context, InstanceAction action) {
-  final scaffold = ScaffoldMessenger.of(context);
-  final content = _instanceActionSnackBarContent(context, action);
-  _showSnackBar(context, scaffold, content);
+  _showSnackBar(context, _instanceActionSnackBarContent(action));
 }
 
 void _showSnackBar(
   BuildContext context,
-  ScaffoldMessengerState scaffold,
   Widget content,
 ) {
-  scaffold.clearSnackBars();
-  scaffold.showSnackBar(SnackBar(
+  vmScreenScaffold.currentState!.clearSnackBars();
+  vmScreenScaffold.currentState!.showSnackBar(SnackBar(
     elevation: 0,
     backgroundColor: Colors.transparent,
     dismissDirection: DismissDirection.none,
@@ -43,8 +39,7 @@ void _showSnackBar(
   ));
 }
 
-Widget _snackBarMessage(ScaffoldMessengerState scaffold, String text,
-    {bool failure = false}) {
+Widget _snackBarMessage(String text, {bool failure = false}) {
   return Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
@@ -56,7 +51,7 @@ Widget _snackBarMessage(ScaffoldMessengerState scaffold, String text,
         ),
       ),
       IconButton(
-        onPressed: () => scaffold.hideCurrentSnackBar(),
+        onPressed: () => vmScreenScaffold.currentState!.hideCurrentSnackBar(),
         iconSize: 20,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(maxHeight: 20, maxWidth: 20),
@@ -67,18 +62,13 @@ Widget _snackBarMessage(ScaffoldMessengerState scaffold, String text,
   );
 }
 
-Widget _instanceActionSnackBarContent(
-  BuildContext context,
-  InstanceAction action,
-) {
-  final scaffold = ScaffoldMessenger.of(context);
+Widget _instanceActionSnackBarContent(InstanceAction action) {
   final instances = action.instances.joinWithAnd();
   return FutureBuilder(
     future: action.function(action.instances),
     builder: (_, snapshot) {
       if (snapshot.hasError) {
         return _snackBarMessage(
-          scaffold,
           'Failed to ${action.name.toLowerCase()} $instances: ${snapshot.error}.',
           failure: true,
         );
@@ -86,7 +76,6 @@ Widget _instanceActionSnackBarContent(
 
       if (snapshot.connectionState == ConnectionState.done) {
         return _snackBarMessage(
-          scaffold,
           'Successfully ${action.pastTense.toLowerCase()} $instances.',
         );
       }
