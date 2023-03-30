@@ -522,6 +522,7 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
                           .arg(json_reply["metadata"].toObject()["id"].toString()));
 
         // Instead of polling, need to use websockets to get events
+        auto last_download_progress = -2;
         while (true)
         {
             try
@@ -544,11 +545,14 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
                     auto download_progress = parse_percent_as_int(
                         task_reply["metadata"].toObject()["metadata"].toObject()["download_progress"].toString());
 
-                    if (!monitor(LaunchProgress::IMAGE, download_progress))
+                    if (last_download_progress != download_progress &&
+                        !monitor(LaunchProgress::IMAGE, download_progress))
                     {
                         mp::lxd_request(manager, "DELETE", task_url);
                         throw mp::AbortedDownloadException{"Download aborted"};
                     }
+
+                    last_download_progress = download_progress;
 
                     std::this_thread::sleep_for(1s);
                 }
