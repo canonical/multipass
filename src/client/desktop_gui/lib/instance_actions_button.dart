@@ -88,6 +88,7 @@ class InstanceActionsButton extends ConsumerWidget {
     return PopupMenuButton<void>(
       icon: const Icon(Icons.more_vert),
       splashRadius: 20,
+      tooltip: 'Instance actions',
       itemBuilder: (_) => [shellAction, ...normalActions],
     );
   }

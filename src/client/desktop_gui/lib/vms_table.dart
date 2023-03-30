@@ -30,18 +30,18 @@ class _VMsTableState extends ConsumerState<VMsTable> {
             sortExtractor = extractor;
           });
 
-  late final _headers = {
+  late final _headersWithSortExtractors = {
     const DataColumn2(label: Text('Name')): (VmInfo info) => info.name,
-    const DataColumn2(label: Text('State'), fixedWidth: 130): (VmInfo info) =>
+    const DataColumn2(label: Text('State'), fixedWidth: 200): (VmInfo info) =>
         info.instanceStatus.status.name,
     const DataColumn2(label: Text('Memory usage'), numeric: true): null,
     const DataColumn2(label: Text('Disk usage'), numeric: true): null,
-    const DataColumn2(label: Text('CPU(s)'), size: ColumnSize.S, numeric: true):
+    const DataColumn2(label: Text('CPU(s)'), fixedWidth: 120, numeric: true):
         (VmInfo info) => info.cpuCount,
     const DataColumn2(label: Text('Load'), numeric: true): null,
     const DataColumn2(label: Text('Image'), size: ColumnSize.L):
         (VmInfo info) => info.currentRelease,
-    const DataColumn2(label: Text('Ipv4')): (VmInfo info) =>
+    const DataColumn2(label: Text('Ipv4'), size: ColumnSize.L): (VmInfo info) =>
         info.ipv4.firstOrNull ?? '',
     const DataColumn2(label: Text('Actions'), fixedWidth: 75, numeric: true):
         null,
@@ -53,6 +53,97 @@ class _VMsTableState extends ConsumerState<VMsTable> {
         onSort: e.value == null ? null : _extractorToSortCallback(e.value!),
       ));
 
+  Widget _memoryUsage(String usage, String total) {
+    final nUsage = double.tryParse(usage);
+    final nTotal = double.tryParse(total);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        LinearProgressIndicator(
+          value: (nUsage ?? 0) / (nTotal ?? 1),
+          backgroundColor: const Color(0xff006ada).withOpacity(0.24),
+          color: const Color(0xff0066cc),
+        ),
+        Text(
+          (nUsage != null && nTotal != null)
+              ? '${filesize(usage)} / ${filesize(total)}'
+              : '-',
+          style: const TextStyle(fontSize: 11),
+        ),
+      ],
+    );
+  }
+
+  Icon _statusIcon(Status status) {
+    switch (status) {
+      case Status.RUNNING:
+        return const Icon(Icons.circle, color: Color(0xff0e8420), size: 10);
+      case Status.STOPPED:
+        return const Icon(Icons.circle, color: Color(0xff757575), size: 10);
+      case Status.SUSPENDED:
+        return const Icon(Icons.circle, color: Color(0xfff99b11), size: 10);
+      case Status.RESTARTING:
+        return const Icon(Icons.more_horiz, color: Color(0xff757575), size: 15);
+      case Status.STARTING:
+        return const Icon(Icons.more_horiz, color: Color(0xff757575), size: 15);
+      case Status.SUSPENDING:
+        return const Icon(Icons.more_horiz, color: Color(0xff757575), size: 15);
+      case Status.DELETED:
+        return const Icon(Icons.close, color: Colors.redAccent, size: 15);
+      case Status.DELAYED_SHUTDOWN:
+        return const Icon(Icons.circle, color: Color(0xff0e8420), size: 10);
+      default:
+        return const Icon(Icons.help, color: Color(0xff757575), size: 15);
+    }
+  }
+
+  Widget _vmStatus(Status status) {
+    return Row(
+      children: [
+        _statusIcon(status),
+        const SizedBox(width: 8),
+        Text(status.name.toLowerCase().replaceAll('_', ' ')),
+      ],
+    );
+  }
+
+  Widget _vmIPs(List<String> ips) {
+    return Row(children: [
+      Text(ips.firstOrNull ?? '-'),
+      if (ips.length > 1)
+        Badge.count(
+          count: ips.length - 1,
+          alignment: const AlignmentDirectional(0, 10),
+          textStyle: const TextStyle(fontSize: 8),
+          largeSize: 14,
+          child: PopupMenuButton<void>(
+            icon: const Icon(Icons.keyboard_arrow_down),
+            position: PopupMenuPosition.under,
+            tooltip: 'Other IP addresses',
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                enabled: false,
+                labelTextStyle: MaterialStatePropertyAll(
+                  TextStyle(color: Colors.black),
+                ),
+                child: Text('Other IP addresses'),
+              ),
+              for (final ip in ips.slice(1))
+                PopupMenuItem(
+                  enabled: false,
+                  labelTextStyle: const MaterialStatePropertyAll(
+                    TextStyle(color: Colors.black),
+                  ),
+                  child: Text(ip),
+                ),
+            ],
+          ),
+        ),
+    ]);
+  }
+
   DataRow2 _buildRow(VmInfo info, bool selected) {
     return DataRow2(
       selected: selected,
@@ -63,17 +154,13 @@ class _VMsTableState extends ConsumerState<VMsTable> {
               : ({...selected}..remove(info.name))),
       cells: [
         DataCell(Text(info.name)),
-        DataCell(Text(info.instanceStatus.status.name.toLowerCase())),
-        DataCell(Text(info.memoryUsage.isEmpty
-            ? 'N/A'
-            : '${filesize(info.memoryUsage)}/${filesize(info.memoryTotal)}')),
-        DataCell(Text(info.diskUsage.isEmpty
-            ? 'N/A'
-            : '${filesize(info.diskUsage)}/${filesize(info.diskTotal)}')),
-        DataCell(Text(info.cpuCount.isEmpty ? 'N/A' : info.cpuCount)),
-        DataCell(Text(info.load.isEmpty ? 'N/A' : info.load)),
+        DataCell(_vmStatus(info.instanceStatus.status)),
+        DataCell(_memoryUsage(info.memoryUsage, info.memoryTotal)),
+        DataCell(_memoryUsage(info.diskUsage, info.diskTotal)),
+        DataCell(Text(info.cpuCount.isEmpty ? '-' : info.cpuCount)),
+        DataCell(Text(info.load.isEmpty ? '-' : info.load)),
         DataCell(Text(info.currentRelease)),
-        DataCell(Text(info.ipv4.firstOrNull ?? 'N/A')),
+        DataCell(_vmIPs(info.ipv4)),
         DataCell(InstanceActionsButton(info.instanceStatus.status, info.name)),
       ],
     );
@@ -114,12 +201,17 @@ class _VMsTableState extends ConsumerState<VMsTable> {
             sortExtractor!(a).compareTo(sortExtractor!(b)));
 
     return DataTable2(
+      sortArrowIcon: Icons.arrow_drop_up,
+      headingTextStyle: const TextStyle(
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
       empty: emptyWidget,
       sortColumnIndex: sortIndex,
       sortAscending: sortAscending,
       onSelectAll: (select) => ref.read(selectedVMsProvider.notifier).state =
           select! ? infosToStatusMap(sortedInfos) : {},
-      columns: _headers.toList(),
+      columns: _headersWithSortExtractors.toList(),
       rows: sortedInfos
           .map((info) => _buildRow(info, selectedVMs.containsKey(info.name)))
           .toList(),

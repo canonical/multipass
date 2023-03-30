@@ -133,12 +133,21 @@ class VMsScreen extends StatelessWidget {
 
     final vmsWithActionBar = Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          width: 0.5,
+          color: Colors.black54,
+        ),
+      ),
       child: Column(
         children: [
           Container(
-            color: const Color(0xff313033),
             padding: const EdgeInsets.all(8).copyWith(left: 4),
+            decoration: const BoxDecoration(
+              color: Color(0xff313033),
+              boxShadow: [BoxShadow(blurRadius: 5, color: Colors.black54)],
+            ),
             child: Row(
               children: [
                 const BulkActionsBar(),
