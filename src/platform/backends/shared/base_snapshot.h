@@ -32,15 +32,16 @@ struct VMSpecs;
 class BaseSnapshot : public Snapshot
 {
 public:
-    BaseSnapshot(const std::string& name, const std::string& comment, const Snapshot* parent, int num_cores,
-                 MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
+    BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
+                 int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata);
 
-    BaseSnapshot(const std::string& name, const std::string& comment, const Snapshot* parent, const VMSpecs& specs);
+    BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
+                 const VMSpecs& specs);
 
     std::string get_name() const noexcept override;
     std::string get_comment() const noexcept override;
-    const Snapshot* get_parent() const noexcept override;
+    std::shared_ptr<const Snapshot> get_parent() const noexcept override;
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
     MemorySize get_disk_space() const noexcept override;
@@ -51,7 +52,7 @@ public:
 private:
     std::string name;
     std::string comment;
-    const Snapshot* parent;
+    std::shared_ptr<const Snapshot> parent;
     int num_cores;
     MemorySize mem_size;
     MemorySize disk_space;
@@ -71,7 +72,7 @@ inline std::string multipass::BaseSnapshot::get_comment() const noexcept
     return comment;
 }
 
-inline auto multipass::BaseSnapshot::get_parent() const noexcept -> const Snapshot*
+inline auto multipass::BaseSnapshot::get_parent() const noexcept -> std::shared_ptr<const Snapshot>
 {
     return parent;
 }
