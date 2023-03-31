@@ -97,8 +97,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
 
         if (success)
         {
-            auto ret = it->second;
-            head_snapshot = ret.get();
+            auto ret = head_snapshot = it->second;
             auto num_snapshots = snapshots.size();
             write_lock.unlock();
 
