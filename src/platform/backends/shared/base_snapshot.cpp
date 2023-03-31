@@ -49,17 +49,17 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
 
 QJsonObject multipass::BaseSnapshot::serialize() const
 {
-    QJsonObject ret{};
+    QJsonObject ret, snapshot{};
     const std::shared_lock lock{mutex};
 
-    ret.insert("name", QString::fromStdString(name));
-    ret.insert("comment", QString::fromStdString(comment));
-    ret.insert("parent", QString::fromStdString(get_parent_name()));
-    ret.insert("num_cores", num_cores);
-    ret.insert("mem_size", QString::number(mem_size.in_bytes()));
-    ret.insert("disk_space", QString::number(disk_space.in_bytes()));
-    ret.insert("state", static_cast<int>(state));
-    ret.insert("metadata", metadata);
+    snapshot.insert("name", QString::fromStdString(name));
+    snapshot.insert("comment", QString::fromStdString(comment));
+    snapshot.insert("parent", QString::fromStdString(get_parent_name()));
+    snapshot.insert("num_cores", num_cores);
+    snapshot.insert("mem_size", QString::number(mem_size.in_bytes()));
+    snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
+    snapshot.insert("state", static_cast<int>(state));
+    snapshot.insert("metadata", metadata);
 
     // Extract mount serialization
     QJsonArray json_mounts;
@@ -99,7 +99,8 @@ QJsonObject multipass::BaseSnapshot::serialize() const
         json_mounts.append(entry);
     }
 
-    ret.insert("mounts", json_mounts);
+    snapshot.insert("mounts", json_mounts);
+    ret.insert("snapshot", snapshot);
 
     return ret;
 }
