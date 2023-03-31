@@ -65,8 +65,8 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD1(resize_disk, void(const MemorySize& new_size));
     MOCK_METHOD(std::unique_ptr<MountHandler>, make_native_mount_handler,
                 (const SSHKeyProvider* ssh_key_provider, const std::string& target, const VMMount& mount), (override));
-    MOCK_METHOD(const VirtualMachine::SnapshotMap&, get_snapshots, (), (const, override, noexcept));
-    MOCK_METHOD(VirtualMachine::LockingConstSnapshotRef, take_snapshot,
+    MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override, noexcept));
+    MOCK_METHOD(std::shared_ptr<const Snapshot>, take_snapshot,
                 (const VMSpecs& specs, const std::string& name, const std::string& comment), (override));
 };
 
