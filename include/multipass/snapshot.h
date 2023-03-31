@@ -39,6 +39,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
 
     virtual std::string get_name() const = 0;
     virtual std::string get_comment() const = 0;
+    virtual std::string get_parent_name() const = 0;
     virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
 
     virtual int get_num_cores() const noexcept = 0;
