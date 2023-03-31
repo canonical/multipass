@@ -62,14 +62,9 @@ protected:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
     SnapshotMap snapshots;
     Snapshot* head_snapshot = nullptr;
-    std::shared_mutex snapshot_mutex; // TODO@snapshots will probably want this to be mutable
+    mutable std::shared_mutex snapshot_mutex;
     std::mutex transfer_mutex;
 };
-
-inline auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
-{
-    return snapshots;
-}
 
 } // namespace multipass
 
