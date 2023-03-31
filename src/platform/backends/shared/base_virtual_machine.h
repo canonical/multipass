@@ -53,7 +53,7 @@ public:
         throw NotImplementedOnThisBackendException("native mounts");
     };
 
-    const SnapshotMap& get_snapshots() const noexcept override;
+    SnapshotVista view_snapshots() const noexcept override;
     LockingConstSnapshotRef take_snapshot(const VMSpecs& specs, const std::string& name,
                                           const std::string& comment) override;
 
@@ -64,7 +64,7 @@ protected:
     std::mutex transfer_mutex;
 };
 
-inline auto multipass::BaseVirtualMachine::get_snapshots() const noexcept -> const SnapshotMap&
+inline auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
 {
     return snapshots;
 }
