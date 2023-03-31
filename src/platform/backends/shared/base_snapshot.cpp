@@ -54,7 +54,7 @@ QJsonObject multipass::BaseSnapshot::serialize() const
 
     ret.insert("name", QString::fromStdString(name));
     ret.insert("comment", QString::fromStdString(comment));
-    ret.insert("parent", QString::fromStdString(parent->get_name()));
+    ret.insert("parent", QString::fromStdString(get_parent_name()));
     ret.insert("num_cores", num_cores);
     ret.insert("mem_size", QString::number(mem_size.in_bytes()));
     ret.insert("disk_space", QString::number(disk_space.in_bytes()));
