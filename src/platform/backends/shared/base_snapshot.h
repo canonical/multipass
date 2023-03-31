@@ -25,6 +25,8 @@
 
 #include <QJsonObject>
 
+#include <shared_mutex>
+
 namespace multipass
 {
 struct VMSpecs;
@@ -39,9 +41,9 @@ public:
     BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
                  const VMSpecs& specs);
 
-    std::string get_name() const noexcept override;
-    std::string get_comment() const noexcept override;
-    std::shared_ptr<const Snapshot> get_parent() const noexcept override;
+    std::string get_name() const override;
+    std::string get_comment() const override;
+    std::shared_ptr<const Snapshot> get_parent() const override;
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
     MemorySize get_disk_space() const noexcept override;
@@ -49,31 +51,42 @@ public:
     const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept override;
     const QJsonObject& get_metadata() const noexcept override;
 
+    void set_name(const std::string& n) override;
+    void set_comment(const std::string& c) override;
+    void set_parent(std::shared_ptr<const Snapshot> p) override;
+
 private:
     std::string name;
     std::string comment;
     std::shared_ptr<const Snapshot> parent;
-    int num_cores;
-    MemorySize mem_size;
-    MemorySize disk_space;
-    VirtualMachine::State state;
-    std::unordered_map<std::string, VMMount> mounts;
-    QJsonObject metadata;
+
+    // This class is non-copyable and having these const simplifies thread safety
+    const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const MemorySize disk_space;                           // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const VirtualMachine::State state;                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+
+    mutable std::shared_mutex mutex;
 };
 } // namespace multipass
 
-inline std::string multipass::BaseSnapshot::get_name() const noexcept
+inline std::string multipass::BaseSnapshot::get_name() const
 {
+    const std::shared_lock lock{mutex};
     return name;
 }
 
-inline std::string multipass::BaseSnapshot::get_comment() const noexcept
+inline std::string multipass::BaseSnapshot::get_comment() const
 {
+    const std::shared_lock lock{mutex};
     return comment;
 }
 
-inline auto multipass::BaseSnapshot::get_parent() const noexcept -> std::shared_ptr<const Snapshot>
+inline auto multipass::BaseSnapshot::get_parent() const -> std::shared_ptr<const Snapshot>
 {
+    const std::shared_lock lock{mutex};
     return parent;
 }
 
@@ -105,6 +118,24 @@ inline auto multipass::BaseSnapshot::get_mounts() const noexcept -> const std::u
 inline const QJsonObject& multipass::BaseSnapshot::get_metadata() const noexcept
 {
     return metadata;
+}
+
+inline void multipass::BaseSnapshot::set_name(const std::string& n)
+{
+    const std::unique_lock lock{mutex};
+    name = n;
+}
+
+inline void multipass::BaseSnapshot::set_comment(const std::string& c)
+{
+    const std::unique_lock lock{mutex};
+    comment = c;
+}
+
+inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<const Snapshot> p)
+{
+    const std::unique_lock lock{mutex};
+    parent = std::move(p);
 }
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H
