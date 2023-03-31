@@ -71,6 +71,18 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
     return all_ipv4;
 }
 
+auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
+{
+    SnapshotVista ret;
+
+    std::shared_lock read_lock{snapshot_mutex};
+    ret.reserve(snapshots.size());
+    std::transform(std::cbegin(snapshots), std::cend(snapshots), std::back_inserter(ret),
+                   [](const auto& pair) { return pair.second; });
+
+    return ret;
+}
+
 std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
                                                                   const std::string& comment)
 {
