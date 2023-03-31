@@ -2375,11 +2375,10 @@ try
         SnapshotReply reply;
 
         {
-            const auto& [snapshot, lock] =
-                vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
+            auto snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
             // TODO@snapshots persist generic snapshot info
 
-            reply.set_snapshot(snapshot.get_name());
+            reply.set_snapshot(snapshot->get_name());
         }
 
         server->Write(reply);
