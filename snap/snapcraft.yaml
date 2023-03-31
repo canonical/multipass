@@ -82,9 +82,11 @@ apps:
       - network
   gui:
     environment: *client-environment
+    extensions: [ gnome ]
     command: bin/launch-multipass-gui
     desktop: usr/share/applications/multipass.gui.desktop
     autostart: multipass.gui.autostart.desktop
+    command-chain: [bin/set-xdg-data-home]
     plugs:
       - home
       - network

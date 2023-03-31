@@ -175,6 +175,12 @@ void cmd::GuiCmd::create_actions()
     tray_icon_menu.insertActions(petenv_actions_separator,
                                  {&petenv_start_action, &petenv_shell_action, &petenv_stop_action});
 
+#ifdef MULTIPASS_PLATFORM_LINUX
+    auto gui_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
+    tray_icon_menu.insertAction(gui_separator, &toggle_gui_action);
+#endif
+
+    QObject::connect(&toggle_gui_action, &QAction::triggered, [this] { open_desktop_gui(); });
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [this] { mp::cli::platform::open_multipass_shell(QString::fromStdString(current_petenv_name)); });
     QObject::connect(&petenv_stop_action, &QAction::triggered, [this] {
@@ -306,6 +312,11 @@ void cmd::GuiCmd::create_menu()
     QObject::connect(&about_update_timer, &QTimer::timeout, this, [this] { initiate_about_menu_layout(); });
     QObject::connect(&update_action, &QAction::triggered,
                      [this](bool checked) { QDesktopServices::openUrl(QUrl(update_action.whatsThis())); });
+
+    QObject::connect(&tray_icon, &QSystemTrayIcon::activated, [this](auto reason) {
+        if (reason == QSystemTrayIcon::DoubleClick)
+            open_desktop_gui();
+    });
 
     about_menu.setTitle("About");
 
@@ -488,4 +499,26 @@ mp::VersionReply cmd::GuiCmd::retrieve_version_and_update_info()
     dispatch(&RpcMethod::version, request, on_success, on_failure);
 
     return version_reply;
+}
+
+void cmd::GuiCmd::open_desktop_gui()
+{
+    if (desktop_gui_process.state() != QProcess::Running)
+    {
+        desktop_gui_process.start("desktop_gui", QStringList{});
+        toggle_gui_action.setText("Close GUI");
+        toggle_gui_action.disconnect();
+        QObject::connect(&toggle_gui_action, &QAction::triggered, [this] { close_desktop_gui(); });
+    }
+}
+
+void cmd::GuiCmd::close_desktop_gui()
+{
+    if (desktop_gui_process.state() == QProcess::Running)
+    {
+        desktop_gui_process.terminate();
+        toggle_gui_action.setText("Open GUI");
+        toggle_gui_action.disconnect();
+        QObject::connect(&toggle_gui_action, &QAction::triggered, [this] { open_desktop_gui(); });
+    }
 }

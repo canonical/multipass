@@ -77,6 +77,8 @@ private:
     void suspend_instance_for(const std::string& instance_name);
     VersionReply retrieve_version_and_update_info();
     void update_hotkey();
+    void open_desktop_gui();
+    void close_desktop_gui();
 
     QSystemTrayIcon tray_icon;
     QMenu tray_icon_menu;
@@ -92,6 +94,7 @@ private:
     QAction* quit_action;
     QAction update_action{"Update available"};
     QAction failure_action{"Failure retrieving instances"};
+    QAction toggle_gui_action{"Open GUI"};
 
     QMenu about_menu;
     QAction about_client_version;
@@ -118,6 +121,8 @@ private:
 
     QTimer menu_update_timer;
     QTimer about_update_timer;
+
+    QProcess desktop_gui_process;
 
     QHotkey hotkey;
 };
