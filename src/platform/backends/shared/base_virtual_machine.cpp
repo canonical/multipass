@@ -73,8 +73,8 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
     return all_ipv4;
 }
 
-BaseVirtualMachine::LockingConstSnapshotRef
-BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name, const std::string& comment)
+std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
+                                                                  const std::string& comment)
 {
     // TODO@snapshots generate name
     // TODO@snapshots generate implementation-specific snapshot instead
