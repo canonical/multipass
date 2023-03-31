@@ -99,20 +99,12 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
         {
             auto ret = it->second;
             head_snapshot = ret.get();
-
-            // No writing from this point on
-            std::shared_lock read_lock{snapshot_mutex, std::defer_lock};
-            { // TODO@snapshots might as well make this into a generic util
-                std::unique_lock transfer_lock{transfer_mutex}; // lock transfer from write to read lock
-
-                write_lock.unlock();
-                read_lock.lock();
-            }
+            auto num_snapshots = snapshots.size();
+            write_lock.unlock();
 
             if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
             {
-                auto num_snapshots = snapshots.size();
-                auto* parent = head_snapshot->get_parent();
+                auto* parent = ret->get_parent();
 
                 assert(bool(parent) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
                 const auto& parent_name = parent ? parent->get_name() : "--";
