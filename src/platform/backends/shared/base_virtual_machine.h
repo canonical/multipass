@@ -29,8 +29,10 @@
 #include <QRegularExpression>
 #include <QString>
 
+#include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include <unordered_map>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -43,7 +45,6 @@ class BaseVirtualMachine : public VirtualMachine
 public:
     BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name);
     BaseVirtualMachine(const std::string& vm_name);
-    ~BaseVirtualMachine(); // allow composing unique_ptr to fwd-declared Snapshots NOLINT(modernize-use-override)
 
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
@@ -58,6 +59,7 @@ public:
                                                   const std::string& comment) override;
 
 protected:
+    using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
     SnapshotMap snapshots;
     Snapshot* head_snapshot = nullptr;
     std::shared_mutex snapshot_mutex; // TODO@snapshots will probably want this to be mutable
