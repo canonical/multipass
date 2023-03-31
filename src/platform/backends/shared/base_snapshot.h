@@ -38,8 +38,8 @@ public:
 
     BaseSnapshot(const std::string& name, const std::string& comment, const Snapshot* parent, const VMSpecs& specs);
 
-    const std::string& get_name() const noexcept override;
-    const std::string& get_comment() const noexcept override;
+    std::string get_name() const noexcept override;
+    std::string get_comment() const noexcept override;
     const Snapshot* get_parent() const noexcept override;
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
@@ -61,12 +61,12 @@ private:
 };
 } // namespace multipass
 
-inline const std::string& multipass::BaseSnapshot::get_name() const noexcept
+inline std::string multipass::BaseSnapshot::get_name() const noexcept
 {
     return name;
 }
 
-inline const std::string& multipass::BaseSnapshot::get_comment() const noexcept
+inline std::string multipass::BaseSnapshot::get_comment() const noexcept
 {
     return comment;
 }
