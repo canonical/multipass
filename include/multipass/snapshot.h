@@ -52,7 +52,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
 
     virtual QJsonObject serialize() const = 0;
 
-    virtual void set_name(const std::string&) = 0;
+    virtual void set_name(const std::string&) = 0; // TODO@snapshots don't forget to rename json file
     virtual void set_comment(const std::string&) = 0;
     virtual void set_parent(std::shared_ptr<const Snapshot>) = 0;
 };
