@@ -54,8 +54,8 @@ public:
     };
 
     SnapshotVista view_snapshots() const noexcept override;
-    LockingConstSnapshotRef take_snapshot(const VMSpecs& specs, const std::string& name,
-                                          const std::string& comment) override;
+    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
+                                                  const std::string& comment) override;
 
 protected:
     SnapshotMap snapshots;
