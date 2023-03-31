@@ -36,9 +36,9 @@ class Snapshot : private DisabledCopyMove
 public:
     virtual ~Snapshot() = default;
 
-    virtual const std::string& get_name() const noexcept = 0;
-    virtual const std::string& get_comment() const noexcept = 0;
-    virtual const Snapshot* get_parent() const noexcept = 0;
+    virtual std::string get_name() const noexcept = 0;
+    virtual std::string get_comment() const noexcept = 0;
+    virtual const Snapshot* get_parent() const noexcept = 0; // TODO@ricab shptr
 
     virtual int get_num_cores() const noexcept = 0;
     virtual MemorySize get_mem_size() const noexcept = 0;
