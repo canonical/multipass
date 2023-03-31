@@ -2375,9 +2375,13 @@ try
         SnapshotReply reply;
 
         {
-            auto snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
-            auto snapshot_json = snapshot->serialize();
-            // TODO@snapshots persist generic snapshot info
+            const auto snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
+            const auto snapshot_json = snapshot->serialize();
+
+            const auto instance_dir = mp::utils::base_dir(
+                fetch_image_for(instance_name, config->factory->fetch_type(), *config->vault).image_path);
+            auto snapshot_record_file = instance_dir.filePath(QString::fromStdString(snapshot->get_name()) + ".json");
+            mp::write_json(snapshot_json, std::move(snapshot_record_file));
 
             reply.set_snapshot(snapshot->get_name());
         }
