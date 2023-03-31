@@ -120,16 +120,15 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
 
     SnapshotVista view_snapshots() const noexcept override
     {
-        return snapshots;
+        return {};
     }
 
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
                                                   const std::string& comment) override
     {
-        return {snapshot, std::shared_lock<std::shared_mutex>{}};
+        return {};
     }
 
-    SnapshotMap snapshots{};
     StubSnapshot snapshot;
 };
 } // namespace test
