@@ -99,18 +99,15 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
         {
             auto ret = head_snapshot = it->second;
             auto num_snapshots = snapshots.size();
-            auto parent = ret->get_parent();
+            auto parent_name = ret->get_parent_name();
+            assert(bool(ret->get_parent()) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
+
             write_lock.unlock();
 
-            assert(bool(parent) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
             if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
-            {
-                auto parent_name = parent ? parent->get_name() : "--";
-
                 mpl::log(log_detail_lvl, vm_name,
                          fmt::format("New snapshot: {}; Descendant of: {}; Total snapshots: {}", name, parent_name,
                                      num_snapshots));
-            }
 
             return ret;
         }
