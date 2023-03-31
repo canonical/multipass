@@ -30,7 +30,6 @@
 #include <QString>
 
 #include <memory>
-#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -63,7 +62,6 @@ protected:
     SnapshotMap snapshots;
     Snapshot* head_snapshot = nullptr;
     mutable std::shared_mutex snapshot_mutex;
-    std::mutex transfer_mutex;
 };
 
 } // namespace multipass
