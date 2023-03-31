@@ -50,5 +50,56 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
 QJsonObject multipass::BaseSnapshot::serialize() const
 {
     QJsonObject ret{};
+    const std::shared_lock lock{mutex};
+
+    ret.insert("name", QString::fromStdString(name));
+    ret.insert("comment", QString::fromStdString(comment));
+    ret.insert("parent", QString::fromStdString(parent->get_name()));
+    ret.insert("num_cores", num_cores);
+    ret.insert("mem_size", QString::number(mem_size.in_bytes()));
+    ret.insert("disk_space", QString::number(disk_space.in_bytes()));
+    ret.insert("state", static_cast<int>(state));
+    ret.insert("metadata", metadata);
+
+    // Extract mount serialization
+    QJsonArray json_mounts;
+    for (const auto& mount : mounts)
+    {
+        QJsonObject entry;
+        entry.insert("source_path", QString::fromStdString(mount.second.source_path));
+        entry.insert("target_path", QString::fromStdString(mount.first));
+
+        QJsonArray uid_mappings;
+
+        for (const auto& map : mount.second.uid_mappings)
+        {
+            QJsonObject map_entry;
+            map_entry.insert("host_uid", map.first);
+            map_entry.insert("instance_uid", map.second);
+
+            uid_mappings.append(map_entry);
+        }
+
+        entry.insert("uid_mappings", uid_mappings);
+
+        QJsonArray gid_mappings;
+
+        for (const auto& map : mount.second.gid_mappings)
+        {
+            QJsonObject map_entry;
+            map_entry.insert("host_gid", map.first);
+            map_entry.insert("instance_gid", map.second);
+
+            gid_mappings.append(map_entry);
+        }
+
+        entry.insert("gid_mappings", gid_mappings);
+
+        entry.insert("mount_type", static_cast<int>(mount.second.mount_type));
+        json_mounts.append(entry);
+    }
+
+    ret.insert("mounts", json_mounts);
+
     return ret;
 }
