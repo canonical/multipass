@@ -37,6 +37,11 @@ struct StubSnapshot : public Snapshot
         return {};
     }
 
+    std::string get_parent_name() const override
+    {
+        return {};
+    }
+
     std::shared_ptr<const Snapshot> get_parent() const noexcept override
     {
         return nullptr;
