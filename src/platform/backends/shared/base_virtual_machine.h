@@ -60,7 +60,7 @@ public:
 protected:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
     SnapshotMap snapshots;
-    Snapshot* head_snapshot = nullptr;
+    std::shared_ptr<Snapshot> head_snapshot = nullptr;
     mutable std::shared_mutex snapshot_mutex;
 };
 

@@ -23,12 +23,12 @@
 namespace mp = multipass;
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, // NOLINT(modernize-pass-by-value)
-                               const mp::Snapshot* parent, int num_cores, mp::MemorySize mem_size,
-                               mp::MemorySize disk_space, mp::VirtualMachine::State state,
+                               std::shared_ptr<const Snapshot> parent, int num_cores, MemorySize mem_size,
+                               MemorySize disk_space, VirtualMachine::State state,
                                std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata)
     : name{name},
       comment{comment},
-      parent{parent},
+      parent{std::move(parent)},
       num_cores{num_cores},
       mem_size{mem_size},
       disk_space{disk_space},
@@ -38,9 +38,9 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, const mp::Snapshot* parent,
-                               const mp::VMSpecs& specs)
-    : BaseSnapshot{name,        comment,      parent,        specs.num_cores, specs.mem_size, specs.disk_space,
+mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment,
+                               std::shared_ptr<const Snapshot> parent, const VMSpecs& specs)
+    : BaseSnapshot{name,        comment,      std::move(parent), specs.num_cores, specs.mem_size, specs.disk_space,
                    specs.state, specs.mounts, specs.metadata}
 {
 }
