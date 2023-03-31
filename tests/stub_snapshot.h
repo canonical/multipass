@@ -72,6 +72,18 @@ struct StubSnapshot : public Snapshot
         return metadata;
     }
 
+    void set_name(const std::string&) override
+    {
+    }
+
+    void set_comment(const std::string&) override
+    {
+    }
+
+    void set_parent(std::shared_ptr<const Snapshot>) override
+    {
+    }
+
     std::unordered_map<std::string, VMMount> mounts;
     QJsonObject metadata;
 };
