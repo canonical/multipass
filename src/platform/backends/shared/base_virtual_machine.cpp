@@ -93,11 +93,12 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
         std::unique_lock write_lock{snapshot_mutex};
 
         const auto [it, success] =
-            snapshots.try_emplace(name, std::make_unique<BaseSnapshot>(name, comment, head_snapshot, specs));
+            snapshots.try_emplace(name, std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs));
 
         if (success)
         {
-            head_snapshot = it->second.get();
+            auto ret = it->second;
+            head_snapshot = ret.get();
 
             // No writing from this point on
             std::shared_lock read_lock{snapshot_mutex, std::defer_lock};
@@ -121,7 +122,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
                                      num_snapshots));
             }
 
-            return {*head_snapshot, std::move(read_lock)};
+            return ret;
         }
     }
 
