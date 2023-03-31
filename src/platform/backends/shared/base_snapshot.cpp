@@ -20,6 +20,8 @@
 
 #include <multipass/vm_mount.h>
 
+#include <QJsonArray> // TODO@snapshots may be able to drop after extracting JSON utilities
+
 namespace mp = multipass;
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, // NOLINT(modernize-pass-by-value)
@@ -43,4 +45,10 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
     : BaseSnapshot{name,        comment,      std::move(parent), specs.num_cores, specs.mem_size, specs.disk_space,
                    specs.state, specs.mounts, specs.metadata}
 {
+}
+
+QJsonObject multipass::BaseSnapshot::serialize() const
+{
+    QJsonObject ret{};
+    return ret;
 }
