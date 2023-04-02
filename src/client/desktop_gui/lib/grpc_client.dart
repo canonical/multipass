@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 
 import 'generated/multipass.pbgrpc.dart';
-import 'globals.dart';
+
+typedef Status = InstanceStatus_Status;
+typedef VmInfo = InfoReply_Info;
 
 final grpcClientProvider = Provider(
   (_) {

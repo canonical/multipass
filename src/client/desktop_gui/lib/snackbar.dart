@@ -1,7 +1,6 @@
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 
-import 'globals.dart';
 import 'instance_action.dart';
 import 'vms_screen.dart';
 
@@ -93,4 +92,19 @@ Widget _instanceActionSnackBarContent(InstanceAction action) {
       );
     },
   );
+}
+
+extension IterableExtension on Iterable<String> {
+  String joinWithAnd() {
+    final n = length;
+    if (n == 0) {
+      return '';
+    }
+
+    if (n == 1) {
+      return first;
+    }
+
+    return '${take(n - 1).join(', ')} and $last';
+  }
 }

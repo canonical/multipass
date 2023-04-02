@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'globals.dart';
 import 'grpc_client.dart';
 import 'instance_action.dart';
 import 'snackbar.dart';

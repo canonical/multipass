@@ -1,4 +1,4 @@
-import 'globals.dart';
+import 'grpc_client.dart';
 
 const actionPastTenses = {
   'Start': 'Started',

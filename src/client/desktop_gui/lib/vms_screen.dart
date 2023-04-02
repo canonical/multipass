@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'bulk_actions_bar.dart';
-import 'globals.dart';
 import 'grpc_client.dart';
 import 'help.dart';
 import 'launch_panel.dart';
