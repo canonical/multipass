@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:async/async.dart';
 import 'package:basics/int_basics.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,88 +58,65 @@ class GrpcClient {
   }
 
   Future<StartReply?> start(Iterable<String> names) async {
-    final replyStream = _client.start(Stream.value(StartRequest(
+    var request = StartRequest(
       instanceNames: InstanceNames(instanceName: names),
-    )));
-    await for (final reply in replyStream) {
-      return reply;
-    }
-    return null;
+    );
+    return _client.start(Stream.value(request)).firstOrNull;
   }
 
   Future<StopReply?> stop(Iterable<String> names) async {
-    final replyStream = _client.stop(Stream.value(StopRequest(
+    var request = StopRequest(
       instanceNames: InstanceNames(instanceName: names),
-    )));
-    await for (final reply in replyStream) {
-      return reply;
-    }
-    return null;
+    );
+    return _client.stop(Stream.value(request)).firstOrNull;
   }
 
   Future<SuspendReply?> suspend(Iterable<String> names) async {
-    final replyStream = _client.suspend(Stream.value(SuspendRequest(
+    var request = SuspendRequest(
       instanceNames: InstanceNames(instanceName: names),
-    )));
-    await for (final reply in replyStream) {
-      return reply;
-    }
-    return null;
+    );
+    return _client.suspend(Stream.value(request)).firstOrNull;
   }
 
   Future<RestartReply?> restart(Iterable<String> names) async {
-    final replyStream = _client.restart(Stream.value(RestartRequest(
+    var request = RestartRequest(
       instanceNames: InstanceNames(instanceName: names),
-    )));
-    await for (final reply in replyStream) {
-      return reply;
-    }
-    return null;
+    );
+    return _client.restart(Stream.value(request)).firstOrNull;
   }
 
   Future<DeleteReply?> delete(Iterable<String> names) async {
-    final replyStream = _client.delet(Stream.value(DeleteRequest(
+    var request = DeleteRequest(
       instanceNames: InstanceNames(instanceName: names),
-    )));
-    await for (final reply in replyStream) {
-      return reply;
-    }
-    return null;
+    );
+    return _client.delet(Stream.value(request)).firstOrNull;
   }
 
   Future<RecoverReply?> recover(Iterable<String> names) async {
-    final replyStream = _client.recover(Stream.value(RecoverRequest(
+    var request = RecoverRequest(
       instanceNames: InstanceNames(instanceName: names),
-    )));
-    await for (final reply in replyStream) {
-      return reply;
-    }
-    return null;
+    );
+    return _client.recover(Stream.value(request)).firstOrNull;
   }
 
   Future<DeleteReply?> purge(Iterable<String> names) async {
-    final replyStream = _client.delet(Stream.value(DeleteRequest(
+    var request = DeleteRequest(
       instanceNames: InstanceNames(instanceName: names),
       purge: true,
-    )));
-    await for (final reply in replyStream) {
-      return reply;
-    }
-    return null;
+    );
+    return _client.delet(Stream.value(request)).firstOrNull;
   }
 
   Stream<List<VmInfo>> infoStream() async* {
-    Object? error;
+    Object? lastError;
     await for (final _ in Stream.periodic(1.seconds)) {
       try {
         final reply = await _client.info(Stream.value(InfoRequest())).last;
         yield reply.info;
-        error = null;
-      } catch (e, stackTrace) {
-        if (error != e) {
-          yield* Stream.error(e, stackTrace);
-        }
-        error = e;
+        lastError = null;
+      } catch (error, stackTrace) {
+        if (error != lastError) yield* Stream.error(error, stackTrace);
+        lastError = error;
       }
     }
   }
