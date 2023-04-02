@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,6 +8,7 @@ import 'help.dart';
 import 'launch_panel.dart';
 import 'running_only_switch.dart';
 import 'sidebar.dart';
+import 'text_span_ext.dart';
 import 'vms_table.dart';
 
 final runningOnlyProvider = StateProvider((_) => false);
@@ -47,41 +47,23 @@ class VMsScreen extends StatelessWidget {
 
       return hasInstances
           ? RichText(
-              text: TextSpan(
-                children: [
-                  const TextSpan(
-                    style: TextStyle(color: Colors.black),
-                    text:
-                        'This table shows the list of instances or virtual machines'
-                        ' created and managed by Multipass. ',
-                  ),
-                  TextSpan(
-                    style: const TextStyle(color: Colors.blue),
-                    text: 'Learn more about instances.',
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () => launchUrl(documentationUrl),
-                  )
-                ],
-              ),
+              text: [
+                'This table shows the list of instances or virtual machines'
+                        ' created and managed by Multipass. '
+                    .span,
+                'Learn more about instances.'
+                    .span
+                    .link(() => launchUrl(documentationUrl), ref),
+              ].spans,
             )
           : RichText(
-              text: TextSpan(
-                children: [
-                  const TextSpan(
-                    style: TextStyle(color: Colors.black),
-                    text:
-                        'Launch a new instance to start. Read more about how to ',
-                  ),
-                  TextSpan(
-                    style: const TextStyle(color: Colors.blue),
-                    text: 'get started on Multipass.',
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () => ref
-                          .read(sidebarKeyProvider.notifier)
-                          .state = HelpScreen.sidebarKey,
-                  )
-                ],
-              ),
+              text: [
+                'Launch a new instance to start. Read more about how to '.span,
+                'get started on Multipass.'.span.link(
+                    () => ref.read(sidebarKeyProvider.notifier).state =
+                        HelpScreen.sidebarKey,
+                    ref),
+              ].spans,
             );
     });
 
