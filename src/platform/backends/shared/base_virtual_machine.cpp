@@ -119,7 +119,14 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
 
 void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
 {
-    // TODO@ricab implement
+    // TODO@snapshots move to specific VM implementations and make specific snapshot from there
+    auto snapshot = std::make_shared<BaseSnapshot>(json);
+    const auto& name = snapshot->get_name();
+    if (!snapshots.try_emplace(name, snapshot).second)
+    {
+        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
+        throw SnapshotNameTaken{vm_name, name};
+    }
 }
 
 } // namespace multipass
