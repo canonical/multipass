@@ -455,10 +455,25 @@ QDir instance_directory(const std::string& instance_name, const mp::DaemonConfig
 
 void load_snapshots(mp::VirtualMachine& vm, const QDir& dir)
 {
-    [[maybe_unused]] // TODO@ricab remove
     auto snapshot_files = MP_FILEOPS.entryInfoList(dir, {QString{"*%1"}.arg(snapshot_extension)},
                                                    QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
-    // TODO@ricab
+    for (const auto& finfo : snapshot_files)
+    {
+        QFile file{finfo.filePath()};
+        if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
+            throw std::runtime_error{fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
+
+        QJsonParseError parse_error{};
+        const auto& data = MP_FILEOPS.read_all(file);
+
+        if (auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
+            throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}", file.fileName(),
+                                                 parse_error.errorString())};
+        else if (json.isEmpty())
+            throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
+        else
+            vm.load_snapshot(json);
+    }
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
