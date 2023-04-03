@@ -1589,7 +1589,7 @@ try // clang-format on
     InfoReply response;
     bool have_mounts = false;
     bool deleted = false;
-    auto fetch_info = [&](VirtualMachine& vm) {
+    auto fetch_instance_info = [&](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
         auto info = response.mutable_detailed_report()->add_details();
         auto instance_info = info->mutable_instance_info();
@@ -1696,6 +1696,18 @@ try // clang-format on
     };
 
     // TODO@snapshots retrieve snapshot names to gather info
+    auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
+        const auto& name = vm.vm_name;
+        auto overview = response.mutable_snapshot_overview()->add_overview();
+        auto fundamentals = overview->mutable_fundamentals();
+
+        overview->set_instance_name(name);
+        fundamentals->set_snapshot_name("snapshot1");
+        fundamentals->set_comment("This is a sample comment");
+
+        return grpc::Status::OK;
+    };
+
     mp::InstanceNames instance_names;
     for (const auto& n : request->instances_snapshots())
         instance_names.add_instance_name(n.instance_name());
@@ -1706,9 +1718,17 @@ try // clang-format on
 
     if (status.ok())
     {
-        cmd_vms(instance_selection.operative_selection, fetch_info);
+        // TODO@snapshots change cmd logic after all info logic paths are added
+        auto cmd = [&](VirtualMachine& vm) {
+            if (request->snapshot_overview())
+                return fetch_snapshot_overview(vm);
+            else
+                return fetch_instance_info(vm);
+        };
+
+        cmd_vms(instance_selection.operative_selection, cmd);
         deleted = true;
-        cmd_vms(instance_selection.deleted_selection, fetch_info);
+        cmd_vms(instance_selection.deleted_selection, cmd);
 
         if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
             mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
