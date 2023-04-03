@@ -47,7 +47,7 @@ void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_Alia
 static constexpr auto column_width = [](const auto begin, const auto end, const auto get_width, int minimum_width = 0) {
     auto max_width =
         std::max_element(begin, end, [&get_width](auto& lhs, auto& rhs) { return get_width(lhs) < get_width(rhs); });
-    return std::max(get_width(*max_width) + 2, minimum_width);
+    return std::max(get_width(*max_width) + 3, minimum_width);
 };
 } // namespace format
 } // namespace multipass
