@@ -47,6 +47,11 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
 {
 }
 
+mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json)
+    : BaseSnapshot{"", "", nullptr, 0, {}, {}, {}, {}, {}} // TODO@ricab implement
+{
+}
+
 QJsonObject multipass::BaseSnapshot::serialize() const
 {
     QJsonObject ret, snapshot{};
