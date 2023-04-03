@@ -18,6 +18,7 @@
 #include "base_snapshot.h"
 #include "daemon/vm_specs.h" // TODO@snapshots move this
 
+#include <multipass/id_mappings.h> // TODO@snapshots may be able to drop after extracting JSON utilities
 #include <multipass/vm_mount.h>
 
 #include <QJsonArray> // TODO@snapshots may be able to drop after extracting JSON utilities
@@ -26,6 +27,43 @@
 #include <stdexcept>
 
 namespace mp = multipass;
+
+namespace
+{
+std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
+{
+    std::unordered_map<std::string, mp::VMMount> mounts;
+    for (const auto& entry : json)
+    {
+        mp::id_mappings uid_mappings;
+        mp::id_mappings gid_mappings;
+
+        auto target_path = entry.toObject()["target_path"].toString().toStdString();
+        auto source_path = entry.toObject()["source_path"].toString().toStdString();
+
+        for (QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
+        {
+            uid_mappings.push_back(
+                {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
+        }
+
+        for (QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
+        {
+            gid_mappings.push_back(
+                {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
+        }
+
+        uid_mappings = mp::unique_id_mappings(uid_mappings);
+        gid_mappings = mp::unique_id_mappings(gid_mappings);
+        auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
+
+        mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
+        mounts[target_path] = mount;
+    }
+
+    return mounts;
+}
+} // namespace
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, // NOLINT(modernize-pass-by-value)
                                std::shared_ptr<const Snapshot> parent, int num_cores, MemorySize mem_size,
@@ -58,7 +96,7 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json)
                    MemorySize{json["mem_size"].toString().toStdString()},         // mem_size
                    MemorySize{json["disk_space"].toString().toStdString()},       // disk_space
                    static_cast<mp::VirtualMachine::State>(json["state"].toInt()), // state
-                   {} /* TODO@ricab mounts*/,                                     // mounts
+                   load_mounts(json["mounts"].toArray()),                         // mounts
                    json["metadata"].toObject()}                                   // metadata
 {
     if (name.empty() || !num_cores || !mem_size.in_bytes() || !disk_space.in_bytes())
