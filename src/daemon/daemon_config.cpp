@@ -124,7 +124,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         else
             data_directory = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
     }
-    MP_PLATFORM.set_permissions(storage_path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+
+    if (!storage_path.isEmpty())
+        MP_PLATFORM.set_permissions(storage_path,
+                                    QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
 
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
