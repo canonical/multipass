@@ -68,7 +68,7 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
     }
 
     // Check if multipass-sshfs is already installed
-    if (session.exec("sudo snap list multipass-sshfs").exit_code() == 0)
+    if (session.exec("sudo snap list multipass-sshfs").exit_code(std::chrono::seconds(15)) == 0)
     {
         mpl::log(mpl::Level::debug, category,
                  fmt::format("The multipass-sshfs snap is already installed on '{}'", name));

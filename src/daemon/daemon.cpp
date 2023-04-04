@@ -1245,6 +1245,17 @@ try // clang-format on
 
     if (!request->search_string().empty())
     {
+        if (!request->remote_name().empty())
+        {
+            // This is a compromised solution for now, it throws if remote_name is invalid.
+            // In principle, it should catch the returned VMImageHost in the valid remote_name case and
+            // get the found VMImageHost reused in the follow-up code. However, because of the current framework,
+            // That would involve more changes because the query carries the remote name and there is
+            // another dispatch in the all_info_for function.
+            const auto& remote_name = request->remote_name();
+            config->vault->image_host_for(remote_name);
+        }
+
         if (request->show_images())
         {
             std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;

@@ -57,6 +57,8 @@ constexpr auto mount_data_key = "mount_data";
 constexpr auto mount_source_key = "source";
 constexpr auto mount_arguments_key = "arguments";
 
+constexpr int timeout = 300000; // 5 minute timeout for shutdown/suspend
+
 bool use_cdrom_set(const QJsonObject& metadata)
 {
     return metadata.contains("use_cdrom") && metadata["use_cdrom"].toBool();
@@ -342,7 +344,7 @@ void mp::QemuVirtualMachine::shutdown()
              vm_process->running())
     {
         vm_process->write(qmp_execute_json("system_powerdown"));
-        vm_process->wait_for_finished();
+        vm_process->wait_for_finished(timeout);
     }
     else
     {
@@ -368,7 +370,7 @@ void mp::QemuVirtualMachine::suspend()
         }
 
         vm_process->write(hmc_to_qmp_json("savevm " + QString::fromStdString(suspend_tag)));
-        vm_process->wait_for_finished();
+        vm_process->wait_for_finished(timeout);
         vm_process.reset(nullptr);
     }
     else if (state == State::off || state == State::suspended)
