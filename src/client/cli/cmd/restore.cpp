@@ -40,6 +40,13 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
+    if (!request.destructive())
+    {
+        auto ret = run_cmd({"multipass", "snapshot", QString::fromStdString(request.instance())}, parser, cout, cerr);
+        if (ret != ReturnCode::Ok)
+            return ReturnCode::CommandFail;
+    }
+
     AnimatedSpinner spinner{cout};
 
     auto on_success = [this, &spinner](mp::RestoreReply& reply) {
