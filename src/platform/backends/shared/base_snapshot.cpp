@@ -54,12 +54,14 @@ QJsonObject multipass::BaseSnapshot::serialize() const
 
     snapshot.insert("name", QString::fromStdString(name));
     snapshot.insert("comment", QString::fromStdString(comment));
-    snapshot.insert("parent", QString::fromStdString(get_parent_name()));
     snapshot.insert("num_cores", num_cores);
     snapshot.insert("mem_size", QString::number(mem_size.in_bytes()));
     snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
     snapshot.insert("state", static_cast<int>(state));
     snapshot.insert("metadata", metadata);
+
+    if (parent)
+        snapshot.insert("parent", QString::fromStdString(get_parent_name()));
 
     // Extract mount serialization
     QJsonArray json_mounts;
