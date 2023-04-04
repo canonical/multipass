@@ -22,7 +22,10 @@
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 
+#include <google/protobuf/util/time_util.h>
+
 namespace mp = multipass;
+namespace gpu = google::protobuf::util;
 
 namespace
 {
@@ -156,7 +159,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
     }
     else if (reply.info_contents_case() == mp::InfoReply::kSnapshotOverview)
     {
-        const auto overview = reply.snapshot_overview().overview();
+        auto overview = reply.snapshot_overview().overview();
         const auto name_column_width = mp::format::column_width(
             overview.begin(), overview.end(), [](const auto& item) -> int { return item.instance_name().length(); },
             24);
@@ -176,6 +179,11 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
             fmt::format_to(std::back_inserter(buf), row_format, "Instance", name_column_width, "Snapshot",
                            snapshot_column_width, "Parent", parent_column_width, "Comment");
 
+        std::sort(std::begin(overview), std::end(overview), [](const auto& a, const auto& b) {
+            return gpu::TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
+                   gpu::TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
+        });
+
         for (const auto& item : overview)
         {
             auto snapshot = item.fundamentals();
@@ -189,6 +197,10 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
         }
 
         output = fmt::to_string(buf);
+    }
+    else
+    {
+        output = "\n";
     }
 
     return output;
