@@ -54,6 +54,7 @@ public:
     };
 
     SnapshotVista view_snapshots() const noexcept override;
+    std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
                                                   const std::string& comment) override;
     void load_snapshot(const QJsonObject& json) override;

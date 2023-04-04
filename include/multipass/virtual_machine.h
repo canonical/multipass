@@ -87,6 +87,7 @@ public:
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid confusion with C++ views
     virtual SnapshotVista view_snapshots() const noexcept = 0;
+    virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
     virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
                                                           const std::string& comment) = 0;
     virtual void load_snapshot(const QJsonObject& json) = 0;
