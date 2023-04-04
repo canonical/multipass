@@ -2150,7 +2150,6 @@ TEST_F(Daemon, launch_fails_with_incompatible_blueprint)
 TEST_F(Daemon, info_all_returns_all_instances)
 {
     const std::string good_instance_name{"good-instance"}, deleted_instance_name{"deleted-instance"};
-    const std::string good_instance_name2{"good-instance"}, deleted_instance_name2{"deleted-instance"};
     const auto good_instance_json = fmt::format(valid_template, good_instance_name, "10");
     const auto deleted_instance_json = fmt::format(deleted_template, deleted_instance_name, "11");
     const auto instances_json = fmt::format("{{{}, {}}}", good_instance_json, deleted_instance_json);
@@ -2162,8 +2161,8 @@ TEST_F(Daemon, info_all_returns_all_instances)
         return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
     }));
 
-    const auto names_matcher = UnorderedElementsAre(Property(&mp::DetailedInfoItem::name, good_instance_name2),
-                                                    Property(&mp::DetailedInfoItem::name, deleted_instance_name2));
+    const auto names_matcher = UnorderedElementsAre(Property(&mp::DetailedInfoItem::name, good_instance_name),
+                                                    Property(&mp::DetailedInfoItem::name, deleted_instance_name));
 
     StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
     mp::InfoReply info_reply;
