@@ -62,6 +62,12 @@ public:
     void set_parent(std::shared_ptr<const Snapshot> p) override;
 
 private:
+    struct InnerJsonTag
+    {
+    };
+    BaseSnapshot(InnerJsonTag, const QJsonObject& json, const VirtualMachine& vm);
+
+private:
     std::string name;
     std::string comment;
     std::shared_ptr<const Snapshot> parent;
