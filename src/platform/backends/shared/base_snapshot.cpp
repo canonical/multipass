@@ -63,6 +63,20 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
 
     return mounts;
 }
+
+std::shared_ptr<const mp::Snapshot> find_parent(const QJsonObject& json, const mp::VirtualMachine& vm)
+{
+    auto parent_name = json["parent"].toString().toStdString();
+    try
+    {
+        return parent_name.empty() ? nullptr : vm.get_snapshot(parent_name);
+    }
+    catch (std::out_of_range&)
+    {
+        throw std::runtime_error{fmt::format("Missing snapshot parent. Snapshot name: {}; parent name: {}",
+                                             json["name"].toString(), parent_name)};
+    }
+}
 } // namespace
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, // NOLINT(modernize-pass-by-value)
@@ -88,10 +102,10 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json)
+mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, const VirtualMachine& vm)
     : BaseSnapshot{json["name"].toString().toStdString(),                         // name
                    json["comment"].toString().toStdString(),                      // comment
-                   nullptr,                                                       // parent TODO@ricab
+                   find_parent(json, vm),                                         // parent
                    json["num_cores"].toInt(),                                     // num_cores
                    MemorySize{json["mem_size"].toString().toStdString()},         // mem_size
                    MemorySize{json["disk_space"].toString().toStdString()},       // disk_space
