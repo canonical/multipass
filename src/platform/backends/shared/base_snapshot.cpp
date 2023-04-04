@@ -103,6 +103,11 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
 }
 
 mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, const VirtualMachine& vm)
+    : BaseSnapshot(InnerJsonTag{}, json["snapshot"].toObject(), vm)
+{
+}
+
+mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, const VirtualMachine& vm)
     : BaseSnapshot{json["name"].toString().toStdString(),                         // name
                    json["comment"].toString().toStdString(),                      // comment
                    find_parent(json, vm),                                         // parent
