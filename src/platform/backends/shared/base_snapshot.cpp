@@ -21,6 +21,9 @@
 #include <multipass/vm_mount.h>
 
 #include <QJsonArray> // TODO@snapshots may be able to drop after extracting JSON utilities
+#include <QJsonDocument>
+
+#include <stdexcept>
 
 namespace mp = multipass;
 
@@ -48,8 +51,18 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
 }
 
 mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json)
-    : BaseSnapshot{"", "", nullptr, 0, {}, {}, {}, {}, {}} // TODO@ricab implement
+    : BaseSnapshot{json["name"].toString().toStdString(),                         // name
+                   json["comment"].toString().toStdString(),                      // comment
+                   nullptr,                                                       // parent TODO@ricab
+                   json["num_cores"].toInt(),                                     // num_cores
+                   MemorySize{json["mem_size"].toString().toStdString()},         // mem_size
+                   MemorySize{json["disk_space"].toString().toStdString()},       // disk_space
+                   static_cast<mp::VirtualMachine::State>(json["state"].toInt()), // state
+                   {} /* TODO@ricab mounts*/,                                     // mounts
+                   json["metadata"].toObject()}                                   // metadata
 {
+    if (name.empty() || !num_cores || !mem_size.in_bytes() || !disk_space.in_bytes())
+        throw std::runtime_error{fmt::format("Bad snapshot data: {}", QJsonDocument{json}.toJson())};
 }
 
 QJsonObject multipass::BaseSnapshot::serialize() const
