@@ -35,9 +35,6 @@ class BaseSnapshot : public Snapshot
 {
 public:
     BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
-                 int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
-                 std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata);
-    BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
                  const VMSpecs& specs);
     BaseSnapshot(const QJsonObject& json, const VirtualMachine& vm);
 
@@ -66,6 +63,9 @@ private:
     {
     };
     BaseSnapshot(InnerJsonTag, const QJsonObject& json, const VirtualMachine& vm);
+    BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
+                 int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
+                 std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata);
 
 private:
     std::string name;
