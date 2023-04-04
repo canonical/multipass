@@ -83,6 +83,11 @@ auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotV
     return ret;
 }
 
+std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name) const
+{
+    return snapshots.at(name);
+}
+
 std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
                                                                   const std::string& comment)
 {
@@ -120,7 +125,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
 void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
 {
     // TODO@snapshots move to specific VM implementations and make specific snapshot from there
-    auto snapshot = std::make_shared<BaseSnapshot>(json);
+    auto snapshot = std::make_shared<BaseSnapshot>(json, *this);
     const auto& name = snapshot->get_name();
     if (!snapshots.try_emplace(name, snapshot).second)
     {
