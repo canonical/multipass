@@ -2150,28 +2150,33 @@ TEST_F(Daemon, launch_fails_with_incompatible_blueprint)
     EXPECT_THAT(err_stream.str(), HasSubstr("The \"foo\" Blueprint is not compatible with this host."));
 }
 
-// TEST_F(Daemon, info_all_returns_all_instances)
-// {
-//     const std::string good_instance_name{"good-instance"}, deleted_instance_name{"deleted-instance"};
-//     const auto good_instance_json = fmt::format(valid_template, good_instance_name, "10");
-//     const auto deleted_instance_json = fmt::format(deleted_template, deleted_instance_name, "11");
-//     const auto instances_json = fmt::format("{{{}, {}}}", good_instance_json, deleted_instance_json);
-//     const auto [temp_dir, __] = plant_instance_json(instances_json);
-//     config_builder.data_directory = temp_dir->path();
-//     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+TEST_F(Daemon, info_all_returns_all_instances)
+{
+    const std::string good_instance_name{"good-instance"}, deleted_instance_name{"deleted-instance"};
+    const std::string good_instance_name2{"good-instance"}, deleted_instance_name2{"deleted-instance"};
+    const auto good_instance_json = fmt::format(valid_template, good_instance_name, "10");
+    const auto deleted_instance_json = fmt::format(deleted_template, deleted_instance_name, "11");
+    const auto instances_json = fmt::format("{{{}, {}}}", good_instance_json, deleted_instance_json);
+    const auto [temp_dir, __] = plant_instance_json(instances_json);
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-//     EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
-//         return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
-//     }));
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
+        return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+    }));
 
-//     const auto names_matcher = UnorderedElementsAre(Property(&mp::InfoReply::Info::name, good_instance_name),
-//                                                     Property(&mp::InfoReply::Info::name, deleted_instance_name));
+    const auto names_matcher = UnorderedElementsAre(Property(&mp::DetailedInfoItem::name, good_instance_name2),
+                                                    Property(&mp::DetailedInfoItem::name, deleted_instance_name2));
 
-//     StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
-//     EXPECT_CALL(mock_server, Write(Property(&mp::InfoReply::info, names_matcher), _)).WillOnce(Return(true));
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
+    mp::InfoReply info_reply;
 
-//     mp::Daemon daemon{config_builder.build()};
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
 
-//     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
-// }
+    mp::Daemon daemon{config_builder.build()};
+
+    call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
+
+    EXPECT_THAT(info_reply.details().details(), names_matcher);
+}
 } // namespace
