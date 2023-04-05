@@ -72,6 +72,7 @@ private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
+    size_t snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
     mutable std::shared_mutex snapshot_mutex;
 };
 
