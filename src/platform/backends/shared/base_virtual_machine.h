@@ -60,6 +60,9 @@ public:
     void load_snapshot(const QJsonObject& json) override;
 
 protected:
+    void persist_head_snapshot() const;
+
+protected:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
