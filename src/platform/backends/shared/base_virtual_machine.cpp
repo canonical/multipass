@@ -91,8 +91,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     return snapshots.at(name);
 }
 
-std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
-                                                                  const std::string& comment)
+std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& dir, const VMSpecs& specs,
+                                                                  const std::string& name, const std::string& comment)
 {
     // TODO@snapshots generate name
     {
@@ -115,7 +115,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
             // TODO@snapshots - generate implementation-specific snapshot instead
             auto ret = head_snapshot = it->second = std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs);
 
-            persist_head_snapshot();
+            persist_head_snapshot(dir);
             rollback_on_failure.dismiss();
 
             auto num_snapshots = snapshots.size();
@@ -153,8 +153,12 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     head_snapshot = it->second; // TODO@snapshots persist/load this separately
 }
 
-void BaseVirtualMachine::persist_head_snapshot() const // TODO@snapshots implement
+void BaseVirtualMachine::persist_head_snapshot(const QDir& dir) const // TODO@snapshots implement
 {
+    //            auto snapshot_record_file =
+    //                instance_dir.filePath(QString::fromStdString(snapshot->get_name()) + snapshot_extension);
+    //
+    //            mp::write_json(snapshot->serialize(), std::move(snapshot_record_file));
 }
 
 } // namespace multipass
