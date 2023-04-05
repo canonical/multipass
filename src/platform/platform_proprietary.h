@@ -37,8 +37,8 @@ const std::unordered_set<std::string> supported_release_aliases{"core",   "core1
                                                                 "22.10", "k", "kinetic"};
 // clang-format on
 const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18", "core20", "core22"};
-const std::unordered_set<std::string> supported_snapcraft_aliases{"core18", "18.04",  "core20",
-                                                                  "20.04",  "core22", "22.04"};
+const std::unordered_set<std::string> supported_snapcraft_aliases{"core18", "18.04", "core20", "20.04",
+                                                                  "core22", "22.04", "devel"};
 const std::unordered_map<std::string, std::unordered_set<std::string>> supported_remotes_aliases_map{
     {"release", supported_release_aliases}, {"snapcraft", supported_snapcraft_aliases}, {"appliance", {}}};
 
