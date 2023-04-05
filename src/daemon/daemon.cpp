@@ -100,6 +100,7 @@ using error_string = std::string;
 
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
+constexpr auto snapshot_extension = ".snapshot.json";
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
@@ -2422,8 +2423,15 @@ try
         SnapshotReply reply;
 
         {
-            auto snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
-            // TODO@snapshots persist generic snapshot info
+            const auto snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
+
+            // TODO better way to find the instance's directory?
+            const auto instance_dir = mp::utils::base_dir(
+                fetch_image_for(instance_name, config->factory->fetch_type(), *config->vault).image_path);
+            auto snapshot_record_file =
+                instance_dir.filePath(QString::fromStdString(snapshot->get_name()) + snapshot_extension);
+
+            mp::write_json(snapshot->serialize(), std::move(snapshot_record_file));
 
             reply.set_snapshot(snapshot->get_name());
         }

@@ -37,6 +37,11 @@ struct StubSnapshot : public Snapshot
         return {};
     }
 
+    std::string get_parent_name() const override
+    {
+        return {};
+    }
+
     std::shared_ptr<const Snapshot> get_parent() const noexcept override
     {
         return nullptr;
@@ -70,6 +75,11 @@ struct StubSnapshot : public Snapshot
     const QJsonObject& get_metadata() const noexcept override
     {
         return metadata;
+    }
+
+    QJsonObject serialize() const override
+    {
+        return {};
     }
 
     void set_name(const std::string&) override
