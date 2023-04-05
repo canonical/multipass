@@ -54,9 +54,13 @@ with tempfile.TemporaryDirectory() as workdir:
         if path.name != "Info.plist" and ({"bin", "lib"} & set(path.parts)):
             arm_path = arm_work / ARCH_RE.sub(".aarch64", str(path.relative_to(x86_work)))
             if arm_path.exists():
-                # If it's a binary and exists on arm make it a universal one
                 target_path.parent.mkdir(parents=True, exist_ok=True)
-                subprocess.check_call(["lipo", "-create", "-output", target_path, path, arm_path])
+                # If it's a binary, exists on arm and it is not universal, make it a universal one
+                binary_archs = subprocess.run(["lipo", "-archs", arm_path], capture_output=True).stdout
+                if(binary_archs == "b'arm64\n'" or binary_archs == "b''"):
+                    subprocess.check_call(["lipo", "-create", "-output", target_path, path, arm_path])
+                else:
+                    subprocess.check_call(["cp", arm_path, target_path])
                 continue
 
         # Copy all other paths over
