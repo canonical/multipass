@@ -60,16 +60,16 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD0(ensure_vm_is_running, void());
     MOCK_METHOD1(wait_until_ssh_up, void(std::chrono::milliseconds));
     MOCK_METHOD0(update_state, void());
-    MOCK_METHOD1(update_cpus, void(int num_cores));
-    MOCK_METHOD1(resize_memory, void(const MemorySize& new_size));
-    MOCK_METHOD1(resize_disk, void(const MemorySize& new_size));
+    MOCK_METHOD1(update_cpus, void(int));
+    MOCK_METHOD1(resize_memory, void(const MemorySize&));
+    MOCK_METHOD1(resize_disk, void(const MemorySize&));
     MOCK_METHOD(std::unique_ptr<MountHandler>, make_native_mount_handler,
-                (const SSHKeyProvider* ssh_key_provider, const std::string& target, const VMMount& mount), (override));
+                (const SSHKeyProvider*, const std::string&, const VMMount&), (override));
     MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override, noexcept));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (const std::string&), (const, override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, take_snapshot,
-                (const QDir&, const VMSpecs& specs, const std::string& name, const std::string& comment), (override));
-    MOCK_METHOD(void, load_snapshot, (const QJsonObject& json), (override));
+                (const QDir&, const VMSpecs&, const std::string&, const std::string&), (override));
+    MOCK_METHOD(void, load_snapshot, (const QJsonObject&), (override));
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;
