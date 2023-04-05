@@ -21,6 +21,7 @@
 #include "disabled_copy_move.h"
 #include "virtual_machine.h"
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -36,16 +37,22 @@ class Snapshot : private DisabledCopyMove
 public:
     virtual ~Snapshot() = default;
 
-    virtual const std::string& get_name() const noexcept = 0;
-    virtual const std::string& get_comment() const noexcept = 0;
-    virtual const Snapshot* get_parent() const noexcept = 0;
+    virtual std::string get_name() const = 0;
+    virtual std::string get_comment() const = 0;
+    virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
 
     virtual int get_num_cores() const noexcept = 0;
     virtual MemorySize get_mem_size() const noexcept = 0;
     virtual MemorySize get_disk_space() const noexcept = 0;
     virtual VirtualMachine::State get_state() const noexcept = 0;
+
+    // Note that these return references - careful not to delete the snapshot while they are in use
     virtual const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept = 0;
     virtual const QJsonObject& get_metadata() const noexcept = 0;
+
+    virtual void set_name(const std::string&) = 0;
+    virtual void set_comment(const std::string&) = 0;
+    virtual void set_parent(std::shared_ptr<const Snapshot>) = 0;
 };
 } // namespace multipass
 

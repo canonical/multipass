@@ -27,17 +27,17 @@ namespace multipass::test
 {
 struct StubSnapshot : public Snapshot
 {
-    const std::string& get_name() const noexcept override
+    std::string get_name() const noexcept override
     {
-        return name;
+        return {};
     }
 
-    const std::string& get_comment() const noexcept override
+    std::string get_comment() const noexcept override
     {
-        return comment;
+        return {};
     }
 
-    const Snapshot* get_parent() const noexcept override
+    std::shared_ptr<const Snapshot> get_parent() const noexcept override
     {
         return nullptr;
     }
@@ -72,8 +72,18 @@ struct StubSnapshot : public Snapshot
         return metadata;
     }
 
-    std::string name{};
-    std::string comment{};
+    void set_name(const std::string&) override
+    {
+    }
+
+    void set_comment(const std::string&) override
+    {
+    }
+
+    void set_parent(std::shared_ptr<const Snapshot>) override
+    {
+    }
+
     std::unordered_map<std::string, VMMount> mounts;
     QJsonObject metadata;
 };
