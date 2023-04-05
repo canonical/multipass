@@ -132,8 +132,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& di
 
             if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
                 mpl::log(log_detail_lvl, vm_name,
-                         fmt::format("New snapshot: {}; Descendant of: {}; Total snapshots: {}", name, parent_name,
-                                     num_snapshots));
+                         fmt::format(R"(New snapshot: "{}"; Descendant of: "{}"; Total snapshots: {})", name,
+                                     parent_name, num_snapshots));
 
             return ret;
         }
