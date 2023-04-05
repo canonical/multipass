@@ -25,6 +25,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/utils.h>
 
 #include <scope_guard.hpp>
 
@@ -38,6 +39,10 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto snapshot_extension = "snapshot.json";
+constexpr auto head_filename = "snapshot-head";
+constexpr auto count_filename = "snapshot-count";
+constexpr auto index_digits = 4;        // these two go together
+constexpr auto max_snapshots = 1000ull; // replace suffix with uz for size_t in C++23
 }
 
 namespace multipass
@@ -108,6 +113,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
     // TODO@snapshots generate name
     {
         std::unique_lock write_lock{snapshot_mutex};
+        if (snapshot_count > max_snapshots)
+            throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded", max_snapshots)};
 
         const auto [it, success] = snapshots.try_emplace(name, nullptr);
         if (success)
@@ -202,13 +209,21 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
 
 void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 {
-    const auto filename = QString{"%1-%2.%3"}.arg(
-        QString::number(snapshot_count), QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
+    assert(head_snapshot);
 
-    auto snapshot_record_file = snapshot_dir.filePath(filename);
-    mp::write_json(head_snapshot->serialize(), std::move(snapshot_record_file));
+    const auto snapshot_filename = QString{"%1-%2.%3"}
+                                       .arg(snapshot_count, index_digits, 10, QLatin1Char('0'))
+                                       .arg(QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
 
-    // TODO@snapshots persist snap total and head snapshot
+    mp::write_json(head_snapshot->serialize(), snapshot_dir.filePath(snapshot_filename));
+
+    // TODO@snapshots rollback snapshot file if writing generic info below fails
+
+    auto overwrite = true;
+    MP_UTILS.make_file_with_content(snapshot_dir.filePath(head_filename).toStdString(), head_snapshot->get_name(),
+                                    overwrite);
+    MP_UTILS.make_file_with_content(snapshot_dir.filePath(count_filename).toStdString(), std::to_string(snapshot_count),
+                                    overwrite);
 }
 
 } // namespace multipass
