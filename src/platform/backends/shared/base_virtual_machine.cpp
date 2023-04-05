@@ -141,6 +141,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& di
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
 {
+    std::unique_lock write_lock{snapshot_mutex};
+
     auto snapshot_files = MP_FILEOPS.entryInfoList(snapshot_dir, {QString{"*%1"}.arg(snapshot_extension)},
                                                    QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
