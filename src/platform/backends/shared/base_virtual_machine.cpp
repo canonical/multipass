@@ -20,12 +20,17 @@
 
 #include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/json_writer.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 #include <multipass/top_catch_all.h>
 
 #include <scope_guard.hpp>
+
+#include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -166,6 +171,29 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     }
 
     head_snapshot = it->second; // TODO@snapshots persist/load this separately
+}
+
+void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
+{
+    auto snapshot_files = MP_FILEOPS.entryInfoList(snapshot_dir, {QString{"*%1"}.arg(snapshot_extension)},
+                                                   QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
+    for (const auto& finfo : snapshot_files)
+    {
+        QFile file{finfo.filePath()};
+        if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
+            throw std::runtime_error{fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
+
+        QJsonParseError parse_error{};
+        const auto& data = MP_FILEOPS.read_all(file);
+
+        if (auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
+            throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}", file.fileName(),
+                                                 parse_error.errorString())};
+        else if (json.isEmpty())
+            throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
+        else
+            load_snapshot(json);
+    }
 }
 
 void BaseVirtualMachine::persist_head_snapshot(const QDir& dir) const
