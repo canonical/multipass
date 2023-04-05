@@ -127,11 +127,15 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     // TODO@snapshots move to specific VM implementations and make specific snapshot from there
     auto snapshot = std::make_shared<BaseSnapshot>(json, *this);
     const auto& name = snapshot->get_name();
-    if (!snapshots.try_emplace(name, snapshot).second)
+    auto [it, success] = snapshots.try_emplace(name, snapshot);
+
+    if (!success)
     {
         mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
         throw SnapshotNameTaken{vm_name, name};
     }
+
+    head_snapshot = it->second; // TODO@snapshots persist/load this separately
 }
 
 } // namespace multipass
