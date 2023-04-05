@@ -23,6 +23,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 
+#include <scope_guard.hpp>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -99,8 +101,11 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
 
         if (success)
         {
+            auto rollback_on_failure = sg::make_scope_guard([this, it = it]() noexcept { snapshots.erase(it); });
+
             // TODO@snapshots generate implementation-specific snapshot instead
             auto ret = head_snapshot = it->second = std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs);
+            rollback_on_failure.dismiss();
 
             auto num_snapshots = snapshots.size();
             auto parent_name = ret->get_parent_name();
