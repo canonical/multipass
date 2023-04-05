@@ -138,6 +138,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
+    void load_snapshots(const QDir&) override
+    {
+    }
+
     StubSnapshot snapshot;
 };
 } // namespace test

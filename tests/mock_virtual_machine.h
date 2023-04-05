@@ -71,6 +71,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::shared_ptr<const Snapshot>, take_snapshot,
                 (const QDir&, const VMSpecs&, const std::string&, const std::string&), (override));
     MOCK_METHOD(void, load_snapshot, (const QJsonObject&), (override));
+    MOCK_METHOD(void, load_snapshots, (const QDir&), (override));
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;
