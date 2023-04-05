@@ -105,6 +105,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
 
             // TODO@snapshots generate implementation-specific snapshot instead
             auto ret = head_snapshot = it->second = std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs);
+
+            persist_head_snapshot();
             rollback_on_failure.dismiss();
 
             auto num_snapshots = snapshots.size();
@@ -140,6 +142,10 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     }
 
     head_snapshot = it->second; // TODO@snapshots persist/load this separately
+}
+
+void BaseVirtualMachine::persist_head_snapshot() const // TODO@snapshots implement
+{
 }
 
 } // namespace multipass
