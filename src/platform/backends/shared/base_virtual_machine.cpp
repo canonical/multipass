@@ -34,8 +34,6 @@ BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state, const std::s
 
 BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
 
-BaseVirtualMachine::~BaseVirtualMachine() = default; // Snapshot is now fully defined, this can call unique_ptr's dtor
-
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {
     std::vector<std::string> all_ipv4;
@@ -73,8 +71,20 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
     return all_ipv4;
 }
 
-BaseVirtualMachine::LockingConstSnapshotRef
-BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name, const std::string& comment)
+auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
+{
+    SnapshotVista ret;
+
+    std::shared_lock read_lock{snapshot_mutex};
+    ret.reserve(snapshots.size());
+    std::transform(std::cbegin(snapshots), std::cend(snapshots), std::back_inserter(ret),
+                   [](const auto& pair) { return pair.second; });
+
+    return ret;
+}
+
+std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
+                                                                  const std::string& comment)
 {
     // TODO@snapshots generate name
     // TODO@snapshots generate implementation-specific snapshot instead
@@ -83,35 +93,26 @@ BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
         std::unique_lock write_lock{snapshot_mutex};
 
         const auto [it, success] =
-            snapshots.try_emplace(name, std::make_unique<BaseSnapshot>(name, comment, head_snapshot, specs));
+            snapshots.try_emplace(name, std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs));
 
         if (success)
         {
-            head_snapshot = it->second.get();
+            auto ret = head_snapshot = it->second;
+            auto num_snapshots = snapshots.size();
+            auto parent = ret->get_parent();
+            write_lock.unlock();
 
-            // No writing from this point on
-            std::shared_lock read_lock{snapshot_mutex, std::defer_lock};
-            { // TODO@snapshots might as well make this into a generic util
-                std::unique_lock transfer_lock{transfer_mutex}; // lock transfer from write to read lock
-
-                write_lock.unlock();
-                read_lock.lock();
-            }
-
+            assert(bool(parent) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
             if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
             {
-                auto num_snapshots = snapshots.size();
-                auto* parent = head_snapshot->get_parent();
-
-                assert(bool(parent) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
-                const auto& parent_name = parent ? parent->get_name() : "--";
+                auto parent_name = parent ? parent->get_name() : "--";
 
                 mpl::log(log_detail_lvl, vm_name,
                          fmt::format("New snapshot: {}; Descendant of: {}; Total snapshots: {}", name, parent_name,
                                      num_snapshots));
             }
 
-            return {*head_snapshot, std::move(read_lock)};
+            return ret;
         }
     }
 

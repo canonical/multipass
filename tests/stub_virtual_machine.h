@@ -118,18 +118,17 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return std::make_unique<StubMountHandler>();
     }
 
-    const SnapshotMap& get_snapshots() const noexcept override
+    SnapshotVista view_snapshots() const noexcept override
     {
-        return snapshots;
+        return {};
     }
 
-    LockingConstSnapshotRef take_snapshot(const VMSpecs& specs, const std::string& name,
-                                          const std::string& comment) override
+    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
+                                                  const std::string& comment) override
     {
-        return {snapshot, std::shared_lock<std::shared_mutex>{}};
+        return {};
     }
 
-    SnapshotMap snapshots{};
     StubSnapshot snapshot;
 };
 } // namespace test
