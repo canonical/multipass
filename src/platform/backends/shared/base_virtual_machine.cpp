@@ -92,17 +92,16 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
                                                                   const std::string& comment)
 {
     // TODO@snapshots generate name
-    // TODO@snapshots generate implementation-specific snapshot instead
-
     {
         std::unique_lock write_lock{snapshot_mutex};
 
-        const auto [it, success] =
-            snapshots.try_emplace(name, std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs));
+        const auto [it, success] = snapshots.try_emplace(name, nullptr);
 
         if (success)
         {
-            auto ret = head_snapshot = it->second;
+            // TODO@snapshots generate implementation-specific snapshot instead
+            auto ret = head_snapshot = it->second = std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs);
+
             auto num_snapshots = snapshots.size();
             auto parent_name = ret->get_parent_name();
             assert(bool(ret->get_parent()) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
