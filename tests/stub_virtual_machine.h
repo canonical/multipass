@@ -134,10 +134,6 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    void load_snapshot(const QJsonObject&) override
-    {
-    }
-
     void load_snapshots(const QDir&) override
     {
     }
