@@ -58,6 +58,8 @@ public:
     void set_comment(const std::string& c) override;
     void set_parent(std::shared_ptr<const Snapshot> p) override;
 
+    void delet() override;
+
 private:
     struct InnerJsonTag
     {
@@ -154,6 +156,12 @@ inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<const Snapshot> 
 {
     const std::unique_lock lock{mutex};
     parent = std::move(p);
+}
+
+inline void multipass::BaseSnapshot::delet()
+{
+    // TODO@snapshots this is meant to be implemented by descendants
+    // placeholder implementation to avoid making this class abstract for now
 }
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H

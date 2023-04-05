@@ -22,6 +22,7 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
+#include <multipass/top_catch_all.h>
 
 #include <scope_guard.hpp>
 
@@ -101,9 +102,17 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
 
         if (success)
         {
-            auto rollback_on_failure = sg::make_scope_guard([this, it = it]() noexcept { snapshots.erase(it); });
+            auto rollback_on_failure = sg::make_scope_guard([this, it = it, old_head = head_snapshot]() noexcept {
+                if (it->second) // snapshot was created
+                {
+                    head_snapshot = std::move(old_head);
+                    mp::top_catch_all(vm_name, [it] { it->second->delet(); });
+                }
 
-            // TODO@snapshots generate implementation-specific snapshot instead
+                snapshots.erase(it);
+            });
+
+            // TODO@snapshots - generate implementation-specific snapshot instead
             auto ret = head_snapshot = it->second = std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs);
 
             persist_head_snapshot();
