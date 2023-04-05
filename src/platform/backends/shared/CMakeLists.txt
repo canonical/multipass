@@ -22,6 +22,7 @@ add_library(shared STATIC
 target_link_libraries(shared
   iso
   process
+  scope_guard
   utils
   Qt6::Core)
 
