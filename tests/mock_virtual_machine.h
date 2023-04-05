@@ -68,7 +68,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override, noexcept));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (const std::string&), (const, override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, take_snapshot,
-                (const VMSpecs& specs, const std::string& name, const std::string& comment), (override));
+                (const QDir&, const VMSpecs& specs, const std::string& name, const std::string& comment), (override));
     MOCK_METHOD(void, load_snapshot, (const QJsonObject& json), (override));
 };
 

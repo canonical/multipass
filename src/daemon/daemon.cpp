@@ -465,7 +465,7 @@ QDir instance_directory(const std::string& instance_name, const mp::DaemonConfig
     return mp::utils::base_dir(fetch_image_for(instance_name, config.factory->fetch_type(), *config.vault).image_path);
 }
 
-void load_snapshots(mp::VirtualMachine& vm, const QDir& dir)
+void load_snapshots(mp::VirtualMachine& vm, const QDir& dir) // TODO@ricab move to VM
 {
     auto snapshot_files = MP_FILEOPS.entryInfoList(dir, {QString{"*%1"}.arg(snapshot_extension)},
                                                    QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
@@ -2469,8 +2469,10 @@ try
         SnapshotReply reply;
 
         {
-            const auto snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
+            const auto snapshot = vm_ptr->take_snapshot(instance_directory(instance_name, *config), spec_it->second,
+                                                        request->snapshot(), request->comment());
 
+            // TODO@ricab remove
             const auto instance_dir = instance_directory(instance_name, *config);
             auto snapshot_record_file =
                 instance_dir.filePath(QString::fromStdString(snapshot->get_name()) + snapshot_extension);
