@@ -63,6 +63,8 @@ public:
     void load_snapshot(const QJsonObject& json) override;
 
 private:
+    template <typename LockT>
+    void log_latest_snapshot(LockT lock) const;
     void persist_head_snapshot(const QDir& dir) const;
 
 private:
