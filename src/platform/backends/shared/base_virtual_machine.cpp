@@ -110,7 +110,6 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& di
         std::unique_lock write_lock{snapshot_mutex};
 
         const auto [it, success] = snapshots.try_emplace(name, nullptr);
-
         if (success)
         {
             auto rollback_on_failure = sg::make_scope_guard([this, it = it, old_head = head_snapshot]() noexcept {
@@ -128,6 +127,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& di
 
             persist_head_snapshot(dir);
             rollback_on_failure.dismiss();
+            ++snapshot_count;
 
             log_latest_snapshot(std::move(write_lock));
 
@@ -169,6 +169,8 @@ void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
 {
     auto num_snapshots = snapshots.size();
     auto parent_name = head_snapshot->get_parent_name();
+
+    assert(num_snapshots <= snapshot_count && "can't have more snapshots than were ever taken");
     assert(bool(head_snapshot->get_parent()) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
 
     if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
