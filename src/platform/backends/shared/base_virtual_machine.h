@@ -58,15 +58,15 @@ public:
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
     // derived classes is a big refactor
-    std::shared_ptr<const Snapshot> take_snapshot(const QDir& dir, const VMSpecs& specs, const std::string& name,
-                                                  const std::string& comment) override;
+    std::shared_ptr<const Snapshot> take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
+                                                  const std::string& name, const std::string& comment) override;
     void load_snapshots(const QDir& snapshot_dir) override;
 
 private:
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;
     void load_snapshot(const QJsonObject& json);
-    void persist_head_snapshot(const QDir& dir) const;
+    void persist_head_snapshot(const QDir& snapshot_dir) const;
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
