@@ -102,7 +102,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     return snapshots.at(name);
 }
 
-std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& dir, const VMSpecs& specs,
+std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                                   const std::string& name, const std::string& comment)
 {
     // TODO@snapshots generate name
@@ -125,7 +125,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& di
             // TODO@snapshots - generate implementation-specific snapshot instead
             auto ret = head_snapshot = it->second = std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs);
 
-            persist_head_snapshot(dir);
+            persist_head_snapshot(snapshot_dir);
             rollback_on_failure.dismiss();
             ++snapshot_count;
 
@@ -200,7 +200,7 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     head_snapshot = it->second; // TODO@snapshots persist/load this separately
 }
 
-void BaseVirtualMachine::persist_head_snapshot(const QDir& dir) const
+void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 {
     const auto filename = QString{"%1-%2.%3"}.arg(
         QString::number(snapshot_count), QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
