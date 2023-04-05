@@ -130,11 +130,10 @@ INSTANTIATE_TEST_SUITE_P(
                    "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/jammy-server-cloudimg-amd64-disk.img",
                    "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c", "snapcraft-core22",
                    "Snapcraft builder for Core 22"},
-        CustomData{
-            std::vector<std::string>{"devel"}, "snapcraft",
-            "https://cloud-images.ubuntu.com/buildd/daily/kinetic/current/kinetic-server-cloudimg-amd64-disk1.img",
-            "872e3f03b57300260c3f982f07183a8480d724d566c686fddc1a2fde0d411ec5", "snapcraft-devel",
-            "Snapcraft builder for the devel series"}));
+        CustomData{std::vector<std::string>{"devel"}, "snapcraft",
+                   "https://cloud-images.ubuntu.com/buildd/daily/lunar/current/kinetic-server-cloudimg-amd64-disk1.img",
+                   "872e3f03b57300260c3f982f07183a8480d724d566c686fddc1a2fde0d411ec5", "snapcraft-devel",
+                   "Snapcraft builder for the devel series"}));
 
 TEST_F(CustomImageHost, returns_empty_for_snapcraft_core16)
 {
