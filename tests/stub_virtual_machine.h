@@ -112,8 +112,8 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                            const std::string& target, const VMMount& mount) override
+    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider*, const std::string&,
+                                                            const VMMount&) override
     {
         return std::make_unique<StubMountHandler>();
     }
@@ -123,18 +123,18 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override
+    std::shared_ptr<const Snapshot> get_snapshot(const std::string&) const override
     {
         return {};
     }
 
-    std::shared_ptr<const Snapshot> take_snapshot(const QDir& dir, const VMSpecs& specs, const std::string& name,
-                                                  const std::string& comment) override
+    std::shared_ptr<const Snapshot> take_snapshot(const QDir&, const VMSpecs&, const std::string&,
+                                                  const std::string&) override
     {
         return {};
     }
 
-    void load_snapshot(const QJsonObject& json) override
+    void load_snapshot(const QJsonObject&) override
     {
     }
 
