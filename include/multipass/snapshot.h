@@ -34,11 +34,12 @@ struct VMMount;
 
 class Snapshot : private DisabledCopyMove
 {
-public:
+public: // TODO@snapshots drop any accessors that we end up not needing
     virtual ~Snapshot() = default;
 
     virtual std::string get_name() const = 0;
     virtual std::string get_comment() const = 0;
+    virtual std::string get_parent_name() const = 0;
     virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
 
     virtual int get_num_cores() const noexcept = 0;
@@ -50,7 +51,9 @@ public:
     virtual const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept = 0;
     virtual const QJsonObject& get_metadata() const noexcept = 0;
 
-    virtual void set_name(const std::string&) = 0;
+    virtual QJsonObject serialize() const = 0;
+
+    virtual void set_name(const std::string&) = 0; // TODO@snapshots don't forget to rename json file
     virtual void set_comment(const std::string&) = 0;
     virtual void set_parent(std::shared_ptr<const Snapshot>) = 0;
 };

@@ -43,6 +43,7 @@ public:
 
     std::string get_name() const override;
     std::string get_comment() const override;
+    std::string get_parent_name() const override;
     std::shared_ptr<const Snapshot> get_parent() const override;
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
@@ -50,6 +51,8 @@ public:
     VirtualMachine::State get_state() const noexcept override;
     const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept override;
     const QJsonObject& get_metadata() const noexcept override;
+
+    QJsonObject serialize() const override;
 
     void set_name(const std::string& n) override;
     void set_comment(const std::string& c) override;
@@ -82,6 +85,12 @@ inline std::string multipass::BaseSnapshot::get_comment() const
 {
     const std::shared_lock lock{mutex};
     return comment;
+}
+
+inline std::string multipass::BaseSnapshot::get_parent_name() const
+{
+    const std::shared_lock lock{mutex};
+    return parent ? parent->get_name() : "--";
 }
 
 inline auto multipass::BaseSnapshot::get_parent() const -> std::shared_ptr<const Snapshot>
