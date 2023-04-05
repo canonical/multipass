@@ -100,7 +100,7 @@ using error_string = std::string;
 
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
-constexpr auto snapshot_extension = ".snapshot.json";
+constexpr auto snapshot_extension = ".snapshot.json"; // TODO@ricab remove once this is fully up to the VM
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
@@ -2471,13 +2471,6 @@ try
         {
             const auto snapshot = vm_ptr->take_snapshot(instance_directory(instance_name, *config), spec_it->second,
                                                         request->snapshot(), request->comment());
-
-            // TODO@ricab remove
-            const auto instance_dir = instance_directory(instance_name, *config);
-            auto snapshot_record_file =
-                instance_dir.filePath(QString::fromStdString(snapshot->get_name()) + snapshot_extension);
-
-            mp::write_json(snapshot->serialize(), std::move(snapshot_record_file));
 
             reply.set_snapshot(snapshot->get_name());
         }
