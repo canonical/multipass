@@ -20,6 +20,7 @@
 
 #include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 #include <multipass/top_catch_all.h>
@@ -28,6 +29,11 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+namespace
+{
+constexpr auto snapshot_extension = ".snapshot.json";
+}
 
 namespace multipass
 {
@@ -153,12 +159,13 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     head_snapshot = it->second; // TODO@snapshots persist/load this separately
 }
 
-void BaseVirtualMachine::persist_head_snapshot(const QDir& dir) const // TODO@snapshots implement
+void BaseVirtualMachine::persist_head_snapshot(const QDir& dir) const
 {
-    //            auto snapshot_record_file =
-    //                instance_dir.filePath(QString::fromStdString(snapshot->get_name()) + snapshot_extension);
-    //
-    //            mp::write_json(snapshot->serialize(), std::move(snapshot_record_file));
+    // TODO@snapshots add index to file name
+    auto snapshot_record_file = dir.filePath(QString::fromStdString(head_snapshot->get_name()) + snapshot_extension);
+    mp::write_json(head_snapshot->serialize(), std::move(snapshot_record_file));
+
+    // TODO@snapshots persist snap total and head snapshot
 }
 
 } // namespace multipass
