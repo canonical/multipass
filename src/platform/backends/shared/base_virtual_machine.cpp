@@ -139,24 +139,6 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& di
     throw SnapshotNameTaken{vm_name, name};
 }
 
-template <typename LockT>
-void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
-{
-    auto num_snapshots = snapshots.size();
-    auto parent_name = head_snapshot->get_parent_name();
-    assert(bool(head_snapshot->get_parent()) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
-
-    if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
-    {
-        auto name = head_snapshot->get_name();
-        lock.unlock(); // unlock earlier
-
-        mpl::log(log_detail_lvl, vm_name,
-                 fmt::format(R"(New snapshot: "{}"; Descendant of: "{}"; Total snapshots: {})", name, parent_name,
-                             num_snapshots));
-    }
-}
-
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
 {
     auto snapshot_files = MP_FILEOPS.entryInfoList(snapshot_dir, {QString{"*%1"}.arg(snapshot_extension)},
@@ -177,6 +159,24 @@ void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
             throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
         else
             load_snapshot(json);
+    }
+}
+
+template <typename LockT>
+void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
+{
+    auto num_snapshots = snapshots.size();
+    auto parent_name = head_snapshot->get_parent_name();
+    assert(bool(head_snapshot->get_parent()) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
+
+    if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
+    {
+        auto name = head_snapshot->get_name();
+        lock.unlock(); // unlock earlier
+
+        mpl::log(log_detail_lvl, vm_name,
+                 fmt::format(R"(New snapshot: "{}"; Descendant of: "{}"; Total snapshots: {})", name, parent_name,
+                             num_snapshots));
     }
 }
 
