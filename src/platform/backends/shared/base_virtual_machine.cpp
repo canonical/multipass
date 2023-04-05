@@ -37,7 +37,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto snapshot_extension = ".snapshot.json";
+constexpr auto snapshot_extension = "snapshot.json";
 }
 
 namespace multipass
@@ -143,7 +143,7 @@ void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
 {
     std::unique_lock write_lock{snapshot_mutex};
 
-    auto snapshot_files = MP_FILEOPS.entryInfoList(snapshot_dir, {QString{"*%1"}.arg(snapshot_extension)},
+    auto snapshot_files = MP_FILEOPS.entryInfoList(snapshot_dir, {QString{"*.%1"}.arg(snapshot_extension)},
                                                    QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
     {
@@ -202,8 +202,10 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
 
 void BaseVirtualMachine::persist_head_snapshot(const QDir& dir) const
 {
-    // TODO@snapshots add index to file name
-    auto snapshot_record_file = dir.filePath(QString::fromStdString(head_snapshot->get_name()) + snapshot_extension);
+    const auto filename = QString{"%1-%2.%3"}.arg(
+        QString::number(snapshot_count), QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
+
+    auto snapshot_record_file = snapshot_dir.filePath(filename);
     mp::write_json(head_snapshot->serialize(), std::move(snapshot_record_file));
 
     // TODO@snapshots persist snap total and head snapshot
