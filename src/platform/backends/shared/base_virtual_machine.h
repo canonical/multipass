@@ -55,12 +55,15 @@ public:
 
     SnapshotVista view_snapshots() const noexcept override;
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
-    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
+
+    // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
+    // derived classes is a big refactor
+    std::shared_ptr<const Snapshot> take_snapshot(const QDir& dir, const VMSpecs& specs, const std::string& name,
                                                   const std::string& comment) override;
     void load_snapshot(const QJsonObject& json) override;
 
 protected:
-    void persist_head_snapshot() const;
+    void persist_head_snapshot(const QDir& dir) const;
 
 protected:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
