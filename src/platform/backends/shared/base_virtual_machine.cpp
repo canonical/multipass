@@ -96,7 +96,7 @@ auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotV
 {
     SnapshotVista ret;
 
-    const std::shared_lock read_lock{snapshot_mutex};
+    const std::unique_lock lock{snapshot_mutex};
     ret.reserve(snapshots.size());
     std::transform(std::cbegin(snapshots), std::cend(snapshots), std::back_inserter(ret),
                    [](const auto& pair) { return pair.second; });
@@ -106,7 +106,7 @@ auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotV
 
 std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name) const
 {
-    const std::shared_lock read_lock{snapshot_mutex};
+    const std::unique_lock lock{snapshot_mutex};
     return snapshots.at(name);
 }
 
@@ -115,7 +115,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 {
     // TODO@snapshots generate name
     {
-        std::unique_lock write_lock{snapshot_mutex};
+        std::unique_lock lock{snapshot_mutex};
         if (snapshot_count > max_snapshots)
             throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded", max_snapshots)};
 
@@ -140,7 +140,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             persist_head_snapshot(snapshot_dir);
             rollback_on_failure.dismiss();
 
-            log_latest_snapshot(std::move(write_lock));
+            log_latest_snapshot(std::move(lock));
 
             return ret;
         }
@@ -152,7 +152,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
 {
-    std::unique_lock write_lock{snapshot_mutex};
+    std::unique_lock lock{snapshot_mutex};
 
     auto snapshot_files = MP_FILEOPS.entryInfoList(snapshot_dir, {QString{"*.%1"}.arg(snapshot_extension)},
                                                    QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
