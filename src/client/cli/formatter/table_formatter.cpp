@@ -22,8 +22,6 @@
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 
-#include <google/protobuf/util/time_util.h>
-
 namespace mp = multipass;
 
 namespace
