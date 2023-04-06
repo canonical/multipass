@@ -65,6 +65,7 @@ public:
 private:
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;
+    void load_generic_snapshot_info(const QDir& snapshot_dir);
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
     void persist_head_snapshot(const QDir& snapshot_dir) const;
