@@ -157,22 +157,7 @@ void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
     auto snapshot_files = MP_FILEOPS.entryInfoList(snapshot_dir, {QString{"*.%1"}.arg(snapshot_extension)},
                                                    QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
-    {
-        QFile file{finfo.filePath()};
-        if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
-            throw std::runtime_error{fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
-
-        QJsonParseError parse_error{};
-        const auto& data = MP_FILEOPS.read_all(file);
-
-        if (auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
-            throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}", file.fileName(),
-                                                 parse_error.errorString())};
-        else if (json.isEmpty())
-            throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
-        else
-            load_snapshot(json);
-    }
+        load_snapshot_from_file(finfo.filePath());
 
     try
     {
@@ -204,6 +189,24 @@ void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
                  fmt::format(R"(New snapshot: "{}"; Descendant of: "{}"; Total snapshots: {})", name, parent_name,
                              num_snapshots));
     }
+}
+
+void BaseVirtualMachine::load_snapshot_from_file(const QString& filename)
+{
+    QFile file{filename};
+    if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
+        throw std::runtime_error{fmt::v9::format("Could not open snapshot file for for reading: {}", file.fileName())};
+
+    QJsonParseError parse_error{};
+    const auto& data = MP_FILEOPS.read_all(file);
+
+    if (auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
+        throw std::runtime_error{fmt::v9::format("Could not parse snapshot JSON; error: {}; file: {}", file.fileName(),
+                                                 parse_error.errorString())};
+    else if (json.isEmpty())
+        throw std::runtime_error{fmt::v9::format("Empty snapshot JSON: {}", file.fileName())};
+    else
+        load_snapshot(json);
 }
 
 void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
