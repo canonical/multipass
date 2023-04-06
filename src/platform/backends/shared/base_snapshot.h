@@ -100,8 +100,11 @@ inline std::string multipass::BaseSnapshot::get_comment() const
 
 inline std::string multipass::BaseSnapshot::get_parent_name() const
 {
-    const std::unique_lock lock{mutex};
-    return parent ? parent->get_name() : "";
+    std::unique_lock lock{mutex};
+    auto par = parent;
+    lock.unlock(); // avoid locking another snapshot while locked in here
+
+    return par ? par->get_name() : "";
 }
 
 inline auto multipass::BaseSnapshot::get_parent() const -> std::shared_ptr<const Snapshot>
