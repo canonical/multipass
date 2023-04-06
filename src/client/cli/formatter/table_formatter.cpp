@@ -178,13 +178,7 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
     fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, snapshot_col_header,
                    snapshot_column_width, parent_col_header, parent_column_width, comment_col_header);
 
-    using google::protobuf::util::TimeUtil;
-    std::sort(std::begin(overview), std::end(overview), [](const auto& a, const auto& b) {
-        return TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
-               TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
-    });
-
-    for (const auto& item : overview)
+    for (const auto& item : mp::format::sort_snapshots(overview))
     {
         auto snapshot = item.fundamentals();
         fmt::format_to(std::back_inserter(buf), row_format, item.instance_name(), name_column_width,
