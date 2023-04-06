@@ -125,7 +125,7 @@ mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, const Virt
 QJsonObject multipass::BaseSnapshot::serialize() const
 {
     QJsonObject ret, snapshot{};
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
 
     snapshot.insert("name", QString::fromStdString(name));
     snapshot.insert("comment", QString::fromStdString(comment));
