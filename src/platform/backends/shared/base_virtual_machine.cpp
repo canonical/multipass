@@ -96,7 +96,7 @@ auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotV
 {
     SnapshotVista ret;
 
-    std::shared_lock read_lock{snapshot_mutex};
+    const std::shared_lock read_lock{snapshot_mutex};
     ret.reserve(snapshots.size());
     std::transform(std::cbegin(snapshots), std::cend(snapshots), std::back_inserter(ret),
                    [](const auto& pair) { return pair.second; });
