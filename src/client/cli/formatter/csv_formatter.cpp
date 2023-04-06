@@ -50,32 +50,48 @@ std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
 std::string mp::CSVFormatter::format(const InfoReply& reply) const
 {
     fmt::memory_buffer buf;
-    fmt::format_to(
-        std::back_inserter(buf),
-        "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
-        "total,Mounts,AllIPv4,CPU(s),Snapshots\n");
 
-    for (const auto& info : format::sorted(reply.detailed_report().details()))
+    if (reply.info_contents_case() == mp::InfoReply::kDetailedReport)
     {
-        const auto& instance_details = info.instance_info();
+        fmt::format_to(
+            std::back_inserter(buf),
+            "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
+            "total,Mounts,AllIPv4,CPU(s),Snapshots\n");
 
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
-                       mp::format::status_string_for(info.instance_status()),
-                       instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
-                       instance_details.ipv6_size() ? instance_details.ipv6(0) : "", instance_details.current_release(),
-                       instance_details.id(), instance_details.image_release(), instance_details.load(),
-                       instance_details.disk_usage(), info.disk_total(), instance_details.memory_usage(),
-                       info.memory_total());
-
-        auto mount_paths = info.mount_info().mount_paths();
-        for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
+        for (const auto& info : format::sorted(reply.detailed_report().details()))
         {
-            fmt::format_to(std::back_inserter(buf), "{} => {};", mount->source_path(), mount->target_path());
-        }
+            const auto& instance_details = info.instance_info();
 
-        fmt::format_to(std::back_inserter(buf), ",\"{}\";,{},{}\n", fmt::join(instance_details.ipv4(), ","),
-                       info.cpu_count(), instance_details.num_snapshots());
+            fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
+                           mp::format::status_string_for(info.instance_status()),
+                           instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
+                           instance_details.ipv6_size() ? instance_details.ipv6(0) : "",
+                           instance_details.current_release(), instance_details.id(), instance_details.image_release(),
+                           instance_details.load(), instance_details.disk_usage(), info.disk_total(),
+                           instance_details.memory_usage(), info.memory_total());
+
+            auto mount_paths = info.mount_info().mount_paths();
+            for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
+            {
+                fmt::format_to(std::back_inserter(buf), "{} => {};", mount->source_path(), mount->target_path());
+            }
+
+            fmt::format_to(std::back_inserter(buf), ",\"{}\";,{},{}\n", fmt::join(instance_details.ipv4(), ","),
+                           info.cpu_count(), instance_details.num_snapshots());
+        }
     }
+    else if (reply.info_contents_case() == mp::InfoReply::kSnapshotOverview)
+    {
+        fmt::format_to(std::back_inserter(buf), "Instance,Snapshot,Parent,Comment\n");
+
+        for (const auto& item : format::sort_snapshots(reply.snapshot_overview().overview()))
+        {
+            const auto snapshot = item.fundamentals();
+            fmt::format_to(std::back_inserter(buf), "{},{},{},{}\n", item.instance_name(), snapshot.snapshot_name(),
+                           snapshot.parent(), snapshot.comment());
+        }
+    }
+
     return fmt::to_string(buf);
 }
 
