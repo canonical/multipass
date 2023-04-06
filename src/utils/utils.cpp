@@ -18,6 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -467,12 +468,12 @@ QString mp::utils::make_uuid(const std::optional<std::string>& seed)
     return uuid.toString(QUuid::WithoutBraces);
 }
 
-std::string mp::utils::contents_of(const multipass::Path& file_path)
+std::string mp::utils::contents_of(const multipass::Path& file_path) // TODO this should protect against long contents
 {
     const std::string name{file_path.toStdString()};
     std::ifstream in(name, std::ios::in | std::ios::binary);
     if (!in)
-        throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", name, strerror(errno), errno));
+        throw FileOpenFailedException(name);
 
     std::stringstream stream;
     stream << in.rdbuf();
