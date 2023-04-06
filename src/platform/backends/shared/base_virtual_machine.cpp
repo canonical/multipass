@@ -159,6 +159,11 @@ void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
     for (const auto& finfo : snapshot_files)
         load_snapshot_from_file(finfo.filePath());
 
+    load_generic_snapshot_info(snapshot_dir);
+}
+
+void BaseVirtualMachine::load_generic_snapshot_info(const QDir& snapshot_dir)
+{
     try
     {
         snapshot_count = std::stoull(mpu::contents_of(snapshot_dir.filePath(count_filename)));
