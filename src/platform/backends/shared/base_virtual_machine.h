@@ -30,7 +30,7 @@
 #include <QString>
 
 #include <memory>
-#include <shared_mutex>
+#include <mutex>
 #include <unordered_map>
 
 namespace mp = multipass;
@@ -73,7 +73,7 @@ private:
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     size_t snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
-    mutable std::shared_mutex snapshot_mutex;
+    mutable std::recursive_mutex snapshot_mutex;
 };
 
 } // namespace multipass
