@@ -25,7 +25,7 @@
 
 #include <QJsonObject>
 
-#include <shared_mutex>
+#include <mutex>
 
 namespace multipass
 {
@@ -82,31 +82,31 @@ private:
     const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-    mutable std::shared_mutex mutex;
+    mutable std::recursive_mutex mutex;
 };
 } // namespace multipass
 
 inline std::string multipass::BaseSnapshot::get_name() const
 {
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
     return name;
 }
 
 inline std::string multipass::BaseSnapshot::get_comment() const
 {
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
     return comment;
 }
 
 inline std::string multipass::BaseSnapshot::get_parent_name() const
 {
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
     return parent ? parent->get_name() : "";
 }
 
 inline auto multipass::BaseSnapshot::get_parent() const -> std::shared_ptr<const Snapshot>
 {
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
     return parent;
 }
 
