@@ -236,15 +236,36 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
                                        .arg(snapshot_count, index_digits, 10, QLatin1Char('0'))
                                        .arg(QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
 
-    mp::write_json(head_snapshot->serialize(), snapshot_dir.filePath(snapshot_filename));
+    auto snapshot_path = snapshot_dir.filePath(snapshot_filename);
+    auto head_path = snapshot_dir.filePath(head_filename);
+    auto count_path = snapshot_dir.filePath(count_filename);
 
-    // TODO@snapshots rollback snapshot file if writing generic info below fails
+    auto rollback_snapshot_file = sg::make_scope_guard([&snapshot_filename]() noexcept {
+        QFile{snapshot_filename}.remove(); // best effort, ignore return
+    });
+
+    mp::write_json(head_snapshot->serialize(), snapshot_path);
 
     auto overwrite = true;
-    MP_UTILS.make_file_with_content(snapshot_dir.filePath(head_filename).toStdString(), head_snapshot->get_name(),
-                                    overwrite);
-    MP_UTILS.make_file_with_content(snapshot_dir.filePath(count_filename).toStdString(), std::to_string(snapshot_count),
-                                    overwrite);
+    QFile head_file{head_path};
+
+    auto rollback_head_file =
+        sg::make_scope_guard([this, &head_path, &head_file, overwrite, old_head = head_snapshot->get_parent_name(),
+                              existed = head_file.exists()]() noexcept {
+            // best effort, ignore returns
+            if (!existed)
+                head_file.remove();
+            else
+                mp::top_catch_all(vm_name, [&head_path, &old_head, overwrite] {
+                    MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, overwrite);
+                });
+        });
+
+    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), overwrite);
+    MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), overwrite);
+
+    rollback_snapshot_file.dismiss();
+    rollback_head_file.dismiss();
 }
 
 } // namespace multipass
