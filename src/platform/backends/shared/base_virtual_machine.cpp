@@ -106,6 +106,7 @@ auto multipass::BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotV
 
 std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name) const
 {
+    const std::shared_lock read_lock{snapshot_mutex};
     return snapshots.at(name);
 }
 
