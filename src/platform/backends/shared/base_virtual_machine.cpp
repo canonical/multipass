@@ -18,6 +18,7 @@
 #include "base_virtual_machine.h"
 #include "base_snapshot.h" // TODO@snapshots may be able to remove this
 
+#include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
@@ -35,6 +36,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -169,6 +171,17 @@ void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
         else
             load_snapshot(json);
     }
+
+    try
+    {
+        snapshot_count = std::stoull(mpu::contents_of(snapshot_dir.filePath(count_filename)));
+        head_snapshot = snapshots.at(mpu::contents_of(snapshot_dir.filePath(head_filename)));
+    }
+    catch (FileOpenFailedException&)
+    {
+        if (!snapshots.empty())
+            throw;
+    }
 }
 
 template <typename LockT>
@@ -203,8 +216,6 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
         mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
         throw SnapshotNameTaken{vm_name, name};
     }
-
-    head_snapshot = it->second; // TODO@snapshots persist/load this separately
 }
 
 void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
