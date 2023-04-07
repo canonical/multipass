@@ -460,6 +460,34 @@ auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, m
     return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress, false, std::nullopt);
 }
 
+QDir instance_directory(const std::string& instance_name, const mp::DaemonConfig& config)
+{ // TODO should we establish a more direct way to get to the instance's directory?
+    return mp::utils::base_dir(fetch_image_for(instance_name, config.factory->fetch_type(), *config.vault).image_path);
+}
+
+void load_snapshots(mp::VirtualMachine& vm, const QDir& dir)
+{
+    auto snapshot_files = MP_FILEOPS.entryInfoList(dir, {QString{"*%1"}.arg(snapshot_extension)},
+                                                   QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
+    for (const auto& finfo : snapshot_files)
+    {
+        QFile file{finfo.filePath()};
+        if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
+            throw std::runtime_error{fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
+
+        QJsonParseError parse_error{};
+        const auto& data = MP_FILEOPS.read_all(file);
+
+        if (auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
+            throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}", file.fileName(),
+                                                 parse_error.errorString())};
+        else if (json.isEmpty())
+            throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
+        else
+            vm.load_snapshot(json);
+    }
+}
+
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
 {
     try
@@ -1306,7 +1334,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
-        instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
+        auto instance = instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
+        load_snapshots(*instance, instance_directory(name, *config));
 
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
@@ -2442,9 +2471,7 @@ try
         {
             const auto snapshot = vm_ptr->take_snapshot(spec_it->second, request->snapshot(), request->comment());
 
-            // TODO better way to find the instance's directory?
-            const auto instance_dir = mp::utils::base_dir(
-                fetch_image_for(instance_name, config->factory->fetch_type(), *config->vault).image_path);
+            const auto instance_dir = instance_directory(instance_name, *config);
             auto snapshot_record_file =
                 instance_dir.filePath(QString::fromStdString(snapshot->get_name()) + snapshot_extension);
 
