@@ -2445,6 +2445,11 @@ try
             return status_promise->set_value(
                 grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only take snapshots of stopped instances."});
 
+        auto snapshot_name = request->snapshot();
+        if (!mp::utils::valid_hostname(snapshot_name))
+            return status_promise->set_value(
+                grpc::Status{grpc::INVALID_ARGUMENT, fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
+
         const auto spec_it = vm_instance_specs.find(instance_name);
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
 
@@ -2452,7 +2457,7 @@ try
 
         {
             const auto snapshot = vm_ptr->take_snapshot(instance_directory(instance_name, *config), spec_it->second,
-                                                        request->snapshot(), request->comment());
+                                                        snapshot_name, request->comment());
 
             reply.set_snapshot(snapshot->get_name());
         }
