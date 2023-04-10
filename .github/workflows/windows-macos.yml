@@ -40,11 +40,11 @@ jobs:
       run: |
         # Try and fetch the matching branch.
         if [ -n "${{ github.event.client_payload.head_ref }}" ] && git fetch origin ${{ github.event.client_payload.head_ref }}; then
-          echo "::set-output name=ref::${{ github.event.client_payload.head_ref }}"
+          echo "ref=${{ github.event.client_payload.head_ref }}" >> $GITHUB_OUTPUT
         else
           # Otherwise fetch the triggering commit.
           git -c protocol.version=2 fetch --prune --progress --no-recurse-submodules https://github.com/${{ github.event.client_payload.repository }}.git ${{ github.event.client_payload.sha }}
-          echo "::set-output name=ref::${{ github.event.client_payload.ref }}"
+          echo "ref=${{ github.event.client_payload.ref }}" >> $GITHUB_OUTPUT
         fi
 
     - name: Merge the dispatching ref
@@ -102,7 +102,7 @@ jobs:
         MATRIX+='{"runs-on": "multipass-macos-10.15", "arch": "x86_64", "target": "10.15"},'
         MATRIX+='{"runs-on": "multipass-macos-11-arm", "arch": "arm64", "target": "11"}'
         MATRIX+=']}'
-        echo "::set-output name=matrix::${MATRIX}"
+        echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
 
   BuildAndTest:
     needs: [Checkout, Lint, GetMatrix]
@@ -198,7 +198,7 @@ jobs:
         # Use gnu-tar instead of the system tar
         echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
 
-        echo "::set-output name=hyperkit-sha::$( git -C 3rd-party/hyperkit rev-parse HEAD )"
+        echo "hyperkit-sha=$( git -C 3rd-party/hyperkit rev-parse HEAD )" >> $GITHUB_OUTPUT
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
@@ -305,7 +305,7 @@ jobs:
         # Find common base between full and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
-        echo "::set-output name=key::$( git merge-base origin/full ${{ github.sha }} )"
+        echo "key=$( git merge-base origin/full ${{ github.sha }} )" >> $GITHUB_OUTPUT
         echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
 
     - name: CCache
@@ -369,8 +369,8 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       run: |
         ${{ env.ARCH_WRAPPER }} cmake --build . --target package
-        echo "::set-output name=name::$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem multipass-*.exe ).Name' }} ) "
-        echo "::set-output name=path::$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem multipass-*.exe ).FullName' }} )"
+        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem multipass-*.exe ).Name' }} ) " >> $GITHUB_OUTPUT
+        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem multipass-*.exe ).FullName' }} )" >> $GITHUB_OUTPUT
 
     - name: Get package logs
       if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
@@ -404,10 +404,10 @@ jobs:
       if: always()
       id: publish-data
       run: |
-        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-check_id::${{ steps.public-check.outputs.check_id }}"
-        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-package::${{ steps.cmake-package.outputs.name }}"
-        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-url::${{ steps.s3-upload.outputs.url }}"
-        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-status::${{ job.status }}"
+        echo "${{ runner.os }}-${{ matrix.arch }}-check_id=${{ steps.public-check.outputs.check_id }}" >> $GITHUB_OUTPUT
+        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> $GITHUB_OUTPUT
+        echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> $GITHUB_OUTPUT
+        echo "${{ runner.os }}-${{ matrix.arch }}-status=${{ job.status }}" >> $GITHUB_OUTPUT
 
   PublishAndDispatch:
     # Want to run even if one of the builds above failed
@@ -487,8 +487,8 @@ jobs:
           --app-signer - \
           ${PKG}
 
-        echo "::set-output name=name::${PKG}"
-        echo "::set-output name=path::$( greadlink -f ${PKG} )"
+        echo "name=${PKG}" >> $GITHUB_OUTPUT
+        echo "path=$( greadlink -f ${PKG} )" >> $GITHUB_OUTPUT
 
     - name: Upload package
       if: ${{ steps.combine-package.outputs.path }}
@@ -567,7 +567,7 @@ jobs:
           INPUTS+="{ \"win-package\": \"${{ needs.BuildAndTest.outputs.windows-url }}\" }"
         fi
 
-        echo "${INPUTS}" | jq -cs '. | add' | awk '{ print "::set-output name=inputs::" $0 }'
+        echo "${INPUTS}" | jq -cs '. | add' | awk '{ print "inputs=" $0 }' >> $GITHUB_OUTPUT
 
     - name: Dispatch integration tests
       if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
