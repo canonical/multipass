@@ -68,8 +68,9 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("instance", "The instance to take a snapshot of.");
     QCommandLineOption name_opt({"n", "name"},
-                                "An optional name for the snapshot (default: \"snapshotN\", where N is one plus the "
-                                "number of snapshot that were ever taken for <instance>.",
+                                "An optional name for the snapshot, subject to the same validity rules as instance "
+                                "names (see `help launch`). Default: \"snapshotN\", where N is one plus the "
+                                "number of snapshots that were ever taken for <instance>.",
                                 "name");
     QCommandLineOption comment_opt{
         {"comment", "c", "m"}, "An optional free comment to associate with the snapshot.", "comment"};
