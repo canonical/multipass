@@ -2375,6 +2375,11 @@ try
         auto* vm_ptr = std::get<0>(instance_trail)->second.get();
         assert(vm_ptr);
 
+        using St = VirtualMachine::State;
+        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+            return status_promise->set_value(
+                grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only take snapshots of stopped instances."});
+
         const auto spec_it = vm_instance_specs.find(instance_name);
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
 
