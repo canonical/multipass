@@ -207,7 +207,7 @@ message InstanceStatus {
     Status status = 1;
 }
 
-message InstanceSpecificDetails {
+message InstanceDetails {
     string image_release = 1;
     string current_release = 2;
     string id = 3;
@@ -226,7 +226,7 @@ message SnapshotFundamentals {
     google.protobuf.Timestamp creation_timestamp = 4;
 }
 
-message SnapshotSpecificDetails {
+message SnapshotDetails {
     SnapshotFundamentals fundamentals = 1;
     string size = 2;
     repeated string children = 4;
@@ -241,8 +241,8 @@ message DetailedInfoItem {
     MountInfo mount_info = 6;
 
     oneof extra_info {
-        InstanceSpecificDetails instance_info = 7;
-        SnapshotSpecificDetails snapshot_info = 8;
+        InstanceDetails instance_info = 7;
+        SnapshotDetails snapshot_info = 8;
     }
 }
 
