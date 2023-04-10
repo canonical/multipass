@@ -45,7 +45,7 @@ constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
 constexpr auto index_digits = 4;        // these two go together
 constexpr auto max_snapshots = 1000ull; // replace suffix with uz for size_t in C++23
-}
+} // namespace
 
 namespace multipass
 {
