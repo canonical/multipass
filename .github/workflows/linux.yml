@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 2
 
@@ -73,13 +73,13 @@ jobs:
     timeout-minutes: 60
     steps:
     - name: Install Snapcraft
-      uses: samuelmeuli/action-snapcraft@v1
+      uses: samuelmeuli/action-snapcraft@v2
 
     - name: Install LXD
       uses: canonical/setup-lxd@90d76101915da56a42a562ba766b1a77019242fd
 
     - name: Check out code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         # Need to fetch it all for submodules to work.
         fetch-depth: 0
@@ -192,7 +192,7 @@ jobs:
         echo "::set-output name=snap-file::$( ls *.snap )"
 
     - name: Upload the snap
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.build-type == 'Release' }}
       with:
         name: ${{ steps.build-snap.outputs.snap-file }}
@@ -216,12 +216,12 @@ jobs:
     timeout-minutes: 15
     steps:
     - name: Download the built snap
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: ${{ needs.BuildAndTest.outputs.snap-file }}
 
     - name: Install Snapcraft and log in
-      uses: samuelmeuli/action-snapcraft@v1
+      uses: samuelmeuli/action-snapcraft@v2
 
     - name: Publish the snap
       env:

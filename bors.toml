@@ -12,7 +12,7 @@ status = [
            "CI (Windows, windows-11, hyperv)"
          ]
 block-labels = [ "no-merge" ]
-timeout-sec = 12000
+timeout-sec = 21600
 delete-merged-branches = true
 update_base_for_deletes = true
 cut_body_after = "---"
