@@ -29,6 +29,7 @@ main() async {
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.white,
+        fontFamily: 'Ubuntu',
       ),
       home: const App(),
     ),
