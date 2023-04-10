@@ -27,32 +27,32 @@ runs:
     run: |
       # Respect build parameters of the dispatch.
       if [ ${{ github.event_name }} == "repository_dispatch" ]; then
-        echo "::set-output name=label::${{ github.event.client_payload.label }}"
+        echo "label=${{ github.event.client_payload.label }}" >> $GITHUB_OUTPUT
 
       # If it's a pull request or `trying` push, annotate with `pr#` and publish to `edge/pr#`.
       elif [ ${{ github.event_name }} == "pull_request" ]; then
-        echo "::set-output name=label::pr${{ github.event.number }}"
-        echo "::set-output name=channel::edge/pr${{ github.event.number }}"
+        echo "label=pr${{ github.event.number }}" >> $GITHUB_OUTPUT
+        echo "channel=edge/pr${{ github.event.number }}" >> $GITHUB_OUTPUT
 
       # If it's the `staging` branch, annotate with `ci#` and publish to `edge/ci#`.
       elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/staging" ]]; then
-        echo "::set-output name=label::ci${{ github.run_number }}"
-        echo "::set-output name=channel::edge/ci${{ github.run_number}}"
+        echo "label=ci${{ github.run_number }}" >> $GITHUB_OUTPUT
+        echo "channel=edge/ci${{ github.run_number}}" >> $GITHUB_OUTPUT
 
       # If it's the `trying` branch, get the PR number from HEAD's Subject
       elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/trying" && "$( git log -1 --pretty=%s )" =~ ^Try\ #([0-9]+): ]]; then
-        echo "::set-output name=label::pr${BASH_REMATCH[1]}"
-        echo "::set-output name=channel::edge/pr${BASH_REMATCH[1]}"
+        echo "label=pr${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+        echo "channel=edge/pr${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
 
       # If it's a release tag or branch, publish to the `beta` channel.
       elif [[ ${{ github.ref }} =~ ${{ inputs.release-branch-re }} \
         || ${{ github.ref }} =~ ${{ inputs.release-tag-re }} ]]; then
-        echo "::set-output name=channel::beta"
+        echo "channel=beta" >> $GITHUB_OUTPUT
 
       # All other pushes annotate with the CI run number.
       # This includes `main`, as `edge` will get published from automatic builds on snapcraft.io.
       elif [[ ${{ github.event_name }} == "push" || ${{ github.event_name }} == "workflow_dispatch" ]]; then
-        echo "::set-output name=label::ci${{ github.run_number }}"
+        echo "label=ci${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       # This shouldn't happen.
       else
