@@ -8,6 +8,24 @@ import 'grpc_client.dart';
 import 'instance_actions_button.dart';
 import 'vms_screen.dart';
 
+class TableHeader {
+  final String title;
+  double width;
+  final double minWidth;
+  final String Function(VmInfo)? sortExtractor;
+  void Function(double)? resizeCallback;
+  void Function()? resizeStartCallback;
+
+  TableHeader({
+    required this.title,
+    required this.width,
+    required this.minWidth,
+    this.sortExtractor,
+    this.resizeCallback,
+    this.resizeStartCallback,
+  });
+}
+
 class VMsTable extends ConsumerStatefulWidget {
   const VMsTable({super.key});
 
@@ -20,6 +38,53 @@ class _VMsTableState extends ConsumerState<VMsTable> {
   bool sortAscending = true;
   String Function(VmInfo)? sortExtractor;
 
+  double tableWidthFactor = 0;
+
+  // the widths represent fractions out of the total sum
+  // the minWidths are the minimum widths but in pixels!
+  final headers = [
+    TableHeader(
+      title: 'Name',
+      width: 115,
+      minWidth: 60,
+      sortExtractor: (VmInfo info) => info.name,
+    ),
+    TableHeader(
+      title: 'State',
+      width: 100,
+      minWidth: 65,
+      sortExtractor: (VmInfo info) => info.instanceStatus.status.name,
+    ),
+    TableHeader(title: 'Memory usage', width: 140, minWidth: 115),
+    TableHeader(title: 'Disk usage', width: 130, minWidth: 90),
+    TableHeader(
+      title: 'CPU(s)',
+      width: 80,
+      minWidth: 75,
+      sortExtractor: (VmInfo info) => info.cpuCount,
+    ),
+    TableHeader(title: 'Load', width: 100, minWidth: 50),
+    TableHeader(
+      title: 'Image',
+      width: 125,
+      minWidth: 70,
+      sortExtractor: (VmInfo info) => info.currentRelease,
+    ),
+    TableHeader(
+      title: 'Ipv4',
+      width: 143,
+      minWidth: 80,
+      sortExtractor: (VmInfo info) => info.ipv4.firstOrNull ?? '',
+    ),
+    TableHeader(
+      title: 'Actions',
+      width: 67,
+      minWidth: 60,
+    ),
+  ];
+
+  double get headersWidth => headers.map((h) => h.width).sum;
+
   DataColumnSortCallback _extractorToSortCallback(
     String Function(VmInfo) extractor,
   ) =>
@@ -29,28 +94,15 @@ class _VMsTableState extends ConsumerState<VMsTable> {
             sortExtractor = extractor;
           });
 
-  late final _headersWithSortExtractors = {
-    const DataColumn2(label: Text('Name')): (VmInfo info) => info.name,
-    const DataColumn2(label: Text('State'), fixedWidth: 200): (VmInfo info) =>
-        info.instanceStatus.status.name,
-    const DataColumn2(label: Text('Memory usage'), numeric: true): null,
-    const DataColumn2(label: Text('Disk usage'), numeric: true): null,
-    const DataColumn2(label: Text('CPU(s)'), fixedWidth: 120, numeric: true):
-        (VmInfo info) => info.cpuCount,
-    const DataColumn2(label: Text('Load'), numeric: true): null,
-    const DataColumn2(label: Text('Image'), size: ColumnSize.L):
-        (VmInfo info) => info.currentRelease,
-    const DataColumn2(label: Text('Ipv4'), size: ColumnSize.L): (VmInfo info) =>
-        info.ipv4.firstOrNull ?? '',
-    const DataColumn2(label: Text('Actions'), fixedWidth: 75, numeric: true):
-        null,
-  }.entries.map((e) => DataColumn2(
-        label: e.key.label,
-        size: e.key.size,
-        numeric: e.key.numeric,
-        fixedWidth: e.key.fixedWidth,
-        onSort: e.value == null ? null : _extractorToSortCallback(e.value!),
-      ));
+  Widget _textWithEllipsis(String text) {
+    return Tooltip(
+      message: text,
+      child: Text(
+        text.replaceAll('-', '\u2011').replaceAll(' ', '\u00A0'),
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
 
   Widget _memoryUsage(String usage, String total) {
     final nUsage = double.tryParse(usage);
@@ -99,18 +151,17 @@ class _VMsTableState extends ConsumerState<VMsTable> {
   }
 
   Widget _vmStatus(Status status) {
-    return Row(
-      children: [
-        _statusIcon(status),
-        const SizedBox(width: 8),
-        Text(status.name.toLowerCase().replaceAll('_', ' ')),
-      ],
-    );
+    final statusName = status.name.toLowerCase().replaceAll('_', ' ');
+    return Row(children: [
+      _statusIcon(status),
+      const SizedBox(width: 8),
+      Expanded(child: _textWithEllipsis(statusName)),
+    ]);
   }
 
   Widget _vmIPs(List<String> ips) {
     return Row(children: [
-      Text(ips.firstOrNull ?? '-'),
+      Expanded(child: _textWithEllipsis(ips.firstOrNull ?? '-')),
       if (ips.length > 1)
         Badge.count(
           count: ips.length - 1,
@@ -152,17 +203,82 @@ class _VMsTableState extends ConsumerState<VMsTable> {
               ? ({...selected, info.name: info.instanceStatus.status})
               : ({...selected}..remove(info.name))),
       cells: [
-        DataCell(Text(info.name)),
-        DataCell(_vmStatus(info.instanceStatus.status)),
-        DataCell(_memoryUsage(info.memoryUsage, info.memoryTotal)),
-        DataCell(_memoryUsage(info.diskUsage, info.diskTotal)),
-        DataCell(Text(info.cpuCount.isEmpty ? '-' : info.cpuCount)),
-        DataCell(Text(info.load.isEmpty ? '-' : info.load)),
-        DataCell(Text(info.currentRelease)),
-        DataCell(_vmIPs(info.ipv4)),
-        DataCell(InstanceActionsButton(info.instanceStatus.status, info.name)),
+        // first column header must not be padded, as it does not have a resize handle
+        DataCell(_textWithEllipsis(info.name)),
+        ...[
+          _vmStatus(info.instanceStatus.status),
+          _memoryUsage(info.memoryUsage, info.memoryTotal),
+          _memoryUsage(info.diskUsage, info.diskTotal),
+          Text(info.cpuCount.isEmpty ? '-' : info.cpuCount),
+          _textWithEllipsis(info.load.isEmpty ? '-' : info.load),
+          _textWithEllipsis(info.currentRelease),
+          _vmIPs(info.ipv4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: InstanceActionsButton(info.instanceStatus.status, info.name),
+          ),
+        ].map((widget) => DataCell(Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 9),
+              child: widget,
+            )))
       ],
     );
+  }
+
+  List<DataColumn2> _buildColumns(Iterable<TableHeader> headers) {
+    return headers.map((header) {
+      return DataColumn2(
+          fixedWidth: header.width * tableWidthFactor,
+          onSort: header.sortExtractor != null
+              ? _extractorToSortCallback(header.sortExtractor!)
+              : null,
+          label: Row(children: [
+            if (header.resizeCallback != null)
+              MouseRegion(
+                cursor: SystemMouseCursors.resizeColumn,
+                child: GestureDetector(
+                  onPanStart: (_) => header.resizeStartCallback?.call(),
+                  onPanUpdate: (details) => header.resizeCallback
+                      ?.call(details.localPosition.dx / tableWidthFactor),
+                  child: Container(
+                    width: 10,
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: const BoxDecoration(
+                      color: Colors.transparent,
+                      border: Border(
+                        left: BorderSide(color: Colors.black26),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Expanded(child: Text(header.title)),
+          ]));
+    }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    for (final pair in IterableZip([headers, headers.skip(1)])) {
+      final first = pair.first;
+      final second = pair.last;
+      double firstInitialWidth = 0;
+      double secondInitialWidth = 0;
+      second.resizeStartCallback = () {
+        firstInitialWidth = first.width;
+        secondInitialWidth = second.width;
+      };
+      second.resizeCallback = (dx) => setState(() {
+            final leftWidth = firstInitialWidth + dx;
+            final rightWidth = secondInitialWidth - dx;
+            if (leftWidth >= first.minWidth / tableWidthFactor &&
+                rightWidth >= second.minWidth / tableWidthFactor) {
+              first.width = leftWidth;
+              second.width = rightWidth;
+            }
+          });
+    }
   }
 
   @override
@@ -199,21 +315,27 @@ class _VMsTableState extends ConsumerState<VMsTable> {
             (sortAscending ? 1 : -1) *
             sortExtractor!(a).compareTo(sortExtractor!(b)));
 
-    return DataTable2(
-      sortArrowIcon: Icons.arrow_drop_up,
-      headingTextStyle: const TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Colors.black,
-      ),
-      empty: emptyWidget,
-      sortColumnIndex: sortIndex,
-      sortAscending: sortAscending,
-      onSelectAll: (select) => ref.read(selectedVMsProvider.notifier).state =
-          select! ? infosToStatusMap(sortedInfos) : {},
-      columns: _headersWithSortExtractors.toList(),
-      rows: sortedInfos
-          .map((info) => _buildRow(info, selectedVMs.containsKey(info.name)))
-          .toList(),
-    );
+    return LayoutBuilder(builder: (context, BoxConstraints constraints) {
+      // 91 is the amount of pixels from the total table width that come from
+      // non-resizable elements e.g. checkboxes etc.
+      tableWidthFactor = (constraints.maxWidth - 91) / headersWidth;
+      return DataTable2(
+        columnSpacing: 0,
+        sortArrowIcon: Icons.arrow_drop_up,
+        headingTextStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
+        empty: emptyWidget,
+        sortColumnIndex: sortIndex,
+        sortAscending: sortAscending,
+        onSelectAll: (select) => ref.read(selectedVMsProvider.notifier).state =
+            select! ? infosToStatusMap(sortedInfos) : {},
+        columns: _buildColumns(headers),
+        rows: sortedInfos
+            .map((info) => _buildRow(info, selectedVMs.containsKey(info.name)))
+            .toList(),
+      );
+    });
   }
 }

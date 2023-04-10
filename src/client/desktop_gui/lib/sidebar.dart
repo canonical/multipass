@@ -40,7 +40,7 @@ class SideBar extends ConsumerWidget {
           backgroundColor: MaterialStatePropertyAll(
             sidebarKey == selectedSidebarKey
                 ? Colors.white.withOpacity(0.15)
-                : Colors.black,
+                : Colors.transparent,
           ),
         ),
       );
