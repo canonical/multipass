@@ -295,7 +295,7 @@ jobs:
       continue-on-error: true
 
     - name: Dispatch macOS and Windows builds
-      uses: peter-evans/repository-dispatch@v1
+      uses: peter-evans/repository-dispatch@v2
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
