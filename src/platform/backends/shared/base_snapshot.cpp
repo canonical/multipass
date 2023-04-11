@@ -22,7 +22,6 @@
 #include <multipass/vm_mount.h>
 
 #include <QJsonArray> // TODO@snapshots may be able to drop after extracting JSON utilities
-#include <QJsonDocument>
 
 #include <stdexcept>
 
@@ -93,6 +92,14 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
       mounts{std::move(mounts)},
       metadata{std::move(metadata)}
 {
+    if (name.empty())
+        throw std::runtime_error{"Snapshot names cannot be empty"};
+    if (num_cores < 1)
+        throw std::runtime_error{fmt::format("Invalid number of cores for snapshot: {}", num_cores)};
+    if (auto mem_bytes = mem_size.in_bytes(); mem_bytes < 1)
+        throw std::runtime_error{fmt::format("Invalid memory size for snapshot: {}", mem_bytes)};
+    if (auto disk_bytes = disk_space.in_bytes(); disk_bytes < 1)
+        throw std::runtime_error{fmt::format("Invalid disk size for snapshot: {}", disk_bytes)};
 }
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment,
@@ -118,8 +125,6 @@ mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, const Virt
                    load_mounts(json["mounts"].toArray()),                         // mounts
                    json["metadata"].toObject()}                                   // metadata
 {
-    if (name.empty() || !num_cores || !mem_size.in_bytes() || !disk_space.in_bytes())
-        throw std::runtime_error{fmt::format("Bad snapshot data: {}", QJsonDocument{json}.toJson())};
 }
 
 QJsonObject multipass::BaseSnapshot::serialize() const
