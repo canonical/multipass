@@ -19,6 +19,42 @@ class _ShellTerminalState extends State<ShellTerminal> {
   final terminal = Terminal(maxLines: 10000);
   final terminalController = TerminalController();
 
+  double fontSize = 13;
+
+  void setFontSize(double size) => setState(() => fontSize = size.clamp(5, 25));
+
+  void increaseFontSize() => setFontSize(fontSize + 0.5);
+
+  void decreaseFontSize() => setFontSize(fontSize - 0.5);
+
+  void resetFontSize() => setFontSize(13);
+
+  late final shortcuts = {
+    increaseFontSize.intent: [
+      const SingleActivator(LogicalKeyboardKey.numpadAdd, control: true),
+      const SingleActivator(LogicalKeyboardKey.equal, control: true),
+      const SingleActivator(LogicalKeyboardKey.add, control: true, shift: true),
+    ],
+    decreaseFontSize.intent: [
+      const SingleActivator(LogicalKeyboardKey.numpadSubtract, control: true),
+      const SingleActivator(LogicalKeyboardKey.minus, control: true),
+      const SingleActivator(LogicalKeyboardKey.minus,
+          control: true, shift: true),
+    ],
+    resetFontSize.intent: [
+      const SingleActivator(LogicalKeyboardKey.digit0, control: true),
+    ],
+  }.entries.fold(
+    // this goes from a map of {Intent1: [Shortcut1, Shortcut2], Intent2: [Shortcut3, Shortcut4]}
+    // to one of {Shortcut1: Intent1, Shortcut2: Intent1, Shortcut3: Intent2, Shortcut4: Intent2}
+    <SingleActivator, VoidCallbackIntent>{},
+    (map, entry) {
+      final intent = entry.key;
+      final activators = entry.value;
+      return {...map, for (final activator in activators) activator: intent};
+    },
+  );
+
   @override
   void initState() {
     super.initState();
@@ -47,26 +83,34 @@ class _ShellTerminalState extends State<ShellTerminal> {
 
   @override
   Widget build(BuildContext context) {
-    return TerminalView(
-      terminal,
-      controller: terminalController,
-      autofocus: true,
-      shortcuts: const {},
-      hardwareKeyboardOnly: true,
-      onSecondaryTapDown: (details, offset) async {
-        final selection = terminalController.selection;
-        if (selection != null) {
-          final text = terminal.buffer.getText(selection);
-          terminalController.clearSelection();
-          await Clipboard.setData(ClipboardData(text: text));
-        } else {
-          final data = await Clipboard.getData(Clipboard.kTextPlain);
-          final text = data?.text;
-          if (text != null) {
-            terminal.paste(text);
+    return Actions(
+      actions: {VoidCallbackIntent: VoidCallbackAction()},
+      child: TerminalView(
+        terminal,
+        controller: terminalController,
+        autofocus: true,
+        shortcuts: shortcuts,
+        hardwareKeyboardOnly: true,
+        textStyle: TerminalStyle(fontSize: fontSize),
+        onSecondaryTapDown: (_, __) async {
+          final selection = terminalController.selection;
+          if (selection != null) {
+            final text = terminal.buffer.getText(selection);
+            terminalController.clearSelection();
+            await Clipboard.setData(ClipboardData(text: text));
+          } else {
+            final data = await Clipboard.getData(Clipboard.kTextPlain);
+            final text = data?.text;
+            if (text != null) {
+              terminal.paste(text);
+            }
           }
-        }
-      },
+        },
+      ),
     );
   }
+}
+
+extension on VoidCallback {
+  VoidCallbackIntent get intent => VoidCallbackIntent(this);
 }
