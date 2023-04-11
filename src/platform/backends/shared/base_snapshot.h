@@ -25,7 +25,7 @@
 
 #include <QJsonObject>
 
-#include <shared_mutex>
+#include <mutex>
 
 namespace multipass
 {
@@ -34,9 +34,6 @@ struct VMSpecs;
 class BaseSnapshot : public Snapshot
 {
 public:
-    BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
-                 int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
-                 std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata);
     BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
                  const VMSpecs& specs);
     BaseSnapshot(const QJsonObject& json, const VirtualMachine& vm);
@@ -61,11 +58,16 @@ public:
     void set_comment(const std::string& c) override;
     void set_parent(std::shared_ptr<const Snapshot> p) override;
 
+    void delet() override;
+
 private:
     struct InnerJsonTag
     {
     };
     BaseSnapshot(InnerJsonTag, const QJsonObject& json, const VirtualMachine& vm);
+    BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
+                 int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
+                 std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata);
 
 private:
     std::string name;
@@ -80,31 +82,34 @@ private:
     const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-    mutable std::shared_mutex mutex;
+    mutable std::recursive_mutex mutex;
 };
 } // namespace multipass
 
 inline std::string multipass::BaseSnapshot::get_name() const
 {
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
     return name;
 }
 
 inline std::string multipass::BaseSnapshot::get_comment() const
 {
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
     return comment;
 }
 
 inline std::string multipass::BaseSnapshot::get_parent_name() const
 {
-    const std::shared_lock lock{mutex};
-    return parent ? parent->get_name() : "--";
+    std::unique_lock lock{mutex};
+    auto par = parent;
+    lock.unlock(); // avoid locking another snapshot while locked in here
+
+    return par ? par->get_name() : "";
 }
 
 inline auto multipass::BaseSnapshot::get_parent() const -> std::shared_ptr<const Snapshot>
 {
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
     return parent;
 }
 
@@ -154,6 +159,12 @@ inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<const Snapshot> 
 {
     const std::unique_lock lock{mutex};
     parent = std::move(p);
+}
+
+inline void multipass::BaseSnapshot::delet()
+{
+    // TODO@snapshots this is meant to be implemented by descendants
+    // placeholder implementation to avoid making this class abstract for now
 }
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H
