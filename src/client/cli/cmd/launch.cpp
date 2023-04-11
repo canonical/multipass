@@ -224,12 +224,14 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         QString::fromUtf8(default_memory_size));
     memOptionDeprecated.setFlags(QCommandLineOption::HiddenFromHelp);
 
+    const auto valid_name_desc = QString{"Valid names must consist of letters, numbers, or hyphens, must start with a "
+                                         "letter, and must end with an alphanumeric character."};
     const auto name_option_desc =
         petenv_name.isEmpty()
-            ? QString{"Name for the instance."}
+            ? QString{"Name for the instance.\n%1"}.arg(valid_name_desc)
             : QString{"Name for the instance. If it is '%1' (the configured primary instance name), the user's home "
-                      "directory is mounted inside the newly launched instance, in '%2'."}
-                  .arg(petenv_name, mp::home_automount_dir);
+                      "directory is mounted inside the newly launched instance, in '%2'.\n%3"}
+                  .arg(petenv_name, mp::home_automount_dir, valid_name_desc);
 
     QCommandLineOption nameOption({"n", "name"}, name_option_desc, "name");
     QCommandLineOption cloudInitOption(
