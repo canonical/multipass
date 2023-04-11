@@ -262,7 +262,7 @@ message SnapshotOverviewInfoReport {
 message InfoReply {
     oneof info_contents
     {
-        DetailedInfoReport details = 1;
+        DetailedInfoReport detailed_report = 1;
         SnapshotOverviewInfoReport snapshot_overview = 2;
     }
 
