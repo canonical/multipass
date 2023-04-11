@@ -48,7 +48,7 @@ jobs:
           MATRIX+='{"os": "Windows",  "vm": "windows-11", "driver": "hyperv"}'
         fi
 
-        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
+        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
 
   CI:
     needs: GetMatrix

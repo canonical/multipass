@@ -50,7 +50,7 @@ jobs:
             MATRIX+='{"build-type": "Coverage" }'
         fi
 
-        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
+        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
 
   BuildAndTest:
     needs: [Lint, GetMatrix]
@@ -116,7 +116,7 @@ jobs:
 
         # Find common base between main and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
-        echo "::set-output name=key::$( git merge-base origin/main ${{ github.sha }} )"
+        echo "key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
     - name: CCache
       uses: actions/cache@v3
@@ -133,7 +133,7 @@ jobs:
         MULTIPASS_PART=${HOME}/multipass_part
         mkdir --parents ${MULTIPASS_PART}
         /snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass
-        echo "::set-output name=build::${MULTIPASS_PART}/build"
+        echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
     - name: Build
       run: |
@@ -197,7 +197,7 @@ jobs:
         sudo snap install review-tools
         /snap/bin/review-tools.snap-review --plugs=snap/local/plugs.json *.snap
 
-        echo "::set-output name=snap-file::$( ls *.snap )"
+        echo "snap-file=$( ls *.snap )" >> $GITHUB_OUTPUT
 
     - name: Upload the snap
       uses: actions/upload-artifact@v3
@@ -272,11 +272,11 @@ jobs:
       id: dispatch-params
       run: |
         if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "::set-output name=head_ref::${{ github.head_ref }}"
-            echo "::set-output name=head_sha::${{ github.event.pull_request.head.sha }}"
+            echo "head_ref=${{ github.head_ref }}" >> $GITHUB_OUTPUT
+            echo "head_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
         else
-            echo "::set-output name=head_ref::${{ github.ref }}"
-            echo "::set-output name=head_sha::${{ github.sha }}"
+            echo "head_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
+            echo "head_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
         fi
 
     - name: Dispatch Linux integration tests
@@ -295,7 +295,7 @@ jobs:
       continue-on-error: true
 
     - name: Dispatch macOS and Windows builds
-      uses: peter-evans/repository-dispatch@v1
+      uses: peter-evans/repository-dispatch@v2
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
