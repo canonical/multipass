@@ -125,7 +125,7 @@ mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, const Virt
 QJsonObject multipass::BaseSnapshot::serialize() const
 {
     QJsonObject ret, snapshot{};
-    const std::shared_lock lock{mutex};
+    const std::unique_lock lock{mutex};
 
     snapshot.insert("name", QString::fromStdString(name));
     snapshot.insert("comment", QString::fromStdString(comment));
@@ -134,9 +134,7 @@ QJsonObject multipass::BaseSnapshot::serialize() const
     snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
     snapshot.insert("state", static_cast<int>(state));
     snapshot.insert("metadata", metadata);
-
-    if (parent)
-        snapshot.insert("parent", QString::fromStdString(get_parent_name()));
+    snapshot.insert("parent", QString::fromStdString(get_parent_name()));
 
     // Extract mount serialization
     QJsonArray json_mounts;

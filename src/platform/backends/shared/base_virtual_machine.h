@@ -30,7 +30,7 @@
 #include <QString>
 
 #include <memory>
-#include <shared_mutex>
+#include <mutex>
 #include <unordered_map>
 
 namespace mp = multipass;
@@ -55,15 +55,27 @@ public:
 
     SnapshotVista view_snapshots() const noexcept override;
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
-    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
-                                                  const std::string& comment) override;
-    void load_snapshot(const QJsonObject& json) override;
 
-protected:
+    // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
+    // derived classes is a big refactor
+    std::shared_ptr<const Snapshot> take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
+                                                  const std::string& name, const std::string& comment) override;
+    void load_snapshots(const QDir& snapshot_dir) override;
+
+private:
+    template <typename LockT>
+    void log_latest_snapshot(LockT lock) const;
+    void load_generic_snapshot_info(const QDir& snapshot_dir);
+    void load_snapshot_from_file(const QString& filename);
+    void load_snapshot(const QJsonObject& json);
+    void persist_head_snapshot(const QDir& snapshot_dir) const;
+
+private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
-    mutable std::shared_mutex snapshot_mutex;
+    size_t snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
+    mutable std::recursive_mutex snapshot_mutex;
 };
 
 } // namespace multipass
