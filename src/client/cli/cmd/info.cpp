@@ -26,18 +26,17 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
+// TODO@snapshots move this to common_cli once required by other commands
 std::vector<mp::InstanceSnapshotPair> add_instance_and_snapshot_names(const mp::ArgParser* parser)
 {
-    std::vector<mp::InstanceSnapshotPair> instance_snapshot_names;
+    std::vector<mp::InstanceSnapshotPair> instance_snapshot_names(parser->positionalArguments().count());
 
     for (const auto& arg : parser->positionalArguments())
     {
-        const auto tokens = arg.split('.');
-
         mp::InstanceSnapshotPair inst_snap_name;
-        inst_snap_name.set_instance_name(tokens[0].toStdString());
-        if (tokens.size() > 1)
-            inst_snap_name.set_snapshot_name(tokens[1].toStdString());
+        inst_snap_name.set_instance_name(arg.left(arg.indexOf('.')).toStdString());
+        if (arg.indexOf('.') >= 0)
+            inst_snap_name.set_snapshot_name(arg.right(arg.length() - arg.indexOf('.') - 1).toStdString());
 
         instance_snapshot_names.push_back(inst_snap_name);
     }
