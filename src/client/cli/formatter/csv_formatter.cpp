@@ -55,7 +55,7 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
         "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
         "total,Mounts,AllIPv4,CPU(s),Snapshots\n");
 
-    for (const auto& info : format::sorted(reply.details().details()))
+    for (const auto& info : format::sorted(reply.detailed_report().details()))
     {
         const auto& instance_details = info.instance_info();
 

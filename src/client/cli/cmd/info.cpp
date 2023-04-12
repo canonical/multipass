@@ -26,15 +26,15 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
-std::vector<mp::InstanceOrSnapshot> add_instance_and_snapshot_names(const mp::ArgParser* parser)
+std::vector<mp::InstanceSnapshotPair> add_instance_and_snapshot_names(const mp::ArgParser* parser)
 {
-    std::vector<mp::InstanceOrSnapshot> instance_snapshot_names;
+    std::vector<mp::InstanceSnapshotPair> instance_snapshot_names;
 
     for (const auto& arg : parser->positionalArguments())
     {
         const auto tokens = arg.split('.');
 
-        mp::InstanceOrSnapshot inst_snap_name;
+        mp::InstanceSnapshotPair inst_snap_name;
         inst_snap_name.set_instance_name(tokens[0].toStdString());
         if (tokens.size() > 1)
             inst_snap_name.set_snapshot_name(tokens[1].toStdString());
