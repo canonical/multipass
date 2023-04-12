@@ -27,7 +27,7 @@
 
 namespace multipass
 {
-class SettingSpec : public DisabledCopyMove
+class SettingSpec : private DisabledCopyMove
 {
 public:
     virtual ~SettingSpec() = default;
