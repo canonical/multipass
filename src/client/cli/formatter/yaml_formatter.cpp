@@ -65,7 +65,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
     info_node["errors"].push_back(YAML::Null);
 
-    for (const auto& info : format::sorted(reply.details().details()))
+    for (const auto& info : format::sorted(reply.detailed_report().details()))
     {
         const auto& instance_details = info.instance_info();
         YAML::Node instance_node;

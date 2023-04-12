@@ -58,7 +58,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    for (const auto& info : format::sorted(reply.details().details()))
+    for (const auto& info : format::sorted(reply.detailed_report().details()))
     {
         const auto& instance_details = info.instance_info();
 
@@ -146,7 +146,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
     }
 
     auto output = fmt::to_string(buf);
-    if (!reply.details().details().empty())
+    if (!reply.detailed_report().details().empty())
         output.pop_back();
     else
         output = "\n";

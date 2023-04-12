@@ -63,7 +63,7 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
 
     info_json.insert("errors", QJsonArray());
 
-    for (const auto& info : reply.details().details())
+    for (const auto& info : reply.detailed_report().details())
     {
         const auto& instance_details = info.instance_info();
 
