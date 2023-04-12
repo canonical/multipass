@@ -152,7 +152,7 @@ auto construct_single_instance_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.mutable_details()->add_details();
+    auto info_entry = info_reply.mutable_detailed_report()->add_details();
     info_entry->set_name("foo");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
@@ -205,7 +205,7 @@ auto construct_multiple_instances_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.mutable_details()->add_details();
+    auto info_entry = info_reply.mutable_detailed_report()->add_details();
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
@@ -236,7 +236,7 @@ auto construct_multiple_instances_info_reply()
     info_entry->mutable_instance_info()->add_ipv4("10.21.124.56");
     info_entry->mutable_instance_info()->set_num_snapshots(1);
 
-    info_entry = info_reply.mutable_details()->add_details();
+    info_entry = info_reply.mutable_detailed_report()->add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
@@ -248,7 +248,7 @@ auto construct_multiple_instances_info_reply()
 
 auto add_petenv_to_reply(mp::InfoReply& reply)
 {
-    auto entry = reply.mutable_details()->add_details();
+    auto entry = reply.mutable_detailed_report()->add_details();
     entry->set_name(petenv_name());
     entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
     entry->mutable_instance_info()->set_image_release("18.10");
