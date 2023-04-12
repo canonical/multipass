@@ -2122,6 +2122,6 @@ TEST_F(Daemon, info_all_returns_all_instances)
 
     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
 
-    EXPECT_THAT(info_reply.details().details(), names_matcher);
+    EXPECT_THAT(info_reply.detailed_report().details(), names_matcher);
 }
 } // namespace
