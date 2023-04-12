@@ -1610,7 +1610,7 @@ try // clang-format on
     bool deleted = false;
     auto fetch_info = [&](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
-        auto info = response.mutable_details()->add_details();
+        auto info = response.mutable_detailed_report()->add_details();
         auto instance_info = info->mutable_instance_info();
         auto present_state = vm.current_state();
         info->set_name(name);
