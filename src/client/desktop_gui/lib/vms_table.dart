@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:basics/iterable_basics.dart';
 import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:filesize/filesize.dart';
@@ -6,7 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'grpc_client.dart';
 import 'instance_actions_button.dart';
+import 'settings.dart';
 import 'vms_screen.dart';
+
+const columnWidthsKey = 'columnWidths';
 
 class TableHeader {
   final String title;
@@ -238,6 +244,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
                 cursor: SystemMouseCursors.resizeColumn,
                 child: GestureDetector(
                   onPanStart: (_) => header.resizeStartCallback?.call(),
+                  onPanEnd: (_) => saveColumnWidths(),
                   onPanUpdate: (details) => header.resizeCallback
                       ?.call(details.localPosition.dx / tableWidthFactor),
                   child: Container(
@@ -257,9 +264,36 @@ class _VMsTableState extends ConsumerState<VMsTable> {
     }).toList();
   }
 
+  void saveColumnWidths() {
+    final widths = Map.fromEntries(
+      headers.map((h) => MapEntry(h.title, h.width)),
+    );
+    ref.read(settingsProvider).setString(columnWidthsKey, jsonEncode(widths));
+  }
+
+  void loadColumnWidths() {
+    try {
+      final widthsJson = ref.read(settingsProvider).getString(columnWidthsKey);
+      // it's not an error if the setting is not present
+      if (widthsJson == null) return;
+      final decodedWidths = jsonDecode(widthsJson) as Map<String, dynamic>;
+      final widths = decodedWidths.cast<String, double>();
+      if (!headers.map((h) => h.title).all(widths.containsKey)) {
+        throw "Couldn't load all column widths";
+      }
+      for (final header in headers) {
+        header.width = widths[header.title]!;
+      }
+    } catch (e) {
+      print('Failed to load column widths: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+
+    loadColumnWidths();
     for (final pair in IterableZip([headers, headers.skip(1)])) {
       final first = pair.first;
       final second = pair.last;

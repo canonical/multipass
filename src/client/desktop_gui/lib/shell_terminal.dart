@@ -4,24 +4,34 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pty/flutter_pty.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xterm/xterm.dart';
 
-class ShellTerminal extends StatefulWidget {
+import 'settings.dart';
+
+const terminalFontSizeKey = 'terminalFontSize';
+
+class ShellTerminal extends ConsumerStatefulWidget {
   final String instance;
 
   const ShellTerminal({super.key, required this.instance});
 
   @override
-  State<ShellTerminal> createState() => _ShellTerminalState();
+  ConsumerState<ShellTerminal> createState() => _ShellTerminalState();
 }
 
-class _ShellTerminalState extends State<ShellTerminal> {
+class _ShellTerminalState extends ConsumerState<ShellTerminal> {
   final terminal = Terminal(maxLines: 10000);
   final terminalController = TerminalController();
 
-  double fontSize = 13;
+  late double fontSize =
+      ref.read(settingsProvider).getDouble(terminalFontSizeKey) ?? 13;
 
-  void setFontSize(double size) => setState(() => fontSize = size.clamp(5, 25));
+  void setFontSize(double size) {
+    size = size.clamp(5, 25);
+    setState(() => fontSize = size);
+    ref.read(settingsProvider).setDouble(terminalFontSizeKey, size);
+  }
 
   void increaseFontSize() => setFontSize(fontSize + 0.5);
 

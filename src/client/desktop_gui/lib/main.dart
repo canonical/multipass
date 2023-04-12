@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'settings.dart';
 import 'shell_terminal.dart';
 import 'sidebar.dart';
 
@@ -19,19 +21,18 @@ main() async {
     await windowManager.focus();
   });
 
-  if (shellInto != null) {
-    runApp(MaterialApp(home: ShellTerminal(instance: shellInto)));
-    return;
-  }
-
   runApp(ProviderScope(
+    overrides: [
+      settingsProvider.overrideWithValue(await SharedPreferences.getInstance()),
+    ],
     child: MaterialApp(
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.white,
         fontFamily: 'Ubuntu',
       ),
-      home: const App(),
+      home:
+          shellInto == null ? const App() : ShellTerminal(instance: shellInto),
     ),
   ));
 }
