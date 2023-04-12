@@ -1736,6 +1736,7 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
+    // TODO@snapshots retrieve snapshot names to gather info
     mp::InstanceNames instance_names;
     for (const auto& n : request->instances_snapshots())
         instance_names.add_instance_name(n.instance_name());
