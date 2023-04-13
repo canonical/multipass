@@ -122,16 +122,16 @@ const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
         "jammy-server-cloudimg-amd64-vmlinuz-generic",
         "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/unpacked/"
         "jammy-server-cloudimg-amd64-initrd-generic"}},
-      {{"kinetic-server-cloudimg-amd64-disk1.img"},
+      {{"lunar-server-cloudimg-amd64-disk1.img"},
        {"https://cloud-images.ubuntu.com/buildd/daily/lunar/current/",
         {"devel"},
         "",
         "snapcraft-devel",
         "Snapcraft builder for the devel series",
         "https://cloud-images.ubuntu.com/buildd/daily/lunar/current/unpacked/"
-        "kinetic-server-cloudimg-amd64-vmlinuz-generic",
+        "lunar-server-cloudimg-amd64-vmlinuz-generic",
         "https://cloud-images.ubuntu.com/buildd/daily/lunar/current/unpacked/"
-        "kinetic-server-cloudimg-amd64-initrd-generic"}}}}};
+        "lunar-server-cloudimg-amd64-initrd-generic"}}}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
