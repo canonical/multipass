@@ -2510,9 +2510,6 @@ try
                                                            server};
 
     { // TODO@snapshots replace placeholder implementation
-
-        sleep(3);
-
         mpl::log(mpl::Level::debug, category, "Restore placeholder");
 
         RestoreReply reply;
