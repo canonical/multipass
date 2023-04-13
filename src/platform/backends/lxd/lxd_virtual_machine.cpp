@@ -16,8 +16,8 @@
  */
 
 #include "lxd_virtual_machine.h"
-#include "lxd_request.h"
 #include "lxd_mount_handler.h"
+#include "lxd_request.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -461,8 +461,9 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
     lxd_request(manager, "PATCH", url(), patch_json);
 }
 
-std::unique_ptr<multipass::MountHandler>  mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                        const std::string& target, const VMMount& mount)
+std::unique_ptr<multipass::MountHandler>
+mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, const std::string& target,
+                                                 const VMMount& mount)
 {
     return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);
 }

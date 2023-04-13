@@ -33,8 +33,7 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
                                  const VMMount& mount)
     : MountHandler{vm, ssh_key_provider, target, mount.source_path},
       network_manager_{network_manager},
-      lxd_instance_endpoint_new_(
-          QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(vm->vm_name.c_str()))
+      lxd_instance_endpoint_new_(QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(vm->vm_name.c_str()))
 {
     const VirtualMachine::State state = vm->current_state();
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
