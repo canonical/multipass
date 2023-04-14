@@ -1480,12 +1480,12 @@ try // clang-format on
             info->set_load(mpu::run_in_ssh_session(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
             info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
             info->set_memory_total(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $2}'"));
-            info->set_disk_usage(mpu::run_in_ssh_session(
-                session,
-                "df --output=used $(sudo fdisk -l | grep 'Linux filesystem' | awk '{print $1}') -B1 | sed 1d"));
-            info->set_disk_total(mpu::run_in_ssh_session(
-                session,
-                "df --output=size $(sudo fdisk -l | grep 'Linux filesystem' | awk '{print $1}') -B1 | sed 1d"));
+            info->set_disk_usage(
+                mpu::run_in_ssh_session(session, "df --output=used $(sudo fdisk -l | grep 'Linux filesystem' | awk "
+                                                 "'{print $1}') -B1 | sed 1d | sort -n | tail -n 1"));
+            info->set_disk_total(
+                mpu::run_in_ssh_session(session, "df --output=size $(sudo fdisk -l | grep 'Linux filesystem' | awk "
+                                                 "'{print $1}') -B1 | sed 1d | sort -n | tail -n 1"));
             info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
 
             std::string management_ip = vm->management_ipv4();
