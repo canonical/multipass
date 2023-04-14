@@ -152,11 +152,11 @@ auto construct_single_instance_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.add_info();
+    auto info_entry = info_reply.mutable_detailed_report()->add_details();
     info_entry->set_name("foo");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    info_entry->set_image_release("16.04 LTS");
-    info_entry->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(19);
@@ -186,17 +186,17 @@ auto construct_single_instance_info_reply()
     gid_map_pair->set_instance_id(1000);
 
     info_entry->set_cpu_count("1");
-    info_entry->set_load("0.45 0.51 0.15");
-    info_entry->set_memory_usage("60817408");
+    info_entry->mutable_instance_info()->set_load("0.45 0.51 0.15");
+    info_entry->mutable_instance_info()->set_memory_usage("60817408");
     info_entry->set_memory_total("1503238554");
-    info_entry->set_disk_usage("1288490188");
+    info_entry->mutable_instance_info()->set_disk_usage("1288490188");
     info_entry->set_disk_total("5153960756");
-    info_entry->set_current_release("Ubuntu 16.04.3 LTS");
-    info_entry->add_ipv4("10.168.32.2");
-    info_entry->add_ipv4("200.3.123.29");
-    info_entry->add_ipv6("2001:67c:1562:8007::aac:423a");
-    info_entry->add_ipv6("fd52:2ccf:f758:0:a342:79b5:e2ba:e05e");
-    info_entry->set_num_snapshots(0);
+    info_entry->mutable_instance_info()->set_current_release("Ubuntu 16.04.3 LTS");
+    info_entry->mutable_instance_info()->add_ipv4("10.168.32.2");
+    info_entry->mutable_instance_info()->add_ipv4("200.3.123.29");
+    info_entry->mutable_instance_info()->add_ipv6("2001:67c:1562:8007::aac:423a");
+    info_entry->mutable_instance_info()->add_ipv6("fd52:2ccf:f758:0:a342:79b5:e2ba:e05e");
+    info_entry->mutable_instance_info()->set_num_snapshots(0);
 
     return info_reply;
 }
@@ -205,11 +205,11 @@ auto construct_multiple_instances_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.add_info();
+    auto info_entry = info_reply.mutable_detailed_report()->add_details();
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    info_entry->set_image_release("16.04 LTS");
-    info_entry->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -227,32 +227,32 @@ auto construct_multiple_instances_info_reply()
     gid_map_pair->set_instance_id(501);
 
     info_entry->set_cpu_count("4");
-    info_entry->set_load("0.03 0.10 0.15");
-    info_entry->set_memory_usage("38797312");
+    info_entry->mutable_instance_info()->set_load("0.03 0.10 0.15");
+    info_entry->mutable_instance_info()->set_memory_usage("38797312");
     info_entry->set_memory_total("1610612736");
-    info_entry->set_disk_usage("1932735284");
+    info_entry->mutable_instance_info()->set_disk_usage("1932735284");
     info_entry->set_disk_total("6764573492");
-    info_entry->set_current_release("Ubuntu 16.04.3 LTS");
-    info_entry->add_ipv4("10.21.124.56");
-    info_entry->set_num_snapshots(1);
+    info_entry->mutable_instance_info()->set_current_release("Ubuntu 16.04.3 LTS");
+    info_entry->mutable_instance_info()->add_ipv4("10.21.124.56");
+    info_entry->mutable_instance_info()->set_num_snapshots(1);
 
-    info_entry = info_reply.add_info();
+    info_entry = info_reply.mutable_detailed_report()->add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    info_entry->set_image_release("18.04 LTS");
-    info_entry->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
-    info_entry->set_num_snapshots(3);
+    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
+    info_entry->mutable_instance_info()->set_num_snapshots(3);
 
     return info_reply;
 }
 
 auto add_petenv_to_reply(mp::InfoReply& reply)
 {
-    auto entry = reply.add_info();
+    auto entry = reply.mutable_detailed_report()->add_details();
     entry->set_name(petenv_name());
     entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
-    entry->set_image_release("18.10");
-    entry->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
+    entry->mutable_instance_info()->set_image_release("18.10");
+    entry->mutable_instance_info()->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
 }
 
 auto construct_empty_reply()

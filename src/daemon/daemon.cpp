@@ -1610,7 +1610,8 @@ try // clang-format on
     bool deleted = false;
     auto fetch_info = [&](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
-        auto info = response.add_info();
+        auto info = response.mutable_detailed_report()->add_details();
+        auto instance_info = info->mutable_instance_info();
         auto present_state = vm.current_state();
         info->set_name(name);
         if (deleted)
@@ -1638,8 +1639,8 @@ try // clang-format on
             }
         }
 
-        info->set_image_release(original_release);
-        info->set_id(vm_image.id);
+        instance_info->set_image_release(original_release);
+        instance_info->set_id(vm_image.id);
 
         auto vm_specs = vm_instance_specs[name];
 
@@ -1682,10 +1683,11 @@ try // clang-format on
         {
             mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
 
-            info->set_load(mpu::run_in_ssh_session(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
-            info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
+            instance_info->set_load(mpu::run_in_ssh_session(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
+            instance_info->set_memory_usage(
+                mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
             info->set_memory_total(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $2}'"));
-            info->set_disk_usage(
+            instance_info->set_disk_usage(
                 mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"));
             info->set_disk_total(
                 mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"));
@@ -1695,23 +1697,28 @@ try // clang-format on
             auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
 
             if (is_ipv4_valid(management_ip))
-                info->add_ipv4(management_ip);
+                instance_info->add_ipv4(management_ip);
             else if (all_ipv4.empty())
-                info->add_ipv4("N/A");
+                instance_info->add_ipv4("N/A");
 
             for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
-                    info->add_ipv4(extra_ipv4);
+                    instance_info->add_ipv4(extra_ipv4);
 
             auto current_release =
                 mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
-            info->set_current_release(!current_release.empty() ? current_release : original_release);
+            instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
         }
         return grpc::Status::OK;
     };
 
+    // TODO@snapshots retrieve snapshot names to gather info
+    mp::InstanceNames instance_names;
+    for (const auto& n : request->instances_snapshots())
+        instance_names.add_instance_name(n.instance_name());
+
     auto [instance_selection, status] =
-        select_instances_and_react(operative_instances, deleted_instances, request->instance_names().instance_name(),
+        select_instances_and_react(operative_instances, deleted_instances, instance_names.instance_name(),
                                    InstanceGroup::All, require_existing_instances_reaction);
 
     if (status.ok())
@@ -2484,9 +2491,6 @@ try
                                                            server};
 
     { // TODO@snapshots replace placeholder implementation
-
-        sleep(3);
-
         mpl::log(mpl::Level::debug, category, "Restore placeholder");
 
         RestoreReply reply;

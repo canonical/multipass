@@ -24,6 +24,29 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+namespace
+{
+// TODO@snapshots move this to common_cli once required by other commands
+std::vector<mp::InstanceSnapshotPair> add_instance_and_snapshot_names(const mp::ArgParser* parser)
+{
+    std::vector<mp::InstanceSnapshotPair> instance_snapshot_names;
+    instance_snapshot_names.reserve(parser->positionalArguments().count());
+
+    for (const auto& arg : parser->positionalArguments())
+    {
+        mp::InstanceSnapshotPair inst_snap_name;
+        auto index = arg.indexOf('.');
+        inst_snap_name.set_instance_name(arg.left(index).toStdString());
+        if (index >= 0)
+            inst_snap_name.set_snapshot_name(arg.right(arg.length() - index - 1).toStdString());
+
+        instance_snapshot_names.push_back(inst_snap_name);
+    }
+
+    return instance_snapshot_names;
+}
+} // namespace
+
 mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -85,7 +108,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
+    for (const auto& item : add_instance_and_snapshot_names(parser))
+        request.add_instances_snapshots()->CopyFrom(item);
     request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);

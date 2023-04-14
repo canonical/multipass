@@ -58,42 +58,47 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    for (const auto& info : format::sorted(reply.info()))
+    for (const auto& info : format::sorted(reply.detailed_report().details()))
     {
+        const auto& instance_details = info.instance_info();
+
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Name:", info.name());
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
                        "State:", mp::format::status_string_for(info.instance_status()));
 
-        int ipv4_size = info.ipv4_size();
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv4:", ipv4_size ? info.ipv4(0) : "--");
+        int ipv4_size = instance_details.ipv4_size();
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv4:", ipv4_size ? instance_details.ipv4(0) : "--");
 
         for (int i = 1; i < ipv4_size; ++i)
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", info.ipv4(i));
+            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv4(i));
 
-        if (int ipv6_size = info.ipv6_size())
+        if (int ipv6_size = instance_details.ipv6_size())
         {
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv6:", info.ipv6(0));
+            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv6:", instance_details.ipv6(0));
 
             for (int i = 1; i < ipv6_size; ++i)
-                fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", info.ipv6(i));
+                fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv6(i));
         }
 
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                       "Release:", info.current_release().empty() ? "--" : info.current_release());
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Release:",
+                       instance_details.current_release().empty() ? "--" : instance_details.current_release());
         fmt::format_to(std::back_inserter(buf), "{:<16}", "Image hash:");
-        if (info.id().empty())
+        if (instance_details.id().empty())
             fmt::format_to(std::back_inserter(buf), "{}\n", "Not Available");
         else
-            fmt::format_to(std::back_inserter(buf), "{}{}\n", info.id().substr(0, 12),
-                           !info.image_release().empty() ? fmt::format(" (Ubuntu {})", info.image_release()) : "");
+            fmt::format_to(std::back_inserter(buf), "{}{}\n", instance_details.id().substr(0, 12),
+                           !instance_details.image_release().empty()
+                               ? fmt::format(" (Ubuntu {})", instance_details.image_release())
+                               : "");
 
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
                        "CPU(s):", info.cpu_count().empty() ? "--" : info.cpu_count());
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Load:", info.load().empty() ? "--" : info.load());
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                       "Disk usage:", to_usage(info.disk_usage(), info.disk_total()));
+                       "Load:", instance_details.load().empty() ? "--" : instance_details.load());
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                       "Memory usage:", to_usage(info.memory_usage(), info.memory_total()));
+                       "Disk usage:", to_usage(instance_details.disk_usage(), info.disk_total()));
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
+                       "Memory usage:", to_usage(instance_details.memory_usage(), info.memory_total()));
 
         auto mount_paths = info.mount_info().mount_paths();
         fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
@@ -135,13 +140,13 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
             }
         }
 
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", info.num_snapshots());
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
 
         fmt::format_to(std::back_inserter(buf), "\n");
     }
 
     auto output = fmt::to_string(buf);
-    if (!reply.info().empty())
+    if (!reply.detailed_report().details().empty())
         output.pop_back();
     else
         output = "\n";

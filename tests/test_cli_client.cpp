@@ -404,9 +404,9 @@ auto make_info_function(const std::string& source_path = "", const std::string& 
 
         mp::InfoReply info_reply;
 
-        if (request.instance_names().instance_name(0) == "primary")
+        if (request.instances_snapshots(0).instance_name() == "primary")
         {
-            auto vm_info = info_reply.add_info();
+            auto vm_info = info_reply.mutable_detailed_report()->add_details();
             vm_info->set_name("primary");
             vm_info->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
 

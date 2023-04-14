@@ -2110,14 +2110,18 @@ TEST_F(Daemon, info_all_returns_all_instances)
         return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
     }));
 
-    const auto names_matcher = UnorderedElementsAre(Property(&mp::InfoReply::Info::name, good_instance_name),
-                                                    Property(&mp::InfoReply::Info::name, deleted_instance_name));
+    const auto names_matcher = UnorderedElementsAre(Property(&mp::DetailedInfoItem::name, good_instance_name),
+                                                    Property(&mp::DetailedInfoItem::name, deleted_instance_name));
 
     StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
-    EXPECT_CALL(mock_server, Write(Property(&mp::InfoReply::info, names_matcher), _)).WillOnce(Return(true));
+    mp::InfoReply info_reply;
+
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
 
     mp::Daemon daemon{config_builder.build()};
 
     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
+
+    EXPECT_THAT(info_reply.detailed_report().details(), names_matcher);
 }
 } // namespace
