@@ -71,17 +71,18 @@ std::string cmd::Info::name() const { return "info"; }
 
 QString cmd::Info::short_help() const
 {
-    return QStringLiteral("Display information about instances");
+    return QStringLiteral("Display information about instances or snapshots");
 }
 
 QString cmd::Info::description() const
 {
-    return QStringLiteral("Display information about instances");
+    return QStringLiteral("Display information about instances or snapshots");
 }
 
 mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to display information about", "<name> [<name> ...]");
+    parser->addPositionalArgument("instance", "Names of instances or snapshots to display information about",
+                                  "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
     QCommandLineOption all_option(all_option_name, "Display info for all instances");
     QCommandLineOption noRuntimeInfoOption(
