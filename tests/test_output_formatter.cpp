@@ -513,6 +513,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &single_instance_info_reply,
      "Name:           foo\n"
      "State:          Running\n"
+     "Snapshots:      0\n"
      "IPv4:           10.168.32.2\n"
      "                200.3.123.29\n"
      "IPv6:           2001:67c:1562:8007::aac:423a\n"
@@ -528,12 +529,12 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "                    GID map: 1000:1000\n"
      "                /home/user/test_dir => test_dir\n"
      "                    UID map: 1000:1000\n"
-     "                    GID map: 1000:1000\n"
-     "Snapshots:      0\n",
+     "                    GID map: 1000:1000\n",
      "table_info_single"},
     {&table_formatter, &multiple_instances_info_reply,
      "Name:           bogus-instance\n"
      "State:          Running\n"
+     "Snapshots:      1\n"
      "IPv4:           10.21.124.56\n"
      "Release:        Ubuntu 16.04.3 LTS\n"
      "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
@@ -543,10 +544,10 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Memory usage:   37.0MiB out of 1.5GiB\n"
      "Mounts:         /home/user/source => source\n"
      "                    UID map: 1000:501\n"
-     "                    GID map: 1000:501\n"
-     "Snapshots:      1\n\n"
+     "                    GID map: 1000:501\n\n"
      "Name:           bombastic\n"
      "State:          Stopped\n"
+     "Snapshots:      3\n"
      "IPv4:           --\n"
      "Release:        --\n"
      "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
@@ -554,8 +555,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Load:           --\n"
      "Disk usage:     --\n"
      "Memory usage:   --\n"
-     "Mounts:         --\n"
-     "Snapshots:      3\n",
+     "Mounts:         --\n",
      "table_info_multiple"},
 
     {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4\n", "csv_list_empty"},
@@ -647,6 +647,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - ~\n"
      "foo:\n"
      "  - state: Running\n"
+     "    snapshots: 0\n"
      "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
      "    image_release: 16.04 LTS\n"
      "    release: Ubuntu 16.04.3 LTS\n"
@@ -677,14 +678,14 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "          - \"1000:1000\"\n"
      "        gid_mappings:\n"
      "          - \"1000:1000\"\n"
-     "        source_path: /home/user/test_dir\n"
-     "    snapshots: 0\n",
+     "        source_path: /home/user/test_dir\n",
      "yaml_info_single"},
     {&yaml_formatter, &multiple_instances_info_reply,
      "errors:\n"
      "  - ~\n"
      "bogus-instance:\n"
      "  - state: Running\n"
+     "    snapshots: 1\n"
      "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
      "    image_release: 16.04 LTS\n"
      "    release: Ubuntu 16.04.3 LTS\n"
@@ -709,9 +710,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "        gid_mappings:\n"
      "          - \"1000:501\"\n"
      "        source_path: /home/user/source\n"
-     "    snapshots: 1\n"
      "bombastic:\n"
      "  - state: Stopped\n"
+     "    snapshots: 3\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
      "    image_release: 18.04 LTS\n"
      "    release: ~\n"
@@ -725,8 +726,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "      total: ~\n"
      "    ipv4:\n"
      "      []\n"
-     "    mounts: ~\n"
-     "    snapshots: 3\n",
+     "    mounts: ~\n",
      "yaml_info_multiple"}};
 
 const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
