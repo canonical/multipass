@@ -71,6 +71,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         YAML::Node instance_node;
 
         instance_node["state"] = mp::format::status_string_for(info.instance_status());
+        instance_node["snapshots"] = instance_details.num_snapshots();
         instance_node["image_hash"] = instance_details.id();
         instance_node["image_release"] = instance_details.image_release();
         if (instance_details.current_release().empty())
@@ -148,7 +149,6 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
             mounts[mount.target_path()] = mount_node;
         }
         instance_node["mounts"] = mounts;
-        instance_node["snapshots"] = instance_details.num_snapshots();
 
         info_node[info.name()].push_back(instance_node);
     }
