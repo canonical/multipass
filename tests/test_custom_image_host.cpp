@@ -54,7 +54,7 @@ constexpr auto sha256_sums =
     "96107afaa1673577c91dfbe2905a823043face65be6e8a0edc82f6b932d8380c  bionic-server-cloudimg-amd64-disk.img\n"
     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  focal-server-cloudimg-amd64-disk.img\n"
     "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c  jammy-server-cloudimg-amd64-disk.img\n"
-    "872e3f03b57300260c3f982f07183a8480d724d566c686fddc1a2fde0d411ec5  kinetic-server-cloudimg-amd64-disk1.img";
+    "872e3f03b57300260c3f982f07183a8480d724d566c686fddc1a2fde0d411ec5  lunar-server-cloudimg-amd64-disk1.img";
 
 struct CustomImageHost : public Test
 {
@@ -131,7 +131,7 @@ INSTANTIATE_TEST_SUITE_P(
                    "aa61059ac29fcca26b19256d3b6dcebc8ade03f96ebf0fa201d5f6210eaa0e0c", "snapcraft-core22",
                    "Snapcraft builder for Core 22"},
         CustomData{std::vector<std::string>{"devel"}, "snapcraft",
-                   "https://cloud-images.ubuntu.com/buildd/daily/lunar/current/kinetic-server-cloudimg-amd64-disk1.img",
+                   "https://cloud-images.ubuntu.com/buildd/daily/lunar/current/lunar-server-cloudimg-amd64-disk1.img",
                    "872e3f03b57300260c3f982f07183a8480d724d566c686fddc1a2fde0d411ec5", "snapcraft-devel",
                    "Snapcraft builder for the devel series"}));
 
