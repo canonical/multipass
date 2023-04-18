@@ -113,13 +113,15 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
 std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                                   const std::string& name, const std::string& comment)
 {
-    // TODO@snapshots generate name
+    std::string snapshot_name;
+
     {
         std::unique_lock lock{snapshot_mutex};
         if (snapshot_count > max_snapshots)
             throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded", max_snapshots)};
+        snapshot_name = name.empty() ? generate_snapshot_name() : name;
 
-        const auto [it, success] = snapshots.try_emplace(name, nullptr);
+        const auto [it, success] = snapshots.try_emplace(snapshot_name, nullptr);
         if (success)
         {
             auto rollback_on_failure = sg::make_scope_guard([this, it = it, old_head = head_snapshot]() noexcept {
@@ -134,7 +136,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             });
 
             // TODO@snapshots - generate implementation-specific snapshot instead
-            auto ret = head_snapshot = it->second = std::make_shared<BaseSnapshot>(name, comment, head_snapshot, specs);
+            auto ret = head_snapshot = it->second =
+                std::make_shared<BaseSnapshot>(snapshot_name, comment, head_snapshot, specs);
 
             ++snapshot_count;
             persist_head_snapshot(snapshot_dir);
@@ -146,8 +149,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
         }
     }
 
-    mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
-    throw SnapshotNameTaken{vm_name, name};
+    mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", snapshot_name));
+    throw SnapshotNameTaken{vm_name, snapshot_name};
 }
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
@@ -266,6 +269,11 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 
     rollback_snapshot_file.dismiss();
     rollback_head_file.dismiss();
+}
+
+std::string BaseVirtualMachine::generate_snapshot_name() const
+{
+    return fmt::format("snapshot{}", snapshot_count + 1);
 }
 
 } // namespace multipass
