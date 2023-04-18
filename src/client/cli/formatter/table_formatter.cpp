@@ -65,6 +65,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Name:", info.name());
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
                        "State:", mp::format::status_string_for(info.instance_status()));
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
 
         int ipv4_size = instance_details.ipv4_size();
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv4:", ipv4_size ? instance_details.ipv4(0) : "--");
@@ -139,8 +140,6 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
                                (std::next(gid_mapping) == mount_maps.gid_mappings().cend()) ? "\n" : "");
             }
         }
-
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
 
         fmt::format_to(std::back_inserter(buf), "\n");
     }
