@@ -2401,7 +2401,7 @@ try
                 grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only take snapshots of stopped instances."});
 
         auto snapshot_name = request->snapshot();
-        if (!mp::utils::valid_hostname(snapshot_name))
+        if (!snapshot_name.empty() && !mp::utils::valid_hostname(snapshot_name))
             return status_promise->set_value(
                 grpc::Status{grpc::INVALID_ARGUMENT, fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
 
