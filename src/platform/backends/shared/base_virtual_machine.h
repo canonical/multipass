@@ -69,6 +69,7 @@ private:
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
     void persist_head_snapshot(const QDir& snapshot_dir) const;
+    std::string generate_snapshot_name() const;
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
