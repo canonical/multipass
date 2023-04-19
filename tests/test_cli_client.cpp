@@ -61,6 +61,7 @@
 namespace mp = multipass;
 namespace mcp = multipass::cli::platform;
 namespace mpt = multipass::test;
+namespace mpu = multipass::utils;
 using namespace testing;
 
 namespace
@@ -1585,15 +1586,15 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
 
 INSTANTIATE_TEST_SUITE_P(Client, SSHClientReturnTest, Values(0, -1, 1, 127));
 
-/*TEST_F(Client, execCmdWithDirPrependsCd)
+TEST_F(Client, execCmdWithDirPrependsCd)
 {
     std::string dir{"/home/ubuntu/"};
     std::string cmd{"pwd"};
 
     REPLACE(ssh_channel_request_exec, ([&dir, &cmd](ssh_channel, const char* raw_cmd) {
-                EXPECT_THAT(raw_cmd, StartsWith("'cd' '" + dir + "'"));
+                EXPECT_THAT(raw_cmd, StartsWith("cd " + dir));
                 EXPECT_THAT(raw_cmd, HasSubstr("&&"));
-                EXPECT_THAT(raw_cmd, EndsWith("'" + cmd + "'"));
+                EXPECT_THAT(raw_cmd, EndsWith(cmd)); // This will fail if cmd needs to be escaped.
 
                 return SSH_OK;
             }));
@@ -1621,7 +1622,7 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
         cmds_string += " " + cmds[i];
 
     REPLACE(ssh_channel_request_exec, ([&dir, &cmds_string](ssh_channel, const char* raw_cmd) {
-                EXPECT_EQ(raw_cmd, "'sudo' 'sh' '-c' 'cd " + dir + " && " + cmds_string + "'");
+                EXPECT_EQ(raw_cmd, "sudo sh -c cd\\ " + dir + "\\ \\&\\&\\ " + mpu::escape_for_shell(cmds_string));
 
                 return SSH_OK;
             }));
@@ -1641,7 +1642,7 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
         full_cmdline.push_back(c);
 
     EXPECT_EQ(send_command(full_cmdline), mp::ReturnCode::Ok);
-}*/
+}
 
 TEST_F(Client, execCmdFailsIfSshExecThrows)
 {
@@ -3757,7 +3758,7 @@ TEST_F(ClientAlias, fails_when_name_clashes_with_command_name)
     ASSERT_THAT(cerr_stream.str(), Eq("Alias name 'list' clashes with a command name\n"));
 }
 
-/*TEST_F(ClientAlias, execAliasRewritesMountedDir)
+TEST_F(ClientAlias, execAliasRewritesMountedDir)
 {
     std::string alias_name{"an_alias"};
     std::string instance_name{"primary"};
@@ -3772,9 +3773,9 @@ TEST_F(ClientAlias, fails_when_name_clashes_with_command_name)
     populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, "map"}}});
 
     REPLACE(ssh_channel_request_exec, ([&target_dir, &cmd](ssh_channel, const char* raw_cmd) {
-                EXPECT_THAT(raw_cmd, StartsWith("'cd' '" + target_dir + "/'"));
+                EXPECT_THAT(raw_cmd, StartsWith("cd " + target_dir + "/"));
                 EXPECT_THAT(raw_cmd, HasSubstr("&&"));
-                EXPECT_THAT(raw_cmd, EndsWith("'" + cmd + "'"));
+                EXPECT_THAT(raw_cmd, EndsWith(cmd)); // assuming that cmd does not have escaped characters!
 
                 return SSH_OK;
             }));
@@ -3816,9 +3817,9 @@ TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
     populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, map_dir ? "map" : "default"}}});
 
     REPLACE(ssh_channel_request_exec, ([&cmd](ssh_channel, const char* raw_cmd) {
-                EXPECT_THAT(raw_cmd, Not(StartsWith("'cd' '")));
+                EXPECT_THAT(raw_cmd, Not(StartsWith("cd ")));
                 EXPECT_THAT(raw_cmd, Not(HasSubstr("&&")));
-                EXPECT_THAT(raw_cmd, EndsWith("'" + cmd + "'"));
+                EXPECT_THAT(raw_cmd, EndsWith(cmd)); // again, assuming that cmd does not have escaped characters
 
                 return SSH_OK;
             }));
@@ -3849,5 +3850,5 @@ QString current_cdup()
 INSTANTIATE_TEST_SUITE_P(ClientAlias, NotDirRewriteTestsuite,
                          Values(std::make_pair(false, QDir{QDir::current()}.canonicalPath()),
                                 std::make_pair(true, QDir{QDir::current()}.canonicalPath() + "/0/1/2/3/4/5/6/7/8/9"),
-                                std::make_pair(true, current_cdup() + "/different_name")));*/
+                                std::make_pair(true, current_cdup() + "/different_name")));
 } // namespace
