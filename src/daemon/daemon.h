@@ -177,6 +177,9 @@ private:
     // it is applied in Daemon::find wherever the image info fetching is involved, aka non-only-blueprints case
     void wait_update_manifests_all_and_optionally_applied_force(const bool force_manifest_network_download);
 
+    template <typename Reply, typename Request>
+    void reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server, std::string&& msg, bool sticky = false);
+
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::ShPtr> operative_instances;
