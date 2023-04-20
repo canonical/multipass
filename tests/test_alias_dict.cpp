@@ -758,4 +758,80 @@ TEST_F(AliasDictionary, removingUnexistingContextDoesNothing)
     ASSERT_EQ(dict.active_context_name(), "default");
     ASSERT_EQ(dict.get_active_context().size(), 1u);
 }
+
+TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInDifferentContext)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
+    dict.set_active_context("new_context");
+
+    ASSERT_EQ(dict.get_context_and_alias("first_alias"), std::nullopt);
+}
+
+TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInCurrentContext)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
+    auto context_and_alias = dict.get_context_and_alias("first_alias");
+
+    ASSERT_EQ(context_and_alias->first, "default");
+    ASSERT_EQ(context_and_alias->second, "first_alias");
+}
+
+TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksWithEquallyNamesAliasesInDifferentContext)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
+    dict.set_active_context("new_context");
+    dict.add_alias("first_alias", mp::AliasDefinition{"instance-2", "command-2", "map"});
+    auto context_and_alias = dict.get_context_and_alias("first_alias");
+
+    ASSERT_EQ(context_and_alias->first, "new_context");
+    ASSERT_EQ(context_and_alias->second, "first_alias");
+}
+
+TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfAliasAndContextExist)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
+    dict.set_active_context("new_context");
+    dict.add_alias("second_alias", mp::AliasDefinition{"instance-2", "command-2", "map"});
+    auto context_and_alias = dict.get_context_and_alias("default.first_alias");
+
+    ASSERT_EQ(context_and_alias->first, "default");
+    ASSERT_EQ(context_and_alias->second, "first_alias");
+}
+
+TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfContextDoesNotExist)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
+    ASSERT_EQ(dict.get_context_and_alias("nonexistant_context.first_alias"), std::nullopt);
+}
+
+TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfAliasDoesNotExist)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
+    dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
+    ASSERT_EQ(dict.get_context_and_alias("default.nonexistant_alias"), std::nullopt);
+}
+
 } // namespace
