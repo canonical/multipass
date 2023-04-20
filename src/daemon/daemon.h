@@ -176,6 +176,9 @@ private:
     grpc::Status migrate_from_hyperkit(
         grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server); // TODO temporary code, remove
 
+    template <typename Reply, typename Request>
+    void reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server, std::string&& msg, bool sticky = false);
+
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::ShPtr> operative_instances;

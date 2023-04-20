@@ -2507,10 +2507,40 @@ try
     mpl::ClientLogger<RestoreReply, RestoreRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
-    { // TODO@snapshots replace placeholder implementation
+    RestoreReply reply;
+    const auto& instance_name = request->instance();
+    auto [instance_trail, status] = find_instance_and_react(operative_instances, deleted_instances, instance_name,
+                                                            require_operative_instances_reaction);
+
+    if (status.ok())
+    {
+        assert(instance_trail.index() == 0);
+        auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+        assert(vm_ptr);
+
+        using St = VirtualMachine::State;
+        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+            return status_promise->set_value(
+                grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only restore snapshots to stopped instances."});
+
+        const auto spec_it = vm_instance_specs.find(instance_name);
+        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
+
+        if (!request->destructive())
+        {
+            reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
+
+            const auto snapshot = vm_ptr->take_snapshot(instance_directory(instance_name, *config), spec_it->second, "",
+                                                        fmt::format("Before restoring {}", request->snapshot()));
+
+            reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
+                      /* sticky = */ true);
+        }
+
+        // TODO@snapshots replace placeholder implementation
+        reply_msg(server, "Restoring snapshot");
         mpl::log(mpl::Level::debug, category, "Restore placeholder");
 
-        RestoreReply reply;
         auto snapshot_name = request->snapshot();
 
         server->Write(reply);
@@ -3204,6 +3234,18 @@ void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_futu
         async_op_result.status_promise->set_value(async_op_result.status);
 }
 
+template <typename Reply, typename Request>
+void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server, std::string&& msg, bool sticky)
+{
+    Reply reply{};
+    if (sticky)
+        reply.set_reply_message(fmt::format("{}\n", std::forward<decltype(msg)>(msg)));
+    else
+        reply.set_reply_message(std::forward<decltype(msg)>(msg));
+
+    server->Write(reply);
+}
+
 grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server)
 { // TODO hk migration, remove
     assert(config->factory->get_backend_version_string() == "hyperkit" &&
@@ -3211,17 +3253,6 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
 
     if (vm_instance_specs.empty())
         return grpc::Status::OK;
-
-    // Utility to write a msg back to the client
-    auto reply_msg = [server](auto&& msg, bool sticky = false) {
-        mp::SetReply reply{};
-        if (sticky)
-            reply.set_log_line(fmt::format("{}\n", std::forward<decltype(msg)>(msg)));
-        else
-            reply.set_reply_message(std::forward<decltype(msg)>(msg));
-
-        server->Write(reply);
-    };
 
     // Utility to read a json file
     auto read_json = [](auto&& file_path) {
@@ -3285,24 +3316,26 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
     for (const auto& [vm_name, vm_specs] : vm_instance_specs)
     {
         if (deleted_instances.find(vm_name) != deleted_instances.cend())
-            reply_msg(fmt::format("Cannot migrate {}: instance is deleted", vm_name), /* sticky = */ true);
+            reply_msg(server, fmt::format("Cannot migrate {}: instance is deleted", vm_name), /* sticky = */ true);
         else if (auto st = operative_instances[vm_name]->current_state();
                  st != VirtualMachine::State::off && st != VirtualMachine::State::stopped)
-            reply_msg(fmt::format("Cannot migrate {}: instance needs to be stopped", vm_name), /* sticky = */ true);
+            reply_msg(server, fmt::format("Cannot migrate {}: instance needs to be stopped", vm_name),
+                      /* sticky = */ true);
         else if (auto key = QString::fromStdString(vm_name);
                  qemu_instances_json.contains(key) || qemu_instance_images_json.contains(key))
-            reply_msg(fmt::format("Cannot migrate {}: name already taken by a qemu instance", vm_name),
+            reply_msg(server, fmt::format("Cannot migrate {}: name already taken by a qemu instance", vm_name),
                       /* sticky = */ true);
         else if (const auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
                  vm_image.original_release.find("16.04") != std::string::npos &&
                  !vm_image.image_path.contains("uefi", Qt::CaseInsensitive))
-            reply_msg(fmt::format("Cannot migrate {}: old Xenial instances (launched before 1.11) cannot be migrated :/"
+            reply_msg(server,
+                      fmt::format("Cannot migrate {}: old Xenial instances (launched before 1.11) cannot be migrated :/"
                                   " consider extracting your data manually.",
                                   vm_name),
                       /* sticky = */ true);
         else
         {
-            reply_msg(fmt::format("Migrating instance from hyperkit to qemu: {}", vm_name));
+            reply_msg(server, fmt::format("Migrating instance from hyperkit to qemu: {}", vm_name));
 
             // Copy instance image to qemu vault
             const auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
@@ -3443,6 +3476,6 @@ grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface
                                       fmt::join(instances_migrated, separator), hint_delete);
     }
 
-    reply_msg(std::move(outcome_summary), /* sticky = */ true);
+    reply_msg(server, std::move(outcome_summary), /* sticky = */ true);
     return ret;
 }
