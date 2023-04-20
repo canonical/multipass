@@ -3368,7 +3368,7 @@ INSTANTIATE_TEST_SUITE_P(ClientAlias, ClientAliasNameSuite,
                          Combine(Values("command", "com.mand", "com.ma.nd"),
                                  Values("", "/", "./", "./relative/", "/absolute/", "../more/relative/")));
 
-TEST_F(ClientAlias, fails_if_cannot_write_script)
+TEST_F(ClientAlias, failsIfCannotWriteFullyQualifiedScript)
 {
     EXPECT_CALL(*mock_platform, create_alias_script(_, _)).Times(1).WillRepeatedly(Throw(std::runtime_error("aaa")));
 
@@ -3377,6 +3377,25 @@ TEST_F(ClientAlias, fails_if_cannot_write_script)
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"alias", "primary:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
     EXPECT_EQ(cerr_stream.str(), "Error when creating script for alias: aaa\n");
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), csv_header);
+}
+
+TEST_F(ClientAlias, failsIfCannotWriteNonFullyQualifiedScript)
+{
+    EXPECT_CALL(*mock_platform, create_alias_script(_, _))
+        .WillOnce(Return())
+        .WillOnce(Throw(std::runtime_error("bbb")));
+    EXPECT_CALL(*mock_platform, remove_alias_script(_)).WillOnce(Return());
+
+    EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"alias", "primary:command"}, trash_stream, cerr_stream), mp::ReturnCode::CommandLineError);
+    EXPECT_EQ(cerr_stream.str(), "Error when creating script for alias: bbb\n");
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
