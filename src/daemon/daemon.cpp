@@ -2439,10 +2439,40 @@ try
     mpl::ClientLogger<RestoreReply, RestoreRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
-    { // TODO@snapshots replace placeholder implementation
+    RestoreReply reply;
+    const auto& instance_name = request->instance();
+    auto [instance_trail, status] = find_instance_and_react(operative_instances, deleted_instances, instance_name,
+                                                            require_operative_instances_reaction);
+
+    if (status.ok())
+    {
+        assert(instance_trail.index() == 0);
+        auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+        assert(vm_ptr);
+
+        using St = VirtualMachine::State;
+        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+            return status_promise->set_value(
+                grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only restore snapshots to stopped instances."});
+
+        const auto spec_it = vm_instance_specs.find(instance_name);
+        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
+
+        if (!request->destructive())
+        {
+            reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
+
+            const auto snapshot = vm_ptr->take_snapshot(instance_directory(instance_name, *config), spec_it->second, "",
+                                                        fmt::format("Before restoring {}", request->snapshot()));
+
+            reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
+                      /* sticky = */ true);
+        }
+
+        // TODO@snapshots replace placeholder implementation
+        reply_msg(server, "Restoring snapshot");
         mpl::log(mpl::Level::debug, category, "Restore placeholder");
 
-        RestoreReply reply;
         auto snapshot_name = request->snapshot();
 
         server->Write(reply);
@@ -3129,4 +3159,16 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 
     if (async_op_result.status_promise)
         async_op_result.status_promise->set_value(async_op_result.status);
+}
+
+template <typename Reply, typename Request>
+void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server, std::string&& msg, bool sticky)
+{
+    Reply reply{};
+    if (sticky)
+        reply.set_reply_message(fmt::format("{}\n", std::forward<decltype(msg)>(msg)));
+    else
+        reply.set_reply_message(std::forward<decltype(msg)>(msg));
+
+    server->Write(reply);
 }
