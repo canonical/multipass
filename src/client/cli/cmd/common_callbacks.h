@@ -31,8 +31,21 @@ auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& strea
 {
     return [&spinner, &stream](const Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>*) {
         if (!reply.log_line().empty())
-        {
             spinner.print(stream, reply.log_line());
+    };
+}
+
+template <typename Request, typename Reply>
+auto make_reply_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
+{
+    return [&spinner, &stream](const Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>*) {
+        if (!reply.log_line().empty())
+            spinner.print(stream, reply.log_line());
+
+        if (const auto& msg = reply.reply_message(); !msg.empty())
+        {
+            spinner.stop();
+            spinner.start(msg);
         }
     };
 }
@@ -42,9 +55,7 @@ auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
 {
     return [&spinner, &term](const Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
         if (!reply.log_line().empty())
-        {
             spinner.print(term.cerr(), reply.log_line());
-        }
 
         if (reply.password_requested())
         {
