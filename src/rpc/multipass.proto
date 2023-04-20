@@ -511,4 +511,5 @@ message RestoreRequest {
 
 message RestoreReply {
     string log_line = 1;
+    string reply_message = 2;
 }
