@@ -375,19 +375,36 @@ TEST_F(AliasDictionary, correctlyGetsAliasInDefaultContext)
     ASSERT_FALSE(dict.empty());
 }
 
-TEST_F(AliasDictionary, correctlyGetsAliasInNonDefaultContext)
+TEST_F(AliasDictionary, correctlyGetsUniqueAliasInAnotherContext)
 {
     std::stringstream trash_stream;
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     std::string alias_name{"alias"};
+    mp::AliasDefinition alias_def{"instance", "command", "map"};
+
+    dict.add_alias(alias_name, alias_def);
+
+    dict.set_active_context("new_context");
+
+    auto result = dict.get_alias(alias_name);
+    ASSERT_EQ(result, alias_def);
+    ASSERT_FALSE(dict.empty());
+}
+
+TEST_F(AliasDictionary, correctlyGetsAliasInNonDefaultContext)
+{
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
+    mp::AliasDict dict(&trash_term);
+
     std::string context{"non-default"};
+    std::string alias_name{"alias"};
     mp::AliasDefinition alias_def{"instance", "command", "map"};
 
     dict.set_active_context(context);
     dict.add_alias(alias_name, alias_def);
-    ASSERT_FALSE(dict.empty());
     dict.set_active_context("default");
 
     auto result = dict.get_alias(context + '.' + alias_name);
