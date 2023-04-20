@@ -187,16 +187,14 @@ std::vector<std::pair<std::string, std::string>> mp::AliasDict::remove_aliases_f
     return removed_aliases;
 }
 
+// The argument is an alias name, which can have the forms (i) "alias" or (ii) "context.alias".
+// (i): returns <active context name, alias name> if the alias exists in the current context; std::nullopt otherwise.
+// (ii): returns <context name, alias name> if the alias exists in the given context; std::nullopt otherwise.
 std::optional<std::pair<std::string, std::string>> mp::AliasDict::get_context_and_alias(const std::string& alias) const
 {
-    try
-    {
-        if (aliases.at(active_context).count(alias) > 0)
-            return std::make_pair(active_context, alias);
-    }
-    catch (const std::out_of_range&)
-    {
-    }
+    // This will never throw because we already checked that the active context exists.
+    if (aliases.at(active_context).count(alias) > 0)
+        return std::make_pair(active_context, alias);
 
     std::string::size_type dot_pos = alias.rfind('.');
 
