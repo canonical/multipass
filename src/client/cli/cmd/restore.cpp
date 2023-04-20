@@ -53,9 +53,8 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    spinner.start("Restoring snapshot ");
     return dispatch(&RpcMethod::restore, request, on_success, on_failure,
-                    make_logging_spinner_callback<RestoreRequest, RestoreReply>(spinner, cerr));
+                    make_reply_spinner_callback<RestoreRequest, RestoreReply>(spinner, cerr));
 }
 
 std::string cmd::Restore::name() const
