@@ -58,6 +58,8 @@ for framework in ${QT_FRAMEWORKS}; do
            "${LIB_DIR}/${framework_dir}"
     chmod +w "${LIB_DIR}/${framework_path}"
 
+    dylibbundler -of -x "${LIB_DIR}/${framework_path}" -b -d ${CMAKE_BINARY_DIR}/lib/ -p @rpath -i /usr/lib/ -i @rpath -i @executable_path -i @loader_path
+
     # Add rpaths for package
     install_name_tool -add_rpath "@loader_path/../../../" "${LIB_DIR}/${framework_path}"
 
