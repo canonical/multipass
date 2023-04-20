@@ -17,6 +17,7 @@
 
 #include "remote_settings_handler.h"
 #include "animated_spinner.h"
+#include "common_callbacks.h"
 
 #include <multipass/cli/command.h>
 #include <multipass/exceptions/settings_exceptions.h>
@@ -119,21 +120,10 @@ public:
         set_request.set_val(val.toStdString());
 
         mp::AnimatedSpinner spinner{cout};
-        auto streaming_callback = [this,
-                                   &spinner](mp::SetReply& reply,
-                                             grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
-            if (const auto& msg = reply.log_line(); !msg.empty())
-                spinner.print(cerr, reply.log_line());
-
-            if (const auto& msg = reply.reply_message(); !msg.empty())
-            {
-                spinner.stop();
-                spinner.start(msg);
-            }
-        };
 
         [[maybe_unused]] auto ret =
-            dispatch(&RpcMethod::set, set_request, on_success<mp::SetReply>, on_failure, streaming_callback);
+            dispatch(&RpcMethod::set, set_request, on_success<mp::SetReply>, on_failure,
+                     mp::make_reply_spinner_callback<mp::SetRequest, mp::SetReply>(spinner, cerr));
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
