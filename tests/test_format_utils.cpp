@@ -203,3 +203,35 @@ TEST(AliasFilter, at_least_one_alias_left)
     EXPECT_EQ(aliases.size(), 1);
     EXPECT_EQ(aliases[0].alias(), "d");
 }
+
+TEST(StaticFormatFunctions, columnWidthOnEmptyInputWorks)
+{
+    std::vector<std::string> empty_vector;
+    const auto get_width = [](const auto& str) -> int { return str.length(); };
+    int min_w = 3;
+
+    ASSERT_EQ(mp::format::column_width(empty_vector.begin(), empty_vector.end(), get_width, min_w), min_w);
+}
+
+TEST(StaticFormatFunctions, columnWidthOnWideInputWorks)
+{
+    const std::string wider_str = "wide string example";
+
+    const auto str_vector = std::vector<std::string>{wider_str, "w2"};
+    const auto get_width = [](const auto& str) -> int { return str.length(); };
+    int min_w = 3;
+    int space = 1;
+
+    ASSERT_EQ(mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, min_w, space),
+              wider_str.length() + space);
+}
+
+TEST(StaticFormatFunctions, columnWidthOnNarrowInputWorks)
+{
+    const auto str_vector = std::vector<std::string>{"n", "n2"};
+    const auto get_width = [](const auto& str) -> int { return str.length(); };
+    int min_w = 3;
+    int space = 2;
+
+    ASSERT_EQ(mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, min_w, space), 4);
+}
