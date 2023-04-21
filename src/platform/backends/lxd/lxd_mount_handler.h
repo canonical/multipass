@@ -29,7 +29,7 @@ class LXDMountHandler : public MountHandler
 {
 public:
     LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDVirtualMachine* vm,
-                    const SSHKeyProvider* ssh_key_provider, const std::string& target, const VMMount& mount);
+                    const SSHKeyProvider* ssh_key_provider, const std::string& target_path, const VMMount& mount);
     ~LXDMountHandler() override;
 
     void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
@@ -41,7 +41,8 @@ private:
 
     // data memeber
     mp::NetworkAccessManager* network_manager_{nullptr};
-    const QUrl lxd_instance_endpoint_new_{};
+    const QUrl lxd_instance_endpoint{};
+    const std::string device_name_{};
 };
 
 } // namespace multipass

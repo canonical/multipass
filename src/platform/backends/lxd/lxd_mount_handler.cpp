@@ -18,22 +18,21 @@
 #include "lxd_mount_handler.h"
 #include "lxd_request.h"
 
-// namespace mpl = multipass::logging;
-// namespace mpu = multipass::utils;
-
 namespace
 {
-// constexpr std::string_view category = "lxd-mount-handler";
+constexpr std::string_view category = "lxd-mount-handler";
 } // namespace
 
 namespace multipass
 {
 LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDVirtualMachine* vm,
-                                 const SSHKeyProvider* ssh_key_provider, const std::string& target,
+                                 const SSHKeyProvider* ssh_key_provider, const std::string& target_path,
                                  const VMMount& mount)
-    : MountHandler{vm, ssh_key_provider, target, mount.source_path},
+    : MountHandler{vm, ssh_key_provider, target_path, mount.source_path},
       network_manager_{network_manager},
-      lxd_instance_endpoint_new_(QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(vm->vm_name.c_str()))
+      lxd_instance_endpoint{QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(vm->vm_name.c_str())},
+      // 27 (25 + 2(d_)) letters is the maximal deivce name length that lxd can accepte
+      device_name_{mp::utils::make_uuid(target_path).left(25).prepend("d_").toStdString()}
 {
     const VirtualMachine::State state = vm->current_state();
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
@@ -42,6 +41,8 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
     }
 
     std::lock_guard active_lock{active_mutex};
+    mpl::log(mpl::Level::info, std::string(category),
+             fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
     lxd_device_add();
 }
 
@@ -55,40 +56,37 @@ void LXDMountHandler::stop_impl(bool force)
 
 LXDMountHandler::~LXDMountHandler()
 {
-    vm->stop();
     std::lock_guard active_lock{active_mutex};
+    mpl::log(mpl::Level::info, std::string(category),
+             fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     lxd_device_remove();
 }
 
 void LXDMountHandler::lxd_device_remove()
 {
-    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint_new_);
+    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint);
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
     QJsonObject device_list = instance_info_metadata["devices"].toObject();
 
-    // mydisk is the hard coded name for now, it will be replaced by proper generated later
-    device_list.remove("mydisk");
+    device_list.remove(device_name_.c_str());
     instance_info_metadata["devices"] = device_list;
 
-    const QJsonObject json_reply =
-        lxd_request(network_manager_, "PUT", lxd_instance_endpoint_new_, instance_info_metadata);
+    const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint, instance_info_metadata);
     lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, 300000);
 }
 
 void LXDMountHandler::lxd_device_add()
 {
-    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint_new_);
+    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint);
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
     QJsonObject device_list = instance_info_metadata["devices"].toObject();
 
     const QJsonObject new_device_object{{"path", target.c_str()}, {"source", source.c_str()}, {"type", "disk"}};
 
-    // mydisk is the hard coded name for now, it will be replaced by proper generated later
-    device_list.insert("mydisk", new_device_object);
+    device_list.insert(device_name_.c_str(), new_device_object);
     instance_info_metadata["devices"] = device_list;
 
-    const QJsonObject json_reply =
-        lxd_request(network_manager_, "PUT", lxd_instance_endpoint_new_, instance_info_metadata);
+    const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint, instance_info_metadata);
     lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, 300000);
 }
 
