@@ -3079,7 +3079,8 @@ INSTANTIATE_TEST_SUITE_P(Client, HelpTestsuite,
                          Values(std::make_pair(std::string{"alias"},
                                                "Create an alias to be executed on a given instance.\n"),
                                 std::make_pair(std::string{"aliases"}, "List available aliases\n"),
-                                std::make_pair(std::string{"unalias"}, "Remove aliases\n")));
+                                std::make_pair(std::string{"unalias"}, "Remove aliases\n"),
+                                std::make_pair(std::string{"prefer"}, "Switch the current alias context\n")));
 
 TEST_F(Client, command_help_is_different_than_general_help)
 {
@@ -3870,4 +3871,27 @@ INSTANTIATE_TEST_SUITE_P(ClientAlias, NotDirRewriteTestsuite,
                          Values(std::make_pair(false, QDir{QDir::current()}.canonicalPath()),
                                 std::make_pair(true, QDir{QDir::current()}.canonicalPath() + "/0/1/2/3/4/5/6/7/8/9"),
                                 std::make_pair(true, current_cdup() + "/different_name")));
+
+TEST_F(ClientAliasNameSuite, preferWithNoArgumentFails)
+{
+    EXPECT_EQ(send_command({"prefer"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(ClientAliasNameSuite, preferWithManyArgumentsFails)
+{
+    EXPECT_EQ(send_command({"prefer", "arg", "arg"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(ClientAliasNameSuite, preferWorks)
+{
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=yaml"}, cout_stream);
+    EXPECT_THAT(cout_stream.str(), HasSubstr("active_context: default\n"));
+
+    EXPECT_EQ(send_command({"prefer", "new_context"}), mp::ReturnCode::Ok);
+
+    cout_stream.str(std::string());
+    send_command({"aliases", "--format=yaml"}, cout_stream);
+    EXPECT_THAT(cout_stream.str(), HasSubstr("active_context: new_context\n"));
+}
 } // namespace
