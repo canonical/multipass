@@ -3413,7 +3413,7 @@ TEST_F(ClientAlias, alias_does_not_overwrite_alias)
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"alias", "primary:another_command", "an_alias"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
-    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists\n");
+    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists in current context\n");
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
@@ -3567,6 +3567,23 @@ TEST_F(ClientAlias, alias_refuses_creation_rpc_error)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,default,map\n");
+}
+
+TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
+{
+    EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
+
+    populate_db_file(AliasesVector{{"an_alias", {"primary", "a_command", "map"}}});
+
+    std::stringstream cout_stream, cerr_stream;
+    send_command({"alias", "primary:another_command", "an_alias"}, cout_stream, cerr_stream);
+
+    EXPECT_EQ(cout_stream.str(), "");
+    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists in current context\n");
+
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,primary,a_command,default,map\n");
 }
 
 TEST_F(ClientAlias, unalias_removes_existing_alias)
