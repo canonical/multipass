@@ -54,6 +54,7 @@ public:
     bool remove_context(const std::string& context);
     std::vector<std::pair<std::string, std::string>> remove_aliases_for_instance(const std::string& instance);
     std::optional<std::pair<std::string, std::string>> get_context_and_alias(const std::string& alias) const;
+    std::optional<AliasDefinition> get_alias_from_current_context(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias(const std::string& alias) const;
     DictType::iterator begin()
     {

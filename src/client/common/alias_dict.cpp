@@ -212,17 +212,29 @@ std::optional<std::pair<std::string, std::string>> mp::AliasDict::get_context_an
                                                        : std::make_optional(std::make_pair(context, alias_only)));
 }
 
-std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
+std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_current_context(const std::string& alias) const
 {
-    std::string::size_type dot_pos;
-
     try
     {
         return aliases.at(active_context).at(alias);
     }
     catch (const std::out_of_range&)
     {
+        return std::nullopt;
     }
+}
+
+// Returns an alias definition if:
+// - the given alias exists in the current context, or
+// - exists in another context and is unique, or
+// - is fully qualified (that is, contains a dot) and exists.
+// The given alias can be fully qualified or not.
+std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
+{
+    std::optional<mp::AliasDefinition> alias_in_current_context = get_alias_from_current_context(alias);
+
+    if (alias_in_current_context)
+        return alias_in_current_context;
 
     // If the alias is not on the current context, look for it in the rest of the contexts. But make sure there is only
     // one existing alias with that name.
@@ -235,6 +247,7 @@ std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& a
     // If the alias given was not found, then it is in the form "context.alias": the input string must be split.
 
     // No dot, no alias.
+    std::string::size_type dot_pos;
     if ((dot_pos = alias.find('.')) == std::string::npos)
         return std::nullopt;
 
@@ -439,6 +452,8 @@ void mp::AliasDict::sanitize_contexts()
     }
 }
 
+// Returns an alias definition iff the given alias name is unique across all the contexts. The given alias name cannot
+// be fully qualified, that is, it must not be prepended by a context name.
 std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_all_contexts(const std::string& alias) const
 {
     const AliasDefinition* ret;
