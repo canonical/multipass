@@ -718,17 +718,17 @@ auto find_requested_instances(const Instances& instances, const InstanceMap& vms
 template <typename Instances, typename InstanceMap>
 auto find_instances_to_delete(const Instances& instances, const InstanceMap& operational_vms,
                               const InstanceMap& trashed_vms)
-    -> std::tuple<std::vector<typename Instances::value_type>, std::vector<typename Instances::value_type>,
-                  grpc::Status>
+    -> std::tuple<std::unordered_set<typename Instances::value_type>,
+                  std::unordered_set<typename Instances::value_type>, grpc::Status>
 {
     fmt::memory_buffer errors;
-    std::vector<typename Instances::value_type> operational_instances_to_delete, trashed_instances_to_delete;
+    std::unordered_set<typename Instances::value_type> operational_instances_to_delete, trashed_instances_to_delete;
 
     for (const auto& name : instances)
         if (operational_vms.find(name) != operational_vms.end())
-            operational_instances_to_delete.push_back(name);
+            operational_instances_to_delete.insert(name);
         else if (trashed_vms.find(name) != trashed_vms.end())
-            trashed_instances_to_delete.push_back(name);
+            trashed_instances_to_delete.insert(name);
         else
             fmt::format_to(std::back_inserter(errors), "instance \"{}\" does not exist\n", name);
 
@@ -738,9 +738,10 @@ auto find_instances_to_delete(const Instances& instances, const InstanceMap& ope
     { // target all instances
         const auto get_first = [](const auto& pair) { return pair.first; };
         std::transform(std::cbegin(operational_vms), std::cend(operational_vms),
-                       std::back_inserter(operational_instances_to_delete), get_first);
+                       std::inserter(operational_instances_to_delete, operational_instances_to_delete.end()),
+                       get_first);
         std::transform(std::cbegin(trashed_vms), std::cend(trashed_vms),
-                       std::back_inserter(trashed_instances_to_delete), get_first);
+                       std::inserter(trashed_instances_to_delete, trashed_instances_to_delete.end()), get_first);
     }
 
     return std::make_tuple(operational_instances_to_delete, trashed_instances_to_delete, status);
