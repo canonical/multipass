@@ -3586,6 +3586,28 @@ TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
     EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,primary,a_command,default,map\n");
 }
 
+TEST_F(ClientAlias, aliasCreatesAliasThatExistsInAnotherContext)
+{
+    EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
+
+    populate_db_file(AliasesVector{{"an_alias", {"primary", "a_command", "map"}}});
+
+    EXPECT_EQ(send_command({"prefer", "new_context"}), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream, cerr_stream;
+    EXPECT_EQ(send_command({"alias", "primary:another_command", "an_alias"}, cout_stream, cerr_stream),
+              mp::ReturnCode::Ok);
+
+    EXPECT_EQ(cout_stream.str(), "");
+    EXPECT_EQ(cerr_stream.str(), "");
+
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_THAT(cout_stream.str(),
+                csv_header +
+                    "an_alias,primary,a_command,default,map\nan_alias,primary,another_command,new_context,map\n");
+}
+
 TEST_F(ClientAlias, unalias_removes_existing_alias)
 {
     populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "default"}},
