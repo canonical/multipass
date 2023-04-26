@@ -13,7 +13,6 @@ dependencies:
   built_collection: ^5.1.1
   collection: ^1.17.0
   data_table_2: ^2.3.12
-  filesize: ^2.0.1
   flutter:
     sdk: flutter
   flutter_pty: ^0.3.1

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:basics/iterable_basics.dart';
 import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
-import 'package:filesize/filesize.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -125,7 +124,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
         ),
         Text(
           (nUsage != null && nTotal != null)
-              ? '${filesize(usage)} / ${filesize(total)}'
+              ? '${memorySize(usage)} / ${memorySize(total)}'
               : '-',
           style: const TextStyle(fontSize: 11),
         ),
@@ -372,4 +371,22 @@ class _VMsTableState extends ConsumerState<VMsTable> {
       );
     });
   }
+}
+
+String memorySize(Object data) {
+  const divider = 1024;
+  const units = {
+    'GiB': divider * divider * divider,
+    'MiB': divider * divider,
+    'KiB': divider,
+  };
+
+  final size = data is int ? data : int.parse(data.toString());
+  for (final entry in units.entries) {
+    final suffix = entry.key;
+    final unit = entry.value;
+    if (size >= unit) return '${(size / unit).toStringAsFixed(1)}$suffix';
+  }
+
+  return '${size}B';
 }
