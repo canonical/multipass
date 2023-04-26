@@ -65,20 +65,32 @@ class _ShellTerminalState extends ConsumerState<ShellTerminal> {
     },
   );
 
-  @override
-  void initState() {
-    super.initState();
-    final pty = Pty.start(
-      'multipass',
-      arguments: ['shell', widget.instance],
-      environment: {
-        if (Platform.environment['SNAP_NAME'] == 'multipass')
-          "XDG_DATA_HOME": '${Platform.environment['SNAP_USER_DATA']!}/data',
-      },
+  Pty openShell() {
+    final environment = {...Platform.environment};
+    if (Platform.environment['SNAP_NAME'] == 'multipass') {
+      environment["XDG_DATA_HOME"] =
+          '${Platform.environment['SNAP_USER_DATA']!}/data';
+    }
+
+    final executable = Platform.isWindows ? 'cmd' : 'multipass';
+    final args = Platform.isWindows
+        ? ['/c', 'multipass', 'shell', widget.instance]
+        : ['shell', widget.instance];
+
+    return Pty.start(
+      executable,
+      arguments: args,
+      environment: environment,
       columns: terminal.viewWidth,
       rows: terminal.viewHeight,
       ackRead: true,
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final pty = openShell();
     pty.exitCode.then(
       (code) {
         if (code == 0) exit(0);
