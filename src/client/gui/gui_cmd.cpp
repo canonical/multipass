@@ -178,6 +178,8 @@ void cmd::GuiCmd::create_actions()
 #ifdef MULTIPASS_PLATFORM_LINUX
     auto gui_separator = tray_icon_menu.insertSeparator(tray_icon_menu.actions().first());
     tray_icon_menu.insertAction(gui_separator, &toggle_gui_action);
+    QObject::connect(&desktop_gui_process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
+                     [this] { close_desktop_gui(); });
 #endif
 
     QObject::connect(&toggle_gui_action, &QAction::triggered, [this] { open_desktop_gui(); });
@@ -503,22 +505,16 @@ mp::VersionReply cmd::GuiCmd::retrieve_version_and_update_info()
 
 void cmd::GuiCmd::open_desktop_gui()
 {
-    if (desktop_gui_process.state() != QProcess::Running)
-    {
-        desktop_gui_process.start("desktop_gui", QStringList{});
-        toggle_gui_action.setText("Close GUI");
-        toggle_gui_action.disconnect();
-        QObject::connect(&toggle_gui_action, &QAction::triggered, [this] { close_desktop_gui(); });
-    }
+    desktop_gui_process.start("desktop_gui", QStringList{});
+    toggle_gui_action.setText("Close GUI");
+    toggle_gui_action.disconnect();
+    QObject::connect(&toggle_gui_action, &QAction::triggered, [this] { close_desktop_gui(); });
 }
 
 void cmd::GuiCmd::close_desktop_gui()
 {
-    if (desktop_gui_process.state() == QProcess::Running)
-    {
-        desktop_gui_process.terminate();
-        toggle_gui_action.setText("Open GUI");
-        toggle_gui_action.disconnect();
-        QObject::connect(&toggle_gui_action, &QAction::triggered, [this] { open_desktop_gui(); });
-    }
+    desktop_gui_process.terminate();
+    toggle_gui_action.setText("Open GUI");
+    toggle_gui_action.disconnect();
+    QObject::connect(&toggle_gui_action, &QAction::triggered, [this] { open_desktop_gui(); });
 }
