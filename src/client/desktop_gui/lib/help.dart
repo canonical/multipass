@@ -41,8 +41,8 @@ class HelpScreen extends ConsumerWidget {
     final gettingStarted = RichText(
       text: [
         'Getting started with Multipass.\n\n'.span.size(24),
-        'Multipass uses Hyper-V on Windows, QEMU and HyperKit on macOS and LXD'
-                'on Linux for minimal overhead and the fastest possible start'
+        'Multipass uses Hyper-V on Windows, QEMU and HyperKit on macOS and LXD '
+                'on Linux for minimal overhead and the fastest possible start '
                 'time. Find out more about '
             .span,
         'platform-relevant tutorial'.span.link(launchTutorial, ref),
@@ -62,7 +62,7 @@ class HelpScreen extends ConsumerWidget {
             .span,
         '\t2. If no '.span,
         'instance name'.span,
-        ' was given, Multipass will randomly generate a name for that instance.\n'
+        ' is given, Multipass will randomly generate a name for that instance.\n'
             .span,
         '\t3. Instances cannot be renamed once they are launched.\n'.span,
         '\t4. The '.span,
