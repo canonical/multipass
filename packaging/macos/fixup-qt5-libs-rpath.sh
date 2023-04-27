@@ -14,7 +14,8 @@ set -u
 
 BUNDLE_PATH="multipass.gui.app/Contents"
 QT_FRAMEWORKS="QtCore QtNetwork QtWidgets QtGui QtDBus QtPrintSupport"
-BINARIES="multipass ${BUNDLE_PATH}/MacOS/multipass.gui multipassd ${BUNDLE_PATH}/plugins/platforms/libqcocoa.dylib sshfs_server"
+QT_COCOA_PLUGIN="${BUNDLE_PATH}/plugins/platforms/libqcocoa.dylib"
+BINARIES="multipass ${BUNDLE_PATH}/MacOS/multipass.gui multipassd ${QT_COCOA_PLUGIN} sshfs_server"
 QT5_PATH="$(brew --prefix qt5)"
 
 if [ $# -ne 1 ]; then
@@ -78,3 +79,5 @@ done
 for binary in ${BINARIES}; do
     install_name_tool "${RPATH_CHANGES[@]}" "${BINARY_DIR}/${binary}"
 done
+
+dylibbundler -of -x "${BINARY_DIR}/${QT_COCOA_PLUGIN}" -b -d ${CMAKE_BINARY_DIR}/lib/ -p @rpath
