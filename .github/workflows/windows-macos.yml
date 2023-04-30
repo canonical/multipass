@@ -369,9 +369,8 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       run: |
         ${{ env.ARCH_WRAPPER }} cmake --build . --target package
-        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem multipass-*.exe ).Name' }} ) " >> $GITHUB_OUTPUT
-        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem multipass-*.exe ).FullName' }} )" >> $GITHUB_OUTPUT
-
+        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem multipass-*.exe ).Name' }} ) " >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem multipass-*.exe ).FullName' }} )" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
     - name: Get package logs
       if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
       run: ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR, runner.os == 'Windows' && 'win64/NSIS/NSISOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
