@@ -32,14 +32,17 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
                                  const VMMount& mount)
     : MountHandler{lxd_virtual_machine, ssh_key_provider, target_path, mount.source_path},
       network_manager_{network_manager},
-      lxd_instance_endpoint{QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(lxd_virtual_machine->vm_name.c_str())},
+      lxd_instance_endpoint{
+          QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(lxd_virtual_machine->vm_name.c_str())},
       // 27 (25 + 2(d_)) letters is the maximal deivce name length that lxd can accepte
-      device_name_{mp::utils::make_uuid(target_path).left(length_of_unique_id_without_prefix).prepend("d_").toStdString()}
+      device_name_{
+          mp::utils::make_uuid(target_path).left(length_of_unique_id_without_prefix).prepend("d_").toStdString()}
 {
     const VirtualMachine::State state = lxd_virtual_machine->current_state();
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
     {
-        throw std::runtime_error("Please stop the instance " + lxd_virtual_machine->vm_name + " before mount it natively.");
+        throw std::runtime_error("Please stop the instance " + lxd_virtual_machine->vm_name +
+                                 " before mount it natively.");
     }
 
     const std::lock_guard active_lock{active_mutex};
