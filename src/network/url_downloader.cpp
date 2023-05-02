@@ -22,6 +22,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
+#include <multipass/version.h>
 
 #include <QDir>
 #include <QEventLoop>
@@ -85,6 +87,10 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
     request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute,
                          force_cache ? QNetworkRequest::AlwaysCache : QNetworkRequest::PreferNetwork);
+    request.setHeader(
+        QNetworkRequest::UserAgentHeader,
+        QString::fromStdString(fmt::format("Multipass/{} ({}; {})", multipass::version_string,
+                                           mp::platform::host_version(), QSysInfo::currentCpuArchitecture())));
 
     NetworkReplyUPtr reply{manager->get(request)};
 
