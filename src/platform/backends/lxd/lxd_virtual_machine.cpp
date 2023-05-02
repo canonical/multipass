@@ -465,5 +465,10 @@ std::unique_ptr<multipass::MountHandler>
 mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, const std::string& target,
                                                  const VMMount& mount)
 {
+    if (!mount.gid_mappings.empty() || !mount.uid_mappings.empty())
+    {
+        throw std::runtime_error("lxd native mount does not accept gid or uid.");
+    }
+
     return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);
 }
