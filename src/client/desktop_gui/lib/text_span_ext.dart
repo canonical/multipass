@@ -7,7 +7,7 @@ final hoveredLinkProvider = StateProvider<TextSpan?>((ref) => null);
 extension TextSpanFromStringExt on String {
   TextSpan get span => TextSpan(
         text: this,
-        style: const TextStyle(color: Colors.black),
+        style: const TextStyle(color: Colors.black, fontFamily: 'Ubuntu'),
       );
 }
 

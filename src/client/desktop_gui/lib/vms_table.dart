@@ -358,6 +358,7 @@ class _VMsTableState extends ConsumerState<VMsTable> {
         headingTextStyle: const TextStyle(
           fontWeight: FontWeight.bold,
           color: Colors.black,
+          fontFamily: 'Ubuntu',
         ),
         empty: emptyWidget,
         sortColumnIndex: sortIndex,
