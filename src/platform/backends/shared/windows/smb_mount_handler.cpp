@@ -89,10 +89,12 @@ void SmbMountHandler::create_smb_share(const QString& user)
     if (!can_user_access_source(user))
         throw std::runtime_error{fmt::format("cannot access \"{}\"", source)};
 
+    std::string remark("Multipass mount share");
+
     DWORD parm_err = 0;
     SHARE_INFO_2 share_info;
     share_info.shi2_netname = reinterpret_cast<LPWSTR>(share_name.data());
-    share_info.shi2_remark = L"Multipass mount share";
+    share_info.shi2_remark = reinterpret_cast<LPWSTR>(remark.data());
     share_info.shi2_type = STYPE_DISKTREE;
     share_info.shi2_permissions = 0;
     share_info.shi2_max_uses = -1;
