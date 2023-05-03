@@ -23,6 +23,7 @@ if(UNIX AND NOT APPLE) # Linux
   set(DESKTOP_GUI_PREFIX ${DESKTOP_GUI_TARGET}/${DESKTOP_GUI_ARCH}/release)
   set(DESKTOP_GUI_BUNDLE_RELATIVE bundle)
   set(DESKTOP_GUI_EXEC_PATH_RELATIVE_TO_BUNDLE "")
+  set(PROTOC_DART_PLUGIN_PATH $ENV{HOME}/.pub-cache/bin/protoc-gen-dart)
 endif()
 
 set(DESKTOP_GUI_BUILD_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
@@ -41,8 +42,12 @@ set(FLUTTER_BUILD_ARGS --release --suppress-analytics --verbose)
 add_custom_command(OUTPUT ${DESKTOP_GUI_EXECUTABLE_FULL_PATH}
   DEPENDS ${DESKTOP_GUI_SOURCE_FILES}
   WORKING_DIRECTORY ${DESKTOP_GUI_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} -E make_directory lib/generated
+  COMMAND ${DART_EXECUTABLE} pub global activate protoc_plugin
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE} --dart_out=grpc:lib/generated -I ../../rpc ../../rpc/multipass.proto --plugin=${PROTOC_DART_PLUGIN_PATH}
   COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=${DESKTOP_GUI_BUILD_DIR}
   COMMAND ${FLUTTER_EXECUTABLE} ARGS build ${DESKTOP_GUI_TARGET} ${FLUTTER_BUILD_ARGS}
+  COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=
 )
 
 add_custom_target(${DESKTOP_GUI_EXECUTABLE} ALL

@@ -314,9 +314,30 @@ parts:
     source: snap-wrappers
 
   desktop-gui:
-    plugin: flutter
+    plugin: nil
     source: ./src/client/desktop_gui
-    flutter-channel: stable
-    flutter-target: lib/main.dart
+    build-packages:
+      - build-essential
+      - clang
+      - ninja-build
+      - protobuf-compiler
+      - unzip
+    override-build: |
+      craftctl default
+      export PATH="/root/parts/desktop-gui/build/flutter-distro/bin:$HOME/.pub-cache/bin:$PATH"
+      rm -rf /root/parts/desktop-gui/build/flutter-distro
+      git clone --depth 1 -b stable https://github.com/flutter/flutter.git /root/parts/desktop-gui/build/flutter-distro
+      flutter config --suppress-analytics --no-enable-web --enable-linux-desktop --no-enable-macos-desktop --no-enable-windows-desktop --no-enable-android --no-enable-ios --no-enable-fuchsia --no-enable-custom-devices
+      flutter precache --linux
+
+      dart pub global activate protoc_plugin
+      export MP_PROTO_FILE_DIR=$HOME/parts/multipass/src/src/rpc
+
+      mkdir -p lib/generated
+      protoc --dart_out=grpc:lib/generated -I $MP_PROTO_FILE_DIR $MP_PROTO_FILE_DIR/multipass.proto
+
+      flutter pub get
+      flutter build linux --release --verbose --target lib/main.dart
+      cp -r build/linux/*/release/bundle/* $CRAFT_PART_INSTALL/
     organize:
       /root/parts/desktop-gui/build/build/linux/x64/release/bundle: bin/
