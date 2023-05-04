@@ -750,11 +750,10 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances, Ins
 
         for (const auto& name : names)
         {
-            if (seen_instances.find(name) == seen_instances.end())
+            if (seen_instances.insert(name).second)
             {
                 auto trail = find_instance(operative_instances, deleted_instances, name);
                 rank_instance(name, trail, ret);
-                seen_instances.insert(name);
             }
         }
     }
