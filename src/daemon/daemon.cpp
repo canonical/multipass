@@ -842,11 +842,14 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, fmt::format(sshfs_error_template, instance_name));
 }
 
-auto grpc_status_for(fmt::memory_buffer& errors, grpc::StatusCode status_code = grpc::StatusCode::INVALID_ARGUMENT)
+auto grpc_status_for(fmt::memory_buffer& errors, grpc::StatusCode status_code = grpc::StatusCode::OK)
 {
-    return errors.size() ? grpc::Status(status_code,
-                                        fmt::format("The following errors occurred:\n{}", fmt::to_string(errors)), "")
-                         : grpc::Status::OK;
+    if (errors.size() && !status_code)
+        status_code = grpc::StatusCode::INVALID_ARGUMENT;
+
+    return status_code ? grpc::Status(status_code,
+                                      fmt::format("The following errors occurred:\n{}", fmt::to_string(errors)), "")
+                       : grpc::Status::OK;
 }
 
 // Only the last bad status code is used
