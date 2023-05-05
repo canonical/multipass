@@ -202,11 +202,14 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
     std::string output;
 
     if (reply.has_detailed_report())
+    {
         output = generate_instance_info_report(reply);
-    else if (reply.has_snapshot_overview())
-        output = generate_snapshot_overview_report(reply);
+    }
     else
-        output = "\n";
+    {
+        assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
+        output = generate_snapshot_overview_report(reply);
+    }
 
     return output;
 }
