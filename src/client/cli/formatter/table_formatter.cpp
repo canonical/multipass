@@ -25,7 +25,6 @@
 #include <google/protobuf/util/time_util.h>
 
 namespace mp = multipass;
-namespace gpu = google::protobuf::util;
 
 namespace
 {
@@ -56,152 +55,158 @@ std::string to_usage(const std::string& usage, const std::string& total)
     return fmt::format("{} out of {}", mp::MemorySize{usage}.human_readable(), mp::MemorySize{total}.human_readable());
 }
 
-} // namespace
-std::string mp::TableFormatter::format(const InfoReply& reply) const
+std::string generate_instance_info_report(const mp::InfoReply& reply)
 {
     fmt::memory_buffer buf;
+
+    for (const auto& info : mp::format::sorted(reply.detailed_report().details()))
+    {
+        const auto& instance_details = info.instance_info();
+
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Name:", info.name());
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
+                       "State:", mp::format::status_string_for(info.instance_status()));
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
+
+        int ipv4_size = instance_details.ipv4_size();
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv4:", ipv4_size ? instance_details.ipv4(0) : "--");
+
+        for (int i = 1; i < ipv4_size; ++i)
+            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv4(i));
+
+        if (int ipv6_size = instance_details.ipv6_size())
+        {
+            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv6:", instance_details.ipv6(0));
+
+            for (int i = 1; i < ipv6_size; ++i)
+                fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv6(i));
+        }
+
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Release:",
+                       instance_details.current_release().empty() ? "--" : instance_details.current_release());
+        fmt::format_to(std::back_inserter(buf), "{:<16}", "Image hash:");
+        if (instance_details.id().empty())
+            fmt::format_to(std::back_inserter(buf), "{}\n", "Not Available");
+        else
+            fmt::format_to(std::back_inserter(buf), "{}{}\n", instance_details.id().substr(0, 12),
+                           !instance_details.image_release().empty()
+                               ? fmt::format(" (Ubuntu {})", instance_details.image_release())
+                               : "");
+
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
+                       "CPU(s):", info.cpu_count().empty() ? "--" : info.cpu_count());
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
+                       "Load:", instance_details.load().empty() ? "--" : instance_details.load());
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
+                       "Disk usage:", to_usage(instance_details.disk_usage(), info.disk_total()));
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
+                       "Memory usage:", to_usage(instance_details.memory_usage(), info.memory_total()));
+
+        auto mount_paths = info.mount_info().mount_paths();
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
+
+        for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
+        {
+            if (mount != mount_paths.cbegin())
+                fmt::format_to(std::back_inserter(buf), "{:<16}", "");
+            fmt::format_to(std::back_inserter(buf), "{:{}} => {}\n", mount->source_path(),
+                           info.mount_info().longest_path_len(), mount->target_path());
+
+            auto mount_maps = mount->mount_maps();
+            auto uid_mappings_size = mount_maps.uid_mappings_size();
+
+            for (auto i = 0; i < uid_mappings_size; ++i)
+            {
+                auto uid_map_pair = mount_maps.uid_mappings(i);
+                auto host_uid = uid_map_pair.host_id();
+                auto instance_uid = uid_map_pair.instance_id();
+
+                fmt::format_to(std::back_inserter(buf), "{:>{}}{}:{}{}", (i == 0) ? "UID map: " : "", (i == 0) ? 29 : 0,
+                               std::to_string(host_uid),
+                               (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid),
+                               (i == uid_mappings_size - 1) ? "\n" : ", ");
+            }
+
+            for (auto gid_mapping = mount_maps.gid_mappings().cbegin(); gid_mapping != mount_maps.gid_mappings().cend();
+                 ++gid_mapping)
+            {
+                auto host_gid = gid_mapping->host_id();
+                auto instance_gid = gid_mapping->instance_id();
+
+                fmt::format_to(std::back_inserter(buf), "{:>{}}{}:{}{}{}",
+                               (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
+                               (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0, std::to_string(host_gid),
+                               (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid),
+                               (std::next(gid_mapping) != mount_maps.gid_mappings().cend()) ? ", " : "",
+                               (std::next(gid_mapping) == mount_maps.gid_mappings().cend()) ? "\n" : "");
+            }
+        }
+
+        fmt::format_to(std::back_inserter(buf), "\n");
+    }
+
+    std::string output = fmt::to_string(buf);
+    if (!reply.detailed_report().details().empty())
+        output.pop_back();
+    else
+        output = "\n";
+
+    return output;
+}
+
+std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
+{
+    auto overview = reply.snapshot_overview().overview();
+    if (overview.empty())
+        return "No snapshots found.\n";
+
+    fmt::memory_buffer buf;
+    const auto name_column_width = mp::format::column_width(
+        overview.begin(), overview.end(), [](const auto& item) -> int { return item.instance_name().length(); }, 12);
+    const auto snapshot_column_width = mp::format::column_width(
+        overview.begin(), overview.end(),
+        [](const auto& item) -> int { return item.fundamentals().snapshot_name().length(); }, 12);
+    const auto parent_column_width = mp::format::column_width(
+        overview.begin(), overview.end(), [](const auto& item) -> int { return item.fundamentals().parent().length(); },
+        12);
+    const auto max_comment_column_width = 50;
+
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+
+    fmt::format_to(std::back_inserter(buf), row_format, "Instance", name_column_width, "Snapshot",
+                   snapshot_column_width, "Parent", parent_column_width, "Comment");
+
+    std::sort(std::begin(overview), std::end(overview), [](const auto& a, const auto& b) {
+        return google::protobuf::util::TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
+               google::protobuf::util::TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
+    });
+
+    for (const auto& item : overview)
+    {
+        auto snapshot = item.fundamentals();
+        fmt::format_to(std::back_inserter(buf), row_format, item.instance_name(), name_column_width,
+                       snapshot.snapshot_name(), snapshot_column_width,
+                       snapshot.parent().empty() ? "--" : snapshot.parent(), parent_column_width,
+                       snapshot.comment().empty() ? "--"
+                       : snapshot.comment().length() > max_comment_column_width
+                           ? fmt::format("{}…", snapshot.comment().substr(0, max_comment_column_width - 1))
+                           : snapshot.comment());
+    }
+
+    return fmt::to_string(buf);
+}
+} // namespace
+
+std::string mp::TableFormatter::format(const InfoReply& reply) const
+{
     std::string output;
 
-    if (reply.info_contents_case() == mp::InfoReply::kDetailedReport)
-    {
-        for (const auto& info : format::sorted(reply.detailed_report().details()))
-        {
-            const auto& instance_details = info.instance_info();
-
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Name:", info.name());
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                           "State:", mp::format::status_string_for(info.instance_status()));
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
-
-            int ipv4_size = instance_details.ipv4_size();
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv4:", ipv4_size ? instance_details.ipv4(0) : "--");
-
-            for (int i = 1; i < ipv4_size; ++i)
-                fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv4(i));
-
-            if (int ipv6_size = instance_details.ipv6_size())
-            {
-                fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv6:", instance_details.ipv6(0));
-
-                for (int i = 1; i < ipv6_size; ++i)
-                    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv6(i));
-            }
-
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Release:",
-                           instance_details.current_release().empty() ? "--" : instance_details.current_release());
-            fmt::format_to(std::back_inserter(buf), "{:<16}", "Image hash:");
-            if (instance_details.id().empty())
-                fmt::format_to(std::back_inserter(buf), "{}\n", "Not Available");
-            else
-                fmt::format_to(std::back_inserter(buf), "{}{}\n", instance_details.id().substr(0, 12),
-                               !instance_details.image_release().empty()
-                                   ? fmt::format(" (Ubuntu {})", instance_details.image_release())
-                                   : "");
-
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                           "CPU(s):", info.cpu_count().empty() ? "--" : info.cpu_count());
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                           "Load:", instance_details.load().empty() ? "--" : instance_details.load());
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                           "Disk usage:", to_usage(instance_details.disk_usage(), info.disk_total()));
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                           "Memory usage:", to_usage(instance_details.memory_usage(), info.memory_total()));
-
-            auto mount_paths = info.mount_info().mount_paths();
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
-
-            for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
-            {
-                if (mount != mount_paths.cbegin())
-                    fmt::format_to(std::back_inserter(buf), "{:<16}", "");
-                fmt::format_to(std::back_inserter(buf), "{:{}} => {}\n", mount->source_path(),
-                               info.mount_info().longest_path_len(), mount->target_path());
-
-                auto mount_maps = mount->mount_maps();
-                auto uid_mappings_size = mount_maps.uid_mappings_size();
-
-                for (auto i = 0; i < uid_mappings_size; ++i)
-                {
-                    auto uid_map_pair = mount_maps.uid_mappings(i);
-                    auto host_uid = uid_map_pair.host_id();
-                    auto instance_uid = uid_map_pair.instance_id();
-
-                    fmt::format_to(std::back_inserter(buf), "{:>{}}{}:{}{}", (i == 0) ? "UID map: " : "",
-                                   (i == 0) ? 29 : 0, std::to_string(host_uid),
-                                   (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid),
-                                   (i == uid_mappings_size - 1) ? "\n" : ", ");
-                }
-
-                for (auto gid_mapping = mount_maps.gid_mappings().cbegin();
-                     gid_mapping != mount_maps.gid_mappings().cend(); ++gid_mapping)
-                {
-                    auto host_gid = gid_mapping->host_id();
-                    auto instance_gid = gid_mapping->instance_id();
-
-                    fmt::format_to(std::back_inserter(buf), "{:>{}}{}:{}{}{}",
-                                   (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
-                                   (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0,
-                                   std::to_string(host_gid),
-                                   (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid),
-                                   (std::next(gid_mapping) != mount_maps.gid_mappings().cend()) ? ", " : "",
-                                   (std::next(gid_mapping) == mount_maps.gid_mappings().cend()) ? "\n" : "");
-                }
-            }
-
-            fmt::format_to(std::back_inserter(buf), "\n");
-        }
-
-        output = fmt::to_string(buf);
-        if (!reply.detailed_report().details().empty())
-            output.pop_back();
-        else
-            output = "\n";
-    }
-    else if (reply.info_contents_case() == mp::InfoReply::kSnapshotOverview)
-    {
-        auto overview = reply.snapshot_overview().overview();
-        const auto name_column_width = mp::format::column_width(
-            overview.begin(), overview.end(), [](const auto& item) -> int { return item.instance_name().length(); },
-            24);
-        const auto snapshot_column_width = mp::format::column_width(
-            overview.begin(), overview.end(),
-            [](const auto& item) -> int { return item.fundamentals().snapshot_name().length(); }, 12);
-        const auto parent_column_width = mp::format::column_width(
-            overview.begin(), overview.end(),
-            [](const auto& item) -> int { return item.fundamentals().parent().length(); }, 12);
-        const auto comment_column_width = 50;
-
-        const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
-
-        if (overview.empty())
-            return "No snapshots found.\n";
-        else
-            fmt::format_to(std::back_inserter(buf), row_format, "Instance", name_column_width, "Snapshot",
-                           snapshot_column_width, "Parent", parent_column_width, "Comment");
-
-        std::sort(std::begin(overview), std::end(overview), [](const auto& a, const auto& b) {
-            return gpu::TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
-                   gpu::TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
-        });
-
-        for (const auto& item : overview)
-        {
-            auto snapshot = item.fundamentals();
-            fmt::format_to(std::back_inserter(buf), row_format, item.instance_name(), name_column_width,
-                           snapshot.snapshot_name(), snapshot_column_width,
-                           snapshot.parent().empty() ? "--" : snapshot.parent(), parent_column_width,
-                           snapshot.comment().empty() ? "--"
-                           : snapshot.comment().length() >= comment_column_width
-                               ? fmt::format("{}…", snapshot.comment().substr(0, comment_column_width - 1))
-                               : snapshot.comment());
-        }
-
-        output = fmt::to_string(buf);
-    }
+    if (reply.has_detailed_report())
+        output = generate_instance_info_report(reply);
+    else if (reply.has_snapshot_overview())
+        output = generate_snapshot_overview_report(reply);
     else
-    {
         output = "\n";
-    }
 
     return output;
 }
