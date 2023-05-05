@@ -1719,12 +1719,8 @@ try // clang-format on
     if (status.ok())
     {
         // TODO@snapshots change cmd logic after all info logic paths are added
-        auto cmd = [&](VirtualMachine& vm) {
-            if (request->snapshot_overview())
-                return fetch_snapshot_overview(vm);
-            else
-                return fetch_instance_info(vm);
-        };
+        auto cmd =
+            request->snapshot_overview() ? std::function(fetch_snapshot_overview) : std::function(fetch_instance_info);
 
         cmd_vms(instance_selection.operative_selection, cmd);
         deleted = true;
