@@ -27,7 +27,11 @@ namespace test
 {
 struct StubVirtualMachine final : public multipass::VirtualMachine
 {
-    StubVirtualMachine() : VirtualMachine{"stub"}
+    StubVirtualMachine() : StubVirtualMachine{"stub"}
+    {
+    }
+
+    StubVirtualMachine(const std::string& name) : VirtualMachine{name}
     {
     }
 
