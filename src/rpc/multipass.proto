@@ -72,11 +72,10 @@ message LaunchRequest {
 message LaunchError {
     enum ErrorCodes {
         OK = 0;
-        INSTANCE_EXISTS = 1;
-        INVALID_MEM_SIZE = 2;
-        INVALID_DISK_SIZE = 3;
-        INVALID_HOSTNAME = 4;
-        INVALID_NETWORK = 5;
+        INVALID_MEM_SIZE = 1;
+        INVALID_DISK_SIZE = 2;
+        INVALID_HOSTNAME = 3;
+        INVALID_NETWORK = 4;
     }
     repeated ErrorCodes error_codes = 1;
 }

@@ -2106,6 +2106,10 @@ TEST_F(Daemon, info_all_returns_all_instances)
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
+        return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+    }));
+
     const auto names_matcher = UnorderedElementsAre(Property(&mp::InfoReply::Info::name, good_instance_name),
                                                     Property(&mp::InfoReply::Info::name, deleted_instance_name));
 

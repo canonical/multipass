@@ -91,7 +91,7 @@ endif()
 add_subdirectory(3rd-party)
 
 # Qt config
-find_package(Qt5 COMPONENTS Core Network Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Core Concurrent Network Widgets REQUIRED)
 
 function(determine_version OUTPUT_VARIABLE)
   # use upstream repo as the authoritative reference when checking for release status
