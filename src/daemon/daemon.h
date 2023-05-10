@@ -137,14 +137,12 @@ public slots:
 
 private:
     void release_resources(const std::string& instance);
-    std::string check_instance_operational(const std::string& instance_name) const;
-    std::string check_instance_exists(const std::string& instance_name) const;
     void create_vm(const CreateRequest* request, grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise, bool start);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
-    grpc::Status cmd_vms(const std::vector<std::string>& tgts, std::function<grpc::Status(VirtualMachine&)> cmd);
+    grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
@@ -155,6 +153,7 @@ private:
         std::promise<grpc::Status>* status_promise;
     };
 
+    // These async_* methods need to operate on instance names and look up the VMs again, lest they be gone or moved.
     template <typename Reply, typename Request>
     std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
                                                         grpc::ServerReaderWriterInterface<Reply, Request>* server);
@@ -171,7 +170,7 @@ private:
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
-    std::unordered_map<std::string, VirtualMachine::ShPtr> vm_instances;
+    std::unordered_map<std::string, VirtualMachine::ShPtr> operative_instances;
     std::unordered_map<std::string, VirtualMachine::ShPtr> deleted_instances;
     std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
