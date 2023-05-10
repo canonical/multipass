@@ -30,7 +30,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         # Need to check it all out to merge successfully.
         fetch-depth: 0
@@ -40,11 +40,11 @@ jobs:
       run: |
         # Try and fetch the matching branch.
         if [ -n "${{ github.event.client_payload.head_ref }}" ] && git fetch origin ${{ github.event.client_payload.head_ref }}; then
-          echo "::set-output name=ref::${{ github.event.client_payload.head_ref }}"
+          echo "ref=${{ github.event.client_payload.head_ref }}" >> $GITHUB_OUTPUT
         else
           # Otherwise fetch the triggering commit.
           git -c protocol.version=2 fetch --prune --progress --no-recurse-submodules https://github.com/${{ github.event.client_payload.repository }}.git ${{ github.event.client_payload.sha }}
-          echo "::set-output name=ref::${{ github.event.client_payload.ref }}"
+          echo "ref=${{ github.event.client_payload.ref }}" >> $GITHUB_OUTPUT
         fi
 
     - name: Merge the dispatching ref
@@ -61,7 +61,7 @@ jobs:
       run: git config --local http.https://github.com/.extraheader ""
 
     - name: Upload the repository
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ env.HEAD_REF }}.git
         path: .git/**
@@ -75,7 +75,7 @@ jobs:
 
     steps:
     - name: Retrieve the repository
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: ${{ env.HEAD_REF }}.git
         path: .git
@@ -102,7 +102,7 @@ jobs:
         MATRIX+='{"runs-on": "multipass-macos-10.15", "arch": "x86_64", "target": "10.15"},'
         MATRIX+='{"runs-on": "multipass-macos-11-arm", "arch": "arm64", "target": "11"}'
         MATRIX+=']}'
-        echo "::set-output name=matrix::${MATRIX}"
+        echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
 
   BuildAndTest:
     needs: [Checkout, Lint, GetMatrix]
@@ -164,7 +164,7 @@ jobs:
       run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
 
     - name: Retrieve the repository
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: ${{ env.HEAD_REF }}.git
         path: .git
@@ -198,7 +198,7 @@ jobs:
         # Use gnu-tar instead of the system tar
         echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
 
-        echo "::set-output name=hyperkit-sha::$( git -C 3rd-party/hyperkit rev-parse HEAD )"
+        echo "hyperkit-sha=$( git -C 3rd-party/hyperkit rev-parse HEAD )" >> $GITHUB_OUTPUT
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
@@ -235,7 +235,7 @@ jobs:
 
     - name: Cache OPAM
       if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: "~/.opam"
         # Use OPAM version and hyperkit sha as cache key. This ensures that when we change hyperkit,
@@ -305,12 +305,12 @@ jobs:
         # Find common base between full and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
-        echo "::set-output name=key::$( git merge-base origin/full ${{ github.sha }} )"
+        echo "key=$( git merge-base origin/full ${{ github.sha }} )" >> $GITHUB_OUTPUT
         echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
 
     - name: CCache
       if: ${{ runner.os == 'macOS' }}
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
@@ -319,13 +319,13 @@ jobs:
 
     - name: Install Dependencies from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v1
+      uses: crazy-max/ghaction-chocolatey@v2
       with:
         args: install --yes qemu openssl
 
     - name: Install Qt
       if: ${{ runner.os == 'Windows' }}
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
       with:
         version: '5.15.1'
         setup-python: false
@@ -369,15 +369,14 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       run: |
         ${{ env.ARCH_WRAPPER }} cmake --build . --target package
-        echo "::set-output name=name::$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem multipass-*.exe ).Name' }} ) "
-        echo "::set-output name=path::$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem multipass-*.exe ).FullName' }} )"
-
+        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem multipass-*.exe ).Name' }} ) " >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem multipass-*.exe ).FullName' }} )" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
     - name: Get package logs
       if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
       run: ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR, runner.os == 'Windows' && 'win64/NSIS/NSISOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
@@ -404,10 +403,10 @@ jobs:
       if: always()
       id: publish-data
       run: |
-        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-check_id::${{ steps.public-check.outputs.check_id }}"
-        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-package::${{ steps.cmake-package.outputs.name }}"
-        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-url::${{ steps.s3-upload.outputs.url }}"
-        echo "::set-output name=${{ runner.os }}-${{ matrix.arch }}-status::${{ job.status }}"
+        echo "${{ runner.os }}-${{ matrix.arch }}-check_id=${{ steps.public-check.outputs.check_id }}" >> $GITHUB_OUTPUT
+        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> $GITHUB_OUTPUT
+        echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> $GITHUB_OUTPUT
+        echo "${{ runner.os }}-${{ matrix.arch }}-status=${{ job.status }}" >> $GITHUB_OUTPUT
 
   PublishAndDispatch:
     # Want to run even if one of the builds above failed
@@ -444,7 +443,7 @@ jobs:
           ${{ github.workspace }}
 
     - name: Retrieve the repository
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: ${{ env.HEAD_REF }}.git
         path: .git
@@ -455,14 +454,14 @@ jobs:
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
       if: ${{ needs.BuildAndTest.outputs.mac-x86-package }}
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-x86-package }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
       if: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
 
@@ -487,12 +486,12 @@ jobs:
           --app-signer - \
           ${PKG}
 
-        echo "::set-output name=name::${PKG}"
-        echo "::set-output name=path::$( greadlink -f ${PKG} )"
+        echo "name=${PKG}" >> $GITHUB_OUTPUT
+        echo "path=$( greadlink -f ${PKG} )" >> $GITHUB_OUTPUT
 
     - name: Upload package
       if: ${{ steps.combine-package.outputs.path }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.combine-package.outputs.name }}
         path: ${{ steps.combine-package.outputs.path }}
@@ -567,7 +566,7 @@ jobs:
           INPUTS+="{ \"win-package\": \"${{ needs.BuildAndTest.outputs.windows-url }}\" }"
         fi
 
-        echo "${INPUTS}" | jq -cs '. | add' | awk '{ print "::set-output name=inputs::" $0 }'
+        echo "${INPUTS}" | jq -cs '. | add' | awk '{ print "inputs=" $0 }' >> $GITHUB_OUTPUT
 
     - name: Dispatch integration tests
       if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
