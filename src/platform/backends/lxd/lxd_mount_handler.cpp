@@ -32,7 +32,7 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
                                  const VMMount& mount)
     : MountHandler{lxd_virtual_machine, ssh_key_provider, target_path, mount.source_path},
       network_manager_{network_manager},
-      lxd_instance_endpoint{
+      lxd_instance_endpoint_{
           QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(lxd_virtual_machine->vm_name.c_str())},
       // 27 (25 + 2(d_)) letters is the maximal deivce name length that lxd can accepte
       device_name_{
@@ -69,20 +69,20 @@ LXDMountHandler::~LXDMountHandler()
 
 void LXDMountHandler::lxd_device_remove()
 {
-    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint);
+    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint_);
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
     QJsonObject device_list = instance_info_metadata["devices"].toObject();
 
     device_list.remove(device_name_.c_str());
     instance_info_metadata["devices"] = device_list;
 
-    const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint, instance_info_metadata);
+    const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint_, instance_info_metadata);
     lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_millisecond);
 }
 
 void LXDMountHandler::lxd_device_add()
 {
-    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint);
+    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint_);
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
     QJsonObject device_list = instance_info_metadata["devices"].toObject();
 
@@ -91,7 +91,7 @@ void LXDMountHandler::lxd_device_add()
     device_list.insert(device_name_.c_str(), new_device_object);
     instance_info_metadata["devices"] = device_list;
 
-    const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint, instance_info_metadata);
+    const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint_, instance_info_metadata);
     lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_millisecond);
 }
 

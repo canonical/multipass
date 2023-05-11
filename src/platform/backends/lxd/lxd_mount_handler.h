@@ -21,8 +21,6 @@
 #include "lxd_virtual_machine.h"
 #include "multipass/mount_handler.h"
 
-class LXDVirtualMachine;
-
 namespace multipass
 {
 class LXDMountHandler : public MountHandler
@@ -41,7 +39,7 @@ private:
 
     // data memeber
     mp::NetworkAccessManager* network_manager_{nullptr};
-    const QUrl lxd_instance_endpoint{};
+    const QUrl lxd_instance_endpoint_{};
     const std::string device_name_{};
 };
 
