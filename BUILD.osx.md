@@ -32,12 +32,12 @@ Building a Multipass package requires cmake 3.9 or greater. OpenSSL is also nece
 
     brew install cmake openssl@1.1
 
-### Hyperkit dependencies
+### Hyperkit dependencies (Intel-based Mac only)
 Hyperkit is a core utility used by Multipass. To build it we need more dependencies:
 
     brew install wget opam dylibbundler libffi pkg-config
 
-Answer `yes` when it asks to modify your `.bash_profile`, or otherwise ensure ```eval `opam config env```` runs in your shell.
+Answer `yes` when it asks to modify your `.bash_profile`, or otherwise ensure `` eval `opam config env` `` runs in your shell.
 
 Hyperkit's QCow support is implemented in an OCaml module, which we need to fetch using the OPAM packaging system. Initialize:
 
@@ -56,15 +56,20 @@ Building
 
 To build with official Qt sources do:
 
-    cmake -Bbuild -H. -DCMAKE_PREFIX_PATH=~/Qt/5.12.9/clang_64
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/5.12.9/clang_64
 
 Alternatively if using Qt5 from Homebrew, do
 
-    cmake -Bbuild -H. -DCMAKE_PREFIX_PATH=/usr/local/opt/qt5
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/usr/local/opt/qt5
+
+or, if on Apple silicon, brew will store the Qt binaries in a different location. Additionally, OpenSSL will be in a similar location; `/opt/homebrew/Cellar/openssl@1.1/1.1.1t`, which can be set in the project level `CMakeLists.txt` file.
+
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/opt/homebrew/Cellar/qt@5/5.15.8_3
 
 Then start the build with:
 
-    cmake --build build
+    cd build/
+    ninja
 
 Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about missing Qt5.
 
@@ -77,7 +82,7 @@ Creating a Package
 ------------------
 This is as simple as running
 
-    make package
+    ninja package
 
 or
 
