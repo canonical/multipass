@@ -159,9 +159,9 @@ bool is_default_Gid_Uid(const multipass::VMMount& mount)
     const auto& gid_mappings = mount.gid_mappings;
     const auto& uid_mappings = mount.uid_mappings;
 
-    // -1 is the default value for gid and uid, user specified
-    return gid_mappings.size() == 1 && gid_mappings.front().second == -1 &&
-           uid_mappings.size() == 1 && uid_mappings.front().second == -1;
+    // -1 is the default value for gid and uid
+    return gid_mappings.size() == 1 && gid_mappings.front().second == -1 && uid_mappings.size() == 1 &&
+           uid_mappings.front().second == -1;
 }
 
 } // namespace
