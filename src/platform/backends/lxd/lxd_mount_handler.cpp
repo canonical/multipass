@@ -45,26 +45,40 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
                                  " before mount it natively.");
     }
 
-    const std::lock_guard active_lock{active_mutex};
-    mpl::log(mpl::Level::info, std::string(category),
-             fmt::format("initializing native mount {} => {} in '{}'", source, target, lxd_virtual_machine->vm_name));
-    lxd_device_add();
+    const ServerVariant dummy_sever;
+    start(dummy_sever);
 }
 
 void LXDMountHandler::start_impl(ServerVariant /**/, std::chrono::milliseconds /**/)
 {
+    mpl::log(mpl::Level::info, std::string(category),
+             fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
+    lxd_device_add();
 }
 
 void LXDMountHandler::stop_impl(bool force)
 {
+    try
+    {
+        mpl::log(mpl::Level::info, std::string(category),
+                 fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
+        lxd_device_remove();
+    }
+    catch (const std::exception& general_exception)
+    {
+        if (!force)
+        {
+            throw general_exception;
+        }
+        mpl::log(mpl::Level::warning, std::string(category),
+                 fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name,
+                             general_exception.what()));
+    }
 }
 
 LXDMountHandler::~LXDMountHandler()
 {
-    const std::lock_guard active_lock{active_mutex};
-    mpl::log(mpl::Level::info, std::string(category),
-             fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
-    lxd_device_remove();
+    stop(true);
 }
 
 void LXDMountHandler::lxd_device_remove()

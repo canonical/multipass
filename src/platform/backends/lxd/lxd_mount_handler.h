@@ -33,6 +33,11 @@ public:
     void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
     void stop_impl(bool force) override;
 
+    bool can_stop() override
+    {
+        return false;
+    }
+
 private:
     void lxd_device_add();
     void lxd_device_remove();

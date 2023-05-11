@@ -63,6 +63,11 @@ public:
         return active;
     }
 
+    virtual bool can_stop()
+    {
+        return true;
+    }
+
 protected:
     MountHandler() = default;
     MountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,

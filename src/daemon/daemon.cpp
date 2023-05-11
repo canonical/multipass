@@ -2911,7 +2911,12 @@ void mp::Daemon::init_mounts(const std::string& name)
 void mp::Daemon::stop_mounts(const std::string& name)
 {
     for (auto& [_, mount] : mounts[name])
-        mount->stop(/*force=*/true);
+    {
+        if (mount->can_stop())
+        {
+            mount->stop(/*force=*/true);
+        }
+    }
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
