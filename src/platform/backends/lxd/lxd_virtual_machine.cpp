@@ -154,6 +154,16 @@ QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& 
     return devices;
 }
 
+bool is_default_Gid_Uid(const multipass::VMMount& mount)
+{
+    const auto& gid_mappings = mount.gid_mappings;
+    const auto& uid_mappings = mount.uid_mappings;
+
+    // -1 is the default value for gid and uid, user specified
+    return gid_mappings.size() == 1 && gid_mappings.front().second == -1 &&
+           uid_mappings.size() == 1 && uid_mappings.front().second == -1;
+}
+
 } // namespace
 
 mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
@@ -465,9 +475,9 @@ std::unique_ptr<multipass::MountHandler>
 mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, const std::string& target,
                                                  const VMMount& mount)
 {
-    if (!mount.gid_mappings.empty() || !mount.uid_mappings.empty())
+    if (!is_default_Gid_Uid(mount))
     {
-        throw std::runtime_error("lxd native mount does not accept gid or uid.");
+        throw std::runtime_error("LXD native mount does not accept user provided gid or uid.");
     }
 
     return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);

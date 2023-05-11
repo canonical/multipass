@@ -31,7 +31,7 @@ namespace mpl = multipass::logging;
 
 namespace multipass
 {
-typedef typename std::vector<std::pair<int, int>> id_mappings;
+using id_mappings = std::vector<std::pair<int, int>>;
 
 inline id_mappings unique_id_mappings(const id_mappings& xid_mappings)
 {
