@@ -36,7 +36,6 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto no_remote = "";
-constexpr auto snapcraft_remote = "snapcraft";
 
 struct BaseImageInfo
 {
@@ -89,49 +88,6 @@ const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
         "Core 22",
         "",
         ""}}}}};
-
-const QMap<QString, QMap<QString, CustomImageInfo>> snapcraft_image_info{
-    {{"x86_64"},
-     {{{"bionic-server-cloudimg-amd64-disk.img"},
-       {"https://cloud-images.ubuntu.com/buildd/releases/bionic/release/",
-        {"core18", "18.04"},
-        "",
-        "snapcraft-core18",
-        "Snapcraft builder for Core 18",
-        "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/unpacked/"
-        "bionic-server-cloudimg-amd64-vmlinuz-generic",
-        "https://cloud-images.ubuntu.com/buildd/releases/bionic/release/unpacked/"
-        "bionic-server-cloudimg-amd64-initrd-generic"}},
-      {{"focal-server-cloudimg-amd64-disk.img"},
-       {"https://cloud-images.ubuntu.com/buildd/releases/focal/release/",
-        {"core20", "20.04"},
-        "",
-        "snapcraft-core20",
-        "Snapcraft builder for Core 20",
-        "https://cloud-images.ubuntu.com/buildd/releases/focal/release/unpacked/"
-        "focal-server-cloudimg-amd64-vmlinuz-generic",
-        "https://cloud-images.ubuntu.com/buildd/releases/focal/release/unpacked/"
-        "focal-server-cloudimg-amd64-initrd-generic"}},
-      {{"jammy-server-cloudimg-amd64-disk.img"},
-       {"https://cloud-images.ubuntu.com/buildd/releases/jammy/release/",
-        {"core22", "22.04"},
-        "",
-        "snapcraft-core22",
-        "Snapcraft builder for Core 22",
-        "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/unpacked/"
-        "jammy-server-cloudimg-amd64-vmlinuz-generic",
-        "https://cloud-images.ubuntu.com/buildd/releases/jammy/release/unpacked/"
-        "jammy-server-cloudimg-amd64-initrd-generic"}},
-      {{"lunar-server-cloudimg-amd64-disk1.img"},
-       {"https://cloud-images.ubuntu.com/buildd/daily/lunar/current/",
-        {"devel"},
-        "",
-        "snapcraft-devel",
-        "Snapcraft builder for the devel series",
-        "https://cloud-images.ubuntu.com/buildd/daily/lunar/current/unpacked/"
-        "lunar-server-cloudimg-amd64-vmlinuz-generic",
-        "https://cloud-images.ubuntu.com/buildd/daily/lunar/current/unpacked/"
-        "lunar-server-cloudimg-amd64-initrd-generic"}}}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
@@ -208,7 +164,7 @@ mp::CustomVMImageHost::CustomVMImageHost(const QString& arch, URLDownloader* dow
       arch{arch},
       url_downloader{downloader},
       custom_image_info{},
-      remotes{no_remote, snapcraft_remote}
+      remotes{no_remote}
 {
 }
 
@@ -276,8 +232,7 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 
 void mp::CustomVMImageHost::fetch_manifests()
 {
-    for (const auto& spec : {std::make_pair(no_remote, multipass_image_info[arch]),
-                             std::make_pair(snapcraft_remote, snapcraft_image_info[arch])})
+    for (const auto& spec : {std::make_pair(no_remote, multipass_image_info[arch])})
     {
         try
         {
