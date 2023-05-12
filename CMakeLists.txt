@@ -35,12 +35,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 if(MULTIPASS_ENABLE_FLUTTER_GUI)
   find_program(FLUTTER_EXECUTABLE flutter HINTS /snap/bin/ /bin/ /usr/bin/ REQUIRED DOC "The Flutter executable")
   find_program(DART_EXECUTABLE dart HINTS /snap/bin/ /bin/ /usr/bin/ REQUIRED DOC "The Dart executable")
-
-  # Only protoc is needed, not the whole library. For this reason, we shouldn't mark protobuf as required.
-  find_package(Protobuf)
-  if(Protobuf_PROTOC_EXECUTABLE STREQUAL "Protobuf_PROTOC_EXECUTABLE-NOTFOUND")
-    message(FATAL_ERROR "protoc not found")
-  endif()
 endif(MULTIPASS_ENABLE_FLUTTER_GUI)
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)

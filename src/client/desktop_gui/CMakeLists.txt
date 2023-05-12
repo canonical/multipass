@@ -44,7 +44,7 @@ add_custom_command(OUTPUT ${DESKTOP_GUI_EXECUTABLE_FULL_PATH}
   WORKING_DIRECTORY ${DESKTOP_GUI_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} -E make_directory lib/generated
   COMMAND ${DART_EXECUTABLE} pub global activate protoc_plugin
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE} --dart_out=grpc:lib/generated -I ../../rpc ../../rpc/multipass.proto --plugin=${PROTOC_DART_PLUGIN_PATH}
+  COMMAND $<TARGET_FILE:protoc> --dart_out=grpc:lib/generated -I ../../rpc ../../rpc/multipass.proto --plugin=${PROTOC_DART_PLUGIN_PATH}
   COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=${DESKTOP_GUI_BUILD_DIR}
   COMMAND ${FLUTTER_EXECUTABLE} ARGS build ${DESKTOP_GUI_TARGET} ${FLUTTER_BUILD_ARGS}
   COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=

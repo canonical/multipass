@@ -314,13 +314,13 @@ parts:
     source: snap-wrappers
 
   desktop-gui:
+    after: [ multipass ]
     plugin: nil
     source: ./src/client/desktop_gui
     build-packages:
       - build-essential
       - clang
       - ninja-build
-      - protobuf-compiler
       - unzip
     override-build: |
       craftctl default
@@ -334,7 +334,7 @@ parts:
       export MP_PROTO_FILE_DIR=$HOME/parts/multipass/src/src/rpc
 
       mkdir -p lib/generated
-      protoc --dart_out=grpc:lib/generated -I $MP_PROTO_FILE_DIR $MP_PROTO_FILE_DIR/multipass.proto
+      /root/parts/multipass/build/bin/protoc --dart_out=grpc:lib/generated -I $MP_PROTO_FILE_DIR $MP_PROTO_FILE_DIR/multipass.proto
 
       flutter pub get
       flutter build linux --release --verbose --target lib/main.dart
