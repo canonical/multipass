@@ -161,14 +161,16 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
         return "No snapshots found.\n";
 
     fmt::memory_buffer buf;
+    const std::string::size_type name_columns_width = 12;
     const auto name_column_width = mp::format::column_width(
-        overview.begin(), overview.end(), [](const auto& item) -> int { return item.instance_name().length(); }, 12);
+        overview.begin(), overview.end(), [](const auto& item) -> int { return item.instance_name().length(); },
+        name_columns_width);
     const auto snapshot_column_width = mp::format::column_width(
         overview.begin(), overview.end(),
-        [](const auto& item) -> int { return item.fundamentals().snapshot_name().length(); }, 12);
+        [](const auto& item) -> int { return item.fundamentals().snapshot_name().length(); }, name_columns_width);
     const auto parent_column_width = mp::format::column_width(
         overview.begin(), overview.end(), [](const auto& item) -> int { return item.fundamentals().parent().length(); },
-        12);
+        name_columns_width);
     const auto max_comment_column_width = 50;
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
@@ -176,9 +178,10 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
     fmt::format_to(std::back_inserter(buf), row_format, "Instance", name_column_width, "Snapshot",
                    snapshot_column_width, "Parent", parent_column_width, "Comment");
 
+    using google::protobuf::util::TimeUtil;
     std::sort(std::begin(overview), std::end(overview), [](const auto& a, const auto& b) {
-        return google::protobuf::util::TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
-               google::protobuf::util::TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
+        return TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
+               TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
     });
 
     for (const auto& item : overview)
