@@ -394,9 +394,9 @@ INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTestsuite,
                                                 "            \"instance\": \"primary\",\n"
                                                 "            \"working-directory\": \"map\"\n"
                                                 "        }\n    ]\n}\n",
-                                                "Alias  Instance  Command  Working directory\n"
-                                                "llp    primary   ls       map\n"
-                                                "lsp    primary   ls       map\n",
+                                                "Alias   Instance   Command   Working directory\n"
+                                                "llp     primary    ls        map\n"
+                                                "lsp     primary    ls        map\n",
                                                 "aliases:\n  - alias: llp\n    command: ls\n    instance: primary\n"
                                                 "    working-directory: map\n  - alias: lsp\n    command: ls\n"
                                                 "    instance: primary\n    working-directory: map\n")));
