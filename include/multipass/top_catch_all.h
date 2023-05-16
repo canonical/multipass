@@ -96,8 +96,7 @@ inline auto multipass::top_catch_all(const logging::CString& log_category, T&& f
 }
 
 template <typename Fun, typename... Args>
-inline void multipass::top_catch_all(const logging::CString& log_category, Fun&& f,
-                                     Args&&... args) noexcept // not noexcept because logging isn't
+inline void multipass::top_catch_all(const logging::CString& log_category, Fun&& f, Args&&... args) noexcept
 {
     try
     {
