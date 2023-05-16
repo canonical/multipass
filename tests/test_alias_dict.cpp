@@ -470,32 +470,54 @@ TEST_P(FormatterTestsuite, table)
 
 const std::string csv_head{"Alias,Instance,Command,Working directory,Context\n"};
 
-INSTANTIATE_TEST_SUITE_P(
-    AliasDictionary, FormatterTestsuite,
-    Values(std::make_tuple(AliasesVector{}, csv_head,
-                           "{\n    \"active-context\": \"default\",\n    \"contexts\": {\n        \"default\": {\n"
-                           "        }\n    }\n}\n",
-                           "No aliases defined.\n", "active_context: default\naliases:\n  default: ~\n"),
-           std::make_tuple(
-               AliasesVector{{"lsp", {"primary", "ls", "map"}}, {"llp", {"primary", "ls", "map"}}},
-               csv_head + "llp,primary,ls,map,default*\nlsp,primary,ls,map,default*\n",
-               "{\n    \"active-context\": \"default\",\n    \"contexts\": {\n"
-               "        \"default\": {\n"
-               "            \"llp\": {\n"
-               "                \"command\": \"ls\",\n"
-               "                \"instance\": \"primary\",\n"
-               "                \"working-directory\": \"map\"\n"
-               "            },\n"
-               "            \"lsp\": {\n"
-               "                \"command\": \"ls\",\n"
-               "                \"instance\": \"primary\",\n"
-               "                \"working-directory\": \"map\"\n"
-               "            }\n        }\n    }\n}\n",
-               "Alias  Instance  Command  Context   Working directory\n"
-               "llp    primary   ls       default*  map\nlsp    primary   ls       default*  map\n",
-               "active_context: default\naliases:\n  default:\n"
-               "    - alias: llp\n      command: ls\n      instance: primary\n      working-directory: map\n"
-               "    - alias: lsp\n      command: ls\n      instance: primary\n      working-directory: map\n")));
+INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTestsuite,
+                         Values(std::make_tuple(AliasesVector{}, csv_head,
+                                                "{\n"
+                                                "    \"active-context\": \"default\",\n"
+                                                "    \"contexts\": {\n"
+                                                "        \"default\": {\n"
+                                                "        }\n"
+                                                "    }\n"
+                                                "}\n",
+                                                "No aliases defined.\n",
+                                                "active_context: default\n"
+                                                "aliases:\n"
+                                                "  default: ~\n"),
+                                std::make_tuple(AliasesVector{{"lsp", {"primary", "ls", "map"}},
+                                                              {"llp", {"primary", "ls", "map"}}},
+                                                csv_head + "llp,primary,ls,map,default*\n"
+                                                           "lsp,primary,ls,map,default*\n",
+                                                "{\n"
+                                                "    \"active-context\": \"default\",\n"
+                                                "    \"contexts\": {\n"
+                                                "        \"default\": {\n"
+                                                "            \"llp\": {\n"
+                                                "                \"command\": \"ls\",\n"
+                                                "                \"instance\": \"primary\",\n"
+                                                "                \"working-directory\": \"map\"\n"
+                                                "            },\n"
+                                                "            \"lsp\": {\n"
+                                                "                \"command\": \"ls\",\n"
+                                                "                \"instance\": \"primary\",\n"
+                                                "                \"working-directory\": \"map\"\n"
+                                                "            }\n"
+                                                "        }\n"
+                                                "    }\n"
+                                                "}\n",
+                                                "Alias   Instance   Command   Context    Working directory\n"
+                                                "llp     primary    ls        default*   map\n"
+                                                "lsp     primary    ls        default*   map\n",
+                                                "active_context: default\n"
+                                                "aliases:\n"
+                                                "  default:\n"
+                                                "    - alias: llp\n"
+                                                "      command: ls\n"
+                                                "      instance: primary\n"
+                                                "      working-directory: map\n"
+                                                "    - alias: lsp\n"
+                                                "      command: ls\n"
+                                                "      instance: primary\n"
+                                                "      working-directory: map\n")));
 
 struct RemoveInstanceTestsuite : public AliasDictionary,
                                  public WithParamInterface<std::pair<AliasesVector, std::vector<std::string>>>
