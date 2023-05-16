@@ -911,8 +911,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
 const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
     {&table_formatter, &empty_networks_reply, "No network interfaces found.\n", "table_networks_empty"},
     {&table_formatter, &one_short_line_networks_reply,
-     "Name  Type  Description\n"
-     "en0   eth   Ether\n",
+     "Name   Type   Description\n"
+     "en0    eth    Ether\n",
      "table_networks_one_short_line"},
     {&table_formatter, &one_long_line_networks_reply,
      "Name     Type       Description\n"
