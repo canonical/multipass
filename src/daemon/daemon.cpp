@@ -746,10 +746,15 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances, Ins
     }
     else
     {
+        std::unordered_set<std::string> seen_instances;
+
         for (const auto& name : names)
         {
-            auto trail = find_instance(operative_instances, deleted_instances, name);
-            rank_instance(name, trail, ret);
+            if (seen_instances.insert(name).second)
+            {
+                auto trail = find_instance(operative_instances, deleted_instances, name);
+                rank_instance(name, trail, ret);
+            }
         }
     }
 
