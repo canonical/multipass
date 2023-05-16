@@ -161,22 +161,24 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
         return "No snapshots found.\n";
 
     fmt::memory_buffer buf;
-    const std::string::size_type name_columns_width = 12;
+    const std::string name_col_header = "Instance", snapshot_col_header = "Snapshot", parent_col_header = "Parent",
+                      comment_col_header = "Comment";
     const auto name_column_width = mp::format::column_width(
         overview.begin(), overview.end(), [](const auto& item) -> int { return item.instance_name().length(); },
-        name_columns_width);
+        name_col_header.length());
     const auto snapshot_column_width = mp::format::column_width(
         overview.begin(), overview.end(),
-        [](const auto& item) -> int { return item.fundamentals().snapshot_name().length(); }, name_columns_width);
+        [](const auto& item) -> int { return item.fundamentals().snapshot_name().length(); },
+        snapshot_col_header.length());
     const auto parent_column_width = mp::format::column_width(
         overview.begin(), overview.end(), [](const auto& item) -> int { return item.fundamentals().parent().length(); },
-        name_columns_width);
+        parent_col_header.length());
     const auto max_comment_column_width = 50;
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
 
-    fmt::format_to(std::back_inserter(buf), row_format, "Instance", name_column_width, "Snapshot",
-                   snapshot_column_width, "Parent", parent_column_width, "Comment");
+    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, snapshot_col_header,
+                   snapshot_column_width, parent_col_header, parent_column_width, comment_col_header);
 
     using google::protobuf::util::TimeUtil;
     std::sort(std::begin(overview), std::end(overview), [](const auto& a, const auto& b) {
@@ -226,14 +228,16 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     if (instances.empty())
         return "No instances found.\n";
 
+    const std::string name_col_header = "Name";
     const auto name_column_width = mp::format::column_width(
-        instances.begin(), instances.end(), [](const auto& instance) -> int { return instance.name().length(); }, 24);
+        instances.begin(), instances.end(), [](const auto& instance) -> int { return instance.name().length(); },
+        name_col_header.length(), 24);
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
-    fmt::format_to(std::back_inserter(buf), row_format, "Name", name_column_width, "State", state_column_width, "IPv4",
-                   ip_column_width, "Image");
+    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State", state_column_width,
+                   "IPv4", ip_column_width, "Image");
 
     for (const auto& instance : format::sorted(reply.instances()))
     {
@@ -264,17 +268,17 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
     if (interfaces.empty())
         return "No network interfaces found.\n";
 
+    const std::string name_col_header = "Name", type_col_header = "Type", desc_col_header = "Description";
     const auto name_column_width = mp::format::column_width(
         interfaces.begin(), interfaces.end(), [](const auto& interface) -> int { return interface.name().length(); },
-        5);
-
+        name_col_header.length());
     const auto type_column_width = mp::format::column_width(
         interfaces.begin(), interfaces.end(), [](const auto& interface) -> int { return interface.type().length(); },
-        5);
+        type_col_header.length());
 
     const auto row_format = "{:<{}}{:<{}}{:<}\n";
-    fmt::format_to(std::back_inserter(buf), row_format, "Name", name_column_width, "Type", type_column_width,
-                   "Description");
+    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, type_col_header,
+                   type_column_width, desc_col_header);
 
     for (const auto& interface : format::sorted(reply.interfaces()))
     {
@@ -346,31 +350,44 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     if (aliases.empty())
         return "No aliases defined.\n";
 
-    auto width = [&aliases](const auto get_width, int minimum_width) -> int {
+    auto width = [&aliases](const auto get_width, int header_width) -> int {
         return mp::format::column_width(
             aliases.cbegin(), aliases.cend(),
-            [&, get_width, minimum_width](const auto& ctx) -> int {
-                return mp::format::column_width(
+            [&, get_width](const auto& ctx) -> int {
+                return get_width(*std::max_element(
                     ctx.second.cbegin(), ctx.second.cend(),
-                    [&get_width](const auto& alias) -> int { return get_width(alias); }, minimum_width, 2);
+                    [&get_width](const auto& lhs, const auto& rhs) { return get_width(lhs) < get_width(rhs); }));
             },
-            minimum_width, 0);
+            header_width);
     };
 
-    const auto alias_width = width([](const auto& alias) -> int { return alias.first.length(); }, 7);
-    const auto instance_width = width([](const auto& alias) -> int { return alias.second.instance.length(); }, 10);
-    const auto command_width = width([](const auto& alias) -> int { return alias.second.command.length(); }, 9);
+    const std::string alias_col_header = "Alias", instance_col_header = "Instance", command_col_header = "Command",
+                      context_col_header = "Context", dir_col_header = "Working directory";
+    const std::string active_context = "*";
+    const auto alias_width =
+        width([](const auto& alias) -> int { return alias.first.length(); }, alias_col_header.length());
+    const auto instance_width =
+        width([](const auto& alias) -> int { return alias.second.instance.length(); }, instance_col_header.length());
+    const auto command_width =
+        width([](const auto& alias) -> int { return alias.second.command.length(); }, command_col_header.length());
     const auto context_width = mp::format::column_width(
-        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.first.length(); }, 10);
+        aliases.cbegin(), aliases.cend(),
+        [&aliases, &active_context](const auto& alias) -> int {
+            return alias.first == aliases.active_context_name() ? alias.first.length() + active_context.length()
+                                                                : alias.first.length();
+        },
+        context_col_header.length());
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
 
-    fmt::format_to(std::back_inserter(buf), row_format, "Alias", alias_width, "Instance", instance_width, "Command",
-                   command_width, "Context", context_width, "Working directory");
+    fmt::format_to(std::back_inserter(buf), row_format, alias_col_header, alias_width, instance_col_header,
+                   instance_width, command_col_header, command_width, context_col_header, context_width,
+                   dir_col_header);
 
     for (const auto& [context_name, context_contents] : sort_dict(aliases))
     {
-        std::string shown_context = context_name == aliases.active_context_name() ? context_name + "*" : context_name;
+        std::string shown_context =
+            context_name == aliases.active_context_name() ? context_name + active_context : context_name;
 
         for (const auto& [name, def] : sort_dict(context_contents))
         {
