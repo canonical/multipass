@@ -403,10 +403,10 @@ jobs:
       if: always()
       id: publish-data
       run: |
-        echo "${{ runner.os }}-${{ matrix.arch }}-check_id=${{ steps.public-check.outputs.check_id }}" >> $GITHUB_OUTPUT
-        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> $GITHUB_OUTPUT
-        echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> $GITHUB_OUTPUT
-        echo "${{ runner.os }}-${{ matrix.arch }}-status=${{ job.status }}" >> $GITHUB_OUTPUT
+        echo "${{ runner.os }}-${{ matrix.arch }}-check_id=${{ steps.public-check.outputs.check_id }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+        echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+        echo "${{ runner.os }}-${{ matrix.arch }}-status=${{ job.status }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
 
   PublishAndDispatch:
     # Want to run even if one of the builds above failed
