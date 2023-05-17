@@ -1671,12 +1671,17 @@ try // clang-format on
     // TODO@snapshots retrieve snapshot names to gather info
     auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
-        auto overview = response.mutable_snapshot_overview()->add_overview();
-        auto fundamentals = overview->mutable_fundamentals();
 
-        overview->set_instance_name(name);
-        fundamentals->set_snapshot_name("snapshot1");
-        fundamentals->set_comment("This is a sample comment");
+        auto get_snapshot_info = [&](std::shared_ptr<const Snapshot> snapshot) {
+            auto overview = response.mutable_snapshot_overview()->add_overview();
+            auto fundamentals = overview->mutable_fundamentals();
+
+            overview->set_instance_name(name);
+            fundamentals->set_snapshot_name(snapshot->get_name());
+            fundamentals->set_parent(snapshot->get_parent_name());
+            fundamentals->set_comment(snapshot->get_comment());
+            // TODO@snapshots populate snapshot creation time once available
+        };
 
         return grpc::Status::OK;
     };
