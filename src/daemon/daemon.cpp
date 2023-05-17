@@ -1665,7 +1665,6 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
-    // TODO@snapshots retrieve snapshot names to gather info
     std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
     auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
@@ -1680,6 +1679,29 @@ try // clang-format on
             fundamentals->set_comment(snapshot->get_comment());
             // TODO@snapshots populate snapshot creation time once available
         };
+
+        if (const auto& it = instance_snapshots_map.find(name); it == instance_snapshots_map.end())
+        {
+            for (const auto& snapshot : vm.view_snapshots())
+                get_snapshot_info(snapshot);
+        }
+        else
+        {
+            for (const auto& snapshot : it->second)
+            {
+                try
+                {
+                    get_snapshot_info(vm.get_snapshot(snapshot));
+                }
+                catch (const std::out_of_range&)
+                {
+                    fmt::memory_buffer errors;
+                    add_fmt_to(errors, "snapshot \"{}\" does not exist", snapshot);
+
+                    return grpc_status_for(errors, grpc::StatusCode::NOT_FOUND);
+                }
+            }
+        }
 
         return grpc::Status::OK;
     };
@@ -1703,9 +1725,13 @@ try // clang-format on
         auto cmd =
             request->snapshot_overview() ? std::function(fetch_snapshot_overview) : std::function(fetch_instance_info);
 
-        cmd_vms(instance_selection.operative_selection, cmd);
-        deleted = true;
-        cmd_vms(instance_selection.deleted_selection, cmd);
+        status = cmd_vms(instance_selection.operative_selection, cmd);
+
+        if (status.ok())
+        {
+            deleted = true;
+            status = cmd_vms(instance_selection.deleted_selection, cmd);
+        }
 
         if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
             mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
