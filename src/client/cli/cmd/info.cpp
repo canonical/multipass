@@ -71,31 +71,30 @@ std::string cmd::Info::name() const { return "info"; }
 
 QString cmd::Info::short_help() const
 {
-    return QStringLiteral("Display information about instances");
+    return QStringLiteral("Display information about instances or snapshots");
 }
 
 QString cmd::Info::description() const
 {
-    return QStringLiteral("Display information about instances");
+    return QStringLiteral("Display information about instances or snapshots");
 }
 
 mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to display information about", "<name> [<name> ...]");
+    parser->addPositionalArgument("instance", "Names of instances or snapshots to display information about",
+                                  "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
     QCommandLineOption all_option(all_option_name, "Display info for all instances");
-    parser->addOption(all_option);
-
     QCommandLineOption noRuntimeInfoOption(
         "no-runtime-information",
         "Retrieve from the daemon only the information obtained without running commands on the instance");
     noRuntimeInfoOption.setFlags(QCommandLineOption::HiddenFromHelp);
-    parser->addOption(noRuntimeInfoOption);
-
     QCommandLineOption formatOption(
         "format", "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
         "format", "table");
-    parser->addOption(formatOption);
+    QCommandLineOption snapshotOverviewOption("snapshot-overview", "Display info on snapshots");
+
+    parser->addOptions({all_option, noRuntimeInfoOption, formatOption, snapshotOverviewOption});
 
     auto status = parser->commandParse(this);
 
@@ -111,6 +110,7 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     for (const auto& item : add_instance_and_snapshot_names(parser))
         request.add_instances_snapshots()->CopyFrom(item);
     request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));
+    request.set_snapshot_overview(parser->isSet(snapshotOverviewOption));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
 
