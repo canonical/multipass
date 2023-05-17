@@ -148,6 +148,13 @@ auto construct_multiple_lines_networks_reply()
     return networks_reply;
 }
 
+auto construct_empty_info_reply()
+{
+    mp::InfoReply info_reply;
+    info_reply.mutable_detailed_report();
+    return info_reply;
+}
+
 auto construct_single_instance_info_reply()
 {
     mp::InfoReply info_reply;
@@ -483,7 +490,7 @@ const auto one_short_line_networks_reply = construct_one_short_line_networks_rep
 const auto one_long_line_networks_reply = construct_one_long_line_networks_reply();
 const auto multiple_lines_networks_reply = construct_multiple_lines_networks_reply();
 
-const auto empty_info_reply = mp::InfoReply();
+const auto empty_info_reply = construct_empty_info_reply();
 const auto single_instance_info_reply = construct_single_instance_info_reply();
 const auto multiple_instances_info_reply = construct_multiple_instances_info_reply();
 
@@ -904,17 +911,17 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
 const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
     {&table_formatter, &empty_networks_reply, "No network interfaces found.\n", "table_networks_empty"},
     {&table_formatter, &one_short_line_networks_reply,
-     "Name Type Description\n"
-     "en0  eth  Ether\n",
+     "Name   Type   Description\n"
+     "en0    eth    Ether\n",
      "table_networks_one_short_line"},
     {&table_formatter, &one_long_line_networks_reply,
-     "Name    Type      Description\n"
-     "enp3s0  ethernet  Amazingly fast and robust ethernet adapter\n",
+     "Name     Type       Description\n"
+     "enp3s0   ethernet   Amazingly fast and robust ethernet adapter\n",
      "table_networks_one_long_line"},
     {&table_formatter, &multiple_lines_networks_reply,
-     "Name             Type  Description\n"
-     "en0              eth   Ether\n"
-     "wlx0123456789ab  wifi  Wireless\n",
+     "Name              Type   Description\n"
+     "en0               eth    Ether\n"
+     "wlx0123456789ab   wifi   Wireless\n",
      "table_networks_multiple_lines"},
 
     {&csv_formatter, &empty_networks_reply, "Name,Type,Description\n", "csv_networks_empty"},
