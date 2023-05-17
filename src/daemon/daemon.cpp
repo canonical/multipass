@@ -1666,6 +1666,7 @@ try // clang-format on
     };
 
     // TODO@snapshots retrieve snapshot names to gather info
+    std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
     auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
 
@@ -1689,6 +1690,15 @@ try // clang-format on
 
     if (status.ok())
     {
+        for (const auto& it : request->instances_snapshots())
+        {
+            if (it.snapshot_name().empty())
+                instance_snapshots_map[it.instance_name()] = {};
+            else if (const auto& entry = instance_snapshots_map.find(it.instance_name());
+                     entry == instance_snapshots_map.end() || !entry->second.empty())
+                instance_snapshots_map[it.instance_name()].insert(it.snapshot_name());
+        }
+
         // TODO@snapshots change cmd logic after all info logic paths are added
         auto cmd =
             request->snapshot_overview() ? std::function(fetch_snapshot_overview) : std::function(fetch_instance_info);
