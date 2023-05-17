@@ -747,10 +747,18 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances, Ins
 
         for (const auto& name : names)
         {
-            if (seen_instances.insert(name).second)
+            std::string vm_name;
+
+            using T = std::decay_t<std::remove_reference_t<decltype(name)>>;
+            if constexpr (std::is_same_v<T, std::string>)
+                vm_name = name;
+            else if constexpr (std::is_same_v<T, mp::InstanceSnapshotPair>)
+                vm_name = name.instance_name();
+
+            if (seen_instances.insert(vm_name).second)
             {
-                auto trail = find_instance(operative_instances, deleted_instances, name);
-                rank_instance(name, trail, ret);
+                auto trail = find_instance(operative_instances, deleted_instances, vm_name);
+                rank_instance(vm_name, trail, ret);
             }
         }
     }
@@ -1670,12 +1678,8 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
-    mp::InstanceNames instance_names;
-    for (const auto& n : request->instances_snapshots())
-        instance_names.add_instance_name(n.instance_name());
-
     auto [instance_selection, status] =
-        select_instances_and_react(operative_instances, deleted_instances, instance_names.instance_name(),
+        select_instances_and_react(operative_instances, deleted_instances, request->instances_snapshots(),
                                    InstanceGroup::All, require_existing_instances_reaction);
 
     if (status.ok())
