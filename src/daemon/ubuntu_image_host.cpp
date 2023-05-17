@@ -193,7 +193,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
 
     for (const auto& entry : manifest->products)
     {
-        if ((entry.supported || allow_unsupported) && check_all_aliases_are_supported(entry.aliases, remote_name))
+        if ((entry.supported || allow_unsupported) && alias_verifies_image_is_supported(entry.aliases, remote_name))
         {
             images.push_back(with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry));
         }
@@ -211,7 +211,7 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
     {
         for (const auto& product : manifest.second->products)
         {
-            if (check_all_aliases_are_supported(product.aliases, manifest.first))
+            if (alias_verifies_image_is_supported(product.aliases, manifest.first))
             {
                 action(manifest.first,
                        with_location_fully_resolved(QString::fromStdString(remote_url_from(manifest.first)), product));

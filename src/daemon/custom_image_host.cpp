@@ -205,7 +205,7 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
     auto custom_manifest = manifest_from(remote_name);
 
     auto pred = [this, &remote_name](const auto& product) {
-        return check_all_aliases_are_supported(product.aliases, remote_name);
+        return alias_verifies_image_is_supported(product.aliases, remote_name);
     };
 
     std::copy_if(custom_manifest->products.begin(), custom_manifest->products.end(), std::back_inserter(images), pred);
@@ -219,7 +219,7 @@ void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
     {
         for (const auto& info : manifest.second->products)
         {
-            if (check_all_aliases_are_supported(info.aliases, manifest.first))
+            if (alias_verifies_image_is_supported(info.aliases, manifest.first))
                 action(manifest.first, info);
         }
     }
