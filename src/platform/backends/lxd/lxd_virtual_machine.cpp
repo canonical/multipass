@@ -477,7 +477,7 @@ mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_p
 {
     if (!is_default_Gid_Uid(mount))
     {
-        throw std::runtime_error("LXD native mount does not accept user provided gid or uid.");
+        throw std::runtime_error("LXD native mount does not accept custom gid or uid.");
     }
 
     return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);

@@ -63,7 +63,7 @@ public:
         return active;
     }
 
-    virtual bool can_stop()
+    virtual bool is_sticky()
     {
         return true;
     }

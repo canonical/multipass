@@ -1877,7 +1877,7 @@ try // clang-format on
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        if (vm->current_state() == mp::VirtualMachine::State::running || !vm_mounts[target_path]->is_sticky())
         {
             try
             {
@@ -2912,7 +2912,7 @@ void mp::Daemon::stop_mounts(const std::string& name)
 {
     for (auto& [_, mount] : mounts[name])
     {
-        if (mount->can_stop())
+        if (mount->is_sticky())
         {
             mount->stop(/*force=*/true);
         }
@@ -2973,7 +2973,10 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
             for (auto& [target, mount] : vm_mounts)
                 try
                 {
-                    mount->start(server);
+                    if (mount->is_sticky())
+                    {
+                        mount->start(server);
+                    }
                 }
                 catch (const mp::SSHFSMissingError&)
                 {

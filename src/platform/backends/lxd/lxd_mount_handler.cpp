@@ -38,47 +38,37 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
       device_name_{
           mp::utils::make_uuid(target_path).left(length_of_unique_id_without_prefix).prepend("d_").toStdString()}
 {
-    const VirtualMachine::State state = lxd_virtual_machine->current_state();
-    if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
-    {
-        throw std::runtime_error("Please stop the instance " + lxd_virtual_machine->vm_name +
-                                 " before mount it natively.");
-    }
-
-    const ServerVariant dummy_sever;
-    start(dummy_sever);
 }
 
 void LXDMountHandler::start_impl(ServerVariant /**/, std::chrono::milliseconds /**/)
 {
+    const VirtualMachine::State state = vm->current_state();
+    if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
+    {
+        throw std::runtime_error("Please stop the instance " + vm->vm_name + " before mount it natively.");
+    }
+
     mpl::log(mpl::Level::info, std::string(category),
              fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
     lxd_device_add();
 }
 
-void LXDMountHandler::stop_impl(bool force)
+void LXDMountHandler::stop_impl(bool /*force*/)
 {
-    try
+    // throw it for now, it can be removed later once lxd fix the hot-unmount bug
+    const VirtualMachine::State state = vm->current_state();
+    if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
     {
-        mpl::log(mpl::Level::info, std::string(category),
-                 fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
-        lxd_device_remove();
+        throw std::runtime_error("Please stop the instance " + vm->vm_name + " before unmount it natively.");
     }
-    catch (const std::exception& general_exception)
-    {
-        if (!force)
-        {
-            throw general_exception;
-        }
-        mpl::log(mpl::Level::warning, std::string(category),
-                 fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name,
-                             general_exception.what()));
-    }
+
+    mpl::log(mpl::Level::info, std::string(category),
+             fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
+    lxd_device_remove();
 }
 
 LXDMountHandler::~LXDMountHandler()
 {
-    stop(true);
 }
 
 void LXDMountHandler::lxd_device_remove()

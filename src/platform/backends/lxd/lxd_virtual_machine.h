@@ -30,7 +30,7 @@ class NetworkAccessManager;
 class VirtualMachineDescription;
 class VMStatusMonitor;
 
-class LXDVirtualMachine final : public BaseVirtualMachine
+class LXDVirtualMachine : public BaseVirtualMachine
 {
 public:
     LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, NetworkAccessManager* manager,
