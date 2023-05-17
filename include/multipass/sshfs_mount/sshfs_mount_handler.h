@@ -32,8 +32,8 @@ public:
                       const VMMount& mount);
     ~SSHFSMountHandler() override;
 
-    void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
-    void stop_impl(bool force) override;
+    void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
+    void deactivate_impl(bool force) override;
     bool is_active() override;
 
 private:

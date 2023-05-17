@@ -30,8 +30,8 @@ public:
                     const SSHKeyProvider* ssh_key_provider, const std::string& target_path, const VMMount& mount);
     ~LXDMountHandler() override;
 
-    void start_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
-    void stop_impl(bool force) override;
+    void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
+    void deactivate_impl(bool force) override;
 
     bool is_sticky() override
     {

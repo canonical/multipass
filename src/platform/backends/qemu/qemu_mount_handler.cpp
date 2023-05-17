@@ -81,7 +81,7 @@ catch (const std::exception& e)
     return false;
 }
 
-void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)
+void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
@@ -104,7 +104,7 @@ void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)
         session, fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912", tag, target));
 }
 
-void QemuMountHandler::stop_impl(bool force)
+void QemuMountHandler::deactivate_impl(bool force)
 try
 {
     mpl::log(mpl::Level::info, category,
@@ -122,7 +122,7 @@ catch (const std::exception& e)
 
 QemuMountHandler::~QemuMountHandler()
 {
-    stop(/*force=*/true);
+    deactivate(/*force=*/true);
     vm_mount_args.erase(tag);
 }
 } // namespace multipass

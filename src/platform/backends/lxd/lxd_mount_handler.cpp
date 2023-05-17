@@ -40,7 +40,7 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
 {
 }
 
-void LXDMountHandler::start_impl(ServerVariant /**/, std::chrono::milliseconds /**/)
+void LXDMountHandler::activate_impl(ServerVariant /**/, std::chrono::milliseconds /**/)
 {
     const VirtualMachine::State state = vm->current_state();
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
@@ -53,7 +53,7 @@ void LXDMountHandler::start_impl(ServerVariant /**/, std::chrono::milliseconds /
     lxd_device_add();
 }
 
-void LXDMountHandler::stop_impl(bool /*force*/)
+void LXDMountHandler::deactivate_impl(bool /*force*/)
 {
     // throw it for now, it can be removed later once lxd fix the hot-unmount bug
     const VirtualMachine::State state = vm->current_state();

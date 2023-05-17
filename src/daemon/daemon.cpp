@@ -1881,7 +1881,7 @@ try // clang-format on
         {
             try
             {
-                vm_mounts[target_path]->start(server);
+                vm_mounts[target_path]->activate(server);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -2248,7 +2248,7 @@ try // clang-format on
             const auto& [target, mount] = *expiring_it;
             try
             {
-                mount->stop();
+                mount->deactivate();
                 vm_spec_mounts.erase(target);
                 vm_mounts.erase(expiring_it);
             }
@@ -2914,7 +2914,7 @@ void mp::Daemon::stop_mounts(const std::string& name)
     {
         if (mount->is_sticky())
         {
-            mount->stop(/*force=*/true);
+            mount->deactivate(/*force=*/true);
         }
     }
 }
@@ -2975,7 +2975,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 {
                     if (mount->is_sticky())
                     {
-                        mount->start(server);
+                        mount->activate(server);
                     }
                 }
                 catch (const mp::SSHFSMissingError&)

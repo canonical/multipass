@@ -121,7 +121,7 @@ TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
     EXPECT_CALL(mock_vm, ssh_username()).Times(3);
 
     mp::SSHFSMountHandler sshfs_mount_handler{&mock_vm, &key_provider, target_path, mount};
-    sshfs_mount_handler.start(&server);
+    sshfs_mount_handler.activate(&server);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
     auto sshfs_command = factory->process_list()[0];
@@ -152,7 +152,7 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_ex
     }));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    EXPECT_THROW(sshfs_mount_handler.start(&server), mp::SSHFSMissingError);
+    EXPECT_THROW(sshfs_mount_handler.activate(&server), mp::SSHFSMissingError);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
     auto sshfs_command = factory->process_list()[0];
@@ -171,7 +171,7 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_causes_runtime_exception)
     }));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    MP_EXPECT_THROW_THAT(sshfs_mount_handler.start(&server), std::runtime_error,
+    MP_EXPECT_THROW_THAT(sshfs_mount_handler.activate(&server), std::runtime_error,
                          mpt::match_what(StrEq("Process returned exit code: 1: Whoopsie")));
 }
 
@@ -184,8 +184,8 @@ TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
     }));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    sshfs_mount_handler.start(&server);
-    sshfs_mount_handler.stop();
+    sshfs_mount_handler.activate(&server);
+    sshfs_mount_handler.deactivate();
 }
 
 TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_which_snap_fails)
@@ -194,7 +194,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_which_snap_fails)
     REPLACE(ssh_channel_request_exec, make_exec_that_fails_for({"which snap"}, invoked));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    EXPECT_THROW(sshfs_mount_handler.start(&server), std::runtime_error);
+    EXPECT_THROW(sshfs_mount_handler.activate(&server), std::runtime_error);
     EXPECT_TRUE(invoked);
 }
 
@@ -205,7 +205,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_no_snap_dir_fails)
             make_exec_that_fails_for({"[ -e /snap ]", "sudo snap list multipass-sshfs"}, invoked));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    EXPECT_THROW(sshfs_mount_handler.start(&server), std::runtime_error);
+    EXPECT_THROW(sshfs_mount_handler.activate(&server), std::runtime_error);
     EXPECT_TRUE(invoked);
 }
 
@@ -216,7 +216,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_snap_install_fails)
             make_exec_that_fails_for({"sudo snap list multipass-sshfs", "sudo snap install multipass-sshfs"}, invoked));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    EXPECT_THROW(sshfs_mount_handler.start(&server), mp::SSHFSMissingError);
+    EXPECT_THROW(sshfs_mount_handler.activate(&server), mp::SSHFSMissingError);
     EXPECT_TRUE(invoked);
 }
 
@@ -262,5 +262,5 @@ TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
             mpt::MockLogger::make_cstring_matcher(StrEq("Timeout while installing 'multipass-sshfs' in 'stub'"))));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    EXPECT_THROW(sshfs_mount_handler.start(&server, std::chrono::milliseconds(1)), mp::SSHFSMissingError);
+    EXPECT_THROW(sshfs_mount_handler.activate(&server, std::chrono::milliseconds(1)), mp::SSHFSMissingError);
 }
