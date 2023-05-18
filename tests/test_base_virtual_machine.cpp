@@ -39,65 +39,65 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         state = s;
     }
 
-    void stop()
+    void stop() override
     {
         state = mp::VirtualMachine::State::off;
     }
 
-    void start()
+    void start() override
     {
         state = mp::VirtualMachine::State::running;
     }
 
-    void shutdown()
+    void shutdown() override
     {
         state = mp::VirtualMachine::State::off;
     }
 
-    void suspend()
+    void suspend() override
     {
         state = mp::VirtualMachine::State::suspended;
     }
 
-    mp::VirtualMachine::State current_state()
+    mp::VirtualMachine::State current_state() override
     {
         return state;
     }
 
-    int ssh_port()
+    int ssh_port() override
     {
         return 42;
     }
 
-    std::string ssh_hostname(std::chrono::milliseconds timeout)
+    std::string ssh_hostname(std::chrono::milliseconds timeout) override
     {
         return "localhost";
     }
 
-    std::string ssh_username()
+    std::string ssh_username() override
     {
         return "ubuntu";
     }
 
-    std::string management_ipv4()
+    std::string management_ipv4() override
     {
         return "1.2.3.4";
     }
 
-    std::string ipv6()
+    std::string ipv6() override
     {
         return "";
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds timeout)
+    void wait_until_ssh_up(std::chrono::milliseconds timeout) override
     {
     }
 
-    void ensure_vm_is_running()
+    void ensure_vm_is_running() override
     {
     }
 
-    void update_state()
+    void update_state() override
     {
     }
 
