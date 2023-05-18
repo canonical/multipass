@@ -54,6 +54,11 @@ public:
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
 
+protected:
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                     std::shared_ptr<const Snapshot> parent,
+                                                     const VMSpecs& specs) override;
+
 private:
     const QString name;
     const std::string username;

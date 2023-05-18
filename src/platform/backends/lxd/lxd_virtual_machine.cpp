@@ -459,3 +459,10 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
     QJsonObject patch_json{{"devices", QJsonObject{{"root", root_json}}}};
     lxd_request(manager, "PATCH", url(), patch_json);
 }
+
+auto multipass::LXDVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
+                                                          std::shared_ptr<const Snapshot> parent,
+                                                          const multipass::VMSpecs& specs) -> std::shared_ptr<Snapshot>
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+}
