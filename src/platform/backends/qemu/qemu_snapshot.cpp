@@ -47,3 +47,8 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comme
 
     // TODO@ricab consider a dedicated method to shoot the snapshot on the backend
 }
+
+void multipass::QemuSnapshot::shoot()
+{
+    // TODO@snapshots lock
+}
