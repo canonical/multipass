@@ -482,3 +482,10 @@ mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_p
 
     return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);
 }
+
+auto multipass::LXDVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
+                                                          std::shared_ptr<const Snapshot> parent,
+                                                          const multipass::VMSpecs& specs) -> std::shared_ptr<Snapshot>
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+}

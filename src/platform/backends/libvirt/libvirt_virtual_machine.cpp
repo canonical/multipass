@@ -553,3 +553,11 @@ void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
 }
+
+auto multipass::LibVirtVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                              std::shared_ptr<const Snapshot> parent,
+                                                              const multipass::VMSpecs& specs)
+    -> std::shared_ptr<Snapshot>
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+}
