@@ -122,35 +122,35 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
         snapshot_name = name.empty() ? generate_snapshot_name() : name;
 
         const auto [it, success] = snapshots.try_emplace(snapshot_name, nullptr);
-        if (success)
+        if (!success)
         {
-            auto rollback_on_failure = sg::make_scope_guard([this, it = it, old_head = head_snapshot]() noexcept {
-                if (it->second) // snapshot was created
-                {
-                    --snapshot_count;
-                    head_snapshot = std::move(old_head);
-                    mp::top_catch_all(vm_name, [it] { it->second->delet(); });
-                }
-
-                snapshots.erase(it);
-            });
-
-            // TODO@snapshots - generate implementation-specific snapshot instead
-            auto ret = head_snapshot = it->second =
-                std::make_shared<BaseSnapshot>(snapshot_name, comment, head_snapshot, specs);
-
-            ++snapshot_count;
-            persist_head_snapshot(snapshot_dir);
-            rollback_on_failure.dismiss();
-
-            log_latest_snapshot(std::move(lock));
-
-            return ret;
+            mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", snapshot_name));
+            throw SnapshotNameTaken{vm_name, snapshot_name};
         }
-    }
 
-    mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", snapshot_name));
-    throw SnapshotNameTaken{vm_name, snapshot_name};
+        auto rollback_on_failure = sg::make_scope_guard([this, it = it, old_head = head_snapshot]() mutable noexcept {
+            if (it->second) // snapshot was created
+            {
+                --snapshot_count;
+                head_snapshot = std::move(old_head);
+                mp::top_catch_all(vm_name, [it] { it->second->delet(); });
+            }
+
+            snapshots.erase(it);
+        });
+
+        // TODO@snapshots - generate implementation-specific snapshot instead
+        auto ret = head_snapshot = it->second =
+            std::make_shared<BaseSnapshot>(snapshot_name, comment, head_snapshot, specs);
+
+        ++snapshot_count;
+        persist_head_snapshot(snapshot_dir);
+        rollback_on_failure.dismiss();
+
+        log_latest_snapshot(std::move(lock));
+
+        return ret;
+    }
 }
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
