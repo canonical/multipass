@@ -17,6 +17,7 @@
 
 #include "qemu_virtual_machine.h"
 #include "qemu_mount_handler.h"
+#include "qemu_snapshot.h"
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
@@ -642,5 +643,5 @@ auto multipass::QemuVirtualMachine::make_specific_snapshot(const std::string& na
                                                            std::shared_ptr<const Snapshot> parent,
                                                            const multipass::VMSpecs& specs) -> std::shared_ptr<Snapshot>
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+    return std::make_shared<QemuSnapshot>(name, comment, std::move(parent), specs);
 }
