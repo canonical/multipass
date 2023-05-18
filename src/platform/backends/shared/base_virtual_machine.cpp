@@ -139,9 +139,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             snapshots.erase(it);
         });
 
-        // TODO@snapshots - generate implementation-specific snapshot instead
-        auto ret = head_snapshot = it->second =
-            std::make_shared<BaseSnapshot>(snapshot_name, comment, head_snapshot, specs);
+        auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
 
         ++snapshot_count;
         persist_head_snapshot(snapshot_dir);
