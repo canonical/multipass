@@ -57,125 +57,146 @@ format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>&
 
     return images_node;
 }
-} // namespace
 
-std::string mp::YamlFormatter::format(const InfoReply& reply) const
+std::string generate_instance_info_report(const mp::InfoReply& reply)
 {
     YAML::Node info_node;
 
     info_node["errors"].push_back(YAML::Null);
 
-    if (reply.info_contents_case() == mp::InfoReply::kDetailedReport)
+    for (const auto& info : mp::format::sorted(reply.detailed_report().details()))
     {
-        for (const auto& info : format::sorted(reply.detailed_report().details()))
+        const auto& instance_details = info.instance_info();
+        YAML::Node instance_node;
+
+        instance_node["state"] = mp::format::status_string_for(info.instance_status());
+        instance_node["snapshots"] = instance_details.num_snapshots();
+        instance_node["image_hash"] = instance_details.id();
+        instance_node["image_release"] = instance_details.image_release();
+        if (instance_details.current_release().empty())
+            instance_node["release"] = YAML::Null;
+        else
+            instance_node["release"] = instance_details.current_release();
+
+        instance_node["cpu_count"] = YAML::Null;
+        if (!info.cpu_count().empty())
+            instance_node["cpu_count"] = info.cpu_count();
+
+        if (!instance_details.load().empty())
         {
-            const auto& instance_details = info.instance_info();
-            YAML::Node instance_node;
+            // The VM returns load info in the default C locale
+            auto current_loc = std::locale();
+            std::locale::global(std::locale("C"));
+            auto loads = mp::utils::split(instance_details.load(), " ");
+            for (const auto& entry : loads)
+                instance_node["load"].push_back(entry);
+            std::locale::global(current_loc);
+        }
 
-            instance_node["state"] = mp::format::status_string_for(info.instance_status());
-            instance_node["snapshots"] = instance_details.num_snapshots();
-            instance_node["image_hash"] = instance_details.id();
-            instance_node["image_release"] = instance_details.image_release();
-            if (instance_details.current_release().empty())
-                instance_node["release"] = YAML::Null;
-            else
-                instance_node["release"] = instance_details.current_release();
+        YAML::Node disk;
+        disk["used"] = YAML::Null;
+        disk["total"] = YAML::Null;
+        if (!instance_details.disk_usage().empty())
+            disk["used"] = instance_details.disk_usage();
+        if (!info.disk_total().empty())
+            disk["total"] = info.disk_total();
 
-            instance_node["cpu_count"] = YAML::Null;
-            if (!info.cpu_count().empty())
-                instance_node["cpu_count"] = info.cpu_count();
+        // TODO: disk name should come from daemon
+        YAML::Node disk_node;
+        disk_node["sda1"] = disk;
+        instance_node["disks"].push_back(disk_node);
 
-            if (!instance_details.load().empty())
+        YAML::Node memory;
+        memory["usage"] = YAML::Null;
+        memory["total"] = YAML::Null;
+        if (!instance_details.memory_usage().empty())
+            memory["usage"] = std::stoll(instance_details.memory_usage());
+        if (!info.memory_total().empty())
+            memory["total"] = std::stoll(info.memory_total());
+
+        instance_node["memory"] = memory;
+
+        instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
+        for (const auto& ip : instance_details.ipv4())
+            instance_node["ipv4"].push_back(ip);
+
+        YAML::Node mounts;
+        for (const auto& mount : info.mount_info().mount_paths())
+        {
+            YAML::Node mount_node;
+
+            for (const auto& uid_mapping : mount.mount_maps().uid_mappings())
             {
-                // The VM returns load info in the default C locale
-                auto current_loc = std::locale();
-                std::locale::global(std::locale("C"));
-                auto loads = mp::utils::split(instance_details.load(), " ");
-                for (const auto& entry : loads)
-                    instance_node["load"].push_back(entry);
-                std::locale::global(current_loc);
+                auto host_uid = uid_mapping.host_id();
+                auto instance_uid = uid_mapping.instance_id();
+
+                mount_node["uid_mappings"].push_back(
+                    fmt::format("{}:{}", std::to_string(host_uid),
+                                (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid)));
+            }
+            for (const auto& gid_mapping : mount.mount_maps().gid_mappings())
+            {
+                auto host_gid = gid_mapping.host_id();
+                auto instance_gid = gid_mapping.instance_id();
+
+                mount_node["gid_mappings"].push_back(
+                    fmt::format("{}:{}", std::to_string(host_gid),
+                                (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid)));
             }
 
-            YAML::Node disk;
-            disk["used"] = YAML::Null;
-            disk["total"] = YAML::Null;
-            if (!instance_details.disk_usage().empty())
-                disk["used"] = instance_details.disk_usage();
-            if (!info.disk_total().empty())
-                disk["total"] = info.disk_total();
-
-            // TODO: disk name should come from daemon
-            YAML::Node disk_node;
-            disk_node["sda1"] = disk;
-            instance_node["disks"].push_back(disk_node);
-
-            YAML::Node memory;
-            memory["usage"] = YAML::Null;
-            memory["total"] = YAML::Null;
-            if (!instance_details.memory_usage().empty())
-                memory["usage"] = std::stoll(instance_details.memory_usage());
-            if (!info.memory_total().empty())
-                memory["total"] = std::stoll(info.memory_total());
-
-            instance_node["memory"] = memory;
-
-            instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
-            for (const auto& ip : instance_details.ipv4())
-                instance_node["ipv4"].push_back(ip);
-
-            YAML::Node mounts;
-            for (const auto& mount : info.mount_info().mount_paths())
-            {
-                YAML::Node mount_node;
-
-                for (const auto& uid_mapping : mount.mount_maps().uid_mappings())
-                {
-                    auto host_uid = uid_mapping.host_id();
-                    auto instance_uid = uid_mapping.instance_id();
-
-                    mount_node["uid_mappings"].push_back(
-                        fmt::format("{}:{}", std::to_string(host_uid),
-                                    (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid)));
-                }
-                for (const auto& gid_mapping : mount.mount_maps().gid_mappings())
-                {
-                    auto host_gid = gid_mapping.host_id();
-                    auto instance_gid = gid_mapping.instance_id();
-
-                    mount_node["gid_mappings"].push_back(
-                        fmt::format("{}:{}", std::to_string(host_gid),
-                                    (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid)));
-                }
-
-                mount_node["source_path"] = mount.source_path();
-                mounts[mount.target_path()] = mount_node;
-            }
-            instance_node["mounts"] = mounts;
-
-            info_node[info.name()].push_back(instance_node);
+            mount_node["source_path"] = mount.source_path();
+            mounts[mount.target_path()] = mount_node;
         }
-    }
-    else if (reply.info_contents_case() == mp::InfoReply::kSnapshotOverview)
-    {
-        for (const auto& item : format::sort_snapshots(reply.snapshot_overview().overview()))
-        {
-            const auto snapshot = item.fundamentals();
-            YAML::Node instance_node;
-            YAML::Node snapshot_node;
+        instance_node["mounts"] = mounts;
 
-            snapshot_node["parent"] = YAML::Null;
-            snapshot_node["comment"] = YAML::Null;
-            if (!snapshot.parent().empty())
-                snapshot_node["parent"] = snapshot.parent();
-            if (!snapshot.comment().empty())
-                snapshot_node["comment"] = snapshot.comment();
-
-            instance_node[snapshot.snapshot_name()].push_back(snapshot_node);
-            info_node[item.instance_name()].push_back(instance_node);
-        }
+        info_node[info.name()].push_back(instance_node);
     }
 
     return mpu::emit_yaml(info_node);
+}
+
+std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
+{
+    YAML::Node info_node;
+
+    info_node["errors"].push_back(YAML::Null);
+
+    for (const auto& item : mp::format::sort_snapshots(reply.snapshot_overview().overview()))
+    {
+        const auto& snapshot = item.fundamentals();
+        YAML::Node instance_node;
+        YAML::Node snapshot_node;
+
+        snapshot_node["parent"] = YAML::Null;
+        snapshot_node["comment"] = YAML::Null;
+        if (!snapshot.parent().empty())
+            snapshot_node["parent"] = snapshot.parent();
+        if (!snapshot.comment().empty())
+            snapshot_node["comment"] = snapshot.comment();
+
+        instance_node[snapshot.snapshot_name()].push_back(snapshot_node);
+        info_node[item.instance_name()].push_back(instance_node);
+    }
+
+    return mpu::emit_yaml(info_node);
+}
+} // namespace
+
+std::string mp::YamlFormatter::format(const InfoReply& reply) const
+{
+    std::string output;
+
+    if (reply.has_detailed_report())
+    {
+        output = generate_instance_info_report(reply);
+    }
+    else
+    {
+        assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
+        output = generate_snapshot_overview_report(reply);
+    }
+
+    return output;
 }
 
 std::string mp::YamlFormatter::format(const ListReply& reply) const
