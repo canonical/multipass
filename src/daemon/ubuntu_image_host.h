@@ -19,7 +19,9 @@
 #define MULTIPASS_UBUNTU_IMAGE_HOST_H
 
 #include "common_image_host.h"
-#include "multipass/simple_streams_manifest.h"
+
+#include <multipass/constants.h>
+#include <multipass/simple_streams_manifest.h>
 
 #include <QString>
 
@@ -31,7 +33,6 @@ namespace multipass
 {
 constexpr auto release_remote = "release";
 constexpr auto daily_remote = "daily";
-constexpr auto snapcraft_remote = "snapcraft";
 constexpr auto appliance_remote = "appliance";
 
 class URLDownloader;
