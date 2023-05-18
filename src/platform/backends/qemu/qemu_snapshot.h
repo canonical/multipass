@@ -27,7 +27,7 @@ class QemuSnapshot : public BaseSnapshot
 {
 public:
     QemuSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
-                 const VMSpecs& specs);
+                 const VMSpecs& specs, const QString& image_path);
 };
 
 } // namespace multipass
