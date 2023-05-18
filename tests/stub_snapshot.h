@@ -94,6 +94,10 @@ struct StubSnapshot : public Snapshot
     {
     }
 
+    void shoot() override
+    {
+    }
+
     void delet() override
     {
     }
