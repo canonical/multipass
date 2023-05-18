@@ -32,6 +32,11 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comme
                                std::shared_ptr<const Snapshot> parent, const VMSpecs& specs, const QString& image_path)
     : BaseSnapshot(name, comment, std::move(parent), specs), image_path{image_path}
 {
+}
+
+void multipass::QemuSnapshot::shoot()
+{
+    // TODO@snapshots lock
     /* TODO@snapshots verify no snapshot with the same tag exists yet (otherwise creation would succeed and then we'd be
        unable to identify the snapshot by name) */
     auto process = mpp::make_process(
@@ -44,11 +49,4 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comme
         throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
-
-    // TODO@ricab consider a dedicated method to shoot the snapshot on the backend
-}
-
-void multipass::QemuSnapshot::shoot()
-{
-    // TODO@snapshots lock
 }
