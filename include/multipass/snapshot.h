@@ -57,6 +57,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
     virtual void set_comment(const std::string&) = 0;
     virtual void set_parent(std::shared_ptr<const Snapshot>) = 0;
 
+    virtual void shoot() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
     virtual void delet() = 0; // not using the destructor, we want snapshots to stick around when daemon quits
 };
 } // namespace multipass
