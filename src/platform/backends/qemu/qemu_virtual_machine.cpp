@@ -635,3 +635,10 @@ mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args
 {
     return mount_args;
 }
+
+auto multipass::QemuVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                           std::shared_ptr<const Snapshot> parent,
+                                                           const multipass::VMSpecs& specs) -> std::shared_ptr<Snapshot>
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+}
