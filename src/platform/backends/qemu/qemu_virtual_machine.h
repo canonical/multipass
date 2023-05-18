@@ -73,6 +73,10 @@ protected:
     {
     }
 
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                     std::shared_ptr<const Snapshot> parent,
+                                                     const VMSpecs& specs) override;
+
 private:
     void on_started();
     void on_error();
