@@ -332,7 +332,7 @@ auto construct_multiple_snapshot_overview_info_reply()
 
 auto add_petenv_to_reply(mp::InfoReply& reply)
 {
-    if (reply.info_contents_case() == mp::InfoReply::kDetailedReport)
+    if (reply.has_detailed_report())
     {
         auto entry = reply.mutable_detailed_report()->add_details();
         entry->set_name(petenv_name());
@@ -340,12 +340,12 @@ auto add_petenv_to_reply(mp::InfoReply& reply)
         entry->mutable_instance_info()->set_image_release("18.10");
         entry->mutable_instance_info()->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
     }
-    else if (reply.info_contents_case() == mp::InfoReply::kSnapshotOverview)
+    else
     {
         auto entry = reply.mutable_snapshot_overview()->add_overview();
         entry->set_instance_name(petenv_name());
         entry->mutable_fundamentals()->set_snapshot_name("snapshot1");
-        entry->mutable_fundamentals()->set_comment("An examplary comment");
+        entry->mutable_fundamentals()->set_comment("An exemplary comment");
     }
 }
 
@@ -1608,9 +1608,9 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
     {
         mp::InfoReply reply_copy;
 
-        if (input->info_contents_case() == mp::InfoReply::kDetailedReport)
+        if (input->has_detailed_report())
             reply_copy.mutable_detailed_report();
-        else if (input->info_contents_case() == mp::InfoReply::kSnapshotOverview)
+        else
             reply_copy.mutable_snapshot_overview();
 
         if (prepend)
