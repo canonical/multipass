@@ -643,5 +643,6 @@ auto multipass::QemuVirtualMachine::make_specific_snapshot(const std::string& na
                                                            std::shared_ptr<const Snapshot> parent,
                                                            const multipass::VMSpecs& specs) -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<QemuSnapshot>(name, comment, std::move(parent), specs);
+    assert(state == VirtualMachine::State::off || state != VirtualMachine::State::stopped); // would need QMP otherwise
+    return std::make_shared<QemuSnapshot>(name, comment, std::move(parent), specs, desc.image.image_path);
 }
