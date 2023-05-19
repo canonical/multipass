@@ -18,7 +18,7 @@
 #include "qemu_snapshot.h"
 #include "shared/qemu_img_utils/qemu_img_utils.h"
 #include <multipass/platform.h>
-#include <multipass/process/simple_process_spec.h>
+#include <multipass/process/qemuimg_process_spec.h>
 
 namespace mp = multipass;
 namespace mpp = mp::platform;
@@ -46,8 +46,8 @@ void multipass::QemuSnapshot::capture()
         throw std::runtime_error{fmt::format(
             "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
 
-    auto process = mpp::make_process(mp::simple_process_spec("qemu-img", // TODO@ricab extract making spec
-                                                             QStringList{"snapshot", "-c", tag, image_path}));
+    auto process = mpp::make_process(std::make_unique<mp::QemuImgProcessSpec>( // TODO@ricab extract making spec
+        QStringList{"snapshot", "-c", tag, image_path}, image_path));
 
     auto process_state = process->execute();
     if (!process_state.completed_successfully())
