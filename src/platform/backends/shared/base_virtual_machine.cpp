@@ -128,24 +128,32 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             throw SnapshotNameTaken{vm_name, snapshot_name};
         }
 
-        auto rollback_on_failure = sg::make_scope_guard([this, it = it, old_head = head_snapshot]() mutable noexcept {
-            if (it->second) // snapshot was created
-            {
-                --snapshot_count;
-                head_snapshot = std::move(old_head);
-                mp::top_catch_all(vm_name, [it] { it->second->delet(); });
-            }
+        auto rollback_on_failure = sg::make_scope_guard(
+            [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
+                if (old_head != head_snapshot)
+                {
+                    assert(it->second && "snapshot not created despite modified head");
+                    if (snapshot_count > old_count) // snapshot was created
+                    {
+                        assert(snapshot_count - old_count == 1);
+                        --snapshot_count;
 
-            snapshots.erase(it);
-        });
+                        mp::top_catch_all(vm_name, [it] { it->second->delet(); });
+                    }
+
+                    head_snapshot = std::move(old_head);
+                }
+
+                snapshots.erase(it);
+            });
 
         auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
         ret->shoot();
 
         ++snapshot_count;
         persist_head_snapshot(snapshot_dir);
-        rollback_on_failure.dismiss();
 
+        rollback_on_failure.dismiss();
         log_latest_snapshot(std::move(lock));
 
         return ret;
