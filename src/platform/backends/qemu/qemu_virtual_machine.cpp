@@ -619,3 +619,8 @@ auto multipass::QemuVirtualMachine::make_specific_snapshot(const std::string& na
     assert(state == VirtualMachine::State::off || state != VirtualMachine::State::stopped); // would need QMP otherwise
     return std::make_shared<QemuSnapshot>(name, comment, std::move(parent), specs, desc.image.image_path);
 }
+
+auto multipass::QemuVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+}
