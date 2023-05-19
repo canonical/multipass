@@ -235,7 +235,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
         [this] {
             mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
-            vm_process->write(hmc_to_qmp_json("delvm " + QString::fromStdString(suspend_tag)));
+            vm_process->write(hmc_to_qmp_json(QString("delvm ") + suspend_tag));
             is_starting_from_suspend = false;
         },
         Qt::QueuedConnection);
@@ -368,7 +368,7 @@ void mp::QemuVirtualMachine::suspend()
             update_shutdown_status = false;
         }
 
-        vm_process->write(hmc_to_qmp_json("savevm " + QString::fromStdString(suspend_tag)));
+        vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
         vm_process->wait_for_finished(timeout);
         vm_process.reset(nullptr);
     }
