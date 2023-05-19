@@ -31,7 +31,9 @@ public:
                  const VMSpecs& specs, const QString& image_path);
     QemuSnapshot(const QJsonObject& json, const QemuVirtualMachine& vm);
 
-    void capture() override;
+protected:
+    void capture_impl() override;
+    void erase_impl() override;
 
 private:
     QString make_tag() const;
