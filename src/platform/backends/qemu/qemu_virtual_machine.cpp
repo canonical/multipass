@@ -149,30 +149,6 @@ auto hmc_to_qmp_json(const QString& command_line)
     return QJsonDocument(qmp).toJson();
 }
 
-bool instance_image_has_snapshot(const mp::Path& image_path)
-{
-    auto process =
-        mp::platform::make_process(mp::simple_process_spec("qemu-img", QStringList{"snapshot", "-l", image_path}));
-    auto process_state = process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(), process->read_all_standard_error()));
-    }
-
-    auto output = process->read_all_standard_output().split('\n');
-
-    for (const auto& line : output)
-    {
-        if (line.contains(suspend_tag))
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 auto get_qemu_machine_type(const QStringList& platform_args)
 {
     QTemporaryFile dump_file;
@@ -223,7 +199,8 @@ auto generate_metadata(const QStringList& platform_args, const QStringList& proc
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform,
                                            VMStatusMonitor& monitor)
-    : BaseVirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off,
+    : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag) ? State::suspended
+                                                                                                      : State::off,
                          desc.vm_name},
       desc{desc},
       mac_addr{desc.default_mac_address},

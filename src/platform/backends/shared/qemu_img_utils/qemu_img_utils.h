@@ -28,6 +28,8 @@ namespace backend
 {
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
 Path convert_to_qcow_if_necessary(const Path& image_path);
+bool instance_image_has_snapshot(const Path& image_path, const char* snapshot_tag);
+
 } // namespace backend
 } // namespace multipass
 #endif // MULTIPASS_QEMU_IMG_UTILS_H
