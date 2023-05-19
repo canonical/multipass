@@ -16,7 +16,6 @@
  */
 
 #include "base_virtual_machine.h"
-#include "base_snapshot.h" // TODO@snapshots may be able to remove this
 
 #include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/snapshot_name_taken.h>
@@ -226,8 +225,7 @@ void BaseVirtualMachine::load_snapshot_from_file(const QString& filename)
 
 void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
 {
-    // TODO@snapshots move to specific VM implementations and make specific snapshot from there
-    auto snapshot = std::make_shared<BaseSnapshot>(json, *this);
+    auto snapshot = make_specific_snapshot(json);
     const auto& name = snapshot->get_name();
     auto [it, success] = snapshots.try_emplace(name, snapshot);
 
