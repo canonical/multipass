@@ -16,6 +16,7 @@
  */
 
 #include "qemu_snapshot.h"
+#include "shared/qemu_img_utils/qemu_img_utils.h"
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 
@@ -37,11 +38,16 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comme
 void multipass::QemuSnapshot::shoot()
 {
     // TODO@snapshots lock
-    /* TODO@snapshots verify no snapshot with the same tag exists yet (otherwise creation would succeed and then we'd be
-       unable to identify the snapshot by name) */
-    auto process = mpp::make_process(
-        mp::simple_process_spec("qemu-img", // TODO@ricab extract making spec
-                                QStringList{"snapshot", "-c", snapshot_template.arg(get_name().c_str()), image_path}));
+    auto tag = snapshot_template.arg(get_name().c_str());
+
+    // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
+    // identify the snapshot by tag)
+    if (backend::instance_image_has_snapshot(image_path, tag.toUtf8()))
+        throw std::runtime_error{fmt::format(
+            "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
+
+    auto process = mpp::make_process(mp::simple_process_spec("qemu-img", // TODO@ricab extract making spec
+                                                             QStringList{"snapshot", "-c", tag, image_path}));
 
     auto process_state = process->execute();
     if (!process_state.completed_successfully())
