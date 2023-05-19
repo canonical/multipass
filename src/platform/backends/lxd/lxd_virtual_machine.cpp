@@ -466,3 +466,8 @@ auto multipass::LXDVirtualMachine::make_specific_snapshot(const std::string& sna
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
+
+std::shared_ptr<mp::Snapshot> multipass::LXDVirtualMachine::make_specific_snapshot(const QJsonObject& json)
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+}
