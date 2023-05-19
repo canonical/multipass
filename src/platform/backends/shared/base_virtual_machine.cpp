@@ -138,7 +138,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
                         assert(snapshot_count - old_count == 1);
                         --snapshot_count;
 
-                        mp::top_catch_all(vm_name, [it] { it->second->delet(); });
+                        mp::top_catch_all(vm_name, [it] { it->second->erase(); });
                     }
 
                     head_snapshot = std::move(old_head);
@@ -148,7 +148,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             });
 
         auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
-        ret->shoot();
+        ret->capture();
 
         ++snapshot_count;
         persist_head_snapshot(snapshot_dir);

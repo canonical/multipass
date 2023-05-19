@@ -35,7 +35,7 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comme
 {
 }
 
-void multipass::QemuSnapshot::shoot()
+void multipass::QemuSnapshot::capture()
 {
     // TODO@snapshots lock
     auto tag = snapshot_template.arg(get_name().c_str());
