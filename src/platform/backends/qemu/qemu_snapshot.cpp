@@ -20,6 +20,8 @@
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 
+#include <memory>
+
 namespace mp = multipass;
 namespace mpp = mp::platform;
 
@@ -27,6 +29,11 @@ namespace
 {
 const auto snapshot_template = QStringLiteral("@%1"); /* avoid colliding with suspension snapshots; prefix with a char
                                                          that can't be part of the name, to avoid confusion */
+
+std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag, const QString& image_path)
+{
+    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path}, image_path);
+}
 }
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment,
@@ -46,8 +53,7 @@ void multipass::QemuSnapshot::capture()
         throw std::runtime_error{fmt::format(
             "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
 
-    auto process = mpp::make_process(std::make_unique<mp::QemuImgProcessSpec>( // TODO@ricab extract making spec
-        QStringList{"snapshot", "-c", tag, image_path}, image_path));
+    auto process = mpp::make_process(make_capture_spec(tag, image_path));
 
     auto process_state = process->execute();
     if (!process_state.completed_successfully())
