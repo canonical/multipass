@@ -49,9 +49,8 @@ mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const multipass::QemuVir
 {
 }
 
-void multipass::QemuSnapshot::capture()
+void mp::QemuSnapshot::capture_impl()
 {
-    // TODO@snapshots lock
     auto tag = make_tag();
 
     // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
@@ -70,7 +69,12 @@ void multipass::QemuSnapshot::capture()
     }
 }
 
-QString multipass::QemuSnapshot::make_tag() const
+void mp::QemuSnapshot::erase_impl() // TODO@snapshots
+{
+    throw NotImplementedOnThisBackendException{"Snapshot erasing"};
+}
+
+QString mp::QemuSnapshot::make_tag() const
 {
     return snapshot_template.arg(get_name().c_str());
 }
