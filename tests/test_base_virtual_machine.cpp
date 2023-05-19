@@ -120,6 +120,11 @@ protected:
     {
         return nullptr;
     }
+
+    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QJsonObject& json) override
+    {
+        return nullptr;
+    }
 };
 
 struct BaseVM : public Test
