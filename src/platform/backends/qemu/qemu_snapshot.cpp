@@ -45,7 +45,7 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comme
 void multipass::QemuSnapshot::capture()
 {
     // TODO@snapshots lock
-    auto tag = snapshot_template.arg(get_name().c_str());
+    auto tag = make_tag();
 
     // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
     // identify the snapshot by tag)
@@ -61,4 +61,9 @@ void multipass::QemuSnapshot::capture()
         throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
+}
+
+QString multipass::QemuSnapshot::make_tag() const
+{
+    return snapshot_template.arg(get_name().c_str());
 }
