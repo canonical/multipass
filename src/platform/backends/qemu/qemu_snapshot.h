@@ -22,12 +22,14 @@
 
 namespace multipass
 {
+class QemuVirtualMachine;
 
 class QemuSnapshot : public BaseSnapshot
 {
 public:
     QemuSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
                  const VMSpecs& specs, const QString& image_path);
+    QemuSnapshot(const QJsonObject& json, const QemuVirtualMachine& vm);
 
     void capture() override;
 
