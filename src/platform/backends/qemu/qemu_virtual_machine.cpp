@@ -28,7 +28,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
-#include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
