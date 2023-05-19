@@ -140,6 +140,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
         });
 
         auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
+        ret->shoot();
 
         ++snapshot_count;
         persist_head_snapshot(snapshot_dir);
