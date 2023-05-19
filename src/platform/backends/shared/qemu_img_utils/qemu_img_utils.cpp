@@ -100,15 +100,5 @@ bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, const 
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
 
-    auto output = process->read_all_standard_output().split('\n');
-
-    for (const auto& line : output)
-    {
-        if (line.contains(snapshot_tag))
-        {
-            return true;
-        }
-    }
-
-    return false;
+    return process->read_all_standard_output().contains(snapshot_tag);
 }
