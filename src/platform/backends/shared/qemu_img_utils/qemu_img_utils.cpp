@@ -22,6 +22,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/process/simple_process_spec.h> // TODO@ricab can we use the above?
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -86,4 +87,28 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     {
         return image_path;
     }
+}
+
+bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, const char* snapshot_tag)
+{
+    auto process =
+        mp::platform::make_process(mp::simple_process_spec("qemu-img", QStringList{"snapshot", "-l", image_path}));
+    auto process_state = process->execute();
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(), process->read_all_standard_error()));
+    }
+
+    auto output = process->read_all_standard_output().split('\n');
+
+    for (const auto& line : output)
+    {
+        if (line.contains(snapshot_tag))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
