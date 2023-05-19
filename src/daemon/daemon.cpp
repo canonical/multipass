@@ -1614,6 +1614,10 @@ try // clang-format on
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     InfoReply response;
+
+    // Need to 'touch' a report in the response so formatters know what to do with an otherwise empty response
+    request->snapshot_overview() ? (void)response.mutable_snapshot_overview()
+                                 : (void)response.mutable_detailed_report();
     bool have_mounts = false;
     bool deleted = false;
     auto fetch_instance_info = [&](VirtualMachine& vm) {
@@ -1735,7 +1739,8 @@ try // clang-format on
             // TODO@snapshots populate snapshot creation time once available
         };
 
-        if (const auto& it = instance_snapshots_map.find(name); it == instance_snapshots_map.end())
+        if (const auto& it = instance_snapshots_map.find(name);
+            it == instance_snapshots_map.end() || it->second.empty())
         {
             for (const auto& snapshot : vm.view_snapshots())
                 get_snapshot_info(snapshot);
@@ -1772,7 +1777,7 @@ try // clang-format on
             if (it.snapshot_name().empty())
                 instance_snapshots_map[it.instance_name()] = {};
             else if (const auto& entry = instance_snapshots_map.find(it.instance_name());
-                     entry == instance_snapshots_map.end() || !entry->second.empty())
+                     entry != instance_snapshots_map.end() && !entry->second.empty())
                 instance_snapshots_map[it.instance_name()].insert(it.snapshot_name());
         }
 
