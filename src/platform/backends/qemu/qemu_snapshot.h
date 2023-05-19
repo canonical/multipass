@@ -32,6 +32,9 @@ public:
     void capture() override;
 
 private:
+    QString make_tag() const;
+
+private:
     QString image_path;
 };
 
