@@ -57,6 +57,7 @@ public:
                                                             const std::string& target, const VMMount& mount) override;
 
 protected:
+    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QJsonObject& json) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
                                                      std::shared_ptr<const Snapshot> parent,
                                                      const VMSpecs& specs) override;
