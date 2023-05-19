@@ -16,7 +16,9 @@
  */
 
 #include "qemu_snapshot.h"
+#include "qemu_virtual_machine.h"
 #include "shared/qemu_img_utils/qemu_img_utils.h"
+
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 
@@ -34,11 +36,16 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag, co
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path}, image_path);
 }
-}
+} // namespace
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment,
                                std::shared_ptr<const Snapshot> parent, const VMSpecs& specs, const QString& image_path)
     : BaseSnapshot(name, comment, std::move(parent), specs), image_path{image_path}
+{
+}
+
+mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const multipass::QemuVirtualMachine& vm)
+    : BaseSnapshot(json, vm)
 {
 }
 
