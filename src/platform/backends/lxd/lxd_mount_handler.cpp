@@ -67,9 +67,7 @@ void LXDMountHandler::deactivate_impl(bool /*force*/)
     lxd_device_remove();
 }
 
-LXDMountHandler::~LXDMountHandler()
-{
-}
+LXDMountHandler::~LXDMountHandler() = default;
 
 void LXDMountHandler::lxd_device_remove()
 {
