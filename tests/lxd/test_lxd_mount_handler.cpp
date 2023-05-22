@@ -95,6 +95,16 @@ struct LXDMountHandlerTestFixture : public testing::Test
                                                             {},
                                                             {}};
 };
+
+struct LXDMountHandlerInvalidGidUidParameterTests : public LXDMountHandlerTestFixture,
+                                                    public testing::WithParamInterface<std::tuple<int, int, int, int>>
+{
+};
+
+struct LXDMountHandlerValidGidUidParameterTests : public LXDMountHandlerTestFixture,
+                                                  public testing::WithParamInterface<std::tuple<int, int>>
+{
+};
 } // namespace
 
 TEST_F(LXDMountHandlerTestFixture, startNoThrowsIfVMIsStopped)
@@ -154,3 +164,38 @@ TEST_F(LXDMountHandlerTestFixture, stopThrowsIfVMIsRunning)
         lxd_mount_handler.deactivate(), std::runtime_error,
         mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before unmount it natively."))));
 }
+
+TEST_P(LXDMountHandlerInvalidGidUidParameterTests, mountWithGidOrUid)
+{
+    mp::LXDVirtualMachine lxd_vm{default_description, stub_monitor,        &mock_network_access_manager, base_url,
+                                 bridge_name,         default_storage_pool};
+    const auto& [host_gid, instance_gid, host_uid, instance_uid] = GetParam();
+    const mp::VMMount vm_mount{
+        source_path, {{host_gid, instance_gid}}, {{host_uid, instance_uid}}, mp::VMMount::MountType::Native};
+
+    MP_EXPECT_THROW_THAT(lxd_vm.make_native_mount_handler(&key_provider, target_path, vm_mount);
+                         , std::runtime_error,
+                         mpt::match_what(StrEq("LXD native mount does not accept custom gid or uid.")));
+}
+
+INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation, LXDMountHandlerInvalidGidUidParameterTests,
+                         testing::Values(std::make_tuple(1000, -1, 1000, 1), std::make_tuple(2000, 1, 2000, 1),
+                                         std::make_tuple(2000, -1, 2000, 1)));
+
+TEST_P(LXDMountHandlerValidGidUidParameterTests, mountWithGidOrUid)
+{
+    mp::LXDVirtualMachine lxd_vm{default_description, stub_monitor,        &mock_network_access_manager, base_url,
+                                 bridge_name,         default_storage_pool};
+    const auto& [host_gid, host_uid] = GetParam();
+    const int default_instance_id = -1;
+    const mp::VMMount vm_mount{source_path,
+                               {{host_gid, default_instance_id}},
+                               {{host_uid, default_instance_id}},
+                               mp::VMMount::MountType::Native};
+
+    EXPECT_NO_THROW(lxd_vm.make_native_mount_handler(&key_provider, target_path, vm_mount));
+}
+
+INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation, LXDMountHandlerValidGidUidParameterTests,
+                         testing::Values(std::make_tuple(1000, 1000), std::make_tuple(2000, 2000),
+                                         std::make_tuple(2000, 2000)));
