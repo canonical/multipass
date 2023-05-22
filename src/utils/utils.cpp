@@ -58,13 +58,6 @@ namespace
 constexpr auto category = "utils";
 constexpr auto scrypt_hash_size{64};
 
-auto quote_for(const std::string& arg, mp::utils::QuoteType quote_type)
-{
-    if (quote_type == mp::utils::QuoteType::no_quotes)
-        return "";
-    return arg.find('\'') == std::string::npos ? "'" : "\"";
-}
-
 QString find_autostart_target(const QString& subdir, const QString& autostart_filename)
 {
     const auto target_subpath = QDir{subdir}.filePath(autostart_filename);
@@ -223,7 +216,8 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
     fmt::memory_buffer buf;
     for (auto const& arg : args)
     {
-        fmt::format_to(std::back_inserter(buf), "{0}{1}{0} ", quote_for(arg, quote_type), arg);
+        fmt::format_to(std::back_inserter(buf), "{0} ",
+                       quote_type == QuoteType::no_quotes ? arg : escape_for_shell(arg));
     }
 
     // Remove the last space inserted
