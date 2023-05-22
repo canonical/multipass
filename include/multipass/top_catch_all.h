@@ -44,6 +44,8 @@ void error(const multipass::logging::CString& log_category); // not noexcept bec
  * @param f The non-void function to protect with a catch-all
  * @param args The arguments to pass to the function f
  * @return The result of f when no exception is thrown, fallback_return otherwise
+ * @note This function will call `terminate()` if logging itself throws (all bets are off at that point). That
+ * corresponds to the usual `noexcept` guarantees (no exception or program terminated).
  */
 template <typename T, typename Fun, typename... Args> // Fun needs to return non-void
 auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fun&& f, Args&&... args) noexcept
@@ -57,6 +59,8 @@ auto top_catch_all(const logging::CString& log_category, T&& fallback_return, Fu
  * @param log_category The category to use when logging exceptions
  * @param f The non-void function to protect with a catch-all
  * @param args The arguments to pass to the function f
+ * @note This function will call `terminate()` if logging itself throws (all bets are off at that point). That
+ * corresponds to the usual `noexcept` guarantees (no exception or program terminated).
  */
 template <typename Fun, typename... Args> // Fun needs to return void
 void top_catch_all(const logging::CString& log_category, Fun&& f,
@@ -96,8 +100,7 @@ inline auto multipass::top_catch_all(const logging::CString& log_category, T&& f
 }
 
 template <typename Fun, typename... Args>
-inline void multipass::top_catch_all(const logging::CString& log_category, Fun&& f,
-                                     Args&&... args) noexcept // not noexcept because logging isn't
+inline void multipass::top_catch_all(const logging::CString& log_category, Fun&& f, Args&&... args) noexcept
 {
     try
     {

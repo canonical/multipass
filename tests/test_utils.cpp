@@ -362,32 +362,32 @@ TEST(Utils, to_cmd_returns_empty_string_on_empty_input)
     EXPECT_THAT(output, ::testing::StrEq(""));
 }
 
-TEST(Utils, to_cmd_output_has_no_quotes)
+TEST(Utils, to_cmd_output_are_not_escaped_with_no_quotes)
 {
     std::vector<std::string> args{"hello", "world"};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::no_quotes);
     EXPECT_THAT(output, ::testing::StrEq("hello world"));
 }
 
-TEST(Utils, to_cmd_arguments_are_single_quoted)
+TEST(Utils, to_cmd_arguments_are_not_escaped_if_not_needed)
 {
     std::vector<std::string> args{"hello", "world"};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
-    EXPECT_THAT(output, ::testing::StrEq("'hello' 'world'"));
+    EXPECT_THAT(output, ::testing::StrEq("hello world"));
 }
 
-TEST(Utils, to_cmd_arguments_are_double_quoted_when_needed)
+TEST(Utils, to_cmd_arguments_with_single_quotes_are_escaped)
 {
     std::vector<std::string> args{"it's", "me"};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
-    EXPECT_THAT(output, ::testing::StrEq("\"it's\" 'me'"));
+    EXPECT_THAT(output, ::testing::StrEq("it\\'s me"));
 }
 
-TEST(Utils, to_cmd_arguments_are_single_quoted_when_needed)
+TEST(Utils, to_cmd_arguments_with_double_quotes_are_escaped)
 {
     std::vector<std::string> args{"they", "said", "\"please\""};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
-    EXPECT_THAT(output, ::testing::StrEq("'they' 'said' '\"please\"'"));
+    EXPECT_THAT(output, ::testing::StrEq("they said \\\"please\\\""));
 }
 
 TEST(Utils, trim_end_actually_trims_end)
