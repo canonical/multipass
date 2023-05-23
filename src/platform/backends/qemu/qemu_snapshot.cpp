@@ -34,7 +34,8 @@ const auto snapshot_template = QStringLiteral("@%1"); /* avoid colliding with su
 
 std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag, const QString& image_path)
 {
-    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path}, image_path);
+    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path},
+                                                    /* src_img = */ "", image_path);
 }
 } // namespace
 
