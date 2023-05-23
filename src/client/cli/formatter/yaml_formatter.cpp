@@ -31,8 +31,8 @@ namespace mpu = multipass::utils;
 
 namespace
 {
-std::map<std::string, YAML::Node>
-format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+template <typename ImageInfo>
+std::map<std::string, YAML::Node> format_images(const ImageInfo& images_info)
 {
     std::map<std::string, YAML::Node> images_node;
 
@@ -73,11 +73,9 @@ std::string generate_instance_info_report(const mp::InfoReply& reply)
         instance_node["snapshots"] = instance_details.num_snapshots();
         instance_node["image_hash"] = instance_details.id();
         instance_node["image_release"] = instance_details.image_release();
-        instance_node["release"] = instance_details.current_release().empty()
-                                       ? YAML::Node(YAML::NodeType::Null)
-                                       : YAML::Node(instance_details.current_release());
-        instance_node["cpu_count"] =
-            info.cpu_count().empty() ? YAML::Node(YAML::NodeType::Null) : YAML::Node(info.cpu_count());
+        instance_node["release"] =
+            instance_details.current_release().empty() ? YAML::Node() : YAML::Node(instance_details.current_release());
+        instance_node["cpu_count"] = info.cpu_count().empty() ? YAML::Node() : YAML::Node(info.cpu_count());
 
         if (!instance_details.load().empty())
         {
@@ -91,9 +89,8 @@ std::string generate_instance_info_report(const mp::InfoReply& reply)
         }
 
         YAML::Node disk;
-        disk["used"] = instance_details.disk_usage().empty() ? YAML::Node(YAML::NodeType::Null)
-                                                             : YAML::Node(instance_details.disk_usage());
-        disk["total"] = info.disk_total().empty() ? YAML::Node(YAML::NodeType::Null) : YAML::Node(info.disk_total());
+        disk["used"] = instance_details.disk_usage().empty() ? YAML::Node() : YAML::Node(instance_details.disk_usage());
+        disk["total"] = info.disk_total().empty() ? YAML::Node() : YAML::Node(info.disk_total());
 
         // TODO: disk name should come from daemon
         YAML::Node disk_node;
@@ -102,10 +99,9 @@ std::string generate_instance_info_report(const mp::InfoReply& reply)
 
         YAML::Node memory;
         memory["usage"] = instance_details.memory_usage().empty()
-                              ? YAML::Node(YAML::NodeType::Null)
+                              ? YAML::Node()
                               : YAML::Node(std::stoll(instance_details.memory_usage()));
-        memory["total"] = info.memory_total().empty() ? YAML::Node(YAML::NodeType::Null)
-                                                      : YAML::Node(std::stoll(info.memory_total()));
+        memory["total"] = info.memory_total().empty() ? YAML::Node() : YAML::Node(std::stoll(info.memory_total()));
         instance_node["memory"] = memory;
 
         instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
@@ -159,10 +155,8 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
         YAML::Node instance_node;
         YAML::Node snapshot_node;
 
-        snapshot_node["parent"] =
-            snapshot.parent().empty() ? YAML::Node(YAML::NodeType::Null) : YAML::Node(snapshot.parent());
-        snapshot_node["comment"] =
-            snapshot.comment().empty() ? YAML::Node(YAML::NodeType::Null) : YAML::Node(snapshot.comment());
+        snapshot_node["parent"] = snapshot.parent().empty() ? YAML::Node() : YAML::Node(snapshot.parent());
+        snapshot_node["comment"] = snapshot.comment().empty() ? YAML::Node() : YAML::Node(snapshot.comment());
 
         instance_node[snapshot.snapshot_name()].push_back(snapshot_node);
         info_node[item.instance_name()].push_back(instance_node);
