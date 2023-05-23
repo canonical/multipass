@@ -301,7 +301,7 @@ TEST_F(CustomImageHost, info_for_full_hash_returns_empty_image_info)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
 
-    auto info = host.info_for_full_hash("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7");
+    const auto info = host.info_for_full_hash("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7");
 
     EXPECT_EQ(info, mp::VMImageInfo{});
 }
