@@ -39,7 +39,12 @@
 #define QEMU_ENABLED 0
 #endif
 
+#ifdef MULTIPASS_JOURNALD_ENABLED
 #include "logger/journald_logger.h"
+#else
+#include "logger/syslog_logger.h"
+#endif
+
 #include "platform_linux_detail.h"
 #include "platform_shared.h"
 #include "shared/linux/process_factory.h"
@@ -446,7 +451,11 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
+#if MULTIPASS_JOURNALD_ENABLED
     return std::make_unique<logging::JournaldLogger>(level);
+#else
+    return std::make_unique<logging::SyslogLogger>(level);
+#endif
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)

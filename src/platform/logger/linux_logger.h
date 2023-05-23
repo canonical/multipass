@@ -15,21 +15,39 @@
  *
  */
 
-#ifndef MULTIPASS_JOURNALD_LOGGER_H
-#define MULTIPASS_JOURNALD_LOGGER_H
+#ifndef MULTIPASS_LINUX_LOGGER_H
+#define MULTIPASS_LINUX_LOGGER_H
 
-#include "linux_logger.h"
+#include <multipass/logging/logger.h>
+#include <syslog.h>
 
 namespace multipass
 {
 namespace logging
 {
-class JournaldLogger : public LinuxLogger
+class LinuxLogger : public Logger
 {
 public:
-    explicit JournaldLogger(Level level);
-    void log(Level level, CString category, CString message) const override;
+    explicit LinuxLogger(Level level);
+
+protected:
+    static constexpr auto to_syslog_priority(const Level& level) noexcept
+    {
+        switch (level)
+        {
+        case Level::trace:
+        case Level::debug:
+            return LOG_DEBUG;
+        case Level::error:
+            return LOG_ERR;
+        case Level::info:
+            return LOG_INFO;
+        case Level::warning:
+            return LOG_WARNING;
+        }
+        return 42;
+    }
 };
 } // namespace logging
 } // namespace multipass
-#endif // MULTIPASS_JOURNALD_LOGGER_H
+#endif // MULTIPASS_LINUX_LOGGER_H

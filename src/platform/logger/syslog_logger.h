@@ -15,22 +15,21 @@
  *
  */
 
-#include "journald_logger.h"
+#ifndef MULTIPASS_SYSLOG_LOGGER_H
+#define MULTIPASS_SYSLOG_LOGGER_H
 
-#define SD_JOURNAL_SUPPRESS_LOCATION
-#include <systemd/sd-journal.h>
+#include "linux_logger.h"
 
-namespace mpl = multipass::logging;
-
-mpl::JournaldLogger::JournaldLogger(mpl::Level level) : LinuxLogger{level}
+namespace multipass
 {
-}
-
-void mpl::JournaldLogger::log(mpl::Level level, CString category, CString message) const
+namespace logging
 {
-    if (level <= logging_level)
-    {
-        sd_journal_send("MESSAGE=%s", message.c_str(), "PRIORITY=%i", to_syslog_priority(level), "CATEGORY=%s",
-                        category.c_str(), nullptr);
-    }
-}
+class SyslogLogger : public LinuxLogger
+{
+public:
+    explicit SyslogLogger(Level level);
+    void log(Level level, CString category, CString message) const override;
+};
+} // namespace logging
+} // namespace multipass
+#endif // MULTIPASS_SYSLOG_LOGGER_H

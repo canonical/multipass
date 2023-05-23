@@ -13,10 +13,22 @@
 #along with this program.If not, see < http: // www.gnu.org/licenses/>.
 #
 
-find_package(PkgConfig)
-pkg_check_modules(JOURNALD libsystemd REQUIRED)
+if (NOT MULTIPASS_ENABLE_SYSLOG)
+  find_package(PkgConfig)
+  pkg_check_modules(JOURNALD libsystemd)
 
-add_library(journaldlogger STATIC journald_logger.cpp)
-target_include_directories(journaldlogger PRIVATE
-        ${JOURNALD_INCLUDE_DIRS})
-target_link_libraries(journaldlogger fmt Qt5::Core ${JOURNALD_LIBRARIES})
+  if (JOURNALD_FOUND)
+    set(JOURNALD_FOUND "${JOURNALD_FOUND}" PARENT_SCOPE)
+    add_library(logger_linux STATIC linux_logger.cpp journald_logger.cpp)
+    target_include_directories(logger_linux PRIVATE
+            ${JOURNALD_INCLUDE_DIRS})
+    target_link_libraries(logger_linux fmt Qt5::Core ${JOURNALD_LIBRARIES})
+  endif()
+endif()
+
+if (MULTIPASS_ENABLE_SYSLOG OR NOT JOURNALD_FOUND)
+  check_include_files(syslog.h HAVE_SYSLOG_H)
+  check_function_exists(syslog HAVE_SYSLOG)
+  add_library(logger_linux STATIC linux_logger.cpp syslog_logger.cpp)
+  target_link_libraries(logger_linux fmt Qt5::Core)
+endif()
