@@ -45,6 +45,7 @@ QString mp::QemuImgProcessSpec::apparmor_profile() const
 profile %1 flags=(attach_disconnected) {
   #include <abstractions/base>
 
+  capability ipc_lock,
   capability dac_read_search,
   %2
 
