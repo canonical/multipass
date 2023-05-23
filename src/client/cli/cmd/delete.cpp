@@ -75,24 +75,23 @@ std::string cmd::Delete::name() const
 
 QString cmd::Delete::short_help() const
 {
-    return QStringLiteral("Delete instances");
+    return QStringLiteral("Delete instances and snapshots");
 }
 
 QString cmd::Delete::description() const
 {
-    return QStringLiteral("Delete instances, to be purged with the \"purge\" command,\n"
-                          "or recovered with the \"recover\" command.");
+    return QStringLiteral("Delete instances and snapshots, to be purged with the \"purge\" command,\n"
+                          "or recovered with the \"recover\" command (instances only).");
 }
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to delete", "<name> [<name> ...]");
+    parser->addPositionalArgument("name", "Names of instances and snapshots to delete",
+                                  "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
-    QCommandLineOption all_option(all_option_name, "Delete all instances");
-    parser->addOption(all_option);
-
-    QCommandLineOption purge_option({"p", "purge"}, "Purge instances immediately");
-    parser->addOption(purge_option);
+    QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
+    QCommandLineOption purge_option({"p", "purge"}, "Purge deleted instances and snapshots immediately");
+    parser->addOptions({all_option, purge_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -102,11 +101,21 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
+    for (const auto& arg : parser->positionalArguments())
+    {
+        if (arg.indexOf('.') >= 0 && !parser->isSet("purge"))
+        {
+            cerr << "Snapshots can only be purged (after deletion, they cannot be recovered). Please use the `--purge` "
+                    "flag if that is what you want.\n";
+            return mp::ParseCode::CommandLineError;
+        }
+    }
+
+    for (const auto& item : add_instance_and_snapshot_names(parser))
+        request.add_instances_snapshots()->CopyFrom(item);
 
     if (parser->isSet(purge_option))
-    {
         request.set_purge(true);
-    }
+
     return status;
 }
