@@ -31,8 +31,8 @@ namespace mpu = multipass::utils;
 
 namespace
 {
-std::map<std::string, YAML::Node>
-format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+template <typename ImageInfo>
+std::map<std::string, YAML::Node> format_images(const ImageInfo& images_info)
 {
     std::map<std::string, YAML::Node> images_node;
 
@@ -57,15 +57,14 @@ format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>&
 
     return images_node;
 }
-} // namespace
 
-std::string mp::YamlFormatter::format(const InfoReply& reply) const
+std::string generate_instance_info_report(const mp::InfoReply& reply)
 {
     YAML::Node info_node;
 
     info_node["errors"].push_back(YAML::Null);
 
-    for (const auto& info : format::sorted(reply.detailed_report().details()))
+    for (const auto& info : mp::format::sorted(reply.detailed_report().details()))
     {
         const auto& instance_details = info.instance_info();
         YAML::Node instance_node;
@@ -74,14 +73,9 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         instance_node["snapshots"] = instance_details.num_snapshots();
         instance_node["image_hash"] = instance_details.id();
         instance_node["image_release"] = instance_details.image_release();
-        if (instance_details.current_release().empty())
-            instance_node["release"] = YAML::Null;
-        else
-            instance_node["release"] = instance_details.current_release();
-
-        instance_node["cpu_count"] = YAML::Null;
-        if (!info.cpu_count().empty())
-            instance_node["cpu_count"] = info.cpu_count();
+        instance_node["release"] =
+            instance_details.current_release().empty() ? YAML::Node() : YAML::Node(instance_details.current_release());
+        instance_node["cpu_count"] = info.cpu_count().empty() ? YAML::Node() : YAML::Node(info.cpu_count());
 
         if (!instance_details.load().empty())
         {
@@ -95,12 +89,8 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         }
 
         YAML::Node disk;
-        disk["used"] = YAML::Null;
-        disk["total"] = YAML::Null;
-        if (!instance_details.disk_usage().empty())
-            disk["used"] = instance_details.disk_usage();
-        if (!info.disk_total().empty())
-            disk["total"] = info.disk_total();
+        disk["used"] = instance_details.disk_usage().empty() ? YAML::Node() : YAML::Node(instance_details.disk_usage());
+        disk["total"] = info.disk_total().empty() ? YAML::Node() : YAML::Node(info.disk_total());
 
         // TODO: disk name should come from daemon
         YAML::Node disk_node;
@@ -108,13 +98,10 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
         instance_node["disks"].push_back(disk_node);
 
         YAML::Node memory;
-        memory["usage"] = YAML::Null;
-        memory["total"] = YAML::Null;
-        if (!instance_details.memory_usage().empty())
-            memory["usage"] = std::stoll(instance_details.memory_usage());
-        if (!info.memory_total().empty())
-            memory["total"] = std::stoll(info.memory_total());
-
+        memory["usage"] = instance_details.memory_usage().empty()
+                              ? YAML::Node()
+                              : YAML::Node(std::stoll(instance_details.memory_usage()));
+        memory["total"] = info.memory_total().empty() ? YAML::Node() : YAML::Node(std::stoll(info.memory_total()));
         instance_node["memory"] = memory;
 
         instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
@@ -152,7 +139,48 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
         info_node[info.name()].push_back(instance_node);
     }
+
     return mpu::emit_yaml(info_node);
+}
+
+std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
+{
+    YAML::Node info_node;
+
+    info_node["errors"].push_back(YAML::Null);
+
+    for (const auto& item : mp::format::sort_snapshots(reply.snapshot_overview().overview()))
+    {
+        const auto& snapshot = item.fundamentals();
+        YAML::Node instance_node;
+        YAML::Node snapshot_node;
+
+        snapshot_node["parent"] = snapshot.parent().empty() ? YAML::Node() : YAML::Node(snapshot.parent());
+        snapshot_node["comment"] = snapshot.comment().empty() ? YAML::Node() : YAML::Node(snapshot.comment());
+
+        instance_node[snapshot.snapshot_name()].push_back(snapshot_node);
+        info_node[item.instance_name()].push_back(instance_node);
+    }
+
+    return mpu::emit_yaml(info_node);
+}
+} // namespace
+
+std::string mp::YamlFormatter::format(const InfoReply& reply) const
+{
+    std::string output;
+
+    if (reply.has_detailed_report())
+    {
+        output = generate_instance_info_report(reply);
+    }
+    else
+    {
+        assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
+        output = generate_snapshot_overview_report(reply);
+    }
+
+    return output;
 }
 
 std::string mp::YamlFormatter::format(const ListReply& reply) const

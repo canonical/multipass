@@ -45,17 +45,17 @@ std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
 
     return fmt::to_string(buf);
 }
-} // namespace
 
-std::string mp::CSVFormatter::format(const InfoReply& reply) const
+std::string generate_instance_info_report(const mp::InfoReply& reply)
 {
     fmt::memory_buffer buf;
+
     fmt::format_to(
         std::back_inserter(buf),
         "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
         "total,Mounts,AllIPv4,CPU(s),Snapshots\n");
 
-    for (const auto& info : format::sorted(reply.detailed_report().details()))
+    for (const auto& info : mp::format::sorted(reply.detailed_report().details()))
     {
         const auto& instance_details = info.instance_info();
 
@@ -76,7 +76,42 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
         fmt::format_to(std::back_inserter(buf), ",\"{}\";,{},{}\n", fmt::join(instance_details.ipv4(), ","),
                        info.cpu_count(), instance_details.num_snapshots());
     }
+
     return fmt::to_string(buf);
+}
+
+std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf), "Instance,Snapshot,Parent,Comment\n");
+
+    for (const auto& item : mp::format::sort_snapshots(reply.snapshot_overview().overview()))
+    {
+        const auto& snapshot = item.fundamentals();
+        fmt::format_to(std::back_inserter(buf), "{},{},{},{}\n", item.instance_name(), snapshot.snapshot_name(),
+                       snapshot.parent(), snapshot.comment());
+    }
+
+    return fmt::to_string(buf);
+}
+} // namespace
+
+std::string mp::CSVFormatter::format(const InfoReply& reply) const
+{
+    std::string output;
+
+    if (reply.has_detailed_report())
+    {
+        output = generate_instance_info_report(reply);
+    }
+    else
+    {
+        assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
+        output = generate_snapshot_overview_report(reply);
+    }
+
+    return output;
 }
 
 std::string mp::CSVFormatter::format(const ListReply& reply) const

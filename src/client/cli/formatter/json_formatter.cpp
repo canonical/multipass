@@ -54,9 +54,8 @@ QJsonObject format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
 
     return images_obj;
 }
-} // namespace
 
-std::string mp::JsonFormatter::format(const InfoReply& reply) const
+std::string generate_instance_info_report(const mp::InfoReply& reply)
 {
     QJsonObject info_json;
     QJsonObject info_obj;
@@ -148,9 +147,62 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
 
         info_obj.insert(QString::fromStdString(info.name()), instance_info);
     }
+
     info_json.insert("info", info_obj);
 
     return QString(QJsonDocument(info_json).toJson()).toStdString();
+}
+
+std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
+{
+    QJsonObject info_json;
+    QJsonObject info_obj;
+
+    info_json.insert("errors", QJsonArray());
+
+    for (const auto& item : reply.snapshot_overview().overview())
+    {
+        const auto& snapshot = item.fundamentals();
+        QJsonObject snapshot_obj;
+
+        snapshot_obj.insert("parent", QString::fromStdString(snapshot.parent()));
+        snapshot_obj.insert("comment", QString::fromStdString(snapshot.comment()));
+
+        auto it = info_obj.find(QString::fromStdString(item.instance_name()));
+        if (it == info_obj.end())
+        {
+            info_obj.insert(QString::fromStdString(item.instance_name()),
+                            QJsonObject{{QString::fromStdString(snapshot.snapshot_name()), snapshot_obj}});
+        }
+        else
+        {
+            QJsonObject obj = it.value().toObject();
+            obj.insert(QString::fromStdString(snapshot.snapshot_name()), snapshot_obj);
+            it.value() = obj;
+        }
+    }
+
+    info_json.insert("info", info_obj);
+
+    return QString(QJsonDocument(info_json).toJson()).toStdString();
+}
+} // namespace
+
+std::string mp::JsonFormatter::format(const InfoReply& reply) const
+{
+    std::string output;
+
+    if (reply.has_detailed_report())
+    {
+        output = generate_instance_info_report(reply);
+    }
+    else
+    {
+        assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
+        output = generate_snapshot_overview_report(reply);
+    }
+
+    return output;
 }
 
 std::string mp::JsonFormatter::format(const ListReply& reply) const
