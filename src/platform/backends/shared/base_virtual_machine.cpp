@@ -16,6 +16,7 @@
  */
 
 #include "base_virtual_machine.h"
+#include "daemon/vm_specs.h" // TODO@snapshots move this
 
 #include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/snapshot_name_taken.h>
@@ -279,6 +280,11 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 std::string BaseVirtualMachine::generate_snapshot_name() const
 {
     return fmt::format("snapshot{}", snapshot_count + 1);
+}
+
+void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
+{
+    // TODO@ricab implement
 }
 
 } // namespace multipass
