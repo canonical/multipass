@@ -74,6 +74,11 @@ void mp::QemuSnapshot::erase_impl() // TODO@snapshots
     throw NotImplementedOnThisBackendException{"Snapshot erasing"};
 }
 
+void mp::QemuSnapshot::apply_impl() // TODO@snapshots
+{
+    // TODO@snapshots implement
+}
+
 QString mp::QemuSnapshot::make_tag() const
 {
     return snapshot_template.arg(get_name().c_str());

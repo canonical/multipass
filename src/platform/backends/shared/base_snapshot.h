@@ -60,10 +60,12 @@ public:
 
     void capture() final;
     void erase() final;
+    void apply() final;
 
 protected:
     virtual void capture_impl() = 0;
     virtual void erase_impl() = 0;
+    virtual void apply_impl() = 0;
 
 private:
     struct InnerJsonTag
@@ -176,6 +178,12 @@ inline void multipass::BaseSnapshot::erase()
 {
     const std::unique_lock lock{mutex};
     erase_impl();
+}
+
+inline void multipass::BaseSnapshot::apply()
+{
+    const std::unique_lock lock{mutex};
+    apply_impl();
 }
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H
