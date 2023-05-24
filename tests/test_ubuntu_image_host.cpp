@@ -179,7 +179,7 @@ TEST_F(UbuntuImageHost, unsupported_alias_iterates_over_expected_entries)
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
 
-    EXPECT_CALL(mock_platform, is_alias_supported("zesty", _)).WillRepeatedly(Return(false));
+    EXPECT_CALL(mock_platform, is_alias_supported(AnyOf("zesty", "17.04", "z"), _)).WillRepeatedly(Return(false));
 
     host.for_each_entry_do(action);
 
@@ -315,9 +315,7 @@ TEST_F(UbuntuImageHost, all_images_for_release_unsupported_alias_returns_three_m
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader, default_ttl};
 
-    const std::string unsupported_alias{"zesty"};
-
-    EXPECT_CALL(mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
+    EXPECT_CALL(mock_platform, is_alias_supported(AnyOf("zesty", "17.04", "z"), _)).WillRepeatedly(Return(false));
 
     auto images = host.all_images_for(release_remote_spec.first, false);
 

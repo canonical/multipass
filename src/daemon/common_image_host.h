@@ -41,7 +41,7 @@ protected:
     void on_manifest_empty(const std::string& details);
     void check_remote_is_supported(const std::string& remote_name) const;
     void check_alias_is_supported(const std::string& alias, const std::string& remote_name) const;
-    bool check_all_aliases_are_supported(const QStringList& aliases, const std::string& remote_name) const;
+    bool alias_verifies_image_is_supported(const QStringList& aliases, const std::string& remote_name) const;
 
     virtual void for_each_entry_do_impl(const Action& action) = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) = 0;

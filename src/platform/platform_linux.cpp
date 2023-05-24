@@ -257,6 +257,11 @@ QString mp::platform::Platform::get_blueprints_url_override() const
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
+    if (remote == mp::snapcraft_remote)
+    {
+        return supported_snapcraft_aliases.find(alias) != supported_snapcraft_aliases.end();
+    }
+
     return true;
 }
 
