@@ -261,13 +261,7 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
     auto rollback_head_file =
         sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
                               existed = head_file.exists()]() noexcept {
-            // best effort, ignore returns
-            if (!existed)
-                head_file.remove();
-            else
-                mp::top_catch_all(vm_name, [&head_path, &old_head] {
-                    MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
-                });
+            persist_head_rollback_guts(head_path, head_file, old_head, existed);
         });
 
     persist_head_snapshot_name(head_path);
@@ -275,6 +269,18 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 
     rollback_snapshot_file.dismiss();
     rollback_head_file.dismiss();
+}
+
+void BaseVirtualMachine::persist_head_rollback_guts(const QString& head_path, QFile& head_file,
+                                                    const std::string& old_head, bool existed) const
+{
+    // best effort, ignore returns
+    if (!existed)
+        head_file.remove();
+    else
+        top_catch_all(vm_name, [&head_path, &old_head] {
+            MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
+        });
 }
 
 QString BaseVirtualMachine::derive_head_path(const QDir& snapshot_dir) const
