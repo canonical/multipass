@@ -59,6 +59,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
 
     virtual void capture() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
     virtual void erase() = 0;   // not using the destructor, we want snapshots to stick around when daemon quits
+    virtual void apply() = 0;
 };
 } // namespace multipass
 
