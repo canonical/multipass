@@ -77,9 +77,10 @@ private:
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
 
+    auto make_head_file_rollback(const QString& head_path, QFile& head_file) const;
+    void head_file_rollback_guts(const QString& head_path, QFile& head_file, const std::string& old_head,
+                                 bool existed) const;
     void persist_head_snapshot(const QDir& snapshot_dir) const;
-    void persist_head_rollback_guts(const QString& head_path, QFile& head_file, const std::string& old_head,
-                                    bool existed) const;
 
     void persist_head_snapshot_name(const QString& head_path) const;
 
