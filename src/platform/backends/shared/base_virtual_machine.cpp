@@ -314,8 +314,11 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();
 
-    head_snapshot = snapshot;
-    persist_head_snapshot_name(derive_head_path(snapshot_dir));
+    if (head_snapshot != snapshot)
+    {
+        head_snapshot = snapshot;
+        persist_head_snapshot_name(derive_head_path(snapshot_dir));
+    }
 }
 
 } // namespace multipass
