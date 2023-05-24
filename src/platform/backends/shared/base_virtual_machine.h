@@ -83,6 +83,7 @@ private:
     QString derive_head_path(const QDir& snapshot_dir) const;
     std::string generate_snapshot_name() const;
 
+    auto make_restore_rollback(const QString& head_path, VMSpecs& specs);
     void restore_rollback_guts(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
                                const VMSpecs& old_specs, VMSpecs& specs);
 
