@@ -238,6 +238,26 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     }
 }
 
+auto BaseVirtualMachine::make_head_file_rollback(const QString& head_path, QFile& head_file) const
+{
+    return sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
+                                 existed = head_file.exists()]() noexcept {
+        head_file_rollback_guts(head_path, head_file, old_head, existed);
+    });
+}
+
+void BaseVirtualMachine::head_file_rollback_guts(const QString& head_path, QFile& head_file,
+                                                 const std::string& old_head, bool existed) const
+{
+    // best effort, ignore returns
+    if (!existed)
+        head_file.remove();
+    else
+        top_catch_all(vm_name, [&head_path, &old_head] {
+            MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
+        });
+}
+
 void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 {
     assert(head_snapshot);
@@ -258,29 +278,13 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 
     QFile head_file{head_path};
 
-    auto rollback_head_file =
-        sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
-                              existed = head_file.exists()]() noexcept {
-            persist_head_rollback_guts(head_path, head_file, old_head, existed);
-        });
+    auto head_file_rollback = make_head_file_rollback(head_path, head_file);
 
     persist_head_snapshot_name(head_path);
     MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), yes_overwrite);
 
     rollback_snapshot_file.dismiss();
-    rollback_head_file.dismiss();
-}
-
-void BaseVirtualMachine::persist_head_rollback_guts(const QString& head_path, QFile& head_file,
-                                                    const std::string& old_head, bool existed) const
-{
-    // best effort, ignore returns
-    if (!existed)
-        head_file.remove();
-    else
-        top_catch_all(vm_name, [&head_path, &old_head] {
-            MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
-        });
+    head_file_rollback.dismiss();
 }
 
 QString BaseVirtualMachine::derive_head_path(const QDir& snapshot_dir) const
