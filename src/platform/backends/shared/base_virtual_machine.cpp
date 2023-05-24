@@ -292,7 +292,7 @@ std::string BaseVirtualMachine::generate_snapshot_name() const
     return fmt::format("snapshot{}", snapshot_count + 1);
 }
 
-void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
+void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs)
 {
     using St = VirtualMachine::State;
 
@@ -315,6 +315,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     specs.metadata = snapshot->get_metadata();
 
     head_snapshot = snapshot;
+    persist_head_snapshot_name(derive_head_path(snapshot_dir));
 }
 
 } // namespace multipass
