@@ -247,7 +247,7 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
                                        .arg(QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
 
     auto snapshot_path = snapshot_dir.filePath(snapshot_filename);
-    auto head_path = snapshot_dir.filePath(head_filename);
+    auto head_path = derive_head_path(snapshot_dir);
     auto count_path = snapshot_dir.filePath(count_filename);
 
     auto rollback_snapshot_file = sg::make_scope_guard([&snapshot_filename]() noexcept {
@@ -277,6 +277,11 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
     rollback_head_file.dismiss();
 }
 
+QString BaseVirtualMachine::derive_head_path(const QDir& snapshot_dir) const
+{
+    return snapshot_dir.filePath(head_filename);
+}
+
 void BaseVirtualMachine::persist_head_snapshot_name(const QString& head_path) const
 {
     MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
@@ -296,6 +301,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
 
     auto snapshot = snapshots.at(name); // TODO@snapshots convert out_of_range exception, here and `get_snapshot`
 
+    // TODO@snapshots convert into runtime_errors (persisted info could have been tampered with)
     assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
     assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
 
