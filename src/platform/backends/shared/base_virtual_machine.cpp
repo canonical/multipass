@@ -292,6 +292,18 @@ std::string BaseVirtualMachine::generate_snapshot_name() const
     return fmt::format("snapshot{}", snapshot_count + 1);
 }
 
+void BaseVirtualMachine::restore_rollback_guts(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
+                                               const VMSpecs& old_specs, VMSpecs& specs)
+{
+    old_head->apply();
+    specs = old_specs;
+    if (old_head != head_snapshot)
+    {
+        head_snapshot = old_head;
+        persist_head_snapshot_name(head_path);
+    }
+}
+
 void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs)
 {
     using St [[maybe_unused]] = VirtualMachine::State;
@@ -310,15 +322,8 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     const auto head_path = derive_head_path(snapshot_dir);
     auto rollback = // best effort to rollback
         sg::make_scope_guard([this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
-            mp::top_catch_all(vm_name, [this, &head_path, &old_head, &old_specs, &specs] {
-                old_head->apply();
-                specs = old_specs;
-                if (old_head != head_snapshot)
-                {
-                    head_snapshot = old_head;
-                    persist_head_snapshot_name(head_path);
-                }
-            });
+            mp::top_catch_all(vm_name, &BaseVirtualMachine::restore_rollback_guts, this, head_path, old_head, old_specs,
+                              specs);
         });
 
     specs.state = snapshot->get_state();

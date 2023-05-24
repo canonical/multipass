@@ -72,13 +72,19 @@ protected:
 private:
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;
+
     void load_generic_snapshot_info(const QDir& snapshot_dir);
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
+
     void persist_head_snapshot(const QDir& snapshot_dir) const;
     void persist_head_snapshot_name(const QString& head_path) const;
+
     QString derive_head_path(const QDir& snapshot_dir) const;
     std::string generate_snapshot_name() const;
+
+    void restore_rollback_guts(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
+                               const VMSpecs& old_specs, VMSpecs& specs);
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
