@@ -102,6 +102,10 @@ struct StubSnapshot : public Snapshot
     {
     }
 
+    void apply() override
+    {
+    }
+
     std::unordered_map<std::string, VMMount> mounts;
     QJsonObject metadata;
 };
