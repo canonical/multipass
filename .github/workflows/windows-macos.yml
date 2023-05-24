@@ -414,7 +414,7 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos
+    runs-on: macos-dispatch
 
     steps:
     - name: Update the Windows check on public
