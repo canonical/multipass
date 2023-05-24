@@ -79,6 +79,7 @@ private:
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
 
+    auto make_take_snapshot_rollback(std::unordered_map<std::string, std::shared_ptr<Snapshot>>::iterator it);
     void take_snapshot_rollback_guts(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, size_t old_count);
 
     auto make_head_file_rollback(const QString& head_path, QFile& head_file) const;

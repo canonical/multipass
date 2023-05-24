@@ -131,6 +131,14 @@ void BaseVirtualMachine::take_snapshot_rollback_guts(SnapshotMap::iterator it, s
     snapshots.erase(it);
 }
 
+auto BaseVirtualMachine::make_take_snapshot_rollback(SnapshotMap::iterator it)
+{
+    return sg::make_scope_guard( // best effort to rollback
+        [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
+            take_snapshot_rollback_guts(it, old_head, old_count);
+        });
+}
+
 std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                                   const std::string& name, const std::string& comment)
 {
@@ -149,10 +157,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             throw SnapshotNameTaken{vm_name, snapshot_name};
         }
 
-        auto rollback_on_failure = sg::make_scope_guard( // best effort to rollback
-            [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
-                take_snapshot_rollback_guts(it, old_head, old_count);
-            });
+        auto rollback_on_failure = make_take_snapshot_rollback(it);
 
         auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
         ret->capture();
