@@ -20,6 +20,13 @@ if (APPLE)
   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
 endif()
 
+# Use ccache if it's installed
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
 project(Multipass)
 
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)

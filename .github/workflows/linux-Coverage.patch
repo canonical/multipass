@@ -1,6 +1,8 @@
+diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
+index a72d9f09a..d23ed58e3 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -95,6 +95,7 @@ parts:
+@@ -121,6 +121,7 @@ parts:
      - pkg-config
      - qtbase5-dev
      - qtbase5-dev-tools
@@ -8,7 +10,7 @@
      stage-packages:
      - apparmor
      - on amd64: [libgl1]
-@@ -113,9 +114,8 @@ parts:
+@@ -139,9 +140,8 @@ parts:
      - dnsmasq-utils
      source: .
      cmake-parameters:
@@ -17,5 +19,5 @@
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
      - -DMULTIPASS_UPSTREAM=origin
-     - -DCMAKE_C_COMPILER_LAUNCHER=ccache
-     - -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+     override-build: |
+       craftctl default
