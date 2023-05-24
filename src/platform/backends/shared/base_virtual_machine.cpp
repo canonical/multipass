@@ -129,7 +129,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             throw SnapshotNameTaken{vm_name, snapshot_name};
         }
 
-        auto rollback_on_failure = sg::make_scope_guard(
+        auto rollback_on_failure = sg::make_scope_guard( // best effort to rollback
             [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
                 if (old_head != head_snapshot)
                 {
@@ -305,8 +305,21 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
     assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
 
-    // TODO@ricab attempt rollback on failure
     snapshot->apply();
+
+    const auto head_path = derive_head_path(snapshot_dir);
+    auto rollback = // best effort to rollback
+        sg::make_scope_guard([this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
+            mp::top_catch_all(vm_name, [this, &head_path, &old_head, &old_specs, &specs] {
+                old_head->apply();
+                specs = old_specs;
+                if (old_head != head_snapshot)
+                {
+                    head_snapshot = old_head;
+                    persist_head_snapshot_name(head_path);
+                }
+            });
+        });
 
     specs.state = snapshot->get_state();
     specs.num_cores = snapshot->get_num_cores();
@@ -317,8 +330,10 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     if (head_snapshot != snapshot)
     {
         head_snapshot = snapshot;
-        persist_head_snapshot_name(derive_head_path(snapshot_dir));
+        persist_head_snapshot_name(head_path);
     }
+
+    rollback.dismiss();
 }
 
 } // namespace multipass
