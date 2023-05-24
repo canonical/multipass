@@ -108,10 +108,10 @@ void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, c
             "\'{}\' is not a supported alias. Please use `multipass find` for supported image aliases.", alias));
 }
 
-bool mp::CommonVMImageHost::check_all_aliases_are_supported(const QStringList& aliases,
-                                                            const std::string& remote_name) const
+bool mp::CommonVMImageHost::alias_verifies_image_is_supported(const QStringList& aliases,
+                                                              const std::string& remote_name) const
 {
-    return std::all_of(aliases.cbegin(), aliases.cend(), [&remote_name](const auto& alias) {
-        return MP_PLATFORM.is_alias_supported(alias.toStdString(), remote_name);
-    });
+    return aliases.empty() || std::any_of(aliases.cbegin(), aliases.cend(), [&remote_name](const auto& alias) {
+               return MP_PLATFORM.is_alias_supported(alias.toStdString(), remote_name);
+           });
 }

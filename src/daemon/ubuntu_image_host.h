@@ -19,7 +19,9 @@
 #define MULTIPASS_UBUNTU_IMAGE_HOST_H
 
 #include "common_image_host.h"
-#include "multipass/simple_streams_manifest.h"
+
+#include <multipass/constants.h>
+#include <multipass/simple_streams_manifest.h>
 
 #include <QString>
 
