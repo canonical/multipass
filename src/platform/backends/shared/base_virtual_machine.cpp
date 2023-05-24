@@ -306,7 +306,7 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
 
     // TODO@ricab attempt rollback on failure
-    //    snapshot->apply();
+    snapshot->apply();
 
     specs.state = snapshot->get_state();
     specs.num_cores = snapshot->get_num_cores();

@@ -34,6 +34,7 @@ public:
 protected:
     void capture_impl() override;
     void erase_impl() override;
+    void apply_impl() override;
 
 private:
     QString make_tag() const;
