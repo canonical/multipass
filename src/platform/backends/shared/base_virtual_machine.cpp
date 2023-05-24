@@ -284,7 +284,23 @@ std::string BaseVirtualMachine::generate_snapshot_name() const
 
 void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
 {
-    // TODO@ricab implement
+    using St = VirtualMachine::State;
+
+    std::unique_lock lock{snapshot_mutex};
+    assert(state == St::off || state == St::stopped);
+
+    auto snapshot = snapshots.at(name); // TODO@snapshots convert out_of_range exception, here and `get_snapshot`
+
+    assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
+    assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
+
+    specs.state = snapshot->get_state();
+    specs.num_cores = snapshot->get_num_cores();
+    specs.mem_size = snapshot->get_mem_size();
+    specs.mounts = snapshot->get_mounts();
+    specs.metadata = snapshot->get_metadata();
+
+    head_snapshot = snapshot;
 }
 
 } // namespace multipass
