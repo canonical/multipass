@@ -70,12 +70,16 @@ protected:
                                                              const VMSpecs& specs) = 0;
 
 private:
+    using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
+
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;
 
     void load_generic_snapshot_info(const QDir& snapshot_dir);
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
+
+    void take_snapshot_rollback_guts(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, size_t old_count);
 
     auto make_head_file_rollback(const QString& head_path, QFile& head_file) const;
     void head_file_rollback_guts(const QString& head_path, QFile& head_file, const std::string& old_head,
@@ -92,7 +96,6 @@ private:
                                const VMSpecs& old_specs, VMSpecs& specs);
 
 private:
-    using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     size_t snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)

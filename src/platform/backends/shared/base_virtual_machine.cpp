@@ -111,6 +111,26 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     return snapshots.at(name);
 }
 
+void BaseVirtualMachine::take_snapshot_rollback_guts(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head,
+                                                     size_t old_count)
+{
+    if (old_head != head_snapshot)
+    {
+        assert(it->second && "snapshot not created despite modified head");
+        if (snapshot_count > old_count) // snapshot was created
+        {
+            assert(snapshot_count - old_count == 1);
+            --snapshot_count;
+
+            mp::top_catch_all(vm_name, [it] { it->second->erase(); });
+        }
+
+        head_snapshot = std::move(old_head);
+    }
+
+    snapshots.erase(it);
+}
+
 std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                                   const std::string& name, const std::string& comment)
 {
@@ -131,21 +151,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 
         auto rollback_on_failure = sg::make_scope_guard( // best effort to rollback
             [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
-                if (old_head != head_snapshot)
-                {
-                    assert(it->second && "snapshot not created despite modified head");
-                    if (snapshot_count > old_count) // snapshot was created
-                    {
-                        assert(snapshot_count - old_count == 1);
-                        --snapshot_count;
-
-                        mp::top_catch_all(vm_name, [it] { it->second->erase(); });
-                    }
-
-                    head_snapshot = std::move(old_head);
-                }
-
-                snapshots.erase(it);
+                take_snapshot_rollback_guts(it, old_head, old_count);
             });
 
         auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
