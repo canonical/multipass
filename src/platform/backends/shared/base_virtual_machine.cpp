@@ -270,11 +270,16 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
                 });
         });
 
-    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
+    persist_head_snapshot_name(head_path);
     MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), yes_overwrite);
 
     rollback_snapshot_file.dismiss();
     rollback_head_file.dismiss();
+}
+
+void BaseVirtualMachine::persist_head_snapshot_name(const QString& head_path) const
+{
+    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
 }
 
 std::string BaseVirtualMachine::generate_snapshot_name() const
