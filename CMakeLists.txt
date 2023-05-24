@@ -30,6 +30,7 @@ endif()
 project(Multipass)
 
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
+option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON)
 
 include(GNUInstallDirs)
 
@@ -37,6 +38,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+
+if(MULTIPASS_ENABLE_FLUTTER_GUI)
+  find_program(FLUTTER_EXECUTABLE flutter HINTS /snap/bin/ /bin/ /usr/bin/ REQUIRED DOC "The Flutter executable")
+  find_program(DART_EXECUTABLE dart HINTS /snap/bin/ /bin/ /usr/bin/ REQUIRED DOC "The Dart executable")
+endif(MULTIPASS_ENABLE_FLUTTER_GUI)
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
 
