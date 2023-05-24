@@ -45,6 +45,7 @@ constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
 constexpr auto index_digits = 4;        // these two go together
 constexpr auto max_snapshots = 1000ull; // replace suffix with uz for size_t in C++23
+constexpr auto yes_overwrite = true;
 } // namespace
 
 namespace multipass
@@ -255,23 +256,22 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 
     mp::write_json(head_snapshot->serialize(), snapshot_path);
 
-    auto overwrite = true;
     QFile head_file{head_path};
 
     auto rollback_head_file =
-        sg::make_scope_guard([this, &head_path, &head_file, overwrite, old_head = head_snapshot->get_parent_name(),
+        sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
                               existed = head_file.exists()]() noexcept {
             // best effort, ignore returns
             if (!existed)
                 head_file.remove();
             else
-                mp::top_catch_all(vm_name, [&head_path, &old_head, overwrite] {
-                    MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, overwrite);
+                mp::top_catch_all(vm_name, [&head_path, &old_head] {
+                    MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
                 });
         });
 
-    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), overwrite);
-    MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), overwrite);
+    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
+    MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), yes_overwrite);
 
     rollback_snapshot_file.dismiss();
     rollback_head_file.dismiss();
@@ -293,6 +293,9 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
 
     assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
     assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
+
+    // TODO@ricab attempt rollback on failure
+    //    snapshot->apply();
 
     specs.state = snapshot->get_state();
     specs.num_cores = snapshot->get_num_cores();
