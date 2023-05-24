@@ -76,6 +76,7 @@ private:
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
     void persist_head_snapshot(const QDir& snapshot_dir) const;
+    void persist_head_snapshot_name(const QString& head_path) const;
     std::string generate_snapshot_name() const;
 
 private:
