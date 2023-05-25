@@ -2458,25 +2458,23 @@ try
             return status_promise->set_value(
                 grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only restore snapshots of stopped instances."});
 
-        const auto spec_it = vm_instance_specs.find(instance_name);
+        auto spec_it = vm_instance_specs.find(instance_name);
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
 
+        const auto& vm_dir = instance_directory(instance_name, *config);
         if (!request->destructive())
         {
             reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
 
-            const auto snapshot = vm_ptr->take_snapshot(instance_directory(instance_name, *config), spec_it->second, "",
+            const auto snapshot = vm_ptr->take_snapshot(vm_dir, spec_it->second, "",
                                                         fmt::format("Before restoring {}", request->snapshot()));
 
             reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
                       /* sticky = */ true);
         }
 
-        // TODO@snapshots replace placeholder implementation
         reply_msg(server, "Restoring snapshot");
-        mpl::log(mpl::Level::debug, category, "Restore placeholder");
-
-        auto snapshot_name = request->snapshot();
+        vm_ptr->restore_snapshot(vm_dir, request->snapshot(), spec_it->second);
 
         server->Write(reply);
     }
