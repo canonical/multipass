@@ -67,9 +67,9 @@ namespace client
 {
 QString persistent_settings_filename();
 void register_global_settings_handlers();
-std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, CertProvider* cert_provider);
+std::shared_ptr<grpc::Channel> make_channel(const std::string& server_address, const CertProvider& cert_provider);
 std::string get_server_address();
-std::unique_ptr<SSLCertProvider> get_cert_provider();
+std::unique_ptr<SSLCertProvider> get_cert_provider(const std::string& server_address);
 void set_logger();
 void set_logger(multipass::logging::Level verbosity); // full param qualification makes sure msvc is happy
 void pre_setup();

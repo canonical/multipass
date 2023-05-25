@@ -155,9 +155,6 @@ struct Client : public Test
             .Times(AnyNumber())
             .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                                             it gets reset at the end of each test (by VerifyAndClearExpectations) */
-
-        EXPECT_CALL(*client_cert_provider, PEM_certificate()).WillOnce(Return(mpt::client_cert));
-        EXPECT_CALL(*client_cert_provider, PEM_signing_key()).WillOnce(Return(mpt::client_key));
     }
 
     void TearDown() override
@@ -171,7 +168,7 @@ struct Client : public Test
 
     int setup_client_and_run(const std::vector<std::string>& command, mp::Terminal& term)
     {
-        mp::ClientConfig client_config{server_address, std::move(client_cert_provider), &term};
+        mp::ClientConfig client_config{server_address, get_client_cert_provider(), &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_test";
 
@@ -359,7 +356,10 @@ struct Client : public Test
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
-    std::unique_ptr<mpt::MockCertProvider> client_cert_provider{std::make_unique<mpt::MockCertProvider>()};
+    static std::unique_ptr<mpt::MockCertProvider> get_client_cert_provider()
+    {
+        return std::make_unique<mpt::MockCertProvider>();
+    };
     std::unique_ptr<mpt::MockCertProvider> daemon_cert_provider{std::make_unique<mpt::MockCertProvider>()};
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
