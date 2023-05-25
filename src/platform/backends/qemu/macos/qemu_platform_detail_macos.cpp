@@ -35,7 +35,7 @@ auto get_common_args(const QString& host_arch)
     if (host_arch == "aarch64")
     {
         qemu_args << "-machine"
-                  << "virt,highmem=off";
+                  << "virt,gic-version=3";
     }
 
     return qemu_args;
