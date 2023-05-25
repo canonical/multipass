@@ -294,7 +294,7 @@ std::string BaseVirtualMachine::generate_snapshot_name() const
 
 void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs)
 {
-    using St = VirtualMachine::State;
+    using St [[maybe_unused]] = VirtualMachine::State;
 
     std::unique_lock lock{snapshot_mutex};
     assert(state == St::off || state == St::stopped);
