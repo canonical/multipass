@@ -45,8 +45,7 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comme
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const multipass::QemuVirtualMachine& vm)
-    : BaseSnapshot(json, vm)
+mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const mp::QemuVirtualMachine& vm) : BaseSnapshot(json, vm)
 {
 }
 
