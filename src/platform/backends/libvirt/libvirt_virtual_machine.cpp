@@ -544,15 +544,14 @@ void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
     desc.disk_space = new_size;
 }
 
-auto multipass::LibVirtVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                              std::shared_ptr<const Snapshot> parent,
-                                                              const multipass::VMSpecs& specs)
+auto mp::LibVirtVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                       std::shared_ptr<const Snapshot> parent, const mp::VMSpecs& specs)
     -> std::shared_ptr<Snapshot>
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
 
-auto multipass::LibVirtVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
+auto mp::LibVirtVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
