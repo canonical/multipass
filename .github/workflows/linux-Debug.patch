@@ -1,6 +1,8 @@
+diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
+index a72d9f09a..d3316be58 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -113,9 +113,8 @@ parts:
+@@ -139,9 +139,8 @@ parts:
      - dnsmasq-utils
      source: .
      cmake-parameters:
@@ -9,5 +11,5 @@
      - -DCMAKE_INSTALL_PREFIX=/
 -    - -DMULTIPASS_ENABLE_TESTS=off
      - -DMULTIPASS_UPSTREAM=origin
-     - -DCMAKE_C_COMPILER_LAUNCHER=ccache
-     - -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+     override-build: |
+       craftctl default
