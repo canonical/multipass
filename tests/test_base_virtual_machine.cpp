@@ -112,6 +112,19 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     void resize_disk(const mp::MemorySize&) override
     {
     }
+
+protected:
+    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                         std::shared_ptr<const mp::Snapshot> parent,
+                                                         const mp::VMSpecs& specs) override
+    {
+        return nullptr;
+    }
+
+    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QJsonObject& json) override
+    {
+        return nullptr;
+    }
 };
 
 struct BaseVM : public Test

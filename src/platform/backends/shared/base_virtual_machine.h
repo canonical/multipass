@@ -62,6 +62,12 @@ public:
                                                   const std::string& name, const std::string& comment) override;
     void load_snapshots(const QDir& snapshot_dir) override;
 
+protected:
+    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
+    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                             std::shared_ptr<const Snapshot> parent,
+                                                             const VMSpecs& specs) = 0;
+
 private:
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;

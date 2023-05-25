@@ -87,3 +87,18 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
         return image_path;
     }
 }
+
+bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, const char* snapshot_tag)
+{
+    auto process = mp::platform::make_process(
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", image_path}, image_path));
+
+    auto process_state = process->execute();
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(), process->read_all_standard_error()));
+    }
+
+    return process->read_all_standard_output().contains(snapshot_tag);
+}

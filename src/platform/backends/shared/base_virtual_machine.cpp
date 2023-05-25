@@ -16,7 +16,6 @@
  */
 
 #include "base_virtual_machine.h"
-#include "base_snapshot.h" // TODO@snapshots may be able to remove this
 
 #include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/snapshot_name_taken.h>
@@ -128,25 +127,32 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             throw SnapshotNameTaken{vm_name, snapshot_name};
         }
 
-        auto rollback_on_failure = sg::make_scope_guard([this, it = it, old_head = head_snapshot]() mutable noexcept {
-            if (it->second) // snapshot was created
-            {
-                --snapshot_count;
-                head_snapshot = std::move(old_head);
-                mp::top_catch_all(vm_name, [it] { it->second->delet(); });
-            }
+        auto rollback_on_failure = sg::make_scope_guard(
+            [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
+                if (old_head != head_snapshot)
+                {
+                    assert(it->second && "snapshot not created despite modified head");
+                    if (snapshot_count > old_count) // snapshot was created
+                    {
+                        assert(snapshot_count - old_count == 1);
+                        --snapshot_count;
 
-            snapshots.erase(it);
-        });
+                        mp::top_catch_all(vm_name, [it] { it->second->erase(); });
+                    }
 
-        // TODO@snapshots - generate implementation-specific snapshot instead
-        auto ret = head_snapshot = it->second =
-            std::make_shared<BaseSnapshot>(snapshot_name, comment, head_snapshot, specs);
+                    head_snapshot = std::move(old_head);
+                }
+
+                snapshots.erase(it);
+            });
+
+        auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
+        ret->capture();
 
         ++snapshot_count;
         persist_head_snapshot(snapshot_dir);
-        rollback_on_failure.dismiss();
 
+        rollback_on_failure.dismiss();
         log_latest_snapshot(std::move(lock));
 
         return ret;
@@ -219,8 +225,7 @@ void BaseVirtualMachine::load_snapshot_from_file(const QString& filename)
 
 void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
 {
-    // TODO@snapshots move to specific VM implementations and make specific snapshot from there
-    auto snapshot = std::make_shared<BaseSnapshot>(json, *this);
+    auto snapshot = make_specific_snapshot(json);
     const auto& name = snapshot->get_name();
     auto [it, success] = snapshots.try_emplace(name, snapshot);
 

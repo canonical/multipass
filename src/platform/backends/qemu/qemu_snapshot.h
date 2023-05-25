@@ -15,21 +15,33 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_IMG_UTILS_H
-#define MULTIPASS_QEMU_IMG_UTILS_H
+#ifndef MULTIPASS_QEMU_SNAPSHOT_H
+#define MULTIPASS_QEMU_SNAPSHOT_H
 
-#include <multipass/path.h>
+#include <shared/base_snapshot.h>
 
 namespace multipass
 {
-class MemorySize;
+class QemuVirtualMachine;
 
-namespace backend
+class QemuSnapshot : public BaseSnapshot
 {
-void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
-Path convert_to_qcow_if_necessary(const Path& image_path);
-bool instance_image_has_snapshot(const Path& image_path, const char* snapshot_tag);
+public:
+    QemuSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
+                 const VMSpecs& specs, const QString& image_path);
+    QemuSnapshot(const QJsonObject& json, const QemuVirtualMachine& vm);
 
-} // namespace backend
+protected:
+    void capture_impl() override;
+    void erase_impl() override;
+
+private:
+    QString make_tag() const;
+
+private:
+    QString image_path;
+};
+
 } // namespace multipass
-#endif // MULTIPASS_QEMU_IMG_UTILS_H
+
+#endif // MULTIPASS_QEMU_SNAPSHOT_H
