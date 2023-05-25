@@ -135,7 +135,7 @@ TEST_F(TestQemuPlatformDetail, vm_platform_args_returns_expected_arguments)
 
     if (host_arch == "aarch64")
     {
-        expected_args.push_back(QStringList({"-machine", "virt,highmem=off"}));
+        expected_args.push_back(QStringList({"-machine", "virt,gic-version=3"}));
     }
 
     check_expected_args(expected_args, qemu_platform_detail.vm_platform_args(vm_desc));
@@ -147,7 +147,7 @@ TEST_F(TestQemuPlatformDetail, vmstate_platform_args_returns_expected_arguments)
 
     if (host_arch == "aarch64")
     {
-        expected_args.push_back(QStringList({"-machine", "virt,highmem=off"}));
+        expected_args.push_back(QStringList({"-machine", "virt,gic-version=3"}));
     }
 
     check_expected_args(expected_args, qemu_platform_detail.vmstate_platform_args());
