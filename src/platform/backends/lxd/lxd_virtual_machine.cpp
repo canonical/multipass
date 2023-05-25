@@ -410,7 +410,7 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
     }
 }
 
-void multipass::LXDVirtualMachine::update_cpus(int num_cores)
+void mp::LXDVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
     assert(manager);
@@ -460,14 +460,14 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
     lxd_request(manager, "PATCH", url(), patch_json);
 }
 
-auto multipass::LXDVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
-                                                          std::shared_ptr<const Snapshot> parent,
-                                                          const multipass::VMSpecs& specs) -> std::shared_ptr<Snapshot>
+auto mp::LXDVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
+                                                   std::shared_ptr<const Snapshot> parent, const mp::VMSpecs& specs)
+    -> std::shared_ptr<Snapshot>
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
 
-std::shared_ptr<mp::Snapshot> multipass::LXDVirtualMachine::make_specific_snapshot(const QJsonObject& json)
+std::shared_ptr<mp::Snapshot> mp::LXDVirtualMachine::make_specific_snapshot(const QJsonObject& json)
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
