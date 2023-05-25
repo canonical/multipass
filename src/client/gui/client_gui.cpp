@@ -27,7 +27,7 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 mp::ClientGui::ClientGui(ClientConfig& config)
-    : stub{mp::Rpc::NewStub(mp::client::make_channel(config.server_address, config.cert_provider.get()))},
+    : stub{mp::Rpc::NewStub(mp::client::make_channel(config.server_address, *config.cert_provider))},
       gui_cmd{std::make_unique<cmd::GuiCmd>(*stub, null_stream, null_stream)}
 {
 }
