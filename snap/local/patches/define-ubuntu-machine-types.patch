@@ -105,18 +105,66 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/qemu/+bug/1829868
 Forwarded: not-needed
 Forward-info: downstream decision
 
+--- a/hw/core/machine.c
++++ b/hw/core/machine.c
+@@ -238,17 +238,29 @@ GlobalProperty hw_compat_2_5[] = {
+ };
+ const size_t hw_compat_2_5_len = G_N_ELEMENTS(hw_compat_2_5);
+ 
++#define HW_COMPAT_2_4_DEFS \
++    /* Optional because the 'scsi' property is Linux-only */ \
++    { "virtio-blk-device", "scsi", "true", .optional = true }, \
++    { "e1000", "extra_mac_registers", "off" }, \
++    { "virtio-pci", "x-disable-pcie", "on" }, \
++    { "virtio-pci", "migrate-extra", "off" }, \
++    { "fw_cfg_mem", "dma_enabled", "off" }, \
++    { "fw_cfg_io", "dma_enabled", "off" }, \
++
+ GlobalProperty hw_compat_2_4[] = {
+-    /* Optional because the 'scsi' property is Linux-only */
+-    { "virtio-blk-device", "scsi", "true", .optional = true },
+-    { "e1000", "extra_mac_registers", "off" },
+-    { "virtio-pci", "x-disable-pcie", "on" },
+-    { "virtio-pci", "migrate-extra", "off" },
+-    { "fw_cfg_mem", "dma_enabled", "off" },
+-    { "fw_cfg_io", "dma_enabled", "off" }
++    HW_COMPAT_2_4_DEFS
+ };
+ const size_t hw_compat_2_4_len = G_N_ELEMENTS(hw_compat_2_4);
+ 
++// workaround for bug 1902654 / 1829868, see pc_i440fx_wily_machine_options in hw/i386/pc_piix.c
++GlobalProperty hw_compat_2_4_wily[] = {
++    HW_COMPAT_2_4_DEFS
++    { "migration", "send-configuration", "off" },
++    { "migration", "send-section-footer", "off" },
++    { "migration", "store-global-state", "off" },
++};
++const size_t hw_compat_2_4_wily_len = G_N_ELEMENTS(hw_compat_2_4_wily);
++
+ GlobalProperty hw_compat_2_3[] = {
+     { "virtio-blk-pci", "any_layout", "off" },
+     { "virtio-balloon-pci", "any_layout", "off" },
+diff --git a/hw/i386/pc.c b/hw/i386/pc.c
+index 1489abf010..8711095a88 100644
+--- a/hw/i386/pc.c
++++ b/hw/i386/pc.c
+@@ -176,6 +176,11 @@ const size_t pc_compat_4_1_len = G_N_ELEMENTS(pc_compat_4_1);
+ GlobalProperty pc_compat_4_0[] = {};
+ const size_t pc_compat_4_0_len = G_N_ELEMENTS(pc_compat_4_0);
+ 
++GlobalProperty host_phys_bits_compat[] = {
++    { TYPE_X86_CPU, "host-phys-bits", "on" },
++};
++const size_t host_phys_bits_compat_len = G_N_ELEMENTS(host_phys_bits_compat);
++
+ GlobalProperty pc_compat_3_1[] = {
+     { "intel-iommu", "dma-drain", "off" },
+     { "Opteron_G3" "-" TYPE_X86_CPU, "rdtscp", "off" },
+diff --git a/hw/i386/pc_piix.c b/hw/i386/pc_piix.c
+index 30eedd62a3..37d80e92a8 100644
 --- a/hw/i386/pc_piix.c
 +++ b/hw/i386/pc_piix.c
-@@ -435,7 +435,7 @@ static void pc_i440fx_7_1_machine_option
-     PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
-     pc_i440fx_machine_options(m);
-     m->alias = "pc";
--    m->is_default = true;
-+    m->is_default = false;
-     pcmc->default_cpu_version = 1;
- }
- 
-@@ -969,3 +964,285 @@ static void xenfv_3_1_machine_options(Ma
+@@ -897,3 +897,281 @@ static void xenfv_3_1_machine_options(MachineClass *m)
  DEFINE_PC_MACHINE(xenfv, "xenfv-3.1", pc_xen_hvm_init,
                    xenfv_3_1_machine_options);
  #endif
@@ -343,11 +391,7 @@ Forward-info: downstream decision
 +    pc_i440fx_7_0_machine_options(m);
 +    m->desc = "Ubuntu 22.10 PC (i440FX + PIIX, 1996)";
 +    m->alias = "ubuntu";
-+#ifdef CONFIG_MICROVM_DEFAULT
 +    m->is_default = false;
-+#else
-+    m->is_default = true;
-+#endif
 +}
 +DEFINE_I440FX_MACHINE(kinetic, "pc-i440fx-kinetic", NULL,
 +                      pc_kinetic_machine_options);
@@ -402,9 +446,11 @@ Forward-info: downstream decision
 +
 +DEFINE_I440FX_MACHINE(wily, "pc-i440fx-wily", NULL,
 +                      pc_wily_machine_options);
+diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
+index 797ba347fd..2145a21662 100644
 --- a/hw/i386/pc_q35.c
 +++ b/hw/i386/pc_q35.c
-@@ -629,3 +629,240 @@ static void pc_q35_2_4_machine_options(M
+@@ -661,3 +661,240 @@ static void pc_q35_2_4_machine_options(MachineClass *m)
  
  DEFINE_Q35_MACHINE(v2_4, "pc-q35-2.4", NULL,
                     pc_q35_2_4_machine_options);
@@ -645,9 +691,11 @@ Forward-info: downstream decision
 +}
 +DEFINE_Q35_MACHINE(kinetic_hpb, "pc-q35-kinetic-hpb", NULL,
 +                   pc_q35_kinetic_hpb_machine_options);
+diff --git a/hw/ppc/spapr.c b/hw/ppc/spapr.c
+index 4921198b9d..afc1a5fa56 100644
 --- a/hw/ppc/spapr.c
 +++ b/hw/ppc/spapr.c
-@@ -4683,11 +4683,14 @@ static void spapr_machine_latest_class_o
+@@ -4714,11 +4714,14 @@ static void spapr_machine_latest_class_options(MachineClass *mc)
  }
  
  #define DEFINE_SPAPR_MACHINE(suffix, verstr, latest)                 \
@@ -663,16 +711,7 @@ Forward-info: downstream decision
          if (latest) {                                                \
              spapr_machine_latest_class_options(mc);                  \
          }                                                            \
-@@ -4711,7 +4714,7 @@ static void spapr_machine_7_0_class_opti
-     /* Defaults for the latest behaviour inherited from the base class */
- }
- 
--DEFINE_SPAPR_MACHINE(7_2, "7.2", true);
-+DEFINE_SPAPR_MACHINE(7_2, "7.2", false);
- 
- /*
-  * pseries-6.2
-@@ -5104,11 +5107,16 @@ DEFINE_SPAPR_MACHINE(2_6, "2.6", false);
+@@ -5168,11 +5171,16 @@ DEFINE_SPAPR_MACHINE(2_6, "2.6", false);
   * pseries-2.5
   */
  
@@ -689,7 +728,7 @@ Forward-info: downstream decision
      };
  
      spapr_machine_2_6_class_options(mc);
-@@ -5177,6 +5185,35 @@ static void spapr_machine_2_1_class_opti
+@@ -5241,6 +5249,35 @@ static void spapr_machine_2_1_class_options(MachineClass *mc)
  }
  DEFINE_SPAPR_MACHINE(2_1, "2.1", false);
  
@@ -725,9 +764,11 @@ Forward-info: downstream decision
  static void spapr_machine_register_types(void)
  {
      type_register_static(&spapr_machine_info);
+diff --git a/hw/s390x/s390-virtio-ccw.c b/hw/s390x/s390-virtio-ccw.c
+index 503f212a31..6da47913b0 100644
 --- a/hw/s390x/s390-virtio-ccw.c
 +++ b/hw/s390x/s390-virtio-ccw.c
-@@ -762,12 +762,15 @@ bool css_migration_enabled(void)
+@@ -797,11 +797,14 @@ bool css_migration_enabled(void)
  }
  
  #define DEFINE_CCW_MACHINE(suffix, verstr, latest)                            \
@@ -743,8 +784,7 @@ Forward-info: downstream decision
          mc->desc = "Virtual s390x machine (version " verstr ")";              \
          if (latest) {                                                         \
              mc->alias = "s390-ccw-virtio";                                    \
-             mc->is_default = true;                                            \
-@@ -777,7 +780,7 @@ bool css_migration_enabled(void)
+@@ -812,7 +815,7 @@ bool css_migration_enabled(void)
      {                                                                         \
          MachineState *machine = MACHINE(obj);                                 \
          current_mc = S390_CCW_MACHINE_CLASS(MACHINE_GET_CLASS(machine));          \
@@ -753,16 +793,7 @@ Forward-info: downstream decision
      }                                                                         \
      static const TypeInfo ccw_machine_##suffix##_info = {                     \
          .name = MACHINE_TYPE_NAME("s390-ccw-virtio-" verstr),                 \
-@@ -798,7 +801,7 @@ static void ccw_machine_7_0_instance_opt
- static void ccw_machine_7_0_class_options(MachineClass *mc)
- {
- }
--DEFINE_CCW_MACHINE(7_2, "7.2", true);
-+DEFINE_CCW_MACHINE(7_2, "7.2", false);
- 
- static void ccw_machine_6_2_instance_options(MachineState *machine)
- {
-@@ -1116,6 +1119,22 @@ static void ccw_machine_2_4_class_option
+@@ -1202,6 +1205,22 @@ static void ccw_machine_2_4_class_options(MachineClass *mc)
  }
  DEFINE_CCW_MACHINE(2_4, "2.4", false);
  
@@ -785,74 +816,11 @@ Forward-info: downstream decision
  static void ccw_machine_register_types(void)
  {
      type_register_static(&ccw_machine_info);
---- a/hw/i386/pc.c
-+++ b/hw/i386/pc.c
-@@ -144,6 +144,11 @@ const size_t pc_compat_4_1_len = G_N_ELE
- GlobalProperty pc_compat_4_0[] = {};
- const size_t pc_compat_4_0_len = G_N_ELEMENTS(pc_compat_4_0);
- 
-+GlobalProperty host_phys_bits_compat[] = {
-+    { TYPE_X86_CPU, "host-phys-bits", "on" },
-+};
-+const size_t host_phys_bits_compat_len = G_N_ELEMENTS(host_phys_bits_compat);
-+
- GlobalProperty pc_compat_3_1[] = {
-     { "intel-iommu", "dma-drain", "off" },
-     { "Opteron_G3" "-" TYPE_X86_CPU, "rdtscp", "off" },
---- a/include/hw/i386/pc.h
-+++ b/include/hw/i386/pc.h
-@@ -229,6 +229,9 @@ extern const size_t pc_compat_4_1_len;
- extern GlobalProperty pc_compat_4_0[];
- extern const size_t pc_compat_4_0_len;
- 
-+extern GlobalProperty host_phys_bits_compat[];
-+extern const size_t host_phys_bits_compat_len;
-+
- extern GlobalProperty pc_compat_3_1[];
- extern const size_t pc_compat_3_1_len;
- 
---- a/hw/core/machine.c
-+++ b/hw/core/machine.c
-@@ -215,17 +215,29 @@ GlobalProperty hw_compat_2_5[] = {
- };
- const size_t hw_compat_2_5_len = G_N_ELEMENTS(hw_compat_2_5);
- 
-+#define HW_COMPAT_2_4_DEFS \
-+    /* Optional because the 'scsi' property is Linux-only */ \
-+    { "virtio-blk-device", "scsi", "true", .optional = true }, \
-+    { "e1000", "extra_mac_registers", "off" }, \
-+    { "virtio-pci", "x-disable-pcie", "on" }, \
-+    { "virtio-pci", "migrate-extra", "off" }, \
-+    { "fw_cfg_mem", "dma_enabled", "off" }, \
-+    { "fw_cfg_io", "dma_enabled", "off" }, \
-+
- GlobalProperty hw_compat_2_4[] = {
--    /* Optional because the 'scsi' property is Linux-only */
--    { "virtio-blk-device", "scsi", "true", .optional = true },
--    { "e1000", "extra_mac_registers", "off" },
--    { "virtio-pci", "x-disable-pcie", "on" },
--    { "virtio-pci", "migrate-extra", "off" },
--    { "fw_cfg_mem", "dma_enabled", "off" },
--    { "fw_cfg_io", "dma_enabled", "off" }
-+    HW_COMPAT_2_4_DEFS
- };
- const size_t hw_compat_2_4_len = G_N_ELEMENTS(hw_compat_2_4);
- 
-+// workaround for bug 1902654 / 1829868, see pc_i440fx_wily_machine_options in hw/i386/pc_piix.c
-+GlobalProperty hw_compat_2_4_wily[] = {
-+    HW_COMPAT_2_4_DEFS
-+    { "migration", "send-configuration", "off" },
-+    { "migration", "send-section-footer", "off" },
-+    { "migration", "store-global-state", "off" },
-+};
-+const size_t hw_compat_2_4_wily_len = G_N_ELEMENTS(hw_compat_2_4_wily);
-+
- GlobalProperty hw_compat_2_3[] = {
-     { "virtio-blk-pci", "any_layout", "off" },
-     { "virtio-balloon-pci", "any_layout", "off" },
+diff --git a/include/hw/boards.h b/include/hw/boards.h
+index 6fbbfd56c8..66db35b040 100644
 --- a/include/hw/boards.h
 +++ b/include/hw/boards.h
-@@ -440,6 +440,10 @@ extern const size_t hw_compat_2_5_len;
+@@ -450,6 +450,10 @@ extern const size_t hw_compat_2_5_len;
  extern GlobalProperty hw_compat_2_4[];
  extern const size_t hw_compat_2_4_len;
  
@@ -862,3 +830,18 @@ Forward-info: downstream decision
 +
  extern GlobalProperty hw_compat_2_3[];
  extern const size_t hw_compat_2_3_len;
+ 
+diff --git a/include/hw/i386/pc.h b/include/hw/i386/pc.h
+index 8206d5405a..42a916bafe 100644
+--- a/include/hw/i386/pc.h
++++ b/include/hw/i386/pc.h
+@@ -231,6 +231,9 @@ extern const size_t pc_compat_4_1_len;
+ extern GlobalProperty pc_compat_4_0[];
+ extern const size_t pc_compat_4_0_len;
+ 
++extern GlobalProperty host_phys_bits_compat[];
++extern const size_t host_phys_bits_compat_len;
++
+ extern GlobalProperty pc_compat_3_1[];
+ extern const size_t pc_compat_3_1_len;
+ 
