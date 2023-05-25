@@ -2539,6 +2539,7 @@ try
 
         reply_msg(server, "Restoring snapshot");
         vm_ptr->restore_snapshot(vm_dir, request->snapshot(), spec_it->second);
+        persist_instances();
 
         server->Write(reply);
     }
