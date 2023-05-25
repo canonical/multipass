@@ -73,7 +73,7 @@ TEST_F(TestClientCommon, usesCommonCertWhenItExists)
     mpt::make_file_with_content(common_client_cert_file, mpt::client_cert);
     mpt::make_file_with_content(common_client_key_file, mpt::client_key);
 
-    EXPECT_TRUE(mp::client::make_channel(server_address, mp::client::get_cert_provider().get()));
+    EXPECT_TRUE(mp::client::make_channel(server_address, *mp::client::get_cert_provider(server_address)));
 }
 
 TEST_F(TestClientCommon, usesExistingGuiCert)
@@ -88,7 +88,7 @@ TEST_F(TestClientCommon, usesExistingGuiCert)
 
     mpt::MockDaemon daemon{make_secure_server()};
 
-    EXPECT_TRUE(mp::client::make_channel(server_address, mp::client::get_cert_provider().get()));
+    EXPECT_TRUE(mp::client::make_channel(server_address, *mp::client::get_cert_provider(server_address)));
     EXPECT_FALSE(QFile::exists(gui_cert_dir));
 }
 
@@ -113,7 +113,7 @@ TEST_F(TestClientCommon, failsGuiCertUsesExistingCliCert)
 
     mpt::MockDaemon daemon{make_secure_server()};
 
-    EXPECT_TRUE(mp::client::make_channel(server_address, mp::client::get_cert_provider().get()));
+    EXPECT_TRUE(mp::client::make_channel(server_address, *mp::client::get_cert_provider(server_address)));
     EXPECT_FALSE(QFile::exists(gui_cert_dir));
     EXPECT_FALSE(QFile::exists(cli_cert_dir));
 }
@@ -139,7 +139,7 @@ TEST_F(TestClientCommon, noValidCertsCreatesNewCommonCert)
 
     mpt::MockDaemon daemon{make_secure_server()};
 
-    EXPECT_TRUE(mp::client::make_channel(server_address, mp::client::get_cert_provider().get()));
+    EXPECT_TRUE(mp::client::make_channel(server_address, *mp::client::get_cert_provider(server_address)));
     EXPECT_TRUE(QFile::exists(common_cert_dir + "/" + mp::client_cert_file));
     EXPECT_TRUE(QFile::exists(common_cert_dir + "/" + mp::client_key_file));
     EXPECT_FALSE(QFile::exists(gui_cert_dir));
