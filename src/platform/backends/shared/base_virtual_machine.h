@@ -80,11 +80,11 @@ private:
     void load_snapshot(const QJsonObject& json);
 
     auto make_take_snapshot_rollback(SnapshotMap::iterator it);
-    void take_snapshot_rollback_guts(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, size_t old_count);
+    void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, size_t old_count);
 
     auto make_head_file_rollback(const QString& head_path, QFile& head_file) const;
-    void head_file_rollback_guts(const QString& head_path, QFile& head_file, const std::string& old_head,
-                                 bool existed) const;
+    void head_file_rollback_helper(const QString& head_path, QFile& head_file, const std::string& old_head,
+                                   bool existed) const;
     void persist_head_snapshot(const QDir& snapshot_dir) const;
 
     void persist_head_snapshot_name(const QString& head_path) const;
@@ -93,8 +93,8 @@ private:
     std::string generate_snapshot_name() const;
 
     auto make_restore_rollback(const QString& head_path, VMSpecs& specs);
-    void restore_rollback_guts(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
-                               const VMSpecs& old_specs, VMSpecs& specs);
+    void restore_rollback_helper(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
+                                 const VMSpecs& old_specs, VMSpecs& specs);
 
 private:
     SnapshotMap snapshots;
