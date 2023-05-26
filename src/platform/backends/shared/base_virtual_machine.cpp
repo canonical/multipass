@@ -111,6 +111,34 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     return snapshots.at(name);
 }
 
+void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head,
+                                                       size_t old_count)
+{
+    if (old_head != head_snapshot)
+    {
+        assert(it->second && "snapshot not created despite modified head");
+        if (snapshot_count > old_count) // snapshot was created
+        {
+            assert(snapshot_count - old_count == 1);
+            --snapshot_count;
+
+            mp::top_catch_all(vm_name, [it] { it->second->erase(); });
+        }
+
+        head_snapshot = std::move(old_head);
+    }
+
+    snapshots.erase(it);
+}
+
+auto BaseVirtualMachine::make_take_snapshot_rollback(SnapshotMap::iterator it)
+{
+    return sg::make_scope_guard( // best effort to rollback
+        [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
+            take_snapshot_rollback_helper(it, old_head, old_count);
+        });
+}
+
 std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                                   const std::string& name, const std::string& comment)
 {
@@ -129,24 +157,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             throw SnapshotNameTaken{vm_name, snapshot_name};
         }
 
-        auto rollback_on_failure = sg::make_scope_guard( // best effort to rollback
-            [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
-                if (old_head != head_snapshot)
-                {
-                    assert(it->second && "snapshot not created despite modified head");
-                    if (snapshot_count > old_count) // snapshot was created
-                    {
-                        assert(snapshot_count - old_count == 1);
-                        --snapshot_count;
-
-                        mp::top_catch_all(vm_name, [it] { it->second->erase(); });
-                    }
-
-                    head_snapshot = std::move(old_head);
-                }
-
-                snapshots.erase(it);
-            });
+        auto rollback_on_failure = make_take_snapshot_rollback(it);
 
         auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
         ret->capture();
@@ -238,6 +249,26 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     }
 }
 
+auto BaseVirtualMachine::make_head_file_rollback(const QString& head_path, QFile& head_file) const
+{
+    return sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
+                                 existed = head_file.exists()]() noexcept {
+        head_file_rollback_helper(head_path, head_file, old_head, existed);
+    });
+}
+
+void BaseVirtualMachine::head_file_rollback_helper(const QString& head_path, QFile& head_file,
+                                                   const std::string& old_head, bool existed) const
+{
+    // best effort, ignore returns
+    if (!existed)
+        head_file.remove();
+    else
+        top_catch_all(vm_name, [&head_path, &old_head] {
+            MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
+        });
+}
+
 void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 {
     assert(head_snapshot);
@@ -258,23 +289,13 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 
     QFile head_file{head_path};
 
-    auto rollback_head_file =
-        sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
-                              existed = head_file.exists()]() noexcept {
-            // best effort, ignore returns
-            if (!existed)
-                head_file.remove();
-            else
-                mp::top_catch_all(vm_name, [&head_path, &old_head] {
-                    MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
-                });
-        });
+    auto head_file_rollback = make_head_file_rollback(head_path, head_file);
 
     persist_head_snapshot_name(head_path);
     MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), yes_overwrite);
 
     rollback_snapshot_file.dismiss();
-    rollback_head_file.dismiss();
+    head_file_rollback.dismiss();
 }
 
 QString BaseVirtualMachine::derive_head_path(const QDir& snapshot_dir) const
@@ -290,6 +311,27 @@ void BaseVirtualMachine::persist_head_snapshot_name(const QString& head_path) co
 std::string BaseVirtualMachine::generate_snapshot_name() const
 {
     return fmt::format("snapshot{}", snapshot_count + 1);
+}
+
+auto BaseVirtualMachine::make_restore_rollback(const QString& head_path, VMSpecs& specs)
+{
+    return sg::make_scope_guard([this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
+        top_catch_all(vm_name, &BaseVirtualMachine::restore_rollback_helper, this, head_path, old_head, old_specs,
+                      specs);
+    });
+}
+
+void BaseVirtualMachine::restore_rollback_helper(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
+                                                 const VMSpecs& old_specs, VMSpecs& specs)
+{
+    // best effort only
+    old_head->apply();
+    specs = old_specs;
+    if (old_head != head_snapshot)
+    {
+        head_snapshot = old_head;
+        persist_head_snapshot_name(head_path);
+    }
 }
 
 void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs)
@@ -308,18 +350,7 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     snapshot->apply();
 
     const auto head_path = derive_head_path(snapshot_dir);
-    auto rollback = // best effort to rollback
-        sg::make_scope_guard([this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
-            mp::top_catch_all(vm_name, [this, &head_path, &old_head, &old_specs, &specs] {
-                old_head->apply();
-                specs = old_specs;
-                if (old_head != head_snapshot)
-                {
-                    head_snapshot = old_head;
-                    persist_head_snapshot_name(head_path);
-                }
-            });
-        });
+    auto rollback = make_restore_rollback(head_path, specs);
 
     specs.state = snapshot->get_state();
     specs.num_cores = snapshot->get_num_cores();

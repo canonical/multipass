@@ -70,18 +70,33 @@ protected:
                                                              const VMSpecs& specs) = 0;
 
 private:
+    using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
+
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;
+
     void load_generic_snapshot_info(const QDir& snapshot_dir);
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
+
+    auto make_take_snapshot_rollback(SnapshotMap::iterator it);
+    void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, size_t old_count);
+
+    auto make_head_file_rollback(const QString& head_path, QFile& head_file) const;
+    void head_file_rollback_helper(const QString& head_path, QFile& head_file, const std::string& old_head,
+                                   bool existed) const;
     void persist_head_snapshot(const QDir& snapshot_dir) const;
+
     void persist_head_snapshot_name(const QString& head_path) const;
+
     QString derive_head_path(const QDir& snapshot_dir) const;
     std::string generate_snapshot_name() const;
 
+    auto make_restore_rollback(const QString& head_path, VMSpecs& specs);
+    void restore_rollback_helper(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
+                                 const VMSpecs& old_specs, VMSpecs& specs);
+
 private:
-    using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     size_t snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
