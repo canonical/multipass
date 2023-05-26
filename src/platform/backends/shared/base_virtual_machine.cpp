@@ -111,8 +111,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     return snapshots.at(name);
 }
 
-void BaseVirtualMachine::take_snapshot_rollback_guts(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head,
-                                                     size_t old_count)
+void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head,
+                                                       size_t old_count)
 {
     if (old_head != head_snapshot)
     {
@@ -135,7 +135,7 @@ auto BaseVirtualMachine::make_take_snapshot_rollback(SnapshotMap::iterator it)
 {
     return sg::make_scope_guard( // best effort to rollback
         [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
-            take_snapshot_rollback_guts(it, old_head, old_count);
+            take_snapshot_rollback_helper(it, old_head, old_count);
         });
 }
 
@@ -253,12 +253,12 @@ auto BaseVirtualMachine::make_head_file_rollback(const QString& head_path, QFile
 {
     return sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
                                  existed = head_file.exists()]() noexcept {
-        head_file_rollback_guts(head_path, head_file, old_head, existed);
+        head_file_rollback_helper(head_path, head_file, old_head, existed);
     });
 }
 
-void BaseVirtualMachine::head_file_rollback_guts(const QString& head_path, QFile& head_file,
-                                                 const std::string& old_head, bool existed) const
+void BaseVirtualMachine::head_file_rollback_helper(const QString& head_path, QFile& head_file,
+                                                   const std::string& old_head, bool existed) const
 {
     // best effort, ignore returns
     if (!existed)
@@ -316,12 +316,13 @@ std::string BaseVirtualMachine::generate_snapshot_name() const
 auto BaseVirtualMachine::make_restore_rollback(const QString& head_path, VMSpecs& specs)
 {
     return sg::make_scope_guard([this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
-        top_catch_all(vm_name, &BaseVirtualMachine::restore_rollback_guts, this, head_path, old_head, old_specs, specs);
+        top_catch_all(vm_name, &BaseVirtualMachine::restore_rollback_helper, this, head_path, old_head, old_specs,
+                      specs);
     });
 }
 
-void BaseVirtualMachine::restore_rollback_guts(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
-                                               const VMSpecs& old_specs, VMSpecs& specs)
+void BaseVirtualMachine::restore_rollback_helper(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
+                                                 const VMSpecs& old_specs, VMSpecs& specs)
 {
     // best effort only
     old_head->apply();
