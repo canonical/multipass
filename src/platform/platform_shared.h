@@ -25,13 +25,8 @@
 
 namespace multipass::platform
 {
-const std::unordered_set<std::string> supported_snapcraft_aliases{"core18",
-                                                                  "18.04",
-                                                                  "core20",
-                                                                  "20.04"
-                                                                  "core22",
-                                                                  "22.04",
-                                                                  "devel"};
+const std::unordered_set<std::string> supported_snapcraft_aliases{"core18", "18.04", "core20", "20.04",
+                                                                  "core22", "22.04", "devel"};
 
 QString interpret_hotkey(const QString& val);
 } // namespace multipass::platform
