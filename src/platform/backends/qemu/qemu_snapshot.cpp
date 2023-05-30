@@ -51,7 +51,7 @@ mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const mp::QemuVirtualMac
 
 void mp::QemuSnapshot::capture_impl()
 {
-    auto tag = make_tag();
+    auto tag = derive_tag();
 
     // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
     // identify the snapshot by tag)
@@ -79,7 +79,7 @@ void mp::QemuSnapshot::apply_impl() // TODO@snapshots
     // TODO@snapshots implement
 }
 
-QString mp::QemuSnapshot::make_tag() const
+QString mp::QemuSnapshot::derive_tag() const
 {
     return snapshot_template.arg(get_name().c_str());
 }
