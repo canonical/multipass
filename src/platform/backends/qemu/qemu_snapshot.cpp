@@ -51,7 +51,8 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comme
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const mp::QemuVirtualMachine& vm) : BaseSnapshot(json, vm)
+mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const mp::QemuVirtualMachine& vm, const QString& image_path)
+    : BaseSnapshot(json, vm), image_path{image_path}
 {
 }
 
