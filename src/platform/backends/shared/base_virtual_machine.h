@@ -60,6 +60,7 @@ public:
     // derived classes is a big refactor
     std::shared_ptr<const Snapshot> take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                   const std::string& name, const std::string& comment) override;
+    void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) override;
     void load_snapshots(const QDir& snapshot_dir) override;
 
 protected:
@@ -75,6 +76,8 @@ private:
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
     void persist_head_snapshot(const QDir& snapshot_dir) const;
+    void persist_head_snapshot_name(const QString& head_path) const;
+    QString derive_head_path(const QDir& snapshot_dir) const;
     std::string generate_snapshot_name() const;
 
 private:

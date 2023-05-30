@@ -16,6 +16,7 @@
  */
 
 #include "base_virtual_machine.h"
+#include "daemon/vm_specs.h" // TODO@snapshots move this
 
 #include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/snapshot_name_taken.h>
@@ -44,6 +45,7 @@ constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
 constexpr auto index_digits = 4;        // these two go together
 constexpr auto max_snapshots = 1000ull; // replace suffix with uz for size_t in C++23
+constexpr auto yes_overwrite = true;
 } // namespace
 
 namespace multipass
@@ -127,7 +129,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
             throw SnapshotNameTaken{vm_name, snapshot_name};
         }
 
-        auto rollback_on_failure = sg::make_scope_guard(
+        auto rollback_on_failure = sg::make_scope_guard( // best effort to rollback
             [this, it = it, old_head = head_snapshot, old_count = snapshot_count]() mutable noexcept {
                 if (old_head != head_snapshot)
                 {
@@ -245,7 +247,7 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
                                        .arg(QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
 
     auto snapshot_path = snapshot_dir.filePath(snapshot_filename);
-    auto head_path = snapshot_dir.filePath(head_filename);
+    auto head_path = derive_head_path(snapshot_dir);
     auto count_path = snapshot_dir.filePath(count_filename);
 
     auto rollback_snapshot_file = sg::make_scope_guard([&snapshot_filename]() noexcept {
@@ -254,31 +256,84 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 
     mp::write_json(head_snapshot->serialize(), snapshot_path);
 
-    auto overwrite = true;
     QFile head_file{head_path};
 
     auto rollback_head_file =
-        sg::make_scope_guard([this, &head_path, &head_file, overwrite, old_head = head_snapshot->get_parent_name(),
+        sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
                               existed = head_file.exists()]() noexcept {
             // best effort, ignore returns
             if (!existed)
                 head_file.remove();
             else
-                mp::top_catch_all(vm_name, [&head_path, &old_head, overwrite] {
-                    MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, overwrite);
+                mp::top_catch_all(vm_name, [&head_path, &old_head] {
+                    MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
                 });
         });
 
-    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), overwrite);
-    MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), overwrite);
+    persist_head_snapshot_name(head_path);
+    MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), yes_overwrite);
 
     rollback_snapshot_file.dismiss();
     rollback_head_file.dismiss();
 }
 
+QString BaseVirtualMachine::derive_head_path(const QDir& snapshot_dir) const
+{
+    return snapshot_dir.filePath(head_filename);
+}
+
+void BaseVirtualMachine::persist_head_snapshot_name(const QString& head_path) const
+{
+    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
+}
+
 std::string BaseVirtualMachine::generate_snapshot_name() const
 {
     return fmt::format("snapshot{}", snapshot_count + 1);
+}
+
+void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs)
+{
+    using St [[maybe_unused]] = VirtualMachine::State;
+
+    std::unique_lock lock{snapshot_mutex};
+    assert(state == St::off || state == St::stopped);
+
+    auto snapshot = snapshots.at(name); // TODO@snapshots convert out_of_range exception, here and `get_snapshot`
+
+    // TODO@snapshots convert into runtime_errors (persisted info could have been tampered with)
+    assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
+    assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
+
+    snapshot->apply();
+
+    const auto head_path = derive_head_path(snapshot_dir);
+    auto rollback = // best effort to rollback
+        sg::make_scope_guard([this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
+            mp::top_catch_all(vm_name, [this, &head_path, &old_head, &old_specs, &specs] {
+                old_head->apply();
+                specs = old_specs;
+                if (old_head != head_snapshot)
+                {
+                    head_snapshot = old_head;
+                    persist_head_snapshot_name(head_path);
+                }
+            });
+        });
+
+    specs.state = snapshot->get_state();
+    specs.num_cores = snapshot->get_num_cores();
+    specs.mem_size = snapshot->get_mem_size();
+    specs.mounts = snapshot->get_mounts();
+    specs.metadata = snapshot->get_metadata();
+
+    if (head_snapshot != snapshot)
+    {
+        head_snapshot = snapshot;
+        persist_head_snapshot_name(head_path);
+    }
+
+    rollback.dismiss();
 }
 
 } // namespace multipass
