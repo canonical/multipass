@@ -37,7 +37,7 @@ protected:
     void apply_impl() override;
 
 private:
-    QString make_tag() const;
+    QString derive_tag() const;
 
 private:
     QString image_path;
