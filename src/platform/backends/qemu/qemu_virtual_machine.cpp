@@ -625,5 +625,5 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& name, con
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<QemuSnapshot>(json, *this);
+    return std::make_shared<QemuSnapshot>(json, *this, desc.image.image_path);
 }
