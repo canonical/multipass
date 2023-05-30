@@ -37,6 +37,12 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag, co
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path},
                                                     /* src_img = */ "", image_path);
 }
+
+std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag, const QString& image_path)
+{
+    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-a", tag, image_path},
+                                                    /* src_img = */ "", image_path);
+}
 } // namespace
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment,
@@ -74,9 +80,16 @@ void mp::QemuSnapshot::erase_impl() // TODO@snapshots
     throw NotImplementedOnThisBackendException{"Snapshot erasing"};
 }
 
-void mp::QemuSnapshot::apply_impl() // TODO@snapshots
+void mp::QemuSnapshot::apply_impl() // TODO@ricab deduplicate
 {
-    // TODO@snapshots implement
+    auto process = mpp::make_process(make_restore_spec(derive_tag(), image_path));
+
+    auto process_state = process->execute();
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(), process->read_all_standard_error()));
+    }
 }
 
 QString mp::QemuSnapshot::derive_tag() const
