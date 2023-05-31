@@ -33,7 +33,7 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
     : MountHandler{lxd_virtual_machine, ssh_key_provider, target_path, mount.source_path},
       network_manager_{network_manager},
       lxd_instance_endpoint_{
-          QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(lxd_virtual_machine->vm_name.c_str())},
+          QString("%1/instances/%2").arg(lxd_socket_url.toString(), lxd_virtual_machine->vm_name.c_str())},
       // 27 (25 + 2(d_)) letters is the maximum device name length that LXD can accept
       device_name_{
           mp::utils::make_uuid(target_path).left(length_of_unique_id_without_prefix).prepend("d_").toStdString()}

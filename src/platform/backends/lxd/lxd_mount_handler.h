@@ -42,7 +42,7 @@ private:
     void lxd_device_add();
     void lxd_device_remove();
 
-    // data memeber
+    // data member
     mp::NetworkAccessManager* network_manager_{nullptr};
     const QUrl lxd_instance_endpoint_{};
     const std::string device_name_{};

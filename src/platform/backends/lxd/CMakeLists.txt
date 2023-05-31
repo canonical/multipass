@@ -14,11 +14,11 @@
 #
 
 add_library(lxd_backend STATIC
+  lxd_mount_handler.cpp
   lxd_request.cpp
   lxd_virtual_machine.cpp
   lxd_virtual_machine_factory.cpp
-  lxd_vm_image_vault.cpp
-  lxd_mount_handler.cpp)
+  lxd_vm_image_vault.cpp)
 
 target_link_libraries(lxd_backend
   Qt5::Core
