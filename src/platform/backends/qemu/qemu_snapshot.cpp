@@ -43,6 +43,18 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag, co
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-a", tag, image_path},
                                                     /* src_img = */ "", image_path);
 }
+
+void checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
+{
+    auto process = mpp::make_process(std::move(spec));
+
+    auto process_state = process->execute();
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(), process->read_all_standard_error()));
+    }
+}
 } // namespace
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment,
@@ -66,14 +78,7 @@ void mp::QemuSnapshot::capture_impl()
         throw std::runtime_error{fmt::format(
             "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
 
-    auto process = mpp::make_process(make_capture_spec(tag, image_path));
-
-    auto process_state = process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(), process->read_all_standard_error()));
-    }
+    checked_exec_qemu_img(make_capture_spec(tag, image_path));
 }
 
 void mp::QemuSnapshot::erase_impl() // TODO@snapshots
@@ -81,16 +86,9 @@ void mp::QemuSnapshot::erase_impl() // TODO@snapshots
     throw NotImplementedOnThisBackendException{"Snapshot erasing"};
 }
 
-void mp::QemuSnapshot::apply_impl() // TODO@ricab deduplicate
+void mp::QemuSnapshot::apply_impl()
 {
-    auto process = mpp::make_process(make_restore_spec(derive_tag(), image_path));
-
-    auto process_state = process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(), process->read_all_standard_error()));
-    }
+    checked_exec_qemu_img(make_restore_spec(derive_tag(), image_path));
 }
 
 QString mp::QemuSnapshot::derive_tag() const
