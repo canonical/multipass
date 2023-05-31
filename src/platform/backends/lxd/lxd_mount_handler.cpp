@@ -22,7 +22,7 @@ namespace
 {
 constexpr std::string_view category = "lxd-mount-handler";
 constexpr int length_of_unique_id_without_prefix = 25;
-constexpr int timeout_millisecond = 300000;
+constexpr int timeout_milliseconds = 30000;
 } // namespace
 
 namespace multipass
@@ -34,7 +34,7 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
       network_manager_{network_manager},
       lxd_instance_endpoint_{
           QString("%1/instances/%2").arg(lxd_socket_url.toString()).arg(lxd_virtual_machine->vm_name.c_str())},
-      // 27 (25 + 2(d_)) letters is the maximal deivce name length that lxd can accepte
+      // 27 (25 + 2(d_)) letters is the maximum device name length that LXD can accept
       device_name_{
           mp::utils::make_uuid(target_path).left(length_of_unique_id_without_prefix).prepend("d_").toStdString()}
 {
@@ -79,7 +79,7 @@ void LXDMountHandler::lxd_device_remove()
     instance_info_metadata["devices"] = device_list;
 
     const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint_, instance_info_metadata);
-    lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_millisecond);
+    lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
 }
 
 void LXDMountHandler::lxd_device_add()
@@ -94,7 +94,7 @@ void LXDMountHandler::lxd_device_add()
     instance_info_metadata["devices"] = device_list;
 
     const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint_, instance_info_metadata);
-    lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_millisecond);
+    lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
 }
 
 } // namespace multipass

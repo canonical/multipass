@@ -107,7 +107,7 @@ struct LXDMountHandlerValidGidUidParameterTests : public LXDMountHandlerTestFixt
 };
 } // namespace
 
-TEST_F(LXDMountHandlerTestFixture, startNoThrowsIfVMIsStopped)
+TEST_F(LXDMountHandlerTestFixture, startDoesNotThrowIfVMIsStopped)
 {
     NiceMock<MockLXDVirtualMachine> lxd_vm{
         default_description, stub_monitor, &mock_network_access_manager, base_url, bridge_name, default_storage_pool};
@@ -133,7 +133,7 @@ TEST_F(LXDMountHandlerTestFixture, startThrowsIfVMIsRunning)
         mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before mount it natively."))));
 }
 
-TEST_F(LXDMountHandlerTestFixture, stopNoThrowsIfVMIsStopped)
+TEST_F(LXDMountHandlerTestFixture, stopDoesNotThrowIfVMIsStopped)
 {
     NiceMock<MockLXDVirtualMachine> lxd_vm{
         default_description, stub_monitor, &mock_network_access_manager, base_url, bridge_name, default_storage_pool};
