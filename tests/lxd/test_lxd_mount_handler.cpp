@@ -175,7 +175,7 @@ TEST_P(LXDMountHandlerInvalidGidUidParameterTests, mountWithGidOrUid)
 
     MP_EXPECT_THROW_THAT(lxd_vm.make_native_mount_handler(&key_provider, target_path, vm_mount);
                          , std::runtime_error,
-                         mpt::match_what(StrEq("LXD native mount does not accept custom gid or uid.")));
+                         mpt::match_what(StrEq("LXD native mount does not accept custom ID mappings.")));
 }
 
 INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation, LXDMountHandlerInvalidGidUidParameterTests,
