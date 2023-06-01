@@ -1877,7 +1877,7 @@ try // clang-format on
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-        if (vm->current_state() == mp::VirtualMachine::State::running || !vm_mounts[target_path]->is_sticky())
+        if (vm->current_state() == mp::VirtualMachine::State::running || vm_mounts[target_path]->is_mount_managed_by_backend())
         {
             try
             {
@@ -2912,7 +2912,7 @@ void mp::Daemon::stop_mounts(const std::string& name)
 {
     for (auto& [_, mount] : mounts[name])
     {
-        if (mount->is_sticky())
+        if (!mount->is_mount_managed_by_backend())
         {
             mount->deactivate(/*force=*/true);
         }
@@ -2973,7 +2973,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
             for (auto& [target, mount] : vm_mounts)
                 try
                 {
-                    if (mount->is_sticky())
+                    if (!mount->is_mount_managed_by_backend())
                     {
                         mount->activate(server);
                     }

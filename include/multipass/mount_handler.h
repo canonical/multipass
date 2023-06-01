@@ -72,9 +72,9 @@ public:
         return active;
     }
 
-    virtual bool is_sticky() // whether the mount sticks to the instance regardless of instance state (backend managed)
+    virtual bool is_mount_managed_by_backend()
     {
-        return true;
+        return false;
     }
 
 protected:

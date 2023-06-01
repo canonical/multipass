@@ -33,9 +33,9 @@ public:
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
     void deactivate_impl(bool force) override;
 
-    bool is_sticky() override
+    bool is_mount_managed_by_backend() override
     {
-        return false;
+        return true;
     }
 
 private:
