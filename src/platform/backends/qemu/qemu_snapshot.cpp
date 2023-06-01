@@ -37,29 +37,16 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag, co
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path},
                                                     /* src_img = */ "", image_path);
 }
-} // namespace
 
-mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment,
-                               std::shared_ptr<const Snapshot> parent, const VMSpecs& specs, const QString& image_path)
-    : BaseSnapshot(name, comment, std::move(parent), specs), image_path{image_path}
+std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag, const QString& image_path)
 {
+    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-a", tag, image_path},
+                                                    /* src_img = */ "", image_path);
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const mp::QemuVirtualMachine& vm) : BaseSnapshot(json, vm)
+void checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
 {
-}
-
-void mp::QemuSnapshot::capture_impl()
-{
-    auto tag = make_tag();
-
-    // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
-    // identify the snapshot by tag)
-    if (backend::instance_image_has_snapshot(image_path, tag.toUtf8()))
-        throw std::runtime_error{fmt::format(
-            "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
-
-    auto process = mpp::make_process(make_capture_spec(tag, image_path));
+    auto process = mpp::make_process(std::move(spec));
 
     auto process_state = process->execute();
     if (!process_state.completed_successfully())
@@ -68,18 +55,43 @@ void mp::QemuSnapshot::capture_impl()
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
 }
+} // namespace
+
+mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment,
+                               std::shared_ptr<const Snapshot> parent, const VMSpecs& specs, const QString& image_path)
+    : BaseSnapshot(name, comment, std::move(parent), specs), image_path{image_path}
+{
+}
+
+mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const mp::QemuVirtualMachine& vm, const QString& image_path)
+    : BaseSnapshot(json, vm), image_path{image_path}
+{
+}
+
+void mp::QemuSnapshot::capture_impl()
+{
+    auto tag = derive_tag();
+
+    // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
+    // identify the snapshot by tag)
+    if (backend::instance_image_has_snapshot(image_path, tag.toUtf8()))
+        throw std::runtime_error{fmt::format(
+            "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
+
+    checked_exec_qemu_img(make_capture_spec(tag, image_path));
+}
 
 void mp::QemuSnapshot::erase_impl() // TODO@snapshots
 {
     throw NotImplementedOnThisBackendException{"Snapshot erasing"};
 }
 
-void mp::QemuSnapshot::apply_impl() // TODO@snapshots
+void mp::QemuSnapshot::apply_impl()
 {
-    // TODO@snapshots implement
+    checked_exec_qemu_img(make_restore_spec(derive_tag(), image_path));
 }
 
-QString mp::QemuSnapshot::make_tag() const
+QString mp::QemuSnapshot::derive_tag() const
 {
     return snapshot_template.arg(get_name().c_str());
 }
