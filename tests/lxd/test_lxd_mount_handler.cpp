@@ -129,7 +129,7 @@ TEST_F(LXDMountHandlerTestFixture, startThrowsIfVMIsRunning)
     EXPECT_CALL(lxd_vm, current_state).WillOnce(Return(multipass::VirtualMachine::State::running));
     const mp::ServerVariant dummy_server;
     MP_EXPECT_THROW_THAT(
-        lxd_mount_handler.activate(dummy_server), std::runtime_error,
+        lxd_mount_handler.activate(dummy_server), mp::MountHandlerActivateException,
         mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before mount it natively."))));
 }
 

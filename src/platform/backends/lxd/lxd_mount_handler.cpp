@@ -45,7 +45,7 @@ void LXDMountHandler::activate_impl(ServerVariant /**/, std::chrono::millisecond
     const VirtualMachine::State state = vm->current_state();
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
     {
-        throw std::runtime_error("Please stop the instance " + vm->vm_name + " before mount it natively.");
+        throw mp::MountHandlerActivateException(vm->vm_name);
     }
 
     mpl::log(mpl::Level::info, std::string(category),

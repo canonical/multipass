@@ -48,7 +48,9 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
     }
 
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
-        throw std::runtime_error("Please shutdown the instance before attempting native mounts.");
+    {
+        throw mp::MountHandlerActivateException(vm->vm_name);
+    }
 
     // Need to ensure no more than one uid/gid map is passed in here.
     if (mount.uid_mappings.size() > 1 || mount.gid_mappings.size() > 1)

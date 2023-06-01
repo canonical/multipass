@@ -35,6 +35,15 @@ using ServerVariant = std::variant<grpc::ServerReaderWriterInterface<StartReply,
                                    grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
                                    grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*>;
 
+class MountHandlerActivateException : public std::runtime_error
+{
+public:
+    MountHandlerActivateException(const std::string& vm_name)
+        : std::runtime_error(fmt::format("Please stop the instance {} before mount it natively.", vm_name))
+    {
+    }
+};
+
 class MountHandler : private DisabledCopyMove
 {
 public:
