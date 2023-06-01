@@ -123,6 +123,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
+    int get_num_snapshots() const noexcept override
+    {
+        return 0;
+    }
+
     std::shared_ptr<const Snapshot> get_snapshot(const std::string&) const override
     {
         return {};
