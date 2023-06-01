@@ -218,6 +218,18 @@ mp::MemorySize get_image_size(const mp::Path& image_path)
 
     return image_size;
 }
+
+template <typename T>
+void persist_records(const T& records, const QString& path)
+{
+    QJsonObject json_records;
+    for (const auto& record : records)
+    {
+        auto key = QString::fromStdString(record.first);
+        json_records.insert(key, record_to_json(record.second));
+    }
+    mp::write_json(json_records, path);
+}
 } // namespace
 
 mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
@@ -679,21 +691,6 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
 
     return vm_image;
 }
-
-namespace
-{
-template <typename T>
-void persist_records(const T& records, const QString& path)
-{
-    QJsonObject json_records;
-    for (const auto& record : records)
-    {
-        auto key = QString::fromStdString(record.first);
-        json_records.insert(key, record_to_json(record.second));
-    }
-    mp::write_json(json_records, path);
-}
-} // namespace
 
 void mp::DefaultVMImageVault::persist_instance_records()
 {
