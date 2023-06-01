@@ -66,6 +66,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::unique_ptr<MountHandler>, make_native_mount_handler,
                 (const SSHKeyProvider*, const std::string&, const VMMount&), (override));
     MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override, noexcept));
+    MOCK_METHOD(int, get_num_snapshots, (), (const, override, noexcept));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (const std::string&), (const, override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, take_snapshot,
                 (const QDir&, const VMSpecs&, const std::string&, const std::string&), (override));
