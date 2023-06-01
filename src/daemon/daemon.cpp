@@ -1599,6 +1599,7 @@ try // clang-format on
             }
         }
 
+        instance_info->set_num_snapshots(vm.get_num_snapshots());
         instance_info->set_image_release(original_release);
         instance_info->set_id(vm_image.id);
 
