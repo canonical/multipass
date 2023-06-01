@@ -45,8 +45,9 @@ public:
 class DefaultVMImageVault final : public BaseVMImageVault
 {
 public:
-    DefaultVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader, multipass::Path cache_dir_path,
-                        multipass::Path data_dir_path, multipass::days days_to_expire);
+    DefaultVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader,
+                        const multipass::Path& cache_dir_path, const multipass::Path& data_dir_path,
+                        const multipass::days& days_to_expire);
     ~DefaultVMImageVault();
 
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,

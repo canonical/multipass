@@ -221,7 +221,8 @@ mp::MemorySize get_image_size(const mp::Path& image_path)
 } // namespace
 
 mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                             mp::Path cache_dir_path, mp::Path data_dir_path, mp::days days_to_expire)
+                                             const mp::Path& cache_dir_path, const mp::Path& data_dir_path,
+                                             const mp::days& days_to_expire)
     : BaseVMImageVault{image_hosts},
       url_downloader{downloader},
       cache_dir{QDir(cache_dir_path).filePath("vault")},
