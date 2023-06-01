@@ -54,6 +54,10 @@ public:
     };
 
     SnapshotVista view_snapshots() const noexcept override;
+    inline int get_num_snapshots() const noexcept override
+    {
+        return snapshots.size();
+    }
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
