@@ -1877,7 +1877,8 @@ try // clang-format on
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-        if (vm->current_state() == mp::VirtualMachine::State::running || vm_mounts[target_path]->is_mount_managed_by_backend())
+        if (vm->current_state() == mp::VirtualMachine::State::running ||
+            vm_mounts[target_path]->is_mount_managed_by_backend())
         {
             try
             {
