@@ -33,7 +33,8 @@ namespace test
 template <typename T = VirtualMachine, typename = std::enable_if_t<std::is_base_of_v<VirtualMachine, T>>>
 struct MockVirtualMachineT : public T
 {
-    MockVirtualMachineT(const std::string vm_name) : T{vm_name}
+    template <typename... Args>
+    MockVirtualMachineT(Args&&... args) : T{args...}
     {
         ON_CALL(*this, current_state()).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port()).WillByDefault(Return(42));

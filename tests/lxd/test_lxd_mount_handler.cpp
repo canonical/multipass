@@ -19,11 +19,11 @@
 #include "mock_network_access_manager.h"
 #include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
+#include "tests/mock_virtual_machine.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 
 #include "src/platform/backends/lxd/lxd_mount_handler.h"
-#include "src/platform/backends/lxd/lxd_virtual_machine.h"
 
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -34,17 +34,16 @@ namespace mpt = multipass::test;
 
 namespace
 {
-class MockLXDVirtualMachine : public mp::LXDVirtualMachine
+class MockLXDVirtualMachine : public mpt::MockVirtualMachineT<mp::LXDVirtualMachine>
+
 {
 public:
     MockLXDVirtualMachine(const mp::VirtualMachineDescription& desc, mp::VMStatusMonitor& monitor,
                           mp::NetworkAccessManager* manager, const QUrl& base_url, const QString& bridge_name,
                           const QString& storage_pool)
-        : LXDVirtualMachine{desc, monitor, manager, base_url, bridge_name, storage_pool}
+        : mpt::MockVirtualMachineT<mp::LXDVirtualMachine>{desc, monitor, manager, base_url, bridge_name, storage_pool}
     {
     }
-
-    MOCK_METHOD(multipass::VirtualMachine::State, current_state, (), (override));
 };
 
 struct LXDMountHandlerTestFixture : public testing::Test
@@ -55,7 +54,6 @@ struct LXDMountHandlerTestFixture : public testing::Test
             .Times(AtMost(6))
             .WillRepeatedly(
                 [](QNetworkAccessManager::Operation, const QNetworkRequest& request, QIODevice* outgoingData) {
-                    // add the request for adding and removing device later
                     return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
                 });
 
