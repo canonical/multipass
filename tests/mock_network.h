@@ -77,7 +77,7 @@ class MockNetworkManagerFactory : public NetworkManagerFactory
 public:
     using NetworkManagerFactory::NetworkManagerFactory;
 
-    MOCK_CONST_METHOD1(make_network_manager, std::unique_ptr<QNetworkAccessManager>(const Path&));
+    MOCK_METHOD(std::unique_ptr<QNetworkAccessManager>, make_network_manager, (const Path&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockNetworkManagerFactory, NetworkManagerFactory);
 };

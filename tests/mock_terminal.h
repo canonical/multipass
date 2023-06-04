@@ -31,8 +31,8 @@ struct MockTerminal : public Terminal
     MOCK_METHOD(std::istream&, cin, (), (override));
     MOCK_METHOD(std::ostream&, cout, (), (override));
     MOCK_METHOD(std::ostream&, cerr, (), (override));
-    MOCK_CONST_METHOD0(cin_is_live, bool());
-    MOCK_CONST_METHOD0(cout_is_live, bool());
+    MOCK_METHOD(bool, cin_is_live, (), (const, override));
+    MOCK_METHOD(bool, cout_is_live, (), (const, override));
     MOCK_METHOD(void, set_cin_echo, (const bool), (override));
 };
 } // namespace test

@@ -25,7 +25,7 @@ namespace multipass::test
 struct MockCertStore : public CertStore
 {
     MOCK_METHOD(void, add_cert, (const std::string&), (override));
-    MOCK_CONST_METHOD0(PEM_cert_chain, std::string());
+    MOCK_METHOD(std::string, PEM_cert_chain, (), (const, override));
     MOCK_METHOD(bool, verify_cert, (const std::string&), (override));
     MOCK_METHOD(bool, empty, (), (override));
 };

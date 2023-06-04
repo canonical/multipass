@@ -37,8 +37,8 @@ struct MockTimerSyncFuncs : public mpu::TimerSyncFuncs
 {
     using TimerSyncFuncs::TimerSyncFuncs;
 
-    MOCK_CONST_METHOD1(notify_all, void(std::condition_variable&));
-    MOCK_CONST_METHOD3(wait, void(std::condition_variable&, std::unique_lock<std::mutex>&, std::function<bool()>));
+    MOCK_METHOD(void, notify_all, (std::condition_variable&), (const, override));
+    MOCK_METHOD(void, wait, (std::condition_variable&, std::unique_lock<std::mutex>&, std::function<bool()>), (const, override));
     MOCK_CONST_METHOD4(wait_for, bool(std::condition_variable&, std::unique_lock<std::mutex>&,
                                       const std::chrono::duration<int, std::milli>&, std::function<bool()>));
 

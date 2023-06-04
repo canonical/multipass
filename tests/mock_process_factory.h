@@ -76,10 +76,10 @@ public:
     MOCK_METHOD(void, start, (), (override));
     MOCK_METHOD(void, terminate, (), (override));
     MOCK_METHOD(void, kill, (), (override));
-    MOCK_CONST_METHOD0(running, bool());
-    MOCK_CONST_METHOD0(process_state, ProcessState());
-    MOCK_CONST_METHOD0(error_string, QString());
-    MOCK_CONST_METHOD0(process_id, qint64());
+    MOCK_METHOD(bool, running, (), (const, override));
+    MOCK_METHOD(ProcessState, process_state, (), (const, override));
+    MOCK_METHOD(QString, error_string, (), (const, override));
+    MOCK_METHOD(qint64, process_id, (), (const, override));
     MOCK_METHOD(ProcessState, execute, (int), (override));
     MOCK_METHOD(qint64, write, (const QByteArray&), (override));
     MOCK_METHOD(bool, wait_for_started, (int msecs), (override));

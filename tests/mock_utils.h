@@ -31,19 +31,19 @@ class MockUtils : public Utils
 {
 public:
     using Utils::Utils;
-    MOCK_CONST_METHOD1(filesystem_bytes_available, qint64(const QString&));
+    MOCK_METHOD(qint64, filesystem_bytes_available, (const QString&), (const, override));
     MOCK_METHOD(void, exit, (int), (override));
-    MOCK_CONST_METHOD3(run_cmd_for_output, std::string(const QString&, const QStringList&, const int));
-    MOCK_CONST_METHOD3(run_cmd_for_status, bool(const QString&, const QStringList&, const int));
+    MOCK_METHOD(std::string, run_cmd_for_output, (const QString&, const QStringList&, const int), (const, override));
+    MOCK_METHOD(bool, run_cmd_for_status, (const QString&, const QStringList&, const int), (const, override));
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&), ());
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&, const bool&), (override));
     MOCK_METHOD(Path, make_dir, (const QDir&, const QString&, QFileDevice::Permissions), (override));
     MOCK_METHOD(Path, make_dir, (const QDir&, QFileDevice::Permissions), (override));
-    MOCK_CONST_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
-    MOCK_CONST_METHOD0(get_kernel_version, std::string());
-    MOCK_CONST_METHOD1(generate_scrypt_hash_for, QString(const QString&));
-    MOCK_CONST_METHOD1(client_certs_exist, bool(const QString&));
-    MOCK_CONST_METHOD2(copy_client_certs_to_common_dir, void(const QString&, const QString&));
+    MOCK_METHOD(void, wait_for_cloud_init, (VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&), (const, override));
+    MOCK_METHOD(std::string, get_kernel_version, (), (const, override));
+    MOCK_METHOD(QString, generate_scrypt_hash_for, (const QString&), (const, override));
+    MOCK_METHOD(bool, client_certs_exist, (const QString&), (const));
+    MOCK_METHOD(void, copy_client_certs_to_common_dir, (const QString&, const QString&), (const));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };
