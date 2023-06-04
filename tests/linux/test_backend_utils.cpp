@@ -64,8 +64,8 @@ public:
 
     MOCK_METHOD(bool, is_connected, (), (const, override));
     MOCK_METHOD(QDBusError, last_error, (), (const, override));
-    MOCK_CONST_METHOD3(get_interface,
-                       std::unique_ptr<mp_dbus::DBusInterface>(const QString&, const QString&, const QString&));
+    MOCK_METHOD(std::unique_ptr<mp_dbus::DBusInterface>, get_interface,
+                (const QString&, const QString&, const QString&), (const, override));
 };
 
 class MockDBusInterface : public mp_dbus::DBusInterface
