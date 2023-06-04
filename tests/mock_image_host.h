@@ -88,12 +88,12 @@ public:
         ON_CALL(*this, supported_remotes()).WillByDefault(Return(remote));
     };
 
-    MOCK_METHOD1(info_for, std::optional<VMImageInfo>(const Query&));
-    MOCK_METHOD1(all_info_for, std::vector<std::pair<std::string, VMImageInfo>>(const Query&));
-    MOCK_METHOD1(info_for_full_hash, VMImageInfo(const std::string&));
-    MOCK_METHOD2(all_images_for, std::vector<VMImageInfo>(const std::string&, const bool));
-    MOCK_METHOD1(for_each_entry_do, void(const Action&));
-    MOCK_METHOD0(supported_remotes, std::vector<std::string>());
+    MOCK_METHOD(std::optional<VMImageInfo>, info_for, (const Query&), (override));
+    MOCK_METHOD((std::vector<std::pair<std::string, VMImageInfo>>), all_info_for, (const Query&), (override));
+    MOCK_METHOD(VMImageInfo, info_for_full_hash, (const std::string&), (override));
+    MOCK_METHOD(std::vector<VMImageInfo>, all_images_for, (const std::string&, const bool), (override));
+    MOCK_METHOD(void, for_each_entry_do, (const Action&), (override));
+    MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (override));
 
     TempFile image;
     TempFile kernel;

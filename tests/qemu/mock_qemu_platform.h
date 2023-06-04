@@ -36,12 +36,12 @@ struct MockQemuPlatform : public QemuPlatform
             .WillRepeatedly(testing::Return(QStringList()));
     }
 
-    MOCK_METHOD1(get_ip_for, std::optional<IPAddress>(const std::string&));
-    MOCK_METHOD1(remove_resources_for, void(const std::string&));
-    MOCK_METHOD0(platform_health_check, void());
-    MOCK_METHOD0(vmstate_platform_args, QStringList());
-    MOCK_METHOD1(vm_platform_args, QStringList(const VirtualMachineDescription&));
-    MOCK_METHOD0(get_directory_name, QString());
+    MOCK_METHOD(std::optional<IPAddress>, get_ip_for, (const std::string&), (override));
+    MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
+    MOCK_METHOD(void, platform_health_check, (), (override));
+    MOCK_METHOD(QStringList, vmstate_platform_args, (), (override));
+    MOCK_METHOD(QStringList, vm_platform_args, (const VirtualMachineDescription&), (override));
+    MOCK_METHOD(QString, get_directory_name, (), (override));
 };
 
 struct MockQemuPlatformFactory : public QemuPlatformFactory

@@ -39,14 +39,14 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
 {
     MOCK_METHOD2(create_virtual_machine,
                  mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&, mp::VMStatusMonitor&));
-    MOCK_METHOD1(remove_resources_for, void(const std::string&));
-    MOCK_METHOD1(prepare_source_image, mp::VMImage(const mp::VMImage&));
-    MOCK_METHOD2(prepare_instance_image, void(const mp::VMImage&, const mp::VirtualMachineDescription&));
-    MOCK_METHOD0(hypervisor_health_check, void());
-    MOCK_METHOD0(get_backend_version_string, QString());
-    MOCK_METHOD1(prepare_networking, void(std::vector<mp::NetworkInterface>&));
+    MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
+    MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
+    MOCK_METHOD(void, prepare_instance_image, (const mp::VMImage&, const mp::VirtualMachineDescription&), (override));
+    MOCK_METHOD(void, hypervisor_health_check, (), (override));
+    MOCK_METHOD(QString, get_backend_version_string, (), (override));
+    MOCK_METHOD(void, prepare_networking, (std::vector<mp::NetworkInterface>&), (override));
     MOCK_CONST_METHOD0(networks, std::vector<mp::NetworkInterfaceInfo>());
-    MOCK_METHOD1(create_bridge_with, std::string(const mp::NetworkInterfaceInfo&));
+    MOCK_METHOD(std::string, create_bridge_with, (const mp::NetworkInterfaceInfo&), (override));
     MOCK_METHOD3(prepare_interface, void(mp::NetworkInterface& net, std::vector<mp::NetworkInterfaceInfo>& host_nets,
                                          const std::string& bridge_type));
 

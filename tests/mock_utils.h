@@ -32,13 +32,13 @@ class MockUtils : public Utils
 public:
     using Utils::Utils;
     MOCK_CONST_METHOD1(filesystem_bytes_available, qint64(const QString&));
-    MOCK_METHOD1(exit, void(int));
+    MOCK_METHOD(void, exit, (int), (override));
     MOCK_CONST_METHOD3(run_cmd_for_output, std::string(const QString&, const QStringList&, const int));
     MOCK_CONST_METHOD3(run_cmd_for_status, bool(const QString&, const QStringList&, const int));
-    MOCK_METHOD2(make_file_with_content, void(const std::string&, const std::string&));
-    MOCK_METHOD3(make_file_with_content, void(const std::string&, const std::string&, const bool&));
-    MOCK_METHOD3(make_dir, Path(const QDir&, const QString&, QFileDevice::Permissions));
-    MOCK_METHOD2(make_dir, Path(const QDir&, QFileDevice::Permissions));
+    MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&), ());
+    MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&, const bool&), (override));
+    MOCK_METHOD(Path, make_dir, (const QDir&, const QString&, QFileDevice::Permissions), (override));
+    MOCK_METHOD(Path, make_dir, (const QDir&, QFileDevice::Permissions), (override));
     MOCK_CONST_METHOD3(wait_for_cloud_init, void(VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&));
     MOCK_CONST_METHOD0(get_kernel_version, std::string());
     MOCK_CONST_METHOD1(generate_scrypt_hash_for, QString(const QString&));

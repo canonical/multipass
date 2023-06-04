@@ -32,10 +32,10 @@ public:
     MOCK_CONST_METHOD0(status, QSettings::Status());
     MOCK_CONST_METHOD0(fileName, QString());
     MOCK_CONST_METHOD2(value_impl, QVariant(const QString& key, const QVariant& default_value)); // promote visibility
-    MOCK_METHOD1(setIniCodec, void(const char* codec_name));
-    MOCK_METHOD0(sync, void());
-    MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
-    MOCK_METHOD1(remove, void(const QString&));
+    MOCK_METHOD(void, setIniCodec, (const char* codec_name), (override));
+    MOCK_METHOD(void, sync, (), (override));
+    MOCK_METHOD(void, setValue, (const QString& key, const QVariant& value), (override));
+    MOCK_METHOD(void, remove, (const QString&), (override));
 };
 
 class MockQSettingsProvider : public WrappedQSettingsFactory

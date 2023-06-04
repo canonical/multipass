@@ -31,9 +31,9 @@ struct MockDNSMasqServer : public DNSMasqServer
 {
     using DNSMasqServer::DNSMasqServer; // ctor
 
-    MOCK_METHOD1(get_ip_for, std::optional<IPAddress>(const std::string&));
-    MOCK_METHOD1(release_mac, void(const std::string&));
-    MOCK_METHOD0(check_dnsmasq_running, void());
+    MOCK_METHOD(std::optional<IPAddress>, get_ip_for, (const std::string&), (override));
+    MOCK_METHOD(void, release_mac, (const std::string&), (override));
+    MOCK_METHOD(void, check_dnsmasq_running, (), (override));
 };
 
 struct MockDNSMasqServerFactory : public DNSMasqServerFactory

@@ -31,7 +31,7 @@ struct MockFirewallConfig : public FirewallConfig
 {
     using FirewallConfig::FirewallConfig;
 
-    MOCK_METHOD0(verify_firewall_rules, void());
+    MOCK_METHOD(void, verify_firewall_rules, (), (override));
 };
 
 struct MockFirewallConfigFactory : public FirewallConfigFactory

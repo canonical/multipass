@@ -31,7 +31,7 @@ namespace multipass::test
 class MockQNetworkAccessManager : public QNetworkAccessManager
 {
 public:
-    MOCK_METHOD3(createRequest, QNetworkReply*(Operation, const QNetworkRequest&, QIODevice*));
+    MOCK_METHOD(QNetworkReply*, createRequest, (Operation, const QNetworkRequest&, QIODevice*), (override));
 };
 
 class MockQNetworkReply : public QNetworkReply
@@ -42,7 +42,7 @@ public:
         open(QIODevice::ReadOnly);
     };
 
-    MOCK_METHOD2(readData, qint64(char*, qint64));
+    MOCK_METHOD(qint64, readData, (char*, qint64), (override));
 
     void abort_operation()
     {
@@ -69,7 +69,7 @@ public:
     }
 
 public Q_SLOTS:
-    MOCK_METHOD0(abort, void());
+    MOCK_METHOD(void, abort, (), (override));
 };
 
 class MockNetworkManagerFactory : public NetworkManagerFactory

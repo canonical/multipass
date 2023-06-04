@@ -28,14 +28,14 @@ namespace test
 {
 struct MockVMStatusMonitor : public VMStatusMonitor
 {
-    MOCK_METHOD0(on_resume, void());
-    MOCK_METHOD0(on_stop, void());
-    MOCK_METHOD0(on_shutdown, void());
-    MOCK_METHOD0(on_suspend, void());
-    MOCK_METHOD1(on_restart, void(const std::string&));
-    MOCK_METHOD2(persist_state_for, void(const std::string&, const VirtualMachine::State&));
-    MOCK_METHOD2(update_metadata_for, void(const std::string&, const QJsonObject&));
-    MOCK_METHOD1(retrieve_metadata_for, QJsonObject(const std::string&));
+    MOCK_METHOD(void, on_resume, (), (override));
+    MOCK_METHOD(void, on_stop, (), (override));
+    MOCK_METHOD(void, on_shutdown, (), (override));
+    MOCK_METHOD(void, on_suspend, (), (override));
+    MOCK_METHOD(void, on_restart, (const std::string&), (override));
+    MOCK_METHOD(void, persist_state_for, (const std::string&, const VirtualMachine::State&), (override));
+    MOCK_METHOD(void, update_metadata_for, (const std::string&, const QJsonObject&), (override));
+    MOCK_METHOD(QJsonObject, retrieve_metadata_for, (const std::string&), (override));
 };
 }
 }
