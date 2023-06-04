@@ -37,8 +37,8 @@ namespace
 {
 struct MockBaseFactory : mp::BaseVirtualMachineFactory
 {
-    MOCK_METHOD2(create_virtual_machine,
-                 mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&, mp::VMStatusMonitor&));
+    MOCK_METHOD(mp::VirtualMachine::UPtr, create_virtual_machine,
+                (const mp::VirtualMachineDescription&, mp::VMStatusMonitor&), (override));
     MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
     MOCK_METHOD(void, prepare_instance_image, (const mp::VMImage&, const mp::VirtualMachineDescription&), (override));
@@ -47,8 +47,10 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD(void, prepare_networking, (std::vector<mp::NetworkInterface>&), (override));
     MOCK_METHOD(std::vector<mp::NetworkInterfaceInfo>, networks, (), (const, override));
     MOCK_METHOD(std::string, create_bridge_with, (const mp::NetworkInterfaceInfo&), (override));
-    MOCK_METHOD3(prepare_interface, void(mp::NetworkInterface& net, std::vector<mp::NetworkInterfaceInfo>& host_nets,
-                                         const std::string& bridge_type));
+    MOCK_METHOD(void, prepare_interface,
+                (mp::NetworkInterface & net, std::vector<mp::NetworkInterfaceInfo>& host_nets,
+                 const std::string& bridge_type),
+                (override));
 
     std::string base_create_bridge_with(const mp::NetworkInterfaceInfo& interface)
     {

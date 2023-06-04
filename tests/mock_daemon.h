@@ -31,50 +31,91 @@ struct MockDaemon : public Daemon
 {
     using Daemon::Daemon;
 
-    MOCK_METHOD3(create, void(const CreateRequest*, grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>*,
-                              std::promise<grpc::Status>*));
-    MOCK_METHOD3(launch, void(const LaunchRequest*, grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*,
-                              std::promise<grpc::Status>*));
-    MOCK_METHOD3(purge, void(const PurgeRequest*, grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>*,
-                             std::promise<grpc::Status>*));
-    MOCK_METHOD3(find, void(const FindRequest* request, grpc::ServerReaderWriterInterface<FindReply, FindRequest>*,
-                            std::promise<grpc::Status>*));
-    MOCK_METHOD3(info, void(const InfoRequest*, grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>*,
-                            std::promise<grpc::Status>*));
-    MOCK_METHOD3(list, void(const ListRequest*, grpc::ServerReaderWriterInterface<ListReply, ListRequest>*,
-                            std::promise<grpc::Status>*));
-    MOCK_METHOD3(mount, void(const MountRequest* request, grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
-                             std::promise<grpc::Status>*));
-    MOCK_METHOD3(recover, void(const RecoverRequest*, grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*,
-                               std::promise<grpc::Status>*));
-    MOCK_METHOD3(ssh_info, void(const SSHInfoRequest*, grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>*,
-                                std::promise<grpc::Status>*));
-    MOCK_METHOD3(start, void(const StartRequest*, grpc::ServerReaderWriterInterface<StartReply, StartRequest>*,
-                             std::promise<grpc::Status>*));
-    MOCK_METHOD3(stop, void(const StopRequest*, grpc::ServerReaderWriterInterface<StopReply, StopRequest>*,
-                            std::promise<grpc::Status>*));
-    MOCK_METHOD3(suspend, void(const SuspendRequest*, grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*,
-                               std::promise<grpc::Status>*));
-    MOCK_METHOD3(restart, void(const RestartRequest*, grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*,
-                               std::promise<grpc::Status>*));
-    MOCK_METHOD3(delet, void(const DeleteRequest*, grpc::ServerReaderWriterInterface<DeleteReply, DeleteRequest>*,
-                             std::promise<grpc::Status>*));
-    MOCK_METHOD3(umount, void(const UmountRequest*, grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>*,
-                              std::promise<grpc::Status>*));
-    MOCK_METHOD3(version, void(const VersionRequest*, grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>*,
-                               std::promise<grpc::Status>*));
-    MOCK_METHOD3(keys, void(const KeysRequest*, grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>*,
-                            std::promise<grpc::Status>*));
-    MOCK_METHOD3(get, void(const GetRequest*, grpc::ServerReaderWriterInterface<GetReply, GetRequest>*,
-                           std::promise<grpc::Status>*));
-    MOCK_METHOD3(set, void(const SetRequest*, grpc::ServerReaderWriterInterface<SetReply, SetRequest>*,
-                           std::promise<grpc::Status>*));
-    MOCK_METHOD3(networks,
-                 void(const NetworksRequest*, grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>*,
-                      std::promise<grpc::Status>*));
-    MOCK_METHOD3(authenticate, void(const AuthenticateRequest*,
-                                    grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>*,
-                                    std::promise<grpc::Status>*));
+    MOCK_METHOD(void, create,
+                (const CreateRequest*, (grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, launch,
+                (const LaunchRequest*, (grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, purge,
+                (const PurgeRequest*, (grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, find,
+                (const FindRequest* request, (grpc::ServerReaderWriterInterface<FindReply, FindRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, info,
+                (const InfoRequest*, (grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, list,
+                (const ListRequest*, (grpc::ServerReaderWriterInterface<ListReply, ListRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, mount,
+                (const MountRequest* request, (grpc::ServerReaderWriterInterface<MountReply, MountRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, recover,
+                (const RecoverRequest*, (grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, ssh_info,
+                (const SSHInfoRequest*, (grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, start,
+                (const StartRequest*, (grpc::ServerReaderWriterInterface<StartReply, StartRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, stop,
+                (const StopRequest*, (grpc::ServerReaderWriterInterface<StopReply, StopRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, suspend,
+                (const SuspendRequest*, (grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, restart,
+                (const RestartRequest*, (grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, delet,
+                (const DeleteRequest*, (grpc::ServerReaderWriterInterface<DeleteReply, DeleteRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, umount,
+                (const UmountRequest*, (grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, version,
+                (const VersionRequest*, (grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, keys,
+                (const KeysRequest*, (grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, get,
+                (const GetRequest*, (grpc::ServerReaderWriterInterface<GetReply, GetRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, set,
+                (const SetRequest*, (grpc::ServerReaderWriterInterface<SetReply, SetRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, networks,
+                (const NetworksRequest*, (grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void, authenticate,
+                (const AuthenticateRequest*,
+                 (grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
 
     template <typename Request, typename Reply>
     void set_promise_value(const Request*, grpc::ServerReaderWriterInterface<Reply, Request>*,

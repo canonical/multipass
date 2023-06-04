@@ -43,8 +43,10 @@ public:
         ON_CALL(*this, minimum_image_size_for(_)).WillByDefault(Return(MemorySize{"1048576"}));
     };
 
-    MOCK_METHOD6(fetch_image, VMImage(const FetchType&, const Query&, const PrepareAction&, const ProgressMonitor&,
-                                      const bool, const std::optional<std::string>&));
+    MOCK_METHOD(VMImage, fetch_image,
+                (const FetchType&, const Query&, const PrepareAction&, const ProgressMonitor&, const bool,
+                 const std::optional<std::string>&),
+                (override));
     MOCK_METHOD(void, remove, (const std::string&), (override));
     MOCK_METHOD(bool, has_record_for, (const std::string&), (override));
     MOCK_METHOD(void, prune_expired_images, (), (override));

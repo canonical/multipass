@@ -42,9 +42,10 @@ public:
         });
     };
 
-    MOCK_METHOD(Query, fetch_blueprint_for, (const std::string&, VirtualMachineDescription&, ClientLaunchData&), (override));
-    MOCK_METHOD4(blueprint_from_file,
-                 Query(const std::string&, const std::string&, VirtualMachineDescription&, ClientLaunchData&));
+    MOCK_METHOD(Query, fetch_blueprint_for, (const std::string&, VirtualMachineDescription&, ClientLaunchData&),
+                (override));
+    MOCK_METHOD(Query, blueprint_from_file,
+                (const std::string&, const std::string&, VirtualMachineDescription&, ClientLaunchData&), (override));
     MOCK_METHOD(std::optional<VMImageInfo>, info_for, (const std::string&), (override));
     MOCK_METHOD(std::vector<VMImageInfo>, all_blueprints, (), (override));
     MOCK_METHOD(std::string, name_from_blueprint, (const std::string&), (override));

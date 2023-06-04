@@ -78,8 +78,8 @@ public:
     MOCK_METHOD(QString, interface, (), (const, override));
     MOCK_METHOD(QString, path, (), (const, override));
     MOCK_METHOD(QString, service, (), (const, override));
-    MOCK_METHOD5(call_impl,
-                 QDBusMessage(QDBus::CallMode, const QString&, const QVariant&, const QVariant&, const QVariant&));
+    MOCK_METHOD(QDBusMessage, call_impl,
+                (QDBus::CallMode, const QString&, const QVariant&, const QVariant&, const QVariant&), (override));
 };
 
 struct CreateBridgeTest : public Test

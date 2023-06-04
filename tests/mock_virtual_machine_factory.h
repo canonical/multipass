@@ -31,7 +31,8 @@ namespace test
 {
 struct MockVirtualMachineFactory : public VirtualMachineFactory
 {
-    MOCK_METHOD(VirtualMachine::UPtr, create_virtual_machine, (const VirtualMachineDescription&, VMStatusMonitor&), (override));
+    MOCK_METHOD(VirtualMachine::UPtr, create_virtual_machine, (const VirtualMachineDescription&, VMStatusMonitor&),
+                (override));
     MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
 
     MOCK_METHOD(FetchType, fetch_type, (), (override));
@@ -41,14 +42,14 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD(void, hypervisor_health_check, (), (override));
     MOCK_METHOD(QString, get_backend_directory_name, (), (override));
     MOCK_METHOD(QString, get_backend_version_string, (), (override));
-    MOCK_METHOD5(create_image_vault,
-                 VMImageVault::UPtr(std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&));
+    MOCK_METHOD(VMImageVault::UPtr, create_image_vault,
+                (std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&), (override));
     MOCK_METHOD(void, configure, (VirtualMachineDescription&), (override));
     MOCK_METHOD(std::vector<NetworkInterfaceInfo>, networks, (), (const, override));
 
     // originally protected:
     MOCK_METHOD(std::string, create_bridge_with, (const NetworkInterfaceInfo&), (override));
 };
-}
-}
+} // namespace test
+} // namespace multipass
 #endif // MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H
