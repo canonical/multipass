@@ -28,7 +28,7 @@
 set(CPACK_WARN_ON_ABSOLUTE_INSTALL_DESTINATION ON) # helps avoid errors
 
 set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
-set(CPACK_COMPONENTS_ALL multipassd multipass multipass_gui)
+set(CPACK_COMPONENTS_ALL multipassd multipass multipass_gui desktop_gui)
 
 set(CPACK_COMPONENT_MULTIPASSD_DISPLAY_NAME "Multipass Daemon")
 set(CPACK_COMPONENT_MULTIPASSD_DESCRIPTION
@@ -39,10 +39,14 @@ set(CPACK_COMPONENT_MULTIPASS_DESCRIPTION
 set(CPACK_COMPONENT_MULTIPASS_GUI_DISPLAY_NAME "Multipass Status Menu")
 set(CPACK_COMPONENT_MULTIPASS_GUI_DESCRIPTION
     "Status Menu integration for Multipass")
+set(CPACK_COMPONENT_DESKTOP_GUI_DISPLAY_NAME "Multipass Desktop GUI")
+set(CPACK_COMPONENT_DESKTOP_GUI_DESCRIPTION
+    "Desktop client for Multipass")
 
 set(CPACK_COMPONENT_MULTIPASSD_REQUIRED TRUE)
 set(CPACK_COMPONENT_MULTIPASS_REQUIRED TRUE)
 set(CPACK_COMPONENT_MULTIPASS_GUI_REQUIRED TRUE)
+set(CPACK_COMPONENT_DESKTOP_GUI_REQUIRED TRUE)
 
 # set default CPack Packaging options
 set(CPACK_PACKAGE_NAME              "multipass")
@@ -212,6 +216,8 @@ if(APPLE)
                  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass-gui.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh" @ONLY)
+  configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-desktop-gui.sh.in"
+                 "${CMAKE_BINARY_DIR}/postinstall-desktop-gui.sh" @ONLY)
 
   install(FILES "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" DESTINATION Resources COMPONENT multipassd)
   install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSGUI_PLIST}" DESTINATION Resources COMPONENT multipass_gui)
@@ -220,10 +226,13 @@ if(APPLE)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/completions" DESTINATION Resources COMPONENT multipass)
   install(DIRECTORY "${CMAKE_BINARY_DIR}/lib/" DESTINATION lib COMPONENT multipassd)
 
+  set(CPACK_COMPONENT_DESKTOP_GUI_PLIST "${CMAKE_SOURCE_DIR}/packaging/macos/desktop-gui-component.plist")
+
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh")
+  set(CPACK_POSTFLIGHT_DESKTOP_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-desktop-gui.sh")
 
   # Cleans up the installed package
   set(CPACK_PRE_BUILD_SCRIPTS "${CMAKE_SOURCE_DIR}/packaging/cleanup.cmake")

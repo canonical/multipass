@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory() as workdir:
     def copy(parent, path):
         target_path = target(parent, path)
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(path, target_path)
+        shutil.copy(path, target_path, follow_symlinks=False)
 
     for path in x86_work.rglob("*"):
         # Copy metadata
@@ -45,8 +45,10 @@ with tempfile.TemporaryDirectory() as workdir:
         # need to use system tar for deprecated cpio support
         subprocess.check_call(["/usr/bin/tar", "-xzf", payload, "-C", unpacked])
 
+    desktop_gui_component = "desktop_gui"
+
     for path in x86_work.glob("*.pkg/Payload.unpacked/**/*"):
-        if path.is_dir():
+        if path.is_dir() or desktop_gui_component in str(path.absolute()):
             continue
 
         target_path = target(x86_work, path)
@@ -70,7 +72,8 @@ with tempfile.TemporaryDirectory() as workdir:
         # Copy all remaining ARM-specific paths
         target_path = target(arm_work, path)
 
-        if path.is_dir() or target_path.exists():
+        if (path.is_dir() and not path.is_symlink()) or target_path.exists():
+            print(path.is_dir())
             continue
 
         copy(arm_work, path)
@@ -115,6 +118,23 @@ with tempfile.TemporaryDirectory() as workdir:
                                "--version", version,
                                "--install-location", "/",
                                pkgs / pkg.name])
+
+    # Handle desktop-gui seperately since we need to pass in a component plist
+    pkg = dest_work / f"multipass-{version}-Darwin-{desktop_gui_component}.pkg"
+    component_plist = "component.plist"
+
+    subprocess.check_call(["pkgbuild", "--analyze", "--root", pkg / "Payload.unpacked",
+                           component_plist])
+    subprocess.check_call(["plutil", "-replace", "BundleIsRelocatable",
+                           "-bool", "false",
+                            component_plist])
+    subprocess.check_call(["pkgbuild", "--root", pkg / "Payload.unpacked",
+                           "--identifier", f"com.canonical.multipass.{desktop_gui_component}",
+                           "--scripts", pkg / "Scripts",
+                           "--component-plist", component_plist,
+                           "--version", version,
+                           "--install-location", "/",
+                           pkgs / pkg.name])
 
     subprocess.check_call(["productbuild", "--distribution", dist_path,
                            "--package-path", pkgs,
