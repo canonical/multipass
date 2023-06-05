@@ -39,7 +39,8 @@ public:
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&, const bool&), (override));
     MOCK_METHOD(Path, make_dir, (const QDir&, const QString&, QFileDevice::Permissions), (override));
     MOCK_METHOD(Path, make_dir, (const QDir&, QFileDevice::Permissions), (override));
-    MOCK_METHOD(void, wait_for_cloud_init, (VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&), (const, override));
+    MOCK_METHOD(void, wait_for_cloud_init, (VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&),
+                (const, override));
     MOCK_METHOD(std::string, get_kernel_version, (), (const, override));
     MOCK_METHOD(QString, generate_scrypt_hash_for, (const QString&), (const, override));
     MOCK_METHOD(bool, client_certs_exist, (const QString&), (const));

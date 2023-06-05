@@ -31,7 +31,8 @@ public:
     using WrappedQSettings::WrappedQSettings; // promote visibility
     MOCK_METHOD(QSettings::Status, status, (), (const, override));
     MOCK_METHOD(QString, fileName, (), (const, override));
-    MOCK_METHOD(QVariant, value_impl, (const QString& key, const QVariant& default_value), (const, override)); // promote visibility
+    MOCK_METHOD(QVariant, value_impl, (const QString& key, const QVariant& default_value),
+                (const, override)); // promote visibility
     MOCK_METHOD(void, setIniCodec, (const char* codec_name), (override));
     MOCK_METHOD(void, sync, (), (override));
     MOCK_METHOD(void, setValue, (const QString& key, const QVariant& value), (override));
@@ -42,7 +43,8 @@ class MockQSettingsProvider : public WrappedQSettingsFactory
 {
 public:
     using WrappedQSettingsFactory::WrappedQSettingsFactory;
-    MOCK_METHOD(std::unique_ptr<WrappedQSettings>, make_wrapped_qsettings, (const QString&, QSettings::Format), (const, override));
+    MOCK_METHOD(std::unique_ptr<WrappedQSettings>, make_wrapped_qsettings, (const QString&, QSettings::Format),
+                (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, WrappedQSettingsFactory);
 };

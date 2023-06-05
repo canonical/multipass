@@ -30,7 +30,8 @@ struct MockURLDownloader : public multipass::URLDownloader
 
     MOCK_METHOD(QByteArray, download, (const QUrl&), (override));
     MOCK_METHOD(QDateTime, last_modified, (const QUrl&), (override));
-    MOCK_METHOD(void, download_to, (const QUrl&, const QString&, int64_t, const int, const ProgressMonitor&), (override));
+    MOCK_METHOD(void, download_to, (const QUrl&, const QString&, int64_t, const int, const ProgressMonitor&),
+                (override));
 };
 } // namespace test
 } // namespace multipass
