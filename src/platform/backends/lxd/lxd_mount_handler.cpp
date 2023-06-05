@@ -36,9 +36,13 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
           QString("%1/instances/%2").arg(lxd_socket_url.toString(), lxd_virtual_machine->vm_name.c_str())},
       // make_uuid is a seed based unique id generator, that makes the device_name reproducible if the seed
       // (target_path) is the same. If the seeds are different, then the generated ids are likely to be different as
-      // well. 27 (25 + 2(d_)) letters is the maximum device name length that LXD can accept
-      device_name_{
-          mp::utils::make_uuid(target_path).left(length_of_unique_id_without_prefix).prepend("d_").toStdString()}
+      // well. 27 (25 + 2(d_)) letters is the maximum device name length that LXD can accept and d_ stands for device
+      // name.
+      device_name_{mp::utils::make_uuid(target_path)
+                       .remove("-")
+                       .left(length_of_unique_id_without_prefix)
+                       .prepend("d_")
+                       .toStdString()}
 {
 }
 
