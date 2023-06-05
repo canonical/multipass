@@ -83,7 +83,7 @@ void LXDMountHandler::lxd_device_remove()
 
     device_list.remove(device_name_.c_str());
     instance_info_metadata["devices"] = device_list;
-
+    // TODO: make this put method If-Match pattern
     const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint_, instance_info_metadata);
     lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
 }
@@ -99,6 +99,7 @@ void LXDMountHandler::lxd_device_add()
     device_list.insert(device_name_.c_str(), new_device_object);
     instance_info_metadata["devices"] = device_list;
 
+    // TODO: make this put method If-Match pattern
     const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint_, instance_info_metadata);
     lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
 }
