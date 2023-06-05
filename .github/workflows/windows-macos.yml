@@ -222,6 +222,73 @@ jobs:
           python \
           wget
 
+    - name: Install specific QEMU from Choco
+      if: ${{ runner.os == 'Windows' }}
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install --yes qemu --version=2023.4.24
+
+    - name: Install OpenSSL and Flutter from Choco
+      if: ${{ runner.os == 'Windows' }}
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install --yes openssl flutter
+
+    - name: Configure Flutter on Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        set FLUTTER_BIN_DIR C:\tools\flutter\bin
+        $env:FLUTTER_EXEC=echo $FLUTTER_BIN_DIR\flutter.bat
+        $env:DART_EXEC=echo $FLUTTER_BIN_DIR\dart.bat
+        echo "FLUTTER_EXEC=$FLUTTER_EXEC" >> $GITHUB_ENV
+
+        set FLUTTER_CONFIG_ARGS "--no-analytics --no-enable-macos-desktop --no-enable-web --no-enable-linux-desktop --enable-windows-desktop --no-enable-android --no-enable-ios --no-enable-fuchsia --no-enable-custom-devices"
+        & $env:FLUTTER_EXEC config $FLUTTER_CONFIG_ARGS
+        & $env:FLUTTER_EXEC doctor
+        & $env:DART_EXEC pub global activate protoc_plugin
+
+    - name: Configure Flutter on macOS
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        rm -rf flutter/ flutter_macos*.zip
+        export FLUTTER_ZIP_URL_BASE=https://storage.googleapis.com/flutter_infra_release/releases/stable/macos
+        export FLUTTER_VERSION=3.10.4
+        if [ ${{ matrix.arch }} == "arm64" ]; then
+            export FLUTTER_ZIP_FILE=flutter_macos_arm64_$FLUTTER_VERSION-stable.zip
+        else
+            export FLUTTER_ZIP_FILE=flutter_macos_$FLUTTER_VERSION-stable.zip
+        fi
+
+        echo Downloading $FLUTTER_ZIP_URL_BASE/$FLUTTER_ZIP_FILE
+        wget -q $FLUTTER_ZIP_URL_BASE/$FLUTTER_ZIP_FILE
+        echo Done downloading
+
+        echo Unpacking $FLUTTER_ZIP_FILE
+        unzip -q $FLUTTER_ZIP_FILE
+        echo Done unpacking
+
+        rm -f $FLUTTER_ZIP_FILE
+
+        export FLUTTER_BIN_DIR=$PWD/flutter/bin
+        export FLUTTER_EXEC=$FLUTTER_BIN_DIR/flutter
+        export DART_EXEC=$FLUTTER_BIN_DIR/dart
+        echo FLUTTER_EXEC=$FLUTTER_EXEC >> ${GITHUB_ENV}
+        echo DART_EXEC=$DART_EXEC >> ${GITHUB_ENV}
+        echo FLUTTER_BIN_DIR=$FLUTTER_BIN_DIR >> ${GITHUB_ENV}
+
+        if [ $PATH == "" ]; then
+            export PATH="$FLUTTER_BIN_DIR"
+        else
+            export PATH="$PATH:$FLUTTER_BIN_DIR"
+        fi
+        echo PATH=$PATH >> ${GITHUB_ENV}
+
+        export FLUTTER_CONFIG_ARGS="--no-analytics --enable-macos-desktop --no-enable-web --no-enable-linux-desktop --no-enable-windows-desktop --no-enable-android --no-enable-ios --no-enable-fuchsia --no-enable-custom-devices"
+
+        $FLUTTER_EXEC config $FLUTTER_CONFIG_ARGS
+        $FLUTTER_EXEC doctor
+        $DART_EXEC pub global activate protoc_plugin
+
     - name: Cleanup
       if: ${{ always() && runner.os == 'macOS' }}
       uses: canonical/actions/cleanup@release
@@ -258,12 +325,6 @@ jobs:
           ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
         path: ${{ env.CCACHE_DIR }}
 
-    - name: Install specific QEMU from Choco
-      if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
-      with:
-        args: install --yes qemu --version=2023.4.24
-
     - name: Install OpenSSL from Choco
       if: ${{ runner.os == 'Windows' }}
       uses: crazy-max/ghaction-chocolatey@v3
@@ -298,6 +359,9 @@ jobs:
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
+        -DMULTIPASS_ENABLE_FLUTTER_GUI=on
+        -DFLUTTER_EXECUTABLE=${{ runner.os == 'Windows' && 'C:\tools\flutter\bin\flutter.bat' || env.FLUTTER_EXEC }}
+        -DDART_EXECUTABLE=${{ runner.os == 'Windows' && 'C:\tools\flutter\bin\dart.bat' || env.DART_EXEC }}
         ${{ github.workspace }}
 
     - name: Throttle parallel build processes on arm64
