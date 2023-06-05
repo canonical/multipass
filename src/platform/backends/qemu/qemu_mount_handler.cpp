@@ -49,7 +49,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
 
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
     {
-        throw mp::MountHandlerActivateException(vm->vm_name);
+        throw mp::NativeMountNeedsStoppedVMException(vm->vm_name);
     }
 
     // Need to ensure no more than one uid/gid map is passed in here.

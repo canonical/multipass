@@ -172,7 +172,7 @@ TEST_F(QemuMountHandlerTest, mount_fails_when_vm_not_stopped)
 {
     EXPECT_CALL(vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::running));
     MP_EXPECT_THROW_THAT(
-        mp::QemuMountHandler(&vm, &key_provider, default_target, mount), mp::MountHandlerActivateException,
+        mp::QemuMountHandler(&vm, &key_provider, default_target, mount), mp::NativeMountNeedsStoppedVMException,
         mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before attempting native mounts."))));
 }
 
