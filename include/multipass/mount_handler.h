@@ -39,7 +39,7 @@ class MountHandlerActivateException : public std::runtime_error
 {
 public:
     MountHandlerActivateException(const std::string& vm_name)
-        : std::runtime_error(fmt::format("Please stop the instance {} before mount it natively.", vm_name))
+        : std::runtime_error(fmt::format("Please stop the instance {} before attempting native mounts.", vm_name))
     {
     }
 };

@@ -34,7 +34,7 @@ template <typename T = VirtualMachine, typename = std::enable_if_t<std::is_base_
 struct MockVirtualMachineT : public T
 {
     template <typename... Args>
-    MockVirtualMachineT(Args&&... args) : T{args...}
+    MockVirtualMachineT(Args&&... args) : T{std::forward<Args>(args)...}
     {
         ON_CALL(*this, current_state()).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port()).WillByDefault(Return(42));
