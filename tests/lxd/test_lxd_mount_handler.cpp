@@ -128,7 +128,7 @@ TEST_F(LXDMountHandlerTestFixture, startThrowsIfVMIsRunning)
     const mp::ServerVariant dummy_server;
     MP_EXPECT_THROW_THAT(
         lxd_mount_handler.activate(dummy_server), mp::MountHandlerActivateException,
-        mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before mount it natively."))));
+        mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before attempting native mounts."))));
 }
 
 TEST_F(LXDMountHandlerTestFixture, stopDoesNotThrowIfVMIsStopped)
