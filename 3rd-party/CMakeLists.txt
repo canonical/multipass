@@ -86,6 +86,7 @@ option(YAML_CPP_BUILD_CONTRIB OFF)
 option(YAML_CPP_BUILD_TESTS OFF)
 
 add_subdirectory(yaml-cpp EXCLUDE_FROM_ALL)
+set_target_properties(yaml-cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(yaml INTERFACE)
 
@@ -121,6 +122,7 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(semver EXCLUDE_FROM_ALL)
 target_include_directories(semver INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/semver/include)
+set_target_properties(semver PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # xz-decoder config
 add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
