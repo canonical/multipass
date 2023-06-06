@@ -134,7 +134,7 @@ std::string mp::CSVFormatter::format(const VersionReply& reply, const std::strin
 std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 {
     fmt::memory_buffer buf;
-    fmt::format_to(std::back_inserter(buf), "Alias,Instance,Command,Context,Working directory\n");
+    fmt::format_to(std::back_inserter(buf), "Alias,Instance,Command,Working directory,Context\n");
 
     for (const auto& context : sort_dict(aliases))
     {
@@ -143,8 +143,8 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 
         for (const auto& [name, def] : sort_dict(context_contents))
         {
-            fmt::format_to(std::back_inserter(buf), "{},{},{},{},{}\n", name, def.instance, def.command, context_name,
-                           def.working_directory);
+            fmt::format_to(std::back_inserter(buf), "{},{},{},{},{}\n", name, def.instance, def.command,
+                           def.working_directory, context_name);
         }
     }
 

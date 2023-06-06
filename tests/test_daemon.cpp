@@ -88,7 +88,7 @@ namespace
 {
 const qint64 default_total_bytes{16'106'127'360}; // 15G
 
-const std::string csv_header{"Alias,Instance,Command,Context,Working directory\n"};
+const std::string csv_header{"Alias,Instance,Command,Working directory,Context\n"};
 
 struct StubNameGenerator : public mp::NameGenerator
 {
@@ -676,7 +676,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     auto expected_csv_string =
-        csv_header + alias_name + "," + name + "," + alias_command + "," + name + "," + alias_wdir + "\n";
+        csv_header + alias_name + "," + name + "," + alias_command + "," + alias_wdir + "," + name + "\n";
     EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
@@ -922,7 +922,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliasesWith
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     auto expected_csv_string = csv_header + alias_name + "," + command_line_name + "," + alias_command + "," +
-                               command_line_name + "," + alias_wdir + "\n";
+                               alias_wdir + "," + command_line_name + "\n";
     EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
@@ -969,8 +969,8 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
     cout_stream.str("");
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,default,map\n" + alias_name +
-                               "," + name + "," + alias_command + "," + name + "," + alias_wdir + "\n";
+    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,map,default\n" + alias_name +
+                               "," + name + "," + alias_command + "," + alias_wdir + "," + name + "\n";
     EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
@@ -1020,7 +1020,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliasesIf
     cout_stream.str("");
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,default,map\n";
+    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,map,default\n";
     EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
