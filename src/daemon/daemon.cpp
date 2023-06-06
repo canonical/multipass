@@ -747,12 +747,11 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances, Ins
 
         for (const auto& name : names)
         {
+            using T = std::decay_t<decltype(name)>;
             std::string vm_name;
-
-            using T = std::decay_t<std::remove_reference_t<decltype(name)>>;
             if constexpr (std::is_same_v<T, std::string>)
                 vm_name = name;
-            else if constexpr (std::is_same_v<T, mp::InstanceSnapshotPair>)
+            else
                 vm_name = name.instance_name();
 
             if (seen_instances.insert(vm_name).second)
@@ -1672,6 +1671,7 @@ try // clang-format on
 
     std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
     auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
+        fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
 
         auto get_snapshot_info = [&](std::shared_ptr<const Snapshot> snapshot) {
@@ -1701,15 +1701,12 @@ try // clang-format on
                 }
                 catch (const std::out_of_range&)
                 {
-                    fmt::memory_buffer errors;
                     add_fmt_to(errors, "snapshot \"{}\" does not exist", snapshot);
-
-                    return grpc_status_for(errors, grpc::StatusCode::NOT_FOUND);
                 }
             }
         }
 
-        return grpc::Status::OK;
+        return grpc_status_for(errors);
     };
 
     auto [instance_selection, status] =
@@ -1721,19 +1718,17 @@ try // clang-format on
         for (const auto& it : request->instances_snapshots())
         {
             if (it.snapshot_name().empty())
-                instance_snapshots_map[it.instance_name()] = {};
+                instance_snapshots_map[it.instance_name()];
             else if (const auto& entry = instance_snapshots_map.find(it.instance_name());
-                     entry != instance_snapshots_map.end() && !entry->second.empty())
+                     entry == instance_snapshots_map.end() || !entry->second.empty())
                 instance_snapshots_map[it.instance_name()].insert(it.snapshot_name());
         }
 
-        // TODO@snapshots change cmd logic after all info logic paths are added
+        // TODO@snapshots change cmd logic to include detailed snapshot info output
         auto cmd =
             request->snapshot_overview() ? std::function(fetch_snapshot_overview) : std::function(fetch_instance_info);
 
-        status = cmd_vms(instance_selection.operative_selection, cmd);
-
-        if (status.ok())
+        if ((status = cmd_vms(instance_selection.operative_selection, cmd)).ok())
         {
             deleted = true;
             status = cmd_vms(instance_selection.deleted_selection, cmd);
