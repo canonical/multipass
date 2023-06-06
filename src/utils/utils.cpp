@@ -18,6 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -325,8 +326,9 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
             virtual_machine->update_state();
             return mp::utils::TimeoutAction::done;
         }
-        catch (const std::exception&)
+        catch (const InternalTimeoutException& e)
         {
+            mpl::log(mpl::Level::trace, virtual_machine->vm_name, e.what());
             return mp::utils::TimeoutAction::retry;
         }
     };

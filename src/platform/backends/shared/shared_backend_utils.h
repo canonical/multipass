@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_SHARED_BACKEND_UTILS_H
 #define MULTIPASS_SHARED_BACKEND_UTILS_H
 
+#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
@@ -50,9 +51,9 @@ std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, s
             }
         };
 
-        auto on_timeout = [virtual_machine] {
+        auto on_timeout = [virtual_machine, &timeout] {
             virtual_machine->state = VirtualMachine::State::unknown;
-            throw std::runtime_error("failed to determine IP address");
+            throw InternalTimeoutException{"determine IP address", timeout};
         };
 
         utils::try_action_for(on_timeout, timeout, action);
