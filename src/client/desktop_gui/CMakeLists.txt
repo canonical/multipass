@@ -21,3 +21,12 @@ if(MULTIPASS_ENABLE_FLUTTER_GUI)
 
   include("CMakeLists.txt.linux")
 endif()
+
+add_library(dart_ffi SHARED ffi/dart_ffi.cpp)
+
+target_link_libraries(dart_ffi
+  petname
+  client_common
+)
+
+install(TARGETS dart_ffi LIBRARY COMPONENT multipass)
