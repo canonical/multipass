@@ -331,6 +331,12 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
             mpl::log(mpl::Level::trace, virtual_machine->vm_name, e.what());
             return mp::utils::TimeoutAction::retry;
         }
+        catch (const SSHException& e)
+        {
+            mpl::log(mpl::Level::trace, virtual_machine->vm_name, e.what());
+            return mp::utils::TimeoutAction::retry;
+        }
+
     };
     auto on_timeout = [virtual_machine] {
         std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
