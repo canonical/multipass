@@ -246,7 +246,7 @@ catch (const std::exception& e)
     return false;
 }
 
-void SmbMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
+void SmbMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 try
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
@@ -339,7 +339,7 @@ catch (...)
     throw;
 }
 
-void SmbMountHandler::stop_impl(bool force)
+void SmbMountHandler::deactivate_impl(bool force)
 try
 {
     mpl::log(mpl::Level::info, category,
@@ -359,6 +359,6 @@ catch (const std::exception& e)
 
 SmbMountHandler::~SmbMountHandler()
 {
-    stop(/*force=*/true);
+    deactivate(/*force=*/true);
 }
 } // namespace multipass
