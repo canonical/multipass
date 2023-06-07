@@ -76,6 +76,14 @@ QString find_autostart_target(const QString& subdir, const QString& autostart_fi
 
     return target_path;
 }
+
+template <typename ExceptionT>
+mp::utils::TimeoutAction log_and_retry(const ExceptionT& e, const mp::VirtualMachine* vm)
+{
+    assert(vm);
+    mpl::log(mpl::Level::trace, vm->vm_name, e.what());
+    return mp::utils::TimeoutAction::retry;
+};
 } // namespace
 
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
@@ -328,15 +336,12 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
         }
         catch (const InternalTimeoutException& e)
         {
-            mpl::log(mpl::Level::trace, virtual_machine->vm_name, e.what());
-            return mp::utils::TimeoutAction::retry;
+            return log_and_retry(e, virtual_machine);
         }
         catch (const SSHException& e)
         {
-            mpl::log(mpl::Level::trace, virtual_machine->vm_name, e.what());
-            return mp::utils::TimeoutAction::retry;
+            return log_and_retry(e, virtual_machine);
         }
-
     };
     auto on_timeout = [virtual_machine] {
         std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
