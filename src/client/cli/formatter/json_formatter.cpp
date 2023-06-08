@@ -18,6 +18,7 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/cli/json_formatter.h>
+#include <multipass/json_utils.h>
 #include <multipass/utils.h>
 
 #include <QJsonArray>
@@ -147,7 +148,7 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
     }
     info_json.insert("info", info_obj);
 
-    return QString(QJsonDocument(info_json).toJson()).toStdString();
+    return mp::json_to_string(info_json);
 }
 
 std::string mp::JsonFormatter::format(const ListReply& reply) const
@@ -176,7 +177,7 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
 
     list_json.insert("list", instances);
 
-    return QString(QJsonDocument(list_json).toJson()).toStdString();
+    return mp::json_to_string(list_json);
 }
 
 std::string mp::JsonFormatter::format(const NetworksReply& reply) const
@@ -196,7 +197,7 @@ std::string mp::JsonFormatter::format(const NetworksReply& reply) const
 
     list_json.insert("list", interfaces);
 
-    return QString(QJsonDocument(list_json).toJson()).toStdString();
+    return mp::json_to_string(list_json);
 }
 
 std::string mp::JsonFormatter::format(const FindReply& reply) const
@@ -207,7 +208,7 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
     find_json.insert("blueprints", format_images(reply.blueprints_info()));
     find_json.insert("images", format_images(reply.images_info()));
 
-    return QString(QJsonDocument(find_json).toJson()).toStdString();
+    return mp::json_to_string(find_json);
 }
 
 std::string mp::JsonFormatter::format(const VersionReply& reply, const std::string& client_version) const
@@ -230,10 +231,10 @@ std::string mp::JsonFormatter::format(const VersionReply& reply, const std::stri
             version_json.insert("update", update);
         }
     }
-    return QString(QJsonDocument(version_json).toJson()).toStdString();
+    return mp::json_to_string(version_json);
 }
 
 std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
-    return QString(QJsonDocument(aliases.to_json()).toJson()).toStdString();
+    return mp::json_to_string(aliases.to_json());
 }
