@@ -760,16 +760,16 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances, Ins
         for (const auto& name : names)
         {
             using T = std::decay_t<decltype(name)>;
-            std::string vm_name;
+            const std::string* vm_name;
             if constexpr (std::is_same_v<T, std::string>)
-                vm_name = name;
+                vm_name = &name;
             else
-                vm_name = name.instance_name();
+                vm_name = &name.instance_name();
 
-            if (seen_instances.insert(vm_name).second)
+            if (seen_instances.insert(*vm_name).second)
             {
-                auto trail = find_instance(operative_instances, deleted_instances, vm_name);
-                rank_instance(vm_name, trail, ret);
+                auto trail = find_instance(operative_instances, deleted_instances, *vm_name);
+                rank_instance(*vm_name, trail, ret);
             }
         }
     }
