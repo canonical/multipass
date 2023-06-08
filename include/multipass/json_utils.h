@@ -20,11 +20,14 @@
 #ifndef MULTIPASS_JSON_UTILS_H
 #define MULTIPASS_JSON_UTILS_H
 
+#include <string>
+
 #include <QJsonObject>
 #include <QString>
 
 namespace multipass
 {
 void write_json(const QJsonObject& root, QString file_name);
+std::string json_to_string(const QJsonObject& root);
 }
 #endif // MULTIPASS_JSON_UTILS_H

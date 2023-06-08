@@ -33,3 +33,9 @@ void mp::write_json(const QJsonObject& root, QString file_name)
     MP_FILEOPS.open(db_file, QIODevice::ReadWrite | QIODevice::Truncate);
     MP_FILEOPS.write(db_file, raw_json);
 }
+
+std::string mp::json_to_string(const QJsonObject& root)
+{
+    // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a QByteArray.
+    return QJsonDocument(root).toJson().toStdString();
+}
