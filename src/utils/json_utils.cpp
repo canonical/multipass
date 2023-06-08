@@ -17,14 +17,19 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_WRITER_H
-#define MULTIPASS_JSON_WRITER_H
+#include <multipass/file_ops.h>
+#include <multipass/json_utils.h>
 
-#include <QJsonObject>
-#include <QString>
+#include <QFile>
+#include <QJsonDocument>
 
-namespace multipass
+namespace mp = multipass;
+
+void mp::write_json(const QJsonObject& root, QString file_name)
 {
-void write_json(const QJsonObject& root, QString file_name);
+    QJsonDocument doc{root};
+    auto raw_json = doc.toJson();
+    QFile db_file{file_name};
+    MP_FILEOPS.open(db_file, QIODevice::ReadWrite | QIODevice::Truncate);
+    MP_FILEOPS.write(db_file, raw_json);
 }
-#endif // MULTIPASS_JSON_WRITER_H

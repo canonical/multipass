@@ -33,7 +33,7 @@
 #include <multipass/file_ops.h> // TODO hk migration, remove
 #include <multipass/format.h>
 #include <multipass/ip_address.h>
-#include <multipass/json_writer.h>
+#include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>

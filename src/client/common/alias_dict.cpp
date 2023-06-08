@@ -19,7 +19,7 @@
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
-#include <multipass/json_writer.h>
+#include <multipass/json_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
