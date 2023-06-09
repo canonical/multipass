@@ -317,11 +317,17 @@ jobs:
           ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
         path: ${{ env.CCACHE_DIR }}
 
-    - name: Install Dependencies from Choco
+    - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
       uses: crazy-max/ghaction-chocolatey@v2
       with:
-        args: install --yes qemu openssl
+        args: install --yes qemu --version=2023.4.24
+
+    - name: Install OpenSSL from Choco
+      if: ${{ runner.os == 'Windows' }}
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install --yes openssl
 
     - name: Install Qt
       if: ${{ runner.os == 'Windows' }}
