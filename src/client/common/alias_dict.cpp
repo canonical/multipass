@@ -157,9 +157,9 @@ bool mp::AliasDict::remove_context(const std::string& context)
 
 // This function removes the context called as the instance, and then it iterates through all the remaining contexts
 // to see if there are aliases defined for the instance.
-std::vector<std::pair<std::string, std::string>> mp::AliasDict::remove_aliases_for_instance(const std::string& instance)
+std::vector<mp::ContextAliasPair> mp::AliasDict::remove_aliases_for_instance(const std::string& instance)
 {
-    std::vector<std::pair<std::string, std::string>> removed_aliases;
+    std::vector<mp::ContextAliasPair> removed_aliases;
 
     remove_context(instance);
 
@@ -190,7 +190,7 @@ std::vector<std::pair<std::string, std::string>> mp::AliasDict::remove_aliases_f
 // The argument is an alias name, which can have the forms (i) "alias" or (ii) "context.alias".
 // (i): returns <active context name, alias name> if the alias exists in the current context; std::nullopt otherwise.
 // (ii): returns <context name, alias name> if the alias exists in the given context; std::nullopt otherwise.
-std::optional<std::pair<std::string, std::string>> mp::AliasDict::get_context_and_alias(const std::string& alias) const
+std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(const std::string& alias) const
 {
     // This will never throw because we already checked that the active context exists.
     if (aliases.at(active_context).count(alias) > 0)

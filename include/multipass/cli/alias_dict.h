@@ -32,6 +32,8 @@ namespace multipass
 {
 static constexpr auto default_context_name = "default";
 
+typedef std::pair<std::string, std::string> ContextAliasPair;
+
 // The alias dictionary is basically a mapping between strings and contexts. The string represents the context name
 // and the associated context is itself a map relating alias names to alias definitions.
 class AliasDict
@@ -52,8 +54,8 @@ public:
     bool is_alias_unique(const std::string& alias) const;
     bool remove_alias(const std::string& alias);
     bool remove_context(const std::string& context);
-    std::vector<std::pair<std::string, std::string>> remove_aliases_for_instance(const std::string& instance);
-    std::optional<std::pair<std::string, std::string>> get_context_and_alias(const std::string& alias) const;
+    std::vector<ContextAliasPair> remove_aliases_for_instance(const std::string& instance);
+    std::optional<ContextAliasPair> get_context_and_alias(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias_from_current_context(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias(const std::string& alias) const;
     DictType::iterator begin()
