@@ -31,18 +31,18 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDV
                                  const SSHKeyProvider* ssh_key_provider, const std::string& target_path,
                                  const VMMount& mount)
     : MountHandler{lxd_virtual_machine, ssh_key_provider, target_path, mount.source_path},
-      network_manager_{network_manager},
-      lxd_instance_endpoint_{
+      network_manager{network_manager},
+      lxd_instance_endpoint{
           QString("%1/instances/%2").arg(lxd_socket_url.toString(), lxd_virtual_machine->vm_name.c_str())},
       // make_uuid is a seed based unique id generator, that makes the device_name reproducible if the seed
       // (target_path) is the same. If the seeds are different, then the generated ids are likely to be different as
       // well. 27 (25 + 2(d_)) letters is the maximum device name length that LXD can accept and d_ stands for device
       // name.
-      device_name_{mp::utils::make_uuid(target_path)
-                       .remove("-")
-                       .left(length_of_unique_id_without_prefix)
-                       .prepend("d_")
-                       .toStdString()}
+      device_name{mp::utils::make_uuid(target_path)
+                      .remove("-")
+                      .left(length_of_unique_id_without_prefix)
+                      .prepend("d_")
+                      .toStdString()}
 {
 }
 
@@ -77,31 +77,31 @@ LXDMountHandler::~LXDMountHandler() = default;
 
 void LXDMountHandler::lxd_device_remove()
 {
-    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint_);
+    const QJsonObject instance_info = lxd_request(network_manager, "GET", lxd_instance_endpoint);
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
     QJsonObject device_list = instance_info_metadata["devices"].toObject();
 
-    device_list.remove(device_name_.c_str());
+    device_list.remove(device_name.c_str());
     instance_info_metadata["devices"] = device_list;
     // TODO: make this put method If-Match pattern
-    const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint_, instance_info_metadata);
-    lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
+    const QJsonObject json_reply = lxd_request(network_manager, "PUT", lxd_instance_endpoint, instance_info_metadata);
+    lxd_wait(network_manager, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
 }
 
 void LXDMountHandler::lxd_device_add()
 {
-    const QJsonObject instance_info = lxd_request(network_manager_, "GET", lxd_instance_endpoint_);
+    const QJsonObject instance_info = lxd_request(network_manager, "GET", lxd_instance_endpoint);
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
     QJsonObject device_list = instance_info_metadata["devices"].toObject();
 
     const QJsonObject new_device_object{{"path", target.c_str()}, {"source", source.c_str()}, {"type", "disk"}};
 
-    device_list.insert(device_name_.c_str(), new_device_object);
+    device_list.insert(device_name.c_str(), new_device_object);
     instance_info_metadata["devices"] = device_list;
 
     // TODO: make this put method If-Match pattern
-    const QJsonObject json_reply = lxd_request(network_manager_, "PUT", lxd_instance_endpoint_, instance_info_metadata);
-    lxd_wait(network_manager_, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
+    const QJsonObject json_reply = lxd_request(network_manager, "PUT", lxd_instance_endpoint, instance_info_metadata);
+    lxd_wait(network_manager, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
 }
 
 } // namespace multipass

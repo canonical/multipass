@@ -43,9 +43,9 @@ private:
     void lxd_device_remove();
 
     // data member
-    mp::NetworkAccessManager* network_manager_{nullptr};
-    const QUrl lxd_instance_endpoint_{};
-    const std::string device_name_{};
+    mp::NetworkAccessManager* network_manager{nullptr};
+    const QUrl lxd_instance_endpoint{};
+    const std::string device_name{};
 };
 
 } // namespace multipass
