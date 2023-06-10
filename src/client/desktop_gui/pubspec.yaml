@@ -8,9 +8,14 @@ environment:
   sdk: '>=3.0.3 <4.0.0'
 
 dependencies:
+  async: ^2.11.0
+  basics: ^0.10.0
+  built_collection: ^5.1.1
   ffi: ^2.0.2
   flutter:
     sdk: flutter
+  flutter_riverpod: ^2.3.6
+  grpc: ^3.1.0
 
 dev_dependencies:
   flutter_lints: ^2.0.0
