@@ -43,8 +43,8 @@ namespace
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
-constexpr auto index_digits = 4;        // these two go together
-constexpr auto max_snapshots = 1000ull; // replace suffix with uz for size_t in C++23
+constexpr auto index_digits = 4; // these two go together
+constexpr auto max_snapshots = 1000;
 constexpr auto yes_overwrite = true;
 } // namespace
 
@@ -112,7 +112,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
 }
 
 void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head,
-                                                       size_t old_count)
+                                                       int old_count)
 {
     if (old_head != head_snapshot)
     {
@@ -188,7 +188,7 @@ void BaseVirtualMachine::load_generic_snapshot_info(const QDir& snapshot_dir)
 {
     try
     {
-        snapshot_count = std::stoull(mpu::contents_of(snapshot_dir.filePath(count_filename)));
+        snapshot_count = std::stoi(mpu::contents_of(snapshot_dir.filePath(count_filename)));
         head_snapshot = snapshots.at(mpu::contents_of(snapshot_dir.filePath(head_filename)));
     }
     catch (FileOpenFailedException&)
@@ -201,7 +201,7 @@ void BaseVirtualMachine::load_generic_snapshot_info(const QDir& snapshot_dir)
 template <typename LockT>
 void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
 {
-    auto num_snapshots = snapshots.size();
+    auto num_snapshots = static_cast<int>(snapshots.size());
     auto parent_name = head_snapshot->get_parent_name();
 
     assert(num_snapshots <= snapshot_count && "can't have more snapshots than were ever taken");
