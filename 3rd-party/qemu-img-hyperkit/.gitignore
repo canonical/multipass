@@ -1,6 +1,0 @@
-# Ignore everything
-*
-
-# Except these files
-!.gitignore
-!qemu-img-fetcher.sh
