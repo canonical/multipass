@@ -2,10 +2,6 @@
 	path = 3rd-party/yaml-cpp
 	url = https://github.com/canonical/yaml-cpp.git
 	ignore = dirty
-[submodule "3rd-party/hyperkit"]
-	path = 3rd-party/hyperkit
-	url = https://github.com/canonical/hyperkit
-	ignore = dirty
 [submodule "3rd-party/libssh/libssh"]
 	path = 3rd-party/libssh/libssh
 	url = https://github.com/CanonicalLtd/libssh.git
