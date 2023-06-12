@@ -99,7 +99,7 @@ jobs:
       run: |
         MATRIX='{"include": ['
         [[ '${{ github.event.pull_request.draft }}' != 'true' && '${{ github.event.client_payload.draft }}' != 'true' ]] && MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "multipass-macos-10.15", "arch": "x86_64", "target": "10.15"},'
+        MATRIX+='{"runs-on": "multipass-macos-11-x64", "arch": "x86_64", "target": "11"},'
         MATRIX+='{"runs-on": "multipass-macos-11-arm", "arch": "arm64", "target": "11"}'
         MATRIX+=']}'
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -230,70 +230,7 @@ jobs:
       with:
         # remove everything in the workspace and the dependencies
         paths: |
-          ~/.opam
           ${{ github.workspace }}
-
-    - name: Cache OPAM
-      if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
-      uses: actions/cache@v3
-      with:
-        path: "~/.opam"
-        # Use OPAM version and hyperkit sha as cache key. This ensures that when we change hyperkit,
-        # any dependency changes will follow. Also start from scratch if OPAM, macOS or hyperkit versions change.
-        key: opam-${{ env.OPAM_COMP }}-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ steps.cache-params.outputs.hyperkit-sha }}
-
-    - name: Set up OCaml
-      if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
-      uses: avsm/setup-ocaml@v1.1.7
-      with:
-        ocaml-version: ${{ env.OPAM_COMP }}
-
-    - name: Set up OPAM environment
-      if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
-      id: opam-setup
-      run: |
-        for var in OPAM_SWITCH_PREFIX CAML_LD_LIBRARY_PATH OCAML_TOPLEVEL_PATH; do
-            opam exec -- bash -c "echo ${var}=\${${var}}" >> ${GITHUB_ENV}
-        done
-        opam exec -- bash -c "echo \${OPAM_SWITCH_PREFIX}/bin" >> ${GITHUB_PATH}
-
-    - name: Install OPAM dependencies
-      if: ${{ runner.os == 'macOS' && matrix.arch == 'x86_64' }}
-      run: |
-        opam pin -n io-page 2.3.0
-        opam pin -n base v0.14.2
-        opam pin -n bigarray-compat 1.0.0
-        opam pin -n bigstringaf 0.8.0
-        opam pin -n cmdliner 1.0.4
-        opam pin -n cppo 1.6.8
-        opam pin -n domain-name 0.3.1
-        opam pin -n dune 2.9.1
-        opam pin -n dune-configurator 2.9.1
-        opam pin -n duration 0.2.0
-        opam pin -n functoria-runtime 3.0.3
-        opam pin -n ipaddr 5.2.0
-        opam pin -n ipaddr-sexp 5.2.0
-        opam pin -n macaddr 5.2.0
-        opam pin -n magic-mime 1.2.0
-        opam pin -n mirage-runtime 3.10.6
-        opam pin -n mirage-unix 4.0.0
-        opam pin -n mmap 1.1.0
-        opam pin -n ocamlbuild 0.14.0
-        opam pin -n ocamlfind 1.9.1
-        opam pin -n parsexp v0.14.1
-        opam pin -n ppx_sexp_conv v0.14.3
-        opam pin -n ppx_tools 6.4
-        opam pin -n ppxlib 0.23.0
-        opam pin -n prometheus 1.1
-        opam pin -n prometheus-app 1.1
-        opam pin -n sexplib v0.14.0
-        opam pin -n sexplib0 v0.14.0
-        opam pin -n sha 1.15.1
-        opam pin -n topkg 1.0.4
-        opam pin -n unix-type-representations 0.1.1
-        opam pin -n uutf 1.0.2
-        opam install 3rd-party/hyperkit --deps-only
-        opam list
 
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
