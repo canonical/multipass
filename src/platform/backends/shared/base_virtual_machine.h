@@ -84,7 +84,7 @@ private:
     void load_snapshot(const QJsonObject& json);
 
     auto make_take_snapshot_rollback(SnapshotMap::iterator it);
-    void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, size_t old_count);
+    void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, int old_count);
 
     auto make_head_file_rollback(const QString& head_path, QFile& head_file) const;
     void head_file_rollback_helper(const QString& head_path, QFile& head_file, const std::string& old_head,
@@ -103,7 +103,7 @@ private:
 private:
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
-    size_t snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
+    int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
     mutable std::recursive_mutex snapshot_mutex;
 };
 
