@@ -24,11 +24,11 @@ namespace multipass::test
 {
 struct StubMountHandler : public MountHandler
 {
-    void start_impl(ServerVariant, std::chrono::milliseconds) override
+    void activate_impl(ServerVariant, std::chrono::milliseconds) override
     {
     }
 
-    void stop_impl(bool) override
+    void deactivate_impl(bool) override
     {
     }
 };

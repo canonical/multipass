@@ -35,6 +35,15 @@ using ServerVariant = std::variant<grpc::ServerReaderWriterInterface<StartReply,
                                    grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
                                    grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*>;
 
+class NativeMountNeedsStoppedVMException : public std::runtime_error
+{
+public:
+    NativeMountNeedsStoppedVMException(const std::string& vm_name)
+        : std::runtime_error(fmt::format("Please stop the instance {} before attempting native mounts.", vm_name))
+    {
+    }
+};
+
 class MountHandler : private DisabledCopyMove
 {
 public:
@@ -42,25 +51,30 @@ public:
 
     virtual ~MountHandler() = default;
 
-    void start(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5))
+    void activate(ServerVariant server, std::chrono::milliseconds timeout = std::chrono::minutes(5))
     {
         std::lock_guard active_lock{active_mutex};
         if (!is_active())
-            start_impl(server, timeout);
+            activate_impl(server, timeout);
         active = true;
     }
 
-    void stop(bool force = false)
+    void deactivate(bool force = false)
     {
         std::lock_guard active_lock{active_mutex};
         if (is_active())
-            stop_impl(force);
+            deactivate_impl(force);
         active = false;
     }
 
     virtual bool is_active()
     {
         return active;
+    }
+
+    virtual bool is_mount_managed_by_backend()
+    {
+        return false;
     }
 
 protected:
@@ -83,8 +97,8 @@ protected:
             throw std::runtime_error(fmt::format("Mount source path \"{}\" is not readable.", source));
     };
 
-    virtual void start_impl(ServerVariant server, std::chrono::milliseconds timeout) = 0;
-    virtual void stop_impl(bool force) = 0;
+    virtual void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) = 0;
+    virtual void deactivate_impl(bool force) = 0;
 
     template <typename Reply, typename Request>
     static Reply make_reply_from_server(grpc::ServerReaderWriterInterface<Reply, Request>*)

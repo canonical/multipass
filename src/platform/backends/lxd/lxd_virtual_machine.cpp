@@ -16,6 +16,7 @@
  */
 
 #include "lxd_virtual_machine.h"
+#include "lxd_mount_handler.h"
 #include "lxd_request.h"
 
 #include <QJsonArray>
@@ -151,6 +152,16 @@ QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& 
     }
 
     return devices;
+}
+
+bool uses_default_id_mappings(const multipass::VMMount& mount)
+{
+    const auto& gid_mappings = mount.gid_mappings;
+    const auto& uid_mappings = mount.uid_mappings;
+
+    // -1 is the default value for gid and uid
+    return gid_mappings.size() == 1 && gid_mappings.front().second == -1 && uid_mappings.size() == 1 &&
+           uid_mappings.front().second == -1;
 }
 
 } // namespace
@@ -458,4 +469,16 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
         {"path", "/"}, {"pool", storage_pool}, {"size", QString::number(new_size.in_bytes())}, {"type", "disk"}};
     QJsonObject patch_json{{"devices", QJsonObject{{"root", root_json}}}};
     lxd_request(manager, "PATCH", url(), patch_json);
+}
+
+std::unique_ptr<multipass::MountHandler>
+mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, const std::string& target,
+                                                 const VMMount& mount)
+{
+    if (!uses_default_id_mappings(mount))
+    {
+        throw std::runtime_error("LXD native mount does not accept custom ID mappings.");
+    }
+
+    return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);
 }

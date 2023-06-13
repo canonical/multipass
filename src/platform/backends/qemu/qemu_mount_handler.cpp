@@ -48,7 +48,9 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
     }
 
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
-        throw std::runtime_error("Please shutdown the instance before attempting native mounts.");
+    {
+        throw mp::NativeMountNeedsStoppedVMException(vm->vm_name);
+    }
 
     // Need to ensure no more than one uid/gid map is passed in here.
     if (mount.uid_mappings.size() > 1 || mount.gid_mappings.size() > 1)
@@ -81,7 +83,7 @@ catch (const std::exception& e)
     return false;
 }
 
-void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)
+void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
@@ -104,7 +106,7 @@ void QemuMountHandler::start_impl(ServerVariant, std::chrono::milliseconds)
         session, fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912", tag, target));
 }
 
-void QemuMountHandler::stop_impl(bool force)
+void QemuMountHandler::deactivate_impl(bool force)
 try
 {
     mpl::log(mpl::Level::info, category,
@@ -122,7 +124,7 @@ catch (const std::exception& e)
 
 QemuMountHandler::~QemuMountHandler()
 {
-    stop(/*force=*/true);
+    deactivate(/*force=*/true);
     vm_mount_args.erase(tag);
 }
 } // namespace multipass

@@ -25,8 +25,8 @@ namespace multipass::test
 class MockMountHandler : public MountHandler
 {
 public:
-    MOCK_METHOD(void, start_impl, (ServerVariant, std::chrono::milliseconds), (override));
-    MOCK_METHOD(void, stop_impl, (bool), (override));
+    MOCK_METHOD(void, activate_impl, (ServerVariant, std::chrono::milliseconds), (override));
+    MOCK_METHOD(void, deactivate_impl, (bool), (override));
     MOCK_METHOD(bool, is_active, (), (override));
 };
 } // namespace multipass::test

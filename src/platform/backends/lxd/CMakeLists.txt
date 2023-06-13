@@ -14,6 +14,7 @@
 #
 
 add_library(lxd_backend STATIC
+  lxd_mount_handler.cpp
   lxd_request.cpp
   lxd_virtual_machine.cpp
   lxd_virtual_machine_factory.cpp

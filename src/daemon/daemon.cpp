@@ -1877,11 +1877,12 @@ try // clang-format on
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        if (vm->current_state() == mp::VirtualMachine::State::running ||
+            vm_mounts[target_path]->is_mount_managed_by_backend())
         {
             try
             {
-                vm_mounts[target_path]->start(server);
+                vm_mounts[target_path]->activate(server);
             }
             catch (const mp::SSHFSMissingError&)
             {
@@ -2248,7 +2249,7 @@ try // clang-format on
             const auto& [target, mount] = *expiring_it;
             try
             {
-                mount->stop();
+                mount->deactivate();
                 vm_spec_mounts.erase(target);
                 vm_mounts.erase(expiring_it);
             }
@@ -2911,7 +2912,12 @@ void mp::Daemon::init_mounts(const std::string& name)
 void mp::Daemon::stop_mounts(const std::string& name)
 {
     for (auto& [_, mount] : mounts[name])
-        mount->stop(/*force=*/true);
+    {
+        if (!mount->is_mount_managed_by_backend())
+        {
+            mount->deactivate(/*force=*/true);
+        }
+    }
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
@@ -2968,7 +2974,10 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
             for (auto& [target, mount] : vm_mounts)
                 try
                 {
-                    mount->start(server);
+                    if (!mount->is_mount_managed_by_backend())
+                    {
+                        mount->activate(server);
+                    }
                 }
                 catch (const mp::SSHFSMissingError&)
                 {

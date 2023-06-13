@@ -16,4 +16,5 @@
 target_sources(multipass_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/test_lxd_backend.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_lxd_image_vault.cpp)
+    ${CMAKE_CURRENT_LIST_DIR}/test_lxd_image_vault.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_lxd_mount_handler.cpp)

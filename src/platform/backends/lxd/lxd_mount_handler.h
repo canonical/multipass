@@ -15,30 +15,38 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_MOUNT_HANDLER_H
-#define MULTIPASS_SSHFS_MOUNT_HANDLER_H
+#ifndef MULTIPASS_LXD_MOUNT_HANDLER_H
+#define MULTIPASS_LXD_MOUNT_HANDLER_H
 
-#include <multipass/mount_handler.h>
-#include <multipass/process/process.h>
-#include <multipass/qt_delete_later_unique_ptr.h>
-#include <multipass/sshfs_server_config.h>
+#include "lxd_virtual_machine.h"
+#include "multipass/mount_handler.h"
 
 namespace multipass
 {
-class SSHFSMountHandler : public MountHandler
+class LXDMountHandler : public MountHandler
 {
 public:
-    SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
-                      const VMMount& mount);
-    ~SSHFSMountHandler() override;
+    LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDVirtualMachine* lxd_virtual_machine,
+                    const SSHKeyProvider* ssh_key_provider, const std::string& target_path, const VMMount& mount);
+    ~LXDMountHandler() override;
 
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
     void deactivate_impl(bool force) override;
-    bool is_active() override;
+
+    bool is_mount_managed_by_backend() override
+    {
+        return true;
+    }
 
 private:
-    qt_delete_later_unique_ptr<Process> process;
-    SSHFSServerConfig config;
+    void lxd_device_add();
+    void lxd_device_remove();
+
+    // data member
+    mp::NetworkAccessManager* network_manager{nullptr};
+    const QUrl lxd_instance_endpoint{};
+    const std::string device_name{};
 };
+
 } // namespace multipass
-#endif // MULTIPASS_SSHFS_MOUNT_HANDLER_H
+#endif // MULTIPASS_LXD_MOUNT_HANDLER_H

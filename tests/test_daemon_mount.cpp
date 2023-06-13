@@ -161,7 +161,7 @@ TEST_F(TestDaemonMount, skipStartMountIfInstanceIsNotRunning)
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
-    EXPECT_CALL(*mock_mount_handler, start_impl).Times(0);
+    EXPECT_CALL(*mock_mount_handler, activate_impl).Times(0);
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
@@ -189,7 +189,7 @@ TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
-    EXPECT_CALL(*mock_mount_handler, start_impl).Times(1);
+    EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
@@ -218,7 +218,7 @@ TEST_F(TestDaemonMount, mountFailsErrorMounting)
     config_builder.data_directory = temp_dir->path();
 
     auto error = "permission denied";
-    EXPECT_CALL(*mock_mount_handler, start_impl).WillOnce(Throw(std::runtime_error(error)));
+    EXPECT_CALL(*mock_mount_handler, activate_impl).WillOnce(Throw(std::runtime_error(error)));
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
