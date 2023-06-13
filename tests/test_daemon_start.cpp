@@ -150,7 +150,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
-    EXPECT_CALL(*mock_mount_handler, start_impl).Times(1);
+    EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
@@ -186,7 +186,7 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
 
     auto error = "failed to start mount";
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
-    EXPECT_CALL(*mock_mount_handler, start_impl).WillOnce(Throw(std::runtime_error{error}));
+    EXPECT_CALL(*mock_mount_handler, activate_impl).WillOnce(Throw(std::runtime_error{error}));
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());

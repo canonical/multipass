@@ -144,7 +144,7 @@ catch (const std::exception& e)
     return false;
 }
 
-void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::milliseconds timeout)
+void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     if (!has_sshfs(vm->vm_name, session))
@@ -209,7 +209,7 @@ void SSHFSMountHandler::start_impl(ServerVariant server, std::chrono::millisecon
             fmt::format("{}: {}", process_state.failure_message(), process->read_all_standard_error()));
 }
 
-void SSHFSMountHandler::stop_impl(bool force)
+void SSHFSMountHandler::deactivate_impl(bool force)
 {
     mpl::log(mpl::Level::info, category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
     QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr);
@@ -228,6 +228,6 @@ void SSHFSMountHandler::stop_impl(bool force)
 
 SSHFSMountHandler::~SSHFSMountHandler()
 {
-    stop(/*force=*/true);
+    deactivate(/*force=*/true);
 }
 } // namespace multipass

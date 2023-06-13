@@ -171,8 +171,9 @@ struct QemuMountHandlerFailCommand : public QemuMountHandlerTest, public testing
 TEST_F(QemuMountHandlerTest, mount_fails_when_vm_not_stopped)
 {
     EXPECT_CALL(vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::running));
-    MP_EXPECT_THROW_THAT(mp::QemuMountHandler(&vm, &key_provider, default_target, mount), std::runtime_error,
-                         mpt::match_what(StrEq("Please shutdown the instance before attempting native mounts.")));
+    MP_EXPECT_THROW_THAT(
+        mp::QemuMountHandler(&vm, &key_provider, default_target, mount), mp::NativeMountNeedsStoppedVMException,
+        mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before attempting native mounts."))));
 }
 
 TEST_F(QemuMountHandlerTest, mount_fails_on_multiple_id_mappings)
@@ -223,8 +224,8 @@ TEST_F(QemuMountHandlerTest, start_success_stop_success)
     REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
-    EXPECT_NO_THROW(handler.start(&server));
-    EXPECT_NO_THROW(handler.stop());
+    EXPECT_NO_THROW(handler.activate(&server));
+    EXPECT_NO_THROW(handler.deactivate());
 }
 
 TEST_F(QemuMountHandlerTest, stop_fail_nonforce_throws)
@@ -237,8 +238,8 @@ TEST_F(QemuMountHandlerTest, stop_fail_nonforce_throws)
     REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
-    EXPECT_NO_THROW(handler.start(&server));
-    MP_EXPECT_THROW_THAT(handler.stop(), std::runtime_error, mpt::match_what(StrEq(error)));
+    EXPECT_NO_THROW(handler.activate(&server));
+    MP_EXPECT_THROW_THAT(handler.deactivate(), std::runtime_error, mpt::match_what(StrEq(error)));
 }
 
 TEST_F(QemuMountHandlerTest, stop_fail_force_logs)
@@ -250,7 +251,7 @@ TEST_F(QemuMountHandlerTest, stop_fail_force_logs)
     REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
-    EXPECT_NO_THROW(handler.start(&server));
+    EXPECT_NO_THROW(handler.activate(&server));
     EXPECT_CALL(*logger_scope.mock_logger, log).WillRepeatedly(Return());
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
@@ -271,7 +272,7 @@ TEST_F(QemuMountHandlerTest, target_directory_missing)
     REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
-    EXPECT_NO_THROW(handler.start(&server));
+    EXPECT_NO_THROW(handler.activate(&server));
 }
 
 INSTANTIATE_TEST_SUITE_P(QemuMountHandlerFailCommand, QemuMountHandlerFailCommand,
@@ -290,5 +291,5 @@ TEST_P(QemuMountHandlerFailCommand, throw_on_fail)
     REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
-    MP_EXPECT_THROW_THAT(handler.start(&server), std::runtime_error, mpt::match_what(StrEq(error)));
+    MP_EXPECT_THROW_THAT(handler.activate(&server), std::runtime_error, mpt::match_what(StrEq(error)));
 }
