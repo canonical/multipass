@@ -21,7 +21,10 @@
 
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
+
+#include <scope_guard.hpp>
 
 #include <memory>
 
@@ -95,10 +98,17 @@ void mp::QemuSnapshot::erase_impl()
 
 void mp::QemuSnapshot::apply_impl()
 {
+
+    auto rollback = sg::make_scope_guard([this, old_desc = desc]() noexcept {
+        top_catch_all(BaseSnapshot::get_name(), [this, &old_desc]() { desc = old_desc; });
+    });
+
     desc.num_cores = BaseSnapshot::get_num_cores();
     desc.mem_size = BaseSnapshot::get_mem_size();
     desc.disk_space = BaseSnapshot::get_disk_space();
     checked_exec_qemu_img(make_restore_spec(derive_tag(), image_path));
+
+    rollback.dismiss();
 }
 
 QString mp::QemuSnapshot::derive_tag() const
