@@ -51,11 +51,6 @@ Version: 1.9.4 |
 <https://github.com/open-source-parsers/jsoncpp.git> |
 <https://github.com/open-source-parsers/jsoncpp/releases>
 
-### HyperKit
-Version: v0.20210107 |
-<https://github.com/moby/hyperkit.git> |
-<https://github.com/moby/hyperkit/releases>
-
 ### POCO
 Version: 1.12.4 |
 <https://github.com/pocoproject/poco.git> |
