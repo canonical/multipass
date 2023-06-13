@@ -433,6 +433,13 @@ TEST(Utils, escape_for_shell_replaces_newlines_with_spaces)
     EXPECT_THAT(res, ::testing::StrEq("I\\'ve\\ got\\ newlines"));
 }
 
+TEST(Utils, escape_for_shell_quotes_empty_string)
+{
+    std::string s{""};
+    auto res = mp::utils::escape_for_shell(s);
+    EXPECT_THAT(res, ::testing::StrEq("''"));
+}
+
 TEST(Utils, try_action_actually_times_out)
 {
     bool on_timeout_called{false};
