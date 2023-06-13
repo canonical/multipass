@@ -78,12 +78,14 @@ std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMa
 }
 } // namespace
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, int num_cores, MemorySize mem_size,
-                               MemorySize disk_space, VirtualMachine::State state,
+mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment,
+                               const QDateTime& creation_timestamp, // NOLINT(modernize-pass-by-value)
+                               int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
                                std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata,
                                std::shared_ptr<Snapshot> parent)
     : name{name},
       comment{comment},
+      creation_timestamp{creation_timestamp},
       num_cores{num_cores},
       mem_size{mem_size},
       disk_space{disk_space},
@@ -102,10 +104,10 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
         throw std::runtime_error{fmt::format("Invalid disk size for snapshot: {}", disk_bytes)};
 }
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                               std::shared_ptr<Snapshot> parent)
-    : BaseSnapshot{name,        comment,      specs.num_cores, specs.mem_size,   specs.disk_space,
-                   specs.state, specs.mounts, specs.metadata,  std::move(parent)}
+mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, const QDateTime& creation_timestamp,
+                               const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
+    : BaseSnapshot{name,        comment,      creation_timestamp, specs.num_cores,  specs.mem_size, specs.disk_space,
+                   specs.state, specs.mounts, specs.metadata,     std::move(parent)}
 {
 }
 
@@ -115,8 +117,10 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
 }
 
 mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm)
-    : BaseSnapshot{json["name"].toString().toStdString(),                         // name
-                   json["comment"].toString().toStdString(),                      // comment
+    : BaseSnapshot{json["name"].toString().toStdString(),    // name
+                   json["comment"].toString().toStdString(), // comment
+                   QDateTime::fromString(json["creation_timestamp"].toString(),
+                                         "yyyy-MM-ddTHH:mm:ss.zzzZ"),             // creation_timestamp
                    json["num_cores"].toInt(),                                     // num_cores
                    MemorySize{json["mem_size"].toString().toStdString()},         // mem_size
                    MemorySize{json["disk_space"].toString().toStdString()},       // disk_space
@@ -134,6 +138,7 @@ QJsonObject multipass::BaseSnapshot::serialize() const
 
     snapshot.insert("name", QString::fromStdString(name));
     snapshot.insert("comment", QString::fromStdString(comment));
+    snapshot.insert("creation_timestamp", creation_timestamp.toString("yyyy-MM-ddTHH:mm:ss.zzzZ"));
     snapshot.insert("num_cores", num_cores);
     snapshot.insert("mem_size", QString::number(mem_size.in_bytes()));
     snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
