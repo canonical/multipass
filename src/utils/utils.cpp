@@ -253,13 +253,22 @@ std::string mp::utils::escape_for_shell(const std::string& in)
 
     for (char c : in)
     {
-        // If the character is in one of these code ranges, then it must be escaped.
-        if (c < 0x25 || c > 0x7a || (c > 0x25 && c < 0x2b) || (c > 0x5a && c < 0x5f) || 0x2c == c || 0x3b == c ||
-            0x3c == c || 0x3e == c || 0x3f == c || 0x60 == c)
+        if (0xa == c) // newline
         {
-            *ret_insert++ = '\\';
+            *ret_insert++ = 0x5c; // backslash
+            *ret_insert++ = 0x20; // space
         }
-        *ret_insert++ = c;
+        else
+        {
+            // If the character is in one of these code ranges, then it must be escaped.
+            if (c < 0x25 || c > 0x7a || (c > 0x25 && c < 0x2b) || (c > 0x5a && c < 0x5f) || 0x2c == c || 0x3b == c ||
+                0x3c == c || 0x3e == c || 0x3f == c || 0x60 == c)
+            {
+                *ret_insert++ = 0x5c; // backslash
+            }
+
+            *ret_insert++ = c;
+        }
     }
 
     return ret;
