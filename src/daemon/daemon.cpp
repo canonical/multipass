@@ -2548,13 +2548,26 @@ try
         const auto& vm_dir = instance_directory(instance_name, *config);
         if (!request->destructive())
         {
-            reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
+            RestoreReply reply{};
+            reply.set_instance(instance_name);
+            reply.set_confirm_destruction(true);
+            if (!server->Write(reply))
+                throw std::runtime_error("Cannot request confirmation from client. Aborting...");
 
-            const auto snapshot =
-                vm_ptr->take_snapshot(vm_dir, vm_specs, "", fmt::format("Before restoring {}", request->snapshot()));
+            RestoreRequest client_response;
+            if (!server->Read(&client_response))
+                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
 
-            reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
-                      /* sticky = */ true);
+            if (!client_response.destructive())
+            {
+                reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
+
+                const auto snapshot = vm_ptr->take_snapshot(vm_dir, vm_specs, "",
+                                                            fmt::format("Before restoring {}", request->snapshot()));
+
+                reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
+                          /* sticky = */ true);
+            }
         }
 
         // Actually restore snapshot
