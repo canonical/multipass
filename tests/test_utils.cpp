@@ -426,6 +426,13 @@ TEST(Utils, escape_for_shell_actually_escapes)
     EXPECT_THAT(res, ::testing::StrEq("I\\'ve\\ got\\ \\\"quotes\\\""));
 }
 
+TEST(Utils, escape_for_shell_replaces_newlines_with_spaces)
+{
+    std::string s{"I've got\nnewlines"};
+    auto res = mp::utils::escape_for_shell(s);
+    EXPECT_THAT(res, ::testing::StrEq("I\\'ve\\ got\\ newlines"));
+}
+
 TEST(Utils, try_action_actually_times_out)
 {
     bool on_timeout_called{false};
