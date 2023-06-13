@@ -37,6 +37,11 @@ struct StubSnapshot : public Snapshot
         return {};
     }
 
+    QDateTime get_creation_timestamp() const noexcept override
+    {
+        return QDateTime{};
+    }
+
     std::string get_parent_name() const override
     {
         return {};
@@ -92,6 +97,10 @@ struct StubSnapshot : public Snapshot
     }
 
     void set_comment(const std::string&) override
+    {
+    }
+
+    void set_creation_timestamp(const QDateTime&) override
     {
     }
 
