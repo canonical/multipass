@@ -94,7 +94,8 @@ void LXDMountHandler::lxd_device_add()
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
     QJsonObject device_list = instance_info_metadata["devices"].toObject();
 
-    const std::string abs_target_path = std::filesystem::path{target}.is_relative() ? "/home/ubuntu/" + target : target;
+    const std::string abs_target_path =
+        std::filesystem::path{target}.is_relative() ? fmt::format("/home/{}/{}", vm->ssh_username(), target) : target;
     const QJsonObject new_device_object{
         {"path", abs_target_path.c_str()}, {"source", source.c_str()}, {"type", "disk"}};
 
