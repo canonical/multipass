@@ -34,7 +34,6 @@ jobs:
         fi
 
         if [ -n '${{ github.event.inputs.mac-x86-package }}' ]; then
-          MATRIX+='{"os": "macOS", "vm": "macos-10.15", "driver": "qemu", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "qemu", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-12", "driver": "qemu", "arch": "x86_64" }'
         fi
