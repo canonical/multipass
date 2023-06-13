@@ -95,6 +95,9 @@ void mp::QemuSnapshot::erase_impl()
 
 void mp::QemuSnapshot::apply_impl()
 {
+    desc.num_cores = BaseSnapshot::get_num_cores();
+    desc.mem_size = BaseSnapshot::get_mem_size();
+    desc.disk_space = BaseSnapshot::get_disk_space();
     checked_exec_qemu_img(make_restore_spec(derive_tag(), image_path));
 }
 
