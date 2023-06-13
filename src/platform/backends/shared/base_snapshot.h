@@ -34,13 +34,14 @@ struct VMSpecs;
 class BaseSnapshot : public Snapshot
 {
 public:
-    BaseSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                 std::shared_ptr<Snapshot> parent);
+    BaseSnapshot(const std::string& name, const std::string& comment, const QDateTime& creation_timestamp,
+                 const VMSpecs& specs, std::shared_ptr<Snapshot> parent);
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
 
     std::string get_name() const override;
     std::string get_comment() const override;
     std::string get_parent_name() const override;
+    QDateTime get_creation_timestamp() const override;
     std::shared_ptr<const Snapshot> get_parent() const override;
     std::shared_ptr<Snapshot> get_parent() override;
 
@@ -57,6 +58,7 @@ public:
 
     void set_name(const std::string& n) override;
     void set_comment(const std::string& c) override;
+    void set_creation_timestamp(const QDateTime& t) override;
     void set_parent(std::shared_ptr<Snapshot> p) override;
 
     void capture() final;
@@ -73,13 +75,15 @@ private:
     {
     };
     BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
-    BaseSnapshot(const std::string& name, const std::string& comment, int num_cores, MemorySize mem_size,
-                 MemorySize disk_space, VirtualMachine::State state, std::unordered_map<std::string, VMMount> mounts,
-                 QJsonObject metadata, std::shared_ptr<Snapshot> parent);
+    BaseSnapshot(const std::string& name, const std::string& comment, const QDateTime& creation_timestamp,
+                 int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
+                 std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata,
+                 std::shared_ptr<Snapshot> parent);
 
 private:
     std::string name;
     std::string comment;
+    QDateTime creation_timestamp;
 
     // This class is non-copyable and having these const simplifies thread safety
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -105,6 +109,12 @@ inline std::string multipass::BaseSnapshot::get_comment() const
 {
     const std::unique_lock lock{mutex};
     return comment;
+}
+
+inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const
+{
+    const std::unique_lock lock{mutex};
+    return creation_timestamp;
 }
 
 inline std::string multipass::BaseSnapshot::get_parent_name() const
@@ -167,6 +177,12 @@ inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 {
     const std::unique_lock lock{mutex};
     comment = c;
+}
+
+inline void multipass::BaseSnapshot::set_creation_timestamp(const QDateTime& t)
+{
+    const std::unique_lock lock{mutex};
+    creation_timestamp = t;
 }
 
 inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
