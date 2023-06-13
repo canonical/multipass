@@ -248,7 +248,15 @@ std::string mp::utils::escape_char(const std::string& in, char c)
 // Escape all characters which need to be escaped in the shell.
 std::string mp::utils::escape_for_shell(const std::string& in)
 {
+    // If the input string is empty, it means that the shell received an empty string enclosed in quotes and removed
+    // them. It must be quoted again for the shell to recognize it.
+    if (in.empty())
+    {
+        return "\'\'";
+    }
+
     std::string ret;
+
     std::back_insert_iterator<std::string> ret_insert = std::back_inserter(ret);
 
     for (char c : in)
