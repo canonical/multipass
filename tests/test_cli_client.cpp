@@ -3283,6 +3283,10 @@ TEST_F(RestoreCommandClient, restoreCmdConfirmsDesruction)
         server->Read(&request);
 
         EXPECT_FALSE(request.destructive());
+
+        mp::RestoreReply reply;
+        reply.set_confirm_destruction(true);
+        server->Write(reply);
         return grpc::Status{};
     });
 
@@ -3294,7 +3298,14 @@ TEST_F(RestoreCommandClient, restoreCmdNotDestructiveNotLiveTermFails)
 {
     EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(false));
 
-    EXPECT_EQ(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal), mp::ReturnCode::CommandFail);
+    EXPECT_CALL(mock_daemon, restore(_, _)).WillOnce([](auto, auto* server) {
+        mp::RestoreReply reply;
+        reply.set_confirm_destruction(true);
+        server->Write(reply);
+        return grpc::Status{};
+    });
+
+    EXPECT_THROW(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal), std::runtime_error);
 }
 
 // authenticate cli tests
