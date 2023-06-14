@@ -3075,12 +3075,13 @@ TEST_P(HelpTestsuite, answers_correctly)
     EXPECT_THAT(cout_stream.str(), HasSubstr(expected_text));
 }
 
-INSTANTIATE_TEST_SUITE_P(Client, HelpTestsuite,
-                         Values(std::make_pair(std::string{"alias"},
-                                               "Create an alias to be executed on a given instance.\n"),
-                                std::make_pair(std::string{"aliases"}, "List available aliases\n"),
-                                std::make_pair(std::string{"unalias"}, "Remove aliases\n"),
-                                std::make_pair(std::string{"prefer"}, "Switch the current alias context\n")));
+INSTANTIATE_TEST_SUITE_P(
+    Client, HelpTestsuite,
+    Values(std::make_pair(std::string{"alias"}, "Create an alias to be executed on a given instance.\n"),
+           std::make_pair(std::string{"aliases"}, "List available aliases\n"),
+           std::make_pair(std::string{"unalias"}, "Remove aliases\n"),
+           std::make_pair(std::string{"prefer"},
+                          "Switch the current alias context. If it does not exist, create it before switching.")));
 
 TEST_F(Client, command_help_is_different_than_general_help)
 {
