@@ -66,8 +66,8 @@ struct MockCertProvider : public CertProvider
         EXPECT_CALL(*this, PEM_signing_key()).WillRepeatedly(Return(client_key));
     }
 
-    MOCK_CONST_METHOD0(PEM_certificate, std::string());
-    MOCK_CONST_METHOD0(PEM_signing_key, std::string());
+    MOCK_METHOD(std::string, PEM_certificate, (), (const, override));
+    MOCK_METHOD(std::string, PEM_signing_key, (), (const, override));
 };
 } // namespace multipass::test
 #endif // MULTIPASS_MOCK_CERT_PROVIDER_H

@@ -31,14 +31,14 @@ struct MockFirewallConfig : public FirewallConfig
 {
     using FirewallConfig::FirewallConfig;
 
-    MOCK_METHOD0(verify_firewall_rules, void());
+    MOCK_METHOD(void, verify_firewall_rules, (), (override));
 };
 
 struct MockFirewallConfigFactory : public FirewallConfigFactory
 {
     using FirewallConfigFactory::FirewallConfigFactory;
 
-    MOCK_CONST_METHOD2(make_firewall_config, FirewallConfig::UPtr(const QString&, const std::string&));
+    MOCK_METHOD(FirewallConfig::UPtr, make_firewall_config, (const QString&, const std::string&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFirewallConfigFactory, FirewallConfigFactory);
 };

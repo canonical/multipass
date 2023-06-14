@@ -46,24 +46,24 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, ipv6()).WillByDefault(Return("::/0"));
     }
 
-    MOCK_METHOD0(start, void());
-    MOCK_METHOD0(stop, void());
-    MOCK_METHOD0(shutdown, void());
-    MOCK_METHOD0(suspend, void());
-    MOCK_METHOD0(current_state, multipass::VirtualMachine::State());
-    MOCK_METHOD0(ssh_port, int());
-    MOCK_METHOD0(ssh_hostname, std::string());
-    MOCK_METHOD1(ssh_hostname, std::string(std::chrono::milliseconds));
-    MOCK_METHOD0(ssh_username, std::string());
-    MOCK_METHOD0(management_ipv4, std::string());
-    MOCK_METHOD1(get_all_ipv4, std::vector<std::string>(const SSHKeyProvider&));
-    MOCK_METHOD0(ipv6, std::string());
-    MOCK_METHOD0(ensure_vm_is_running, void());
-    MOCK_METHOD1(wait_until_ssh_up, void(std::chrono::milliseconds));
-    MOCK_METHOD0(update_state, void());
-    MOCK_METHOD1(update_cpus, void(int num_cores));
-    MOCK_METHOD1(resize_memory, void(const MemorySize& new_size));
-    MOCK_METHOD1(resize_disk, void(const MemorySize& new_size));
+    MOCK_METHOD(void, start, (), (override));
+    MOCK_METHOD(void, stop, (), (override));
+    MOCK_METHOD(void, shutdown, (), (override));
+    MOCK_METHOD(void, suspend, (), (override));
+    MOCK_METHOD(multipass::VirtualMachine::State, current_state, (), (override));
+    MOCK_METHOD(int, ssh_port, (), (override));
+    MOCK_METHOD(std::string, ssh_hostname, (), (override));
+    MOCK_METHOD(std::string, ssh_hostname, (std::chrono::milliseconds), (override));
+    MOCK_METHOD(std::string, ssh_username, (), (override));
+    MOCK_METHOD(std::string, management_ipv4, (), (override));
+    MOCK_METHOD(std::vector<std::string>, get_all_ipv4, (const SSHKeyProvider&), (override));
+    MOCK_METHOD(std::string, ipv6, (), (override));
+    MOCK_METHOD(void, ensure_vm_is_running, (), (override));
+    MOCK_METHOD(void, wait_until_ssh_up, (std::chrono::milliseconds), (override));
+    MOCK_METHOD(void, update_state, (), (override));
+    MOCK_METHOD(void, update_cpus, (int num_cores), (override));
+    MOCK_METHOD(void, resize_memory, (const MemorySize& new_size), (override));
+    MOCK_METHOD(void, resize_disk, (const MemorySize& new_size), (override));
     MOCK_METHOD(std::unique_ptr<MountHandler>, make_native_mount_handler,
                 (const SSHKeyProvider* ssh_key_provider, const std::string& target, const VMMount& mount), (override));
 };

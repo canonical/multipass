@@ -50,7 +50,7 @@ class MockDBusProvider : public mp_dbus::DBusProvider
 {
 public:
     using DBusProvider::DBusProvider;
-    MOCK_CONST_METHOD0(get_system_bus, const mp_dbus::DBusConnection&());
+    MOCK_METHOD(const mp_dbus::DBusConnection&, get_system_bus, (), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockDBusProvider, DBusProvider);
 };
@@ -62,10 +62,10 @@ public:
     {
     }
 
-    MOCK_CONST_METHOD0(is_connected, bool());
-    MOCK_CONST_METHOD0(last_error, QDBusError());
-    MOCK_CONST_METHOD3(get_interface,
-                       std::unique_ptr<mp_dbus::DBusInterface>(const QString&, const QString&, const QString&));
+    MOCK_METHOD(bool, is_connected, (), (const, override));
+    MOCK_METHOD(QDBusError, last_error, (), (const, override));
+    MOCK_METHOD(std::unique_ptr<mp_dbus::DBusInterface>, get_interface,
+                (const QString&, const QString&, const QString&), (const, override));
 };
 
 class MockDBusInterface : public mp_dbus::DBusInterface
@@ -73,13 +73,13 @@ class MockDBusInterface : public mp_dbus::DBusInterface
 public:
     using DBusInterface::DBusInterface;
 
-    MOCK_CONST_METHOD0(is_valid, bool());
-    MOCK_CONST_METHOD0(last_error, QDBusError());
-    MOCK_CONST_METHOD0(interface, QString());
-    MOCK_CONST_METHOD0(path, QString());
-    MOCK_CONST_METHOD0(service, QString());
-    MOCK_METHOD5(call_impl,
-                 QDBusMessage(QDBus::CallMode, const QString&, const QVariant&, const QVariant&, const QVariant&));
+    MOCK_METHOD(bool, is_valid, (), (const, override));
+    MOCK_METHOD(QDBusError, last_error, (), (const, override));
+    MOCK_METHOD(QString, interface, (), (const, override));
+    MOCK_METHOD(QString, path, (), (const, override));
+    MOCK_METHOD(QString, service, (), (const, override));
+    MOCK_METHOD(QDBusMessage, call_impl,
+                (QDBus::CallMode, const QString&, const QVariant&, const QVariant&, const QVariant&), (override));
 };
 
 struct CreateBridgeTest : public Test

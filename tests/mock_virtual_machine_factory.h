@@ -31,24 +31,25 @@ namespace test
 {
 struct MockVirtualMachineFactory : public VirtualMachineFactory
 {
-    MOCK_METHOD2(create_virtual_machine, VirtualMachine::UPtr(const VirtualMachineDescription&, VMStatusMonitor&));
-    MOCK_METHOD1(remove_resources_for, void(const std::string&));
+    MOCK_METHOD(VirtualMachine::UPtr, create_virtual_machine, (const VirtualMachineDescription&, VMStatusMonitor&),
+                (override));
+    MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
 
-    MOCK_METHOD0(fetch_type, FetchType());
-    MOCK_METHOD1(prepare_networking, void(std::vector<NetworkInterface>&));
-    MOCK_METHOD1(prepare_source_image, VMImage(const VMImage&));
-    MOCK_METHOD2(prepare_instance_image, void(const VMImage&, const VirtualMachineDescription&));
-    MOCK_METHOD0(hypervisor_health_check, void());
-    MOCK_METHOD0(get_backend_directory_name, QString());
-    MOCK_METHOD0(get_backend_version_string, QString());
-    MOCK_METHOD5(create_image_vault,
-                 VMImageVault::UPtr(std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&));
-    MOCK_METHOD1(configure, void(VirtualMachineDescription&));
-    MOCK_CONST_METHOD0(networks, std::vector<NetworkInterfaceInfo>());
+    MOCK_METHOD(FetchType, fetch_type, (), (override));
+    MOCK_METHOD(void, prepare_networking, (std::vector<NetworkInterface>&), (override));
+    MOCK_METHOD(VMImage, prepare_source_image, (const VMImage&), (override));
+    MOCK_METHOD(void, prepare_instance_image, (const VMImage&, const VirtualMachineDescription&), (override));
+    MOCK_METHOD(void, hypervisor_health_check, (), (override));
+    MOCK_METHOD(QString, get_backend_directory_name, (), (override));
+    MOCK_METHOD(QString, get_backend_version_string, (), (override));
+    MOCK_METHOD(VMImageVault::UPtr, create_image_vault,
+                (std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&), (override));
+    MOCK_METHOD(void, configure, (VirtualMachineDescription&), (override));
+    MOCK_METHOD(std::vector<NetworkInterfaceInfo>, networks, (), (const, override));
 
     // originally protected:
-    MOCK_METHOD1(create_bridge_with, std::string(const NetworkInterfaceInfo&));
+    MOCK_METHOD(std::string, create_bridge_with, (const NetworkInterfaceInfo&), (override));
 };
-}
-}
+} // namespace test
+} // namespace multipass
 #endif // MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H

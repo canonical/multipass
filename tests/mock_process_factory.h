@@ -73,17 +73,17 @@ private:
 class MockProcess : public Process
 {
 public:
-    MOCK_METHOD0(start, void());
-    MOCK_METHOD0(terminate, void());
-    MOCK_METHOD0(kill, void());
-    MOCK_CONST_METHOD0(running, bool());
-    MOCK_CONST_METHOD0(process_state, ProcessState());
-    MOCK_CONST_METHOD0(error_string, QString());
-    MOCK_CONST_METHOD0(process_id, qint64());
-    MOCK_METHOD1(execute, ProcessState(int));
-    MOCK_METHOD1(write, qint64(const QByteArray&));
-    MOCK_METHOD1(wait_for_started, bool(int msecs));
-    MOCK_METHOD1(wait_for_finished, bool(int msecs));
+    MOCK_METHOD(void, start, (), (override));
+    MOCK_METHOD(void, terminate, (), (override));
+    MOCK_METHOD(void, kill, (), (override));
+    MOCK_METHOD(bool, running, (), (const, override));
+    MOCK_METHOD(ProcessState, process_state, (), (const, override));
+    MOCK_METHOD(QString, error_string, (), (const, override));
+    MOCK_METHOD(qint64, process_id, (), (const, override));
+    MOCK_METHOD(ProcessState, execute, (int), (override));
+    MOCK_METHOD(qint64, write, (const QByteArray&), (override));
+    MOCK_METHOD(bool, wait_for_started, (int msecs), (override));
+    MOCK_METHOD(bool, wait_for_finished, (int msecs), (override));
 
     MockProcess(std::unique_ptr<ProcessSpec>&& spec, std::vector<MockProcessFactory::ProcessInfo>& process_list);
 
@@ -93,8 +93,8 @@ public:
     QProcessEnvironment process_environment() const override;
 
     bool wait_for_ready_read(int msecs = 30000) override;
-    MOCK_METHOD0(read_all_standard_output, QByteArray());
-    MOCK_METHOD0(read_all_standard_error, QByteArray());
+    MOCK_METHOD(QByteArray, read_all_standard_output, (), (override));
+    MOCK_METHOD(QByteArray, read_all_standard_error, (), (override));
     void close_write_channel() override;
     void set_process_channel_mode(QProcess::ProcessChannelMode) override;
     void setup_child_process() override;

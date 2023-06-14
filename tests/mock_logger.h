@@ -33,8 +33,10 @@ class MockLogger : public multipass::logging::Logger, public PrivatePassProvider
 public:
     MockLogger(const PrivatePass&, const multipass::logging::Level logging_level);
 
-    MOCK_CONST_METHOD3(log, void(multipass::logging::Level level, multipass::logging::CString category,
-                                 multipass::logging::CString message));
+    MOCK_METHOD(void, log,
+                (multipass::logging::Level level, multipass::logging::CString category,
+                 multipass::logging::CString message),
+                (const, override));
 
     class Scope
     {
