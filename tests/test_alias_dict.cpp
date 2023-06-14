@@ -478,7 +478,7 @@ INSTANTIATE_TEST_SUITE_P(
                            "No aliases defined.\n", "active_context: default\naliases:\n  default: ~\n"),
            std::make_tuple(
                AliasesVector{{"lsp", {"primary", "ls", "map"}}, {"llp", {"primary", "ls", "map"}}},
-               csv_head + "llp,primary,ls,map,default\nlsp,primary,ls,map,default\n",
+               csv_head + "llp,primary,ls,map,default*\nlsp,primary,ls,map,default*\n",
                "{\n    \"active-context\": \"default\",\n    \"contexts\": {\n"
                "        \"default\": {\n"
                "            \"llp\": {\n"
@@ -609,20 +609,21 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary, DaemonAliasTestsuite,
-    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,map,default\n",
-                           std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}}, csv_head + "lsp,primary,ls,map,default\n",
-                           std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
-                           csv_head, std::vector<std::string>{"lsp", "lsz"}, std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
-                           csv_head, std::vector<std::string>{}, std::vector<std::string>{"lsp", "lsz"}),
-           std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}},
-                           csv_head, std::vector<std::string>{"lsp"}, std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,map,default\n",
-                           std::vector<std::string>{}, std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}}, csv_head,
-                           std::vector<std::string>{}, std::vector<std::string>{"lsz", "lsp"})));
+    Values(
+        std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,map,default*\n",
+                        std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
+        std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}}, csv_head + "lsp,primary,ls,map,default*\n",
+                        std::vector<std::string>{"lsz"}, std::vector<std::string>{}),
+        std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}}, csv_head,
+                        std::vector<std::string>{"lsp", "lsz"}, std::vector<std::string>{}),
+        std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}}, csv_head,
+                        std::vector<std::string>{}, std::vector<std::string>{"lsp", "lsz"}),
+        std::make_tuple(CmdList{{"delete", "primary"}, {"delete", "primary", "real-zebraphant", "--purge"}}, csv_head,
+                        std::vector<std::string>{"lsp"}, std::vector<std::string>{"lsz"}),
+        std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}}, csv_head + "lsp,primary,ls,map,default*\n",
+                        std::vector<std::string>{}, std::vector<std::string>{"lsz"}),
+        std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}}, csv_head,
+                        std::vector<std::string>{}, std::vector<std::string>{"lsz", "lsp"})));
 
 TEST_F(AliasDictionary, unexistingActiveContextThrows)
 {

@@ -969,7 +969,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
     cout_stream.str("");
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,map,default\n" + alias_name +
+    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,map,default*\n" + alias_name +
                                "," + name + "," + alias_command + "," + alias_wdir + "," + name + "\n";
     EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
@@ -1020,7 +1020,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliasesIf
     cout_stream.str("");
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,map,default\n";
+    auto expected_csv_string = csv_header + alias_name + ",original_instance,a_command,map,default*\n";
     EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
