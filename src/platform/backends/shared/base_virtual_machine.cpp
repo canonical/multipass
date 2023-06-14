@@ -40,6 +40,12 @@ namespace mpu = multipass::utils;
 
 namespace
 {
+using St = mp::VirtualMachine::State;
+void assert_vm_stopped(St state)
+{
+    assert(state == St::off || state == St::stopped);
+}
+
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
@@ -51,8 +57,7 @@ constexpr auto yes_overwrite = true;
 namespace multipass
 {
 
-BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name)
-    : VirtualMachine(state, vm_name){};
+BaseVirtualMachine::BaseVirtualMachine(St state, const std::string& vm_name) : VirtualMachine(state, vm_name){};
 
 BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
 
@@ -60,7 +65,7 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
 {
     std::vector<std::string> all_ipv4;
 
-    if (current_state() == State::running)
+    if (current_state() == St::running)
     {
         QString ip_a_output;
 
@@ -146,6 +151,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 
     {
         std::unique_lock lock{snapshot_mutex};
+        assert_vm_stopped(state); // precondition
+
         if (snapshot_count > max_snapshots)
             throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded", max_snapshots)};
         snapshot_name = name.empty() ? generate_snapshot_name() : name;
@@ -336,10 +343,8 @@ void BaseVirtualMachine::restore_rollback_helper(const QString& head_path, const
 
 void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs)
 {
-    using St [[maybe_unused]] = VirtualMachine::State;
-
     std::unique_lock lock{snapshot_mutex};
-    assert(state == St::off || state == St::stopped);
+    assert_vm_stopped(state); // precondition
 
     auto snapshot = snapshots.at(name); // TODO@snapshots convert out_of_range exception, here and `get_snapshot`
 
