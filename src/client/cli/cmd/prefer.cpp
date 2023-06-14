@@ -49,7 +49,7 @@ QString cmd::Prefer::short_help() const
 
 QString cmd::Prefer::description() const
 {
-    return QStringLiteral("Switch the current alias context");
+    return QStringLiteral("Switch the current alias context. If it does not exist, create it before switching.");
 }
 
 mp::ParseCode cmd::Prefer::parse_args(mp::ArgParser* parser)
