@@ -1158,7 +1158,7 @@ std::unordered_map<std::string, std::unordered_set<std::string>> map_snapshots_t
     for (const auto& it : instances)
     {
         if (it.snapshot_name().empty())
-            instance_snapshots_map[it.instance_name()];
+            instance_snapshots_map[it.instance_name()].clear();
         else if (const auto& entry = instance_snapshots_map.find(it.instance_name());
                  entry == instance_snapshots_map.end() || !entry->second.empty())
             instance_snapshots_map[it.instance_name()].insert(it.snapshot_name());
