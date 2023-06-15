@@ -2267,60 +2267,59 @@ try // clang-format on
         const bool purge = request->purge();
         auto instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
 
-        for (const auto& vm_it : instance_selection.operative_selection)
+        // start with deleted instances, to avoid iterator invalidation when moving instances there
+        for (const auto& selection : {instance_selection.deleted_selection, instance_selection.operative_selection})
         {
-            const auto& name = vm_it->first;
-            auto& instance = vm_it->second;
-            assert(!vm_instance_specs[name].deleted);
-
-            auto contained_in_snapshots_map = instance_snapshots_map.count(name);
-            assert(contained_in_snapshots_map || !request->instances_snapshots_size());
-
-            if (!contained_in_snapshots_map || instance_snapshots_map[name].empty()) // we need to delete the instance
-            {
-                if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
-                    delayed_shutdown_instances.erase(name);
-
-                mounts[name].clear();
-                instance->shutdown();
-
-                if (purge)
-                {
-                    release_resources(name);
-                    response.add_purged_instances(name);
-                }
-                else
-                {
-                    deleted_instances[name] = std::move(instance);
-                    vm_instance_specs[name].deleted = true;
-                }
-
-                operative_instances.erase(vm_it);
-            }
-            else // we need to delete snapshots
-            {
-                assert(purge && "precondition: snapshots can only be purged");
-
-                for (const auto& snapshot_name : instance_snapshots_map[name])
-                {
-                    (void)snapshot_name; // TODO@ricab delete snapshot
-                }
-            }
-        }
-
-        if (purge)
-        {
-            for (const auto& vm_it : instance_selection.deleted_selection)
+            for (const auto& vm_it : selection)
             {
                 const auto& name = vm_it->first;
-                assert(vm_instance_specs[name].deleted);
-                response.add_purged_instances(name);
-                release_resources(name);
-                deleted_instances.erase(vm_it);
+
+                auto contained_in_snapshots_map = instance_snapshots_map.count(name);
+                assert(contained_in_snapshots_map || !request->instances_snapshots_size());
+
+                if (!contained_in_snapshots_map || instance_snapshots_map[name].empty()) // we're asked to delete the VM
+                {
+                    auto& instance = vm_it->second;
+                    auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
+
+                    if (!vm_instance_specs[name].deleted)
+                    {
+                        erase_from = &operative_instances;
+                        if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
+                            delayed_shutdown_instances.erase(name);
+
+                        mounts[name].clear();
+                        instance->shutdown();
+
+                        if (!purge)
+                        {
+                            vm_instance_specs[name].deleted = true;
+                            deleted_instances[name] = std::move(instance);
+                        }
+                    }
+
+                    if (purge)
+                    {
+                        response.add_purged_instances(name);
+                        release_resources(name);
+                    }
+
+                    if (erase_from)
+                        erase_from->erase(vm_it);
+
+                    persist_instances();
+                }
+                else // we're asked to delete snapshots
+                {
+                    assert(purge && "precondition: snapshots can only be purged");
+
+                    for (const auto& snapshot_name : instance_snapshots_map[name])
+                    {
+                        (void)snapshot_name; // TODO@ricab delete snapshot
+                    }
+                }
             }
         }
-
-        persist_instances();
     }
 
     server->Write(response);
