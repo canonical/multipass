@@ -29,6 +29,7 @@
 #include <QMap>
 #include <QUrl>
 
+#include <future>
 #include <utility>
 
 namespace mp = multipass;
@@ -103,28 +104,44 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
 
 auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader)
 {
-    std::vector<mp::VMImageInfo> default_images;
+    std::vector<mp::VMImageInfo> default_images(custom_image_info.size());
 
-    for (const auto& image_info : custom_image_info.toStdMap())
+    auto fetch_one_image_info_and_write_to_index =
+        [&default_images](int index, mp::URLDownloader* url_downloader,
+                          const std::pair<QString, CustomImageInfo>& image_info_pair) -> void {
+        const QString& image_file_name = image_info_pair.first;
+        const CustomImageInfo& custom_image_info = image_info_pair.second;
+        const QString image_url{custom_image_info.url_prefix + image_info_pair.first};
+        const QString hash_url{custom_image_info.url_prefix + QStringLiteral("SHA256SUMS")};
+
+        const auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file_name);
+
+        default_images[index] = mp::VMImageInfo{custom_image_info.aliases,
+                                                custom_image_info.os,
+                                                custom_image_info.release,
+                                                custom_image_info.release_string,
+                                                true,      // supported
+                                                image_url, // image_location
+                                                base_image_info.hash, // id
+                                                "",
+                                                base_image_info.last_modified, // version
+                                                0,
+                                                true};
+    };
+
+    std::vector<std::future<void>> empty_futures;
+    empty_futures.reserve(custom_image_info.size());
+    int index = 0;
+    for (const auto& image_info_pair : custom_image_info.toStdMap())
     {
-        auto image_file = image_info.first;
-        QString image_url{image_info.second.url_prefix + image_info.first};
-        QString hash_url{image_info.second.url_prefix + QStringLiteral("SHA256SUMS")};
+        empty_futures.emplace_back(std::async(std::launch::async, fetch_one_image_info_and_write_to_index, index,
+                                              url_downloader, image_info_pair));
+        ++index;
+    }
 
-        auto base_image_info = base_image_info_for(url_downloader, image_url, hash_url, image_file);
-        mp::VMImageInfo full_image_info{image_info.second.aliases,
-                                        image_info.second.os,
-                                        image_info.second.release,
-                                        image_info.second.release_string,
-                                        true,      // supported
-                                        image_url, // image_location
-                                        base_image_info.hash, // id
-                                        "",
-                                        base_image_info.last_modified, // version
-                                        0,
-                                        true};
-
-        default_images.push_back(full_image_info);
+    for (auto& empty_future : empty_futures)
+    {
+        empty_future.get(); // use get instead of wait to retain the exception throwing
     }
 
     auto map = map_aliases_to_vm_info_for(default_images);
