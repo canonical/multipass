@@ -141,9 +141,9 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    if (aliases.get_alias(alias_name))
+    if (aliases.get_alias_from_current_context(alias_name))
     {
-        cerr << fmt::format("Alias '{}' already exists\n", alias_name);
+        cerr << fmt::format("Alias '{}' already exists in current context\n", alias_name);
         return ParseCode::CommandLineError;
     }
 

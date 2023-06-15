@@ -29,6 +29,7 @@ add_library(commands STATIC
   list.cpp
   mount.cpp
   networks.cpp
+  prefer.cpp
   purge.cpp
   recover.cpp
   remote_settings_handler.cpp
