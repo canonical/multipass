@@ -1148,12 +1148,13 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
-template <typename Instances>
-std::unordered_map<std::string, std::unordered_set<std::string>> map_snapshots_to_instances(const Instances& instances)
+using InstanceSnapshotPairs = google::protobuf::RepeatedPtrField<mp::InstanceSnapshotPair>;
+std::unordered_map<std::string, std::unordered_set<std::string>>
+map_snapshots_to_instances(const InstanceSnapshotPairs& instances_snapshots)
 {
     std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
 
-    for (const auto& it : instances)
+    for (const auto& it : instances_snapshots)
     {
         const auto& instance = it.instance_name();
         const auto& snapshot = it.snapshot_name();
