@@ -1161,10 +1161,10 @@ bool is_ipv4_valid(const std::string& ipv4)
 }
 
 using InstanceSnapshotPairs = google::protobuf::RepeatedPtrField<mp::InstanceSnapshotPair>;
-std::unordered_map<std::string, std::unordered_set<std::string>>
-map_snapshots_to_instances(const InstanceSnapshotPairs& instances_snapshots)
+using InstanceSnapshotsMap = std::unordered_map<std::string, std::unordered_set<std::string>>;
+InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& instances_snapshots)
 {
-    std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
+    InstanceSnapshotsMap instance_snapshots_map;
 
     for (const auto& it : instances_snapshots)
     {
@@ -1745,7 +1745,7 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
-    std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
+    InstanceSnapshotsMap instance_snapshots_map;
     auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
