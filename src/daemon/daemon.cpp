@@ -2222,6 +2222,7 @@ try // clang-format on
 
                     if (!vm_instance_specs[name].deleted)
                     {
+                        mpl::log(mpl::Level::debug, category, fmt::format("Deleting instance: {}", name));
                         erase_from = &operative_instances;
                         if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
                             delayed_shutdown_instances.erase(name);
@@ -2233,13 +2234,18 @@ try // clang-format on
                         {
                             vm_instance_specs[name].deleted = true;
                             deleted_instances[name] = std::move(instance);
+                            mpl::log(mpl::Level::debug, category, fmt::format("Instance deleted: {}", name));
                         }
                     }
+                    else
+                        mpl::log(mpl::Level::debug, category, fmt::format("Instance is already deleted: {}", name));
 
                     if (purge)
                     {
                         response.add_purged_instances(name);
                         release_resources(name);
+
+                        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
                     }
 
                     if (erase_from)
@@ -2253,7 +2259,8 @@ try // clang-format on
 
                     for (const auto& snapshot_name : instance_snapshots_map[name])
                     {
-                        (void)snapshot_name; // TODO@ricab delete snapshot
+                        mpl::log(mpl::Level::info, "TODO", // TODO@ricab actually delete snapshot
+                                 fmt::format("placeholder for snapshot deletion: {}.{}", name, snapshot_name));
                     }
                 }
             }
