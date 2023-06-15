@@ -1426,8 +1426,10 @@ try // clang-format on
 
     for (const auto& del : deleted_instances)
     {
-        release_resources(del.first);
-        response.add_purged_instances(del.first);
+        const auto& name = del.first;
+        release_resources(name);
+        response.add_purged_instances(name);
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
     }
 
     deleted_instances.clear();
@@ -1970,6 +1972,7 @@ try // clang-format on
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
             init_mounts(name);
+            mpl::log(mpl::Level::debug, category, fmt::format("Instance recovered: {}", name));
         }
         persist_instances();
     }
