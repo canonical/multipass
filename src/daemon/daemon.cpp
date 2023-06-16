@@ -2269,6 +2269,7 @@ try // clang-format on
     if (status.ok())
     {
         const bool purge = request->purge();
+        auto instances_dirty = false;
         auto instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
 
         // start with deleted instances, to avoid iterator invalidation when moving instances there
@@ -2283,8 +2284,7 @@ try // clang-format on
 
                 if (!contained_in_snapshots_map || instance_snapshots_map[name].empty()) // we're asked to delete the VM
                 {
-                    delete_vm(vm_it, purge, response);
-                    persist_instances(); // TODO@ricab persist only at the end, but only if there were deleted instances
+                    instances_dirty |= delete_vm(vm_it, purge, response);
                 }
                 else // we're asked to delete snapshots
                 {
@@ -2298,6 +2298,9 @@ try // clang-format on
                 }
             }
         }
+
+        if (instances_dirty)
+            persist_instances();
     }
 
     server->Write(response);
@@ -2984,10 +2987,11 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
 }
 
-void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response)
+bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response)
 {
     auto& [name, instance] = *vm_it;
     auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
+    auto instances_dirty = false;
 
     if (!vm_instance_specs[name].deleted)
     {
@@ -3003,6 +3007,8 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
         {
             vm_instance_specs[name].deleted = true;
             deleted_instances[name] = std::move(instance);
+
+            instances_dirty = true;
             mpl::log(mpl::Level::debug, category, fmt::format("Instance deleted: {}", name));
         }
     }
@@ -3014,11 +3020,14 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
         response.add_purged_instances(name);
         release_resources(name);
 
+        instances_dirty = true;
         mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
     }
 
     if (erase_from)
         erase_from->erase(vm_it);
+
+    return instances_dirty;
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
