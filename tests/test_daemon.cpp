@@ -125,7 +125,6 @@ struct Daemon : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true")); /* TODO should probably add
                              a few more tests for `false`, since there are different portions of code depending on it */
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
-        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("nohk")); // TODO hk migration, remove
     }
 
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};

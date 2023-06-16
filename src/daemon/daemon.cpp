@@ -20,7 +20,6 @@
 #include "instance_settings_handler.h"
 
 #include <multipass/alias_definition.h>
-#include <multipass/cloud_init_iso.h> // TODO hk migration, remove
 #include <multipass/constants.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -30,7 +29,6 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
-#include <multipass/file_ops.h> // TODO hk migration, remove
 #include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
@@ -39,13 +37,10 @@
 #include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
-#include <multipass/process/qemuimg_process_spec.h> // TODO hk migration, remove
-#include <multipass/process/simple_process_spec.h>  // TODO hk migration, remove
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
-#include <multipass/standard_paths.h> // TODO hk migration, remove
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -55,8 +50,6 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
-
-#include <scope_guard.hpp> // TODO hk migration, remove
 
 #include <yaml-cpp/yaml.h>
 
@@ -74,10 +67,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cerrno>  // TODO hk migration, remove
-#include <cstring> // TODO hk migration, remove
 #include <functional>
-#include <iterator> // TODO hk migration, remove
 #include <optional>
 #include <stdexcept>
 #include <type_traits>
