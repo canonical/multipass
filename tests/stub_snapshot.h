@@ -47,6 +47,11 @@ struct StubSnapshot : public Snapshot
         return nullptr;
     }
 
+    std::shared_ptr<Snapshot> get_parent() override
+    {
+        return nullptr;
+    }
+
     int get_num_cores() const noexcept override
     {
         return 0;
@@ -90,7 +95,7 @@ struct StubSnapshot : public Snapshot
     {
     }
 
-    void set_parent(std::shared_ptr<const Snapshot>) override
+    void set_parent(std::shared_ptr<Snapshot>) override
     {
     }
 

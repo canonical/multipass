@@ -57,13 +57,13 @@ void checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
 }
 } // namespace
 
-mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment,
-                               std::shared_ptr<const Snapshot> parent, const VMSpecs& specs, const QString& image_path)
-    : BaseSnapshot(name, comment, std::move(parent), specs), image_path{image_path}
+mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
+                               const QString& image_path, std::shared_ptr<Snapshot> parent)
+    : BaseSnapshot(name, comment, specs, std::move(parent)), image_path{image_path}
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const mp::QemuVirtualMachine& vm, const QString& image_path)
+mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const QString& image_path, QemuVirtualMachine& vm)
     : BaseSnapshot(json, vm), image_path{image_path}
 {
 }
