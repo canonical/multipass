@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_QEMU_SNAPSHOT_H
 #define MULTIPASS_QEMU_SNAPSHOT_H
 
+#include "qemu_virtual_machine.h"
 #include <shared/base_snapshot.h>
 
 namespace multipass
@@ -27,9 +28,9 @@ class QemuVirtualMachine;
 class QemuSnapshot : public BaseSnapshot
 {
 public:
-    QemuSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
-                 const VMSpecs& specs, const QString& image_path);
-    QemuSnapshot(const QJsonObject& json, const QemuVirtualMachine& vm, const QString& image_path);
+    QemuSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs, const QString& image_path,
+                 std::shared_ptr<Snapshot> parent);
+    QemuSnapshot(const QJsonObject& json, const QString& image_path, QemuVirtualMachine& vm);
 
 protected:
     void capture_impl() override;
