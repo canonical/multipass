@@ -39,8 +39,8 @@ public:
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
-    QString get_backend_version_string() override;
-    QString get_backend_directory_name() override;
+    QString get_backend_version_string() const override;
+    QString get_backend_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
 
 private:

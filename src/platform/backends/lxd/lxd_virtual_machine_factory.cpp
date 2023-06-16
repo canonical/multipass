@@ -205,7 +205,7 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     }
 }
 
-QString mp::LXDVirtualMachineFactory::get_backend_version_string()
+QString mp::LXDVirtualMachineFactory::get_backend_version_string() const
 {
     auto reply = lxd_request(manager.get(), "GET", base_url);
 
