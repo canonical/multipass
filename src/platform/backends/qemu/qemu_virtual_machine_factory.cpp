@@ -46,7 +46,8 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_di
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::QemuVirtualMachine>(desc, qemu_platform.get(), monitor);
+    return std::make_unique<mp::QemuVirtualMachine>(desc, qemu_platform.get(), monitor,
+                                                    MP_UTILS.make_dir(get_instance_directory_name(desc.vm_name)));
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
