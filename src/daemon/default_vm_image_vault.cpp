@@ -444,10 +444,6 @@ void mp::DefaultVMImageVault::remove(const std::string& name)
     if (name_entry == instance_image_records.end())
         return;
 
-    QDir instance_dir{instances_dir};
-    if (instance_dir.cd(QString::fromStdString(name)))
-        instance_dir.removeRecursively();
-
     instance_image_records.erase(name);
     persist_instance_records();
 }
