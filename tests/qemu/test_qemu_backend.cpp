@@ -80,6 +80,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       {},
                                                       {}};
     mpt::TempDir data_dir;
+    mpt::TempDir instance_dir;
     const std::string tap_device{"tapfoo"};
     const QString bridge_name{"dummy-bridge"};
     const std::string subnet{"192.168.64"};
@@ -623,7 +624,7 @@ TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
         return std::optional<mp::IPAddress>{expected_ip};
     });
 
-    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -638,7 +639,7 @@ TEST_F(QemuBackend, gets_management_ip)
 
     EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(expected_ip));
 
-    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -652,7 +653,7 @@ TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
 
     EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(std::nullopt));
 
-    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -666,7 +667,7 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 
     ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([](auto...) { return std::nullopt; });
 
-    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 

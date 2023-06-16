@@ -20,6 +20,7 @@
 
 #include "disabled_copy_move.h"
 #include "ip_address.h"
+#include "path.h"
 
 #include <QDir>
 #include <QJsonObject>
@@ -100,14 +101,18 @@ public:
 
     VirtualMachine::State state;
     const std::string vm_name;
+    const QDir instance_dir;
     std::condition_variable state_wait;
     std::mutex state_mutex;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
 
 protected:
-    VirtualMachine(VirtualMachine::State state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};
-    VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name){};
+    VirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir)
+        : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
+    VirtualMachine(const std::string& vm_name, const Path& instance_dir)
+        : VirtualMachine(State::off, vm_name, instance_dir){};
+    VirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name, ""){};
 };
 } // namespace multipass
 #endif // MULTIPASS_VIRTUAL_MACHINE_H
