@@ -207,8 +207,6 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 
 void BaseVirtualMachine::delete_snapshot(const std::string& name)
 {
-    mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleting snapshot: {}", name));
-
     if (auto it = snapshots.find(name); it != snapshots.end())
     {
         auto snapshot = it->second;
@@ -219,6 +217,7 @@ void BaseVirtualMachine::delete_snapshot(const std::string& name)
                 other->set_parent(snapshot->get_parent());
 
         snapshots.erase(it);
+        mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
     }
     else
         throw NoSuchSnapshot{vm_name, name};
