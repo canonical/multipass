@@ -43,7 +43,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
     MOCK_METHOD(void, prepare_instance_image, (const mp::VMImage&, const mp::VirtualMachineDescription&), (override));
     MOCK_METHOD(void, hypervisor_health_check, (), (override));
-    MOCK_METHOD(QString, get_backend_version_string, (), (override));
+    MOCK_METHOD(QString, get_backend_version_string, (), (const, override));
     MOCK_METHOD(void, prepare_networking, (std::vector<mp::NetworkInterface>&), (override));
     MOCK_METHOD(std::vector<mp::NetworkInterfaceInfo>, networks, (), (const, override));
     MOCK_METHOD(std::string, create_bridge_with, (const mp::NetworkInterfaceInfo&), (override));

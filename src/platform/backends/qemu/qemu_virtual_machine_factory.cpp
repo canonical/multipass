@@ -70,7 +70,7 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
     qemu_platform->platform_health_check();
 }
 
-QString mp::QemuVirtualMachineFactory::get_backend_version_string()
+QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
 {
     auto process =
         mp::platform::make_process(simple_process_spec(QString("qemu-system-%1").arg(HOST_ARCH), {"--version"}));
@@ -109,7 +109,7 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
     return QString("qemu-unknown");
 }
 
-QString mp::QemuVirtualMachineFactory::get_backend_directory_name()
+QString mp::QemuVirtualMachineFactory::get_backend_directory_name() const
 {
     return qemu_platform->get_directory_name();
 }
