@@ -29,6 +29,7 @@
 #include <multipass/platform.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -101,7 +102,8 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
                                                                               VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name,
-                                                   storage_pool);
+                                                   storage_pool,
+                                                   MP_UTILS.make_dir(get_instance_directory_name(desc.vm_name)));
 }
 
 void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
