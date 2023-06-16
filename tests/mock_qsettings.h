@@ -29,20 +29,22 @@ class MockQSettings : public WrappedQSettings
 {
 public:
     using WrappedQSettings::WrappedQSettings; // promote visibility
-    MOCK_CONST_METHOD0(status, QSettings::Status());
-    MOCK_CONST_METHOD0(fileName, QString());
-    MOCK_CONST_METHOD2(value_impl, QVariant(const QString& key, const QVariant& default_value)); // promote visibility
-    MOCK_METHOD1(setIniCodec, void(const char* codec_name));
-    MOCK_METHOD0(sync, void());
-    MOCK_METHOD2(setValue, void(const QString& key, const QVariant& value));
-    MOCK_METHOD1(remove, void(const QString&));
+    MOCK_METHOD(QSettings::Status, status, (), (const, override));
+    MOCK_METHOD(QString, fileName, (), (const, override));
+    MOCK_METHOD(QVariant, value_impl, (const QString& key, const QVariant& default_value),
+                (const, override)); // promote visibility
+    MOCK_METHOD(void, setIniCodec, (const char* codec_name), (override));
+    MOCK_METHOD(void, sync, (), (override));
+    MOCK_METHOD(void, setValue, (const QString& key, const QVariant& value), (override));
+    MOCK_METHOD(void, remove, (const QString&), (override));
 };
 
 class MockQSettingsProvider : public WrappedQSettingsFactory
 {
 public:
     using WrappedQSettingsFactory::WrappedQSettingsFactory;
-    MOCK_CONST_METHOD2(make_wrapped_qsettings, std::unique_ptr<WrappedQSettings>(const QString&, QSettings::Format));
+    MOCK_METHOD(std::unique_ptr<WrappedQSettings>, make_wrapped_qsettings, (const QString&, QSettings::Format),
+                (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, WrappedQSettingsFactory);
 };

@@ -21,6 +21,9 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/platform.h>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
@@ -32,35 +35,29 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    if (!parser->isSet(all_option_name))
+    auto old_active_context = aliases.active_context_name();
+
+    for (const auto& [context_from, alias_only] : aliases_to_remove)
     {
-        std::vector<std::string> bad_aliases;
-
-        for (const auto& alias_to_remove : aliases_to_remove)
-            if (!aliases.exists_alias(alias_to_remove))
-                bad_aliases.push_back(alias_to_remove);
-
-        if (!bad_aliases.empty())
-        {
-            cerr << fmt::format("Nonexistent {}: {}.\n", bad_aliases.size() == 1 ? "alias" : "aliases",
-                                fmt::join(bad_aliases, ", "));
-
-            return ReturnCode::CommandLineError;
-        }
-    }
-
-    for (const auto& alias_to_remove : aliases_to_remove)
-    {
-        aliases.remove_alias(alias_to_remove); // We know removal won't fail because the alias exists.
+        aliases.set_active_context(context_from);
+        aliases.remove_alias(alias_only); // We know removal won't fail because the alias exists.
         try
         {
-            MP_PLATFORM.remove_alias_script(alias_to_remove);
+            MP_PLATFORM.remove_alias_script(context_from + "." + alias_only);
+
+            if (!aliases.exists_alias(alias_only))
+            {
+                MP_PLATFORM.remove_alias_script(alias_only);
+            }
         }
         catch (std::runtime_error& e)
         {
-            cerr << fmt::format("Warning: '{}' when removing alias script for {}\n", e.what(), alias_to_remove);
+            cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n", e.what(), context_from,
+                                alias_only);
         }
     }
+
+    aliases.set_active_context(old_active_context);
 
     return ReturnCode::Ok;
 }
@@ -84,7 +81,7 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of aliases to remove", "<name> [<name> ...]");
 
-    QCommandLineOption all_option(all_option_name, "Remove all aliases");
+    QCommandLineOption all_option(all_option_name, "Remove all aliases from current context");
     parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
@@ -95,15 +92,37 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
+    std::vector<std::string> bad_aliases;
+
     if (parser->isSet(all_option_name))
     {
-        for (auto definition_it = aliases.cbegin(); definition_it != aliases.cend(); ++definition_it)
-            aliases_to_remove.emplace(definition_it->first);
+        const auto& active_context_name = aliases.active_context_name();
+        const auto& active_context = aliases.get_active_context();
+
+        for (auto definition_it = active_context.cbegin(); definition_it != active_context.cend(); ++definition_it)
+            aliases_to_remove.emplace_back(active_context_name, definition_it->first);
     }
     else
     {
         for (const auto& arg : parser->positionalArguments())
-            aliases_to_remove.emplace(arg.toStdString());
+        {
+            auto arg_str = arg.toStdString();
+
+            auto context_and_alias = aliases.get_context_and_alias(arg_str);
+
+            if (context_and_alias)
+                aliases_to_remove.emplace_back(context_and_alias->first, context_and_alias->second);
+            else
+                bad_aliases.push_back(arg_str);
+        }
+    }
+
+    if (!bad_aliases.empty())
+    {
+        cerr << fmt::format("Nonexistent {}: {}.\n", bad_aliases.size() == 1 ? "alias" : "aliases",
+                            fmt::join(bad_aliases, ", "));
+
+        return ParseCode::CommandLineError;
     }
 
     return ParseCode::Ok;

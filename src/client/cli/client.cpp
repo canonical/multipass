@@ -29,6 +29,7 @@
 #include "cmd/list.h"
 #include "cmd/mount.h"
 #include "cmd/networks.h"
+#include "cmd/prefer.h"
 #include "cmd/purge.h"
 #include "cmd/recover.h"
 #include "cmd/remote_settings_handler.h"
@@ -90,6 +91,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::List>();
     add_command<cmd::Networks>();
     add_command<cmd::Mount>();
+    add_command<cmd::Prefer>(aliases);
     add_command<cmd::Recover>();
     add_command<cmd::Set>();
     add_command<cmd::Shell>();

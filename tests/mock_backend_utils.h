@@ -30,10 +30,10 @@ class MockBackend : public Backend
 public:
     using Backend::Backend;
 
-    MOCK_METHOD1(create_bridge_with, std::string(const std::string&));
-    MOCK_CONST_METHOD2(get_subnet, std::string(const Path&, const QString&));
-    MOCK_METHOD0(check_for_kvm_support, void());
-    MOCK_METHOD0(check_if_kvm_is_in_use, void());
+    MOCK_METHOD(std::string, create_bridge_with, (const std::string&), (override));
+    MOCK_METHOD(std::string, get_subnet, (const Path&, const QString&), (const, override));
+    MOCK_METHOD(void, check_for_kvm_support, (), (override));
+    MOCK_METHOD(void, check_if_kvm_is_in_use, (), (override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockBackend, Backend);
 };
@@ -43,9 +43,9 @@ class MockLinuxSysCalls : public LinuxSysCalls
 public:
     using LinuxSysCalls::LinuxSysCalls;
 
-    MOCK_CONST_METHOD1(close, int(int));
-    MOCK_CONST_METHOD3(ioctl, int(int, unsigned long, unsigned long));
-    MOCK_CONST_METHOD2(open, int(const char*, mode_t));
+    MOCK_METHOD(int, close, (int), (const, override));
+    MOCK_METHOD(int, ioctl, (int, unsigned long, unsigned long), (const, override));
+    MOCK_METHOD(int, open, (const char*, mode_t), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockLinuxSysCalls, LinuxSysCalls);
 };

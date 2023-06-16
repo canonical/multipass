@@ -27,7 +27,7 @@ namespace multipass
 {
 struct ClientLaunchData
 {
-    AliasMap aliases_to_be_created;
+    AliasContext aliases_to_be_created;
     std::vector<std::string> workspaces_to_be_created;
 };
 } // namespace multipass

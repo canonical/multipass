@@ -13,18 +13,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#ifndef MULTIPASS_JSON_WRITER_H
-#define MULTIPASS_JSON_WRITER_H
+#ifndef MULTIPASS_PREFER_H
+#define MULTIPASS_PREFER_H
 
-#include <QJsonObject>
+#include <multipass/cli/command.h>
+
 #include <QString>
 
 namespace multipass
 {
-void write_json(const QJsonObject& root, QString file_name);
-}
-#endif // MULTIPASS_JSON_WRITER_H
+class AliasDict;
+
+namespace cmd
+{
+class Prefer final : public Command
+{
+public:
+    using Command::Command;
+
+    Prefer(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    {
+    }
+
+    ReturnCode run(ArgParser* parser) override;
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    ParseCode parse_args(ArgParser* parser);
+
+    AliasDict aliases;
+};
+} // namespace cmd
+} // namespace multipass
+#endif // MULTIPASS_PREFER_H

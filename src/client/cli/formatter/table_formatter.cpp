@@ -276,25 +276,37 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     if (aliases.empty())
         return "No aliases defined.\n";
 
-    const auto alias_width = mp::format::column_width(
-        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.first.length(); }, 7);
-    const auto instance_width = mp::format::column_width(
-        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.second.instance.length(); }, 10);
-    const auto command_width = mp::format::column_width(
-        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.second.command.length(); }, 9);
+    auto width = [&aliases](const auto get_width, int minimum_width) -> int {
+        return mp::format::column_width(
+            aliases.cbegin(), aliases.cend(),
+            [&, get_width, minimum_width](const auto& ctx) -> int {
+                return mp::format::column_width(
+                    ctx.second.cbegin(), ctx.second.cend(),
+                    [&get_width](const auto& alias) -> int { return get_width(alias); }, minimum_width, 2);
+            },
+            minimum_width, 0);
+    };
 
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    const auto alias_width = width([](const auto& alias) -> int { return alias.first.length(); }, 7);
+    const auto instance_width = width([](const auto& alias) -> int { return alias.second.instance.length(); }, 10);
+    const auto command_width = width([](const auto& alias) -> int { return alias.second.command.length(); }, 9);
+    const auto context_width = mp::format::column_width(
+        aliases.cbegin(), aliases.cend(), [](const auto& alias) -> int { return alias.first.length(); }, 10);
+
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
 
     fmt::format_to(std::back_inserter(buf), row_format, "Alias", alias_width, "Instance", instance_width, "Command",
-                   command_width, "Working directory");
+                   command_width, "Context", context_width, "Working directory");
 
-    for (const auto& elt : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sort_dict(aliases))
     {
-        const auto& name = elt.first;
-        const auto& def = elt.second;
+        std::string shown_context = context_name == aliases.active_context_name() ? context_name + "*" : context_name;
 
-        fmt::format_to(std::back_inserter(buf), row_format, name, alias_width, def.instance, instance_width,
-                       def.command, command_width, def.working_directory);
+        for (const auto& [name, def] : sort_dict(context_contents))
+        {
+            fmt::format_to(std::back_inserter(buf), row_format, name, alias_width, def.instance, instance_width,
+                           def.command, command_width, shown_context, context_width, def.working_directory);
+        }
     }
 
     return fmt::to_string(buf);

@@ -37,7 +37,7 @@ struct MockNetworkAccessManager : public NetworkAccessManager
         ON_CALL(*this, createRequest).WillByDefault(Return(new MockLocalSocketReply{""}));
     }
 
-    MOCK_METHOD3(createRequest, QNetworkReply*(Operation, const QNetworkRequest&, QIODevice*));
+    MOCK_METHOD(QNetworkReply*, createRequest, (Operation, const QNetworkRequest&, QIODevice*), (override));
 };
 } // namespace test
 } // namespace multipass

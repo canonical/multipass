@@ -47,7 +47,16 @@ private:
     ParseCode parse_args(ArgParser* parser);
 
     AliasDict aliases;
-    std::unordered_set<std::string> aliases_to_remove;
+
+    struct str_pair_hash
+    {
+        inline std::size_t operator()(const std::pair<std::string, std::string> p) const
+        {
+            return std::hash<std::string>()(p.first) + std::hash<std::string>()(p.second);
+        }
+    };
+
+    std::vector<std::pair<std::string, std::string>> aliases_to_remove;
 };
 } // namespace cmd
 } // namespace multipass

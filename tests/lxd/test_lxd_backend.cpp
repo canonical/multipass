@@ -2165,8 +2165,8 @@ public:
     using mp::LXDVirtualMachineFactory::create_bridge_with;
     using mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory;
 
-    MOCK_METHOD2(prepare_networking_guts,
-                 void(std::vector<mp::NetworkInterface>& extra_interfaces, const std::string& bridge_type));
+    MOCK_METHOD(void, prepare_networking_guts,
+                (std::vector<mp::NetworkInterface> & extra_interfaces, const std::string& bridge_type), (override));
 };
 } // namespace
 

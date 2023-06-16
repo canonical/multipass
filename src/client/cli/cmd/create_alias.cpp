@@ -22,25 +22,54 @@
 
 multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases, const std::string& alias_name,
                                                    const AliasDefinition& alias_definition, std::ostream& cout,
-                                                   std::ostream& cerr)
+                                                   std::ostream& cerr, const std::optional<std::string>& context)
 {
     bool empty_before_add = aliases.empty();
 
+    auto old_context_name = aliases.active_context_name();
+
+    if (context)
+        aliases.set_active_context(*context);
+
     if (!aliases.add_alias(alias_name, alias_definition))
+    {
+        aliases.set_active_context(old_context_name);
         return ReturnCode::CommandLineError;
+    }
 
     try
     {
-        MP_PLATFORM.create_alias_script(alias_name, alias_definition);
+        MP_PLATFORM.create_alias_script(aliases.active_context_name() + "." + alias_name, alias_definition);
     }
     catch (std::runtime_error& e)
     {
         aliases.remove_alias(alias_name);
+        aliases.set_active_context(old_context_name);
 
         cerr << fmt::format("Error when creating script for alias: {}\n", e.what());
 
         return ReturnCode::CommandLineError;
     }
+
+    try
+    {
+        if (aliases.is_alias_unique(alias_name))
+        {
+            MP_PLATFORM.create_alias_script(alias_name, alias_definition);
+        }
+    }
+    catch (std::runtime_error& e)
+    {
+        aliases.remove_alias(alias_name);
+        aliases.set_active_context(old_context_name);
+        MP_PLATFORM.remove_alias_script(aliases.active_context_name() + "." + alias_name);
+
+        cerr << fmt::format("Error when creating script for alias: {}\n", e.what());
+
+        return ReturnCode::CommandLineError;
+    }
+
+    aliases.set_active_context(old_context_name);
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     QChar separator(';');

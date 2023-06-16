@@ -35,7 +35,7 @@ inline bool operator==(const AliasDefinition& a, const AliasDefinition& b)
     return (a.instance == b.instance && a.command == b.command);
 }
 
-typedef typename std::unordered_map<std::string, AliasDefinition> AliasMap;
+typedef typename std::unordered_map<std::string, AliasDefinition> AliasContext;
 
 } // namespace multipass
 #endif // MULTIPASS_ALIAS_DEFINITION_H

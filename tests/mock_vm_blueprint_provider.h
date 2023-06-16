@@ -42,13 +42,14 @@ public:
         });
     };
 
-    MOCK_METHOD3(fetch_blueprint_for, Query(const std::string&, VirtualMachineDescription&, ClientLaunchData&));
-    MOCK_METHOD4(blueprint_from_file,
-                 Query(const std::string&, const std::string&, VirtualMachineDescription&, ClientLaunchData&));
-    MOCK_METHOD1(info_for, std::optional<VMImageInfo>(const std::string&));
-    MOCK_METHOD0(all_blueprints, std::vector<VMImageInfo>());
-    MOCK_METHOD1(name_from_blueprint, std::string(const std::string&));
-    MOCK_METHOD1(blueprint_timeout, int(const std::string&));
+    MOCK_METHOD(Query, fetch_blueprint_for, (const std::string&, VirtualMachineDescription&, ClientLaunchData&),
+                (override));
+    MOCK_METHOD(Query, blueprint_from_file,
+                (const std::string&, const std::string&, VirtualMachineDescription&, ClientLaunchData&), (override));
+    MOCK_METHOD(std::optional<VMImageInfo>, info_for, (const std::string&), (override));
+    MOCK_METHOD(std::vector<VMImageInfo>, all_blueprints, (), (override));
+    MOCK_METHOD(std::string, name_from_blueprint, (const std::string&), (override));
+    MOCK_METHOD(int, blueprint_timeout, (const std::string&), (override));
 };
 } // namespace test
 } // namespace multipass
