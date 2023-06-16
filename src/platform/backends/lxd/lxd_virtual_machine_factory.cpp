@@ -109,6 +109,9 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
 void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
     mpl::log(mpl::Level::trace, category, fmt::format("No resources to remove for \"{}\"", name));
+
+    QDir instance_dir{get_instance_directory_name(name)};
+    instance_dir.removeRecursively();
 }
 
 auto mp::LXDVirtualMachineFactory::prepare_source_image(const VMImage& source_image) -> VMImage
