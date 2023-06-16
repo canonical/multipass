@@ -113,7 +113,14 @@ auto BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
 std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name) const
 {
     const std::unique_lock lock{snapshot_mutex};
-    return snapshots.at(name);
+    try
+    {
+        return snapshots.at(name);
+    }
+    catch (const std::out_of_range&)
+    {
+        throw std::runtime_error(fmt::format("No such snapshot: {}.{}", vm_name, name));
+    }
 }
 
 std::shared_ptr<Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name)
