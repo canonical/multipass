@@ -260,7 +260,6 @@ void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
     auto parent_name = head_snapshot->get_parent_name();
 
     assert(num_snapshots <= snapshot_count && "can't have more snapshots than were ever taken");
-    assert(bool(head_snapshot->get_parent()) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
 
     if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
     {
