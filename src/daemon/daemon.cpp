@@ -2658,8 +2658,8 @@ void mp::Daemon::persist_instances()
 
 void mp::Daemon::release_resources(const std::string& instance)
 {
-    config->factory->remove_resources_for(instance);
     config->vault->remove(instance);
+    config->factory->remove_resources_for(instance);
 
     auto spec_it = vm_instance_specs.find(instance);
     if (spec_it != cend(vm_instance_specs))
