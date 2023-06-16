@@ -40,7 +40,7 @@ public:
         return FetchType::ImageOnly;
     };
 
-    QString get_backend_directory_name() override
+    QString get_backend_directory_name() const override
     {
         return {};
     };

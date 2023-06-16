@@ -175,7 +175,7 @@ void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
         bridge_name = enable_libvirt_network(data_dir, libvirt_wrapper);
 }
 
-QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
+QString mp::LibVirtVirtualMachineFactory::get_backend_version_string() const
 {
     try
     {

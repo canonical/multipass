@@ -41,7 +41,7 @@ public:
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
-    QString get_backend_version_string() override;
+    QString get_backend_version_string() const override;
 
     // Making this public makes this modifiable which is necessary for testing
     LibvirtWrapper::UPtr libvirt_wrapper;
