@@ -60,6 +60,7 @@ public:
     virtual void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) = 0;
     virtual void hypervisor_health_check() = 0;
     virtual QString get_backend_directory_name() const = 0;
+    virtual QString get_instance_directory_name(const std::string& name) const = 0;
     virtual QString get_backend_version_string() const = 0;
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                                   const Path& cache_dir_path, const Path& data_dir_path,

@@ -22,6 +22,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/mount_handler.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <daemon/default_vm_image_vault.h>
@@ -45,6 +46,11 @@ public:
     {
         return {};
     };
+
+    QString get_instance_directory_name(const std::string& name) const override
+    {
+        return multipass::utils::backend_directory_path(instances_dir, QString::fromStdString(name));
+    }
 
     void prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) override
     {
