@@ -41,10 +41,14 @@ namespace mpu = multipass::utils;
 namespace
 {
 using St = mp::VirtualMachine::State;
-void assert_vm_stopped(St state)
+class NoSuchSnapshot : public std::runtime_error
 {
-    assert(state == St::off || state == St::stopped);
-}
+public:
+    NoSuchSnapshot(const std::string& vm_name, const std::string& snapshot_name)
+        : std::runtime_error{fmt::format("No such snapshot: {}.{}", vm_name, snapshot_name)}
+    {
+    }
+};
 
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto head_filename = "snapshot-head";
@@ -52,6 +56,11 @@ constexpr auto count_filename = "snapshot-count";
 constexpr auto index_digits = 4; // these two go together
 constexpr auto max_snapshots = 1000;
 constexpr auto yes_overwrite = true;
+
+void assert_vm_stopped(St state)
+{
+    assert(state == St::off || state == St::stopped);
+}
 } // namespace
 
 namespace multipass
@@ -119,7 +128,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     }
     catch (const std::out_of_range&)
     {
-        throw std::runtime_error(fmt::format("No such snapshot: {}.{}", vm_name, name));
+        throw NoSuchSnapshot{vm_name, name};
     }
 }
 
@@ -207,7 +216,7 @@ void BaseVirtualMachine::delete_snapshot(const std::string& name)
         snapshots.erase(it);
     }
     else
-        throw std::runtime_error(fmt::format("No such snapshot: {}.{}", vm_name, name));
+        throw NoSuchSnapshot{vm_name, name};
 }
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
