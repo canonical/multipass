@@ -2232,10 +2232,7 @@ try // clang-format on
                     assert(purge && "precondition: snapshots can only be purged");
 
                     for (const auto& snapshot_name : instance_snapshots_map[name])
-                    {
-                        mpl::log(mpl::Level::info, "TODO", // TODO@ricab actually delete snapshot
-                                 fmt::format("placeholder for snapshot deletion: {}.{}", name, snapshot_name));
-                    }
+                        vm_it->second->delete_snapshot(snapshot_name);
                 }
             }
         }
