@@ -182,7 +182,15 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 void BaseVirtualMachine::delete_snapshot(const std::string& name)
 {
     mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleting snapshot: {}", name));
-    // TODO@ricab
+
+    auto snapshot = snapshots.at(name);
+    snapshot->erase();
+
+    for (auto& [ignore, other] : snapshots)
+        if (other->get_parent() == snapshot)
+            other->set_parent(snapshot->get_parent());
+
+    snapshots.erase(name); // TODO@ricab avoid searching again
 }
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
@@ -352,7 +360,7 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     std::unique_lock lock{snapshot_mutex};
     assert_vm_stopped(state); // precondition
 
-    auto snapshot = snapshots.at(name); // TODO@snapshots convert out_of_range exception, here and `get_snapshot`
+    auto snapshot = snapshots.at(name); // TODO@snapshots convert out_of_range exception, here and wherever `at` is used
 
     // TODO@snapshots convert into runtime_errors (persisted info could have been tampered with)
     assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
