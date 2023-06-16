@@ -216,6 +216,9 @@ void BaseVirtualMachine::delete_snapshot(const std::string& name)
             if (other->get_parent() == snapshot)
                 other->set_parent(snapshot->get_parent());
 
+        if (head_snapshot == snapshot)
+            head_snapshot = snapshot->get_parent();
+
         snapshots.erase(it);
         mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
     }
