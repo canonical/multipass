@@ -2282,41 +2282,8 @@ try // clang-format on
 
                 if (!contained_in_snapshots_map || instance_snapshots_map[name].empty()) // we're asked to delete the VM
                 {
-                    auto& instance = vm_it->second;
-                    auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
-
-                    if (!vm_instance_specs[name].deleted)
-                    {
-                        mpl::log(mpl::Level::debug, category, fmt::format("Deleting instance: {}", name));
-                        erase_from = &operative_instances;
-                        if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
-                            delayed_shutdown_instances.erase(name);
-
-                        mounts[name].clear();
-                        instance->shutdown();
-
-                        if (!purge)
-                        {
-                            vm_instance_specs[name].deleted = true;
-                            deleted_instances[name] = std::move(instance);
-                            mpl::log(mpl::Level::debug, category, fmt::format("Instance deleted: {}", name));
-                        }
-                    }
-                    else
-                        mpl::log(mpl::Level::debug, category, fmt::format("Instance is already deleted: {}", name));
-
-                    if (purge)
-                    {
-                        response.add_purged_instances(name);
-                        release_resources(name);
-
-                        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
-                    }
-
-                    if (erase_from)
-                        erase_from->erase(vm_it);
-
-                    persist_instances();
+                    delete_vm(vm_it, purge, response);
+                    persist_instances(); // TODO@ricab persist only at the end, but only if there were deleted instances
                 }
                 else // we're asked to delete snapshots
                 {
@@ -3014,6 +2981,45 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     };
 
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
+}
+
+// TODO@ricab use typedef for iterator
+void mp::Daemon::delete_vm(std::unordered_map<std::string, multipass::VirtualMachine::ShPtr>::iterator vm_it,
+                           bool purge, DeleteReply& response)
+{
+    auto& [name, instance] = *vm_it;
+    auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
+
+    if (!vm_instance_specs[name].deleted)
+    {
+        mpl::log(mpl::Level::debug, category, fmt::format("Deleting instance: {}", name));
+        erase_from = &operative_instances;
+        if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
+            delayed_shutdown_instances.erase(name);
+
+        mounts[name].clear();
+        instance->shutdown();
+
+        if (!purge)
+        {
+            vm_instance_specs[name].deleted = true;
+            deleted_instances[name] = std::move(instance);
+            mpl::log(mpl::Level::debug, category, fmt::format("Instance deleted: {}", name));
+        }
+    }
+    else
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance is already deleted: {}", name));
+
+    if (purge)
+    {
+        response.add_purged_instances(name);
+        release_resources(name);
+
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
+    }
+
+    if (erase_from)
+        erase_from->erase(vm_it);
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
