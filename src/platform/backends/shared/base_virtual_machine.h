@@ -59,6 +59,7 @@ public:
         return static_cast<int>(snapshots.size());
     }
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
+    std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override;
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
     // derived classes is a big refactor

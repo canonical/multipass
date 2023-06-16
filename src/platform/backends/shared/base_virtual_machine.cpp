@@ -116,6 +116,11 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     return snapshots.at(name);
 }
 
+std::shared_ptr<Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name)
+{
+    return std::const_pointer_cast<Snapshot>(std::as_const(*this).get_snapshot(name));
+}
+
 void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head,
                                                        int old_count)
 {
@@ -210,7 +215,7 @@ void BaseVirtualMachine::load_generic_snapshot_info(const QDir& snapshot_dir)
     try
     {
         snapshot_count = std::stoi(mpu::contents_of(snapshot_dir.filePath(count_filename)));
-        head_snapshot = snapshots.at(mpu::contents_of(snapshot_dir.filePath(head_filename)));
+        head_snapshot = get_snapshot(mpu::contents_of(snapshot_dir.filePath(head_filename)));
     }
     catch (FileOpenFailedException&)
     {
@@ -360,7 +365,7 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     std::unique_lock lock{snapshot_mutex};
     assert_vm_stopped(state); // precondition
 
-    auto snapshot = snapshots.at(name); // TODO@snapshots convert out_of_range exception, here and wherever `at` is used
+    auto snapshot = get_snapshot(name);
 
     // TODO@snapshots convert into runtime_errors (persisted info could have been tampered with)
     assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
