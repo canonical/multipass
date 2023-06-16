@@ -674,7 +674,10 @@ enum class InstanceGroup
     All
 };
 
-using InstanceTable = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>;
+// Hack to import typedef here, without making it part of the Daemon's public interface
+// clang-format off
+struct TapDaemon : private mp::Daemon { using Daemon::InstanceTable; }; // clang-format on
+using InstanceTable = TapDaemon::InstanceTable;
 using InstanceTrail = std::variant<InstanceTable::iterator,                    // operative instances
                                    InstanceTable::iterator,                    // deleted instances
                                    std::reference_wrapper<const std::string>>; // missing instances
@@ -1202,12 +1205,10 @@ auto timeout_for(const int requested_timeout, const int blueprint_timeout)
     return mp::default_timeout;
 }
 
-mp::SettingsHandler*
-register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
-                      std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
-                      const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-                      const std::unordered_set<std::string>& preparing_instances,
-                      std::function<void()> instance_persister)
+mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
+                                           InstanceTable& vm_instances, const InstanceTable& deleted_instances,
+                                           const std::unordered_set<std::string>& preparing_instances,
+                                           std::function<void()> instance_persister)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(
         vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
@@ -2915,9 +2916,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
 }
 
-// TODO@ricab use typedef for iterator
-void mp::Daemon::delete_vm(std::unordered_map<std::string, multipass::VirtualMachine::ShPtr>::iterator vm_it,
-                           bool purge, DeleteReply& response)
+void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response)
 {
     auto& [name, instance] = *vm_it;
     auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
