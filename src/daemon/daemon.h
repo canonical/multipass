@@ -150,7 +150,7 @@ private:
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request, grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise, bool start);
-    void delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response);
+    bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
