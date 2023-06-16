@@ -61,6 +61,11 @@ void assert_vm_stopped(St state)
 {
     assert(state == St::off || state == St::stopped);
 }
+
+QString derive_head_path(const QDir& snapshot_dir)
+{
+    return snapshot_dir.filePath(head_filename);
+}
 } // namespace
 
 namespace multipass
@@ -343,11 +348,6 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 
     rollback_snapshot_file.dismiss();
     head_file_rollback.dismiss();
-}
-
-QString BaseVirtualMachine::derive_head_path(const QDir& snapshot_dir) const
-{
-    return snapshot_dir.filePath(head_filename);
 }
 
 void BaseVirtualMachine::persist_head_snapshot_name(const QString& head_path) const
