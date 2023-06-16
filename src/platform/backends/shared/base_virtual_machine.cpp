@@ -179,6 +179,12 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
     }
 }
 
+void BaseVirtualMachine::delete_snapshot(const std::string& name)
+{
+    mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleting snapshot: {}", name));
+    // TODO@ricab
+}
+
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
 {
     std::unique_lock lock{snapshot_mutex};
