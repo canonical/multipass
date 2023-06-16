@@ -63,6 +63,11 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return {};
     }
 
+    QString get_instance_directory_name(const std::string& name) const override
+    {
+        return {};
+    }
+
     QString get_backend_version_string() const override
     {
         return "stub-5678";
