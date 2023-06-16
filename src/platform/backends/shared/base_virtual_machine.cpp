@@ -195,14 +195,19 @@ void BaseVirtualMachine::delete_snapshot(const std::string& name)
 {
     mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleting snapshot: {}", name));
 
-    auto snapshot = snapshots.at(name);
-    snapshot->erase();
+    if (auto it = snapshots.find(name); it != snapshots.end())
+    {
+        auto snapshot = it->second;
+        snapshot->erase();
 
-    for (auto& [ignore, other] : snapshots)
-        if (other->get_parent() == snapshot)
-            other->set_parent(snapshot->get_parent());
+        for (auto& [ignore, other] : snapshots)
+            if (other->get_parent() == snapshot)
+                other->set_parent(snapshot->get_parent());
 
-    snapshots.erase(name); // TODO@ricab avoid searching again
+        snapshots.erase(it);
+    }
+    else
+        throw std::runtime_error(fmt::format("No such snapshot: {}.{}", vm_name, name));
 }
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
