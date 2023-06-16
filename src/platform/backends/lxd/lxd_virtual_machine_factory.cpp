@@ -86,8 +86,8 @@ mp::NetworkInterfaceInfo munch_network(std::map<std::string, mp::NetworkInterfac
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
                                                        const QUrl& base_url)
-    : manager{std::move(manager)},
-      data_dir{MP_UTILS.make_dir(data_dir, get_backend_directory_name())},
+    : BaseVirtualMachineFactory(MP_UTILS.make_dir(data_dir, get_backend_directory_name())),
+      manager{std::move(manager)},
       base_url{base_url}
 {
 }

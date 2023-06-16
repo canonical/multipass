@@ -39,6 +39,8 @@ auto find_bridge_with(const NetworkContainer& networks, const std::string& membe
 }
 } // namespace
 
+mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir) : instances_dir{instances_dir} {};
+
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
     auto instance_dir{mpu::base_dir(vm_desc.image.image_path)};
