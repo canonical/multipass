@@ -168,8 +168,9 @@ bool uses_default_id_mappings(const multipass::VMMount& mount)
 
 mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
                                          NetworkAccessManager* manager, const QUrl& base_url,
-                                         const QString& bridge_name, const QString& storage_pool)
-    : BaseVirtualMachine{desc.vm_name},
+                                         const QString& bridge_name, const QString& storage_pool,
+                                         const mp::Path& instance_dir)
+    : BaseVirtualMachine{desc.vm_name, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor},

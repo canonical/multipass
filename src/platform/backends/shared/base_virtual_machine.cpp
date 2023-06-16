@@ -98,7 +98,12 @@ void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted
 namespace multipass
 {
 
-BaseVirtualMachine::BaseVirtualMachine(St state, const std::string& vm_name) : VirtualMachine(state, vm_name){};
+BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name,
+                                       const mp::Path& instance_dir)
+    : VirtualMachine(state, vm_name, instance_dir){};
+
+BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name, const mp::Path& instance_dir)
+    : VirtualMachine(vm_name, instance_dir){};
 
 BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
 
