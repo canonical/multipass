@@ -192,7 +192,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 
         auto rollback_on_failure = make_take_snapshot_rollback(it);
 
-        auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
+        auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, specs, head_snapshot);
         ret->capture();
 
         ++snapshot_count;
