@@ -197,10 +197,10 @@ auto generate_metadata(const QStringList& platform_args, const QStringList& proc
 } // namespace
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform,
-                                           VMStatusMonitor& monitor)
+                                           VMStatusMonitor& monitor, const mp::Path& instance_dir)
     : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag) ? State::suspended
                                                                                                       : State::off,
-                         desc.vm_name},
+                         desc.vm_name, instance_dir},
       desc{desc},
       mac_addr{desc.default_mac_address},
       username{desc.ssh_username},
