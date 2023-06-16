@@ -64,6 +64,7 @@ public:
     // derived classes is a big refactor
     std::shared_ptr<const Snapshot> take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                   const std::string& name, const std::string& comment) override;
+    void delete_snapshot(const std::string& name) override;
     void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) override;
     void load_snapshots(const QDir& snapshot_dir) override;
 
