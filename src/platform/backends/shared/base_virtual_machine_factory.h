@@ -34,6 +34,7 @@ class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
     BaseVirtualMachineFactory() = default;
+    BaseVirtualMachineFactory(const Path& instances_dir);
 
     FetchType fetch_type() override
     {
@@ -76,6 +77,8 @@ protected:
 
     virtual void prepare_interface(NetworkInterface& net, std::vector<NetworkInterfaceInfo>& host_nets,
                                    const std::string& bridge_type);
+
+    const Path instances_dir;
 };
 } // namespace multipass
 
