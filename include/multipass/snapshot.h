@@ -41,6 +41,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
     virtual std::string get_comment() const = 0;
     virtual std::string get_parent_name() const = 0;
     virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
+    virtual std::shared_ptr<Snapshot> get_parent() = 0;
 
     virtual int get_num_cores() const noexcept = 0;
     virtual MemorySize get_mem_size() const noexcept = 0;
@@ -55,7 +56,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
 
     virtual void set_name(const std::string&) = 0; // TODO@snapshots don't forget to rename json file
     virtual void set_comment(const std::string&) = 0;
-    virtual void set_parent(std::shared_ptr<const Snapshot>) = 0;
+    virtual void set_parent(std::shared_ptr<Snapshot>) = 0;
 
     virtual void capture() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
     virtual void erase() = 0;   // not using the destructor, we want snapshots to stick around when daemon quits
