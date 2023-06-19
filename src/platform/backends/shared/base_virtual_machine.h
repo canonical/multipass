@@ -103,6 +103,7 @@ private:
     auto make_deleted_head_rollback(const QString& head_path, const bool& wrote_head);
     void deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
+    void delete_snapshot_helper(const QDir& snapshot_dir, Snapshot& snapshot);
 
 private:
     SnapshotMap snapshots;
