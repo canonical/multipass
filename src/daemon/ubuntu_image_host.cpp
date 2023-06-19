@@ -34,6 +34,7 @@
 #include <QUrl>
 
 #include <algorithm>
+#include <future>
 #include <unordered_set>
 
 namespace mp = multipass;
@@ -41,6 +42,11 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto index_path = "streams/v1/index.json";
+
+bool is_default_constructed(const std::pair<std::string, std::unique_ptr<mp::SimpleStreamsManifest>>& manifest_pair)
+{
+    return manifest_pair.first.empty() && manifest_pair.second == nullptr;
+}
 
 auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader)
 {
@@ -232,8 +238,10 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
 
 void mp::UbuntuVMImageHost::fetch_manifests()
 {
-    for (const auto& [remote_name, remote_info] : remotes)
-    {
+    std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> local_manifests(remotes.size());
+    auto fetch_one_remote_and_write_to_index = [this,
+                                                &local_manifests](int index, const std::string& remote_name,
+                                                                  const UbuntuVMImageRemote& remote_info) -> void {
         try
         {
             check_remote_is_supported(remote_name);
@@ -250,7 +258,8 @@ void mp::UbuntuVMImageHost::fetch_manifests()
 
             auto manifest = mp::SimpleStreamsManifest::fromJson(
                 manifest_bytes_from_official, manifest_bytes_from_mirror, mirror_site.value_or(official_site));
-            manifests.emplace_back(std::make_pair(remote_name, std::move(manifest)));
+
+            local_manifests[index] = std::make_pair(remote_name, std::move(manifest));
         }
         catch (mp::EmptyManifestException& /* e */)
         {
@@ -266,7 +275,30 @@ void mp::UbuntuVMImageHost::fetch_manifests()
         }
         catch (const mp::UnsupportedRemoteException&)
         {
-            continue;
+        }
+    };
+
+    std::vector<std::future<void>> empty_futures;
+    empty_futures.reserve(remotes.size());
+    int index = 0;
+    for (const auto& [remote_name, remote_info] : remotes)
+    {
+        empty_futures.emplace_back(
+            std::async(std::launch::async, fetch_one_remote_and_write_to_index, index, remote_name, remote_info));
+        ++index;
+    }
+
+    for (auto& empty_future : empty_futures)
+    {
+        empty_future.get(); // use get instead of wait to retain the exception throwing
+    }
+
+    // only collect the non-default ones so the behaviour is same as the original sequential code
+    for (auto& local_manifest : local_manifests)
+    {
+        if (!is_default_constructed(local_manifest))
+        {
+            manifests.emplace_back(std::move(local_manifest));
         }
     }
 }
