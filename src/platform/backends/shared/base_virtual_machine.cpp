@@ -412,15 +412,15 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
     const auto snapshot_filename = derive_snapshot_filename(derive_index_string(snapshot_count),
                                                             QString::fromStdString(head_snapshot->get_name()));
 
-    auto snapshot_path = snapshot_dir.filePath(snapshot_filename);
+    auto snapshot_filepath = snapshot_dir.filePath(snapshot_filename);
     auto head_path = derive_head_path(snapshot_dir);
     auto count_path = snapshot_dir.filePath(count_filename);
 
-    auto rollback_snapshot_file = sg::make_scope_guard([&snapshot_filename]() noexcept {
-        QFile{snapshot_filename}.remove(); // best effort, ignore return
+    auto rollback_snapshot_file = sg::make_scope_guard([&snapshot_filepath]() noexcept {
+        QFile{snapshot_filepath}.remove(); // best effort, ignore return
     });
 
-    mp::write_json(head_snapshot->serialize(), snapshot_path);
+    mp::write_json(head_snapshot->serialize(), snapshot_filepath);
 
     QFile head_file{head_path};
 
