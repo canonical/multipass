@@ -144,7 +144,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    void delete_snapshot(const std::string&) override
+    void delete_snapshot(const QDir& snapshot_dir, const std::string&) override
     {
     }
 
