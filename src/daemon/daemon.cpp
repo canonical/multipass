@@ -2218,12 +2218,13 @@ try // clang-format on
         {
             for (const auto& vm_it : selection)
             {
-                const auto& name = vm_it->first;
+                const auto& instance_name = vm_it->first;
 
-                auto contained_in_snapshots_map = instance_snapshots_map.count(name);
+                auto contained_in_snapshots_map = instance_snapshots_map.count(instance_name);
                 assert(contained_in_snapshots_map || !request->instances_snapshots_size());
 
-                if (!contained_in_snapshots_map || instance_snapshots_map[name].empty()) // we're asked to delete the VM
+                if (!contained_in_snapshots_map ||
+                    instance_snapshots_map[instance_name].empty()) // we're asked to delete the VM
                 {
                     instances_dirty |= delete_vm(vm_it, purge, response);
                 }
@@ -2231,8 +2232,8 @@ try // clang-format on
                 {
                     assert(purge && "precondition: snapshots can only be purged");
 
-                    for (const auto& snapshot_name : instance_snapshots_map[name])
-                        vm_it->second->delete_snapshot(instance_directory(name, *config), snapshot_name);
+                    for (const auto& snapshot_name : instance_snapshots_map[instance_name])
+                        vm_it->second->delete_snapshot(instance_directory(instance_name, *config), snapshot_name);
                 }
             }
         }
