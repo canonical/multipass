@@ -254,52 +254,51 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
 {
     std::unique_lock lock{snapshot_mutex};
 
-    if (auto it = snapshots.find(name); it != snapshots.end())
-    {
-        auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, name);
-        auto snapshot_filepath = snapshot_fileinfo.filePath();
-        auto snapshot = it->second;
-
-        {
-            QTemporaryDir tmp_dir{};
-            if (!tmp_dir.isValid())
-                throw std::runtime_error{"Could not create temporary directory"};
-
-            auto deleting_filepath = tmp_dir.filePath(snapshot_fileinfo.fileName());
-
-            if (!QFile{snapshot_filepath}.rename(deleting_filepath))
-                throw std::runtime_error{
-                    fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
-
-            auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
-                QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
-            });
-
-            auto wrote_head = false;
-            auto head_path = derive_head_path(snapshot_dir);
-            auto rollback_head = make_deleted_head_rollback(head_path, wrote_head);
-
-            if (head_snapshot == snapshot)
-            {
-                head_snapshot = snapshot->get_parent();
-                persist_head_snapshot_name(head_path);
-                wrote_head = true;
-            }
-
-            snapshot->erase();
-            rollback_head.dismiss();
-            rollback_snapshot_file.dismiss();
-        } // No rollbacks from this point on
-
-        for (auto& [ignore, other] : snapshots)
-            if (other->get_parent() == snapshot)
-                other->set_parent(snapshot->get_parent());
-
-        snapshots.erase(it); // doesn't throw
-        mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
-    }
-    else
+    auto it = snapshots.find(name);
+    if (it == snapshots.end())
         throw NoSuchSnapshot{vm_name, name};
+
+    auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, name);
+    auto snapshot_filepath = snapshot_fileinfo.filePath();
+    auto snapshot = it->second;
+
+    {
+        QTemporaryDir tmp_dir{};
+        if (!tmp_dir.isValid())
+            throw std::runtime_error{"Could not create temporary directory"};
+
+        auto deleting_filepath = tmp_dir.filePath(snapshot_fileinfo.fileName());
+
+        if (!QFile{snapshot_filepath}.rename(deleting_filepath))
+            throw std::runtime_error{
+                fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
+
+        auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
+            QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
+        });
+
+        auto wrote_head = false;
+        auto head_path = derive_head_path(snapshot_dir);
+        auto rollback_head = make_deleted_head_rollback(head_path, wrote_head);
+
+        if (head_snapshot == snapshot)
+        {
+            head_snapshot = snapshot->get_parent();
+            persist_head_snapshot_name(head_path);
+            wrote_head = true;
+        }
+
+        snapshot->erase();
+        rollback_head.dismiss();
+        rollback_snapshot_file.dismiss();
+    } // No rollbacks from this point on
+
+    for (auto& [ignore, other] : snapshots)
+        if (other->get_parent() == snapshot)
+            other->set_parent(snapshot->get_parent());
+
+    snapshots.erase(it); // doesn't throw
+    mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
 }
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
