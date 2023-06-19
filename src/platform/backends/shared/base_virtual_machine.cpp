@@ -241,6 +241,18 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
     }
 }
 
+bool BaseVirtualMachine::updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const QString& head_path)
+{
+    if (head_snapshot == snapshot)
+    {
+        head_snapshot = snapshot->get_parent();
+        persist_head_snapshot_name(head_path);
+        return true;
+    }
+
+    return false;
+}
+
 auto BaseVirtualMachine::make_deleted_head_rollback(const QString& head_path, const bool& wrote_head)
 {
     return sg::make_scope_guard([this, old_head = head_snapshot, &head_path, &wrote_head]() mutable noexcept {
@@ -292,13 +304,7 @@ void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, std::s
     auto wrote_head = false;
     auto head_path = derive_head_path(snapshot_dir);
     auto rollback_head = make_deleted_head_rollback(head_path, wrote_head);
-
-    if (head_snapshot == snapshot)
-    {
-        head_snapshot = snapshot->get_parent();
-        persist_head_snapshot_name(head_path);
-        wrote_head = true;
-    }
+    wrote_head = updated_deleted_head(snapshot, head_path);
 
     std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
     updated_snapshot_paths.reserve(snapshots.size());
