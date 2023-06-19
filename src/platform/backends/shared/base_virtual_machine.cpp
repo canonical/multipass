@@ -287,12 +287,14 @@ void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, Snapsh
 
 void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, Snapshot& deleted_parent)
 {
+    auto new_parent = deleted_parent.get_parent();
     for (auto& [ignore, other] : snapshots)
     {
         if (other->get_parent().get() == &deleted_parent)
         {
+            other->set_parent(new_parent);
+
             const auto other_filepath = find_snapshot_file(snapshot_dir, other->get_name()).filePath();
-            other->set_parent(deleted_parent.get_parent());
             write_json(other->serialize(), other_filepath);
         }
     }
