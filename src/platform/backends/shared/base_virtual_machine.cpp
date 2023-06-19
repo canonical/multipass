@@ -307,13 +307,20 @@ auto BaseVirtualMachine::make_parent_update_rollback(
 
 void BaseVirtualMachine::update_parents_obsolete(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent)
 {
-    auto new_parent = deleted_parent->get_parent();
-
     std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
     updated_snapshot_paths.reserve(snapshots.size());
 
     auto rollback = make_parent_update_rollback(deleted_parent, updated_snapshot_paths);
 
+    update_parents(snapshot_dir, deleted_parent, updated_snapshot_paths);
+
+    rollback.dismiss();
+}
+
+void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent,
+                                        std::unordered_map<Snapshot*, QString>& updated_snapshot_paths)
+{
+    auto new_parent = deleted_parent->get_parent();
     for (auto& [ignore, other] : snapshots)
     {
         if (other->get_parent() == deleted_parent)
@@ -326,8 +333,6 @@ void BaseVirtualMachine::update_parents_obsolete(const QDir& snapshot_dir, std::
             updated_snapshot_paths[other.get()] = other_filepath;
         }
     }
-
-    rollback.dismiss();
 }
 
 void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::string& name)
