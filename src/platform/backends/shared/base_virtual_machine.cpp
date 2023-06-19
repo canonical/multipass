@@ -68,10 +68,20 @@ QString derive_head_path(const QDir& snapshot_dir)
     return snapshot_dir.filePath(head_filename);
 }
 
+QString derive_index_string(int index)
+{
+    return QString{"%1"}.arg(index, index_digits, 10, QLatin1Char('0'));
+}
+
+QString derive_snapshot_filename(const QString& index, const QString& name)
+{
+    return QString{"%1-%2.%3"}.arg(index, name, snapshot_extension);
+}
+
 QString find_snapshot_file(const QDir& snapshot_dir, const std::string& snapshot_name)
 {
-    // TODO@ricab extract pattern
-    auto pattern = QString{R"(????-%1.%2)"}.arg(QString::fromStdString(snapshot_name), snapshot_extension);
+    auto index_wildcard = "????";
+    auto pattern = derive_snapshot_filename(index_wildcard, QString::fromStdString(snapshot_name));
     auto files = MP_FILEOPS.entryInfoList(snapshot_dir, {pattern}, QDir::Filter::Files | QDir::Filter::Readable);
 
     if (auto num_found = files.count(); !num_found)
@@ -363,9 +373,8 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 {
     assert(head_snapshot);
 
-    const auto snapshot_filename = QString{"%1-%2.%3"}
-                                       .arg(snapshot_count, index_digits, 10, QLatin1Char('0'))
-                                       .arg(QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
+    const auto snapshot_filename = derive_snapshot_filename(derive_index_string(snapshot_count),
+                                                            QString::fromStdString(head_snapshot->get_name()));
 
     auto snapshot_path = snapshot_dir.filePath(snapshot_filename);
     auto head_path = derive_head_path(snapshot_dir);
