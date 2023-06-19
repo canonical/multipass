@@ -100,6 +100,10 @@ private:
     void restore_rollback_helper(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
                                  const VMSpecs& old_specs, VMSpecs& specs);
 
+    auto make_deleted_head_rollback(const QString& head_path, const bool& wrote_head);
+    void deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
+                                      std::shared_ptr<Snapshot>& old_head);
+
 private:
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;

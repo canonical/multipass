@@ -230,6 +230,26 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
     }
 }
 
+auto BaseVirtualMachine::make_deleted_head_rollback(const QString& head_path, const bool& wrote_head)
+{
+    return sg::make_scope_guard([this, old_head = head_snapshot, &head_path, &wrote_head]() mutable noexcept {
+        deleted_head_rollback_helper(head_path, wrote_head, old_head);
+    });
+}
+
+void BaseVirtualMachine::deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
+                                                      std::shared_ptr<Snapshot>& old_head)
+{
+    if (head_snapshot != old_head)
+    {
+        head_snapshot = std::move(old_head);
+        if (wrote_head)
+            top_catch_all(vm_name, [&head_path, &old_head] {
+                MP_UTILS.make_file_with_content(head_path.toStdString(), old_head->get_name(), yes_overwrite);
+            });
+    }
+}
+
 void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::string& name)
 {
     std::unique_lock lock{snapshot_mutex};
@@ -257,18 +277,7 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
 
             auto wrote_head = false;
             auto head_path = derive_head_path(snapshot_dir);
-            auto rollback_head =
-                sg::make_scope_guard([this, old_head = head_snapshot, &head_path, &wrote_head]() mutable noexcept {
-                    if (head_snapshot != old_head)
-                    {
-                        head_snapshot = std::move(old_head);
-                        if (wrote_head)
-                            top_catch_all(vm_name, [&head_path, &old_head] {
-                                MP_UTILS.make_file_with_content(head_path.toStdString(), old_head->get_name(),
-                                                                yes_overwrite);
-                            });
-                    }
-                });
+            auto rollback_head = make_deleted_head_rollback(head_path, wrote_head);
 
             if (head_snapshot == snapshot)
             {
