@@ -29,17 +29,19 @@
 #include "common.h"
 #include "stub_virtual_machine.h"
 #include "stub_vm_image_vault.h"
+#include "temp_dir.h"
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
 std::function<mp::VMImage(const mp::FetchType&, const mp::Query&, const mp::VMImageVault::PrepareAction&,
-                          const mp::ProgressMonitor&, const bool, const std::optional<std::string>)>
+                          const mp::ProgressMonitor&, const bool, const std::optional<std::string>, const mp::Path&)>
 mpt::fetch_image_lambda(const std::string& release, const std::string& remote, const bool must_have_checksum)
 {
     return [&release, &remote, must_have_checksum](
                const mp::FetchType& fetch_type, const mp::Query& query, const mp::VMImageVault::PrepareAction& prepare,
-               const mp::ProgressMonitor& monitor, const bool unlock, const std::optional<std::string>& checksum) {
+               const mp::ProgressMonitor& monitor, const bool unlock, const std::optional<std::string>& checksum,
+               const mp::Path& download_dir) {
         EXPECT_EQ(query.release, release);
         if (remote.empty())
         {
@@ -55,7 +57,7 @@ mpt::fetch_image_lambda(const std::string& release, const std::string& remote, c
             EXPECT_NE(checksum, std::nullopt);
         }
 
-        return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor, unlock, checksum);
+        return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor, unlock, checksum, download_dir);
     };
 }
 
