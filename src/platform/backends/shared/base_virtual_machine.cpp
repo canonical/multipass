@@ -261,9 +261,9 @@ void BaseVirtualMachine::deleted_head_rollback_helper(const QString& head_path, 
     }
 }
 
-void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, Snapshot& snapshot)
+void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& snapshot)
 {
-    auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, snapshot.get_name());
+    auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, snapshot->get_name());
     auto snapshot_filepath = snapshot_fileinfo.filePath();
 
     QTemporaryDir tmp_dir{};
@@ -284,14 +284,14 @@ void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, Snapsh
     auto head_path = derive_head_path(snapshot_dir);
     auto rollback_head = make_deleted_head_rollback(head_path, wrote_head);
 
-    if (head_snapshot.get() == &snapshot)
+    if (head_snapshot == snapshot)
     {
-        head_snapshot = snapshot.get_parent();
+        head_snapshot = snapshot->get_parent();
         persist_head_snapshot_name(head_path);
         wrote_head = true;
     }
 
-    snapshot.erase();
+    snapshot->erase();
     rollback_head.dismiss();
     rollback_snapshot_file.dismiss();
 }
@@ -344,7 +344,7 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
         throw NoSuchSnapshot{vm_name, name};
 
     auto snapshot = it->second;
-    delete_snapshot_helper(snapshot_dir, *snapshot);
+    delete_snapshot_helper(snapshot_dir, snapshot);
     update_parents_obsolete(snapshot_dir, snapshot);
 
     snapshots.erase(it); // doesn't throw
