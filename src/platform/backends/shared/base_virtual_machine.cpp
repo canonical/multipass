@@ -91,6 +91,17 @@ QFileInfo find_snapshot_file(const QDir& snapshot_dir, const std::string& snapsh
 
     return files.first();
 }
+
+void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted_parent,
+                                    std::unordered_map<mp::Snapshot*, QString>& updated_snapshot_paths)
+{
+    for (auto [snapshot, snapshot_filepath] : updated_snapshot_paths)
+    {
+        snapshot->set_parent(deleted_parent);
+        if (!snapshot_filepath.isEmpty())
+            mp::write_json(snapshot->serialize(), snapshot_filepath);
+    }
+}
 } // namespace
 
 namespace multipass
@@ -293,12 +304,7 @@ void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, std::shared_pt
     updated_snapshot_paths.reserve(snapshots.size());
 
     auto rollback = sg::make_scope_guard([&updated_snapshot_paths, deleted_parent]() noexcept { // TODO@ricab catchall
-        for (auto [snapshot, snapshot_filepath] : updated_snapshot_paths)
-        {
-            snapshot->set_parent(deleted_parent);
-            if (!snapshot_filepath.isEmpty())
-                write_json(snapshot->serialize(), snapshot_filepath);
-        }
+        update_parents_rollback_helper(deleted_parent, updated_snapshot_paths);
     });
 
     for (auto& [ignore, other] : snapshots)
