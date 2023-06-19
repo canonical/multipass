@@ -437,14 +437,15 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     return json;
 }
 
-auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, mp::VMImageVault& vault)
+auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory, mp::VMImageVault& vault)
 {
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
     auto stub_progress = [](int download_type, int progress) { return true; };
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
-    return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress, false, std::nullopt);
+    return vault.fetch_image(factory.fetch_type(), query, stub_prepare, stub_progress, false, std::nullopt,
+                             factory.get_instance_directory_name(name));
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -1378,7 +1379,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         if (!vm_image.image_path.isEmpty() && !QFile::exists(vm_image.image_path))
         {
             mpl::log(mpl::Level::warning, category,
@@ -1816,7 +1817,7 @@ try // clang-format on
         entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
         // FIXME: Set the release to the cached current version when supported
-        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         auto current_release = vm_image.original_release;
 
         if (!vm_image.id.empty() && current_release.empty())
@@ -2917,8 +2918,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             if (!vm_desc.image.id.empty())
                 checksum = vm_desc.image.id;
 
-            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor,
-                                                       launch_from_blueprint, checksum);
+            auto vm_image =
+                config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor, launch_from_blueprint,
+                                           checksum, config->factory->get_instance_directory_name(name));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
@@ -3381,7 +3383,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm, mp::DetailedInfoItem
     else
         info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
-    auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+    auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
     auto original_release = vm_image.original_release;
 
     if (!vm_image.id.empty() && original_release.empty())

@@ -51,8 +51,8 @@ public:
     ~DefaultVMImageVault();
 
     VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
-                        const ProgressMonitor& monitor, const bool unlock,
-                        const std::optional<std::string>& checksum) override;
+                        const ProgressMonitor& monitor, const bool unlock, const std::optional<std::string>& checksum,
+                        const Path& download_dir) override;
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;
@@ -61,21 +61,21 @@ public:
     MemorySize minimum_image_size_for(const std::string& id) override;
 
 private:
-    VMImage image_instance_from(const std::string& name, const VMImage& prepared_image);
+    VMImage image_instance_from(const std::string& name, const VMImage& prepared_image, const Path& dest_dir);
     VMImage download_and_prepare_source_image(const VMImageInfo& info, std::optional<VMImage>& existing_source_image,
                                               const QDir& image_dir, const FetchType& fetch_type,
                                               const PrepareAction& prepare, const ProgressMonitor& monitor);
     QString extract_image_from(const std::string& instance_name, const VMImage& source_image,
-                               const ProgressMonitor& monitor);
+                               const ProgressMonitor& monitor, const Path& dest_dir);
     std::optional<QFuture<VMImage>> get_image_future(const std::string& id);
-    VMImage finalize_image_records(const Query& query, const VMImage& prepared_image, const std::string& id);
+    VMImage finalize_image_records(const Query& query, const VMImage& prepared_image, const std::string& id,
+                                   const Path& dest_dir);
     void persist_image_records();
     void persist_instance_records();
 
     URLDownloader* const url_downloader;
     const QDir cache_dir;
     const QDir data_dir;
-    const QDir instances_dir;
     const QDir images_dir;
     const days days_to_expire;
     std::mutex fetch_mutex;
