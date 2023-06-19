@@ -250,17 +250,10 @@ void BaseVirtualMachine::deleted_head_rollback_helper(const QString& head_path, 
     }
 }
 
-void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::string& name)
+void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, Snapshot& snapshot)
 {
-    std::unique_lock lock{snapshot_mutex};
-
-    auto it = snapshots.find(name);
-    if (it == snapshots.end())
-        throw NoSuchSnapshot{vm_name, name};
-
-    auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, name);
+    auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, snapshot.get_name());
     auto snapshot_filepath = snapshot_fileinfo.filePath();
-    auto snapshot = it->second;
 
     {
         QTemporaryDir tmp_dir{};
@@ -281,18 +274,31 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
         auto head_path = derive_head_path(snapshot_dir);
         auto rollback_head = make_deleted_head_rollback(head_path, wrote_head);
 
-        if (head_snapshot == snapshot)
+        if (head_snapshot.get() == &snapshot)
         {
-            head_snapshot = snapshot->get_parent();
+            head_snapshot = snapshot.get_parent();
             persist_head_snapshot_name(head_path);
             wrote_head = true;
         }
 
-        snapshot->erase();
+        snapshot.erase();
         rollback_head.dismiss();
         rollback_snapshot_file.dismiss();
-    } // No rollbacks from this point on
+    }
+}
 
+void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::string& name)
+{
+    std::unique_lock lock{snapshot_mutex};
+
+    auto it = snapshots.find(name);
+    if (it == snapshots.end())
+        throw NoSuchSnapshot{vm_name, name};
+
+    auto snapshot = it->second;
+    delete_snapshot_helper(snapshot_dir, *snapshot);
+
+    // No rollbacks from this point on
     for (auto& [ignore, other] : snapshots)
         if (other->get_parent() == snapshot)
             other->set_parent(snapshot->get_parent());
