@@ -261,6 +261,15 @@ void BaseVirtualMachine::deleted_head_rollback_helper(const QString& head_path, 
     }
 }
 
+auto BaseVirtualMachine::make_parent_update_rollback(
+    const std::shared_ptr<Snapshot>& deleted_parent,
+    std::unordered_map<Snapshot*, QString>& updated_snapshot_paths) const
+{
+    return sg::make_scope_guard([this, &updated_snapshot_paths, deleted_parent]() noexcept {
+        top_catch_all(vm_name, &update_parents_rollback_helper, deleted_parent, updated_snapshot_paths);
+    });
+}
+
 void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& snapshot)
 {
     auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, snapshot->get_name());
@@ -291,30 +300,21 @@ void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, std::s
         wrote_head = true;
     }
 
+    std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
+    updated_snapshot_paths.reserve(snapshots.size());
+
+    auto rollback_parent_updates = make_parent_update_rollback(snapshot, updated_snapshot_paths);
+    update_parents(snapshot_dir, snapshot, updated_snapshot_paths);
+
     snapshot->erase();
+    rollback_parent_updates.dismiss();
     rollback_head.dismiss();
     rollback_snapshot_file.dismiss();
 }
 
-auto BaseVirtualMachine::make_parent_update_rollback(
-    const std::shared_ptr<Snapshot>& deleted_parent,
-    std::unordered_map<Snapshot*, QString>& updated_snapshot_paths) const
-{
-    return sg::make_scope_guard([this, &updated_snapshot_paths, deleted_parent]() noexcept {
-        top_catch_all(vm_name, &update_parents_rollback_helper, deleted_parent, updated_snapshot_paths);
-    });
-}
-
 void BaseVirtualMachine::update_parents_obsolete(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent)
 {
-    std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
-    updated_snapshot_paths.reserve(snapshots.size());
 
-    auto rollback_parent_updates = make_parent_update_rollback(deleted_parent, updated_snapshot_paths);
-
-    update_parents(snapshot_dir, deleted_parent, updated_snapshot_paths);
-
-    rollback_parent_updates.dismiss();
 }
 
 void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent,
@@ -345,7 +345,6 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
 
     auto snapshot = it->second;
     delete_snapshot_helper(snapshot_dir, snapshot);
-    update_parents_obsolete(snapshot_dir, snapshot);
 
     snapshots.erase(it); // doesn't throw
     mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
