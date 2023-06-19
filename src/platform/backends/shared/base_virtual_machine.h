@@ -104,7 +104,7 @@ private:
     void deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
     void delete_snapshot_helper(const QDir& snapshot_dir, Snapshot& snapshot);
-    void update_parents(const QDir& snapshot_dir, Snapshot& deleted_parent);
+    void update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent);
 
 private:
     SnapshotMap snapshots;

@@ -285,19 +285,36 @@ void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, Snapsh
     rollback_snapshot_file.dismiss();
 }
 
-void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, Snapshot& deleted_parent)
+void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent)
 {
-    auto new_parent = deleted_parent.get_parent();
+    auto new_parent = deleted_parent->get_parent();
+
+    std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
+    updated_snapshot_paths.reserve(snapshots.size());
+
+    auto rollback = sg::make_scope_guard([&updated_snapshot_paths, deleted_parent]() noexcept { // TODO@ricab catchall
+        for (auto [snapshot, snapshot_filepath] : updated_snapshot_paths)
+        {
+            snapshot->set_parent(deleted_parent);
+            if (!snapshot_filepath.isEmpty())
+                write_json(snapshot->serialize(), snapshot_filepath);
+        }
+    });
+
     for (auto& [ignore, other] : snapshots)
     {
-        if (other->get_parent().get() == &deleted_parent)
+        if (other->get_parent() == deleted_parent)
         {
             other->set_parent(new_parent);
+            updated_snapshot_paths[other.get()];
 
             const auto other_filepath = find_snapshot_file(snapshot_dir, other->get_name()).filePath();
             write_json(other->serialize(), other_filepath);
+            updated_snapshot_paths[other.get()] = other_filepath;
         }
     }
+
+    rollback.dismiss();
 }
 
 void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::string& name)
@@ -310,9 +327,7 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
 
     auto snapshot = it->second;
     delete_snapshot_helper(snapshot_dir, *snapshot);
-
-    // No rollbacks from this point on
-    update_parents(snapshot_dir, *snapshot);
+    update_parents(snapshot_dir, snapshot);
 
     snapshots.erase(it); // doesn't throw
     mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
