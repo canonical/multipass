@@ -103,7 +103,7 @@ private:
     auto make_deleted_head_rollback(const QString& head_path, const bool& wrote_head);
     void deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
-    void update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent);
+    void update_parents_obsolete(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent);
     auto make_parent_update_rollback(const std::shared_ptr<Snapshot>& deleted_parent,
                                      std::unordered_map<Snapshot*, QString>& updated_snapshot_paths) const;
     void delete_snapshot_helper(const QDir& snapshot_dir, Snapshot& snapshot);
