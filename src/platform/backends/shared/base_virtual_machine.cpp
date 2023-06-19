@@ -312,11 +312,6 @@ void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, std::s
     rollback_snapshot_file.dismiss();
 }
 
-void BaseVirtualMachine::update_parents_obsolete(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent)
-{
-
-}
-
 void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent,
                                         std::unordered_map<Snapshot*, QString>& updated_snapshot_paths)
 {
