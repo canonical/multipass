@@ -284,13 +284,13 @@ auto BaseVirtualMachine::make_parent_update_rollback(
 
 void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& snapshot)
 {
-    auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, snapshot->get_name());
-    auto snapshot_filepath = snapshot_fileinfo.filePath();
-
+    // Remove snapshot file
     QTemporaryDir tmp_dir{};
     if (!tmp_dir.isValid())
         throw std::runtime_error{"Could not create temporary directory"};
 
+    auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, snapshot->get_name());
+    auto snapshot_filepath = snapshot_fileinfo.filePath();
     auto deleting_filepath = tmp_dir.filePath(snapshot_fileinfo.fileName());
 
     if (!QFile{snapshot_filepath}.rename(deleting_filepath))
@@ -301,17 +301,20 @@ void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, std::s
         QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
     });
 
+    // Update head if deleted
     auto wrote_head = false;
     auto head_path = derive_head_path(snapshot_dir);
     auto rollback_head = make_deleted_head_rollback(head_path, wrote_head);
     wrote_head = updated_deleted_head(snapshot, head_path);
 
+    // Update children of deleted snapshot
     std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
     updated_snapshot_paths.reserve(snapshots.size());
 
     auto rollback_parent_updates = make_parent_update_rollback(snapshot, updated_snapshot_paths);
     update_parents(snapshot_dir, snapshot, updated_snapshot_paths);
 
+    // Erase the snapshot with the backend and dismiss rollbacks on success
     snapshot->erase();
     rollback_parent_updates.dismiss();
     rollback_head.dismiss();
