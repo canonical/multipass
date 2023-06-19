@@ -100,6 +100,7 @@ private:
     void restore_rollback_helper(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
                                  const VMSpecs& old_specs, VMSpecs& specs);
 
+    bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const QString& head_path);
     auto make_deleted_head_rollback(const QString& head_path, const bool& wrote_head);
     void deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
