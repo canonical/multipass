@@ -303,8 +303,8 @@ void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, std::shared_pt
     std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
     updated_snapshot_paths.reserve(snapshots.size());
 
-    auto rollback = sg::make_scope_guard([&updated_snapshot_paths, deleted_parent]() noexcept { // TODO@ricab catchall
-        update_parents_rollback_helper(deleted_parent, updated_snapshot_paths);
+    auto rollback = sg::make_scope_guard([this, &updated_snapshot_paths, deleted_parent]() noexcept {
+        top_catch_all(vm_name, &update_parents_rollback_helper, deleted_parent, updated_snapshot_paths);
     });
 
     for (auto& [ignore, other] : snapshots)
