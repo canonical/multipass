@@ -255,18 +255,33 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
                 QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
             });
 
-            snapshot->erase();
+            auto wrote_head = false;
+            auto head_path = derive_head_path(snapshot_dir);
+            auto rollback_head =
+                sg::make_scope_guard([this, old_head = head_snapshot, &head_path, &wrote_head]() mutable noexcept {
+                    if (head_snapshot != old_head)
+                    {
+                        head_snapshot = std::move(old_head);
+                        if (wrote_head)
+                            top_catch_all(vm_name, [&head_path, &old_head] {
+                                MP_UTILS.make_file_with_content(head_path.toStdString(), old_head->get_name(),
+                                                                yes_overwrite);
+                            });
+                    }
+                });
 
             if (head_snapshot == snapshot)
             {
                 head_snapshot = snapshot->get_parent();
-                persist_head_snapshot_name(derive_head_path(snapshot_dir));
+                persist_head_snapshot_name(head_path);
+                wrote_head = true;
             }
 
+            snapshot->erase();
+            rollback_head.dismiss();
             rollback_snapshot_file.dismiss();
-        }
+        } // No rollbacks from this point on
 
-        // No rollbacks from this point on
         for (auto& [ignore, other] : snapshots)
             if (other->get_parent() == snapshot)
                 other->set_parent(snapshot->get_parent());
