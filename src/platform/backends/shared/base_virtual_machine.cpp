@@ -218,7 +218,10 @@ void BaseVirtualMachine::delete_snapshot(const QDir& /*snapshot_dir*/, const std
                 other->set_parent(snapshot->get_parent());
 
         if (head_snapshot == snapshot)
+        {
             head_snapshot = snapshot->get_parent();
+            persist_head_snapshot_name(derive_head_path(snapshot_dir));
+        }
 
         snapshots.erase(it);
         mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
