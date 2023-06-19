@@ -285,6 +285,19 @@ void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, Snapsh
     rollback_snapshot_file.dismiss();
 }
 
+void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, Snapshot& deleted_parent)
+{
+    for (auto& [ignore, other] : snapshots)
+    {
+        if (other->get_parent().get() == &deleted_parent)
+        {
+            const auto other_filepath = find_snapshot_file(snapshot_dir, other->get_name()).filePath();
+            other->set_parent(deleted_parent.get_parent());
+            write_json(other->serialize(), other_filepath);
+        }
+    }
+}
+
 void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::string& name)
 {
     std::unique_lock lock{snapshot_mutex};
@@ -297,15 +310,7 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
     delete_snapshot_helper(snapshot_dir, *snapshot);
 
     // No rollbacks from this point on
-    for (auto& [ignore, other] : snapshots)
-    {
-        if (other->get_parent() == snapshot)
-        {
-            const auto other_filepath = find_snapshot_file(snapshot_dir, other->get_name()).filePath();
-            other->set_parent(snapshot->get_parent());
-            mp::write_json(other->serialize(), other_filepath);
-        }
-    }
+    update_parents(snapshot_dir, *snapshot);
 
     snapshots.erase(it); // doesn't throw
     mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
