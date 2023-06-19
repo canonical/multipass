@@ -2232,7 +2232,7 @@ try // clang-format on
                     assert(purge && "precondition: snapshots can only be purged");
 
                     for (const auto& snapshot_name : instance_snapshots_map[name])
-                        vm_it->second->delete_snapshot(snapshot_name);
+                        vm_it->second->delete_snapshot(instance_directory(name, *config), snapshot_name);
                 }
             }
         }
