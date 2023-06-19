@@ -256,10 +256,6 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
         auto snapshot = it->second;
         snapshot->erase();
 
-        for (auto& [ignore, other] : snapshots)
-            if (other->get_parent() == snapshot)
-                other->set_parent(snapshot->get_parent());
-
         if (head_snapshot == snapshot)
         {
             head_snapshot = snapshot->get_parent();
@@ -267,6 +263,10 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
         }
         rollback_snapshot_file.dismiss();
 
+        // No rollbacks from this point on
+        for (auto& [ignore, other] : snapshots)
+            if (other->get_parent() == snapshot)
+                other->set_parent(snapshot->get_parent());
 
         snapshots.erase(it); // doesn't throw
         mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
