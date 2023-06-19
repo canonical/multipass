@@ -310,11 +310,11 @@ void BaseVirtualMachine::update_parents_obsolete(const QDir& snapshot_dir, std::
     std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
     updated_snapshot_paths.reserve(snapshots.size());
 
-    auto rollback = make_parent_update_rollback(deleted_parent, updated_snapshot_paths);
+    auto rollback_parent_updates = make_parent_update_rollback(deleted_parent, updated_snapshot_paths);
 
     update_parents(snapshot_dir, deleted_parent, updated_snapshot_paths);
 
-    rollback.dismiss();
+    rollback_parent_updates.dismiss();
 }
 
 void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent,
