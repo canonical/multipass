@@ -236,14 +236,14 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
 
     if (auto it = snapshots.find(name); it != snapshots.end())
     {
-        auto snapshot_filename = find_snapshot_file(snapshot_dir, name);
-        auto deleting_filename = QString{"%1.%2"}.arg(snapshot_filename, deleting_extension);
+        auto snapshot_filepath = find_snapshot_file(snapshot_dir, name);
+        auto deleting_filepath = QString{"%1.%2"}.arg(snapshot_filepath, deleting_extension);
 
-        if (!QFile{snapshot_filename}.rename(deleting_filename))
-            throw std::runtime_error{fmt::format("Failed to rename snapshot file: {}", snapshot_filename)};
+        if (!QFile{snapshot_filepath}.rename(deleting_filepath))
+            throw std::runtime_error{fmt::format("Failed to rename snapshot file: {}", snapshot_filepath)};
 
-        auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filename, &snapshot_filename]() noexcept {
-            QFile{deleting_filename}.rename(snapshot_filename); // best effort, ignore return
+        auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
+            QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
         });
 
         auto snapshot = it->second;
@@ -260,9 +260,9 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
         }
         rollback_snapshot_file.dismiss();
 
-        if (!QFile{deleting_filename}.remove())
+        if (!QFile{deleting_filepath}.remove())
             mpl::log(mpl::Level::warning, vm_name,
-                     fmt::format("Could not delete temporary snapshot file: {}", deleting_filename));
+                     fmt::format("Could not delete temporary snapshot file: {}", deleting_filepath));
 
         snapshots.erase(it); // doesn't throw
         mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
