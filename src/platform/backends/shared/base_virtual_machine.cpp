@@ -300,8 +300,14 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
 
     // No rollbacks from this point on
     for (auto& [ignore, other] : snapshots)
+    {
         if (other->get_parent() == snapshot)
+        {
+            const auto other_filepath = find_snapshot_file(snapshot_dir, other->get_name()).filePath();
             other->set_parent(snapshot->get_parent());
+            mp::write_json(other->serialize(), other_filepath);
+        }
+    }
 
     snapshots.erase(it); // doesn't throw
     mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
