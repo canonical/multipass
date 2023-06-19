@@ -66,6 +66,20 @@ QString derive_head_path(const QDir& snapshot_dir)
 {
     return snapshot_dir.filePath(head_filename);
 }
+
+QString find_snapshot_file(const QDir& snapshot_dir, const std::string& snapshot_name)
+{
+    // TODO@ricab extract pattern
+    auto pattern = QString{R"(????-%1.%2)"}.arg(QString::fromStdString(snapshot_name), snapshot_extension);
+    auto files = MP_FILEOPS.entryInfoList(snapshot_dir, {pattern}, QDir::Filter::Files | QDir::Filter::Readable);
+
+    if (auto num_found = files.count(); !num_found)
+        throw std::runtime_error{fmt::format("Could not find snapshot file for pattern '{}'", pattern)};
+    else if (num_found > 1)
+        throw std::runtime_error{fmt::format("Multiple snapshot files found for pattern '{}'", pattern)};
+
+    return files.first().filePath();
+}
 } // namespace
 
 namespace multipass
