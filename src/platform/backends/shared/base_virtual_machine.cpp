@@ -51,6 +51,7 @@ public:
 };
 
 constexpr auto snapshot_extension = "snapshot.json";
+constexpr auto deleting_extension = ".deleting";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
 constexpr auto index_digits = 4; // these two go together
@@ -219,11 +220,22 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
     }
 }
 
-void BaseVirtualMachine::delete_snapshot(const QDir& /*snapshot_dir*/, const std::string& name)
+void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::string& name)
 {
     std::unique_lock lock{snapshot_mutex};
+
     if (auto it = snapshots.find(name); it != snapshots.end())
     {
+        auto snapshot_filename = find_snapshot_file(snapshot_dir, name);
+        auto deleting_filename = QString{"%1.%2"}.arg(snapshot_filename, deleting_extension);
+
+        if (!QFile{snapshot_filename}.rename(deleting_filename))
+            throw std::runtime_error{fmt::format("Failed to rename snapshot file: {}", snapshot_filename)};
+
+        auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filename, &snapshot_filename]() noexcept {
+            QFile{deleting_filename}.rename(snapshot_filename); // best effort, ignore return
+        });
+
         auto snapshot = it->second;
         snapshot->erase();
 
@@ -236,8 +248,13 @@ void BaseVirtualMachine::delete_snapshot(const QDir& /*snapshot_dir*/, const std
             head_snapshot = snapshot->get_parent();
             persist_head_snapshot_name(derive_head_path(snapshot_dir));
         }
+        rollback_snapshot_file.dismiss();
 
-        snapshots.erase(it);
+        if (!QFile{deleting_filename}.remove())
+            mpl::log(mpl::Level::warning, vm_name,
+                     fmt::format("Could not delete temporary snapshot file: {}", deleting_filename));
+
+        snapshots.erase(it); // doesn't throw
         mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
     }
     else
