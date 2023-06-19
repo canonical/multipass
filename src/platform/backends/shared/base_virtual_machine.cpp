@@ -247,7 +247,9 @@ void BaseVirtualMachine::load_generic_snapshot_info(const QDir& snapshot_dir)
     try
     {
         snapshot_count = std::stoi(mpu::contents_of(snapshot_dir.filePath(count_filename)));
-        head_snapshot = get_snapshot(mpu::contents_of(snapshot_dir.filePath(head_filename)));
+
+        auto head_name = mpu::contents_of(snapshot_dir.filePath(head_filename));
+        head_snapshot = head_name.empty() ? nullptr : get_snapshot(head_name);
     }
     catch (FileOpenFailedException&)
     {
@@ -357,7 +359,8 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 
 void BaseVirtualMachine::persist_head_snapshot_name(const QString& head_path) const
 {
-    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
+    auto head_name = head_snapshot ? head_snapshot->get_name() : "";
+    MP_UTILS.make_file_with_content(head_path.toStdString(), head_name, yes_overwrite);
 }
 
 std::string BaseVirtualMachine::generate_snapshot_name() const
