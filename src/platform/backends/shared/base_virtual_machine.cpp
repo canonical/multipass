@@ -33,6 +33,7 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QTemporaryDir>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -51,7 +52,6 @@ public:
 };
 
 constexpr auto snapshot_extension = "snapshot.json";
-constexpr auto deleting_extension = ".deleting";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
 constexpr auto index_digits = 4; // these two go together
@@ -78,7 +78,7 @@ QString derive_snapshot_filename(const QString& index, const QString& name)
     return QString{"%1-%2.%3"}.arg(index, name, snapshot_extension);
 }
 
-QString find_snapshot_file(const QDir& snapshot_dir, const std::string& snapshot_name)
+QFileInfo find_snapshot_file(const QDir& snapshot_dir, const std::string& snapshot_name)
 {
     auto index_wildcard = "????";
     auto pattern = derive_snapshot_filename(index_wildcard, QString::fromStdString(snapshot_name));
@@ -89,7 +89,7 @@ QString find_snapshot_file(const QDir& snapshot_dir, const std::string& snapshot
     else if (num_found > 1)
         throw std::runtime_error{fmt::format("Multiple snapshot files found for pattern '{}'", pattern)};
 
-    return files.first().filePath();
+    return files.first();
 }
 } // namespace
 
@@ -236,8 +236,14 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
 
     if (auto it = snapshots.find(name); it != snapshots.end())
     {
-        auto snapshot_filepath = find_snapshot_file(snapshot_dir, name);
-        auto deleting_filepath = QString{"%1.%2"}.arg(snapshot_filepath, deleting_extension);
+        auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, name);
+        auto snapshot_filepath = snapshot_fileinfo.filePath();
+
+        QTemporaryDir tmp_dir{};
+        if (!tmp_dir.isValid())
+            throw std::runtime_error{"Could not create temporary directory"};
+
+        auto deleting_filepath = tmp_dir.filePath(snapshot_fileinfo.fileName());
 
         if (!QFile{snapshot_filepath}.rename(deleting_filepath))
             throw std::runtime_error{
@@ -261,9 +267,6 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
         }
         rollback_snapshot_file.dismiss();
 
-        if (!QFile{deleting_filepath}.remove())
-            mpl::log(mpl::Level::warning, vm_name,
-                     fmt::format("Could not delete temporary snapshot file: {}", deleting_filepath));
 
         snapshots.erase(it); // doesn't throw
         mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
