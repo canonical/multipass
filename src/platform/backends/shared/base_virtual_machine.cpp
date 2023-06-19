@@ -240,7 +240,8 @@ void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::st
         auto deleting_filepath = QString{"%1.%2"}.arg(snapshot_filepath, deleting_extension);
 
         if (!QFile{snapshot_filepath}.rename(deleting_filepath))
-            throw std::runtime_error{fmt::format("Failed to rename snapshot file: {}", snapshot_filepath)};
+            throw std::runtime_error{
+                fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
 
         auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
             QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
