@@ -205,7 +205,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
     }
 }
 
-void BaseVirtualMachine::delete_snapshot(const std::string& name)
+void BaseVirtualMachine::delete_snapshot(const QDir& /*snapshot_dir*/, const std::string& name)
 {
     std::unique_lock lock{snapshot_mutex};
     if (auto it = snapshots.find(name); it != snapshots.end())
