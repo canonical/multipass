@@ -32,7 +32,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
                                    const multipass::ProgressMonitor&, const bool,
                                    const std::optional<std::string>&) override
     {
-        return prepare({dummy_image.name(), dummy_image.name(), dummy_image.name(), {}, {}, {}, {}, {}});
+        return prepare({dummy_image.name(), {}, {}, {}, {}, {}});
     };
 
     void remove(const std::string&) override{};

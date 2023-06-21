@@ -564,8 +564,6 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                                      grpc::ClientReaderWriterInterface<LaunchRequest, LaunchReply>* client) {
         std::unordered_map<int, std::string> progress_messages{
             {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
-            {LaunchProgress_ProgressTypes_KERNEL, "Retrieving kernel image: "},
-            {LaunchProgress_ProgressTypes_INITRD, "Retrieving initrd image: "},
             {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
             {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "},
             {LaunchProgress_ProgressTypes_WAITING, "Preparing image: "}};

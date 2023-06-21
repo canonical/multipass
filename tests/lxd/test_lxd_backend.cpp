@@ -890,14 +890,12 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
 TEST_F(LXDBackend, prepare_source_image_does_not_modify)
 {
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
-    const mp::VMImage original_image{"/path/to/image",          "", "", "deadbeef", "bin", "baz", "the past",
+    const mp::VMImage original_image{"/path/to/image",          "deadbeef", "bin", "baz", "the past",
                                      {"fee", "fi", "fo", "fum"}};
 
     auto source_image = backend.prepare_source_image(original_image);
 
     EXPECT_EQ(source_image.image_path, original_image.image_path);
-    EXPECT_EQ(source_image.kernel_path, original_image.kernel_path);
-    EXPECT_EQ(source_image.initrd_path, original_image.initrd_path);
     EXPECT_EQ(source_image.id, original_image.id);
     EXPECT_EQ(source_image.original_release, original_image.original_release);
     EXPECT_EQ(source_image.current_release, original_image.current_release);

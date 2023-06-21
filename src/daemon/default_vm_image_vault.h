@@ -66,11 +66,8 @@ private:
                                               const PrepareAction& prepare, const ProgressMonitor& monitor);
     QString extract_image_from(const std::string& instance_name, const VMImage& source_image,
                                const ProgressMonitor& monitor);
-    VMImage fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image, const QDir& image_dir,
-                                    const ProgressMonitor& monitor);
     std::optional<QFuture<VMImage>> get_image_future(const std::string& id);
     VMImage finalize_image_records(const Query& query, const VMImage& prepared_image, const std::string& id);
-    VMImageInfo get_kernel_query_info(const std::string& name);
     void persist_image_records();
     void persist_instance_records();
 
