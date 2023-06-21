@@ -46,6 +46,9 @@ Instances sorted(const Instances& instances);
 template <typename Snapshots>
 Snapshots sort_snapshots(const Snapshots& snapshots);
 
+template <typename Details>
+Details sort_instances_and_snapshots(const Details& details);
+
 void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases);
 
 // Computes the column width needed to display all the elements of a range [begin, end). get_width is a function
@@ -104,6 +107,36 @@ Snapshots multipass::format::sort_snapshots(const Snapshots& snapshots)
 
         return TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
                TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
+    });
+
+    return ret;
+}
+
+template <typename Details>
+Details multipass::format::sort_instances_and_snapshots(const Details& details)
+{
+    using google::protobuf::util::TimeUtil;
+    if (details.empty())
+        return details;
+
+    auto ret = details;
+    const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
+    std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
+        if (a.has_instance_info() && b.has_snapshot_info())
+            return true;
+        else if (a.has_snapshot_info() && b.has_instance_info())
+            return false;
+
+        if (a.name() == petenv_name && b.name() != petenv_name)
+            return true;
+        else if (a.name() != petenv_name && b.name() == petenv_name)
+            return false;
+
+        if (a.has_instance_info())
+            return a.name() < b.name();
+        else
+            return TimeUtil::TimestampToNanoseconds(a.snapshot_info().fundamentals().creation_timestamp()) <
+                   TimeUtil::TimestampToNanoseconds(b.snapshot_info().fundamentals().creation_timestamp());
     });
 
     return ret;
