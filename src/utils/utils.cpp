@@ -263,8 +263,9 @@ std::string mp::utils::escape_for_shell(const std::string& in)
     {
         if (0xa == c) // newline
         {
-            *ret_insert++ = 0x5c; // backslash
-            *ret_insert++ = 0x20; // space
+            *ret_insert++ = 0x22; // double quotes
+            *ret_insert++ = 0xa;  // newline
+            *ret_insert++ = 0x22; // double quotes
         }
         else
         {

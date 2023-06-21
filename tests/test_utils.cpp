@@ -426,11 +426,11 @@ TEST(Utils, escape_for_shell_actually_escapes)
     EXPECT_THAT(res, ::testing::StrEq("I\\'ve\\ got\\ \\\"quotes\\\""));
 }
 
-TEST(Utils, escape_for_shell_replaces_newlines_with_spaces)
+TEST(Utils, escape_for_shell_quotes_newlines)
 {
     std::string s{"I've got\nnewlines"};
     auto res = mp::utils::escape_for_shell(s);
-    EXPECT_THAT(res, ::testing::StrEq("I\\'ve\\ got\\ newlines"));
+    EXPECT_THAT(res, ::testing::StrEq("I\\'ve\\ got\"\n\"newlines"));
 }
 
 TEST(Utils, escape_for_shell_quotes_empty_string)
