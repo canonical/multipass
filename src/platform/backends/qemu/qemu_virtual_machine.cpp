@@ -88,23 +88,6 @@ QStringList get_arguments(const QJsonObject& metadata)
     return args;
 }
 
-auto mount_args_from_json(const QJsonObject& object)
-{
-    mp::QemuVirtualMachine::MountArgs mount_args;
-    auto mount_data_map = object[mount_data_key].toObject();
-    for (const auto& tag : mount_data_map.keys())
-    {
-        const auto mount_data = mount_data_map[tag].toObject();
-        const auto source = mount_data[mount_source_key];
-        const auto args = mount_data[mount_arguments_key].toArray();
-        if (!source.isString() || !std::all_of(args.begin(), args.end(), std::mem_fn(&QJsonValue::isString)))
-            continue;
-        mount_args[tag.toStdString()] = {source.toString().toStdString(),
-                                         QVariant{args.toVariantList()}.toStringList()};
-    }
-    return mount_args;
-}
-
 auto make_qemu_process(const mp::VirtualMachineDescription& desc, const std::optional<QJsonObject>& resume_metadata,
                        const mp::QemuVirtualMachine::MountArgs& mount_args, const QStringList& platform_args)
 {
@@ -610,6 +593,23 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const S
 
 mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args()
 {
+    return mount_args;
+}
+
+auto mp::QemuVirtualMachine::mount_args_from_json(const QJsonObject& object) -> MountArgs
+{
+    mp::QemuVirtualMachine::MountArgs mount_args;
+    auto mount_data_map = object[mount_data_key].toObject();
+    for (const auto& tag : mount_data_map.keys())
+    {
+        const auto mount_data = mount_data_map[tag].toObject();
+        const auto source = mount_data[mount_source_key];
+        const auto args = mount_data[mount_arguments_key].toArray();
+        if (!source.isString() || !std::all_of(args.begin(), args.end(), std::mem_fn(&QJsonValue::isString)))
+            continue;
+        mount_args[tag.toStdString()] = {source.toString().toStdString(),
+                                         QVariant{args.toVariantList()}.toStringList()};
+    }
     return mount_args;
 }
 
