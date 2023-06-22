@@ -64,6 +64,8 @@ public:
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target, const VMMount& mount) override;
 
+    static MountArgs mount_args_from_json(const QJsonObject& metadata);
+
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();

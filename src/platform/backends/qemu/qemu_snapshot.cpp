@@ -108,6 +108,8 @@ void mp::QemuSnapshot::apply_impl()
     desc.mem_size = get_mem_size();
     desc.disk_space = get_disk_space();
 
+    mount_args = QemuVirtualMachine::mount_args_from_json(BaseSnapshot::get_metadata());
+
     checked_exec_qemu_img(make_restore_spec(derive_tag(), image_path));
     rollback.dismiss();
 }
