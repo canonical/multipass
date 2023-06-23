@@ -57,7 +57,6 @@ public: // TODO@snapshots drop any accessors that we end up not needing
 
     virtual void set_name(const std::string&) = 0; // TODO@snapshots don't forget to rename json file
     virtual void set_comment(const std::string&) = 0;
-    virtual void set_creation_timestamp(const QDateTime&) = 0;
     virtual void set_parent(std::shared_ptr<Snapshot>) = 0;
 
     virtual void capture() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
