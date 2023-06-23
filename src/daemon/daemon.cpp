@@ -1711,7 +1711,7 @@ try // clang-format on
 
             auto timestamp = fundamentals->mutable_creation_timestamp();
             timestamp->set_seconds(snapshot->get_creation_timestamp().toSecsSinceEpoch());
-            timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1000000);
+            timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
         };
 
         if (const auto& it = instance_snapshots_map.find(name);
