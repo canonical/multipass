@@ -65,7 +65,7 @@ void checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
                                const QString& image_path, std::shared_ptr<Snapshot> parent)
-    : BaseSnapshot(name, comment, QDateTime::currentDateTimeUtc(), specs, std::move(parent)), image_path{image_path}
+    : BaseSnapshot(name, comment, specs, std::move(parent)), image_path{image_path}
 {
 }
 
