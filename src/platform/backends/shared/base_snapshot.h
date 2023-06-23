@@ -58,7 +58,6 @@ public:
 
     void set_name(const std::string& n) override;
     void set_comment(const std::string& c) override;
-    void set_creation_timestamp(const QDateTime& t) override;
     void set_parent(std::shared_ptr<Snapshot> p) override;
 
     void capture() final;
@@ -83,7 +82,7 @@ private:
 private:
     std::string name;
     std::string comment;
-    QDateTime creation_timestamp;
+    const QDateTime creation_timestamp;
 
     // This class is non-copyable and having these const simplifies thread safety
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -113,7 +112,6 @@ inline std::string multipass::BaseSnapshot::get_comment() const
 
 inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const
 {
-    const std::unique_lock lock{mutex};
     return creation_timestamp;
 }
 
@@ -177,12 +175,6 @@ inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 {
     const std::unique_lock lock{mutex};
     comment = c;
-}
-
-inline void multipass::BaseSnapshot::set_creation_timestamp(const QDateTime& t)
-{
-    const std::unique_lock lock{mutex};
-    creation_timestamp = t;
 }
 
 inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
