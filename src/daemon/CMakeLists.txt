@@ -37,7 +37,6 @@ target_link_libraries(daemon
   petname
   platform
   rpc
-  scope_guard # TODO hk migration, remove
   settings
   simplestreams
   ssh

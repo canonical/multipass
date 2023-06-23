@@ -60,13 +60,6 @@ QString latest_version_in(const QJsonObject& versions)
     }
     return max_version;
 }
-
-QString derive_unpacked_file_path_prefix_from(const QString& image_location, const QString& image_suffix)
-{
-    QFileInfo info{image_location};
-    auto file_name = info.fileName().remove('-' + image_suffix).remove(".img");
-    return info.path().append("/unpacked/").append(file_name);
-}
 } // namespace
 
 std::unique_ptr<mp::SimpleStreamsManifest>
@@ -135,7 +128,7 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
             const auto& driver = MP_SETTINGS.get(mp::driver_key);
 
             QJsonObject image;
-            QString sha256, image_location, kernel_location, initrd_location;
+            QString sha256, image_location;
             int size = -1;
 
             // TODO: make this a VM factory call with a preference list
@@ -158,18 +151,12 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
                 image_location = image["path"].toString();
                 sha256 = image["sha256"].toString();
                 size = image["size"].toInt(-1);
-
-                // NOTE: These are not defined in the manifest itself
-                // so they are not guaranteed to be correct or exist in the server
-                const auto prefix = derive_unpacked_file_path_prefix_from(image_location, image_key);
-                kernel_location = prefix + "-vmlinuz-generic";
-                initrd_location = prefix + "-initrd-generic";
             }
 
             // Aliases always alias to the latest version
             const QStringList& aliases = version_string == latest_version ? product_aliases : QStringList();
-            products.push_back({aliases, "Ubuntu", release, release_title, supported, image_location, kernel_location,
-                                initrd_location, sha256, host_url, version_string, size, true});
+            products.push_back({aliases, "Ubuntu", release, release_title, supported, image_location, sha256, host_url,
+                                version_string, size, true});
         }
     }
 

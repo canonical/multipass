@@ -20,7 +20,6 @@
 #include "instance_settings_handler.h"
 
 #include <multipass/alias_definition.h>
-#include <multipass/cloud_init_iso.h> // TODO hk migration, remove
 #include <multipass/constants.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -30,7 +29,6 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
-#include <multipass/file_ops.h> // TODO hk migration, remove
 #include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
@@ -39,13 +37,10 @@
 #include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
-#include <multipass/process/qemuimg_process_spec.h> // TODO hk migration, remove
-#include <multipass/process/simple_process_spec.h>  // TODO hk migration, remove
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
-#include <multipass/standard_paths.h> // TODO hk migration, remove
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -55,8 +50,6 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
-
-#include <scope_guard.hpp> // TODO hk migration, remove
 
 #include <yaml-cpp/yaml.h>
 
@@ -74,10 +67,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cerrno>  // TODO hk migration, remove
-#include <cstring> // TODO hk migration, remove
 #include <functional>
-#include <iterator> // TODO hk migration, remove
 #include <optional>
 #include <stdexcept>
 #include <type_traits>
@@ -1188,46 +1178,6 @@ register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_
         vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
 }
 
-class CustomQemuImgProcessSpec : public mp::QemuImgProcessSpec // TODO hk migration, remove
-{
-public:
-    using mp::QemuImgProcessSpec::QemuImgProcessSpec;
-    virtual mpl::Level error_log_level() const
-    {
-        return mpl::Level::trace; /* qemu-img prints tens of thousands of (benign) error lines when repairing image
-                                     metadata, which our BasicProcess class logs with the error level returned here */
-    }
-};
-
-template <typename W, typename R>
-void warn_hyperkit_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) // TODO hk migration, remove
-{
-#ifdef MULTIPASS_PLATFORM_APPLE
-    constexpr auto deprecation_warning =
-        "*** Warning! The Hyperkit driver is deprecated and will be removed in an upcoming release. ***\n\n"
-        "When you are ready to have your instances migrated, please stop them (multipass stop --all) and "
-        "switch to the QEMU driver (multipass set local.driver=qemu).\n\n";
-
-    if (MP_SETTINGS.get(mp::driver_key) == "hyperkit")
-    {
-        W reply{};
-        reply.set_log_line(deprecation_warning);
-        server.Write(reply);
-    }
-#endif
-}
-
-class HyperkitMigrationRecoverableError : public std::runtime_error // TODO hk migration, remove
-{
-public:
-    template <typename Str1, typename Str2, typename Str3>
-    HyperkitMigrationRecoverableError(Str1&& instance, Str2&& cause, Str3&& details)
-        : runtime_error{fmt::format("Failed to migrate {}; cause: {}; details: {}", std::forward<Str1>(instance),
-                                    std::forward<Str2>(cause), std::forward<Str3>(details))}
-    {
-    }
-};
-
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1412,7 +1362,6 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<LaunchReply, LaunchRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                          server};
 
@@ -1460,7 +1409,6 @@ void mp::Daemon::find(const FindRequest* request, grpc::ServerReaderWriterInterf
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<FindReply, FindRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     FindReply response;
@@ -1592,7 +1540,6 @@ void mp::Daemon::info(const InfoRequest* request, grpc::ServerReaderWriterInterf
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     InfoReply response;
@@ -1727,7 +1674,6 @@ void mp::Daemon::list(const ListRequest* request, grpc::ServerReaderWriterInterf
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<ListReply, ListRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     ListReply response;
@@ -1913,7 +1859,6 @@ void mp::Daemon::recover(const RecoverRequest* request,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<RecoverReply, RecoverRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
@@ -1950,7 +1895,6 @@ void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<SSHInfoReply, SSHInfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
@@ -1977,7 +1921,6 @@ void mp::Daemon::start(const StartRequest* request, grpc::ServerReaderWriterInte
                        std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<StartReply, StartRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                        server};
 
@@ -2088,7 +2031,6 @@ void mp::Daemon::suspend(const SuspendRequest* request,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<SuspendReply, SuspendRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
@@ -2118,7 +2060,6 @@ void mp::Daemon::restart(const RestartRequest* request,
                          std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    warn_hyperkit_deprecation(*server); // TODO hk migration, remove
     mpl::ClientLogger<RestartReply, RestartRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
 
@@ -2333,17 +2274,11 @@ try
     auto key = request->key();
     auto val = request->val();
 
-    bool need_migration = false; // TODO hk migration, remove
-#ifdef MULTIPASS_PLATFORM_APPLE  // TODO hk migration, remove
-    need_migration = val == "qemu" && MP_SETTINGS.get(QString::fromStdString(key)) == "hyperkit";
-#endif
-
     mpl::log(mpl::Level::trace, category, fmt::format("Trying to set {}={}", key, val));
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
 
-    status_promise->set_value(need_migration ? migrate_from_hyperkit(server)
-                                             : grpc::Status::OK); // TODO hk migration, revert
+    status_promise->set_value(grpc::Status::OK);
 }
 catch (const mp::UnrecognizedSettingException& e)
 {
@@ -3091,247 +3026,4 @@ void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_futu
 
     if (async_op_result.status_promise)
         async_op_result.status_promise->set_value(async_op_result.status);
-}
-
-grpc::Status mp::Daemon::migrate_from_hyperkit(grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server)
-{ // TODO hk migration, remove
-    assert(config->factory->get_backend_version_string() == "hyperkit" &&
-           "can only migrate when hyperkit is in effect");
-
-    if (vm_instance_specs.empty())
-        return grpc::Status::OK;
-
-    // Utility to write a msg back to the client
-    auto reply_msg = [server](auto&& msg, bool sticky = false) {
-        mp::SetReply reply{};
-        if (sticky)
-            reply.set_log_line(fmt::format("{}\n", std::forward<decltype(msg)>(msg)));
-        else
-            reply.set_reply_message(std::forward<decltype(msg)>(msg));
-
-        server->Write(reply);
-    };
-
-    // Utility to read a json file
-    auto read_json = [](auto&& file_path) {
-        auto file = std::make_unique<QFile>(std::forward<decltype(file_path)>(file_path)); /* QFile is noncopyable,
-                                                                  but we need to return it, so we use an owning ptr */
-
-        if (!MP_FILEOPS.open(*file, QFile::ReadWrite))
-            throw std::runtime_error{fmt::format("Could not open file for reading and writing: {}", file->fileName())};
-
-        QJsonParseError parse_error{};
-        const auto& data = file->readAll();
-        auto doc = data.isEmpty() ? QJsonDocument{} : QJsonDocument::fromJson(data, &parse_error);
-
-        if (parse_error.error)
-            throw std::runtime_error{fmt::format("Could not parse file as JSON; error: {}; file: {}", file->fileName(),
-                                                 parse_error.errorString())};
-
-        auto json = doc.isNull() ? QJsonObject{} : doc.object();
-        return std::tuple(std::move(file), std::move(doc), std::move(json));
-    };
-
-    // Utility to write json to a (currently shorter) file
-    // Precondition: when serialized, the json object must produce more data than the current file contents.
-    auto write_longer_json = [](QFile& file, QJsonDocument& doc, const QJsonObject& json) {
-        doc.setObject(json);
-        [[maybe_unused]] auto reset_success = file.reset(); /* seek back to the beginning of the file, to overwrite its
-                                                               current contents */
-
-        assert(reset_success);
-        MP_FILEOPS.write(file, doc.toJson()); /* overwrites with more content, so no need to erase first */
-    };
-
-    const auto cloud_init_iso_name = "cloud-init-config.iso";
-    const auto cloud_init_mount_point = "/Volumes/cidata";
-    const auto instance_image_db_filename = "multipassd-instance-image-records.json";
-    const auto data_dir = MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation);
-    const auto qemu_data_dir = fmt::format("{}/qemu", data_dir);
-    const auto qemu_vault_dir = fmt::format("{}/vault", qemu_data_dir);
-    const auto qemu_instances_dir = fmt::format("{}/instances", qemu_vault_dir);
-    const auto qemu_instances_db_path = fmt::format("{}/{}", qemu_data_dir, instance_db_name);
-    const auto qemu_instance_images_db_path = fmt::format("{}/{}", qemu_vault_dir, instance_image_db_filename);
-    const auto hyperkit_instance_image_db_path = fmt::format("{}/vault/{}", data_dir, instance_image_db_filename);
-
-    // Create QEMU vault (if not there yet)
-    if (std::error_code err; !MP_FILEOPS.create_directories(qemu_vault_dir, err) && err)
-        throw std::runtime_error{fmt::format("Could not create directory for QEMU vault: {} ", err.message())};
-
-    // Read JSON DBs
-    auto [qemu_instances_db, qemu_instances_doc, qemu_instances_json] =
-        read_json(QString::fromStdString(qemu_instances_db_path));
-
-    auto [qemu_instance_images_db, qemu_instance_images_doc, qemu_instance_images_json] =
-        read_json(QString::fromStdString(qemu_instance_images_db_path));
-
-    const auto hyperkit_instance_images_json =
-        std::get<2>(read_json(QString::fromStdString(hyperkit_instance_image_db_path)));
-
-    // Migrate instances
-    auto ret = grpc::Status::OK;
-    std::set<std::string> instances_migrated{}; // using set to get them sorted
-    for (const auto& [vm_name, vm_specs] : vm_instance_specs)
-    {
-        if (deleted_instances.find(vm_name) != deleted_instances.cend())
-            reply_msg(fmt::format("Cannot migrate {}: instance is deleted", vm_name), /* sticky = */ true);
-        else if (auto st = operative_instances[vm_name]->current_state();
-                 st != VirtualMachine::State::off && st != VirtualMachine::State::stopped)
-            reply_msg(fmt::format("Cannot migrate {}: instance needs to be stopped", vm_name), /* sticky = */ true);
-        else if (auto key = QString::fromStdString(vm_name);
-                 qemu_instances_json.contains(key) || qemu_instance_images_json.contains(key))
-            reply_msg(fmt::format("Cannot migrate {}: name already taken by a qemu instance", vm_name),
-                      /* sticky = */ true);
-        else if (const auto vm_image = fetch_image_for(vm_name, config->factory->fetch_type(), *config->vault);
-                 vm_image.original_release.find("16.04") != std::string::npos &&
-                 !vm_image.image_path.contains("uefi", Qt::CaseInsensitive))
-            reply_msg(fmt::format("Cannot migrate {}: old Xenial instances (launched before 1.11) cannot be migrated :/"
-                                  " consider extracting your data manually.",
-                                  vm_name),
-                      /* sticky = */ true);
-        else
-        {
-            reply_msg(fmt::format("Migrating instance from hyperkit to qemu: {}", vm_name));
-
-            // Copy instance image to qemu vault
-            const auto target_directory = fmt::format("{}/{}", qemu_instances_dir, vm_name);
-            mpl::log(mpl::Level::debug, category, fmt::format("Migrating instance files to '{}'", target_directory));
-
-            try
-            {
-                if (std::error_code err; !MP_FILEOPS.create_directories(target_directory, err) && err)
-                    throw HyperkitMigrationRecoverableError{vm_name, "could not create directory for QEMU instance",
-                                                            err.message()};
-
-                // Set up a scope guard to remove the directory for the instance (unless we dismiss it when done)
-                auto rmdir_guard = sg::make_scope_guard([&target_directory]() noexcept {
-                    mp::top_catch_all(category, [&target_directory] {
-                        std::filesystem::remove_all(target_directory); // overload that throws on error
-                    });
-                });
-                const auto new_image = mp::vault::copy(vm_image.image_path, QString::fromStdString(target_directory));
-
-                // Fix image metadata
-                QStringList qemuimg_args = QStringList{"check", "-r", "all", new_image};
-                auto qemuimg_proc = mp::platform::make_process(
-                    std::make_unique<CustomQemuImgProcessSpec>(std::move(qemuimg_args), new_image));
-
-                const auto repair_timeout = 300000; // allow 5 minutes to repair large images
-                if (const auto qemuimg_state = qemuimg_proc->execute(repair_timeout);
-                    !qemuimg_state.completed_successfully())
-                    throw HyperkitMigrationRecoverableError{vm_name, "could not fix image metadata",
-                                                            qemuimg_state.failure_message()};
-
-                // Verify if the default mount point for the cloud-init ISO is available
-                if (QFile::exists(cloud_init_mount_point)) // This we can't recover from
-                    throw std::runtime_error{"Cannot mount cloud-init ISO: mount point already exists"}; /* By requiring
-                    the default mount point to be available (which will virtually always be the case), we avoid having
-                    to parse the output of the mounting tool. */
-
-                // Set up a scope guard to unmount the cloud-init ISO when we're done
-                const auto unmount_guard = sg::make_scope_guard([&cloud_init_mount_point,
-                                                                 &vm_name = vm_name]() noexcept {
-                    mp::top_catch_all(category, [&cloud_init_mount_point, &vm_name = vm_name] {
-                        if (QFile::exists(cloud_init_mount_point))
-                        {
-                            auto unmount_proc = mp::platform::make_process(
-                                mp::simple_process_spec("hdiutil", {"unmount", cloud_init_mount_point}));
-
-                            if (const auto unmount_state = unmount_proc->execute();
-                                !unmount_state.completed_successfully())
-                                throw HyperkitMigrationRecoverableError{
-                                    vm_name,
-                                    fmt::format("failed to unmount the cloud-init ISO in '{}'", cloud_init_mount_point),
-                                    unmount_state.failure_message()};
-                        }
-                    });
-                });
-
-                // Mount the cloud-init ISO for the instance
-                const auto hyperkit_instances_dir = mp::utils::base_dir(vm_image.image_path);
-                const auto hyperkit_iso_path = hyperkit_instances_dir.filePath(cloud_init_iso_name);
-                auto mount_proc =
-                    mp::platform::make_process(mp::simple_process_spec("hdiutil", {"mount", hyperkit_iso_path}));
-                if (const auto mount_state = mount_proc->execute(); !mount_state.completed_successfully())
-                    throw HyperkitMigrationRecoverableError{vm_name, "could not mount cloud-init ISO",
-                                                            mount_state.failure_message()};
-
-                // Create a network-config file to give the new interface (w/ the new MAC addr) DHCP and the former name
-                YAML::Node network_data;
-                network_data["version"] = "2";
-                network_data["ethernets"]["default"]["match"]["macaddress"] = vm_specs.default_mac_address;
-                network_data["ethernets"]["default"]["set-name"] = "enp0s2";
-                network_data["ethernets"]["default"]["dhcp4"] = true;
-
-                mp::CloudInitIso qemu_iso{};
-                qemu_iso.add_file("network-config", mpu::emit_cloud_config(network_data));
-
-                // Update the instance-id, to have cloud-init re-render the network. Note the hostname remains unchanged
-                auto meta_data = make_cloud_init_meta_config(vm_name);
-                meta_data["instance-id"] = fmt::format("{}-migrated", vm_name); // update the id to rerun cloud-init
-                qemu_iso.add_file("meta-data", mpu::emit_cloud_config(meta_data));
-
-                // Copy the remaining cloud-init files
-                for (const auto filename : {"user-data", "vendor-data"})
-                {
-                    auto stream = MP_FILEOPS.open_read(fmt::format("{}/{}", cloud_init_mount_point, filename));
-                    auto contents = std::string{std::istreambuf_iterator{*stream}, {}};
-                    if (stream->fail())
-                        throw HyperkitMigrationRecoverableError{
-                            vm_name, fmt::format("could not read cloud-init config file '{}'", filename),
-                            std::strerror(errno)};
-
-                    qemu_iso.add_file(filename, contents);
-                }
-
-                qemu_iso.write_to(QString::fromStdString(fmt::format("{}/{}", target_directory, cloud_init_iso_name)));
-
-                // Migrate JSON for instance image
-                auto instance_image_record = hyperkit_instance_images_json[key].toObject();
-                auto image_record = instance_image_record["image"].toObject();
-                if (image_record.isEmpty()) // true if either the image or instance objects were empty/absent
-                    throw HyperkitMigrationRecoverableError{vm_name, "could not update instance image",
-                                                            "corrupted image records"};
-
-                image_record.insert("path", new_image);
-                image_record.insert("kernel_path", "");
-                image_record.insert("initrd_path", "");
-                instance_image_record.insert("image", image_record);
-                qemu_instance_images_json.insert(key, instance_image_record);
-
-                // Add JSON for QEMU instance
-                qemu_instances_json.insert(key, vm_spec_to_json(vm_specs));
-
-                [[maybe_unused]] auto succeeded = instances_migrated.insert(vm_name).second;
-                assert(succeeded);
-
-                rmdir_guard.dismiss(); // we succeeded migrating the instance, so don't roll back
-            }
-            catch (const HyperkitMigrationRecoverableError& e)
-            {
-                mpl::log(mpl::Level::error, category, e.what());
-                if (ret.ok())
-                    ret = grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Faulty migration"};
-            }
-        }
-    }
-
-    std::string outcome_summary{"No instances were migrated."};
-    if (!instances_migrated.empty())
-    {
-        // Write QEMU instance and instance-image DBs
-        write_longer_json(*qemu_instances_db, qemu_instances_doc, qemu_instances_json);
-        write_longer_json(*qemu_instance_images_db, qemu_instance_images_doc, qemu_instance_images_json);
-
-        constexpr auto separator = "\n  ";
-        constexpr auto hint_delete =
-            "Multipass retained the original instances, but they take space on disk.\n\n"
-            "When you are happy with the newly migrated instances, you can temporarily switch back to "
-            "the Hyperkit driver and delete the old instance(s) (multipass delete --purge <instance-name>).";
-        outcome_summary = fmt::format("The following instances were successfully migrated:{}{}\n\n{}", separator,
-                                      fmt::join(instances_migrated, separator), hint_delete);
-    }
-
-    reply_msg(std::move(outcome_summary), /* sticky = */ true);
-    return ret;
 }

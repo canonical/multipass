@@ -430,7 +430,7 @@ TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
-                         Values(QStringLiteral("hyperkit"), QStringLiteral("hyper-v"), QStringLiteral("other")));
+                         Values(QStringLiteral("hyper-v"), QStringLiteral("other")));
 
 TEST_F(PlatformLinux, retrieves_empty_bridges)
 {

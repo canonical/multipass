@@ -28,8 +28,6 @@ class VMImage
 {
 public:
     Path image_path;
-    Path kernel_path;
-    Path initrd_path;
     std::string id;
     std::string original_release;
     std::string current_release;
