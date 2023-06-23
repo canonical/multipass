@@ -34,8 +34,8 @@ struct VMSpecs;
 class BaseSnapshot : public Snapshot
 {
 public:
-    BaseSnapshot(const std::string& name, const std::string& comment, const QDateTime& creation_timestamp,
-                 const VMSpecs& specs, std::shared_ptr<Snapshot> parent);
+    BaseSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
+                 std::shared_ptr<Snapshot> parent);
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
 
     std::string get_name() const override;
