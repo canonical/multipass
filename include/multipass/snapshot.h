@@ -26,6 +26,7 @@
 #include <unordered_map>
 
 class QJsonObject;
+class QDateTime;
 
 namespace multipass
 {
