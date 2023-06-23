@@ -40,8 +40,8 @@ public:
 
     std::string get_name() const override;
     std::string get_comment() const override;
-    std::string get_parent_name() const override;
     QDateTime get_creation_timestamp() const override;
+    std::string get_parent_name() const override;
     std::shared_ptr<const Snapshot> get_parent() const override;
     std::shared_ptr<Snapshot> get_parent() override;
 
