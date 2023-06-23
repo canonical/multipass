@@ -27,12 +27,6 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
-#ifdef HYPERKIT_ENABLED
-#include "backends/hyperkit/hyperkit_virtual_machine_factory.h"
-#else
-#define HYPERKIT_ENABLED 0
-#endif
-
 #ifdef QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #else
@@ -239,14 +233,6 @@ bool mp::platform::Platform::is_alias_supported(const std::string& alias, const 
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 
-    // Core images don't work on hyperkit yet
-    if (driver == "hyperkit" && remote.empty() && (supported_core_aliases.find(alias) != supported_core_aliases.end()))
-        return false;
-
-    // Core-based appliance images don't work on hyperkit yet
-    if (driver == "hyperkit" && remote == "appliance")
-        return false;
-
     if (check_unlock_code())
         return true;
 
@@ -284,8 +270,7 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return (backend == "hyperkit" && HYPERKIT_ENABLED) ||
-           (backend == "qemu" && QEMU_ENABLED &&
+    return (backend == "qemu" && QEMU_ENABLED &&
             QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSCatalina) ||
            (backend == "virtualbox" && VIRTUALBOX_ENABLED);
 }
@@ -364,13 +349,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 
-    if (driver == QStringLiteral("hyperkit"))
-    {
-#if HYPERKIT_ENABLED
-        return std::make_unique<HyperkitVirtualMachineFactory>();
-#endif
-    }
-    else if (driver == QStringLiteral("virtualbox"))
+    if (driver == QStringLiteral("virtualbox"))
     {
 #if VIRTUALBOX_ENABLED
         qputenv("PATH", qgetenv("PATH") + ":/usr/local/bin"); /*

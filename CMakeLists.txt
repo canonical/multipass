@@ -83,15 +83,7 @@ if(APPLE)
       list(APPEND MULTIPASS_BACKENDS virtualbox)
   endif()
 
-  # Only build QEMU for macOS 10.15+
-  if (CMAKE_HOST_SYSTEM_VERSION VERSION_GREATER_EQUAL 19)
-      list(APPEND MULTIPASS_BACKENDS qemu)
-  endif()
-
-  # Only build Hyperkit, et. al. on host systems older than macOS 20.x.x (Big Sur)
-  if (CMAKE_HOST_SYSTEM_VERSION VERSION_LESS 20)
-      list(APPEND MULTIPASS_BACKENDS hyperkit)
-  endif()
+  list(APPEND MULTIPASS_BACKENDS qemu)
 endif()
 
 # Needs to be here before we set further compilation options

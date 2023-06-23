@@ -148,13 +148,6 @@ function codesign_binaries {
             --prefix com.canonical.multipass. \
             --sign "${SIGN_APP}"
 
-    # sign hyperkit with the right entitlements
-    find "${DIR}" -type f -name hyperkit -print0 | xargs -0L1 \
-        codesign -v --timestamp --options runtime --force --strict \
-            $( entitlements com.apple.security.cs.disable-executable-page-protection ) \
-            --identifier com.canonical.multipass.hyperkit \
-            --sign "${SIGN_APP}"
-
     # sign qemu with the right entitlements
     find "${DIR}" -type f -name qemu-system-* -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \

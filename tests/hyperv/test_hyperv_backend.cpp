@@ -115,7 +115,7 @@ struct HyperVBackend : public Test
                                                       "ba:ba:ca:ca:ca:ba",
                                                       {},
                                                       "",
-                                                      {dummy_image.name(), "", "", "", "", "", "", {}},
+                                                      {dummy_image.name(), "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name()};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::PowerShellTestHelper ps_helper;

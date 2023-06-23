@@ -310,7 +310,7 @@ TEST(PlatformOSX, test_mixed_hotkey_interpretation)
 
 TEST(PlatformOSX, test_default_driver)
 {
-    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "hyperkit", "virtualbox"));
+    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "virtualbox"));
 }
 
 TEST(PlatformOSX, test_default_privileged_mounts)

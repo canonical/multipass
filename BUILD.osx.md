@@ -32,23 +32,6 @@ Building a Multipass package requires cmake 3.9 or greater. OpenSSL is also nece
 
     brew install cmake openssl@1.1
 
-### Hyperkit dependencies (Intel-based Mac only)
-Hyperkit is a core utility used by Multipass. To build it we need more dependencies:
-
-    brew install wget opam dylibbundler libffi pkg-config
-
-Answer `yes` when it asks to modify your `.bash_profile`, or otherwise ensure `` eval `opam config env` `` runs in your shell.
-
-Hyperkit's QCow support is implemented in an OCaml module, which we need to fetch using the OPAM packaging system. Initialize:
-
-    export OPAM_COMP=4.11.1
-    opam init --comp="${OPAM_COMP}" --switch="${OPAM_COMP}"
-    opam update
-
-Install the required modules:
-
-    opam install 3rd-party/hyperkit --deps-only
-
 Building
 ---------------------------------------
     cd <multipass>

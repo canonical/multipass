@@ -11,23 +11,6 @@ if [ -f "$LAUNCH_AGENT_DEST" ]; then
     rm -fv "$LAUNCH_AGENT_DEST"
 fi
 
-# TODO hk migration, remove
-# Preserve Hyperkit on upgrades.
-# Explicitly set the driver to `hyperkit` when there is a settings file with no driver configured. Up to now, Hyperkit
-# would have been in use in such cases. This prevents a switch to QEMU (the new default) on upgrades to this version. As
-# a side effect, downgrading to this version may also cause a switch from qemu (if being used by default) to hyperkit.
-# However, the main reason for downgrading would be to migrate from hyperkit and deprecation warnings would quickly make
-# it obvious.
-SETTINGS_FILE="$3/var/root/Library/Preferences/multipassd/multipassd.conf"
-DRIVER_KEY='local.driver'
-if [ -f "$SETTINGS_FILE" ]; then
-  if ! grep -q "$DRIVER_KEY" "$SETTINGS_FILE"; then
-    echo -e "\n$DRIVER_KEY=hyperkit" >> "$SETTINGS_FILE" # fortunately we have only a single [General] section, which Qt
-                                                         # doesn't require in order to be able to read settings, so this
-                                                         # should be OK even if the file is currently empty.
-  fi
-fi
-
 # Create log dir and ensure correct permissions
 mkdir -p "$3/Library/Logs/Multipass" -m 755
 
