@@ -2,7 +2,7 @@
 
 Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed
 for developers who want a fresh Ubuntu environment with a single command. It uses
-KVM on Linux, Hyper-V on Windows and HyperKit on macOS to run the VM with minimal
+KVM on Linux, Hyper-V on Windows and QEMU on macOS to run the VM with minimal
 overhead. It can also use VirtualBox on Windows and macOS.
 Multipass will fetch images for you and keep them up to date.
 

@@ -83,11 +83,9 @@ message LaunchError {
 message LaunchProgress {
     enum ProgressTypes {
         IMAGE = 0;
-        KERNEL = 1;
-        INITRD = 2;
-        EXTRACT = 3;
-        VERIFY = 4;
-        WAITING = 5;
+        EXTRACT = 1;
+        VERIFY = 2;
+        WAITING = 3;
     }
     ProgressTypes type = 1;
     string percent_complete = 2;

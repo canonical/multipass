@@ -96,45 +96,39 @@ public:
     MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (override));
 
     TempFile image;
-    TempFile kernel;
-    TempFile initrd;
     VMImageInfo mock_bionic_image_info{{default_alias},
                                        "Ubuntu",
                                        "bionic",
                                        default_release_info,
                                        true,
                                        image.url(),
-                                       kernel.url(),
-                                       initrd.url(),
                                        default_id,
                                        default_stream_location,
                                        default_version,
                                        1,
                                        true};
     VMImageInfo mock_snapcraft_image_info{
-        {snapcraft_alias}, "Ubuntu",           "core20", snapcraft_release_info,  true, image.url(), kernel.url(),
-        initrd.url(),      snapcraft_image_id, "",       snapcraft_image_version, 1,    true};
+        {snapcraft_alias},       "Ubuntu", "core20", snapcraft_release_info, true, image.url(), snapcraft_image_id, "",
+        snapcraft_image_version, 1,        true};
     VMImageInfo mock_custom_image_info{{custom_alias},
                                        "Ubuntu",
                                        "Custom Core",
                                        custom_release_info,
                                        true,
                                        image.url(),
-                                       kernel.url(),
-                                       initrd.url(),
                                        custom_image_id,
                                        "",
                                        custom_image_version,
                                        1,
                                        false};
     VMImageInfo mock_another_image_info{
-        {another_alias}, "Ubuntu",         "another", another_release_info,  true, image.url(), kernel.url(),
-        initrd.url(),    another_image_id, "",        another_image_version, 1,    false};
+        {another_alias},       "Ubuntu", "another", another_release_info, true, image.url(), another_image_id, "",
+        another_image_version, 1,        false};
 
 private:
     std::vector<std::pair<std::string, VMImageInfo>> empty_image_info_vector_pair;
     std::vector<VMImageInfo> empty_image_info_vector;
-    VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
+    VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     std::vector<std::string> remote{{"release"}};
 };
 } // namespace test

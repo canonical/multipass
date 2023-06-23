@@ -65,8 +65,6 @@ auto image_to_json(const mp::VMImage& image)
 {
     QJsonObject json;
     json.insert("path", image.image_path);
-    json.insert("kernel_path", image.kernel_path);
-    json.insert("initrd_path", image.initrd_path);
     json.insert("id", QString::fromStdString(image.id));
     json.insert("original_release", QString::fromStdString(image.original_release));
     json.insert("current_release", QString::fromStdString(image.current_release));
@@ -125,8 +123,6 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         if (image_path.isNull())
             return {};
 
-        auto kernel_path = image["kernel_path"].toString();
-        auto initrd_path = image["initrd_path"].toString();
         auto image_id = image["id"].toString().toStdString();
         auto original_release = image["original_release"].toString().toStdString();
         auto current_release = image["current_release"].toString().toStdString();
@@ -163,7 +159,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         }
 
         reconstructed_records[key] = {
-            {image_path, kernel_path, initrd_path, image_id, original_release, current_release, release_date, aliases},
+            {image_path, image_id, original_release, current_release, release_date, aliases},
             {"", release.toStdString(), persistent.toBool(), remote_name.toStdString(), query_type},
             last_accessed};
     }
@@ -175,10 +171,6 @@ void remove_source_images(const mp::VMImage& source_image, const mp::VMImage& pr
     // The prepare phase may have been a no-op, check and only remove source images
     if (source_image.image_path != prepared_image.image_path)
         mp::vault::delete_file(source_image.image_path);
-    if (source_image.kernel_path != prepared_image.kernel_path)
-        mp::vault::delete_file(source_image.kernel_path);
-    if (source_image.initrd_path != prepared_image.initrd_path)
-        mp::vault::delete_file(source_image.initrd_path);
 }
 
 void delete_image_dir(const mp::Path& image_path)
@@ -284,14 +276,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             source_image = image_instance_from(query.name, source_image);
         }
 
-        if (fetch_type == FetchType::ImageKernelAndInitrd)
-        {
-            auto info = get_kernel_query_info(query.name);
-
-            source_image =
-                fetch_kernel_and_initrd(info, source_image, QFileInfo(source_image.image_path).absoluteDir(), monitor);
-        }
-
         vm_image = prepare(source_image);
         vm_image.id = mp::vault::compute_image_hash(vm_image.image_path).toStdString();
 
@@ -342,15 +326,12 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             }
             else
             {
-                auto kernel_info = get_kernel_query_info(query.name);
                 const VMImageInfo info{{},
                                        {},
                                        {},
                                        {},
                                        true,
                                        image_url.url(),
-                                       kernel_info.kernel_location,
-                                       kernel_info.initrd_location,
                                        QString::fromStdString(id),
                                        {},
                                        last_modified.toString(),
@@ -619,11 +600,6 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
             mp::vault::verify_image_download(source_image.image_path, id);
         }
 
-        if (fetch_type == FetchType::ImageKernelAndInitrd)
-        {
-            source_image = fetch_kernel_and_initrd(info, source_image, image_dir, monitor);
-        }
-
         if (source_image.image_path.endsWith(".xz"))
         {
             source_image.image_path = mp::vault::extract_image(source_image.image_path, monitor, true);
@@ -663,28 +639,11 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& inst
     auto output_dir = MP_UTILS.make_dir(instances_dir, name);
 
     return {mp::vault::copy(prepared_image.image_path, output_dir),
-            mp::vault::copy(prepared_image.kernel_path, output_dir),
-            mp::vault::copy(prepared_image.initrd_path, output_dir),
             prepared_image.id,
             prepared_image.original_release,
             prepared_image.current_release,
             prepared_image.release_date,
             {}};
-}
-
-mp::VMImage mp::DefaultVMImageVault::fetch_kernel_and_initrd(const VMImageInfo& info, const VMImage& source_image,
-                                                             const QDir& image_dir, const ProgressMonitor& monitor)
-{
-    auto image{source_image};
-
-    image.kernel_path = image_dir.filePath(mp::vault::filename_for(info.kernel_location));
-    image.initrd_path = image_dir.filePath(mp::vault::filename_for(info.initrd_location));
-    mp::vault::DeleteOnException kernel_file{image.kernel_path};
-    mp::vault::DeleteOnException initrd_file{image.initrd_path};
-    url_downloader->download_to(info.kernel_location, image.kernel_path, -1, LaunchProgress::KERNEL, monitor);
-    url_downloader->download_to(info.initrd_location, image.initrd_path, -1, LaunchProgress::INITRD, monitor);
-
-    return image;
 }
 
 std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(const std::string& id)
@@ -718,15 +677,6 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
     persist_image_records();
 
     return vm_image;
-}
-
-mp::VMImageInfo mp::DefaultVMImageVault::get_kernel_query_info(const std::string& name)
-{
-    Query kernel_query{name, "default", false, "", Query::Type::Alias};
-    auto info = info_for(kernel_query);
-    if (!info)
-        throw mp::ImageNotFoundException("default", "");
-    return *info;
 }
 
 namespace

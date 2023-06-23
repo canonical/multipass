@@ -23,8 +23,7 @@ namespace multipass
 {
 enum class FetchType
 {
-    ImageOnly,
-    ImageKernelAndInitrd
+    ImageOnly
 };
 }
 #endif //MULTIPASS_FETCH_TYPE_H

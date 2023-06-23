@@ -52,7 +52,7 @@ struct LibVirtBackend : public Test
                                                       "",
                                                       {},
                                                       "",
-                                                      {dummy_image.name(), "", "", "", "", "", "", {}},
+                                                      {dummy_image.name(), "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
                                                       {},
                                                       {},

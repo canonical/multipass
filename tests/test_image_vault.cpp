@@ -192,21 +192,6 @@ TEST_F(ImageVault, returned_image_contains_instance_name)
     EXPECT_TRUE(vm_image.image_path.contains(QString::fromStdString(instance_name)));
 }
 
-TEST_F(ImageVault, downloads_kernel_and_initrd)
-{
-    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
-    auto vm_image = vault.fetch_image(mp::FetchType::ImageKernelAndInitrd, default_query, stub_prepare, stub_monitor,
-                                      false, std::nullopt);
-
-    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(3));
-    EXPECT_TRUE(url_downloader.downloaded_urls.contains(host.image.url()));
-    EXPECT_TRUE(url_downloader.downloaded_urls.contains(host.kernel.url()));
-    EXPECT_TRUE(url_downloader.downloaded_urls.contains(host.initrd.url()));
-
-    EXPECT_FALSE(vm_image.kernel_path.isEmpty());
-    EXPECT_FALSE(vm_image.initrd_path.isEmpty());
-}
-
 TEST_F(ImageVault, calls_prepare)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -318,7 +303,7 @@ TEST_F(ImageVault, uses_image_from_prepare)
     mpt::make_file_with_content(file_name, expected_data);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name, "", "", source_image.id, "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", {}};
     };
 
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -339,7 +324,7 @@ TEST_F(ImageVault, image_purged_expired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, "", "", source_image.id, "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", {}};
     };
     auto vm_image =
         vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor, false, std::nullopt);
@@ -360,7 +345,7 @@ TEST_F(ImageVault, image_exists_not_expired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, "", "", source_image.id, "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", {}};
     };
     auto vm_image =
         vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor, false, std::nullopt);

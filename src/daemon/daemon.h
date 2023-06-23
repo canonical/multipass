@@ -165,9 +165,6 @@ private:
     void finish_async_operation(QFuture<AsyncOperationStatus> async_future);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
 
-    grpc::Status migrate_from_hyperkit(
-        grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server); // TODO temporary code, remove
-
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::ShPtr> operative_instances;
