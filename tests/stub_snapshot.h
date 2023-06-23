@@ -100,10 +100,6 @@ struct StubSnapshot : public Snapshot
     {
     }
 
-    void set_creation_timestamp(const QDateTime&) override
-    {
-    }
-
     void set_parent(std::shared_ptr<Snapshot>) override
     {
     }
