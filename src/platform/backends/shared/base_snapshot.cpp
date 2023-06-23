@@ -78,8 +78,9 @@ std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMa
 }
 } // namespace
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, const QDateTime& creation_timestamp,
-                               int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
+mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, // NOLINT(modernize-pass-by-value)
+                               const QDateTime& creation_timestamp, int num_cores, MemorySize mem_size,
+                               MemorySize disk_space, VirtualMachine::State state,
                                std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata,
                                std::shared_ptr<Snapshot> parent)
     : name{name},
