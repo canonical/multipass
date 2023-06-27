@@ -43,6 +43,7 @@ const QString format_option_name{"format"};
 ParseCode check_for_name_and_all_option_conflict(const ArgParser* parser, std::ostream& cerr, bool allow_empty = false);
 InstanceNames add_instance_names(const ArgParser* parser);
 InstanceNames add_instance_names(const ArgParser* parser, const std::string& default_name);
+std::vector<InstanceSnapshotPair> add_instance_and_snapshot_names(const ArgParser* parser);
 ParseCode handle_format_option(const ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr);
 std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
 ReturnCode run_cmd(const QStringList& args, const ArgParser* parser, std::ostream& cout, std::ostream& cerr);
