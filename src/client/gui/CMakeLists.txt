@@ -49,10 +49,14 @@ if(APPLE)
     MACOSX_BUNDLE TRUE
     INSTALL_RPATH "@executable_path/../../../../lib")
 
-  set(QT_PLUGIN_PATH ${PACKAGE_PREFIX_DIR}/share/qt/plugins/platforms)
+  if(DEFINED ENV{QT_PLUGIN_PATH})
+    set(QT_PLATFORM_PLUGIN_PATH $ENV{QT_PLUGIN_PATH}/platforms)
+  else()
+    set(QT_PLATFORM_PLUGIN_PATH ${PACKAGE_PREFIX_DIR}/plugins/platforms)
+  endif()
 
   # Copy the cocoa platform plugin
-  file(COPY ${QT_PLUGIN_PATH}/libqcocoa.dylib
+  file(COPY ${QT_PLATFORM_PLUGIN_PATH}/libqcocoa.dylib
     DESTINATION ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/plugins/platforms)
 
   install(FILES ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib
@@ -67,7 +71,7 @@ if(APPLE)
 
   install(CODE "
     include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\" LOADER_PATH \"${QT_PLUGIN_PATH}\")
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\" LOADER_PATH \"${QT_PLATFORM_PLUGIN_PATH}\")
     " COMPONENT multipass_gui)
 
 endif(APPLE)
