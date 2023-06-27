@@ -1150,6 +1150,23 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
+template <typename Instances>
+std::unordered_map<std::string, std::unordered_set<std::string>> map_snapshots_to_instances(const Instances& instances)
+{
+    std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
+
+    for (const auto& it : instances)
+    {
+        if (it.snapshot_name().empty())
+            instance_snapshots_map[it.instance_name()];
+        else if (const auto& entry = instance_snapshots_map.find(it.instance_name());
+                 entry == instance_snapshots_map.end() || !entry->second.empty())
+            instance_snapshots_map[it.instance_name()].insert(it.snapshot_name());
+    }
+
+    return instance_snapshots_map;
+}
+
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container, const std::string& remote_name,
                  const mp::VMImageInfo& info, const std::string& default_remote)
 {
@@ -1717,14 +1734,7 @@ try // clang-format on
 
     if (status.ok())
     {
-        for (const auto& it : request->instances_snapshots())
-        {
-            if (it.snapshot_name().empty())
-                instance_snapshots_map[it.instance_name()];
-            else if (const auto& entry = instance_snapshots_map.find(it.instance_name());
-                     entry == instance_snapshots_map.end() || !entry->second.empty())
-                instance_snapshots_map[it.instance_name()].insert(it.snapshot_name());
-        }
+        instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
 
         // TODO@snapshots change cmd logic to include detailed snapshot info output
         auto cmd =
@@ -2186,12 +2196,13 @@ try // clang-format on
     DeleteReply response;
 
     auto [instance_selection, status] =
-        select_instances_and_react(operative_instances, deleted_instances, request->instance_names().instance_name(),
+        select_instances_and_react(operative_instances, deleted_instances, request->instances_snapshots(),
                                    InstanceGroup::All, require_existing_instances_reaction);
 
     if (status.ok())
     {
         const bool purge = request->purge();
+        auto instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
 
         for (const auto& vm_it : instance_selection.operative_selection)
         {
@@ -2207,6 +2218,24 @@ try // clang-format on
 
             if (purge)
             {
+                // TODO@snapshots call method to delete snapshots
+                /*
+                if (const auto& it = instance_snapshots_map.find(name);
+                    it == instance_snapshots_map.end() || it.second.empty())
+                {
+                    // Delete instance and snapshots
+                    // release_resources(name);
+                    // response.add_purged_instances(name);
+                }
+                else
+                {
+                    for (const auto& snapshot_name : instance_snapshots_map[name])
+                    {
+                        // Delete snapshot
+                    }
+                }
+                */
+
                 release_resources(name);
                 response.add_purged_instances(name);
             }
