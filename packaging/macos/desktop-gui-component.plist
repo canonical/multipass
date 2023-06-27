@@ -25,6 +25,7 @@
 				<key>RootRelativeBundlePath</key>
 				<string>Library/Application Support/com.canonical.multipass/bin/Multipass Desktop.app/Contents/Frameworks/App.framework</string>
 			</dict>
+            <!--
 			<dict>
 				<key>BundleOverwriteAction</key>
 				<string></string>
@@ -55,6 +56,7 @@
 				<key>RootRelativeBundlePath</key>
 				<string>Library/Application Support/com.canonical.multipass/bin/Multipass Desktop.app/Contents/Frameworks/url_launcher_macos.framework</string>
 			</dict>
+            -->
 		</array>
 		<key>RootRelativeBundlePath</key>
 		<string>Library/Application Support/com.canonical.multipass/bin/Multipass Desktop.app</string>
