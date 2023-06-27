@@ -20,7 +20,6 @@
 
 #include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
-#include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
