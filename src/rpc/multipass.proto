@@ -423,7 +423,7 @@ message RestartReply {
 }
 
 message DeleteRequest {
-    InstanceNames instance_names = 1;
+    repeated InstanceSnapshotPair instances_snapshots = 1;
     bool purge = 2;
     int32 verbosity_level = 3;
 }
