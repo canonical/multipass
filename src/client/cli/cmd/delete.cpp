@@ -75,24 +75,25 @@ std::string cmd::Delete::name() const
 
 QString cmd::Delete::short_help() const
 {
-    return QStringLiteral("Delete instances");
+    return QStringLiteral("Delete instances and snapshots");
 }
 
 QString cmd::Delete::description() const
 {
-    return QStringLiteral("Delete instances, to be purged with the \"purge\" command,\n"
-                          "or recovered with the \"recover\" command.");
+    return QStringLiteral(
+        "Delete instances and snapshots. Instances can be purged immediately or later on,"
+        "with the \"purge\" command. Until they are purged, instances can be recovered"
+        "with the \"recover\" command. Snapshots cannot be recovered after deletion and must be purged at once.");
 }
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to delete", "<name> [<name> ...]");
+    parser->addPositionalArgument("name", "Names of instances and snapshots to delete",
+                                  "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
-    QCommandLineOption all_option(all_option_name, "Delete all instances");
-    parser->addOption(all_option);
-
-    QCommandLineOption purge_option({"p", "purge"}, "Purge instances immediately");
-    parser->addOption(purge_option);
+    QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
+    QCommandLineOption purge_option({"p", "purge"}, "Purge specified instances and snapshots immediately");
+    parser->addOptions({all_option, purge_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -102,11 +103,18 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
     if (parse_code != ParseCode::Ok)
         return parse_code;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
-
-    if (parser->isSet(purge_option))
+    request.set_purge(parser->isSet(purge_option));
+    for (const auto& item : add_instance_and_snapshot_names(parser))
     {
-        request.set_purge(true);
+        if (item.has_snapshot_name() && !request.purge())
+        {
+            cerr << "Snapshots can only be purged (after deletion, they cannot be recovered). Please use the `--purge` "
+                    "flag if that is what you want.\n";
+            return mp::ParseCode::CommandLineError;
+        }
+
+        request.add_instances_snapshots()->CopyFrom(item);
     }
+
     return status;
 }
