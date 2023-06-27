@@ -1723,9 +1723,9 @@ try // clang-format on
                 {
                     get_snapshot_info(vm.get_snapshot(snapshot));
                 }
-                catch (const std::out_of_range&)
+                catch (const NoSuchSnapshot& e)
                 {
-                    add_fmt_to(errors, "snapshot \"{}\" does not exist", snapshot);
+                    add_fmt_to(errors, e.what());
                 }
             }
         }
