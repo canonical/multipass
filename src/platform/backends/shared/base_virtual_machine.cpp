@@ -19,6 +19,7 @@
 #include "daemon/vm_specs.h" // TODO@snapshots move this
 
 #include <multipass/exceptions/file_not_found_exception.h>
+#include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/snapshot_name_taken.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
@@ -42,15 +43,6 @@ namespace mpu = multipass::utils;
 namespace
 {
 using St = mp::VirtualMachine::State;
-class NoSuchSnapshot : public std::runtime_error
-{
-public:
-    NoSuchSnapshot(const std::string& vm_name, const std::string& snapshot_name)
-        : std::runtime_error{fmt::format("No such snapshot: {}.{}", vm_name, snapshot_name)}
-    {
-    }
-};
-
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
