@@ -1148,18 +1148,22 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
-template <typename Instances>
-std::unordered_map<std::string, std::unordered_set<std::string>> map_snapshots_to_instances(const Instances& instances)
+using InstanceSnapshotPairs = google::protobuf::RepeatedPtrField<mp::InstanceSnapshotPair>;
+using InstanceSnapshotsMap = std::unordered_map<std::string, std::unordered_set<std::string>>;
+InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& instances_snapshots)
 {
-    std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
+    InstanceSnapshotsMap instance_snapshots_map;
 
-    for (const auto& it : instances)
+    for (const auto& it : instances_snapshots)
     {
-        if (it.snapshot_name().empty())
-            instance_snapshots_map[it.instance_name()];
-        else if (const auto& entry = instance_snapshots_map.find(it.instance_name());
+        const auto& instance = it.instance_name();
+        const auto& snapshot = it.snapshot_name();
+
+        if (snapshot.empty())
+            instance_snapshots_map[instance].clear();
+        else if (const auto& entry = instance_snapshots_map.find(instance);
                  entry == instance_snapshots_map.end() || !entry->second.empty())
-            instance_snapshots_map[it.instance_name()].insert(it.snapshot_name());
+            instance_snapshots_map[instance].insert(snapshot);
     }
 
     return instance_snapshots_map;
@@ -1689,7 +1693,7 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
-    std::unordered_map<std::string, std::unordered_set<std::string>> instance_snapshots_map;
+    InstanceSnapshotsMap instance_snapshots_map;
     auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
