@@ -25,6 +25,15 @@
 
 namespace multipass
 {
+class SnapshotNameTaken : public std::runtime_error
+{
+public:
+    SnapshotNameTaken(const std::string& instance_name, const std::string& snapshot_name)
+        : std::runtime_error{fmt::format(R"(Snapshot "{}.{}" already exists)", instance_name, snapshot_name)}
+    {
+    }
+};
+
 class NoSuchSnapshot : public std::runtime_error
 {
 public:
