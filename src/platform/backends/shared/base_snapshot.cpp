@@ -63,7 +63,7 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
     return mounts;
 }
 
-std::shared_ptr<const mp::Snapshot> find_parent(const QJsonObject& json, const mp::VirtualMachine& vm)
+std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMachine& vm)
 {
     auto parent_name = json["parent"].toString().toStdString();
     try
@@ -78,19 +78,19 @@ std::shared_ptr<const mp::Snapshot> find_parent(const QJsonObject& json, const m
 }
 } // namespace
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, // NOLINT(modernize-pass-by-value)
-                               std::shared_ptr<const Snapshot> parent, int num_cores, MemorySize mem_size,
+mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, int num_cores, MemorySize mem_size,
                                MemorySize disk_space, VirtualMachine::State state,
-                               std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata)
+                               std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata,
+                               std::shared_ptr<Snapshot> parent)
     : name{name},
       comment{comment},
-      parent{std::move(parent)},
       num_cores{num_cores},
       mem_size{mem_size},
       disk_space{disk_space},
       state{state},
       mounts{std::move(mounts)},
-      metadata{std::move(metadata)}
+      metadata{std::move(metadata)},
+      parent{std::move(parent)}
 {
     if (name.empty())
         throw std::runtime_error{"Snapshot names cannot be empty"};
@@ -102,28 +102,28 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
         throw std::runtime_error{fmt::format("Invalid disk size for snapshot: {}", disk_bytes)};
 }
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment,
-                               std::shared_ptr<const Snapshot> parent, const VMSpecs& specs)
-    : BaseSnapshot{name,        comment,      std::move(parent), specs.num_cores, specs.mem_size, specs.disk_space,
-                   specs.state, specs.mounts, specs.metadata}
+mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
+                               std::shared_ptr<Snapshot> parent)
+    : BaseSnapshot{name,        comment,      specs.num_cores, specs.mem_size,   specs.disk_space,
+                   specs.state, specs.mounts, specs.metadata,  std::move(parent)}
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, const VirtualMachine& vm)
+mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
     : BaseSnapshot(InnerJsonTag{}, json["snapshot"].toObject(), vm)
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, const VirtualMachine& vm)
+mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm)
     : BaseSnapshot{json["name"].toString().toStdString(),                         // name
                    json["comment"].toString().toStdString(),                      // comment
-                   find_parent(json, vm),                                         // parent
                    json["num_cores"].toInt(),                                     // num_cores
                    MemorySize{json["mem_size"].toString().toStdString()},         // mem_size
                    MemorySize{json["disk_space"].toString().toStdString()},       // disk_space
                    static_cast<mp::VirtualMachine::State>(json["state"].toInt()), // state
                    load_mounts(json["mounts"].toArray()),                         // mounts
-                   json["metadata"].toObject()}                                   // metadata
+                   json["metadata"].toObject(),                                   // metadata
+                   find_parent(json, vm)}                                         // parent
 {
 }
 
