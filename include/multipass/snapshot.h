@@ -26,6 +26,7 @@
 #include <unordered_map>
 
 class QJsonObject;
+class QDateTime;
 
 namespace multipass
 {
@@ -40,6 +41,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
     virtual std::string get_name() const = 0;
     virtual std::string get_comment() const = 0;
     virtual std::string get_parent_name() const = 0;
+    virtual QDateTime get_creation_timestamp() const = 0;
     virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
     virtual std::shared_ptr<Snapshot> get_parent() = 0;
 
