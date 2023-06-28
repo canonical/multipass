@@ -133,10 +133,19 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
+    std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override
+    {
+        return {};
+    }
+
     std::shared_ptr<const Snapshot> take_snapshot(const QDir&, const VMSpecs&, const std::string&,
                                                   const std::string&) override
     {
         return {};
+    }
+
+    void delete_snapshot(const QDir& snapshot_dir, const std::string&) override
+    {
     }
 
     void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) override
