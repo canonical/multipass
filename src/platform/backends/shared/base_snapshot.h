@@ -74,7 +74,7 @@ private:
     {
     };
     BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
-    BaseSnapshot(const std::string& name, const std::string& comment, const QDateTime& creation_timestamp,
+    BaseSnapshot(const std::string& name, const std::string& get_comment, const QDateTime& creation_timestamp,
                  int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata,
                  std::shared_ptr<Snapshot> parent);
@@ -82,9 +82,9 @@ private:
 private:
     std::string name;
     std::string comment;
-    const QDateTime creation_timestamp;
 
     // This class is non-copyable and having these const simplifies thread safety
+    const QDateTime creation_timestamp;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize disk_space;                           // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
