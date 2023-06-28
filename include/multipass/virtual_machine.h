@@ -90,8 +90,10 @@ public:
     virtual SnapshotVista view_snapshots() const noexcept = 0;
     virtual int get_num_snapshots() const noexcept = 0;
     virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
+    virtual std::shared_ptr<Snapshot> get_snapshot(const std::string& name) = 0;
     virtual std::shared_ptr<const Snapshot> take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                           const std::string& name, const std::string& comment) = 0;
+    virtual void delete_snapshot(const QDir& snapshot_dir, const std::string& name) = 0;
     virtual void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) = 0;
     virtual void load_snapshots(const QDir& snapshot_dir) = 0;
 

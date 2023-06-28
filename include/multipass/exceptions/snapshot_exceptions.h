@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_SNAPSHOT_NAME_TAKEN_H
-#define MULTIPASS_SNAPSHOT_NAME_TAKEN_H
+#ifndef MULTIPASS_SNAPSHOT_EXCEPTIONS_H
+#define MULTIPASS_SNAPSHOT_EXCEPTIONS_H
 
 #include <stdexcept>
 #include <string>
@@ -33,6 +33,15 @@ public:
     {
     }
 };
+
+class NoSuchSnapshot : public std::runtime_error
+{
+public:
+    NoSuchSnapshot(const std::string& vm_name, const std::string& snapshot_name)
+        : std::runtime_error{fmt::format("No such snapshot: {}.{}", vm_name, snapshot_name)}
+    {
+    }
+};
 } // namespace multipass
 
-#endif // MULTIPASS_SNAPSHOT_NAME_TAKEN_H
+#endif // MULTIPASS_SNAPSHOT_EXCEPTIONS_H

@@ -41,6 +41,7 @@ namespace multipass
 {
 struct DaemonConfig;
 class SettingsHandler;
+
 class Daemon : public QObject, public multipass::VMStatusMonitor
 {
     Q_OBJECT
@@ -51,6 +52,8 @@ public:
     void persist_instances();
 
 protected:
+    using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
+
     void on_resume() override;
     void on_stop() override;
     void on_shutdown() override;
@@ -147,6 +150,7 @@ private:
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request, grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise, bool start);
+    bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
@@ -181,8 +185,8 @@ private:
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
-    std::unordered_map<std::string, VirtualMachine::ShPtr> operative_instances;
-    std::unordered_map<std::string, VirtualMachine::ShPtr> deleted_instances;
+    InstanceTable operative_instances;
+    InstanceTable deleted_instances;
     std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
