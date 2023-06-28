@@ -1,25 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'ffi.dart';
+import 'grpc_client.dart';
 
 void main() {
-  runApp(const MaterialApp(home: MyHomePage()));
+  runApp(const ProviderScope(child: MaterialApp(home: MyHomePage())));
 }
 
-class MyHomePage extends StatefulWidget {
+class MyHomePage extends ConsumerWidget {
   const MyHomePage({super.key});
 
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
+  Widget _buildInfosColumn(Iterable<VmInfo> infos) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: infos
+          .map((info) => Text('${info.name} ${info.instanceStatus.status}'))
+          .toList(),
+    );
+  }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final instances = ref.watch(vmInfosStreamProvider).when(
+          data: _buildInfosColumn,
+          error: (error, _) => Text('$error'),
+          loading: () => const Text('Loading...'),
+        );
     return Scaffold(
-      body: Center(child: Text('$_counter')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => setState(() => _counter++),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [instances, Text(multipassVersion)],
       ),
     );
   }
