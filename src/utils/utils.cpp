@@ -79,10 +79,11 @@ QString find_autostart_target(const QString& subdir, const QString& autostart_fi
 }
 
 template <typename ExceptionT>
-mp::utils::TimeoutAction log_and_retry(const ExceptionT& e, const mp::VirtualMachine* vm)
+mp::utils::TimeoutAction log_and_retry(const ExceptionT& e, const mp::VirtualMachine* vm,
+                                       mpl::Level log_level = mpl::Level::trace)
 {
     assert(vm);
-    mpl::log(mpl::Level::trace, vm->vm_name, e.what());
+    mpl::log(log_level, vm->vm_name, e.what());
     return mp::utils::TimeoutAction::retry;
 };
 } // namespace
@@ -347,6 +348,10 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
         catch (const IPUnavailableException& e)
         {
             return log_and_retry(e, virtual_machine);
+        }
+        catch (const std::runtime_error& e) // transitioning away from catching generic runtime errors
+        {                                   // TODO remove once we're confident this is an anomaly
+            return log_and_retry(e, virtual_machine, mpl::Level::warning);
         }
     };
 
