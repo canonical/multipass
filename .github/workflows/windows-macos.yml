@@ -269,6 +269,8 @@ jobs:
       with:
         version: 6.2.4
         setup-python: false
+        aqtversion: '==3.1.*'
+        py7zrversion: '==0.20.*'
       timeout-minutes: 10
 
     - name: Set up MSVC
