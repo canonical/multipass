@@ -340,7 +340,7 @@ void mp::QemuVirtualMachine::shutdown()
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
-    else if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) &&
+    else if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) && vm_process &&
              vm_process->running())
     {
         vm_process->write(qmp_execute_json("system_powerdown"));
