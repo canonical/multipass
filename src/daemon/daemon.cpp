@@ -1708,7 +1708,10 @@ try // clang-format on
             fundamentals->set_snapshot_name(snapshot->get_name());
             fundamentals->set_parent(snapshot->get_parent_name());
             fundamentals->set_comment(snapshot->get_comment());
-            // TODO@snapshots populate snapshot creation time once available
+
+            auto timestamp = fundamentals->mutable_creation_timestamp();
+            timestamp->set_seconds(snapshot->get_creation_timestamp().toSecsSinceEpoch());
+            timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
         };
 
         if (const auto& it = instance_snapshots_map.find(name);
