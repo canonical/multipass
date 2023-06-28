@@ -44,6 +44,12 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag, co
                                                     /* src_img = */ "", image_path);
 }
 
+std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const QString& tag, const QString& image_path)
+{
+    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", tag, image_path},
+                                                    /* src_img = */ "", image_path);
+}
+
 void checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
 {
     auto process = mpp::make_process(std::move(spec));
@@ -81,9 +87,9 @@ void mp::QemuSnapshot::capture_impl()
     checked_exec_qemu_img(make_capture_spec(tag, image_path));
 }
 
-void mp::QemuSnapshot::erase_impl() // TODO@snapshots
+void mp::QemuSnapshot::erase_impl()
 {
-    throw NotImplementedOnThisBackendException{"Snapshot erasing"};
+    checked_exec_qemu_img(make_delete_spec(derive_tag(), image_path));
 }
 
 void mp::QemuSnapshot::apply_impl()
