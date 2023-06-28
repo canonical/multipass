@@ -92,7 +92,7 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
                                   "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
     QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
-    QCommandLineOption purge_option({"p", "purge"}, "Purge specified instances and snapshots immediately");
+    QCommandLineOption purge_option({"p", "purge"}, "Permanently delete specified instances and snapshots immediately");
     parser->addOptions({all_option, purge_option});
 
     auto status = parser->commandParse(this);
