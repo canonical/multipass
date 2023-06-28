@@ -17,6 +17,7 @@
 
 #include "backend_utils.h"
 
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -24,7 +25,6 @@
 
 #include <algorithm>
 #include <regex>
-#include <stdexcept>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -54,7 +54,7 @@ std::optional<mp::IPAddress> mp::backend::get_vmnet_dhcp_ip_for(const std::strin
     std::optional<mp::IPAddress> ip_address;
 
     if (!MP_FILEOPS.open(leases_file, QIODevice::ReadOnly | QIODevice::Text))
-        throw std::runtime_error(fmt::format("Cannot open dhcpd_leases file: {}", leases_file.errorString()));
+        throw IPUnavailableException{fmt::format("Cannot open dhcpd_leases file: {}", leases_file.errorString())};
 
     QTextStream input{&leases_file};
     auto input_line = MP_FILEOPS.read_line(input);
@@ -89,7 +89,7 @@ std::optional<mp::IPAddress> mp::backend::get_vmnet_dhcp_ip_for(const std::strin
         }
         else if (line == "}" && identifier_matched && !ip_address)
         {
-            throw std::runtime_error("Failed to parse IP address out of the leases file.");
+            throw IPUnavailableException{"Failed to parse IP address out of the leases file."};
         }
         else if (!std::regex_search(line, known_lines))
         {
