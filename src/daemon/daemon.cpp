@@ -27,7 +27,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
-#include <multipass/exceptions/snapshot_name_taken.h>
+#include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
@@ -674,7 +674,10 @@ enum class InstanceGroup
     All
 };
 
-using InstanceTable = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>;
+// Hack to import typedef here, without making it part of the Daemon's public interface
+// clang-format off
+struct TapDaemon : private mp::Daemon { using Daemon::InstanceTable; }; // clang-format on
+using InstanceTable = TapDaemon::InstanceTable;
 using InstanceTrail = std::variant<InstanceTable::iterator,                    // operative instances
                                    InstanceTable::iterator,                    // deleted instances
                                    std::reference_wrapper<const std::string>>; // missing instances
@@ -1202,12 +1205,10 @@ auto timeout_for(const int requested_timeout, const int blueprint_timeout)
     return mp::default_timeout;
 }
 
-mp::SettingsHandler*
-register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
-                      std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
-                      const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-                      const std::unordered_set<std::string>& preparing_instances,
-                      std::function<void()> instance_persister)
+mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
+                                           InstanceTable& vm_instances, const InstanceTable& deleted_instances,
+                                           const std::unordered_set<std::string>& preparing_instances,
+                                           std::function<void()> instance_persister)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(
         vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
@@ -1426,8 +1427,10 @@ try // clang-format on
 
     for (const auto& del : deleted_instances)
     {
-        release_resources(del.first);
-        response.add_purged_instances(del.first);
+        const auto& name = del.first;
+        release_resources(name);
+        response.add_purged_instances(name);
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
     }
 
     deleted_instances.clear();
@@ -1720,9 +1723,9 @@ try // clang-format on
                 {
                     get_snapshot_info(vm.get_snapshot(snapshot));
                 }
-                catch (const std::out_of_range&)
+                catch (const NoSuchSnapshot& e)
                 {
-                    add_fmt_to(errors, "snapshot \"{}\" does not exist", snapshot);
+                    add_fmt_to(errors, e.what());
                 }
             }
         }
@@ -1970,6 +1973,7 @@ try // clang-format on
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
             init_mounts(name);
+            mpl::log(mpl::Level::debug, category, fmt::format("Instance recovered: {}", name));
         }
         persist_instances();
     }
@@ -2203,65 +2207,36 @@ try // clang-format on
     if (status.ok())
     {
         const bool purge = request->purge();
+        auto instances_dirty = false;
         auto instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
 
-        for (const auto& vm_it : instance_selection.operative_selection)
+        // start with deleted instances, to avoid iterator invalidation when moving instances there
+        for (const auto& selection : {instance_selection.deleted_selection, instance_selection.operative_selection})
         {
-            const auto& name = vm_it->first;
-            auto& instance = vm_it->second;
-            assert(!vm_instance_specs[name].deleted);
-
-            if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
-                delayed_shutdown_instances.erase(name);
-
-            mounts[name].clear();
-            instance->shutdown();
-
-            if (purge)
+            for (const auto& vm_it : selection)
             {
-                // TODO@snapshots call method to delete snapshots
-                /*
-                if (const auto& it = instance_snapshots_map.find(name);
-                    it == instance_snapshots_map.end() || it.second.empty())
+                const auto& instance_name = vm_it->first;
+
+                auto contained_in_snapshots_map = instance_snapshots_map.count(instance_name);
+                assert(contained_in_snapshots_map || !request->instances_snapshots_size());
+
+                if (!contained_in_snapshots_map ||
+                    instance_snapshots_map[instance_name].empty()) // we're asked to delete the VM
                 {
-                    // Delete instance and snapshots
-                    // release_resources(name);
-                    // response.add_purged_instances(name);
+                    instances_dirty |= delete_vm(vm_it, purge, response);
                 }
-                else
+                else // we're asked to delete snapshots
                 {
-                    for (const auto& snapshot_name : instance_snapshots_map[name])
-                    {
-                        // Delete snapshot
-                    }
+                    assert(purge && "precondition: snapshots can only be purged");
+
+                    for (const auto& snapshot_name : instance_snapshots_map[instance_name])
+                        vm_it->second->delete_snapshot(instance_directory(instance_name, *config), snapshot_name);
                 }
-                */
-
-                release_resources(name);
-                response.add_purged_instances(name);
-            }
-            else
-            {
-                deleted_instances[name] = std::move(instance);
-                vm_instance_specs[name].deleted = true;
-            }
-
-            operative_instances.erase(vm_it);
-        }
-
-        if (purge)
-        {
-            for (const auto& vm_it : instance_selection.deleted_selection)
-            {
-                const auto& name = vm_it->first;
-                assert(vm_instance_specs[name].deleted);
-                response.add_purged_instances(name);
-                release_resources(name);
-                deleted_instances.erase(vm_it);
             }
         }
 
-        persist_instances();
+        if (instances_dirty)
+            persist_instances();
     }
 
     server->Write(response);
@@ -2940,6 +2915,49 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     };
 
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
+}
+
+bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response)
+{
+    auto& [name, instance] = *vm_it;
+    auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
+    auto instances_dirty = false;
+
+    if (!vm_instance_specs[name].deleted)
+    {
+        mpl::log(mpl::Level::debug, category, fmt::format("Deleting instance: {}", name));
+        erase_from = &operative_instances;
+        if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
+            delayed_shutdown_instances.erase(name);
+
+        mounts[name].clear();
+        instance->shutdown();
+
+        if (!purge)
+        {
+            vm_instance_specs[name].deleted = true;
+            deleted_instances[name] = std::move(instance);
+
+            instances_dirty = true;
+            mpl::log(mpl::Level::debug, category, fmt::format("Instance deleted: {}", name));
+        }
+    }
+    else
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance is already deleted: {}", name));
+
+    if (purge)
+    {
+        response.add_purged_instances(name);
+        release_resources(name);
+
+        instances_dirty = true;
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
+    }
+
+    if (erase_from)
+        erase_from->erase(vm_it);
+
+    return instances_dirty;
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
