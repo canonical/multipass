@@ -128,7 +128,7 @@ mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMac
     : BaseSnapshot{json["name"].toString().toStdString(),    // name
                    json["comment"].toString().toStdString(), // comment
                    QDateTime::fromString(json["creation_timestamp"].toString(),
-                                         Qt::ISODate),                            // creation_timestamp
+                                         Qt::ISODateWithMs),                      // creation_timestamp
                    json["num_cores"].toInt(),                                     // num_cores
                    MemorySize{json["mem_size"].toString().toStdString()},         // mem_size
                    MemorySize{json["disk_space"].toString().toStdString()},       // disk_space
@@ -146,7 +146,7 @@ QJsonObject multipass::BaseSnapshot::serialize() const
 
     snapshot.insert("name", QString::fromStdString(name));
     snapshot.insert("comment", QString::fromStdString(comment));
-    snapshot.insert("creation_timestamp", creation_timestamp.toString(Qt::ISODate));
+    snapshot.insert("creation_timestamp", creation_timestamp.toString(Qt::ISODateWithMs));
     snapshot.insert("num_cores", num_cores);
     snapshot.insert("mem_size", QString::number(mem_size.in_bytes()));
     snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
