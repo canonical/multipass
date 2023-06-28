@@ -19,6 +19,7 @@
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -323,6 +324,7 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
 {
     static constexpr auto wait_step = 1s;
     mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
+
     auto action = [virtual_machine, &ensure_vm_is_running] {
         ensure_vm_is_running();
         try
@@ -342,7 +344,12 @@ void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::
         {
             return log_and_retry(e, virtual_machine);
         }
+        catch (const IPUnavailableException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
     };
+
     auto on_timeout = [virtual_machine] {
         std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
         virtual_machine->state = VirtualMachine::State::unknown;
