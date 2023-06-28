@@ -19,7 +19,7 @@
 #include "daemon/vm_specs.h" // TODO@snapshots move this
 
 #include <multipass/exceptions/file_not_found_exception.h>
-#include <multipass/exceptions/snapshot_name_taken.h>
+#include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
@@ -33,6 +33,7 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QTemporaryDir>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -40,19 +41,64 @@ namespace mpu = multipass::utils;
 
 namespace
 {
+using St = mp::VirtualMachine::State;
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
 constexpr auto index_digits = 4; // these two go together
 constexpr auto max_snapshots = 1000;
 constexpr auto yes_overwrite = true;
+
+void assert_vm_stopped(St state)
+{
+    assert(state == St::off || state == St::stopped);
+}
+
+QString derive_head_path(const QDir& snapshot_dir)
+{
+    return snapshot_dir.filePath(head_filename);
+}
+
+QString derive_index_string(int index)
+{
+    return QString{"%1"}.arg(index, index_digits, 10, QLatin1Char('0'));
+}
+
+QString derive_snapshot_filename(const QString& index, const QString& name)
+{
+    return QString{"%1-%2.%3"}.arg(index, name, snapshot_extension);
+}
+
+QFileInfo find_snapshot_file(const QDir& snapshot_dir, const std::string& snapshot_name)
+{
+    auto index_wildcard = "????";
+    auto pattern = derive_snapshot_filename(index_wildcard, QString::fromStdString(snapshot_name));
+    auto files = MP_FILEOPS.entryInfoList(snapshot_dir, {pattern}, QDir::Filter::Files | QDir::Filter::Readable);
+
+    if (auto num_found = files.count(); !num_found)
+        throw std::runtime_error{fmt::format("Could not find snapshot file for pattern '{}'", pattern)};
+    else if (num_found > 1)
+        throw std::runtime_error{fmt::format("Multiple snapshot files found for pattern '{}'", pattern)};
+
+    return files.first();
+}
+
+void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted_parent,
+                                    std::unordered_map<mp::Snapshot*, QString>& updated_snapshot_paths)
+{
+    for (auto [snapshot, snapshot_filepath] : updated_snapshot_paths)
+    {
+        snapshot->set_parent(deleted_parent);
+        if (!snapshot_filepath.isEmpty())
+            mp::write_json(snapshot->serialize(), snapshot_filepath);
+    }
+}
 } // namespace
 
 namespace multipass
 {
 
-BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name)
-    : VirtualMachine(state, vm_name){};
+BaseVirtualMachine::BaseVirtualMachine(St state, const std::string& vm_name) : VirtualMachine(state, vm_name){};
 
 BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
 
@@ -60,7 +106,7 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
 {
     std::vector<std::string> all_ipv4;
 
-    if (current_state() == State::running)
+    if (current_state() == St::running)
     {
         QString ip_a_output;
 
@@ -108,7 +154,19 @@ auto BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
 std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name) const
 {
     const std::unique_lock lock{snapshot_mutex};
-    return snapshots.at(name);
+    try
+    {
+        return snapshots.at(name);
+    }
+    catch (const std::out_of_range&)
+    {
+        throw NoSuchSnapshot{vm_name, name};
+    }
+}
+
+std::shared_ptr<Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name)
+{
+    return std::const_pointer_cast<Snapshot>(std::as_const(*this).get_snapshot(name));
 }
 
 void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head,
@@ -146,6 +204,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 
     {
         std::unique_lock lock{snapshot_mutex};
+        assert_vm_stopped(state); // precondition
+
         if (snapshot_count > max_snapshots)
             throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded", max_snapshots)};
         snapshot_name = name.empty() ? generate_snapshot_name() : name;
@@ -159,7 +219,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 
         auto rollback_on_failure = make_take_snapshot_rollback(it);
 
-        auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, head_snapshot, specs);
+        auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, specs, head_snapshot);
         ret->capture();
 
         ++snapshot_count;
@@ -170,6 +230,119 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
 
         return ret;
     }
+}
+
+bool BaseVirtualMachine::updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const QString& head_path)
+{
+    if (head_snapshot == snapshot)
+    {
+        head_snapshot = snapshot->get_parent();
+        persist_head_snapshot_name(head_path);
+        return true;
+    }
+
+    return false;
+}
+
+auto BaseVirtualMachine::make_deleted_head_rollback(const QString& head_path, const bool& wrote_head)
+{
+    return sg::make_scope_guard([this, old_head = head_snapshot, &head_path, &wrote_head]() mutable noexcept {
+        deleted_head_rollback_helper(head_path, wrote_head, old_head);
+    });
+}
+
+void BaseVirtualMachine::deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
+                                                      std::shared_ptr<Snapshot>& old_head)
+{
+    if (head_snapshot != old_head)
+    {
+        head_snapshot = std::move(old_head);
+        if (wrote_head)
+            top_catch_all(vm_name, [this, &head_path] {
+                MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
+            });
+    }
+}
+
+auto BaseVirtualMachine::make_parent_update_rollback(
+    const std::shared_ptr<Snapshot>& deleted_parent,
+    std::unordered_map<Snapshot*, QString>& updated_snapshot_paths) const
+{
+    return sg::make_scope_guard([this, &updated_snapshot_paths, deleted_parent]() noexcept {
+        top_catch_all(vm_name, &update_parents_rollback_helper, deleted_parent, updated_snapshot_paths);
+    });
+}
+
+void BaseVirtualMachine::delete_snapshot_helper(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& snapshot)
+{
+    // Remove snapshot file
+    QTemporaryDir tmp_dir{};
+    if (!tmp_dir.isValid())
+        throw std::runtime_error{"Could not create temporary directory"};
+
+    auto snapshot_fileinfo = find_snapshot_file(snapshot_dir, snapshot->get_name());
+    auto snapshot_filepath = snapshot_fileinfo.filePath();
+    auto deleting_filepath = tmp_dir.filePath(snapshot_fileinfo.fileName());
+
+    if (!QFile{snapshot_filepath}.rename(deleting_filepath))
+        throw std::runtime_error{
+            fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
+
+    auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
+        QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
+    });
+
+    // Update head if deleted
+    auto wrote_head = false;
+    auto head_path = derive_head_path(snapshot_dir);
+    auto rollback_head = make_deleted_head_rollback(head_path, wrote_head);
+    wrote_head = updated_deleted_head(snapshot, head_path);
+
+    // Update children of deleted snapshot
+    std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
+    updated_snapshot_paths.reserve(snapshots.size());
+
+    auto rollback_parent_updates = make_parent_update_rollback(snapshot, updated_snapshot_paths);
+    update_parents(snapshot_dir, snapshot, updated_snapshot_paths);
+
+    // Erase the snapshot with the backend and dismiss rollbacks on success
+    snapshot->erase();
+    rollback_parent_updates.dismiss();
+    rollback_head.dismiss();
+    rollback_snapshot_file.dismiss();
+}
+
+void BaseVirtualMachine::update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent,
+                                        std::unordered_map<Snapshot*, QString>& updated_snapshot_paths)
+{
+    auto new_parent = deleted_parent->get_parent();
+    for (auto& [ignore, other] : snapshots)
+    {
+        if (other->get_parent() == deleted_parent)
+        {
+            other->set_parent(new_parent);
+            updated_snapshot_paths[other.get()];
+
+            const auto other_filepath = find_snapshot_file(snapshot_dir, other->get_name()).filePath();
+            write_json(other->serialize(), other_filepath);
+            updated_snapshot_paths[other.get()] = other_filepath;
+        }
+    }
+}
+
+void BaseVirtualMachine::delete_snapshot(const QDir& snapshot_dir, const std::string& name)
+{
+    std::unique_lock lock{snapshot_mutex};
+
+    auto it = snapshots.find(name);
+    if (it == snapshots.end())
+        throw NoSuchSnapshot{vm_name, name};
+
+    auto snapshot = it->second;
+    delete_snapshot_helper(snapshot_dir, snapshot);
+
+    snapshots.erase(it); // doesn't throw
+    mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
 }
 
 void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
@@ -189,7 +362,9 @@ void BaseVirtualMachine::load_generic_snapshot_info(const QDir& snapshot_dir)
     try
     {
         snapshot_count = std::stoi(mpu::contents_of(snapshot_dir.filePath(count_filename)));
-        head_snapshot = snapshots.at(mpu::contents_of(snapshot_dir.filePath(head_filename)));
+
+        auto head_name = mpu::contents_of(snapshot_dir.filePath(head_filename));
+        head_snapshot = head_name.empty() ? nullptr : get_snapshot(head_name);
     }
     catch (FileOpenFailedException&)
     {
@@ -205,7 +380,6 @@ void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
     auto parent_name = head_snapshot->get_parent_name();
 
     assert(num_snapshots <= snapshot_count && "can't have more snapshots than were ever taken");
-    assert(bool(head_snapshot->get_parent()) == bool(num_snapshots - 1) && "null parent <!=> this is the 1st snapshot");
 
     if (auto log_detail_lvl = mpl::Level::debug; log_detail_lvl <= mpl::get_logging_level())
     {
@@ -273,19 +447,18 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
 {
     assert(head_snapshot);
 
-    const auto snapshot_filename = QString{"%1-%2.%3"}
-                                       .arg(snapshot_count, index_digits, 10, QLatin1Char('0'))
-                                       .arg(QString::fromStdString(head_snapshot->get_name()), snapshot_extension);
+    const auto snapshot_filename = derive_snapshot_filename(derive_index_string(snapshot_count),
+                                                            QString::fromStdString(head_snapshot->get_name()));
 
-    auto snapshot_path = snapshot_dir.filePath(snapshot_filename);
+    auto snapshot_filepath = snapshot_dir.filePath(snapshot_filename);
     auto head_path = derive_head_path(snapshot_dir);
     auto count_path = snapshot_dir.filePath(count_filename);
 
-    auto rollback_snapshot_file = sg::make_scope_guard([&snapshot_filename]() noexcept {
-        QFile{snapshot_filename}.remove(); // best effort, ignore return
+    auto rollback_snapshot_file = sg::make_scope_guard([&snapshot_filepath]() noexcept {
+        QFile{snapshot_filepath}.remove(); // best effort, ignore return
     });
 
-    mp::write_json(head_snapshot->serialize(), snapshot_path);
+    mp::write_json(head_snapshot->serialize(), snapshot_filepath);
 
     QFile head_file{head_path};
 
@@ -298,14 +471,10 @@ void BaseVirtualMachine::persist_head_snapshot(const QDir& snapshot_dir) const
     head_file_rollback.dismiss();
 }
 
-QString BaseVirtualMachine::derive_head_path(const QDir& snapshot_dir) const
-{
-    return snapshot_dir.filePath(head_filename);
-}
-
 void BaseVirtualMachine::persist_head_snapshot_name(const QString& head_path) const
 {
-    MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
+    auto head_name = head_snapshot ? head_snapshot->get_name() : "";
+    MP_UTILS.make_file_with_content(head_path.toStdString(), head_name, yes_overwrite);
 }
 
 std::string BaseVirtualMachine::generate_snapshot_name() const
@@ -336,12 +505,10 @@ void BaseVirtualMachine::restore_rollback_helper(const QString& head_path, const
 
 void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs)
 {
-    using St [[maybe_unused]] = VirtualMachine::State;
-
     std::unique_lock lock{snapshot_mutex};
-    assert(state == St::off || state == St::stopped);
+    assert_vm_stopped(state); // precondition
 
-    auto snapshot = snapshots.at(name); // TODO@snapshots convert out_of_range exception, here and `get_snapshot`
+    auto snapshot = get_snapshot(name);
 
     // TODO@snapshots convert into runtime_errors (persisted info could have been tampered with)
     assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
