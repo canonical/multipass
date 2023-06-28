@@ -40,6 +40,7 @@ public:
 
     std::string get_name() const override;
     std::string get_comment() const override;
+    QDateTime get_creation_timestamp() const override;
     std::string get_parent_name() const override;
     std::shared_ptr<const Snapshot> get_parent() const override;
     std::shared_ptr<Snapshot> get_parent() override;
@@ -73,15 +74,17 @@ private:
     {
     };
     BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
-    BaseSnapshot(const std::string& name, const std::string& comment, int num_cores, MemorySize mem_size,
-                 MemorySize disk_space, VirtualMachine::State state, std::unordered_map<std::string, VMMount> mounts,
-                 QJsonObject metadata, std::shared_ptr<Snapshot> parent);
+    BaseSnapshot(const std::string& name, const std::string& get_comment, const QDateTime& creation_timestamp,
+                 int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
+                 std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata,
+                 std::shared_ptr<Snapshot> parent);
 
 private:
     std::string name;
     std::string comment;
 
     // This class is non-copyable and having these const simplifies thread safety
+    const QDateTime creation_timestamp;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize disk_space;                           // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -105,6 +108,11 @@ inline std::string multipass::BaseSnapshot::get_comment() const
 {
     const std::unique_lock lock{mutex};
     return comment;
+}
+
+inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const
+{
+    return creation_timestamp;
 }
 
 inline std::string multipass::BaseSnapshot::get_parent_name() const
