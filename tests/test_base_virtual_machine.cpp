@@ -115,8 +115,8 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
 protected:
     std::shared_ptr<mp::Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                         std::shared_ptr<const mp::Snapshot> parent,
-                                                         const mp::VMSpecs& specs) override
+                                                         const mp::VMSpecs& specs,
+                                                         std::shared_ptr<mp::Snapshot> parent) override
     {
         return nullptr;
     }

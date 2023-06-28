@@ -59,19 +59,21 @@ public:
         return static_cast<int>(snapshots.size());
     }
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
+    std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override;
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
     // derived classes is a big refactor
     std::shared_ptr<const Snapshot> take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
                                                   const std::string& name, const std::string& comment) override;
+    void delete_snapshot(const QDir& snapshot_dir, const std::string& name) override;
     void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) override;
     void load_snapshots(const QDir& snapshot_dir) override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                             std::shared_ptr<const Snapshot> parent,
-                                                             const VMSpecs& specs) = 0;
+                                                             const VMSpecs& specs,
+                                                             std::shared_ptr<Snapshot> parent) = 0;
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
@@ -92,13 +94,23 @@ private:
     void persist_head_snapshot(const QDir& snapshot_dir) const;
 
     void persist_head_snapshot_name(const QString& head_path) const;
-
-    QString derive_head_path(const QDir& snapshot_dir) const;
     std::string generate_snapshot_name() const;
 
     auto make_restore_rollback(const QString& head_path, VMSpecs& specs);
     void restore_rollback_helper(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
                                  const VMSpecs& old_specs, VMSpecs& specs);
+
+    bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const QString& head_path);
+    auto make_deleted_head_rollback(const QString& head_path, const bool& wrote_head);
+    void deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
+                                      std::shared_ptr<Snapshot>& old_head);
+
+    void update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent,
+                        std::unordered_map<Snapshot*, QString>& updated_snapshot_paths);
+    auto make_parent_update_rollback(const std::shared_ptr<Snapshot>& deleted_parent,
+                                     std::unordered_map<Snapshot*, QString>& updated_snapshot_paths) const;
+
+    void delete_snapshot_helper(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& snapshot);
 
 private:
     SnapshotMap snapshots;

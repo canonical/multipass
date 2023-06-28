@@ -34,14 +34,15 @@ struct VMSpecs;
 class BaseSnapshot : public Snapshot
 {
 public:
-    BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
-                 const VMSpecs& specs);
-    BaseSnapshot(const QJsonObject& json, const VirtualMachine& vm);
+    BaseSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
+                 std::shared_ptr<Snapshot> parent);
+    BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
 
     std::string get_name() const override;
     std::string get_comment() const override;
     std::string get_parent_name() const override;
     std::shared_ptr<const Snapshot> get_parent() const override;
+    std::shared_ptr<Snapshot> get_parent() override;
 
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
@@ -56,7 +57,7 @@ public:
 
     void set_name(const std::string& n) override;
     void set_comment(const std::string& c) override;
-    void set_parent(std::shared_ptr<const Snapshot> p) override;
+    void set_parent(std::shared_ptr<Snapshot> p) override;
 
     void capture() final;
     void erase() final;
@@ -71,15 +72,14 @@ private:
     struct InnerJsonTag
     {
     };
-    BaseSnapshot(InnerJsonTag, const QJsonObject& json, const VirtualMachine& vm);
-    BaseSnapshot(const std::string& name, const std::string& comment, std::shared_ptr<const Snapshot> parent,
-                 int num_cores, MemorySize mem_size, MemorySize disk_space, VirtualMachine::State state,
-                 std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata);
+    BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
+    BaseSnapshot(const std::string& name, const std::string& comment, int num_cores, MemorySize mem_size,
+                 MemorySize disk_space, VirtualMachine::State state, std::unordered_map<std::string, VMMount> mounts,
+                 QJsonObject metadata, std::shared_ptr<Snapshot> parent);
 
 private:
     std::string name;
     std::string comment;
-    std::shared_ptr<const Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -88,6 +88,8 @@ private:
     const VirtualMachine::State state;                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+
+    std::shared_ptr<Snapshot> parent;
 
     mutable std::recursive_mutex mutex;
 };
@@ -118,6 +120,11 @@ inline auto multipass::BaseSnapshot::get_parent() const -> std::shared_ptr<const
 {
     const std::unique_lock lock{mutex};
     return parent;
+}
+
+inline auto multipass::BaseSnapshot::get_parent() -> std::shared_ptr<Snapshot>
+{
+    return std::const_pointer_cast<Snapshot>(std::as_const(*this).get_parent());
 }
 
 inline int multipass::BaseSnapshot::get_num_cores() const noexcept
@@ -162,7 +169,7 @@ inline void multipass::BaseSnapshot::set_comment(const std::string& c)
     comment = c;
 }
 
-inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<const Snapshot> p)
+inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
 {
     const std::unique_lock lock{mutex};
     parent = std::move(p);
