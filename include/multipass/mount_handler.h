@@ -80,13 +80,8 @@ public:
 protected:
     MountHandler() = default;
     MountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, VMMount mount_spec,
-                 const std::string& target, const std::string& source)
-        : vm{vm},
-          ssh_key_provider{ssh_key_provider},
-          mount_spec{std::move(mount_spec)},
-          target{target},
-          source{source},
-          active{false}
+                 const std::string& target)
+        : vm{vm}, ssh_key_provider{ssh_key_provider}, mount_spec{std::move(mount_spec)}, target{target}, active{false}
     {
         std::error_code err;
         auto source_status = MP_FILEOPS.status(source, err);
@@ -121,8 +116,7 @@ protected:
     const SSHKeyProvider* ssh_key_provider;
     const VMMount mount_spec = {};
     const std::string target;
-    const std::string source; // TODO@ricab drop this
-
+    const std::string& source = mount_spec.source_path;
     bool active;
     std::mutex active_mutex;
 };
