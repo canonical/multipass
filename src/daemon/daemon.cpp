@@ -3123,7 +3123,7 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
         {
             try
             {
-                // TODO@ricab make mount and insert
+                vm_mounts[target] = make_mount(vm, target, mount_spec);
             }
             catch (const std::exception& e)
             {
