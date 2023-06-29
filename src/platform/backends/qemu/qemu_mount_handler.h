@@ -28,7 +28,7 @@ class QemuMountHandler : public MountHandler
 {
 public:
     QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
-                     const VMMount& mount);
+                     const VMMount& mount_spec);
     ~QemuMountHandler() override;
 
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
