@@ -67,6 +67,11 @@ public:
         active = false;
     }
 
+    const VMMount& get_mount_spec() const
+    {
+        return mount_spec;
+    }
+
     virtual bool is_active()
     {
         return active;
