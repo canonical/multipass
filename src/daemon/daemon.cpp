@@ -3110,8 +3110,8 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
     // Erase any outdated mount handlers
     for (auto mounts_it = vm_mounts.begin(); mounts_it != vm_mounts.end(); ++mounts_it)
     {
-        if (auto it = mount_specs.find(mounts_it->first);
-            it == mount_specs.end() /* TODO@ricab || mounts don't match */)
+        const auto& [target, handler] = *mounts_it;
+        if (auto it = mount_specs.find(target); it == mount_specs.end() || handler->get_mount_spec() != it->second)
         {
             // TODO@ricab handle managed mounts properly
             vm_mounts.erase(mounts_it);
