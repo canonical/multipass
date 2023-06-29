@@ -3113,7 +3113,12 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
         const auto& [target, handler] = *mounts_it;
         if (auto it = mount_specs.find(target); it == mount_specs.end() || handler->get_mount_spec() != it->second)
         {
-            // TODO@ricab handle managed mounts properly
+            if (handler->is_mount_managed_by_backend())
+            {
+                assert(handler->is_active());
+                handler->deactivate();
+            }
+
             vm_mounts.erase(mounts_it);
         }
     }
