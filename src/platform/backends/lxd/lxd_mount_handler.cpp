@@ -30,7 +30,7 @@ namespace multipass
 LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDVirtualMachine* lxd_virtual_machine,
                                  const SSHKeyProvider* ssh_key_provider, const std::string& target_path,
                                  const VMMount& mount_spec)
-    : MountHandler{lxd_virtual_machine, ssh_key_provider, mount_spec, target_path, mount_spec.source_path},
+    : MountHandler{lxd_virtual_machine, ssh_key_provider, mount_spec, target_path},
       network_manager{network_manager},
       lxd_instance_endpoint{
           QString("%1/instances/%2").arg(lxd_socket_url.toString(), lxd_virtual_machine->vm_name.c_str())},
