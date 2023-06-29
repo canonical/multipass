@@ -323,3 +323,15 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
     return std::make_unique<SmbMountHandler>(this, ssh_key_provider, target, mount,
                                              QFileInfo{image_path}.absolutePath());
 }
+
+auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                      const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
+    -> std::shared_ptr<Snapshot>
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+}
+
+auto mp::HyperVVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+}

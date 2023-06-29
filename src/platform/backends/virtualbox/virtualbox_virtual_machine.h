@@ -55,6 +55,11 @@ public:
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
 
+protected:
+    std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                     const VMSpecs& specs, std::shared_ptr<Snapshot> parent) override;
+
 private: // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
     const QString name;
     const std::string username;

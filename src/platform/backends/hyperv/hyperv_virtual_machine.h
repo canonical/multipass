@@ -60,6 +60,11 @@ public:
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target, const VMMount& mount) override;
 
+protected:
+    std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
+                                                     const VMSpecs& specs, std::shared_ptr<Snapshot> parent) override;
+
 private:
     void setup_network_interfaces(const std::string& default_mac_address,
                                   const std::vector<NetworkInterface>& extra_interfaces);
