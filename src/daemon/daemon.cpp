@@ -3108,10 +3108,11 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
     auto& mount_specs = vm_specs.mounts;
 
     // Erase any outdated mount handlers
-    for (auto mounts_it = vm_mounts.begin(); mounts_it != vm_mounts.end(); ++mounts_it)
+    for (auto handlers_it = vm_mounts.begin(); handlers_it != vm_mounts.end(); ++handlers_it)
     {
-        const auto& [target, handler] = *mounts_it;
-        if (auto it = mount_specs.find(target); it == mount_specs.end() || handler->get_mount_spec() != it->second)
+        const auto& [target, handler] = *handlers_it;
+        if (auto specs_it = mount_specs.find(target);
+            specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
         {
             if (handler->is_mount_managed_by_backend())
             {
@@ -3119,7 +3120,7 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                 handler->deactivate();
             }
 
-            vm_mounts.erase(mounts_it);
+            vm_mounts.erase(handlers_it);
         }
     }
 
