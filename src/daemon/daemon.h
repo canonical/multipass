@@ -157,6 +157,8 @@ private:
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
+    void update_mounts(VMSpecs& vm_specs, std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
+                       VirtualMachine* vm);
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
 
     struct AsyncOperationStatus
