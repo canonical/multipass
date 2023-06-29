@@ -3105,7 +3105,8 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
     auto& mount_specs = vm_specs.mounts;
 
     // Erase any outdated mount handlers
-    for (auto handlers_it = vm_mounts.begin(); handlers_it != vm_mounts.end(); ++handlers_it)
+    auto handlers_it = vm_mounts.begin();
+    while (handlers_it != vm_mounts.end())
     {
         const auto& [target, handler] = *handlers_it;
         if (auto specs_it = mount_specs.find(target);
@@ -3117,8 +3118,10 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                 handler->deactivate();
             }
 
-            vm_mounts.erase(handlers_it);
+            handlers_it = vm_mounts.erase(handlers_it);
         }
+        else
+            ++handlers_it;
     }
 
     // Add handlers for any new mounts
