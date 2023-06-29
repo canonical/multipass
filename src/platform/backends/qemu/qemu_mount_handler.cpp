@@ -33,7 +33,7 @@ namespace multipass
 {
 QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider* ssh_key_provider,
                                    const std::string& target, const VMMount& mount_spec)
-    : MountHandler{vm, ssh_key_provider, mount_spec, target, mount_spec.source_path},
+    : MountHandler{vm, ssh_key_provider, mount_spec, target},
       vm_mount_args{vm->modifiable_mount_args()},
       // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
       // uuid must be truncated. First character of tag must also be alphabetical.

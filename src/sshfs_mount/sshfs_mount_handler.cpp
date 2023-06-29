@@ -113,7 +113,7 @@ namespace multipass
 {
 SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider,
                                      const std::string& target, const VMMount& mount_spec)
-    : MountHandler{vm, ssh_key_provider, mount_spec, target, mount_spec.source_path},
+    : MountHandler{vm, ssh_key_provider, mount_spec, target},
       process{nullptr},
       config{"",
              0,
