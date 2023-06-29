@@ -1216,48 +1216,6 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
         vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
 }
 
-void update_mounts(mp::VMSpecs& vm_specs, std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
-                   mp::VirtualMachine* vm)
-{
-    auto& mount_specs = vm_specs.mounts;
-
-    // Erase any outdated mount handlers
-    for (auto mounts_it = vm_mounts.begin(); mounts_it != vm_mounts.end(); ++mounts_it)
-    {
-        if (auto it = mount_specs.find(mounts_it->first);
-            it == mount_specs.end() /* TODO@ricab || mounts don't match */)
-        {
-            // TODO@ricab handle managed mounts properly
-            vm_mounts.erase(mounts_it);
-        }
-    }
-
-    // Add handlers for any new mounts
-    std::vector<std::string> mounts_to_remove;
-    for (const auto& [target, mount_spec] : mount_specs)
-    {
-        if (vm_mounts.find(target) == vm_mounts.end())
-        {
-            try
-            {
-                // TODO@ricab make mount and insert
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::warning, category,
-                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", mount_spec.source_path, target,
-                                     vm->vm_name, e.what()));
-                mounts_to_remove.push_back(target);
-            }
-        }
-    }
-
-    for (const auto& mount_target : mounts_to_remove)
-        mount_specs.erase(mount_target); // TODO@ricab could have kept the iterator
-
-    // TODO@ricab what do we do about persisting?
-}
-
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -3141,6 +3099,49 @@ void mp::Daemon::stop_mounts(const std::string& name)
             mount->deactivate(/*force=*/true);
         }
     }
+}
+
+void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
+                               std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                               mp::VirtualMachine* vm)
+{
+    auto& mount_specs = vm_specs.mounts;
+
+    // Erase any outdated mount handlers
+    for (auto mounts_it = vm_mounts.begin(); mounts_it != vm_mounts.end(); ++mounts_it)
+    {
+        if (auto it = mount_specs.find(mounts_it->first);
+            it == mount_specs.end() /* TODO@ricab || mounts don't match */)
+        {
+            // TODO@ricab handle managed mounts properly
+            vm_mounts.erase(mounts_it);
+        }
+    }
+
+    // Add handlers for any new mounts
+    std::vector<std::string> mounts_to_remove;
+    for (const auto& [target, mount_spec] : mount_specs)
+    {
+        if (vm_mounts.find(target) == vm_mounts.end())
+        {
+            try
+            {
+                // TODO@ricab make mount and insert
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::warning, category,
+                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", mount_spec.source_path, target,
+                                     vm->vm_name, e.what()));
+                mounts_to_remove.push_back(target);
+            }
+        }
+    }
+
+    for (const auto& mount_target : mounts_to_remove)
+        mount_specs.erase(mount_target); // TODO@ricab could have kept the iterator
+
+    // TODO@ricab what do we do about persisting?
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
