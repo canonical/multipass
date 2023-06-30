@@ -18,6 +18,8 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/internal_timeout_exception.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -75,6 +77,15 @@ QString find_autostart_target(const QString& subdir, const QString& autostart_fi
 
     return target_path;
 }
+
+template <typename ExceptionT>
+mp::utils::TimeoutAction log_and_retry(const ExceptionT& e, const mp::VirtualMachine* vm,
+                                       mpl::Level log_level = mpl::Level::trace)
+{
+    assert(vm);
+    mpl::log(log_level, vm->vm_name, e.what());
+    return mp::utils::TimeoutAction::retry;
+};
 } // namespace
 
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
@@ -312,23 +323,38 @@ bool mp::utils::valid_mac_address(const std::string& mac)
 void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                   std::function<void()> const& ensure_vm_is_running)
 {
+    static constexpr auto wait_step = 1s;
     mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
+
     auto action = [virtual_machine, &ensure_vm_is_running] {
         ensure_vm_is_running();
         try
         {
-            mp::SSHSession session{virtual_machine->ssh_hostname(1ms), virtual_machine->ssh_port()};
+            mp::SSHSession session{virtual_machine->ssh_hostname(wait_step), virtual_machine->ssh_port()};
 
             std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             virtual_machine->state = VirtualMachine::State::running;
             virtual_machine->update_state();
             return mp::utils::TimeoutAction::done;
         }
-        catch (const std::exception&)
+        catch (const InternalTimeoutException& e)
         {
-            return mp::utils::TimeoutAction::retry;
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const SSHException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const IPUnavailableException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const std::runtime_error& e) // transitioning away from catching generic runtime errors
+        {                                   // TODO remove once we're confident this is an anomaly
+            return log_and_retry(e, virtual_machine, mpl::Level::warning);
         }
     };
+
     auto on_timeout = [virtual_machine] {
         std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
         virtual_machine->state = VirtualMachine::State::unknown;
