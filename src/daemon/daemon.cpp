@@ -3091,7 +3091,7 @@ void mp::Daemon::init_mounts(const std::string& name) // TODO@ricab this is now 
     auto& vm_mounts = mounts[name];
     auto& vm_spec_mounts = vm_instance_specs[name].mounts;
 
-    if (create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
+    if (!create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
         persist_instances();
 }
 
@@ -3119,7 +3119,7 @@ bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>&
                                        std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
                                        mp::VirtualMachine* vm)
 {
-    auto dirty = false;
+    auto success = true;
     auto specs_it = mount_specs.begin();
     while (specs_it != mount_specs.end())
     {
@@ -3137,14 +3137,14 @@ bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>&
                                      vm->vm_name, e.what()));
 
                 specs_it = mount_specs.erase(specs_it); // unordered_map so only iterators to erased element invalidated
-                dirty = true;
+                success = false;
                 continue;
             }
         }
         ++specs_it;
     }
 
-    return dirty;
+    return success;
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
