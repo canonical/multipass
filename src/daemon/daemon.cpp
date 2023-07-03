@@ -1217,9 +1217,10 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
 }
 
 // Erase any outdated mount handlers for a given VM
-void prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
+bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
                            std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
 {
+    auto removed = false;
     auto handlers_it = vm_mounts.begin();
     while (handlers_it != vm_mounts.end())
     {
@@ -1234,10 +1235,13 @@ void prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& m
             }
 
             handlers_it = vm_mounts.erase(handlers_it);
+            removed = true;
         }
         else
             ++handlers_it;
     }
+
+    return removed;
 }
 
 } // namespace
@@ -3111,8 +3115,7 @@ bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                mp::VirtualMachine* vm)
 {
     auto& mount_specs = vm_specs.mounts;
-    prune_obsolete_mounts(mount_specs, vm_mounts);
-    return create_missing_mounts(mount_specs, vm_mounts, vm);
+    return prune_obsolete_mounts(mount_specs, vm_mounts) || !create_missing_mounts(mount_specs, vm_mounts, vm);
 }
 
 bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
