@@ -1216,6 +1216,30 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
         vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
 }
 
+// Erase any outdated mount handlers for a given VM
+void prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
+                           std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
+{
+    auto handlers_it = vm_mounts.begin();
+    while (handlers_it != vm_mounts.end())
+    {
+        const auto& [target, handler] = *handlers_it;
+        if (auto specs_it = mount_specs.find(target);
+            specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
+        {
+            if (handler->is_mount_managed_by_backend())
+            {
+                assert(handler->is_active());
+                handler->deactivate();
+            }
+
+            handlers_it = vm_mounts.erase(handlers_it);
+        }
+        else
+            ++handlers_it;
+    }
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -3106,26 +3130,7 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                mp::VirtualMachine* vm)
 {
     auto& mount_specs = vm_specs.mounts;
-
-    // Erase any outdated mount handlers
-    auto handlers_it = vm_mounts.begin();
-    while (handlers_it != vm_mounts.end())
-    {
-        const auto& [target, handler] = *handlers_it;
-        if (auto specs_it = mount_specs.find(target);
-            specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
-        {
-            if (handler->is_mount_managed_by_backend())
-            {
-                assert(handler->is_active());
-                handler->deactivate();
-            }
-
-            handlers_it = vm_mounts.erase(handlers_it);
-        }
-        else
-            ++handlers_it;
-    }
+    prune_obsolete_mounts(mount_specs, vm_mounts);
 
     // Add handlers for any new mounts
     auto specs_it = mount_specs.begin();
