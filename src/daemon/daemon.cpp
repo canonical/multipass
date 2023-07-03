@@ -2547,6 +2547,7 @@ try
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
         auto& vm_specs = spec_it->second;
 
+        // Auto snapshot
         const auto& vm_dir = instance_directory(instance_name, *config);
         if (!request->destructive())
         {
@@ -2559,14 +2560,16 @@ try
                       /* sticky = */ true);
         }
 
+        // Actually restore snapshot
         reply_msg(server, "Restoring snapshot");
+        auto old_specs = vm_specs;
         vm_ptr->restore_snapshot(vm_dir, request->snapshot(), vm_specs);
 
         auto mounts_it = mounts.find(instance_name);
         assert(mounts_it != mounts.end() && "uninitialized mounts");
 
-        update_mounts(vm_specs, mounts_it->second, vm_ptr); // ignore return, we're going to persist anyway
-        persist_instances();
+        if (update_mounts(vm_specs, mounts_it->second, vm_ptr) || vm_specs != old_specs)
+            persist_instances();
 
         server->Write(reply);
     }
