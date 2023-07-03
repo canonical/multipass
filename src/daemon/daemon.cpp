@@ -2558,7 +2558,7 @@ try
         auto mounts_it = mounts.find(instance_name);
         assert(mounts_it != mounts.end() && "uninitialized mounts");
 
-        update_mounts(vm_specs, mounts_it->second, vm_ptr);
+        update_mounts(vm_specs, mounts_it->second, vm_ptr); // ignore return, we're going to persist anyway
         persist_instances();
 
         server->Write(reply);
@@ -3122,7 +3122,7 @@ void mp::Daemon::stop_mounts(const std::string& name)
     }
 }
 
-void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
+bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
                                mp::VirtualMachine* vm)
 {
@@ -3130,6 +3130,7 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
     prune_obsolete_mounts(mount_specs, vm_mounts);
 
     // Add handlers for any new mounts
+    auto dirty = false;
     auto specs_it = mount_specs.begin();
     while (specs_it != mount_specs.end())
     {
@@ -3147,13 +3148,14 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                      vm->vm_name, e.what()));
 
                 specs_it = mount_specs.erase(specs_it); // unordered_map so only iterators to erased element invalidated
+                dirty = true;
                 continue;
             }
         }
         ++specs_it;
     }
 
-    // TODO@ricab what do we do about persisting?
+    return dirty;
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
