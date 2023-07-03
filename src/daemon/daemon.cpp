@@ -3122,9 +3122,8 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
     }
 
     // Add handlers for any new mounts
-    using MountSpecsIt = decltype(mount_specs.begin());
-    std::vector<MountSpecsIt> mounts_to_remove{};
-    for (auto specs_it = mount_specs.begin(); specs_it != mount_specs.end(); ++specs_it)
+    auto specs_it = mount_specs.begin();
+    while (specs_it != mount_specs.end())
     {
         const auto& [target, mount_spec] = *specs_it;
         if (vm_mounts.find(target) == vm_mounts.end())
@@ -3139,13 +3138,12 @@ void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                          fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", mount_spec.source_path, target,
                                      vm->vm_name, e.what()));
 
-                mounts_to_remove.push_back(specs_it);
+                specs_it = mount_specs.erase(specs_it); // unordered_map so only iterators to erased element invalidated
+                continue;
             }
         }
+        ++specs_it;
     }
-
-    for (const auto& specs_it : mounts_to_remove)
-        mount_specs.erase(specs_it); // unordered_map, so iterators to other elements are not invalidated
 
     // TODO@ricab what do we do about persisting?
 }
