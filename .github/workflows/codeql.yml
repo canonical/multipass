@@ -1,0 +1,78 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ 'main' ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ 'main' ]
+  schedule:
+    - cron: '35 14 * * 3'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python', 'cpp' ]
+        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
+        # Use only 'java' to analyze code written in Java, Kotlin or both
+        # Use only 'javascript' to analyze code written in JavaScript, TypeScript or both
+        # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
+
+    env:
+      SNAPCRAFT_BUILD_INFO: 1
+
+    steps:
+    - name: Install Snapcraft
+      uses: samuelmeuli/action-snapcraft@v2
+
+    - name: Install LXD
+      uses: canonical/setup-lxd@90d76101915da56a42a562ba766b1a77019242fd
+
+    - name: Check out code
+      uses: actions/checkout@v3
+      with:
+        # Need to fetch it all for submodules to work.
+        fetch-depth: 0
+
+    - name: Check out tags and submodules
+      uses: ./.github/actions/checkout
+
+    - if: matrix.language == 'cpp'
+      name: Inatall dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y libgl1 libpng16-16 libqt5core5a libqt5gui5 libqt5network5 libqt5widgets5 libxml2 libvirt0 dnsmasq-base dnsmasq-utils qemu-system-x86 qemu-utils libslang2 iproute2 iptables iputils-ping libatm1 libxtables12 xterm
+        sudo apt install -y qtbase5-dev qtdeclarative5-dev libqt5svg5-dev libqt5x11extras5-dev libvirt-daemon-system libvirt-clients libvirt-dev libsystemd-dev libapparmor-dev
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: ${{ matrix.language }}
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+
+        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+        # queries: security-extended,security-and-quality
+    
+    - if: matrix.language == 'cpp'
+      name: Build
+      run: |
+        mkdir build && cd build
+        cmake ../
+        make
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        category: "/language:${{matrix.language}}"
