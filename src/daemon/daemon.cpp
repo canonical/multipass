@@ -3128,8 +3128,13 @@ bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
 {
     auto& mount_specs = vm_specs.mounts;
     prune_obsolete_mounts(mount_specs, vm_mounts);
+    return create_missing_mounts(mount_specs, vm_mounts, vm);
+}
 
-    // Add handlers for any new mounts
+bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
+                                       std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                                       mp::VirtualMachine* vm)
+{
     auto dirty = false;
     auto specs_it = mount_specs.begin();
     while (specs_it != mount_specs.end())

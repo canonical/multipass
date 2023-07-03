@@ -156,10 +156,13 @@ private:
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
+
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
     bool update_mounts(VMSpecs& vm_specs, std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
                        VirtualMachine* vm);
+    bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
+                               std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts, VirtualMachine* vm);
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
 
     struct AsyncOperationStatus
