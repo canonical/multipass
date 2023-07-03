@@ -3122,9 +3122,9 @@ bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>&
                                        std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
                                        mp::VirtualMachine* vm)
 {
-    auto success = true;
+    auto initial_mount_count = mount_specs.size();
     auto specs_it = mount_specs.begin();
-    while (specs_it != mount_specs.end())
+    while (specs_it != mount_specs.end()) // TODO@C++20 replace with erase_if over mount_specs
     {
         const auto& [target, mount_spec] = *specs_it;
         if (vm_mounts.find(target) == vm_mounts.end())
@@ -3140,14 +3140,14 @@ bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>&
                                      vm->vm_name, e.what()));
 
                 specs_it = mount_specs.erase(specs_it); // unordered_map so only iterators to erased element invalidated
-                success = false;
                 continue;
             }
         }
         ++specs_it;
     }
 
-    return success;
+    assert(mount_specs.size() <= initial_mount_count);
+    return mount_specs.size() != initial_mount_count;
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
