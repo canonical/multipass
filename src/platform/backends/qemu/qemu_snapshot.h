@@ -23,15 +23,16 @@
 
 namespace multipass
 {
-class QemuVirtualMachine;
 class VirtualMachineDescription;
 
 class QemuSnapshot : public BaseSnapshot
 {
 public:
+    using MountArgs = QemuVirtualMachine::MountArgs;
     QemuSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                 std::shared_ptr<Snapshot> parent, VirtualMachineDescription& desc);
-    QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, VirtualMachineDescription& desc);
+                 std::shared_ptr<Snapshot> parent, VirtualMachineDescription& desc, MountArgs& mount_args);
+    QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, VirtualMachineDescription& desc,
+                 MountArgs& mount_args);
 
 protected:
     void capture_impl() override;
@@ -43,6 +44,7 @@ private:
 
 private:
     VirtualMachineDescription& desc;
+    MountArgs& mount_args;
     const QString& image_path;
 };
 
