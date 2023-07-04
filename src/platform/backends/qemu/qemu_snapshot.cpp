@@ -16,7 +16,6 @@
  */
 
 #include "qemu_snapshot.h"
-#include "qemu_virtual_machine.h"
 #include "shared/qemu_img_utils/qemu_img_utils.h"
 
 #include <multipass/platform.h>
@@ -68,13 +67,17 @@ void checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
 } // namespace
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                               std::shared_ptr<Snapshot> parent, VirtualMachineDescription& desc)
-    : BaseSnapshot(name, comment, specs, std::move(parent)), desc{desc}, image_path{desc.image.image_path}
+                               std::shared_ptr<Snapshot> parent, VirtualMachineDescription& desc, MountArgs& mount_args)
+    : BaseSnapshot(name, comment, specs, std::move(parent)),
+      desc{desc},
+      mount_args{mount_args},
+      image_path{desc.image.image_path}
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, VirtualMachineDescription& desc)
-    : BaseSnapshot(json, vm), desc{desc}, image_path{desc.image.image_path}
+mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, VirtualMachineDescription& desc,
+                               MountArgs& mount_args)
+    : BaseSnapshot(json, vm), desc{desc}, mount_args{mount_args}, image_path{desc.image.image_path}
 {
 }
 
