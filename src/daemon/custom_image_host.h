@@ -48,13 +48,11 @@ public:
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override;
     std::vector<std::string> supported_remotes() override;
 
-protected:
+private:
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
     void fetch_manifests() override;
     void clear() override;
-
-private:
     CustomManifest* manifest_from(const std::string& remote_name);
 
     const QString arch;

@@ -48,15 +48,14 @@ public:
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override;
     std::vector<std::string> supported_remotes() override;
 
-protected:
+private:
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
     void fetch_manifests() override;
     void clear() override;
-
-private:
     SimpleStreamsManifest* manifest_from(const std::string& remote);
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
+
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     URLDownloader* const url_downloader;
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
