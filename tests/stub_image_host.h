@@ -55,6 +55,10 @@ struct StubVMImageHost final : public multipass::VMImageHost
     {
         return {};
     }
+
+    void update_manifests() override
+    {
+    }
 };
 } // namespace test
 } // namespace multipass

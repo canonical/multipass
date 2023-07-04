@@ -94,6 +94,7 @@ public:
     MOCK_METHOD(std::vector<VMImageInfo>, all_images_for, (const std::string&, const bool), (override));
     MOCK_METHOD(void, for_each_entry_do, (const Action&), (override));
     MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (override));
+    MOCK_METHOD(void, update_manifests, (), (override));
 
     TempFile image;
     VMImageInfo mock_bionic_image_info{{default_alias},

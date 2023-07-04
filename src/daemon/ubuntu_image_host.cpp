@@ -312,8 +312,6 @@ mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::strin
 {
     check_remote_is_supported(remote);
 
-    update_manifests();
-
     auto it = std::find_if(manifests.begin(), manifests.end(),
                            [&remote](const std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>& element) {
                                return element.first == remote;

@@ -34,9 +34,9 @@ public:
     CommonVMImageHost(std::chrono::seconds manifest_time_to_live);
     void for_each_entry_do(const Action& action) final;
     VMImageInfo info_for_full_hash(const std::string& full_hash) final;
+    void update_manifests();
 
 protected:
-    void update_manifests();
     void on_manifest_update_failure(const std::string& details);
     void on_manifest_empty(const std::string& details);
     void check_remote_is_supported(const std::string& remote_name) const;
@@ -55,7 +55,6 @@ private:
     QTimer manifest_single_shot;
 };
 
-}
-
+} // namespace multipass
 
 #endif /* MULTIPASS_COMMON_IMAGE_HOST_H_ */

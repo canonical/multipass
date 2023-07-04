@@ -253,8 +253,6 @@ mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remo
 {
     check_remote_is_supported(remote_name);
 
-    update_manifests();
-
     auto it = custom_image_info.find(remote_name);
     if (it == custom_image_info.end())
         throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
