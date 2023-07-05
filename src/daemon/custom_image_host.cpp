@@ -68,6 +68,11 @@ const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
       {{"ubuntu-core-22-amd64.img.xz"},
        {"https://cdimage.ubuntu.com/ubuntu-core/22/stable/current/", {"core22"}, "Ubuntu", "core-22", "Core 22"}}}}};
 
+bool is_default_constructed(const mp::VMImageInfo& image_info)
+{
+    return image_info == mp::VMImageInfo{};
+}
+
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file)
 {
@@ -92,10 +97,14 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     std::unordered_map<std::string, const mp::VMImageInfo*> map;
     for (const auto& image : images)
     {
-        map[image.id.toStdString()] = &image;
-        for (const auto& alias : image.aliases)
+        // non default entry filtering after parallel writing
+        if (!is_default_constructed(image))
         {
-            map[alias.toStdString()] = &image;
+            map[image.id.toStdString()] = &image;
+            for (const auto& alias : image.aliases)
+            {
+                map[alias.toStdString()] = &image;
+            }
         }
     }
 
@@ -120,8 +129,8 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
                                                 custom_image_info.os,
                                                 custom_image_info.release,
                                                 custom_image_info.release_string,
-                                                true,      // supported
-                                                image_url, // image_location
+                                                true,                 // supported
+                                                image_url,            // image_location
                                                 base_image_info.hash, // id
                                                 "",
                                                 base_image_info.last_modified, // version

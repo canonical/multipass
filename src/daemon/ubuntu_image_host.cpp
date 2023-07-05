@@ -45,7 +45,7 @@ constexpr auto index_path = "streams/v1/index.json";
 
 bool is_default_constructed(const std::pair<std::string, std::unique_ptr<mp::SimpleStreamsManifest>>& manifest_pair)
 {
-    return manifest_pair.first.empty() && manifest_pair.second == nullptr;
+    return manifest_pair == std::pair<std::string, std::unique_ptr<mp::SimpleStreamsManifest>>{};
 }
 
 auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader)
@@ -294,6 +294,7 @@ void mp::UbuntuVMImageHost::fetch_manifests()
     const std::lock_guard<std::mutex> lock{manifests_mutex};
     for (auto& local_manifest : local_manifests)
     {
+        // non default entry filtering after parallel writing
         if (!is_default_constructed(local_manifest))
         {
             manifests.emplace_back(std::move(local_manifest));
