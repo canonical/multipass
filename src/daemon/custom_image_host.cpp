@@ -160,13 +160,8 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
 
 } // namespace
 
-mp::CustomVMImageHost::CustomVMImageHost(const QString& arch, URLDownloader* downloader,
-                                         std::chrono::seconds manifest_time_to_live)
-    : CommonVMImageHost{manifest_time_to_live},
-      arch{arch},
-      url_downloader{downloader},
-      custom_image_info{},
-      remotes{no_remote}
+mp::CustomVMImageHost::CustomVMImageHost(const QString& arch, URLDownloader* downloader)
+    : arch{arch}, url_downloader{downloader}, custom_image_info{}, remotes{no_remote}
 {
 }
 

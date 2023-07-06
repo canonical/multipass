@@ -77,8 +77,8 @@ auto key_from(const std::string& search_string)
 } // namespace
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
-                                         URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
-    : CommonVMImageHost{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
+                                         URLDownloader* downloader)
+    : url_downloader{downloader}, remotes{std::move(remotes)}
 {
 }
 

@@ -42,7 +42,7 @@ struct CustomManifest
 class CustomVMImageHost final : public CommonVMImageHost
 {
 public:
-    CustomVMImageHost(const QString& arch, URLDownloader* downloader, std::chrono::seconds manifest_time_to_live);
+    CustomVMImageHost(const QString& arch, URLDownloader* downloader);
 
     std::optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;

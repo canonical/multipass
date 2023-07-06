@@ -31,7 +31,6 @@ namespace multipass
 class CommonVMImageHost : public VMImageHost
 {
 public:
-    CommonVMImageHost(std::chrono::seconds manifest_time_to_live);
     void for_each_entry_do(const Action& action) final;
     VMImageInfo info_for_full_hash(const std::string& full_hash) final;
     void update_manifests();
@@ -47,12 +46,6 @@ protected:
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) = 0;
     virtual void clear() = 0;
     virtual void fetch_manifests() = 0;
-
-private:
-    std::chrono::seconds manifest_time_to_live;
-    std::chrono::steady_clock::time_point last_update;
-    bool need_extra_update = true;
-    QTimer manifest_single_shot;
 };
 
 } // namespace multipass
