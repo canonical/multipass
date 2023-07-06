@@ -1338,13 +1338,20 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     auto update_manifests_all = [this]() -> void {
         mpl::log(mpl::Level::info, "daemon",
                  fmt::format("update manifests from thread: {}", QThread::currentThreadId()));
+        std::vector<std::future<void>> empty_futures;
+        empty_futures.reserve(config->image_hosts.size());
         for (const auto& image_host : config->image_hosts)
         {
-            image_host->update_manifests();
+            empty_futures.emplace_back(
+                std::async(std::launch::async, &VMImageHost::update_manifests, image_host.get()));
+        }
+        for (auto& empty_future : empty_futures)
+        {
+            empty_future.get();
         }
     };
 
-    // kick it off right away and launch it the periodically after
+    // kick it off right away and launch it periodically after
     QtConcurrent::run(update_manifests_all);
     QObject::connect(&timer_update_manifests, &QTimer::timeout,
                      [update_manifests_all]() -> void { QtConcurrent::run(update_manifests_all); });
