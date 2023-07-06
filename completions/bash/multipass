@@ -34,6 +34,62 @@ _multipass_complete()
         opts=$( \eval $cmd | \tail -n +2 | \cut -d',' -f 1 )
     }
 
+    _multipass_restorable_instances_with_period()
+    {
+        local instances=$( multipass info --all --no-runtime-information --format=csv \
+                           | \tail -n +2 \
+                           | \awk -F'("[^"]*")?,|\r?\n' '$2 == "Stopped" && $16 > 0' \
+                           | \cut -d',' -f 1 )
+        local found
+
+        _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
+        for instance in $instances; do
+            found=0
+            for ((i=2; i<CWORD; i++)); do
+                if [[ "${WORDS[i]}" == ${instance} ]]; then
+                    found=1
+                    break
+                fi
+            done
+            if [ ${found} == 0 ]; then
+                opts="${opts} ${instance}."
+            fi
+        done
+    }
+
+    _unspecified_restore_vars()
+    {
+        opts=""
+
+        local destructive_found=0
+        local help_found=0
+        local instance_found=0
+        local verbose_found=0
+
+        for ((i=2; i<COMP_CWORD; ++i)); do
+            if [[ "${COMP_WORDS[$i]}" == '--destructive' ]]; then destructive_found=1; fi
+            if [[ "${COMP_WORDS[$i]}" == '--help' ]]; then help_found=1; fi
+            if [[ "${COMP_WORDS[$i]}" == '--verbose' ]]; then verbose_found=1; fi
+            if [[ "${COMP_WORDS[$i]}" =~ '.' ]]; then instance_found=1; fi
+        done
+
+        if [[ ${destructive_found} == 0 ]]; then opts="${opts} --destructive"; fi
+        if [[ ${help_found} == 0 ]]; then opts="${opts} --help"; fi
+        if [[ ${verbose_found} == 0 ]]; then opts="${opts} --verbose"; fi
+        if [[ ${instance_found} == 0 ]] && [[ "${cur}" =~ '.' ]]; then
+            local instance="${cur%%.*}"
+            local cmd="multipass list --snapshots "${instance}" --format=csv 2>/dev/null"
+            local snapshots=$( \eval $cmd | \grep -Ev '(\+--|Instance)' | \cut -d',' -f 2 )
+
+            for snapshot in $snapshots; do
+                opts="${opts} ${instance}.${snapshot}"
+            done
+        elif [[ ${instance_found} == 0 ]]; then
+            _multipass_restorable_instances_with_period
+            compopt -o nospace
+        fi
+    }
+
     _multipass_instances_with_colon()
     {
         local opts_bak="${opts}"
@@ -237,9 +293,6 @@ _multipass_complete()
         "snapshot")
             opts="${opts} --name --comment"
         ;;
-        "restore")
-            opts="${opts} --destructive"
-        ;;
     esac
 
     if [[ ${prev} == -* ]]; then
@@ -317,8 +370,11 @@ _multipass_complete()
             "recover")
                 _multipass_instances "Deleted"
             ;;
-            "snapshot"|"restore")
+            "snapshot")
                 _multipass_instances "Stopped"
+            ;;
+            "restore")
+                _unspecified_restore_vars
             ;;
             "mount")
                 local source_set=0
