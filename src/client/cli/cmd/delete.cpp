@@ -24,6 +24,13 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+namespace
+{
+constexpr auto no_purge_base_error_msg =
+    "Snapshots can only be purged (after deletion, they cannot be recovered). Please use the `--purge` "
+    "flag if that is what you want";
+}
+
 mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -125,10 +132,6 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 
     if (snapshot_found && !request.purge())
     {
-        auto no_purge_base_error_msg =
-            "Snapshots can only be purged (after deletion, they cannot be recovered). Please use the `--purge` "
-            "flag if that is what you want";
-
         if (instance_found)
             cerr << fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
                                 "instances without purging them:\n\n\tmultipass delete {}\n",
