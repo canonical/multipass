@@ -106,15 +106,22 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
-    if (parse_code != ParseCode::Ok)
-        return parse_code;
+    status = check_for_name_and_all_option_conflict(parser, cerr);
+    if (status != ParseCode::Ok)
+        return status;
 
     request.set_purge(parser->isSet(purge_option));
 
+    status = parse_instances_snapshots(parser);
+
+    return status;
+}
+
+mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
+{
     bool instance_found = false, snapshot_found = false;
     std::string instances, snapshots;
-    for (const auto& item : add_instance_and_snapshot_names(parser))
+    for (const auto& item : cmd::add_instance_and_snapshot_names(parser))
     {
         if (!item.has_snapshot_name())
         {
@@ -130,6 +137,12 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
         request.add_instances_snapshots()->CopyFrom(item);
     }
 
+    return enforce_purged_snapshots(instances, snapshots, instance_found, snapshot_found);
+}
+
+mp::ParseCode cmd::Delete::enforce_purged_snapshots(std::string& instances, std::string& snapshots, bool instance_found,
+                                                    bool snapshot_found)
+{
     if (snapshot_found && !request.purge())
     {
         if (instance_found)
@@ -142,5 +155,5 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
         return mp::ParseCode::CommandLineError;
     }
 
-    return status;
+    return mp::ParseCode::Ok;
 }
