@@ -3285,7 +3285,7 @@ TEST_F(RestoreCommandClient, restoreCmdConfirmsDesruction)
         EXPECT_FALSE(request.destructive());
 
         mp::RestoreReply reply;
-        reply.set_confirm_destruction(true);
+        reply.set_confirm_destructive(true);
         server->Write(reply);
         return grpc::Status{};
     });
@@ -3300,7 +3300,7 @@ TEST_F(RestoreCommandClient, restoreCmdNotDestructiveNotLiveTermFails)
 
     EXPECT_CALL(mock_daemon, restore(_, _)).WillOnce([](auto, auto* server) {
         mp::RestoreReply reply;
-        reply.set_confirm_destruction(true);
+        reply.set_confirm_destructive(true);
         server->Write(reply);
         return grpc::Status{};
     });
