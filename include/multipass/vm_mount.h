@@ -43,6 +43,12 @@ inline bool operator==(const VMMount& a, const VMMount& b)
     return std::tie(a.source_path, a.gid_mappings, a.uid_mappings) ==
            std::tie(b.source_path, b.gid_mappings, b.uid_mappings);
 }
+
+inline bool operator!=(const VMMount& a, const VMMount& b) // TODO drop in C++20
+{
+    return !(a == b);
+}
+
 } // namespace multipass
 
 namespace fmt
