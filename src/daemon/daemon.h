@@ -20,6 +20,7 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
+#include "multipass/virtual_machine.h"
 #include "vm_specs.h"
 
 #include <multipass/async_periodic_task.h>
@@ -156,8 +157,18 @@ private:
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
+
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
+
+    // This returns whether any specs were updated (and need persisting)
+    bool update_mounts(VMSpecs& vm_specs, std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
+                       VirtualMachine* vm);
+
+    // This returns whether all required mount handlers were successfully created
+    bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
+                               std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts, VirtualMachine* vm);
+
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
 
     struct AsyncOperationStatus
