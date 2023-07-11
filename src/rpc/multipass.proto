@@ -513,5 +513,5 @@ message RestoreReply {
     string log_line = 1;
     string reply_message = 2;
     string instance = 3;
-    bool confirm_destruction = 4;
+    bool confirm_destructive = 3;
 }

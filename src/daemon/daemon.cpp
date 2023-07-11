@@ -2561,6 +2561,7 @@ try
             RestoreReply reply{};
             reply.set_instance(instance_name);
             reply.set_confirm_destruction(true);
+            confirm_action.set_confirm_destructive(true);
             if (!server->Write(reply))
                 throw std::runtime_error("Cannot request confirmation from client. Aborting...");
 
