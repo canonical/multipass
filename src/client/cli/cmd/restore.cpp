@@ -65,7 +65,7 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
             spinner.start(msg);
         }
 
-        if (reply.confirm_destruction())
+        if (reply.confirm_destructive())
         {
             spinner.stop();
             RestoreRequest request;
