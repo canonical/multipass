@@ -25,6 +25,7 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QString>
 #include <QStringList>
 
@@ -100,5 +101,6 @@ bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, const 
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
 
-    return process->read_all_standard_output().contains(snapshot_tag);
+    QRegularExpression regex{QString{R"(%1\s)"}.arg(snapshot_tag)};
+    return QString{process->read_all_standard_output()}.contains(regex);
 }
