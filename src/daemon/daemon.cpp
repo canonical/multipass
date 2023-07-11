@@ -1214,6 +1214,34 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
         vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
 }
 
+// Erase any outdated mount handlers for a given VM
+bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
+                           std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
+{
+    auto removed = false;
+    auto handlers_it = vm_mounts.begin();
+    while (handlers_it != vm_mounts.end())
+    {
+        const auto& [target, handler] = *handlers_it;
+        if (auto specs_it = mount_specs.find(target);
+            specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
+        {
+            if (handler->is_mount_managed_by_backend())
+            {
+                assert(handler->is_active());
+                handler->deactivate();
+            }
+
+            handlers_it = vm_mounts.erase(handlers_it);
+            removed = true;
+        }
+        else
+            ++handlers_it;
+    }
+
+    return removed;
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -2514,22 +2542,31 @@ try
 
         auto spec_it = vm_instance_specs.find(instance_name);
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
+        auto& vm_specs = spec_it->second;
 
+        // Auto snapshot
         const auto& vm_dir = instance_directory(instance_name, *config);
         if (!request->destructive())
         {
             reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
 
-            const auto snapshot = vm_ptr->take_snapshot(vm_dir, spec_it->second, "",
-                                                        fmt::format("Before restoring {}", request->snapshot()));
+            const auto snapshot =
+                vm_ptr->take_snapshot(vm_dir, vm_specs, "", fmt::format("Before restoring {}", request->snapshot()));
 
             reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
                       /* sticky = */ true);
         }
 
+        // Actually restore snapshot
         reply_msg(server, "Restoring snapshot");
-        vm_ptr->restore_snapshot(vm_dir, request->snapshot(), spec_it->second);
-        persist_instances();
+        auto old_specs = vm_specs;
+        vm_ptr->restore_snapshot(vm_dir, request->snapshot(), vm_specs);
+
+        auto mounts_it = mounts.find(instance_name);
+        assert(mounts_it != mounts.end() && "uninitialized mounts");
+
+        if (update_mounts(vm_specs, mounts_it->second, vm_ptr) || vm_specs != old_specs)
+            persist_instances();
 
         server->Write(reply);
     }
@@ -3053,31 +3090,12 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
     return grpc::Status::OK;
 }
 
-void mp::Daemon::init_mounts(const std::string& name)
+void mp::Daemon::init_mounts(const std::string& name) // TODO@ricab this is now a particular case of update_mounts
 {
     auto& vm_mounts = mounts[name];
     auto& vm_spec_mounts = vm_instance_specs[name].mounts;
-    std::vector<std::string> mounts_to_remove;
-    for (const auto& [target, vm_mount] : vm_spec_mounts)
-    {
-        if (vm_mounts.find(target) == vm_mounts.end())
-            try
-            {
-                vm_mounts[target] = make_mount(operative_instances[name].get(), target, vm_mount);
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::warning, category,
-                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", vm_mount.source_path, target, name,
-                                     e.what()));
-                mounts_to_remove.push_back(target);
-            }
-    }
 
-    for (const auto& mount_target : mounts_to_remove)
-        vm_spec_mounts.erase(mount_target);
-
-    if (!mounts_to_remove.empty())
+    if (!create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
         persist_instances();
 }
 
@@ -3090,6 +3108,46 @@ void mp::Daemon::stop_mounts(const std::string& name)
             mount->deactivate(/*force=*/true);
         }
     }
+}
+
+bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
+                               std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                               mp::VirtualMachine* vm)
+{
+    auto& mount_specs = vm_specs.mounts;
+    return prune_obsolete_mounts(mount_specs, vm_mounts) || !create_missing_mounts(mount_specs, vm_mounts, vm);
+}
+
+bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
+                                       std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                                       mp::VirtualMachine* vm)
+{
+    auto initial_mount_count = mount_specs.size();
+    auto specs_it = mount_specs.begin();
+    while (specs_it != mount_specs.end()) // TODO@C++20 replace with erase_if over mount_specs
+    {
+        const auto& [target, mount_spec] = *specs_it;
+        if (vm_mounts.find(target) == vm_mounts.end())
+        {
+            try
+            {
+                vm_mounts[target] = make_mount(vm, target, mount_spec);
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::warning, category,
+                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", mount_spec.source_path, target,
+                                     vm->vm_name, e.what()));
+
+                specs_it = mount_specs.erase(specs_it); // unordered_map so only iterators to erased element invalidated
+                continue;
+            }
+        }
+        ++specs_it;
+    }
+
+    assert(mount_specs.size() <= initial_mount_count);
+    return mount_specs.size() != initial_mount_count;
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)

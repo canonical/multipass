@@ -21,6 +21,10 @@
 
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/top_catch_all.h>
+#include <multipass/virtual_machine_description.h>
+
+#include <scope_guard.hpp>
 
 #include <memory>
 
@@ -64,13 +68,13 @@ void checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
 } // namespace
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                               const QString& image_path, std::shared_ptr<Snapshot> parent)
-    : BaseSnapshot(name, comment, specs, std::move(parent)), image_path{image_path}
+                               std::shared_ptr<Snapshot> parent, VirtualMachineDescription& desc)
+    : BaseSnapshot(name, comment, specs, std::move(parent)), desc{desc}, image_path{desc.image.image_path}
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, const QString& image_path, QemuVirtualMachine& vm)
-    : BaseSnapshot(json, vm), image_path{image_path}
+mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, VirtualMachineDescription& desc)
+    : BaseSnapshot(json, vm), desc{desc}, image_path{desc.image.image_path}
 {
 }
 
@@ -94,7 +98,15 @@ void mp::QemuSnapshot::erase_impl()
 
 void mp::QemuSnapshot::apply_impl()
 {
+    auto rollback = sg::make_scope_guard(
+        [this, old_desc = desc]() noexcept { top_catch_all(get_name(), [this, &old_desc]() { desc = old_desc; }); });
+
+    desc.num_cores = get_num_cores();
+    desc.mem_size = get_mem_size();
+    desc.disk_space = get_disk_space();
+
     checked_exec_qemu_img(make_restore_spec(derive_tag(), image_path));
+    rollback.dismiss();
 }
 
 QString mp::QemuSnapshot::derive_tag() const

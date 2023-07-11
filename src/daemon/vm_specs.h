@@ -53,6 +53,12 @@ inline bool operator==(const VMSpecs& a, const VMSpecs& b)
            std::tie(b.num_cores, b.mem_size, b.disk_space, b.default_mac_address, b.extra_interfaces, b.ssh_username,
                     b.state, b.mounts, b.deleted, b.metadata);
 }
+
+inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20
+{
+    return !(a == b);
+}
+
 } // namespace multipass
 
 #endif // MULTIPASS_VM_SPECS_H
