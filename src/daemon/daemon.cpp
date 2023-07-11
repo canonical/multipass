@@ -2553,11 +2553,9 @@ try
         const auto& vm_dir = instance_directory(instance_name, *config);
         if (!request->destructive())
         {
-            RestoreReply reply{};
-            reply.set_instance(instance_name);
-            reply.set_confirm_destruction(true);
+            RestoreReply confirm_action{};
             confirm_action.set_confirm_destructive(true);
-            if (!server->Write(reply))
+            if (!server->Write(confirm_action))
                 throw std::runtime_error("Cannot request confirmation from client. Aborting...");
 
             RestoreRequest client_response;
