@@ -2547,16 +2547,8 @@ try
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
         auto& vm_specs = spec_it->second;
 
-        // TODO@snapshots need a way to query the existence of a snapshot before consuming it
-        try
-        {
-            auto snapshot = vm_ptr->get_snapshot(request->snapshot());
-        }
-        catch (const std::out_of_range&)
-        {
-            return status_promise->set_value(
-                grpc::Status{grpc::NOT_FOUND, fmt::format("snapshot \"{}\" does not exist", request->snapshot())});
-        }
+        // Only need to check if the snapshot exists so the result is discarded
+        vm_ptr->get_snapshot(request->snapshot());
 
         const auto& vm_dir = instance_directory(instance_name, *config);
         if (!request->destructive())
@@ -2599,6 +2591,10 @@ try
     }
 
     status_promise->set_value(status);
+}
+catch (const mp::NoSuchSnapshot& e)
+{
+    status_promise->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
 }
 catch (const std::exception& e)
 {
