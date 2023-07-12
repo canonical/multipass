@@ -244,6 +244,8 @@ void mp::CustomVMImageHost::fetch_manifests()
             check_remote_is_supported(spec.first);
             std::unique_ptr<mp::CustomManifest> custom_manifest = full_image_info_for(spec.second, url_downloader);
             const std::lock_guard<std::mutex> lock{custom_image_info_mutex};
+            // deep copy of custom_manifest is needed to separate the side thread parallel download (write operation)
+            // from the main thread read so we can have a minimized critical section.
             custom_image_info.emplace(spec.first, std::make_unique<mp::CustomManifest>(*custom_manifest));
         }
         catch (mp::DownloadException& e)
