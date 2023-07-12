@@ -25,6 +25,7 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QString>
 #include <QStringList>
 
@@ -88,7 +89,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     }
 }
 
-bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, const char* snapshot_tag)
+bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)
 {
     auto process = mp::platform::make_process(
         std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", image_path}, image_path));
@@ -100,5 +101,6 @@ bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, const 
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
 
-    return process->read_all_standard_output().contains(snapshot_tag);
+    QRegularExpression regex{snapshot_tag.append(R"(\s)")};
+    return QString{process->read_all_standard_output()}.contains(regex);
 }
