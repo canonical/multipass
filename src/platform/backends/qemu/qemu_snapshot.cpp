@@ -84,7 +84,7 @@ void mp::QemuSnapshot::capture_impl()
 
     // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
     // identify the snapshot by tag)
-    if (backend::instance_image_has_snapshot(image_path, tag.toUtf8()))
+    if (backend::instance_image_has_snapshot(image_path, tag))
         throw std::runtime_error{fmt::format(
             "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
 
