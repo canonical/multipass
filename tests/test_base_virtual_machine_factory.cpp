@@ -240,7 +240,8 @@ TEST_F(BaseFactory, prepareInterfaceCreatesBridgeForUnbridgedNetwork)
     factory.base_prepare_interface(extra_net, host_nets, bridge_type);
     EXPECT_EQ(extra_net, extra_check);
 
-    const auto [host_diff, ignore] = std::mismatch(host_nets.cbegin(), host_nets.cend(), host_copy.cbegin());
+    const auto [host_diff, ignore] =
+        std::mismatch(host_nets.cbegin(), host_nets.cend(), host_copy.cbegin(), host_copy.cend());
     ASSERT_NE(host_diff, host_nets.cend());
     EXPECT_EQ(host_diff->id, bridge);
     EXPECT_EQ(host_diff->type, bridge_type);
