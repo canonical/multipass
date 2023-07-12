@@ -2544,17 +2544,31 @@ try
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
         auto& vm_specs = spec_it->second;
 
-        // Auto snapshot
+        // Only need to check if the snapshot exists so the result is discarded
+        vm_ptr->get_snapshot(request->snapshot());
+
         const auto& vm_dir = instance_directory(instance_name, *config);
         if (!request->destructive())
         {
-            reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
+            RestoreReply confirm_action{};
+            confirm_action.set_confirm_destructive(true);
+            if (!server->Write(confirm_action))
+                throw std::runtime_error("Cannot request confirmation from client. Aborting...");
 
-            const auto snapshot =
-                vm_ptr->take_snapshot(vm_dir, vm_specs, "", fmt::format("Before restoring {}", request->snapshot()));
+            RestoreRequest client_response;
+            if (!server->Read(&client_response))
+                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
 
-            reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
-                      /* sticky = */ true);
+            if (!client_response.destructive())
+            {
+                reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
+
+                const auto snapshot = vm_ptr->take_snapshot(vm_dir, vm_specs, "",
+                                                            fmt::format("Before restoring {}", request->snapshot()));
+
+                reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
+                          /* sticky = */ true);
+            }
         }
 
         // Actually restore snapshot
@@ -2572,6 +2586,10 @@ try
     }
 
     status_promise->set_value(status);
+}
+catch (const mp::NoSuchSnapshot& e)
+{
+    status_promise->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
 }
 catch (const std::exception& e)
 {

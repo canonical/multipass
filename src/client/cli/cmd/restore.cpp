@@ -53,8 +53,35 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    return dispatch(&RpcMethod::restore, request, on_success, on_failure,
-                    make_reply_spinner_callback<RestoreRequest, RestoreReply>(spinner, cerr));
+    auto streaming_callback = [this,
+                               &spinner](mp::RestoreReply& reply,
+                                         grpc::ClientReaderWriterInterface<RestoreRequest, RestoreReply>* client) {
+        if (!reply.log_line().empty())
+            spinner.print(cerr, reply.log_line());
+
+        if (const auto& msg = reply.reply_message(); !msg.empty())
+        {
+            spinner.stop();
+            spinner.start(msg);
+        }
+
+        if (reply.confirm_destructive())
+        {
+            spinner.stop();
+            RestoreRequest client_response;
+
+            if (term->is_live())
+                client_response.set_destructive(confirm_destruction(request.instance()));
+            else
+                throw std::runtime_error("Unable to query client for confirmation. Use '--destructive' to "
+                                         "automatically discard current machine state");
+
+            client->Write(client_response);
+            spinner.start();
+        }
+    };
+
+    return dispatch(&RpcMethod::restore, request, on_success, on_failure, streaming_callback);
 }
 
 std::string cmd::Restore::name() const
@@ -104,40 +131,19 @@ mp::ParseCode cmd::Restore::parse_args(mp::ArgParser* parser)
     if (tokens.size() != 2 || tokens[0].isEmpty() || tokens[1].isEmpty())
     {
         cerr << "Invalid format. Please specify the instance to restore and snapshot to use in the form "
-                "<instance>.<spanshot>.\n";
+                "<instance>.<snapshot>.\n";
         return ParseCode::CommandLineError;
     }
 
     request.set_instance(tokens[0].toStdString());
     request.set_snapshot(tokens[1].toStdString());
     request.set_destructive(parser->isSet(destructive));
-
-    if (!parser->isSet(destructive))
-    {
-        if (term->is_live())
-        {
-            try
-            {
-                request.set_destructive(confirm_destruction(tokens[0]));
-            }
-            catch (const mp::PromptException& e)
-            {
-                std::cerr << e.what() << std::endl;
-                return ParseCode::CommandLineError;
-            }
-        }
-        else
-        {
-            return ParseCode::CommandFail;
-        }
-    }
-
     request.set_verbosity_level(parser->verbosityLevel());
 
     return ParseCode::Ok;
 }
 
-bool cmd::Restore::confirm_destruction(const QString& instance_name)
+bool cmd::Restore::confirm_destruction(const std::string& instance_name)
 {
     static constexpr auto prompt_text =
         "Do you want to take a snapshot of {} before discarding its current state? (Yes/no)";
