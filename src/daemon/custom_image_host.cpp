@@ -153,12 +153,15 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
         empty_future.get(); // use get instead of wait to retain the exception throwing
     }
 
-    auto map = map_aliases_to_vm_info_for(default_images);
-
-    return std::unique_ptr<mp::CustomManifest>(new mp::CustomManifest{std::move(default_images), std::move(map)});
+    return std::make_unique<mp::CustomManifest>(std::move(default_images));
 }
 
 } // namespace
+
+mp::CustomManifest::CustomManifest(std::vector<VMImageInfo>&& images)
+    : products{std::move(images)}, image_records{map_aliases_to_vm_info_for(products)}
+{
+}
 
 mp::CustomVMImageHost::CustomVMImageHost(const QString& arch, URLDownloader* downloader)
     : arch{arch}, url_downloader{downloader}, custom_image_info{}, remotes{no_remote}

@@ -37,6 +37,8 @@ struct CustomManifest
 {
     const std::vector<VMImageInfo> products;
     const std::unordered_map<std::string, const VMImageInfo*> image_records;
+
+    CustomManifest(std::vector<VMImageInfo>&& images);
 };
 
 class CustomVMImageHost final : public CommonVMImageHost
