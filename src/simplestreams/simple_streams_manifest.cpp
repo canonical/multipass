@@ -60,6 +60,23 @@ QString latest_version_in(const QJsonObject& versions)
     }
     return max_version;
 }
+
+QMap<QString, const mp::VMImageInfo*> qmap_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& products)
+{
+    QMap<QString, const mp::VMImageInfo*> map;
+
+    for (const auto& product : products)
+    {
+        map[product.id] = &product;
+        for (const auto& alias : product.aliases)
+        {
+            map[alias] = &product;
+        }
+    }
+
+    return map;
+}
+
 } // namespace
 
 std::unique_ptr<mp::SimpleStreamsManifest>
@@ -163,16 +180,7 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
     if (products.empty())
         throw mp::EmptyManifestException("No supported products found.");
 
-    QMap<QString, const VMImageInfo*> map;
-
-    for (const auto& product : products)
-    {
-        map[product.id] = &product;
-        for (const auto& alias : product.aliases)
-        {
-            map[alias] = &product;
-        }
-    }
+    auto map = qmap_aliases_to_vm_info_for(products);
 
     return std::unique_ptr<SimpleStreamsManifest>(
         new SimpleStreamsManifest{updated, std::move(products), std::move(map)});
