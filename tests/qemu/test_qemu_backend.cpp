@@ -49,8 +49,11 @@ namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
-{ // copied from QemuVirtualMachine implementation
+{
+// copied from QemuVirtualMachine implementation
 constexpr auto suspend_tag = "suspend";
+// we need a whitespace to terminate the tag column in the fake output of qemu-img
+const QByteArray fake_snapshot_list_with_suspend_tag = QByteArray{suspend_tag} + " ";
 } // namespace
 
 struct QemuBackend : public mpt::TestWithMockedBinPath
@@ -88,7 +91,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
             mp::ProcessState exit_state;
             exit_state.exit_code = 0;
             ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
-            ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(suspend_tag));
+            ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(fake_snapshot_list_with_suspend_tag));
         }
         else if (process->program() == "iptables")
         {
@@ -475,8 +478,6 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
 
 TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
 {
-    constexpr auto suspend_tag = "suspend";
-
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
@@ -487,7 +488,7 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
             mp::ProcessState exit_state;
             exit_state.exit_code = 0;
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(suspend_tag));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(fake_snapshot_list_with_suspend_tag));
         }
     };
 
