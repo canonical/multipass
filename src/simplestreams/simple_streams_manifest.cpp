@@ -79,8 +79,12 @@ QMap<QString, const mp::VMImageInfo*> qmap_aliases_to_vm_info_for(const std::vec
 
 } // namespace
 
-mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& update_at, std::vector<VMImageInfo>&& images)
-    : updated_at{update_at}, products{std::move(images)}, image_records{qmap_aliases_to_vm_info_for(products)}
+mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& updated_at, std::vector<VMImageInfo>&& images)
+    : updated_at{updated_at}, products{std::move(images)}, image_records{qmap_aliases_to_vm_info_for(products)}
+{
+}
+mp::SimpleStreamsManifest::SimpleStreamsManifest(const SimpleStreamsManifest& other)
+    : updated_at{other.updated_at}, products{other.products}, image_records{qmap_aliases_to_vm_info_for(products)}
 {
 }
 

@@ -294,10 +294,11 @@ void mp::UbuntuVMImageHost::fetch_manifests()
     const std::lock_guard<std::mutex> lock{manifests_mutex};
     for (auto& local_manifest : local_manifests)
     {
-        // non default entry filtering after parallel writing
         if (!is_default_constructed(local_manifest))
         {
-            manifests.emplace_back(std::move(local_manifest));
+            auto local_manifest_copy =
+                std::make_pair(local_manifest.first, std::make_unique<SimpleStreamsManifest>(*local_manifest.second));
+            manifests.emplace_back(std::move(local_manifest_copy));
         }
     }
 }
