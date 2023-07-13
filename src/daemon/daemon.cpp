@@ -1352,10 +1352,11 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     };
 
     // kick it off right away and launch it periodically after
-    QtConcurrent::run(update_manifests_all);
-    QObject::connect(&timer_update_manifests, &QTimer::timeout,
-                     [update_manifests_all]() -> void { QtConcurrent::run(update_manifests_all); });
-    timer_update_manifests.start(10000); // keep it 10 seconds for now for testing
+    void_future = std::async(std::launch::async, update_manifests_all);
+    QObject::connect(&timer_update_manifests, &QTimer::timeout, [update_manifests_all, this]() -> void {
+        void_future = std::async(std::launch::async, update_manifests_all);
+    });
+    timer_update_manifests.start(100); // keep it 10 seconds for now for testing
 }
 
 mp::Daemon::~Daemon()
