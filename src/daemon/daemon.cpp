@@ -1628,59 +1628,33 @@ try // clang-format on
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     InfoReply response;
+    InstanceSnapshotsMap instance_snapshots_map;
 
     // Need to 'touch' a report in the response so formatters know what to do with an otherwise empty response
     request->snapshot_overview() ? (void)response.mutable_snapshot_overview()
                                  : (void)response.mutable_detailed_report();
     bool have_mounts = false;
     bool deleted = false;
-    auto fetch_instance_info = [&](VirtualMachine& vm) {
-        const auto& name = vm.vm_name;
-        auto info = response.mutable_detailed_report()->add_details();
-        auto instance_info = info->mutable_instance_info();
-        auto present_state = vm.current_state();
-        info->set_name(name);
-        if (deleted)
-        {
-            info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
-        }
-        else
-        {
-            info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
-        }
 
-        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
-        auto original_release = vm_image.original_release;
+    auto populate_snapshot_fundamentals = [&](std::shared_ptr<const Snapshot> snapshot, auto& fundamentals) {
+        fundamentals->set_snapshot_name(snapshot->get_name());
+        fundamentals->set_parent(snapshot->get_parent_name());
+        fundamentals->set_comment(snapshot->get_comment());
 
-        if (!vm_image.id.empty() && original_release.empty())
-        {
-            try
-            {
-                auto vm_image_info = config->image_hosts.back()->info_for_full_hash(vm_image.id);
-                original_release = vm_image_info.release_title.toStdString();
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::warning, category, fmt::format("Cannot fetch image information: {}", e.what()));
-            }
-        }
+        auto timestamp = fundamentals->mutable_creation_timestamp();
+        timestamp->set_seconds(snapshot->get_creation_timestamp().toSecsSinceEpoch());
+        timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
+    };
 
-        instance_info->set_num_snapshots(vm.get_num_snapshots());
-        instance_info->set_image_release(original_release);
-        instance_info->set_id(vm_image.id);
-
-        auto vm_specs = vm_instance_specs[name];
-
-        auto mount_info = info->mutable_mount_info();
-
+    auto populate_mount_info = [&](const auto& mounts, auto& mount_info) {
         mount_info->set_longest_path_len(0);
 
-        if (!vm_specs.mounts.empty())
+        if (!mounts.empty())
             have_mounts = true;
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
-            for (const auto& mount : vm_specs.mounts)
+            for (const auto& mount : mounts)
             {
                 if (mount.second.source_path.size() > mount_info->longest_path_len())
                 {
@@ -1705,6 +1679,43 @@ try // clang-format on
                 }
             }
         }
+    };
+
+    auto populate_instance_info = [&](VirtualMachine& vm) {
+        const auto& name = vm.vm_name;
+        auto info = response.mutable_detailed_report()->add_details();
+        auto instance_info = info->mutable_instance_info();
+        auto present_state = vm.current_state();
+        info->set_name(name);
+        if (deleted)
+            info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+        else
+            info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
+
+        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto original_release = vm_image.original_release;
+
+        if (!vm_image.id.empty() && original_release.empty())
+        {
+            try
+            {
+                auto vm_image_info = config->image_hosts.back()->info_for_full_hash(vm_image.id);
+                original_release = vm_image_info.release_title.toStdString();
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::warning, category, fmt::format("Cannot fetch image information: {}", e.what()));
+            }
+        }
+
+        instance_info->set_num_snapshots(vm.get_num_snapshots());
+        instance_info->set_image_release(original_release);
+        instance_info->set_id(vm_image.id);
+
+        auto vm_specs = vm_instance_specs[name];
+
+        auto mount_info = info->mutable_mount_info();
+        populate_mount_info(vm_specs.mounts, mount_info);
 
         if (!request->no_runtime_information() && mp::utils::is_running(present_state))
         {
@@ -1739,24 +1750,61 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
-    InstanceSnapshotsMap instance_snapshots_map;
-    auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
+    auto populate_snapshot_info = [&](std::shared_ptr<const Snapshot> snapshot, const std::string& vm_name) {
+        auto info = response.mutable_detailed_report()->add_details();
+        auto snapshot_info = info->mutable_snapshot_info();
+        auto fundamentals = snapshot_info->mutable_fundamentals();
+
+        info->set_name(vm_name);
+        info->mutable_instance_status()->set_status(grpc_instance_status_for(snapshot->get_state()));
+        info->set_memory_total(snapshot->get_mem_size().human_readable());
+        info->set_disk_total(snapshot->get_disk_space().human_readable());
+        info->set_cpu_count(std::to_string(snapshot->get_num_cores()));
+
+        auto mount_info = info->mutable_mount_info();
+        populate_mount_info(snapshot->get_mounts(), mount_info);
+
+        // TODO@snapshots get snapshot size once available
+        // TODO@snapshots get snapshot children once available
+
+        populate_snapshot_fundamentals(snapshot, fundamentals);
+    };
+
+    auto fetch_detailed_report = [&](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
 
-        auto get_snapshot_info = [&](std::shared_ptr<const Snapshot> snapshot) {
-            auto overview = response.mutable_snapshot_overview()->add_overview();
-            auto fundamentals = overview->mutable_fundamentals();
+        const auto& it = instance_snapshots_map.find(name);
+        const auto& [pick, all] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
 
-            overview->set_instance_name(name);
-            fundamentals->set_snapshot_name(snapshot->get_name());
-            fundamentals->set_parent(snapshot->get_parent_name());
-            fundamentals->set_comment(snapshot->get_comment());
+        try
+        {
+            if (all)
+            {
+                populate_instance_info(vm);
+                for (const auto& snapshot : pick)
+                    vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
 
-            auto timestamp = fundamentals->mutable_creation_timestamp();
-            timestamp->set_seconds(snapshot->get_creation_timestamp().toSecsSinceEpoch());
-            timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
-        };
+                for (const auto& snapshot : vm.view_snapshots())
+                    populate_snapshot_info(snapshot, name);
+            }
+            else
+            {
+                for (const auto& snapshot : pick)
+                    populate_snapshot_info(vm.get_snapshot(snapshot), name);
+            }
+        }
+        catch (const NoSuchSnapshot& e)
+        {
+            add_fmt_to(errors, e.what());
+        }
+
+        return grpc_status_for(errors);
+    };
+
+    auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
+        fmt::memory_buffer errors;
+        const auto& name = vm.vm_name;
 
         const auto& it = instance_snapshots_map.find(name);
         const auto& [pick, all] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
@@ -1769,11 +1817,25 @@ try // clang-format on
                     vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
 
                 for (const auto& snapshot : vm.view_snapshots())
-                    get_snapshot_info(snapshot);
+                {
+                    auto overview = response.mutable_snapshot_overview()->add_overview();
+                    auto fundamentals = overview->mutable_fundamentals();
+
+                    overview->set_instance_name(name);
+                    populate_snapshot_fundamentals(snapshot, fundamentals);
+                }
             }
             else
+            {
                 for (const auto& snapshot : pick)
-                    get_snapshot_info(vm.get_snapshot(snapshot));
+                {
+                    auto overview = response.mutable_snapshot_overview()->add_overview();
+                    auto fundamentals = overview->mutable_fundamentals();
+
+                    overview->set_instance_name(name);
+                    populate_snapshot_fundamentals(vm.get_snapshot(snapshot), fundamentals);
+                }
+            }
         }
         catch (const NoSuchSnapshot& e)
         {
@@ -1791,9 +1853,8 @@ try // clang-format on
     {
         instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
 
-        // TODO@snapshots change cmd logic to include detailed snapshot info output
-        auto cmd =
-            request->snapshot_overview() ? std::function(fetch_snapshot_overview) : std::function(fetch_instance_info);
+        auto cmd = request->snapshot_overview() ? std::function(fetch_snapshot_overview)
+                                                : std::function(fetch_detailed_report);
 
         if ((status = cmd_vms(instance_selection.operative_selection, cmd)).ok())
         {
