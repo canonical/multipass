@@ -1336,8 +1336,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(config->image_refresh_timer);
 
     auto update_manifests_all = [this]() -> void {
-        mpl::log(mpl::Level::info, "daemon",
-                 fmt::format("update manifests from thread: {}", QThread::currentThreadId()));
+        //        mpl::log(mpl::Level::info, "daemon",
+        //                 fmt::format("update manifests from thread: {}", QThread::currentThreadId()));
         std::vector<std::future<void>> empty_futures;
         empty_futures.reserve(config->image_hosts.size());
         for (const auto& image_host : config->image_hosts)
