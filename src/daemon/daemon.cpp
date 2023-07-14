@@ -1177,6 +1177,16 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
     return instance_snapshots_map;
 }
 
+void verify_snapshot_picks(const InstanceSelectionReport& report,
+                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks)
+{
+    for (const auto& selection : {report.deleted_selection, report.operative_selection})
+        for (const auto& vm_it : selection)
+            if (auto pick_it = snapshot_picks.find(vm_it->first); pick_it != snapshot_picks.end())
+                for (const auto& snapshot_name : pick_it->second.pick)
+                    vm_it->second->get_snapshot(snapshot_name); // throws if it doesn't exist
+}
+
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container, const std::string& remote_name,
                  const mp::VMImageInfo& info, const std::string& default_remote)
 {
@@ -2245,7 +2255,9 @@ try // clang-format on
     {
         const bool purge = request->purge();
         auto instances_dirty = false;
+
         auto instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
+        verify_snapshot_picks(instance_selection, instance_snapshots_map); // avoid deleting if any snapshot is missing
 
         // start with deleted instances, to avoid iterator invalidation when moving instances there
         for (const auto& selection : {instance_selection.deleted_selection, instance_selection.operative_selection})
@@ -2258,12 +2270,7 @@ try // clang-format on
                 const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end() ? SnapshotPick{{}, true}
                                                                                            : snapshot_pick_it->second;
                 if (all) // we're asked to delete the VM
-                {
-                    for (const auto& snapshot : pick) // TODO@ricab extract
-                        vm_it->second->get_snapshot(
-                            snapshot); // verify validity of any snapshot name requested separately
                     instances_dirty |= delete_vm(vm_it, purge, response);
-                }
                 else // we're asked to delete snapshots
                 {
                     assert(purge && "precondition: snapshots can only be purged");
