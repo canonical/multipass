@@ -3123,7 +3123,7 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
     return grpc::Status::OK;
 }
 
-void mp::Daemon::init_mounts(const std::string& name) // TODO@ricab this is now a particular case of update_mounts
+void mp::Daemon::init_mounts(const std::string& name)
 {
     auto& vm_mounts = mounts[name];
     auto& vm_spec_mounts = vm_instance_specs[name].mounts;
