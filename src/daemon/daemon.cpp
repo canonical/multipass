@@ -1354,7 +1354,11 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     // kick it off right away and launch it periodically after
     void_future = std::async(std::launch::async, update_manifests_all);
     QObject::connect(&timer_update_manifests, &QTimer::timeout, [update_manifests_all, this]() -> void {
-        void_future = std::async(std::launch::async, update_manifests_all);
+        // just check in case the previous launch did not finish yet. 0 seconds implies no wait.
+        if (void_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        {
+            void_future = std::async(std::launch::async, update_manifests_all);
+        }
     });
     timer_update_manifests.start(100); // keep it 10 seconds for now for testing
 }
