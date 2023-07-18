@@ -1344,7 +1344,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             update_manifests_all_future = std::async(std::launch::async, &Daemon::update_manifests_all, this);
         }
     });
-    timer_update_manifests.start(100); // keep it 10 seconds for now for testing
+    timer_update_manifests.start(10000); // keep it 10 seconds for now for testing
 }
 
 mp::Daemon::~Daemon()
@@ -1500,6 +1500,15 @@ try // clang-format on
     }
     else if (request->remote_name().empty())
     {
+
+        if (request->force_manifest_network_download())
+        {
+            update_manifests_all_future.wait();
+            timer_update_manifests.stop();
+            update_manifests_all_future = std::async(std::launch::async, &Daemon::update_manifests_all, this);
+            timer_update_manifests.start();
+        }
+
         if (request->show_images())
         {
             for (const auto& image_host : config->image_hosts)
