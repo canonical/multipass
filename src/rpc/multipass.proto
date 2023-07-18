@@ -135,6 +135,7 @@ message FindRequest {
     bool allow_unsupported = 4;
     bool show_images = 5;
     bool show_blueprints = 6;
+    bool force_manifest_network_download = 7;
 }
 
 message FindReply {
