@@ -74,9 +74,10 @@ void wait_for_reply(QNetworkReply* reply, QTimer& download_timeout)
 }
 
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
-QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
-                    DownloadAction&& on_download, ErrorAction&& on_error, const std::atomic_bool& abort_download,
-                    const bool force_cache = false)
+QByteArray
+download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
+         DownloadAction&& on_download, ErrorAction&& on_error, const std::atomic_bool& abort_download,
+         QNetworkRequest::CacheLoadControl cache_load_control = QNetworkRequest::CacheLoadControl::PreferNetwork)
 {
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
@@ -84,8 +85,7 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
     QNetworkRequest request{url};
     request.setRawHeader("Connection", "Keep-Alive");
     request.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
-    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute,
-                         force_cache ? QNetworkRequest::AlwaysCache : QNetworkRequest::PreferNetwork);
+    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, cache_load_control);
     request.setHeader(
         QNetworkRequest::UserAgentHeader,
         QString::fromStdString(fmt::format("Multipass/{} ({}; {})", multipass::version_string,
@@ -109,7 +109,7 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
             on_error();
             throw mp::AbortedDownloadException{msg};
         }
-        else if (force_cache)
+        else if (cache_load_control == QNetworkRequest::CacheLoadControl::AlwaysCache)
         {
             on_error();
             throw mp::DownloadException{url.toString().toStdString(), msg};
@@ -118,7 +118,8 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
         {
             mpl::log(mpl::Level::warning, category,
                      fmt::format("Error getting {}: {} - trying cache.", url.toString(), msg));
-            return ::download(manager, timeout, url, on_progress, on_download, on_error, abort_download, true);
+            return ::download(manager, timeout, url, on_progress, on_download, on_error, abort_download,
+                              QNetworkRequest::CacheLoadControl::AlwaysCache);
         }
     }
 
