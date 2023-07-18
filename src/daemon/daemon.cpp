@@ -1336,12 +1336,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(config->image_refresh_timer);
 
     // kick it off right away and launch it periodically after
-    void_future = std::async(std::launch::async, &Daemon::update_manifests_all, this);
+    update_manifests_all_future = std::async(std::launch::async, &Daemon::update_manifests_all, this);
     QObject::connect(&timer_update_manifests, &QTimer::timeout, [this]() -> void {
         // just check in case the previous launch did not finish yet. 0 seconds implies no wait.
-        if (void_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        if (update_manifests_all_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
         {
-            void_future = std::async(std::launch::async, &Daemon::update_manifests_all, this);
+            update_manifests_all_future = std::async(std::launch::async, &Daemon::update_manifests_all, this);
         }
     });
     timer_update_manifests.start(100); // keep it 10 seconds for now for testing

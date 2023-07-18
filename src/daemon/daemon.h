@@ -175,7 +175,7 @@ private:
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
     QTimer timer_update_manifests;
-    std::future<void> void_future;
+    std::future<void> update_manifests_all_future;
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;
