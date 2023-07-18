@@ -1335,29 +1335,13 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
 
-    auto update_manifests_all = [this]() -> void {
-        //        mpl::log(mpl::Level::info, "daemon",
-        //                 fmt::format("update manifests from thread: {}", QThread::currentThreadId()));
-        std::vector<std::future<void>> empty_futures;
-        empty_futures.reserve(config->image_hosts.size());
-        for (const auto& image_host : config->image_hosts)
-        {
-            empty_futures.emplace_back(
-                std::async(std::launch::async, &VMImageHost::update_manifests, image_host.get()));
-        }
-        for (auto& empty_future : empty_futures)
-        {
-            empty_future.get();
-        }
-    };
-
     // kick it off right away and launch it periodically after
-    void_future = std::async(std::launch::async, update_manifests_all);
-    QObject::connect(&timer_update_manifests, &QTimer::timeout, [update_manifests_all, this]() -> void {
+    void_future = std::async(std::launch::async, &Daemon::update_manifests_all, this);
+    QObject::connect(&timer_update_manifests, &QTimer::timeout, [this]() -> void {
         // just check in case the previous launch did not finish yet. 0 seconds implies no wait.
         if (void_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
         {
-            void_future = std::async(std::launch::async, update_manifests_all);
+            void_future = std::async(std::launch::async, &Daemon::update_manifests_all, this);
         }
     });
     timer_update_manifests.start(100); // keep it 10 seconds for now for testing
@@ -3045,4 +3029,20 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 
     if (async_op_result.status_promise)
         async_op_result.status_promise->set_value(async_op_result.status);
+}
+
+void mp::Daemon::update_manifests_all()
+{
+    //        mpl::log(mpl::Level::info, "daemon",
+    //                 fmt::format("update manifests from thread: {}", QThread::currentThreadId()));
+    std::vector<std::future<void>> empty_futures;
+    empty_futures.reserve(config->image_hosts.size());
+    for (const auto& image_host : config->image_hosts)
+    {
+        empty_futures.emplace_back(std::async(std::launch::async, &VMImageHost::update_manifests, image_host.get()));
+    }
+    for (auto& empty_future : empty_futures)
+    {
+        empty_future.get();
+    }
 }

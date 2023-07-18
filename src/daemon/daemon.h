@@ -164,6 +164,7 @@ private:
                              std::promise<grpc::Status>* status_promise, const std::string& errors);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
+    void update_manifests_all();
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
