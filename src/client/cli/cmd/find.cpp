@@ -94,7 +94,6 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 
     request.set_show_images(!parser->isSet(blueprintsOnlyOption));
     request.set_show_blueprints(!parser->isSet(imagesOnlyOption));
-    request.set_force_manifest_network_download(!parser->isSet(force_manifest_network_download));
 
     if (parser->positionalArguments().count() > 1)
     {
@@ -122,10 +121,8 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
         }
     }
 
-    if (parser->isSet(unsupportedOption))
-    {
-        request.set_allow_unsupported(true);
-    }
+    request.set_allow_unsupported(parser->isSet(unsupportedOption));
+    request.set_force_manifest_network_download(parser->isSet(force_manifest_network_download));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
 
