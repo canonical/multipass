@@ -233,7 +233,7 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::fetch_manifests()
+void mp::UbuntuVMImageHost::fetch_manifests(bool is_force_update_from_network)
 {
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> local_manifests(remotes.size());
     auto fetch_one_remote_and_write_to_index = [this,

@@ -46,7 +46,7 @@ auto mp::CommonVMImageHost::info_for_full_hash(const std::string& full_hash) -> 
 void mp::CommonVMImageHost::update_manifests(bool is_force_update_from_network)
 {
     clear();
-    fetch_manifests();
+    fetch_manifests(is_force_update_from_network);
 }
 
 void mp::CommonVMImageHost::on_manifest_empty(const std::string& details)

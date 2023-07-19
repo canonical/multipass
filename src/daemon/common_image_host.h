@@ -45,7 +45,7 @@ protected:
     virtual void for_each_entry_do_impl(const Action& action) = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) = 0;
     virtual void clear() = 0;
-    virtual void fetch_manifests() = 0;
+    virtual void fetch_manifests(bool is_force_update_from_network) = 0;
 };
 
 } // namespace multipass

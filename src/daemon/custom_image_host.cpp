@@ -235,7 +235,7 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
     return remotes;
 }
 
-void mp::CustomVMImageHost::fetch_manifests()
+void mp::CustomVMImageHost::fetch_manifests(bool is_force_update_from_network)
 {
     for (const auto& spec : {std::make_pair(no_remote, multipass_image_info[arch])})
     {
