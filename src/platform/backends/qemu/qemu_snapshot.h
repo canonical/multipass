@@ -19,7 +19,10 @@
 #define MULTIPASS_QEMU_SNAPSHOT_H
 
 #include "qemu_virtual_machine.h"
+
 #include <shared/base_snapshot.h>
+
+#include <multipass/path.h>
 
 namespace multipass
 {
@@ -43,7 +46,7 @@ private:
 
 private:
     VirtualMachineDescription& desc;
-    const QString& image_path;
+    const Path& image_path;
 };
 
 } // namespace multipass
