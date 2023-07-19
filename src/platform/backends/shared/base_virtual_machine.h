@@ -20,6 +20,7 @@
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/logging/log.h>
+#include <multipass/path.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
@@ -88,21 +89,21 @@ private:
     auto make_take_snapshot_rollback(SnapshotMap::iterator it);
     void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, int old_count);
 
-    auto make_head_file_rollback(const QString& head_path, QFile& head_file) const;
-    void head_file_rollback_helper(const QString& head_path, QFile& head_file, const std::string& old_head,
+    auto make_head_file_rollback(const Path& head_path, QFile& head_file) const;
+    void head_file_rollback_helper(const Path& head_path, QFile& head_file, const std::string& old_head,
                                    bool existed) const;
     void persist_head_snapshot(const QDir& snapshot_dir) const;
 
-    void persist_head_snapshot_name(const QString& head_path) const;
+    void persist_head_snapshot_name(const Path& head_path) const;
     std::string generate_snapshot_name() const;
 
-    auto make_restore_rollback(const QString& head_path, VMSpecs& specs);
-    void restore_rollback_helper(const QString& head_path, const std::shared_ptr<Snapshot>& old_head,
+    auto make_restore_rollback(const Path& head_path, VMSpecs& specs);
+    void restore_rollback_helper(const Path& head_path, const std::shared_ptr<Snapshot>& old_head,
                                  const VMSpecs& old_specs, VMSpecs& specs);
 
-    bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const QString& head_path);
-    auto make_deleted_head_rollback(const QString& head_path, const bool& wrote_head);
-    void deleted_head_rollback_helper(const QString& head_path, const bool& wrote_head,
+    bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const Path& head_path);
+    auto make_deleted_head_rollback(const Path& head_path, const bool& wrote_head);
+    void deleted_head_rollback_helper(const Path& head_path, const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
 
     void update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent,
