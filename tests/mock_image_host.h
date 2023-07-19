@@ -94,7 +94,7 @@ public:
     MOCK_METHOD(std::vector<VMImageInfo>, all_images_for, (const std::string&, const bool), (override));
     MOCK_METHOD(void, for_each_entry_do, (const Action&), (override));
     MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (override));
-    MOCK_METHOD(void, update_manifests, (), (override));
+    MOCK_METHOD(void, update_manifests, (bool), (override));
 
     TempFile image;
     VMImageInfo mock_bionic_image_info{{default_alias},
@@ -111,17 +111,9 @@ public:
     VMImageInfo mock_snapcraft_image_info{
         {snapcraft_alias},       "Ubuntu", "core20", snapcraft_release_info, true, image.url(), snapcraft_image_id, "",
         snapcraft_image_version, 1,        true};
-    VMImageInfo mock_custom_image_info{{custom_alias},
-                                       "Ubuntu",
-                                       "Custom Core",
-                                       custom_release_info,
-                                       true,
-                                       image.url(),
-                                       custom_image_id,
-                                       "",
-                                       custom_image_version,
-                                       1,
-                                       false};
+    VMImageInfo mock_custom_image_info{
+        {custom_alias},       "Ubuntu", "Custom Core", custom_release_info, true, image.url(), custom_image_id, "",
+        custom_image_version, 1,        false};
     VMImageInfo mock_another_image_info{
         {another_alias},       "Ubuntu", "another", another_release_info, true, image.url(), another_image_id, "",
         another_image_version, 1,        false};

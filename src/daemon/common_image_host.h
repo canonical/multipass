@@ -33,7 +33,7 @@ class CommonVMImageHost : public VMImageHost
 public:
     void for_each_entry_do(const Action& action) final;
     VMImageInfo info_for_full_hash(const std::string& full_hash) final;
-    void update_manifests();
+    void update_manifests(bool is_force_update_from_network);
 
 protected:
     void on_manifest_update_failure(const std::string& details);
