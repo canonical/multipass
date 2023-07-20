@@ -60,6 +60,7 @@ struct CustomImageHost : public Test
 
         ON_CALL(mock_url_downloader, last_modified(_)).WillByDefault(Return(QDateTime::currentDateTime()));
         ON_CALL(mock_url_downloader, download(_)).WillByDefault(Return(sha256_sums));
+        ON_CALL(mock_url_downloader, download(_, _)).WillByDefault(Return(sha256_sums));
     }
 
     mp::Query make_query(std::string release, std::string remote)

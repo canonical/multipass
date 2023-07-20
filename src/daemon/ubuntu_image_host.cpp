@@ -50,10 +50,10 @@ bool is_default_constructed(const std::pair<std::string, std::unique_ptr<mp::Sim
 
 auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader, bool is_force_update_from_network)
 {
-    auto json_index = url_downloader->download({host_url + index_path});
+    auto json_index = url_downloader->download({host_url + index_path}, is_force_update_from_network);
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
-    auto json_manifest = url_downloader->download({host_url + index.manifest_path});
+    auto json_manifest = url_downloader->download({host_url + index.manifest_path}, is_force_update_from_network);
     return json_manifest;
 }
 

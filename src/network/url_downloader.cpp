@@ -235,6 +235,11 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
 {
+    return download(url, false);
+}
+
+QByteArray mp::URLDownloader::download(const QUrl& url, bool is_force_update_from_network)
+{
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
     // This will connect to the QNetworkReply::readReady signal and when emitted,
@@ -249,8 +254,13 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
         download_timeout.start();
     };
 
+    QNetworkRequest::CacheLoadControl cache_load_control = is_force_update_from_network
+                                                               ? QNetworkRequest::CacheLoadControl::AlwaysNetwork
+                                                               : QNetworkRequest::CacheLoadControl::PreferNetwork;
+
     return ::download(
-        manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {}, abort_downloads);
+        manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {}, abort_downloads,
+        cache_load_control);
 }
 
 QDateTime mp::URLDownloader::last_modified(const QUrl& url)

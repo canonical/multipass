@@ -29,6 +29,7 @@ struct MockURLDownloader : public multipass::URLDownloader
     MockURLDownloader() : URLDownloader{std::chrono::seconds(10)} {};
 
     MOCK_METHOD(QByteArray, download, (const QUrl&), (override));
+    MOCK_METHOD(QByteArray, download, (const QUrl&, bool), (override));
     MOCK_METHOD(QDateTime, last_modified, (const QUrl&), (override));
     MOCK_METHOD(void, download_to, (const QUrl&, const QString&, int64_t, const int, const ProgressMonitor&),
                 (override));

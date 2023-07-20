@@ -1505,7 +1505,7 @@ try // clang-format on
         {
             update_manifests_all_future.wait();
             timer_update_manifests.stop();
-            update_manifests_all_future = std::async(std::launch::async, &Daemon::update_manifests_all, this, true);
+            update_manifests_all(true);
             timer_update_manifests.start();
         }
 

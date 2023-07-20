@@ -77,7 +77,7 @@ auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image
                          const QString& image_file, bool is_force_update_from_network = false)
 {
     const auto last_modified = QLocale::c().toString(url_downloader->last_modified({image_url}), "yyyyMMdd");
-    const auto sha256_sums = url_downloader->download({hash_url}).split('\n');
+    const auto sha256_sums = url_downloader->download({hash_url}, is_force_update_from_network).split('\n');
     QString hash;
 
     for (const QString line : sha256_sums) // intentional copy
