@@ -1151,8 +1151,13 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
+struct SnapshotPick
+{
+    std::unordered_set<std::string> pick;
+    bool all;
+};
 using InstanceSnapshotPairs = google::protobuf::RepeatedPtrField<mp::InstanceSnapshotPair>;
-using InstanceSnapshotsMap = std::unordered_map<std::string, std::unordered_set<std::string>>;
+using InstanceSnapshotsMap = std::unordered_map<std::string, SnapshotPick>;
 InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& instances_snapshots)
 {
     InstanceSnapshotsMap instance_snapshots_map;
@@ -1161,15 +1166,25 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
     {
         const auto& instance = it.instance_name();
         const auto& snapshot = it.snapshot_name();
+        auto& snapshot_pick = instance_snapshots_map[instance];
 
         if (snapshot.empty())
-            instance_snapshots_map[instance].clear();
-        else if (const auto& entry = instance_snapshots_map.find(instance);
-                 entry == instance_snapshots_map.end() || !entry->second.empty())
-            instance_snapshots_map[instance].insert(snapshot);
+            snapshot_pick.all = true;
+        else
+            snapshot_pick.pick.insert(snapshot);
     }
 
     return instance_snapshots_map;
+}
+
+void verify_snapshot_picks(const InstanceSelectionReport& report,
+                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks)
+{
+    for (const auto& selection : {report.deleted_selection, report.operative_selection})
+        for (const auto& vm_it : selection)
+            if (auto pick_it = snapshot_picks.find(vm_it->first); pick_it != snapshot_picks.end())
+                for (const auto& snapshot_name : pick_it->second.pick)
+                    vm_it->second->get_snapshot(snapshot_name); // throws if it doesn't exist
 }
 
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container, const std::string& remote_name,
@@ -1740,25 +1755,26 @@ try // clang-format on
             timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
         };
 
-        if (const auto& it = instance_snapshots_map.find(name);
-            it == instance_snapshots_map.end() || it->second.empty())
+        const auto& it = instance_snapshots_map.find(name);
+        const auto& [pick, all] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
+
+        try
         {
-            for (const auto& snapshot : vm.view_snapshots())
-                get_snapshot_info(snapshot);
-        }
-        else
-        {
-            for (const auto& snapshot : it->second)
+            if (all)
             {
-                try
-                {
-                    get_snapshot_info(vm.get_snapshot(snapshot));
-                }
-                catch (const NoSuchSnapshot& e)
-                {
-                    add_fmt_to(errors, e.what());
-                }
+                for (const auto& snapshot : pick)
+                    vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
+
+                for (const auto& snapshot : vm.view_snapshots())
+                    get_snapshot_info(snapshot);
             }
+            else
+                for (const auto& snapshot : pick)
+                    get_snapshot_info(vm.get_snapshot(snapshot));
+        }
+        catch (const NoSuchSnapshot& e)
+        {
+            add_fmt_to(errors, e.what());
         }
 
         return grpc_status_for(errors);
@@ -2239,7 +2255,9 @@ try // clang-format on
     {
         const bool purge = request->purge();
         auto instances_dirty = false;
+
         auto instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
+        verify_snapshot_picks(instance_selection, instance_snapshots_map); // avoid deleting if any snapshot is missing
 
         // start with deleted instances, to avoid iterator invalidation when moving instances there
         for (const auto& selection : {instance_selection.deleted_selection, instance_selection.operative_selection})
@@ -2248,19 +2266,16 @@ try // clang-format on
             {
                 const auto& instance_name = vm_it->first;
 
-                auto contained_in_snapshots_map = instance_snapshots_map.count(instance_name);
-                assert(contained_in_snapshots_map || !request->instances_snapshots_size());
-
-                if (!contained_in_snapshots_map ||
-                    instance_snapshots_map[instance_name].empty()) // we're asked to delete the VM
-                {
+                auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
+                const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end() ? SnapshotPick{{}, true}
+                                                                                           : snapshot_pick_it->second;
+                if (all) // we're asked to delete the VM
                     instances_dirty |= delete_vm(vm_it, purge, response);
-                }
                 else // we're asked to delete snapshots
                 {
                     assert(purge && "precondition: snapshots can only be purged");
 
-                    for (const auto& snapshot_name : instance_snapshots_map[instance_name])
+                    for (const auto& snapshot_name : pick)
                         vm_it->second->delete_snapshot(instance_directory(instance_name, *config), snapshot_name);
                 }
             }
@@ -3108,7 +3123,7 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
     return grpc::Status::OK;
 }
 
-void mp::Daemon::init_mounts(const std::string& name) // TODO@ricab this is now a particular case of update_mounts
+void mp::Daemon::init_mounts(const std::string& name)
 {
     auto& vm_mounts = mounts[name];
     auto& vm_spec_mounts = vm_instance_specs[name].mounts;
