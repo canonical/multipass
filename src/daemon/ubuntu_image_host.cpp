@@ -298,9 +298,7 @@ void mp::UbuntuVMImageHost::fetch_manifests(bool is_force_update_from_network)
     {
         if (!is_default_constructed(local_manifest))
         {
-            auto local_manifest_copy =
-                std::make_pair(local_manifest.first, std::make_unique<SimpleStreamsManifest>(*local_manifest.second));
-            manifests.emplace_back(std::move(local_manifest_copy));
+            manifests.emplace_back(std::move(local_manifest));
         }
     }
 }

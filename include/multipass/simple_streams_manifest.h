@@ -44,7 +44,6 @@ struct SimpleStreamsManifest
     const QMap<QString, const VMImageInfo*> image_records;
 
     SimpleStreamsManifest(const QString& updated_at, std::vector<VMImageInfo>&& images);
-    SimpleStreamsManifest(const SimpleStreamsManifest& other);
 };
 } // namespace multipass
 #endif // MULTIPASS_SIMPLE_STREAMS_MANIFEST_H
