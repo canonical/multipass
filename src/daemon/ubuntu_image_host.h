@@ -57,7 +57,6 @@ private:
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
-    std::mutex manifests_mutex;
     URLDownloader* const url_downloader;
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
     std::string remote_url_from(const std::string& remote_name);

@@ -168,7 +168,6 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
 mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
 {
-    const std::lock_guard<std::mutex> lock{manifests_mutex};
     for (const auto& manifest : manifests)
     {
         for (const auto& product : manifest.second->products)
@@ -207,7 +206,6 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
 
 void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
 {
-    const std::lock_guard<std::mutex> lock{manifests_mutex};
     for (const auto& manifest : manifests)
     {
         for (const auto& product : manifest.second->products)
@@ -296,7 +294,6 @@ void mp::UbuntuVMImageHost::fetch_manifests(bool is_force_update_from_network)
     }
 
     // only collect the non-default ones so the behaviour is same as the original sequential code
-    const std::lock_guard<std::mutex> lock{manifests_mutex};
     for (auto& local_manifest : local_manifests)
     {
         if (!is_default_constructed(local_manifest))
@@ -310,7 +307,6 @@ void mp::UbuntuVMImageHost::fetch_manifests(bool is_force_update_from_network)
 
 void mp::UbuntuVMImageHost::clear()
 {
-    const std::lock_guard<std::mutex> lock{manifests_mutex};
     manifests.clear();
 }
 
@@ -318,7 +314,6 @@ mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::strin
 {
     check_remote_is_supported(remote);
 
-    const std::lock_guard<std::mutex> lock{manifests_mutex};
     const auto it =
         std::find_if(manifests.cbegin(), manifests.cend(),
                      [&remote](const std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>& element) {
