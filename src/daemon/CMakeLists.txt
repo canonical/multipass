@@ -78,6 +78,12 @@ if(APPLE)
     include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
     install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipassd\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
     " COMPONENT multipassd)
+
+  file(GLOB QT_TLS_PLUGIN_FILES "${PACKAGE_PREFIX_DIR}/plugins/tls/*.dylib")
+  install(FILES ${QT_TLS_PLUGIN_FILES} DESTINATION plugins/tls COMPONENT multipassd)
+
+  file(GLOB QT_NETWORKINFORMATION_PLUGIN_FILES "${PACKAGE_PREFIX_DIR}/plugins/networkinformation/*.dylib")
+  install(FILES ${QT_NETWORKINFORMATION_PLUGIN_FILES} DESTINATION plugins/networkinformation COMPONENT multipassd)
 endif(APPLE)
 
 install(TARGETS multipassd
