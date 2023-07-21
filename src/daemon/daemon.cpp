@@ -1784,15 +1784,10 @@ try // clang-format on
                 populate_instance_info(vm);
                 for (const auto& snapshot : pick)
                     vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
+            }
 
-                for (const auto& snapshot : vm.view_snapshots())
-                    populate_snapshot_info(snapshot, name);
-            }
-            else
-            {
-                for (const auto& snapshot : pick)
-                    populate_snapshot_info(vm.get_snapshot(snapshot), name);
-            }
+            for (const auto& snapshot : pick)
+                populate_snapshot_info(vm.get_snapshot(snapshot), name);
         }
         catch (const NoSuchSnapshot& e)
         {
