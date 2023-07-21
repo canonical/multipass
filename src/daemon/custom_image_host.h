@@ -62,7 +62,6 @@ private:
     const QString arch;
     URLDownloader* const url_downloader;
     std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
-    std::mutex custom_image_info_mutex;
     std::vector<std::string> remotes;
 };
 } // namespace multipass

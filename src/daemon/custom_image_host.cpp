@@ -222,7 +222,6 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
 
 void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
 {
-    const std::lock_guard<std::mutex> lock{custom_image_info_mutex};
     for (const auto& manifest : custom_image_info)
     {
         for (const auto& info : manifest.second->products)
@@ -247,7 +246,6 @@ void mp::CustomVMImageHost::fetch_manifests(bool is_force_update_from_network)
             check_remote_is_supported(spec.first);
             std::unique_ptr<mp::CustomManifest> custom_manifest =
                 full_image_info_for(spec.second, url_downloader, is_force_update_from_network);
-            const std::lock_guard<std::mutex> lock{custom_image_info_mutex};
             // deep copy of custom_manifest is needed to separate the side thread parallel download (write operation)
             // from the main thread read so we can have a minimized critical section.
             custom_image_info.emplace(spec.first, std::make_unique<mp::CustomManifest>(*custom_manifest));
@@ -269,7 +267,6 @@ void mp::CustomVMImageHost::fetch_manifests(bool is_force_update_from_network)
 
 void mp::CustomVMImageHost::clear()
 {
-    const std::lock_guard<std::mutex> lock{custom_image_info_mutex};
     custom_image_info.clear();
 }
 
@@ -277,7 +274,6 @@ mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remo
 {
     check_remote_is_supported(remote_name);
 
-    const std::lock_guard<std::mutex> lock{custom_image_info_mutex};
     auto it = custom_image_info.find(remote_name);
     if (it == custom_image_info.end())
         throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
