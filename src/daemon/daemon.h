@@ -165,6 +165,8 @@ private:
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
     void update_manifests_all(bool is_force_update_from_network = false);
+    // it is applied in Daemon::find wherever the image info fetching is involved, aka non-only-blueprints case
+    void wait_update_manifests_all_and_optionally_applied_force(bool force_manifest_network_download);
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;

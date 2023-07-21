@@ -1441,6 +1441,7 @@ try // clang-format on
 
         if (request->show_images())
         {
+            wait_update_manifests_all_and_optionally_applied_force(request->force_manifest_network_download());
             std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
 
             try
@@ -1500,17 +1501,9 @@ try // clang-format on
     }
     else if (request->remote_name().empty())
     {
-
-        if (request->force_manifest_network_download())
-        {
-            update_manifests_all_future.wait();
-            timer_update_manifests.stop();
-            update_manifests_all(true);
-            timer_update_manifests.start();
-        }
-
         if (request->show_images())
         {
+            wait_update_manifests_all_and_optionally_applied_force(request->force_manifest_network_download());
             for (const auto& image_host : config->image_hosts)
             {
                 std::unordered_set<std::string> images_found;
@@ -1538,6 +1531,7 @@ try // clang-format on
     }
     else
     {
+        wait_update_manifests_all_and_optionally_applied_force(request->force_manifest_network_download());
         const auto& remote = request->remote_name();
         auto image_host = config->vault->image_host_for(remote);
         auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
@@ -3054,5 +3048,16 @@ void mp::Daemon::update_manifests_all(bool is_force_update_from_network)
     for (auto& empty_future : empty_futures)
     {
         empty_future.get();
+    }
+}
+
+void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(bool force_manifest_network_download)
+{
+    update_manifests_all_future.wait();
+    if (force_manifest_network_download)
+    {
+        timer_update_manifests.stop();
+        update_manifests_all(true);
+        timer_update_manifests.start();
     }
 }
