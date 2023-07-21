@@ -39,7 +39,6 @@ struct CustomManifest
     const std::unordered_map<std::string, const VMImageInfo*> image_records;
 
     CustomManifest(std::vector<VMImageInfo>&& images);
-    CustomManifest(const CustomManifest& other);
 };
 
 class CustomVMImageHost final : public CommonVMImageHost
