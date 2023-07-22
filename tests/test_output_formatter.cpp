@@ -541,19 +541,25 @@ auto construct_multiple_snapshot_overview_info_reply()
     return info_reply;
 }
 
-auto add_petenv_to_reply(mp::InfoReply& reply)
+auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
 {
     if (reply.has_detailed_report())
     {
-        auto entry = reply.mutable_detailed_report()->add_details();
-        entry->set_name(petenv_name());
-        entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
-        entry->mutable_instance_info()->set_image_release("18.10");
-        entry->mutable_instance_info()->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
+        if ((csv_format && !snapshots) || !csv_format)
+        {
+            auto entry = reply.mutable_detailed_report()->add_details();
+            entry->set_name(petenv_name());
+            entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
+            entry->mutable_instance_info()->set_image_release("18.10");
+            entry->mutable_instance_info()->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
+        }
 
-        entry = reply.mutable_detailed_report()->add_details();
-        entry->set_name(petenv_name());
-        entry->mutable_snapshot_info()->mutable_fundamentals()->set_snapshot_name("snapshot1");
+        if ((csv_format && snapshots) || !csv_format)
+        {
+            auto entry = reply.mutable_detailed_report()->add_details();
+            entry->set_name(petenv_name());
+            entry->mutable_snapshot_info()->mutable_fundamentals()->set_snapshot_name("snapshot1");
+        }
     }
     else
     {
@@ -2409,13 +2415,15 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
 
         if (prepend)
         {
-            add_petenv_to_reply(reply_copy);
+            add_petenv_to_reply(reply_copy, dynamic_cast<const mp::CSVFormatter*>(formatter),
+                                test_name.find("snapshot") != std::string::npos);
             reply_copy.MergeFrom(*input);
         }
         else
         {
             reply_copy.CopyFrom(*input);
-            add_petenv_to_reply(reply_copy);
+            add_petenv_to_reply(reply_copy, dynamic_cast<const mp::CSVFormatter*>(formatter),
+                                test_name.find("snapshot") != std::string::npos);
         }
         output = formatter->format(reply_copy);
 
@@ -2431,7 +2439,9 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
         else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
         {
             if (input->has_detailed_report())
-                regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
+                regex = fmt::format("(Name[[:print:]]*\n{0},.*)|"
+                                    "(Snapshot[[:print:]]*\n[[:print:]]*,{0},.*)",
+                                    petenv_name());
             else
                 regex = fmt::format("Instance[[:print:]]*\n{},.*", petenv_name());
         }
