@@ -19,7 +19,7 @@
 #include <multipass/format.h>
 
 #include <QFileInfo>
-#include <QRegExp>
+#include <QRegularExpression>
 
 #include <algorithm>
 
@@ -87,7 +87,7 @@ auto verbosity_level_in(const QStringList& arguments)
             return 2;
         if (arg == QStringLiteral("-vvv"))
             return 3;
-        if (QRegExp{"-vvvv+"}.exactMatch(arg))
+        if (QRegularExpression{"-vvvv+"}.match(arg).hasMatch())
             return 4;
     }
     return 0;
@@ -271,7 +271,8 @@ QString mp::ArgParser::helpText(cmd::Command* command)
     text = text.replace(QCommandLineParser::tr("[options]") + " <command>",
                         QString::fromStdString(command->name()) + " " + QCommandLineParser::tr("[options]"));
 
-    int start = text.indexOf(QRegExp("  command\\s*The command to execute"));
+    int start =
+        text.indexOf(QRegularExpression(QRegularExpression::anchoredPattern("  command\\s*The command to execute")));
     int end = text.indexOf(nl, start);
     text = text.replace(start, end - start + 1, "");
 

@@ -16,4 +16,4 @@ add_library(client_platform STATIC
   client_platform.cpp
   client_platform_linux.cpp)
 
-target_link_libraries(client_platform Qt5::Core)
+target_link_libraries(client_platform Qt6::Core)

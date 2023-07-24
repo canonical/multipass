@@ -1,12 +1,11 @@
-find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
 
-qt5_wrap_cpp(MOC_HEADERS
+qt6_wrap_cpp(MOC_HEADERS
   QHotkey/QHotkey/qhotkey.h
   QHotkey/QHotkey/qhotkey_p.h
 )
 
 find_package(X11 REQUIRED)
-find_package(Qt5X11Extras REQUIRED)
 
 include_directories(${X11_INCLUDE_DIR})
 
@@ -17,9 +16,8 @@ add_library(qhotkey STATIC
 )
 
 target_link_libraries(qhotkey
-  Qt5::Core
-  Qt5::Widgets
-  Qt5::X11Extras
+  Qt6::Core
+  Qt6::Widgets
   ${X11_LIBRARIES}
 )
 

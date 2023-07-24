@@ -122,26 +122,6 @@ TEST_F(TestPersistentSettingsHandler, keysReturnsSpecsKey)
     EXPECT_THAT(handler.keys(), UnorderedPointwise(Eq(), expected));
 }
 
-TEST_F(TestPersistentSettingsHandler, getReadsUtf8)
-{
-    const auto key = "asdf";
-    EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8")));
-
-    inject_mock_qsettings();
-
-    make_handler(key).get(key);
-}
-
-TEST_F(TestPersistentSettingsHandler, setWritesUtf8)
-{
-    const auto key = "a.key";
-    EXPECT_CALL(*mock_qsettings, setIniCodec(StrEq("UTF-8")));
-
-    inject_mock_qsettings();
-
-    make_handler(key).set(key, "kokoko");
-}
-
 TEST_F(TestPersistentSettingsHandler, getThrowsOnUnreadableFile)
 {
     const auto key = "foo";

@@ -89,10 +89,10 @@ const std::string& checked_mac(const std::string& mac)
 auto net_digest(const QString& options)
 {
     multipass::LaunchRequest_NetworkOptions net;
-    QStringList split = options.split(',', QString::SkipEmptyParts);
+    QStringList split = options.split(',', Qt::SkipEmptyParts);
     for (const auto& key_value_pair : split)
     {
-        QStringList key_value_split = key_value_pair.split('=', QString::SkipEmptyParts);
+        QStringList key_value_split = key_value_pair.split('=', Qt::SkipEmptyParts);
         if (key_value_split.size() == 2)
         {
 

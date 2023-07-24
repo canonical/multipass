@@ -31,8 +31,8 @@ function(add_target TARGET_NAME)
     ssh
     yaml
     xz_image_decoder
-    Qt5::Core
-    Qt5::Gui)
+    Qt6::Core
+    Qt6::Gui)
 
   target_include_directories(${TARGET_NAME} PRIVATE
     ${OPENSSL_INCLUDE_DIR})

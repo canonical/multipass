@@ -45,7 +45,7 @@ mp::id_mappings convert_id_mappings(const char* in)
     mp::id_mappings ret_map;
     QString input(in);
 
-    auto maps = input.split(',', QString::SkipEmptyParts);
+    auto maps = input.split(',', Qt::SkipEmptyParts);
     for (auto map : maps)
     {
         auto ids = map.split(":");

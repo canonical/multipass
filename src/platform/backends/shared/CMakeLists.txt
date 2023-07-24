@@ -22,7 +22,7 @@ target_link_libraries(shared
   iso
   process
   utils
-  Qt5::Core)
+  Qt6::Core)
 
 add_subdirectory(qemu_img_utils)
 add_subdirectory(${MULTIPASS_PLATFORM})

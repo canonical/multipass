@@ -32,7 +32,7 @@
 #include <multipass/utils.h>
 #include <multipass/vm_image_vault.h>
 
-#include <QRegExp>
+#include <QRegularExpression>
 
 #include <gtest/gtest-death-test.h>
 
@@ -469,7 +469,7 @@ TEST(Utils, try_action_does_not_timeout)
 TEST(Utils, uuid_has_no_curly_brackets)
 {
     auto uuid = mp::utils::make_uuid();
-    EXPECT_FALSE(uuid.contains(QRegExp("[{}]")));
+    EXPECT_FALSE(uuid.contains(QRegularExpression("[{}]")));
 }
 
 TEST(Utils, contents_of_actually_reads_contents)

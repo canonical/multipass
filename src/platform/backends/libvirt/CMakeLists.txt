@@ -28,7 +28,7 @@ function(add_libvirt_target TARGET_NAME)
     fmt
     ip_address
     qemu_img_utils
-    Qt5::Core
+    Qt6::Core
     shared_linux
     ssh
     utils

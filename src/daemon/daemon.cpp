@@ -57,10 +57,8 @@
 #include <QEventLoop>
 #include <QFutureSynchronizer>
 #include <QJsonArray>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
-#include <QRegularExpression>
 #include <QString>
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
@@ -1984,7 +1982,7 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>, this,
                                                 server, starting_vms, timeout, status_promise,
                                                 fmt::to_string(start_errors)));
 }
@@ -2087,8 +2085,7 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
-
-    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>, this,
                                                 server, names_from(instance_targets), timeout, status_promise,
                                                 std::string()));
 }
@@ -2372,7 +2369,7 @@ void mp::Daemon::on_restart(const std::string& name)
         virtual_machine->state = VirtualMachine::State::running;
         virtual_machine->update_state();
     });
-    future_watcher->setFuture(QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>, this,
                                                 nullptr, std::vector<std::string>{name}, mp::default_timeout, nullptr,
                                                 std::string()));
 }
@@ -2543,7 +2540,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                         server->Write(reply);
                     });
                     future_watcher->setFuture(
-                        QtConcurrent::run(this, &Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>, server,
+                        QtConcurrent::run(&Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>, this, server,
                                           std::vector<std::string>{name}, timeout, status_promise, std::string()));
                 }
                 else
@@ -2865,16 +2862,17 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
 mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 {
-    async_future_watchers.emplace_back(std::make_unique<QFutureWatcher<AsyncOperationStatus>>());
+    auto uuid = mp::utils::make_uuid().toStdString();
+    auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
+    auto future_watcher_p = future_watcher.get();
+    async_future_watchers.insert({uuid, std::move(future_watcher)});
 
-    auto future_watcher = async_future_watchers.back().get();
-    QObject::connect(future_watcher, &QFutureWatcher<AsyncOperationStatus>::finished,
-                     [this, future_watcher, finished_op] {
-                         finished_op();
-                         finish_async_operation(future_watcher->future());
-                     });
+    QObject::connect(future_watcher_p, &QFutureWatcher<AsyncOperationStatus>::finished, [this, uuid, finished_op] {
+        finished_op();
+        finish_async_operation(uuid);
+    });
 
-    return future_watcher;
+    return future_watcher_p;
 }
 
 template <typename Reply, typename Request>
@@ -2972,7 +2970,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
             }
             else
             {
-                auto future = QtConcurrent::run(this, &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply, Request>,
+                auto future = QtConcurrent::run(&Daemon::async_wait_for_ssh_and_start_mounts_for<Reply, Request>, this,
                                                 name, timeout, server);
                 async_running_futures[name] = future;
                 start_synchronizer.addFuture(future);
@@ -3007,19 +3005,13 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     return {grpc_status_for(errors), status_promise};
 }
 
-void mp::Daemon::finish_async_operation(QFuture<AsyncOperationStatus> async_future)
+void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 {
-    auto it = std::find_if(async_future_watchers.begin(), async_future_watchers.end(),
-                           [&async_future](const std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>& watcher) {
-                               return watcher->future() == async_future;
-                           });
+    if (async_future_watchers.find(async_future_key) == async_future_watchers.end())
+        return;
 
-    if (it != async_future_watchers.end())
-    {
-        async_future_watchers.erase(it);
-    }
-
-    auto async_op_result = async_future.result();
+    auto async_op_result = async_future_watchers.at(async_future_key)->result();
+    async_future_watchers.erase(async_future_key);
 
     if (!async_op_result.status.ok())
         persist_instances();

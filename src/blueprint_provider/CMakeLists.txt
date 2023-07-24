@@ -18,6 +18,6 @@ add_library(blueprint_provider STATIC
 target_link_libraries(blueprint_provider PRIVATE
   poco_utils
   network
-  Qt5::Core
+  Qt6::Core
   utils
   yaml)

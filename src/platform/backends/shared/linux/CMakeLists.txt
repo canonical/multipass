@@ -15,7 +15,7 @@
 include(FindPkgConfig)
 pkg_search_module(APPARMOR libapparmor REQUIRED)
 
-find_package(Qt5 REQUIRED COMPONENTS DBus)
+find_package(Qt6 REQUIRED COMPONENTS DBus)
 
 function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
@@ -29,8 +29,8 @@ function(add_target TARGET_NAME)
     scope_guard
     shared
     utils
-    Qt5::Core
-    Qt5::DBus)
+    Qt6::Core
+    Qt6::DBus)
 endfunction()
 
 add_target(shared_linux)

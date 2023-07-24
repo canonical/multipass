@@ -86,7 +86,7 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
         }
         else
         {
-            const auto keyval = args.at(0).split('=', QString::KeepEmptyParts);
+            const auto keyval = args.at(0).split('=', Qt::KeepEmptyParts);
             if ((keyval.size() != 1 && keyval.size() != 2) || keyval[0].isEmpty())
             {
                 cerr << "Bad key-value format.\n";

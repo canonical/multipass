@@ -154,7 +154,7 @@ void check_mounts_in_json(const QString& file, std::unordered_map<std::string, m
     const auto json_mounts = instance_object["mounts"].toArray();
     ASSERT_EQ(json_mounts.count(), mounts.size());
 
-    for (const auto& json_mount : json_mounts)
+    for (const QJsonValue& json_mount : json_mounts)
     {
         const auto& json_target_path = json_mount["target_path"].toString().toStdString();
         const auto& json_source_path = json_mount["source_path"].toString().toStdString();

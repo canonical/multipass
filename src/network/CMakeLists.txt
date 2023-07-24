@@ -27,5 +27,5 @@ add_library(ip_address STATIC
 target_link_libraries(network
   fmt
   logger
-  Qt5::Core
-  Qt5::Network)
+  Qt6::Core
+  Qt6::Network)

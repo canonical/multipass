@@ -24,4 +24,4 @@ add_library(process STATIC
 
 target_link_libraries(process
   logger
-  Qt5::Core)
+  Qt6::Core)
