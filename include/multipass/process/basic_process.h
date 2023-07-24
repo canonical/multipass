@@ -72,10 +72,6 @@ protected:
     {
     public:
         CustomQProcess(BasicProcess* p);
-        void setupChildProcess() override;
-
-    private:
-        BasicProcess* p;
     };
 
     CustomQProcess process; // ease testing

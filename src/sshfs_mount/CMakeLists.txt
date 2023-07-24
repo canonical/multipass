@@ -30,7 +30,7 @@ function(add_sshfs_mount_target TARGET_NAME)
     platform
     ssh
     utils
-    Qt5::Core)
+    Qt6::Core)
 endfunction()
 
 add_sshfs_mount_target(sshfs_mount)

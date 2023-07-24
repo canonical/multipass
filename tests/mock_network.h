@@ -47,7 +47,7 @@ public:
     void abort_operation()
     {
         setError(OperationCanceledError, "Operation canceled");
-        emit error(OperationCanceledError);
+        emit errorOccurred(OperationCanceledError);
 
         setFinished(true);
         emit finished();

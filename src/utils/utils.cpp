@@ -194,17 +194,17 @@ QDir mp::utils::base_dir(const QString& path)
 
 bool mp::utils::valid_hostname(const std::string& name_string)
 {
-    QRegExp matcher("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
+    QRegularExpression matcher{QRegularExpression::anchoredPattern("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])")};
 
-    return matcher.exactMatch(QString::fromStdString(name_string));
+    return matcher.match(QString::fromStdString(name_string)).hasMatch();
 }
 
 bool mp::utils::invalid_target_path(const QString& target_path)
 {
     QString sanitized_path{QDir::cleanPath(target_path)};
-    QRegExp matcher("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*");
+    QRegularExpression matcher{QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
 
-    return matcher.exactMatch(sanitized_path);
+    return matcher.match(sanitized_path).hasMatch();
 }
 
 QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_template)

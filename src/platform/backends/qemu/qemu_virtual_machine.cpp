@@ -38,7 +38,6 @@
 #include <QJsonObject>
 #include <QProcess>
 #include <QString>
-#include <QStringList>
 #include <QTemporaryFile>
 
 #include <cassert>
@@ -96,8 +95,8 @@ auto mount_args_from_json(const QJsonObject& object)
     {
         const auto mount_data = mount_data_map[tag].toObject();
         const auto source = mount_data[mount_source_key];
-        const auto args = mount_data[mount_arguments_key].toArray();
-        if (!source.isString() || !std::all_of(args.begin(), args.end(), std::mem_fn(&QJsonValue::isString)))
+        auto args = mount_data[mount_arguments_key].toArray();
+        if (!source.isString() || !std::all_of(args.begin(), args.end(), std::mem_fn(&QJsonValueRef::isString)))
             continue;
         mount_args[tag.toStdString()] = {source.toString().toStdString(),
                                          QVariant{args.toVariantList()}.toStringList()};

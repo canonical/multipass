@@ -23,4 +23,4 @@ target_link_libraries(client_common
   platform
   rpc
   settings
-  Qt5::Core)
+  Qt6::Core)

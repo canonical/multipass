@@ -31,6 +31,6 @@ target_link_libraries(qemu_backend
   qemu_img_utils
   qemu_platform_detail
   utils
-  Qt5::Core)
+  Qt6::Core)
 
 add_subdirectory(${MULTIPASS_PLATFORM})

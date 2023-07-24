@@ -1,6 +1,6 @@
-find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
 
-qt5_wrap_cpp(MOC_HEADERS
+qt6_wrap_cpp(MOC_HEADERS
   QHotkey/QHotkey/qhotkey.h
   QHotkey/QHotkey/qhotkey_p.h
 )
@@ -11,8 +11,8 @@ add_library(qhotkey STATIC
 )
 
 target_link_libraries(qhotkey
-  Qt5::Core
-  Qt5::Widgets
+  Qt6::Core
+  Qt6::Widgets
 )
 
 if(APPLE)

@@ -47,7 +47,7 @@ auto instance_mac_addr_for(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& 
     {
         reader.readNext();
 
-        if (reader.name() == "mac")
+        if (reader.name() == QStringLiteral("mac"))
         {
             mac_addr = reader.attributes().value("address").toString().toStdString();
             break;
@@ -105,7 +105,7 @@ auto host_architecture_for(virConnectPtr connection, const mp::LibvirtWrapper::U
     {
         reader.readNext();
 
-        if (reader.name() == "arch")
+        if (reader.name() == QStringLiteral("arch"))
         {
             arch = reader.readElementText().toStdString();
             break;

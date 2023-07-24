@@ -1915,7 +1915,9 @@ namespace
 {
 auto custom_request_matcher(const QString& verb, const std::string& url_sub_str)
 {
-    auto get_verb = [](const auto& request) { return request.attribute(QNetworkRequest::CustomVerbAttribute); };
+    auto get_verb = [](const auto& request) {
+        return request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+    };
     auto get_url = [](const auto& request) { return request.url().toString().toStdString(); };
 
     return AllOf(ResultOf(get_verb, Eq(verb)), ResultOf(get_url, HasSubstr(url_sub_str)));

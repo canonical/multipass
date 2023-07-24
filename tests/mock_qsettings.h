@@ -33,7 +33,6 @@ public:
     MOCK_METHOD(QString, fileName, (), (const, override));
     MOCK_METHOD(QVariant, value_impl, (const QString& key, const QVariant& default_value),
                 (const, override)); // promote visibility
-    MOCK_METHOD(void, setIniCodec, (const char* codec_name), (override));
     MOCK_METHOD(void, sync, (), (override));
     MOCK_METHOD(void, setValue, (const QString& key, const QVariant& value), (override));
     MOCK_METHOD(void, remove, (const QString&), (override));

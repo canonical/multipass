@@ -212,7 +212,7 @@ std::pair<QString, QString> multipass::platform::detail::parse_os_release(const 
 
     for (const QString& line : os_data)
     {
-        QStringList split = line.split('=', QString::KeepEmptyParts);
+        QStringList split = line.split('=', Qt::KeepEmptyParts);
         if (split.length() == 2 && split[1].length() > 2) // Check for at least 1 char between quotes.
         {
             if (split[0] == id_field)

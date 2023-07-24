@@ -731,7 +731,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
     if (dir_entries->empty())
         return sftp_reply_status(msg, SSH_FX_EOF, nullptr);
 
-    const auto max_num_entries_per_packet = 50;
+    const auto max_num_entries_per_packet = 50ll;
     const auto num_entries = std::min(dir_entries->size(), max_num_entries_per_packet);
 
     for (int i = 0; i < num_entries; i++)

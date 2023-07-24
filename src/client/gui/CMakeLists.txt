@@ -34,9 +34,9 @@ target_link_libraries(multipass_gui
   rpc
   settings
   qhotkey
-  Qt5::Core
-  Qt5::Network
-  Qt5::Widgets)
+  Qt6::Core
+  Qt6::Network
+  Qt6::Widgets)
 
 install(TARGETS multipass_gui
   DESTINATION bin

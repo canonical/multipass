@@ -84,7 +84,6 @@ QByteArray download(QNetworkAccessManager* manager, const Time& timeout, QUrl co
     QNetworkRequest request{url};
     request.setRawHeader("Connection", "Keep-Alive");
     request.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
-    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute,
                          force_cache ? QNetworkRequest::AlwaysCache : QNetworkRequest::PreferNetwork);
     request.setHeader(
@@ -138,7 +137,6 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
     download_timeout.setInterval(timeout);
 
     QNetworkRequest request{url};
-    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 
     NetworkReplyUPtr reply{manager->head(request)};
 

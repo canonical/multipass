@@ -178,10 +178,10 @@ void cmd::GuiCmd::create_actions()
     QObject::connect(&petenv_shell_action, &QAction::triggered,
                      [this] { mp::cli::platform::open_multipass_shell(QString::fromStdString(current_petenv_name)); });
     QObject::connect(&petenv_stop_action, &QAction::triggered, [this] {
-        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, current_petenv_name));
+        future_synchronizer.addFuture(QtConcurrent::run(&GuiCmd::stop_instance_for, this, current_petenv_name));
     });
     QObject::connect(&petenv_start_action, &QAction::triggered, [this] {
-        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, current_petenv_name));
+        future_synchronizer.addFuture(QtConcurrent::run(&GuiCmd::start_instance_for, this, current_petenv_name));
     });
 }
 
@@ -339,8 +339,8 @@ void cmd::GuiCmd::initiate_menu_layout()
 
     if (!list_future.isRunning())
     {
-        list_future = QtConcurrent::run(this, &GuiCmd::retrieve_all_instances);
-        future_synchronizer.addFuture(list_future);
+        list_future = QtConcurrent::run(&GuiCmd::retrieve_all_instances, this);
+        future_synchronizer.addFuture(QFuture<void>{list_future});
         list_watcher.setFuture(list_future);
     }
 }
@@ -349,8 +349,8 @@ void cmd::GuiCmd::initiate_about_menu_layout()
 {
     if (!version_future.isRunning())
     {
-        version_future = QtConcurrent::run(this, &GuiCmd::retrieve_version_and_update_info);
-        future_synchronizer.addFuture(version_future);
+        version_future = QtConcurrent::run(&GuiCmd::retrieve_version_and_update_info, this);
+        future_synchronizer.addFuture(QFuture<void>{version_future});
         version_watcher.setFuture(version_future);
     }
 }
@@ -384,7 +384,7 @@ void cmd::GuiCmd::create_menu_actions_for(const std::string& instance_name, cons
 
     instance_menu->addAction("Start");
     QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
-        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::start_instance_for, instance_name));
+        future_synchronizer.addFuture(QtConcurrent::run(&GuiCmd::start_instance_for, this, instance_name));
     });
 
     instance_menu->addAction("Open Shell");
@@ -394,7 +394,7 @@ void cmd::GuiCmd::create_menu_actions_for(const std::string& instance_name, cons
 
     instance_menu->addAction("Stop");
     QObject::connect(instance_menu->actions().back(), &QAction::triggered, [this, instance_name] {
-        future_synchronizer.addFuture(QtConcurrent::run(this, &GuiCmd::stop_instance_for, instance_name));
+        future_synchronizer.addFuture(QtConcurrent::run(&GuiCmd::stop_instance_for, this, instance_name));
     });
 
     set_input_state_for(instance_menu->actions(), state);

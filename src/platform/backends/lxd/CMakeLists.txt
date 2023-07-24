@@ -21,8 +21,8 @@ add_library(lxd_backend STATIC
   lxd_vm_image_vault.cpp)
 
 target_link_libraries(lxd_backend
-  Qt5::Core
-  Qt5::Network
+  Qt6::Core
+  Qt6::Network
   fmt
   ip_address
   logger

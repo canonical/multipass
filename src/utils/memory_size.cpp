@@ -22,6 +22,8 @@
 
 #include <cmath>
 
+#include <QRegularExpression>
+
 namespace mp = multipass;
 
 namespace
@@ -32,18 +34,21 @@ constexpr auto gibi = mebi * kibi;
 
 long long in_bytes(const std::string& mem_value)
 {
-    QRegExp matcher("\\s*(\\d+)(?:\\.(\\d+)(?=[KMG]))?(?:([KMG])(?:i?B)?|B)?\\s*", Qt::CaseInsensitive);
+    QRegularExpression regex{
+        QRegularExpression::anchoredPattern("\\s*(\\d+)(?:\\.(\\d+)(?=[KMG]))?(?:([KMG])(?:i?B)?|B)?\\s*"),
+        QRegularExpression::CaseInsensitiveOption};
+    const auto matcher = regex.match(QString::fromStdString(mem_value)); // TODO accept decimals
 
-    if (matcher.exactMatch(QString::fromStdString(mem_value)))
+    if (matcher.hasMatch())
     {
-        auto val = matcher.cap(1).toLongLong(); // value is in the second capture (1st one is the whole match)
+        auto val = matcher.captured(1).toLongLong(); // value is in the second capture (1st one is the whole match)
         auto mantissa = 0LL;
-        const auto unit = matcher.cap(3); // unit in the fourth capture (idem)
+        const auto unit = matcher.captured(3); // unit in the fourth capture (idem)
 
-        if (!matcher.cap(2).isEmpty())
+        if (!matcher.captured(2).isEmpty())
         {
             assert(!unit.isEmpty() && "Shouldn't be here (invalid decimal amount and unit)");
-            mantissa = matcher.cap(2).toLongLong(); // mantissa is in the third capture
+            mantissa = matcher.captured(2).toLongLong(); // mantissa is in the third capture
         }
 
         if (!unit.isEmpty())
@@ -67,7 +72,7 @@ long long in_bytes(const std::string& mem_value)
             }
         }
 
-        return val + (long long)(mantissa / pow(10, matcher.cap(2).size()));
+        return val + (long long)(mantissa / pow(10, matcher.captured(2).size()));
     }
 
     throw mp::InvalidMemorySizeException{mem_value};

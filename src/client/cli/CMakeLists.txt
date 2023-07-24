@@ -24,7 +24,7 @@ target_link_libraries(client
   rpc
   scope_guard
   shared
-  Qt5::Core)
+  Qt6::Core)
 
 add_executable(multipass
   main.cpp)

@@ -31,10 +31,7 @@ namespace
 {
 std::unique_ptr<mp::WrappedQSettings> persistent_settings(const QString& filename)
 {
-    auto ret = mp::WrappedQSettingsFactory::instance().make_wrapped_qsettings(filename, QSettings::IniFormat);
-    ret->setIniCodec("UTF-8");
-
-    return ret;
+    return mp::WrappedQSettingsFactory::instance().make_wrapped_qsettings(filename, QSettings::IniFormat);
 }
 
 bool exists_but_unreadable(const QString& filename)

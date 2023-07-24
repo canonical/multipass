@@ -26,6 +26,6 @@ add_library(client_platform STATIC
 endif()
 
 target_link_libraries(client_platform
-  Qt5::Core
+  Qt6::Core
   console
   fmt)

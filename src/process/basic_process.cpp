@@ -32,13 +32,9 @@ static auto reg = []() -> bool {
 }();
 } // namespace
 
-mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : QProcess{p}, p{p}
+mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : QProcess{p}
 {
-}
-
-void mp::BasicProcess::CustomQProcess::setupChildProcess()
-{
-    p->setup_child_process();
+    setChildProcessModifier([p] { p->setup_child_process(); });
 }
 
 mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_spec{spec}, process{this}
