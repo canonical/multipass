@@ -135,8 +135,13 @@ Details multipass::format::sort_instances_and_snapshots(const Details& details)
         if (a.has_instance_info())
             return a.name() < b.name();
         else
-            return TimeUtil::TimestampToNanoseconds(a.snapshot_info().fundamentals().creation_timestamp()) <
-                   TimeUtil::TimestampToNanoseconds(b.snapshot_info().fundamentals().creation_timestamp());
+        {
+            if (a.name() == b.name())
+                return TimeUtil::TimestampToNanoseconds(a.snapshot_info().fundamentals().creation_timestamp()) <
+                       TimeUtil::TimestampToNanoseconds(b.snapshot_info().fundamentals().creation_timestamp());
+
+            return a.name() < b.name();
+        }
     });
 
     return ret;
