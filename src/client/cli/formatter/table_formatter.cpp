@@ -92,6 +92,7 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
         fmt::format_to(std::back_inserter(buf), "{}\n", *child);
     }
 
+    // TODO@snapshots split and align string if it extends onto several lines
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
                    "Comment:", fundamentals.comment().empty() ? "--" : fundamentals.comment());
 
