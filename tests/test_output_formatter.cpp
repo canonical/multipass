@@ -273,6 +273,7 @@ auto construct_single_snapshot_info_reply()
     info_entry->set_memory_total("0.9GiB");
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
+    info_entry->mutable_snapshot_info()->set_size("128MiB");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
     info_entry->mutable_snapshot_info()->add_children("snapshot4");
 
@@ -863,7 +864,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &single_snapshot_info_reply,
      "Snapshot:       snapshot2\n"
      "Instance:       bogus-instance\n"
-     "Size:           --\n"
+     "Size:           128MiB\n"
      "CPU(s):         2\n"
      "Disk space:     4.9GiB\n"
      "Memory size:    0.9GiB\n"
@@ -878,7 +879,6 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &multiple_snapshots_info_reply,
      "Snapshot:       snapshot2\n"
      "Instance:       bogus-instance\n"
-     "Size:           --\n"
      "CPU(s):         2\n"
      "Disk space:     4.9GiB\n"
      "Memory size:    0.9GiB\n"
@@ -891,7 +891,6 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Comment:        --\n\n"
      "Snapshot:       black-hole\n"
      "Instance:       messier-87\n"
-     "Size:           --\n"
      "CPU(s):         1\n"
      "Disk space:     1024GiB\n"
      "Memory size:    128GiB\n"
@@ -915,7 +914,6 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Mounts:         --\n\n"
      "Snapshot:       snapshot2\n"
      "Instance:       bogus-instance\n"
-     "Size:           --\n"
      "CPU(s):         2\n"
      "Disk space:     4.9GiB\n"
      "Memory size:    0.9GiB\n"
@@ -954,7 +952,6 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Mounts:         --\n\n"
      "Snapshot:       snapshot2\n"
      "Instance:       bogus-instance\n"
-     "Size:           --\n"
      "CPU(s):         2\n"
      "Disk space:     4.9GiB\n"
      "Memory size:    0.9GiB\n"
@@ -967,7 +964,6 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Comment:        --\n\n"
      "Snapshot:       black-hole\n"
      "Instance:       messier-87\n"
-     "Size:           --\n"
      "CPU(s):         1\n"
      "Disk space:     1024GiB\n"
      "Memory size:    128GiB\n"
