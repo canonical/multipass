@@ -85,6 +85,7 @@ Instances multipass::format::sorted(const Instances& instances)
     return ret;
 }
 
+// TODO@snapshots DRY
 template <typename Snapshots>
 Snapshots multipass::format::sort_snapshots(const Snapshots& snapshots)
 {
