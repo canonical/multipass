@@ -61,6 +61,7 @@ target_link_libraries(delayed_shutdown
 
 if(MSVC)
   add_executable(multipassd daemon_main_win.cpp)
+  qt6_disable_unicode_defines(multipassd)
 else()
   add_executable(multipassd daemon_main.cpp)
 endif()
@@ -77,6 +78,12 @@ if(APPLE)
     include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
     install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipassd\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
     " COMPONENT multipassd)
+
+  file(GLOB QT_TLS_PLUGIN_FILES "${PACKAGE_PREFIX_DIR}/plugins/tls/*.dylib")
+  install(FILES ${QT_TLS_PLUGIN_FILES} DESTINATION plugins/tls COMPONENT multipassd)
+
+  file(GLOB QT_NETWORKINFORMATION_PLUGIN_FILES "${PACKAGE_PREFIX_DIR}/plugins/networkinformation/*.dylib")
+  install(FILES ${QT_NETWORKINFORMATION_PLUGIN_FILES} DESTINATION plugins/networkinformation COMPONENT multipassd)
 endif(APPLE)
 
 install(TARGETS multipassd
@@ -91,4 +98,10 @@ if(MSVC)
 
   file(GLOB SSL_DLLS "${OPENSSL_INCLUDE_DIR}/../*.dll")
   install(FILES ${SSL_DLLS} DESTINATION bin COMPONENT multipassd)
+
+  file(GLOB QT_TLS_PLUGIN_FILES "${PACKAGE_PREFIX_DIR}/plugins/tls/*.dll")
+  install(FILES ${QT_TLS_PLUGIN_FILES} DESTINATION bin/tls COMPONENT multipassd)
+
+  file(GLOB QT_NETWORKINFORMATION_PLUGIN_FILES "${PACKAGE_PREFIX_DIR}/plugins/networkinformation/*.dll")
+  install(FILES ${QT_NETWORKINFORMATION_PLUGIN_FILES} DESTINATION bin/networkinformation COMPONENT multipassd)
 endif()

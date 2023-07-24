@@ -218,10 +218,8 @@ jobs:
           pixman \
           pkg-config \
           python \
-          qt@5 \
           wget
 
-          echo Qt5_Dir=$( brew --prefix qt@5 ) >> ${GITHUB_ENV}
           echo OPENSSL_ROOT_DIR=$( brew --prefix openssl@1.1 ) >> ${GITHUB_ENV}
 
     - name: Cleanup
@@ -267,11 +265,12 @@ jobs:
         args: install --yes openssl
 
     - name: Install Qt
-      if: ${{ runner.os == 'Windows' }}
       uses: jurplel/install-qt-action@v3
       with:
-        version: '5.15.1'
+        version: 6.2.4
         setup-python: false
+        aqtversion: '==3.1.*'
+        py7zrversion: '==0.20.*'
       timeout-minutes: 10
 
     - name: Set up MSVC
@@ -285,7 +284,7 @@ jobs:
         -B${{ env.BUILD_DIR }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
-        -DCMAKE_PREFIX_PATH=${{ env.Qt5_Dir }}
+        -DCMAKE_PREFIX_PATH=${{ env.Qt6_Dir }}
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}

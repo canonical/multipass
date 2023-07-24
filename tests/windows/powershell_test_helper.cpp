@@ -66,7 +66,7 @@ QByteArray mpt::PowerShellTestHelper::get_status(bool succeed) const
 
 QByteArray mpt::PowerShellTestHelper::end_marker(bool succeed) const
 {
-    return QByteArray{"\n"}.append(output_end_marker).append(get_status(succeed));
+    return QByteArray{"\n"}.append(output_end_marker.toUtf8()).append(get_status(succeed));
 }
 
 void mpt::PowerShellTestHelper::expect_writes(MockProcess* process, QByteArray cmdlet) const

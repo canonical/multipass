@@ -105,8 +105,8 @@ public:
         if (ghJob != nullptr)
         {
             connect(&process, &QProcess::started, [this, ghJob]() {
-                PROCESS_INFORMATION* processInfo = process.pid();
-                if (0 == AssignProcessToJobObject(ghJob, processInfo->hProcess))
+                auto pid = process.processId();
+                if (0 == AssignProcessToJobObject(ghJob, OpenProcess(PROCESS_ALL_ACCESS, 0, pid)))
                 {
                     mpl::log(
                         mpl::Level::warning, ::category,
@@ -118,8 +118,6 @@ public:
 
     void terminate() override
     {
-        PROCESS_INFORMATION* processInfo = process.pid();
-
         if (/*!signalCtrl(processInfo->dwProcessId, CTRL_C_EVENT)*/ true)
         {
             // failed to Ctrl+C, resort to killing

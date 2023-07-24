@@ -64,7 +64,7 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 {
     QString state;
 
-    if (power_shell->run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"}, state,
+    if (power_shell->run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"}, &state,
                          /* whisper = */ true)) // avoid GUI polling spamming the logs
     {
         if (state == "Running")
@@ -169,7 +169,7 @@ void mp::HyperVVirtualMachine::start()
     update_state();
 
     QString output;
-    if (!power_shell->run({"Start-VM", "-Name", name}, output))
+    if (!power_shell->run({"Start-VM", "-Name", name}, &output))
         throw StartException{vm_name, output.toStdString()};
 }
 

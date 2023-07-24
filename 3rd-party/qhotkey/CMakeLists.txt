@@ -36,7 +36,6 @@ elseif(WIN32)
 
 else()
   find_package(X11 REQUIRED)
-  find_package(Qt5X11Extras REQUIRED)
 
   include_directories(${X11_INCLUDE_DIR})
 
@@ -46,7 +45,6 @@ else()
   )
 
   target_link_libraries(qhotkey
-    Qt5::X11Extras
     ${X11_LIBRARIES}
   )
 

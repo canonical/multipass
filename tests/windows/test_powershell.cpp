@@ -191,7 +191,7 @@ struct TestPSStatusAndOutput : public PowerShellTest, public WithParamInterface<
     {
         mp::PowerShell ps{"Gvarab"};
         QString output;
-        EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), output), GetParam());
+        EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), &output), GetParam());
 
         return output;
     }
@@ -242,7 +242,7 @@ auto halves(const QString& str)
     auto total = str.size();
     auto half = total / 2;
 
-    return std::make_pair(str.leftRef(half).toUtf8(), str.rightRef(total - half).toUtf8());
+    return std::make_pair(str.left(half).toUtf8(), str.right(total - half).toUtf8());
 };
 
 TEST_P(TestPSStatusAndOutput, run_handles_split_end_marker)
@@ -363,6 +363,6 @@ TEST_F(PowerShellTest, exec_returns_cmd_output)
         /* auto_exit = */ false);
 
     QString output;
-    mp::PowerShell::exec(cmdlet, "Gimar", output);
+    mp::PowerShell::exec(cmdlet, "Gimar", &output);
     EXPECT_EQ(output, QString{datum1} + datum2);
 }

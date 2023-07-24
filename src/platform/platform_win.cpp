@@ -246,7 +246,7 @@ std::string create_shadow_config_file(const QString& path)
 void save_profiles(const QString& path, const Json::Value& json_root)
 {
     std::string tmp_file_name = create_shadow_config_file(path);
-    auto tmp_file_removing_guard = sg::make_scope_guard([&tmp_file_name] {
+    auto tmp_file_removing_guard = sg::make_scope_guard([&tmp_file_name]() noexcept {
         std::error_code ec; // ignored, there's an exception in flight and we're in a dtor, so best-effort only
         std::filesystem::remove(tmp_file_name, ec);
     });
@@ -354,16 +354,15 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 {
     static const auto ps_cmd_base = QStringLiteral(
         "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription");
-    static const auto ps_args =
-        QString{ps_cmd_base}.split(' ', QString::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
+    static const auto ps_args = QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
-    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", ps_output))
+    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", &ps_output))
     {
         std::map<std::string, mp::NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts))
+        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
         {
-            auto terms = line.split(',', QString::KeepEmptyParts);
+            auto terms = line.split(',', Qt::KeepEmptyParts);
             if (terms.size() != 4)
             {
                 throw std::runtime_error{fmt::format(
@@ -621,7 +620,10 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 
     if (handle != INVALID_HANDLE_VALUE)
     {
-        if (!SetFileTime(handle, nullptr, &(filetime_from(atime)), &(filetime_from(mtime))))
+        auto atime_filetime = filetime_from(atime);
+        auto mtime_filetime = filetime_from(mtime);
+
+        if (!SetFileTime(handle, nullptr, &atime_filetime, &mtime_filetime))
         {
             ret = GetLastError();
         }
@@ -639,7 +641,7 @@ QString mp::platform::Platform::get_username() const
 {
     QString username;
     mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
-                         "get-username", username);
+                         "get-username", &username);
     return username.section('\\', 1);
 }
 
@@ -752,12 +754,12 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 {
     auto ps_cmd = QStringLiteral("Get-NetAdapter -Name \"%1\" | Select-Object -ExpandProperty InterfaceDescription")
                       .arg(QString::fromStdString(ux_id))
-                      .split(' ', QString::SkipEmptyParts);
+                      .split(' ', Qt::SkipEmptyParts);
 
     QString ps_output;
-    if (PowerShell::exec(ps_cmd, "Adapter description from name", ps_output))
+    if (PowerShell::exec(ps_cmd, "Adapter description from name", &ps_output))
     {
-        auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, QString::SkipEmptyParts);
+        auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts);
         if (output_lines.size() != 1)
         {
             throw std::runtime_error{

@@ -23,7 +23,7 @@ include_directories(shared_win
   ..)
 
 target_link_libraries(shared_win
-  Qt5::Core
+  Qt6::Core
   fmt
   logger
   OpenSSL::Crypto
