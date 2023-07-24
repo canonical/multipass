@@ -60,8 +60,10 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
 
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshot:", fundamentals.snapshot_name());
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Instance:", item.name());
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "Size:", item.snapshot_info().size().empty() ? "--" : item.snapshot_info().size());
+
+    if (!item.snapshot_info().size().empty())
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Size:", item.snapshot_info().size());
+
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "CPU(s):", item.cpu_count());
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Disk space:", item.disk_total());
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Memory size:", item.memory_total());
