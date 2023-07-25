@@ -22,6 +22,8 @@
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 
+#include <regex>
+
 namespace mp = multipass;
 
 namespace
@@ -93,8 +95,11 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
     }
 
     // TODO@snapshots split and align string if it extends onto several lines
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "Comment:", fundamentals.comment().empty() ? "--" : fundamentals.comment());
+    std::regex newline("(\r\n|\n)");
+    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Comment:",
+                   fundamentals.comment().empty()
+                       ? "--"
+                       : std::regex_replace(fundamentals.comment(), newline, "$&" + std::string(16, ' ')));
 
     return fmt::to_string(buf);
 }
