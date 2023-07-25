@@ -273,6 +273,7 @@ auto construct_single_snapshot_info_reply()
     info_entry->set_memory_total("0.9GiB");
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
+    fundamentals->set_comment("This is a comment with some\nnew\r\nlines.");
     info_entry->mutable_snapshot_info()->set_size("128MiB");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
     info_entry->mutable_snapshot_info()->add_children("snapshot4");
@@ -874,7 +875,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Parent:         snapshot1\n"
      "Children:       snapshot3\n"
      "                snapshot4\n"
-     "Comment:        --\n",
+     "Comment:        This is a comment with some\n"
+     "                new\r\n"
+     "                lines.\n",
      "table_info_single_snapshot"},
     {&table_formatter, &multiple_snapshots_info_reply,
      "Snapshot:       snapshot2\n"
