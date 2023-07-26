@@ -200,14 +200,13 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
 
 TEST_F(DaemonFind, invalidRemoteNameAndEmptySearchString)
 {
-    const NiceMock<mpt::MockImageHost> mock_image_host;
     auto mock_image_vault = std::make_unique<NiceMock<const mpt::MockVMImageVault>>();
 
     constexpr std::string_view remote_name = "nonsense";
     const std::string error_msg = fmt::format(
         "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.", remote_name);
 
-    EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg](auto...) {
+    EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg]() {
         throw std::runtime_error(error_msg);
         return nullptr;
     });
@@ -226,14 +225,13 @@ TEST_F(DaemonFind, invalidRemoteNameAndEmptySearchString)
 
 TEST_F(DaemonFind, invalidRemoteNameAndNonEmptySearchString)
 {
-    const NiceMock<mpt::MockImageHost> mock_image_host;
     auto mock_image_vault = std::make_unique<NiceMock<const mpt::MockVMImageVault>>();
 
     constexpr std::string_view remote_name = "nonsense";
     const std::string error_msg = fmt::format(
         "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.", remote_name);
 
-    EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg](auto...) {
+    EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg]() {
         throw std::runtime_error(error_msg);
         return nullptr;
     });
