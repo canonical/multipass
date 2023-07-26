@@ -356,6 +356,17 @@ void BaseVirtualMachine::load_snapshots(const QDir& snapshot_dir)
     load_generic_snapshot_info(snapshot_dir);
 }
 
+std::vector<std::string> BaseVirtualMachine::get_children(const std::shared_ptr<const Snapshot> parent) const
+{
+    std::vector<std::string> children;
+
+    for (const auto& snapshot : view_snapshots())
+        if (snapshot->get_parent_name() == parent->get_name())
+            children.push_back(snapshot->get_name());
+
+    return children;
+}
+
 void BaseVirtualMachine::load_generic_snapshot_info(const QDir& snapshot_dir)
 {
     try
