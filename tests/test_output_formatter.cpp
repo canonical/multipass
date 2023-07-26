@@ -260,6 +260,204 @@ auto construct_multiple_instances_info_reply()
     return info_reply;
 }
 
+auto construct_single_snapshot_info_reply()
+{
+    mp::InfoReply info_reply;
+
+    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
+
+    info_entry->set_name("bogus-instance");
+    info_entry->set_cpu_count("2");
+    info_entry->set_disk_total("4.9GiB");
+    info_entry->set_memory_total("0.9GiB");
+    fundamentals->set_snapshot_name("snapshot2");
+    fundamentals->set_parent("snapshot1");
+    fundamentals->set_comment("This is a comment with some\nnew\r\nlines.");
+    info_entry->mutable_snapshot_info()->set_size("128MiB");
+    info_entry->mutable_snapshot_info()->add_children("snapshot3");
+    info_entry->mutable_snapshot_info()->add_children("snapshot4");
+
+    auto mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
+    mount_entry->set_source_path("/home/user/source");
+    mount_entry->set_target_path("source");
+    mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
+    mount_entry->set_source_path("/home/user");
+    mount_entry->set_target_path("Home");
+
+    google::protobuf::Timestamp timestamp;
+    timestamp.set_seconds(63108020);
+    timestamp.set_nanos(21000000);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    return info_reply;
+}
+
+auto construct_multiple_snapshots_info_reply()
+{
+    mp::InfoReply info_reply;
+
+    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
+
+    info_entry->set_name("messier-87");
+    info_entry->set_cpu_count("1");
+    info_entry->set_disk_total("1024GiB");
+    info_entry->set_memory_total("128GiB");
+    fundamentals->set_snapshot_name("black-hole");
+    fundamentals->set_comment("Captured by EHT");
+
+    google::protobuf::Timestamp timestamp;
+    timestamp.set_seconds(1554897599);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    info_entry = info_reply.mutable_detailed_report()->add_details();
+    fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
+
+    info_entry->set_name("bogus-instance");
+    info_entry->set_cpu_count("2");
+    info_entry->set_disk_total("4.9GiB");
+    info_entry->set_memory_total("0.9GiB");
+    fundamentals->set_snapshot_name("snapshot2");
+    fundamentals->set_parent("snapshot1");
+    info_entry->mutable_snapshot_info()->add_children("snapshot3");
+    info_entry->mutable_snapshot_info()->add_children("snapshot4");
+
+    auto mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
+    mount_entry->set_source_path("/home/user/source");
+    mount_entry->set_target_path("source");
+    mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
+    mount_entry->set_source_path("/home/user");
+    mount_entry->set_target_path("Home");
+
+    timestamp.set_seconds(63108020);
+    timestamp.set_nanos(21000000);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    return info_reply;
+}
+
+auto construct_mixed_instance_and_snapshot_info_reply()
+{
+    mp::InfoReply info_reply;
+
+    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
+
+    info_entry->set_name("bogus-instance");
+    info_entry->set_cpu_count("2");
+    info_entry->set_disk_total("4.9GiB");
+    info_entry->set_memory_total("0.9GiB");
+    fundamentals->set_snapshot_name("snapshot2");
+    fundamentals->set_parent("snapshot1");
+    info_entry->mutable_snapshot_info()->add_children("snapshot3");
+    info_entry->mutable_snapshot_info()->add_children("snapshot4");
+
+    auto mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
+    mount_entry->set_source_path("/home/user/source");
+    mount_entry->set_target_path("source");
+    mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
+    mount_entry->set_source_path("/home/user");
+    mount_entry->set_target_path("Home");
+
+    google::protobuf::Timestamp timestamp;
+    timestamp.set_seconds(63108020);
+    timestamp.set_nanos(21000000);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry->set_name("bombastic");
+    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
+    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
+    info_entry->mutable_instance_info()->set_num_snapshots(3);
+
+    return info_reply;
+}
+
+auto construct_multiple_mixed_instances_and_snapshots_info_reply()
+{
+    mp::InfoReply info_reply;
+
+    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
+
+    info_entry->set_name("bogus-instance");
+    info_entry->set_cpu_count("2");
+    info_entry->set_disk_total("4.9GiB");
+    info_entry->set_memory_total("0.9GiB");
+    fundamentals->set_snapshot_name("snapshot2");
+    fundamentals->set_parent("snapshot1");
+    info_entry->mutable_snapshot_info()->add_children("snapshot3");
+    info_entry->mutable_snapshot_info()->add_children("snapshot4");
+
+    auto mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
+    mount_entry->set_source_path("/home/user/source");
+    mount_entry->set_target_path("source");
+    mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
+    mount_entry->set_source_path("/home/user");
+    mount_entry->set_target_path("Home");
+
+    google::protobuf::Timestamp timestamp;
+    timestamp.set_seconds(63108020);
+    timestamp.set_nanos(21000000);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry->set_name("bombastic");
+    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
+    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
+    info_entry->mutable_instance_info()->set_num_snapshots(3);
+
+    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry->set_name("bogus-instance");
+    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
+    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+
+    auto mount_info = info_entry->mutable_mount_info();
+    mount_info->set_longest_path_len(17);
+
+    mount_entry = mount_info->add_mount_paths();
+    mount_entry->set_source_path("/home/user/source");
+    mount_entry->set_target_path("source");
+
+    auto uid_map_pair = mount_entry->mutable_mount_maps()->add_uid_mappings();
+    uid_map_pair->set_host_id(1000);
+    uid_map_pair->set_instance_id(501);
+
+    auto gid_map_pair = mount_entry->mutable_mount_maps()->add_gid_mappings();
+    gid_map_pair->set_host_id(1000);
+    gid_map_pair->set_instance_id(501);
+
+    info_entry->set_cpu_count("4");
+    info_entry->mutable_instance_info()->set_load("0.03 0.10 0.15");
+    info_entry->mutable_instance_info()->set_memory_usage("38797312");
+    info_entry->set_memory_total("1610612736");
+    info_entry->mutable_instance_info()->set_disk_usage("1932735284");
+    info_entry->set_disk_total("6764573492");
+    info_entry->mutable_instance_info()->set_current_release("Ubuntu 16.04.3 LTS");
+    info_entry->mutable_instance_info()->add_ipv4("10.21.124.56");
+    info_entry->mutable_instance_info()->set_num_snapshots(1);
+
+    info_entry = info_reply.mutable_detailed_report()->add_details();
+    fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
+
+    info_entry->set_name("messier-87");
+    info_entry->set_cpu_count("1");
+    info_entry->set_disk_total("1024GiB");
+    info_entry->set_memory_total("128GiB");
+    fundamentals->set_snapshot_name("black-hole");
+    fundamentals->set_comment("Captured by EHT");
+
+    timestamp.set_seconds(1554897599);
+    timestamp.set_nanos(0);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    return info_reply;
+}
+
 auto construct_single_snapshot_overview_info_reply()
 {
     mp::InfoReply info_reply;
@@ -339,6 +537,10 @@ auto add_petenv_to_reply(mp::InfoReply& reply)
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
         entry->mutable_instance_info()->set_image_release("18.10");
         entry->mutable_instance_info()->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
+
+        entry = reply.mutable_detailed_report()->add_details();
+        entry->set_name(petenv_name());
+        entry->mutable_snapshot_info()->mutable_fundamentals()->set_snapshot_name("snapshot1");
     }
     else
     {
@@ -581,6 +783,11 @@ const auto empty_info_reply = construct_empty_info_reply();
 const auto empty_snapshot_overview_reply = construct_empty_snapshot_overview_reply();
 const auto single_instance_info_reply = construct_single_instance_info_reply();
 const auto multiple_instances_info_reply = construct_multiple_instances_info_reply();
+const auto single_snapshot_info_reply = construct_single_snapshot_info_reply();
+const auto multiple_snapshots_info_reply = construct_multiple_snapshots_info_reply();
+const auto mixed_instance_and_snapshot_info_reply = construct_mixed_instance_and_snapshot_info_reply();
+const auto multiple_mixed_instances_and_snapshots_info_reply =
+    construct_multiple_mixed_instances_and_snapshots_info_reply();
 const auto single_snapshot_overview_info_reply = construct_single_snapshot_overview_info_reply();
 const auto multiple_snapshot_overview_info_reply = construct_multiple_snapshot_overview_info_reply();
 
@@ -628,7 +835,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "                /home/user/test_dir => test_dir\n"
      "                    UID map: 1000:1000\n"
      "                    GID map: 1000:1000\n",
-     "table_info_single"},
+     "table_info_single_instance"},
     {&table_formatter, &multiple_instances_info_reply,
      "Name:           bogus-instance\n"
      "State:          Running\n"
@@ -654,7 +861,121 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Disk usage:     --\n"
      "Memory usage:   --\n"
      "Mounts:         --\n",
-     "table_info_multiple"},
+     "table_info_multiple_instances"},
+    {&table_formatter, &single_snapshot_info_reply,
+     "Snapshot:       snapshot2\n"
+     "Instance:       bogus-instance\n"
+     "Size:           128MiB\n"
+     "CPU(s):         2\n"
+     "Disk space:     4.9GiB\n"
+     "Memory size:    0.9GiB\n"
+     "Mounts:         /home/user/source => source\n"
+     "                /home/user => Home\n"
+     "Created:        1972-01-01T10:00:20.021Z\n"
+     "Parent:         snapshot1\n"
+     "Children:       snapshot3\n"
+     "                snapshot4\n"
+     "Comment:        This is a comment with some\n"
+     "                new\r\n"
+     "                lines.\n",
+     "table_info_single_snapshot"},
+    {&table_formatter, &multiple_snapshots_info_reply,
+     "Snapshot:       snapshot2\n"
+     "Instance:       bogus-instance\n"
+     "CPU(s):         2\n"
+     "Disk space:     4.9GiB\n"
+     "Memory size:    0.9GiB\n"
+     "Mounts:         /home/user/source => source\n"
+     "                /home/user => Home\n"
+     "Created:        1972-01-01T10:00:20.021Z\n"
+     "Parent:         snapshot1\n"
+     "Children:       snapshot3\n"
+     "                snapshot4\n"
+     "Comment:        --\n\n"
+     "Snapshot:       black-hole\n"
+     "Instance:       messier-87\n"
+     "CPU(s):         1\n"
+     "Disk space:     1024GiB\n"
+     "Memory size:    128GiB\n"
+     "Mounts:         --\n"
+     "Created:        2019-04-10T11:59:59Z\n"
+     "Parent:         --\n"
+     "Children:       --\n"
+     "Comment:        Captured by EHT\n",
+     "table_info_multiple_snapshots"},
+    {&table_formatter, &mixed_instance_and_snapshot_info_reply,
+     "Name:           bombastic\n"
+     "State:          Stopped\n"
+     "Snapshots:      3\n"
+     "IPv4:           --\n"
+     "Release:        --\n"
+     "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
+     "CPU(s):         --\n"
+     "Load:           --\n"
+     "Disk usage:     --\n"
+     "Memory usage:   --\n"
+     "Mounts:         --\n\n"
+     "Snapshot:       snapshot2\n"
+     "Instance:       bogus-instance\n"
+     "CPU(s):         2\n"
+     "Disk space:     4.9GiB\n"
+     "Memory size:    0.9GiB\n"
+     "Mounts:         /home/user/source => source\n"
+     "                /home/user => Home\n"
+     "Created:        1972-01-01T10:00:20.021Z\n"
+     "Parent:         snapshot1\n"
+     "Children:       snapshot3\n"
+     "                snapshot4\n"
+     "Comment:        --\n",
+     "table_info_mixed_instance_and_snapshot"},
+    {&table_formatter, &multiple_mixed_instances_and_snapshots_info_reply,
+     "Name:           bogus-instance\n"
+     "State:          Running\n"
+     "Snapshots:      1\n"
+     "IPv4:           10.21.124.56\n"
+     "Release:        Ubuntu 16.04.3 LTS\n"
+     "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
+     "CPU(s):         4\n"
+     "Load:           0.03 0.10 0.15\n"
+     "Disk usage:     1.8GiB out of 6.3GiB\n"
+     "Memory usage:   37.0MiB out of 1.5GiB\n"
+     "Mounts:         /home/user/source => source\n"
+     "                    UID map: 1000:501\n"
+     "                    GID map: 1000:501\n\n"
+     "Name:           bombastic\n"
+     "State:          Stopped\n"
+     "Snapshots:      3\n"
+     "IPv4:           --\n"
+     "Release:        --\n"
+     "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
+     "CPU(s):         --\n"
+     "Load:           --\n"
+     "Disk usage:     --\n"
+     "Memory usage:   --\n"
+     "Mounts:         --\n\n"
+     "Snapshot:       snapshot2\n"
+     "Instance:       bogus-instance\n"
+     "CPU(s):         2\n"
+     "Disk space:     4.9GiB\n"
+     "Memory size:    0.9GiB\n"
+     "Mounts:         /home/user/source => source\n"
+     "                /home/user => Home\n"
+     "Created:        1972-01-01T10:00:20.021Z\n"
+     "Parent:         snapshot1\n"
+     "Children:       snapshot3\n"
+     "                snapshot4\n"
+     "Comment:        --\n\n"
+     "Snapshot:       black-hole\n"
+     "Instance:       messier-87\n"
+     "CPU(s):         1\n"
+     "Disk space:     1024GiB\n"
+     "Memory size:    128GiB\n"
+     "Mounts:         --\n"
+     "Created:        2019-04-10T11:59:59Z\n"
+     "Parent:         --\n"
+     "Children:       --\n"
+     "Comment:        Captured by EHT\n",
+     "table_info_multiple_mixed_instances_and_snapshots"},
     {&table_formatter, &single_snapshot_overview_info_reply,
      "Instance   Snapshot    Parent   Comment\n"
      "foo        snapshot1   --       This is a sample comment\n",
@@ -699,7 +1020,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
      "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
      "=> test_dir;,\"10.168.32.2,200.3.123.29\";,1,0\n",
-     "csv_info_single"},
+     "csv_info_single_instance"},
     {&csv_formatter, &multiple_instances_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
      "usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
@@ -707,7 +1028,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
      "source;,\"10.21.124.56\";,4,1\nbombastic,Stopped,,,,"
      "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,\"\";,,3\n",
-     "csv_info_multiple"},
+     "csv_info_multiple_instances"},
     {&csv_formatter, &single_snapshot_overview_info_reply,
      "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,This is a sample comment\n", "csv_snapshot_overview_single"},
     {&csv_formatter, &multiple_snapshot_overview_info_reply,
@@ -800,7 +1121,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "        gid_mappings:\n"
      "          - \"1000:1000\"\n"
      "        source_path: /home/user/test_dir\n",
-     "yaml_info_single"},
+     "yaml_info_single_instance"},
     {&yaml_formatter, &multiple_instances_info_reply,
      "errors:\n"
      "  - ~\n"
@@ -848,7 +1169,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "    ipv4:\n"
      "      []\n"
      "    mounts: ~\n",
-     "yaml_info_multiple"},
+     "yaml_info_multiple_instances"},
     {&yaml_formatter, &single_snapshot_overview_info_reply,
      "errors:\n"
      "  - ~\n"
@@ -992,7 +1313,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "        }\n"
      "    }\n"
      "}\n",
-     "json_info_single"},
+     "json_info_single_instance"},
     {&json_formatter, &multiple_instances_info_reply,
      "{\n"
      "    \"errors\": [\n"
@@ -1057,7 +1378,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "        }\n"
      "    }\n"
      "}\n",
-     "json_info_multiple"},
+     "json_info_multiple_instances"},
     {&json_formatter, &single_snapshot_overview_info_reply,
      "{\n"
      "    \"errors\": [\n"
@@ -1626,9 +1947,21 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
         output = formatter->format(reply_copy);
 
         if (dynamic_cast<const mp::TableFormatter*>(formatter))
-            regex = fmt::format("(Name:[[:space:]]+{0}.+|Instance[[:print:]]*\n{0}.+)", petenv_name());
+        {
+            if (input->has_detailed_report())
+                regex = fmt::format("(Name:[[:space:]]+{0}.+)"
+                                    "(Snapshot:[[:print:]]*\nInstance:[[:space:]]+{0}.+)",
+                                    petenv_name());
+            else
+                regex = fmt::format("Instance[[:print:]]*\n{}.+", petenv_name());
+        }
         else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
-            regex = fmt::format("(Name[[:print:]]*\n{0},.*|Instance[[:print:]]*\n{0},.*)", petenv_name());
+        {
+            if (input->has_detailed_report())
+                regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
+            else
+                regex = fmt::format("Instance[[:print:]]*\n{},.*", petenv_name());
+        }
         else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
             regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
         else
