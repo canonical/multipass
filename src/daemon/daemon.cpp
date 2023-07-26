@@ -1750,12 +1750,12 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
-    auto populate_snapshot_info = [&](std::shared_ptr<const Snapshot> snapshot, const std::string& vm_name) {
+    auto populate_snapshot_info = [&](VirtualMachine& vm, std::shared_ptr<const Snapshot> snapshot) {
         auto info = response.mutable_detailed_report()->add_details();
         auto snapshot_info = info->mutable_snapshot_info();
         auto fundamentals = snapshot_info->mutable_fundamentals();
 
-        info->set_name(vm_name);
+        info->set_name(vm.vm_name);
         info->mutable_instance_status()->set_status(grpc_instance_status_for(snapshot->get_state()));
         info->set_memory_total(snapshot->get_mem_size().human_readable());
         info->set_disk_total(snapshot->get_disk_space().human_readable());
@@ -1765,7 +1765,9 @@ try // clang-format on
         populate_mount_info(snapshot->get_mounts(), mount_info);
 
         // TODO@snapshots get snapshot size once available
-        // TODO@snapshots get snapshot children once available
+
+        for (const auto& child : vm.get_children(snapshot))
+            snapshot_info->add_children(child);
 
         populate_snapshot_fundamentals(snapshot, fundamentals);
     };
@@ -1787,7 +1789,7 @@ try // clang-format on
             }
 
             for (const auto& snapshot : pick)
-                populate_snapshot_info(vm.get_snapshot(snapshot), name);
+                populate_snapshot_info(vm, vm.get_snapshot(snapshot));
         }
         catch (const NoSuchSnapshot& e)
         {
