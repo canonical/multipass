@@ -207,7 +207,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const QDir& sn
         assert_vm_stopped(state); // precondition
 
         if (snapshot_count > max_snapshots)
-            throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded", max_snapshots)};
+            throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded: {}", max_snapshots)};
         snapshot_name = name.empty() ? generate_snapshot_name() : name;
 
         const auto [it, success] = snapshots.try_emplace(snapshot_name, nullptr);
