@@ -200,9 +200,9 @@ catch (const std::exception& e)
 }
 
 SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
-                                 const VMMount& mount, const mp::Path& cred_dir)
-    : MountHandler{vm, ssh_key_provider, target, mount.source_path},
-      source{QString::fromStdString(mount.source_path)},
+                                 VMMount mount_spec, const mp::Path& cred_dir)
+    : MountHandler{vm, ssh_key_provider, std::move(mount_spec), target},
+      source{QString::fromStdString(get_mount_spec().source_path)},
       // share name must be unique and 80 chars max
       share_name{QString("%1_%2:%3")
                      .arg(mpu::make_uuid(), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
@@ -210,7 +210,7 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_k
       cred_dir{cred_dir}
 {
     mpl::log(mpl::Level::info, category,
-             fmt::format("Initializing native mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
+             fmt::format("Initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
 
     auto data_location{MP_PLATFORM.multipass_storage_location() + "\\data"};
     auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys")};
