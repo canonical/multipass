@@ -39,6 +39,7 @@ target_link_libraries(qemu_backend
   logger
   qemu_img_utils
   qemu_platform_detail
+  scope_guard
   utils
   Qt6::Core)
 
