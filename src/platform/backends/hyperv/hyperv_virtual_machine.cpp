@@ -16,7 +16,9 @@
  */
 
 #include "hyperv_virtual_machine.h"
+#include "hyperv_snapshot.h"
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@snapshots drop
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
@@ -328,7 +330,7 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& name, c
                                                       const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+    return std::make_shared<HyperVSnapshot>(name, comment, specs, std::move(parent));
 }
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>

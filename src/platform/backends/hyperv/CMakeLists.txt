@@ -14,6 +14,7 @@
 #
 
 add_library(hyperv_backend STATIC
+  hyperv_snapshot.cpp
   hyperv_virtual_machine.cpp
   hyperv_virtual_machine_factory.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h
