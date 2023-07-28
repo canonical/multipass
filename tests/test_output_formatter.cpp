@@ -521,7 +521,7 @@ auto construct_multiple_snapshot_overview_info_reply()
     fundamentals = snapshot_entry->mutable_fundamentals();
     snapshot_entry->set_instance_name("prosperous-spadefish");
     fundamentals->set_snapshot_name("snapshot2");
-    fundamentals->set_comment("Before restoring snap1");
+    fundamentals->set_comment("Before restoring snap1\nContains a newline that\r\nshould be truncated");
     timestamp.set_seconds(1671840000);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
@@ -985,7 +985,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "hale-roller            pristine     --          A first snapshot\n"
      "hale-roller            rocking      pristine    A very long comment that should be truncated by t…\n"
      "hale-roller            rolling      pristine    Loaded with stuff\n"
-     "prosperous-spadefish   snapshot2    --          Before restoring snap1\n"
+     "prosperous-spadefish   snapshot2    --          Before restoring snap1…\n"
      "prosperous-spadefish   snapshot10   snapshot2   --\n",
      "table_snapshot_overview_multiple"},
 
@@ -1030,12 +1030,13 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,\"\";,,3\n",
      "csv_info_multiple_instances"},
     {&csv_formatter, &single_snapshot_overview_info_reply,
-     "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,This is a sample comment\n", "csv_snapshot_overview_single"},
+     "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,\"This is a sample comment\"\n", "csv_snapshot_overview_single"},
     {&csv_formatter, &multiple_snapshot_overview_info_reply,
-     "Instance,Snapshot,Parent,Comment\nhale-roller,pristine,,A first "
-     "snapshot\nhale-roller,rocking,pristine,A very long comment that should be truncated by the table "
-     "formatter\nhale-roller,rolling,pristine,Loaded with stuff\nprosperous-spadefish,snapshot2,,Before restoring "
-     "snap1\nprosperous-spadefish,snapshot10,snapshot2,\n",
+     "Instance,Snapshot,Parent,Comment\nhale-roller,pristine,,\"A first "
+     "snapshot\"\nhale-roller,rocking,pristine,\"A very long comment that should be truncated by the table "
+     "formatter\"\nhale-roller,rolling,pristine,\"Loaded with stuff\"\nprosperous-spadefish,snapshot2,,\"Before "
+     "restoring snap1\nContains a newline that\r\nshould be "
+     "truncated\"\nprosperous-spadefish,snapshot10,snapshot2,\"\"\n",
      "csv_snapshot_overview_multiple"},
 
     {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
@@ -1194,7 +1195,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "prosperous-spadefish:\n"
      "  - snapshot2:\n"
      "      - parent: ~\n"
-     "        comment: Before restoring snap1\n"
+     "        comment: \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\"\n"
      "  - snapshot10:\n"
      "      - parent: snapshot2\n"
      "        comment: ~\n",
@@ -1418,7 +1419,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                \"parent\": \"snapshot2\"\n"
      "            },\n"
      "            \"snapshot2\": {\n"
-     "                \"comment\": \"Before restoring snap1\",\n"
+     "                \"comment\": \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\",\n"
      "                \"parent\": \"\"\n"
      "            }\n"
      "        }\n"
