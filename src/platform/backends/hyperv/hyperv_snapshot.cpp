@@ -26,8 +26,8 @@
 namespace mp = multipass;
 
 mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                                   std::shared_ptr<Snapshot> parent, PowerShell* power_shell)
-    : BaseSnapshot{name, comment, specs, std::move(parent)}, power_shell{power_shell}
+                                   std::shared_ptr<Snapshot> parent, const QString& vm_name, PowerShell* power_shell)
+    : BaseSnapshot{name, comment, specs, std::move(parent)}, vm_name{vm_name}, power_shell{power_shell}
 {
     assert(power_shell);
 }

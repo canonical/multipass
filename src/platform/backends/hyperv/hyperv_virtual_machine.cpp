@@ -326,11 +326,11 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                              QFileInfo{image_path}.absolutePath());
 }
 
-auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
+auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
                                                       const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<HyperVSnapshot>(name, comment, specs, std::move(parent), power_shell.get());
+    return std::make_shared<HyperVSnapshot>(snapshot_name, comment, specs, std::move(parent), name, power_shell.get());
 }
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>

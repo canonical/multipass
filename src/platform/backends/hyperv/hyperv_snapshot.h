@@ -20,6 +20,8 @@
 
 #include <shared/base_snapshot.h>
 
+#include <QString>
+
 namespace multipass
 {
 class PowerShell;
@@ -28,7 +30,7 @@ class HyperVSnapshot : public BaseSnapshot
 {
 public:
     HyperVSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                   std::shared_ptr<Snapshot> parent, PowerShell* power_shell);
+                   std::shared_ptr<Snapshot> parent, const QString& vm_name, PowerShell* power_shell);
 
 protected:
     void capture_impl() override;
@@ -36,6 +38,7 @@ protected:
     void apply_impl() override;
 
 private:
+    const QString& vm_name;
     PowerShell* power_shell;
 };
 
