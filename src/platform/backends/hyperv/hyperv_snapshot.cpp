@@ -34,7 +34,12 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& c
 
 void mp::HyperVSnapshot::capture_impl()
 {
-    throw NotImplementedOnThisBackendException{"capture"}; // TODO@snapshots
+    // TODO@no-merge verify snapshot name does not yet exist in hyper-v
+    // TODO@no-merge extract and reuse checked_run
+    power_shell->run({
+        "Checkpoint-VM", "-Name", vm_name, "-SnapshotName",
+        QString::fromStdString(get_name()) // TODO@no-merge quote and reuse tag format from Qemu implementation
+    });
 }
 
 void mp::HyperVSnapshot::erase_impl()
