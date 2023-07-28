@@ -248,3 +248,69 @@ TEST_F(DaemonFind, invalidRemoteNameAndNonEmptySearchString)
     EXPECT_THAT(cerr_Stream.str(), HasSubstr(error_msg));
     EXPECT_EQ(total_lines_of_output(cerr_Stream), 1);
 }
+
+TEST_F(DaemonFind, findWithoutForceUpdateCheckUpdateManifestsCall)
+{
+    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+
+    // only the daemon constructor invoke it once
+    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
+    // overwrite the defaulty emplaced StubVMImageHost
+    config_builder.image_hosts[0] = std::move(mock_image_host);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"find"});
+}
+
+TEST_F(DaemonFind, findForceUpdateCheckUpdateManifestsCalls)
+{
+    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+
+    // daemon constructor invoke it first and find --force-update invoke it with force flag true after
+    testing::InSequence sequence; // Force the following expectations to occur in order
+    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
+
+    config_builder.image_hosts[0] = std::move(mock_image_host);
+    mp::Daemon daemon{config_builder.build()};
+    send_command({"find", "--force-update"});
+}
+
+TEST_F(DaemonFind, findForceUpdateRemoteCheckUpdateManifestsCalls)
+{
+    // this unit test requires and mock image_host_for of vault, so
+    // auto image_host = config->vault->image_host_for(remote);
+    // can have a legal value in image_host variable and avoid seg fault in the next
+    // line
+
+    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    EXPECT_CALL(*mock_image_vault, image_host_for(_)).WillOnce([image_host_ptr = mock_image_host.get()](auto...) {
+        return image_host_ptr;
+    });
+
+    testing::InSequence sequence;
+    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
+
+    config_builder.vault = std::move(mock_image_vault);
+    config_builder.image_hosts[0] = std::move(mock_image_host);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"find", "release:", "--force-update"});
+}
+
+TEST_F(DaemonFind, findForceUpdateRemoteSearchNameCheckUpdateManifestsCalls)
+{
+    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+
+    testing::InSequence sequence;
+    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
+
+    config_builder.image_hosts[0] = std::move(mock_image_host);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"find", "release:22.04", "--force-update"});
+}
