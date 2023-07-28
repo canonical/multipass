@@ -17,14 +17,19 @@
 
 #include "hyperv_snapshot.h"
 
+#include <shared/windows/powershell.h>
+
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@snapshots drop
+
+#include <cassert>
 
 namespace mp = multipass;
 
 mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                                   std::shared_ptr<Snapshot> parent)
-    : BaseSnapshot{name, comment, specs, std::move(parent)}
+                                   std::shared_ptr<Snapshot> parent, PowerShell* power_shell)
+    : BaseSnapshot{name, comment, specs, std::move(parent)}, power_shell{power_shell}
 {
+    assert(power_shell);
 }
 
 void mp::HyperVSnapshot::capture_impl()
