@@ -56,8 +56,8 @@ with tempfile.TemporaryDirectory() as workdir:
             if arm_path.exists():
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 # If it's a binary, exists on arm and it is not universal, make it a universal one
-                binary_archs = subprocess.run(["lipo", "-archs", arm_path], capture_output=True).stdout
-                if(binary_archs == "b'arm64\n'" or binary_archs == "b''"):
+                binary_archs = subprocess.run(["lipo", "-archs", arm_path], capture_output=True).stdout.decode().rstrip()
+                if binary_archs == "arm64":
                     subprocess.check_call(["lipo", "-create", "-output", target_path, path, arm_path])
                 else:
                     subprocess.check_call(["cp", arm_path, target_path])
