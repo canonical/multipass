@@ -272,8 +272,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         auto remote_image_name = parser->positionalArguments().first();
 
-        if (remote_image_name.startsWith("http://") || remote_image_name.startsWith("https://") ||
-            remote_image_name.startsWith("file://"))
+        if (remote_image_name.startsWith("file://"))
+        {
+            // Convert to absolute because the daemon doesn't know where the client is being executed.
+            auto file_info = QFileInfo(remote_image_name.remove(0, 7));
+            auto absolute_file_path = file_info.absoluteFilePath();
+
+            request.set_image("file://" + absolute_file_path.toStdString());
+        }
+        else if (remote_image_name.startsWith("http://") || remote_image_name.startsWith("https://"))
         {
             request.set_image(remote_image_name.toStdString());
         }
