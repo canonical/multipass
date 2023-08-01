@@ -18,6 +18,7 @@
  */
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/format.h>
 
 #include <QFile>
 
@@ -389,7 +390,8 @@ void mp::CloudInitIso::write_to(const Path& path)
 {
     QFile f{path};
     if (!f.open(QIODevice::WriteOnly))
-        throw std::runtime_error{"failed to open file for writing during cloud-init generation"};
+        throw std::runtime_error{fmt::format(
+            "Failed to open file for writing during cloud-init generation: {}; path: {}", f.errorString(), path)};
 
     const uint32_t num_reserved_bytes = 32768u;
     const uint32_t num_reserved_blocks = num_blocks(num_reserved_bytes);
