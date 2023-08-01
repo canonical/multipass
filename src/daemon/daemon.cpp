@@ -1335,17 +1335,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
 
-    // kick it off right away and launch it periodically after
-    update_manifests_all_task.future = std::async(std::launch::async, &Daemon::update_manifests_all, this, false);
-    QObject::connect(&update_manifests_all_task.timer, &QTimer::timeout, [this]() -> void {
-        // just check in case the previous launch did not finish yet. 0 seconds implies no wait.
-        if (update_manifests_all_task.future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-        {
-            update_manifests_all_task.future =
-                std::async(std::launch::async, &Daemon::update_manifests_all, this, false);
-        }
-    });
-    update_manifests_all_task.timer.start(10000); // keep it 10 seconds for now for testing
+    launch_async_periodic_task(std::chrono::seconds(10), update_manifests_all_task, &Daemon::update_manifests_all, this,
+                               false);
 }
 
 mp::Daemon::~Daemon()
@@ -3061,4 +3052,19 @@ void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(bool for
         update_manifests_all(true);
         update_manifests_all_task.timer.start();
     }
+}
+
+template <typename Func, typename... Args>
+void mp::Daemon::launch_async_periodic_task(std::chrono::milliseconds msec, AsyncPeriodicTaskFacility& facility,
+                                            Func&& func, Args&&... args)
+{
+    facility.future = std::async(std::launch::async, std::forward<Func>(func), std::forward<Args>(args)...);
+    QObject::connect(&facility.timer, &QTimer::timeout, [&facility, func, args...]() -> void {
+        // skip it if the previous one is still running
+        if (facility.future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        {
+            facility.future = std::async(std::launch::async, func, args...);
+        }
+    });
+    facility.timer.start(msec);
 }
