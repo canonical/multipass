@@ -152,7 +152,11 @@ private:
         grpc::Status status;
         std::promise<grpc::Status>* status_promise;
     };
-
+    struct AsyncPeriodicTaskFacility
+    {
+        QTimer timer;
+        std::future<void> future;
+    };
     // These async_* methods need to operate on instance names and look up the VMs again, lest they be gone or moved.
     template <typename Reply, typename Request>
     std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
@@ -176,8 +180,7 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
-    QTimer timer_update_manifests;
-    std::future<void> update_manifests_all_future;
+    AsyncPeriodicTaskFacility update_manifests_all_task;
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;

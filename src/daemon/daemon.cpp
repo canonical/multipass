@@ -1336,15 +1336,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     source_images_maintenance_task.start(config->image_refresh_timer);
 
     // kick it off right away and launch it periodically after
-    update_manifests_all_future = std::async(std::launch::async, &Daemon::update_manifests_all, this, false);
-    QObject::connect(&timer_update_manifests, &QTimer::timeout, [this]() -> void {
+    update_manifests_all_task.future = std::async(std::launch::async, &Daemon::update_manifests_all, this, false);
+    QObject::connect(&update_manifests_all_task.timer, &QTimer::timeout, [this]() -> void {
         // just check in case the previous launch did not finish yet. 0 seconds implies no wait.
-        if (update_manifests_all_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        if (update_manifests_all_task.future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
         {
-            update_manifests_all_future = std::async(std::launch::async, &Daemon::update_manifests_all, this, false);
+            update_manifests_all_task.future =
+                std::async(std::launch::async, &Daemon::update_manifests_all, this, false);
         }
     });
-    timer_update_manifests.start(10000); // keep it 10 seconds for now for testing
+    update_manifests_all_task.timer.start(10000); // keep it 10 seconds for now for testing
 }
 
 mp::Daemon::~Daemon()
@@ -3053,11 +3054,11 @@ void mp::Daemon::update_manifests_all(bool is_force_update_from_network)
 
 void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(bool force_manifest_network_download)
 {
-    update_manifests_all_future.wait();
+    update_manifests_all_task.future.wait();
     if (force_manifest_network_download)
     {
-        timer_update_manifests.stop();
+        update_manifests_all_task.timer.stop();
         update_manifests_all(true);
-        timer_update_manifests.start();
+        update_manifests_all_task.timer.start();
     }
 }
