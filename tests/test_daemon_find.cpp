@@ -257,7 +257,7 @@ TEST_F(DaemonFind, findWithoutForceUpdateCheckUpdateManifestsCall)
     EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
     // overwrite the defaulty emplaced StubVMImageHost
     config_builder.image_hosts[0] = std::move(mock_image_host);
-    mp::Daemon daemon{config_builder.build()};
+    const mp::Daemon daemon{config_builder.build()};
 
     send_command({"find"});
 }
@@ -267,12 +267,12 @@ TEST_F(DaemonFind, findForceUpdateCheckUpdateManifestsCalls)
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
     // daemon constructor invoke it first and find --force-update invoke it with force flag true after
-    testing::InSequence sequence; // Force the following expectations to occur in order
+    const testing::InSequence sequence; // Force the following expectations to occur in order
     EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
     EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
 
     config_builder.image_hosts[0] = std::move(mock_image_host);
-    mp::Daemon daemon{config_builder.build()};
+    const mp::Daemon daemon{config_builder.build()};
     send_command({"find", "--force-update"});
 }
 
@@ -290,13 +290,13 @@ TEST_F(DaemonFind, findForceUpdateRemoteCheckUpdateManifestsCalls)
         return image_host_ptr;
     });
 
-    testing::InSequence sequence;
+    const testing::InSequence sequence;
     EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
     EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
 
     config_builder.vault = std::move(mock_image_vault);
     config_builder.image_hosts[0] = std::move(mock_image_host);
-    mp::Daemon daemon{config_builder.build()};
+    const mp::Daemon daemon{config_builder.build()};
 
     send_command({"find", "release:", "--force-update"});
 }
@@ -305,12 +305,12 @@ TEST_F(DaemonFind, findForceUpdateRemoteSearchNameCheckUpdateManifestsCalls)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
-    testing::InSequence sequence;
+    const testing::InSequence sequence;
     EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
     EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
 
     config_builder.image_hosts[0] = std::move(mock_image_host);
-    mp::Daemon daemon{config_builder.build()};
+    const mp::Daemon daemon{config_builder.build()};
 
     send_command({"find", "release:22.04", "--force-update"});
 }

@@ -75,7 +75,8 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     QCommandLineOption formatOption(
         "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
         "format", "table");
-    QCommandLineOption force_manifest_network_download("force-update", "force the manifests update from the network");
+    const QCommandLineOption force_manifest_network_download("force-update",
+                                                             "force the manifests update from the network");
     parser->addOptions(
         {unsupportedOption, imagesOnlyOption, blueprintsOnlyOption, formatOption, force_manifest_network_download});
 

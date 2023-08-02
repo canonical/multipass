@@ -109,18 +109,15 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
             on_error();
             throw mp::AbortedDownloadException{msg};
         }
-        else if (cache_load_control == QNetworkRequest::CacheLoadControl::AlwaysCache)
+        if (cache_load_control == QNetworkRequest::CacheLoadControl::AlwaysCache)
         {
             on_error();
             throw mp::DownloadException{url.toString().toStdString(), msg};
         }
-        else
-        {
-            mpl::log(mpl::Level::warning, category,
-                     fmt::format("Error getting {}: {} - trying cache.", url.toString(), msg));
-            return ::download(manager, timeout, url, on_progress, on_download, on_error, abort_download,
-                              QNetworkRequest::CacheLoadControl::AlwaysCache);
-        }
+        mpl::log(mpl::Level::warning, category,
+                 fmt::format("Error getting {}: {} - trying cache.", url.toString(), msg));
+        return ::download(manager, timeout, url, on_progress, on_download, on_error, abort_download,
+                          QNetworkRequest::CacheLoadControl::AlwaysCache);
     }
 
     mpl::log(mpl::Level::trace, category,
@@ -254,9 +251,9 @@ QByteArray mp::URLDownloader::download(const QUrl& url, bool is_force_update_fro
         download_timeout.start();
     };
 
-    QNetworkRequest::CacheLoadControl cache_load_control = is_force_update_from_network
-                                                               ? QNetworkRequest::CacheLoadControl::AlwaysNetwork
-                                                               : QNetworkRequest::CacheLoadControl::PreferNetwork;
+    const QNetworkRequest::CacheLoadControl cache_load_control = is_force_update_from_network
+                                                                     ? QNetworkRequest::CacheLoadControl::AlwaysNetwork
+                                                                     : QNetworkRequest::CacheLoadControl::PreferNetwork;
 
     return ::download(
         manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {}, abort_downloads,

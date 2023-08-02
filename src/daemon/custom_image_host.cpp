@@ -246,7 +246,7 @@ void mp::CustomVMImageHost::fetch_manifests(bool is_force_update_from_network)
         }
         catch (mp::DownloadException& e)
         {
-            if (is_force_update_from_network == true)
+            if (is_force_update_from_network)
             {
                 throw e;
             }
