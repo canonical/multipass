@@ -304,8 +304,12 @@ QString systemprofile_app_data_path()
 
 bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
 {
-    PACL pDacl;
+    PACL pOldDACL = NULL, pDACL = NULL;
+    PSECURITY_DESCRIPTOR pSD = NULL;
     EXPLICIT_ACCESS ea;
+
+    GetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &pOldDACL, NULL, &pSD);
+
     ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
 
     ea.grfAccessPermissions = access_mask;
@@ -315,9 +319,11 @@ bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
     ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
     ea.Trustee.ptstrName = (LPTSTR)pSid;
 
-    SetEntriesInAcl(1, &ea, NULL, &pDacl);
-    auto success = SetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, pDacl, NULL);
-    LocalFree(pDacl);
+    SetEntriesInAcl(1, &ea, pOldDACL, &pDACL);
+    auto success = SetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, pDACL, NULL);
+
+    LocalFree((HLOCAL)pSD);
+    LocalFree((HLOCAL)pDACL);
 
     return success;
 }
