@@ -582,6 +582,7 @@ bool mp::platform::Platform::set_permissions(const multipass::Path path, const Q
     LPSTR lpPath = _strdup(path.toStdString().c_str());
     auto success = true;
 
+    // Wipe out current ACLs
     SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
 
     if (perms & 0x0007)
@@ -603,6 +604,9 @@ bool mp::platform::Platform::set_permissions(const multipass::Path path, const Q
     }
     if (perms & 0x7000)
         success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions((int)((perms & 0x7000) >> 12)));
+
+    // Give the Admins group blanket access
+    success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL);
 
     return success;
 }
