@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'ffi.dart';
-import 'grpc_client.dart';
+import 'providers.dart';
 
 void main() {
   runApp(const ProviderScope(child: MaterialApp(home: MyHomePage())));
