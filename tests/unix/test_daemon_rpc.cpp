@@ -202,7 +202,10 @@ TEST_F(TestDaemonRpc, listCertExistsCompletesSuccesfully)
     EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(true));
 
     mpt::MockDaemon daemon{make_secure_server()};
-    EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto, auto* status_promise) {
+    EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto* server, auto* status_promise) {
+        mp::ListReply reply;
+        reply.mutable_instances();
+        server->Write(reply);
         status_promise->set_value(grpc::Status::OK);
     });
 
@@ -218,7 +221,10 @@ TEST_F(TestDaemonRpc, listNoCertsExistWillVerifyAndComplete)
     EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
 
     mpt::MockDaemon daemon{make_secure_server()};
-    EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto, auto* status_promise) {
+    EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto* server, auto* status_promise) {
+        mp::ListReply reply;
+        reply.mutable_instances();
+        server->Write(reply);
         status_promise->set_value(grpc::Status::OK);
     });
 
@@ -302,7 +308,10 @@ TEST_F(TestDaemonRpc, listSettingServerPermissionsFailLogsErrorAndExits)
     logger_scope.mock_logger->expect_log(mpl::Level::error, error_msg);
     logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to set up autostart prerequisites", AnyNumber());
 
-    EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto, auto* status_promise) {
+    EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto* server, auto* status_promise) {
+        mp::ListReply reply;
+        reply.mutable_instances();
+        server->Write(reply);
         status_promise->set_value(grpc::Status::OK);
     });
 

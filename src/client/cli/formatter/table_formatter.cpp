@@ -265,6 +265,94 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
 
     return fmt::to_string(buf);
 }
+
+std::string generate_instances_list(const mp::InstancesList& instances_list)
+{
+    fmt::memory_buffer buf;
+
+    auto instances = instances_list.info();
+
+    if (instances.empty())
+        return "No instances found.\n";
+
+    const std::string name_col_header = "Name";
+    const auto name_column_width = mp::format::column_width(
+        instances.begin(), instances.end(), [](const auto& instance) -> int { return instance.name().length(); },
+        name_col_header.length(), 24);
+    const std::string::size_type state_column_width = 18;
+    const std::string::size_type ip_column_width = 17;
+
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State", state_column_width,
+                   "IPv4", ip_column_width, "Image");
+
+    for (const auto& instance : mp::format::sorted(instances_list.info()))
+    {
+        int ipv4_size = instance.ipv4_size();
+
+        fmt::format_to(std::back_inserter(buf), row_format, instance.name(), name_column_width,
+                       mp::format::status_string_for(instance.instance_status()), state_column_width,
+                       ipv4_size ? instance.ipv4(0) : "--", ip_column_width,
+                       instance.current_release().empty() ? "Not Available"
+                                                          : fmt::format("Ubuntu {}", instance.current_release()));
+
+        for (int i = 1; i < ipv4_size; ++i)
+        {
+            fmt::format_to(std::back_inserter(buf), row_format, "", name_column_width, "", state_column_width,
+                           instance.ipv4(i), instance.ipv4(i).size(), "");
+        }
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
+{
+    fmt::memory_buffer buf;
+
+    auto snapshots = snapshots_list.info();
+
+    if (snapshots.empty())
+        return "No snapshots found.\n";
+
+    const std::string name_col_header = "Instance", snapshot_col_header = "Snapshot", parent_col_header = "Parent",
+                      comment_col_header = "Comment";
+    const auto name_column_width = mp::format::column_width(
+        snapshots.begin(), snapshots.end(), [](const auto& snapshot) -> int { return snapshot.name().length(); },
+        name_col_header.length());
+    const auto snapshot_column_width = mp::format::column_width(
+        snapshots.begin(), snapshots.end(),
+        [](const auto& snapshot) -> int { return snapshot.fundamentals().snapshot_name().length(); },
+        snapshot_col_header.length());
+    const auto parent_column_width = mp::format::column_width(
+        snapshots.begin(), snapshots.end(),
+        [](const auto& snapshot) -> int { return snapshot.fundamentals().parent().length(); },
+        parent_col_header.length());
+
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, snapshot_col_header,
+                   snapshot_column_width, parent_col_header, parent_column_width, comment_col_header);
+
+    for (const auto& snapshot : mp::format::sorted(snapshots_list.info()))
+    {
+        size_t max_comment_column_width = 50;
+        std::smatch match;
+        auto fundamentals = snapshot.fundamentals();
+
+        if (std::regex_search(fundamentals.comment().begin(), fundamentals.comment().end(), match, newline))
+            max_comment_column_width = std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
+
+        fmt::format_to(std::back_inserter(buf), row_format, snapshot.name(), name_column_width,
+                       fundamentals.snapshot_name(), snapshot_column_width,
+                       fundamentals.parent().empty() ? "--" : fundamentals.parent(), parent_column_width,
+                       fundamentals.comment().empty() ? "--"
+                       : fundamentals.comment().length() > max_comment_column_width
+                           ? fmt::format("{}…", fundamentals.comment().substr(0, max_comment_column_width - 1))
+                           : fundamentals.comment());
+    }
+
+    return fmt::to_string(buf);
+}
 } // namespace
 
 std::string mp::TableFormatter::format(const InfoReply& reply) const
@@ -286,42 +374,19 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
 
 std::string mp::TableFormatter::format(const ListReply& reply) const
 {
-    fmt::memory_buffer buf;
+    std::string output;
 
-    auto instances = reply.instances().info();
-
-    if (instances.empty())
-        return "No instances found.\n";
-
-    const std::string name_col_header = "Name";
-    const auto name_column_width = mp::format::column_width(
-        instances.begin(), instances.end(), [](const auto& instance) -> int { return instance.name().length(); },
-        name_col_header.length(), 24);
-    const std::string::size_type state_column_width = 18;
-    const std::string::size_type ip_column_width = 17;
-
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
-    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State", state_column_width,
-                   "IPv4", ip_column_width, "Image");
-
-    for (const auto& instance : format::sorted(reply.instances().info()))
+    if (reply.has_instances())
     {
-        int ipv4_size = instance.ipv4_size();
-
-        fmt::format_to(std::back_inserter(buf), row_format, instance.name(), name_column_width,
-                       mp::format::status_string_for(instance.instance_status()), state_column_width,
-                       ipv4_size ? instance.ipv4(0) : "--", ip_column_width,
-                       instance.current_release().empty() ? "Not Available"
-                                                          : fmt::format("Ubuntu {}", instance.current_release()));
-
-        for (int i = 1; i < ipv4_size; ++i)
-        {
-            fmt::format_to(std::back_inserter(buf), row_format, "", name_column_width, "", state_column_width,
-                           instance.ipv4(i), instance.ipv4(i).size(), "");
-        }
+        output = generate_instances_list(reply.instances());
+    }
+    else
+    {
+        assert(reply.has_snapshots() && "either one of instances or snapshots should be populated");
+        output = generate_snapshots_list(reply.snapshots());
     }
 
-    return fmt::to_string(buf);
+    return output;
 }
 
 std::string mp::TableFormatter::format(const NetworksReply& reply) const
