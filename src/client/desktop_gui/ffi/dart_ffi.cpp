@@ -3,6 +3,7 @@
 #include "multipass/format.h"
 #include "multipass/logging/log.h"
 #include "multipass/name_generator.h"
+#include "multipass/settings/settings.h"
 #include "multipass/version.h"
 
 namespace mp = multipass;
@@ -73,4 +74,88 @@ catch (...)
 {
     mpl::log(mpl::Level::warning, category, "failed retrieving certificate key pair");
     return KeyCertificatePair{nullptr, nullptr};
+}
+
+static std::once_flag initialize_settings_once_flag;
+
+extern "C" enum SettingResult get_setting(const char* key, const char** output)
+{
+    const QString key_string{key};
+    free((void*)key);
+    try
+    {
+        std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
+        const auto value = MP_SETTINGS.get(key_string).toStdString();
+        *output = strdup(value.c_str());
+        return SettingResult::Ok;
+    }
+    catch (const mp::UnrecognizedSettingException& e)
+    {
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("failed retrieving setting with key '{}': {}", key_string, e.what()));
+        *output = nullptr;
+        return SettingResult::KeyNotFound;
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("failed retrieving setting with key '{}': {}", key_string, e.what()));
+        *output = strdup(e.what());
+        return SettingResult::UnexpectedError;
+    }
+    catch (...)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("failed retrieving setting with key '{}'", key_string));
+        *output = strdup("unknown error");
+        return SettingResult::UnexpectedError;
+    }
+}
+
+extern "C" enum SettingResult set_setting(const char* key, const char* value, const char** output)
+{
+    const QString key_string{key};
+    free((void*)key);
+    const QString value_string{value};
+    free((void*)value);
+    try
+    {
+        std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
+        MP_SETTINGS.set(key_string, value_string);
+        *output = nullptr;
+        return SettingResult::Ok;
+    }
+    catch (const mp::UnrecognizedSettingException& e)
+    {
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("failed storing setting with key '{}'='{}': {}", key_string, value_string, e.what()));
+        *output = nullptr;
+        return SettingResult::KeyNotFound;
+    }
+    catch (const mp::InvalidSettingException& e)
+    {
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("failed storing setting with key '{}'='{}': {}", key_string, value_string, e.what()));
+        *output = strdup(e.what());
+        return SettingResult::InvalidValue;
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("failed storing setting with key '{}'='{}': {}", key_string, value_string, e.what()));
+        *output = strdup(e.what());
+        return SettingResult::UnexpectedError;
+    }
+    catch (...)
+    {
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("failed storing setting with key '{}'='{}'", key_string, value_string));
+        *output = strdup("unknown error");
+        return SettingResult::UnexpectedError;
+    }
 }
