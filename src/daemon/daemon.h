@@ -159,6 +159,13 @@ private:
         template <typename Callable, typename... Args>
         void launch(std::string_view launch_msg, std::chrono::milliseconds msec, Callable&& func, Args&&... args)
         {
+            // Log in a side thread will cause some unit tests (like launch_warns_when_overcommitting_disk) to have data
+            // race on log, because the side thread log messes with the mock_logger. Because of that, we only allow the
+            // main thread log for now. That is why launch_msg parameter is here. A long-term solution would be a better
+            // separation of classes and mock the corresponding class function, so it will not log and mess with the
+            // mock_logger in the unit tests.
+
+            // TODO, remove the launch_msg parameter once we have better class separation.
             mpl::log(mpl::Level::info, "async task", std::string(launch_msg));
             future = std::async(std::launch::async, std::forward<Callable>(func), std::forward<Args>(args)...);
             QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {
