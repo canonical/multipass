@@ -1816,7 +1816,7 @@ try // clang-format on
         const auto& name = instance.first;
         const auto& vm = instance.second;
         auto present_state = vm->current_state();
-        auto entry = response.add_instances();
+        auto entry = response.mutable_instances()->add_info();
         entry->set_name(name);
         entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
@@ -1858,7 +1858,7 @@ try // clang-format on
     for (const auto& instance : deleted_instances)
     {
         const auto& name = instance.first;
-        auto entry = response.add_instances();
+        auto entry = response.mutable_instances()->add_info();
         entry->set_name(name);
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     }

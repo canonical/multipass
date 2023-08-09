@@ -288,7 +288,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    auto instances = reply.instances();
+    auto instances = reply.instances().info();
 
     if (instances.empty())
         return "No instances found.\n";
@@ -304,7 +304,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State", state_column_width,
                    "IPv4", ip_column_width, "Image");
 
-    for (const auto& instance : format::sorted(reply.instances()))
+    for (const auto& instance : format::sorted(reply.instances().info()))
     {
         int ipv4_size = instance.ipv4_size();
 

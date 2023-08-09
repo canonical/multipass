@@ -173,7 +173,7 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
 
     fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4\n");
 
-    for (const auto& instance : format::sorted(reply.instances()))
+    for (const auto& instance : format::sorted(reply.instances().info()))
     {
         fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},\"{}\"\n", instance.name(),
                        mp::format::status_string_for(instance.instance_status()),

@@ -283,10 +283,28 @@ message ListVMInstance {
     string current_release = 5;
 }
 
+message ListVMSnapshot {
+    string name = 1;
+    SnapshotFundamentals fundamentals = 2;
+}
+
+message InstancesList {
+    repeated ListVMInstance info = 1;
+}
+
+message SnapshotsList {
+    repeated ListVMSnapshot info = 1;
+}
+
 message ListReply {
-    repeated ListVMInstance instances = 1;
-    string log_line = 2;
-    UpdateInfo update_info = 3;
+    oneof list_contents
+    {
+        InstancesList instances = 1;
+        SnapshotsList snapshots = 2;
+    }
+
+    string log_line = 3;
+    UpdateInfo update_info = 4;
 }
 
 message NetworksRequest {
