@@ -1413,12 +1413,13 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
     // Check that the instance was indeed read and there were no errors.
     {
         StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+        mp::ListReply list_reply;
 
-        auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
-        EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
-            .WillOnce(Return(true));
+        auto instance_matcher = UnorderedElementsAre(Property(&mp::ListVMInstance::name, "real-zebraphant"));
+        EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
         EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+        EXPECT_THAT(list_reply.instances().info(), instance_matcher);
     }
 
     // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
@@ -1475,12 +1476,13 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
     // Check that the instance was indeed read and there were no errors.
     {
         StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+        mp::ListReply list_reply;
 
-        auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
-        EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
-            .WillOnce(Return(true));
+        auto instance_matcher = UnorderedElementsAre(Property(&mp::ListVMInstance::name, "real-zebraphant"));
+        EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
         EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+        EXPECT_THAT(list_reply.instances().info(), instance_matcher);
     }
 
     QFile::remove(filename);    // Remove the JSON.
@@ -1707,11 +1709,13 @@ TEST_F(Daemon, ctor_drops_removed_instances)
     mp::Daemon daemon{config_builder.build()};
 
     StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
-    auto stayed_matcher = Property(&mp::ListVMInstance::name, stayed);
-    EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(stayed_matcher)), _))
-        .WillOnce(Return(true));
+    mp::ListReply list_reply;
+
+    auto stayed_matcher = UnorderedElementsAre(Property(&mp::ListVMInstance::name, stayed));
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    EXPECT_THAT(list_reply.instances().info(), stayed_matcher);
 
     auto updated_json = mpt::load(filename);
     EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
