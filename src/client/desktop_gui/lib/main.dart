@@ -1,12 +1,25 @@
 import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'ffi.dart';
 import 'providers.dart';
+import 'tray_menu.dart';
 
-void main() {
-  runApp(const ProviderScope(child: MaterialApp(home: MyHomePage())));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+  final providerContainer = ProviderContainer();
+  setupTrayMenu(providerContainer);
+  runApp(
+    UncontrolledProviderScope(
+      container: providerContainer,
+      child: const MaterialApp(
+        home: MyHomePage(),
+      ),
+    ),
+  );
 }
 
 class MyHomePage extends ConsumerWidget {
