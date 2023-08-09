@@ -33,6 +33,39 @@ final _generatePetname = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
 final _getServerAddress = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
     ffi.Pointer<Utf8> Function()>('get_server_address');
 
+enum _SettingsResult {
+  ok,
+  keyNotFound,
+  invalidValue,
+  unexpectedError,
+}
+
+extension on int {
+  _SettingsResult get settingsResult => _SettingsResult.values[this];
+}
+
+final _getSetting = _lib.lookupFunction<
+    ffi.Int32 Function(
+      ffi.Pointer<Utf8>,
+      ffi.Pointer<ffi.Pointer<Utf8>>,
+    ),
+    int Function(
+      ffi.Pointer<Utf8>,
+      ffi.Pointer<ffi.Pointer<Utf8>>,
+    )>('get_setting');
+
+final _setSetting = _lib.lookupFunction<
+    ffi.Int32 Function(
+      ffi.Pointer<Utf8>,
+      ffi.Pointer<Utf8>,
+      ffi.Pointer<ffi.Pointer<Utf8>>,
+    ),
+    int Function(
+      ffi.Pointer<Utf8>,
+      ffi.Pointer<Utf8>,
+      ffi.Pointer<ffi.Pointer<Utf8>>,
+    )>('set_setting');
+
 final class _NativeKeyCertificatePair extends ffi.Struct {
   // ignore: non_constant_identifier_names
   external ffi.Pointer<Utf8> pem_cert;
@@ -78,4 +111,44 @@ KeyCertificatePair getCertPair() {
   final cert = utf8.encode(pair.pem_cert.string);
   final key = utf8.encode(pair.pem_cert_key.string);
   return KeyCertificatePair(cert, key);
+}
+
+String getSetting(String key) {
+  final output = malloc<ffi.Pointer<Utf8>>();
+  switch (_getSetting(key.toNativeUtf8(), output).settingsResult) {
+    case _SettingsResult.ok:
+      final result = output.value.string;
+      malloc.free(output);
+      return result;
+    case _SettingsResult.keyNotFound:
+      malloc.free(output);
+      throw ArgumentError.value(key, 'key', 'client settings key not found');
+    case _SettingsResult.unexpectedError:
+      final result = output.value.string;
+      malloc.free(output);
+      throw Exception("failed retrieving client setting '$key': $result");
+    default:
+      malloc.free(output);
+      throw UnimplementedError();
+  }
+}
+
+void setSetting(String key, String value) {
+  final output = malloc<ffi.Pointer<Utf8>>();
+  switch (_setSetting(key.toNativeUtf8(), value.toNativeUtf8(), output)
+      .settingsResult) {
+    case _SettingsResult.ok:
+      malloc.free(output);
+    case _SettingsResult.keyNotFound:
+      malloc.free(output);
+      throw ArgumentError.value(key, 'key', 'client settings key not found');
+    case _SettingsResult.invalidValue:
+      final result = output.value.string;
+      malloc.free(output);
+      throw ArgumentError.value(value, 'value', result);
+    case _SettingsResult.unexpectedError:
+      final result = output.value.string;
+      malloc.free(output);
+      throw Exception("failed storing client setting '$key'='$value': $result");
+  }
 }
