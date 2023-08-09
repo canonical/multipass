@@ -1,3 +1,4 @@
+import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,27 +12,40 @@ void main() {
 class MyHomePage extends ConsumerWidget {
   const MyHomePage({super.key});
 
-  Widget _buildInfosColumn(Iterable<VmInfo> infos) {
+  Widget _buildInfosColumn(BuiltMap<String, Status> infos) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: infos
-          .map((info) => Text('${info.name} ${info.instanceStatus.status}'))
+      children: infos.entries
+          .map((info) => Text('${info.key} ${info.value}'))
           .toList(),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final instances = ref.watch(vmInfosStreamProvider).when(
+    final instances = ref
+        .watch(vmInfosStreamProvider.select((data) => data.whenData(
+              (infos) => infosToStatusMap(infos).build(),
+            )))
+        .when(
           data: _buildInfosColumn,
           error: (error, _) => Text('$error'),
           loading: () => const Text('Loading...'),
         );
+
+    final primaryName = ref.watch(primaryNameProvider);
+
     return Scaffold(
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [instances, Text(multipassVersion)],
+        children: [
+          instances,
+          const Spacer(),
+          TextField(
+            onSubmitted: (value) => setSetting('client.primary-name', value),
+          ),
+          Text('$multipassVersion primary instance: $primaryName'),
+        ],
       ),
     );
   }
