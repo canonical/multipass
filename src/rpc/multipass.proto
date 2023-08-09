@@ -270,7 +270,8 @@ message InfoReply {
 
 message ListRequest {
     int32 verbosity_level = 1;
-    bool request_ipv4 = 2;
+    bool snapshots = 2;
+    bool request_ipv4 = 3;
 }
 
 message ListVMInstance {
