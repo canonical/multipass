@@ -152,11 +152,43 @@ private:
         grpc::Status status;
         std::promise<grpc::Status>* status_promise;
     };
-    struct AsyncPeriodicTaskFacility
+
+    class AsyncPeriodicTask
     {
+    public:
+        template <typename Callable, typename... Args>
+        void launch(std::string_view launch_msg, std::chrono::milliseconds msec, Callable&& func, Args&&... args)
+        {
+            mpl::log(mpl::Level::info, "async task", std::string(launch_msg));
+            future = std::async(std::launch::async, std::forward<Callable>(func), std::forward<Args>(args)...);
+            QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {
+                // skip it if the previous one is still running
+                if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+                {
+                    mpl::log(mpl::Level::info, "async task", std::string(launch_msg));
+                    future = std::async(std::launch::async, func, args...);
+                }
+            });
+            timer.start(msec);
+        }
+        void start_timer()
+        {
+            timer.start();
+        }
+        void stop_timer()
+        {
+            timer.stop();
+        }
+        void wait_ongoing_task_finish() const
+        {
+            future.wait();
+        }
+
+    private:
         QTimer timer;
         std::future<void> future;
     };
+
     // These async_* methods need to operate on instance names and look up the VMs again, lest they be gone or moved.
     template <typename Reply, typename Request>
     std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
@@ -172,10 +204,6 @@ private:
     // it is applied in Daemon::find wherever the image info fetching is involved, aka non-only-blueprints case
     void wait_update_manifests_all_and_optionally_applied_force(bool force_manifest_network_download);
 
-    template <typename Func, typename... Args>
-    void launch_async_periodic_task(std::chrono::milliseconds msec, AsyncPeriodicTaskFacility& facility, Func&& func,
-                                    Args&&... args);
-
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::ShPtr> operative_instances;
@@ -184,7 +212,7 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
-    AsyncPeriodicTaskFacility update_manifests_all_task;
+    AsyncPeriodicTask update_manifests_all_task;
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;

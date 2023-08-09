@@ -1335,8 +1335,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
 
-    launch_async_periodic_task(std::chrono::seconds(10), update_manifests_all_task, &Daemon::update_manifests_all, this,
-                               false);
+    update_manifests_all_task.launch("fetch manifest periodically", std::chrono::seconds(10),
+                                     &Daemon::update_manifests_all, this, false);
 }
 
 mp::Daemon::~Daemon()
@@ -3028,8 +3028,6 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 
 void mp::Daemon::update_manifests_all(bool is_force_update_from_network)
 {
-    //        mpl::log(mpl::Level::info, "daemon",
-    //                 fmt::format("update manifests from thread: {}", QThread::currentThreadId()));
     std::vector<std::future<void>> empty_futures;
     empty_futures.reserve(config->image_hosts.size());
     for (const auto& image_host : config->image_hosts)
@@ -3045,26 +3043,12 @@ void mp::Daemon::update_manifests_all(bool is_force_update_from_network)
 
 void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(bool force_manifest_network_download)
 {
-    update_manifests_all_task.future.wait();
+    update_manifests_all_task.wait_ongoing_task_finish();
     if (force_manifest_network_download)
     {
-        update_manifests_all_task.timer.stop();
+        update_manifests_all_task.stop_timer();
+        mpl::log(mpl::Level::info, "async task", "fetch manifest from the internet");
         update_manifests_all(true);
-        update_manifests_all_task.timer.start();
+        update_manifests_all_task.start_timer();
     }
-}
-
-template <typename Func, typename... Args>
-void mp::Daemon::launch_async_periodic_task(std::chrono::milliseconds msec, AsyncPeriodicTaskFacility& facility,
-                                            Func&& func, Args&&... args)
-{
-    facility.future = std::async(std::launch::async, std::forward<Func>(func), std::forward<Args>(args)...);
-    QObject::connect(&facility.timer, &QTimer::timeout, [&facility, func, args...]() -> void {
-        // skip it if the previous one is still running
-        if (facility.future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-        {
-            facility.future = std::async(std::launch::async, func, args...);
-        }
-    });
-    facility.timer.start(msec);
 }
