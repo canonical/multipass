@@ -44,7 +44,7 @@ auto construct_single_instance_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.add_instances();
+    auto list_entry = list_reply.mutable_instances()->add_info();
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
@@ -60,13 +60,13 @@ auto construct_multiple_instances_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.add_instances();
+    auto list_entry = list_reply.mutable_instances()->add_info();
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
     list_entry->add_ipv4("10.21.124.56");
 
-    list_entry = list_reply.add_instances();
+    list_entry = list_reply.mutable_instances()->add_info();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("18.04 LTS");
@@ -78,22 +78,22 @@ auto construct_unsorted_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.add_instances();
+    auto list_entry = list_reply.mutable_instances()->add_info();
     list_entry->set_name("trusty-190611-1542");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("N/A");
 
-    list_entry = list_reply.add_instances();
+    list_entry = list_reply.mutable_instances()->add_info();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("N/A");
 
-    list_entry = list_reply.add_instances();
+    list_entry = list_reply.mutable_instances()->add_info();
     list_entry->set_name("trusty-190611-1539");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
     list_entry->set_current_release("");
 
-    list_entry = list_reply.add_instances();
+    list_entry = list_reply.mutable_instances()->add_info();
     list_entry->set_name("trusty-190611-1529");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     list_entry->set_current_release("");
@@ -103,7 +103,7 @@ auto construct_unsorted_list_reply()
 
 auto add_petenv_to_reply(mp::ListReply& reply)
 {
-    auto instance = reply.add_instances();
+    auto instance = reply.mutable_instances()->add_info();
     instance->set_name(petenv_name());
     instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     instance->set_current_release("Not Available");

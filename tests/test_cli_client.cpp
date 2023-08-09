@@ -333,7 +333,7 @@ struct Client : public Test
 
             for (mp::InstanceStatus_Status status : statuses)
             {
-                auto list_entry = list_reply.add_instances();
+                auto list_entry = list_reply.mutable_instances()->add_info();
                 list_entry->mutable_instance_status()->set_status(status);
             }
 

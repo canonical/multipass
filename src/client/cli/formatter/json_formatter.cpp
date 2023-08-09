@@ -297,7 +297,7 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
     QJsonObject list_json;
     QJsonArray instances;
 
-    for (const auto& instance : reply.instances())
+    for (const auto& instance : reply.instances().info())
     {
         QJsonObject instance_obj;
         instance_obj.insert("name", QString::fromStdString(instance.name()));
