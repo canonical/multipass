@@ -15,4 +15,16 @@ extern "C" struct KeyCertificatePair
 
 extern "C" struct KeyCertificatePair get_cert_pair();
 
+enum SettingResult
+{
+    Ok,
+    KeyNotFound,
+    InvalidValue,
+    UnexpectedError,
+};
+
+extern "C" enum SettingResult get_setting(const char* key, const char** output);
+
+extern "C" enum SettingResult set_setting(const char* key, const char* value, const char** output);
+
 #endif // MULTIPASS_DART_FFI_H
