@@ -105,7 +105,7 @@ apps:
       XDG_DATA_DIRS: $SNAP/usr/share
       GDK_GL: gles
     command: bin/desktop_gui
-    command-chain: [bin/set-xdg-data-home]
+    command-chain: [bin/set-xdg-vars]
     plugs:
       - desktop
       - desktop-legacy
