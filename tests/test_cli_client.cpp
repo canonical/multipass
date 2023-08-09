@@ -1796,9 +1796,11 @@ TEST_F(Client, infoCmdSucceedsWithAllAndNoRuntimeInformation)
 TEST_F(Client, list_cmd_ok_no_args)
 {
     const auto list_matcher = Property(&mp::ListRequest::request_ipv4, IsTrue());
+    mp::ListReply reply;
+    reply.mutable_instances();
 
     EXPECT_CALL(mock_daemon, list)
-        .WillOnce(WithArg<1>(check_request_and_return<mp::ListReply, mp::ListRequest>(list_matcher, ok)));
+        .WillOnce(WithArg<1>(check_request_and_return<mp::ListReply, mp::ListRequest>(list_matcher, ok, reply)));
     EXPECT_THAT(send_command({"list"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -1815,9 +1817,11 @@ TEST_F(Client, list_cmd_help_ok)
 TEST_F(Client, list_cmd_no_ipv4_ok)
 {
     const auto list_matcher = Property(&mp::ListRequest::request_ipv4, IsFalse());
+    mp::ListReply reply;
+    reply.mutable_instances();
 
     EXPECT_CALL(mock_daemon, list)
-        .WillOnce(WithArg<1>(check_request_and_return<mp::ListReply, mp::ListRequest>(list_matcher, ok)));
+        .WillOnce(WithArg<1>(check_request_and_return<mp::ListReply, mp::ListRequest>(list_matcher, ok, reply)));
     EXPECT_THAT(send_command({"list", "--no-ipv4"}), Eq(mp::ReturnCode::Ok));
 }
 
