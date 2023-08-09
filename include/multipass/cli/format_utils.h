@@ -65,8 +65,8 @@ static constexpr auto column_width = [](const auto begin, const auto end, const 
 } // namespace format
 } // namespace multipass
 
-template <typename Instances>
-Instances multipass::format::sorted(const Instances& instances)
+template <typename Container>
+Container multipass::format::sorted(const Container& instances)
 {
     if (instances.empty())
         return instances;
@@ -74,12 +74,30 @@ Instances multipass::format::sorted(const Instances& instances)
     auto ret = instances;
     const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
     std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
-        if (a.name() == petenv_name)
+        using T = std::decay_t<decltype(a)>;
+        using google::protobuf::util::TimeUtil;
+
+        if (a.name() == petenv_name && b.name() != petenv_name)
             return true;
-        else if (b.name() == petenv_name)
+        else if (b.name() == petenv_name && a.name() != petenv_name)
             return false;
         else
-            return a.name() < b.name();
+        {
+            if constexpr (std::is_same_v<T, multipass::ListVMSnapshot>)
+            {
+                if (a.name() < b.name())
+                    return true;
+                else if (a.name() > b.name())
+                    return false;
+
+                return TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
+                       TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
+            }
+            else
+            {
+                return a.name() < b.name();
+            }
+        }
     });
 
     return ret;
