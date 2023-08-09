@@ -235,7 +235,7 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
 {
     YAML::Node list;
 
-    for (const auto& instance : format::sorted(reply.instances()))
+    for (const auto& instance : format::sorted(reply.instances().info()))
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
