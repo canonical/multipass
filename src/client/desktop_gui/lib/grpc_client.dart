@@ -1,57 +1,12 @@
 import 'dart:io';
 
 import 'package:async/async.dart';
-import 'package:basics/int_basics.dart';
-import 'package:built_collection/built_collection.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 
-import 'ffi.dart';
 import 'generated/multipass.pbgrpc.dart';
 
 typedef Status = InstanceStatus_Status;
 typedef VmInfo = DetailedInfoItem;
-
-final grpcClientProvider = Provider(
-  (_) {
-    final address = getServerAddress();
-    final certPair = getCertPair();
-
-    var channelCredentials = CustomChannelCredentials(
-      authority: 'localhost',
-      certificate: certPair.cert,
-      certificateKey: certPair.key,
-    );
-
-    return GrpcClient(RpcClient(ClientChannel(
-      address.scheme == InternetAddressType.unix.name.toLowerCase()
-          ? InternetAddress(address.path, type: InternetAddressType.unix)
-          : address.host,
-      port: address.port,
-      options: ChannelOptions(credentials: channelCredentials),
-    )));
-  },
-);
-
-final vmInfosStreamProvider = StreamProvider(
-  (ref) => ref.watch(grpcClientProvider).infoStream(),
-);
-
-final vmInfosProvider = Provider(
-  (ref) => ref.watch(vmInfosStreamProvider).valueOrNull ?? const [],
-);
-
-Map<String, Status> infosToStatusMap(Iterable<VmInfo> infos) {
-  return {for (final info in infos) info.name: info.instanceStatus.status};
-}
-
-final vmStatusesProvider = Provider(
-  (ref) => infosToStatusMap(ref.watch(vmInfosProvider)).build(),
-);
-
-final vmNamesProvider = Provider(
-  (ref) => ref.watch(vmStatusesProvider).keys.toBuiltSet(),
-);
 
 class GrpcClient {
   final RpcClient _client;
@@ -116,19 +71,13 @@ class GrpcClient {
     return _client.delet(Stream.value(request)).firstOrNull;
   }
 
-  Stream<List<VmInfo>> infoStream() async* {
-    // this is to de-duplicate errors received from the stream
-    Object? lastError;
-    await for (final _ in Stream.periodic(1.seconds)) {
-      try {
-        final reply = await _client.info(Stream.value(InfoRequest())).last;
-        yield reply.details;
-        lastError = null;
-      } catch (error, stackTrace) {
-        if (error != lastError) yield* Stream.error(error, stackTrace);
-        lastError = error;
-      }
-    }
+  Future<List<VmInfo>> info([Iterable<String> names = const []]) {
+    final request = InfoRequest(
+      instanceSnapshotPairs: names.map(
+        (name) => InstanceSnapshotPair(instanceName: name),
+      ),
+    );
+    return _client.info(Stream.value(request)).single.then((r) => r.details);
   }
 
   Future<List<FindReply_ImageInfo>> find() {
