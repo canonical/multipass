@@ -40,6 +40,13 @@ auto petenv_name()
     return MP_SETTINGS.get(mp::petenv_key).toStdString();
 }
 
+auto construct_empty_list_reply()
+{
+    mp::ListReply list_reply;
+    list_reply.mutable_instances();
+    return list_reply;
+}
+
 auto construct_single_instance_list_reply()
 {
     mp::ListReply list_reply;
@@ -788,7 +795,7 @@ const mp::JsonFormatter json_formatter;
 const mp::CSVFormatter csv_formatter;
 const mp::YamlFormatter yaml_formatter;
 
-const auto empty_list_reply = mp::ListReply();
+const auto empty_list_reply = construct_empty_list_reply();
 const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
 const auto unsorted_list_reply = construct_unsorted_list_reply();
