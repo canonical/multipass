@@ -22,6 +22,7 @@
 #include "daemon_rpc.h"
 #include "vm_specs.h"
 
+#include <multipass/async_periodic_task.h>
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
@@ -153,49 +154,6 @@ private:
         std::promise<grpc::Status>* status_promise;
     };
 
-    class AsyncPeriodicTask
-    {
-    public:
-        template <typename Callable, typename... Args>
-        void launch(std::string_view launch_msg, std::chrono::milliseconds msec, Callable&& func, Args&&... args)
-        {
-            // Log in a side thread will cause some unit tests (like launch_warns_when_overcommitting_disk) to have data
-            // race on log, because the side thread log messes with the mock_logger. Because of that, we only allow the
-            // main thread log for now. That is why launch_msg parameter is here. A long-term solution would be a better
-            // separation of classes and mock the corresponding class function, so it will not log and mess with the
-            // mock_logger in the unit tests.
-
-            // TODO, remove the launch_msg parameter once we have better class separation.
-            mpl::log(mpl::Level::info, "async task", std::string(launch_msg));
-            future = std::async(std::launch::async, std::forward<Callable>(func), std::forward<Args>(args)...);
-            QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {
-                // skip it if the previous one is still running
-                if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-                {
-                    mpl::log(mpl::Level::info, "async task", std::string(launch_msg));
-                    future = std::async(std::launch::async, func, args...);
-                }
-            });
-            timer.start(msec);
-        }
-        void start_timer()
-        {
-            timer.start();
-        }
-        void stop_timer()
-        {
-            timer.stop();
-        }
-        void wait_ongoing_task_finish() const
-        {
-            future.wait();
-        }
-
-    private:
-        QTimer timer;
-        std::future<void> future;
-    };
-
     // These async_* methods need to operate on instance names and look up the VMs again, lest they be gone or moved.
     template <typename Reply, typename Request>
     std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
@@ -219,7 +177,7 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
-    AsyncPeriodicTask update_manifests_all_task;
+    multipass::utils::AsyncPeriodicTask update_manifests_all_task;
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;
