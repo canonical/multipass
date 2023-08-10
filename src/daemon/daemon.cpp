@@ -1808,14 +1808,19 @@ try // clang-format on
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
-    for (const auto& instance : operative_instances)
-    {
-        const auto& name = instance.first;
-        const auto& vm = instance.second;
-        auto present_state = vm->current_state();
+    // Need to 'touch' a report in the response so formatters know what to do with an otherwise empty response
+    request->snapshots() ? (void)response.mutable_snapshots() : (void)response.mutable_instances();
+    bool deleted = false;
+
+    auto fetch_instance = [&](VirtualMachine& vm) {
+        const auto& name = vm.vm_name;
+        auto present_state = vm.current_state();
         auto entry = response.mutable_instances()->add_info();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
+        if (deleted)
+            entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+        else
+            entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
         // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
@@ -1838,8 +1843,8 @@ try // clang-format on
 
         if (request->request_ipv4() && mp::utils::is_running(present_state))
         {
-            std::string management_ip = vm->management_ipv4();
-            auto all_ipv4 = vm->get_all_ipv4(*config->ssh_key_provider);
+            std::string management_ip = vm.management_ipv4();
+            auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
 
             if (is_ipv4_valid(management_ip))
                 entry->add_ipv4(management_ip);
@@ -1850,18 +1855,44 @@ try // clang-format on
                 if (extra_ipv4 != management_ip)
                     entry->add_ipv4(extra_ipv4);
         }
-    }
 
-    for (const auto& instance : deleted_instances)
+        return grpc::Status::OK;
+    };
+
+    auto fetch_snapshot = [&](VirtualMachine& vm) {
+        fmt::memory_buffer errors;
+        const auto& name = vm.vm_name;
+
+        try
+        {
+            for (const auto& snapshot : vm.view_snapshots())
+            {
+                auto entry = response.mutable_snapshots()->add_info();
+                auto fundamentals = entry->mutable_fundamentals();
+
+                entry->set_name(name);
+                populate_snapshot_fundamentals(snapshot, fundamentals);
+            }
+        }
+        catch (const NoSuchSnapshot& e)
+        {
+            add_fmt_to(errors, e.what());
+        }
+
+        return grpc_status_for(errors);
+    };
+
+    auto cmd = request->snapshots() ? std::function(fetch_snapshot) : std::function(fetch_instance);
+
+    auto status = cmd_vms(select_all(operative_instances), cmd);
+    if (status.ok() && !request->snapshots())
     {
-        const auto& name = instance.first;
-        auto entry = response.mutable_instances()->add_info();
-        entry->set_name(name);
-        entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+        deleted = true;
+        status = cmd_vms(select_all(deleted_instances), cmd);
     }
 
     server->Write(response);
-    status_promise->set_value(grpc::Status::OK);
+    status_promise->set_value(status);
 }
 catch (const std::exception& e)
 {
