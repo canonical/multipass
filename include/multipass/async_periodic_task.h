@@ -30,6 +30,22 @@ namespace mpl = multipass::logging;
 
 namespace multipass::utils
 {
+// Because AsyncPeriodicTask needs to be instantiated as data member of a class to work, and Class template argument
+// deduction (CTAD) does not work for data member, so that means we can not deduced type data member from the below code
+// snippet.
+
+// template <typename Callable, typename...Args>
+// class AsyncPeriodicTask
+// {
+// public:
+//     using ReturnType = std::invoke_result_t<std::decay_t<Callable>, std::decay_t<Args>...>;
+//     AsyncPeriodicTask(Callable&& func, Args&&... args);
+//     ...
+// };
+
+// Therefore, the user has to specify the ReturnType as template argument while constructing it.
+
+template <typename ReturnType = void>
 class AsyncPeriodicTask
 {
 public:
@@ -70,7 +86,7 @@ public:
 
 private:
     QTimer timer;
-    std::future<void> future;
+    std::future<ReturnType> future;
 };
 } // namespace multipass::utils
 
