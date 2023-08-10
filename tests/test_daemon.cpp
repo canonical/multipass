@@ -1413,6 +1413,10 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
+        return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+    }));
+
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
@@ -1476,6 +1480,10 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
+        return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+    }));
+
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
@@ -1510,6 +1518,10 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
 
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents("52:54:00:73:76:29", std::vector<mp::NetworkInterface>{}, mounts));
+
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
+        return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+    }));
 
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
@@ -1709,7 +1721,9 @@ TEST_F(Daemon, ctor_drops_removed_instances)
 
     auto mock_factory = use_a_mock_vm_factory();
     EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, stayed), _))
-        .Times(1);
+        .Times(1)
+        .WillRepeatedly(
+            WithArg<0>([](const auto& desc) { return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name); }));
     EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _))
         .Times(0);
 
