@@ -47,6 +47,13 @@ auto construct_empty_list_reply()
     return list_reply;
 }
 
+auto construct_empty_list_snapshot_reply()
+{
+    mp::ListReply list_reply;
+    list_reply.mutable_snapshots();
+    return list_reply;
+}
+
 auto construct_single_instance_list_reply()
 {
     mp::ListReply list_reply;
@@ -108,12 +115,92 @@ auto construct_unsorted_list_reply()
     return list_reply;
 }
 
+auto construct_single_snapshot_list_reply()
+{
+    mp::ListReply list_reply;
+
+    auto list_entry = list_reply.mutable_snapshots()->add_info();
+    list_entry->set_name("foo");
+
+    auto fundamentals = list_entry->mutable_fundamentals();
+    fundamentals->set_snapshot_name("snapshot1");
+    fundamentals->set_comment("This is a sample comment");
+
+    google::protobuf::Timestamp timestamp;
+    timestamp.set_seconds(time(nullptr));
+    timestamp.set_nanos(0);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    return list_reply;
+}
+
+auto construct_multiple_snapshots_list_reply()
+{
+    mp::ListReply list_reply;
+
+    auto list_entry = list_reply.mutable_snapshots()->add_info();
+    auto fundamentals = list_entry->mutable_fundamentals();
+    google::protobuf::Timestamp timestamp;
+
+    list_entry->set_name("prosperous-spadefish");
+    fundamentals->set_snapshot_name("snapshot10");
+    fundamentals->set_parent("snapshot2");
+    timestamp.set_seconds(1672531200);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    list_entry = list_reply.mutable_snapshots()->add_info();
+    fundamentals = list_entry->mutable_fundamentals();
+    list_entry->set_name("hale-roller");
+    fundamentals->set_snapshot_name("rolling");
+    fundamentals->set_parent("pristine");
+    fundamentals->set_comment("Loaded with stuff");
+    timestamp.set_seconds(25425952800);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    list_entry = list_reply.mutable_snapshots()->add_info();
+    fundamentals = list_entry->mutable_fundamentals();
+    list_entry->set_name("hale-roller");
+    fundamentals->set_snapshot_name("rocking");
+    fundamentals->set_parent("pristine");
+    fundamentals->set_comment("A very long comment that should be truncated by the table formatter");
+    timestamp.set_seconds(2209234259);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    list_entry = list_reply.mutable_snapshots()->add_info();
+    fundamentals = list_entry->mutable_fundamentals();
+    list_entry->set_name("hale-roller");
+    fundamentals->set_snapshot_name("pristine");
+    fundamentals->set_comment("A first snapshot");
+    timestamp.set_seconds(409298914);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    list_entry = list_reply.mutable_snapshots()->add_info();
+    fundamentals = list_entry->mutable_fundamentals();
+    list_entry->set_name("prosperous-spadefish");
+    fundamentals->set_snapshot_name("snapshot2");
+    fundamentals->set_comment("Before restoring snap1\nContains a newline that\r\nshould be truncated");
+    timestamp.set_seconds(1671840000);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    return list_reply;
+}
+
 auto add_petenv_to_reply(mp::ListReply& reply)
 {
-    auto instance = reply.mutable_instances()->add_info();
-    instance->set_name(petenv_name());
-    instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
-    instance->set_current_release("Not Available");
+    if (reply.has_instances())
+    {
+        auto instance = reply.mutable_instances()->add_info();
+        instance->set_name(petenv_name());
+        instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+        instance->set_current_release("Not Available");
+    }
+    else
+    {
+        auto snapshot = reply.mutable_snapshots()->add_info();
+        snapshot->set_name(petenv_name());
+        snapshot->mutable_fundamentals()->set_snapshot_name("snapshot1");
+        snapshot->mutable_fundamentals()->set_comment("An exemplary comment");
+    }
 }
 
 auto construct_one_short_line_networks_reply()
@@ -796,9 +883,12 @@ const mp::CSVFormatter csv_formatter;
 const mp::YamlFormatter yaml_formatter;
 
 const auto empty_list_reply = construct_empty_list_reply();
+const auto empty_list_snapshot_reply = construct_empty_list_snapshot_reply();
 const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
 const auto unsorted_list_reply = construct_unsorted_list_reply();
+const auto single_snapshot_list_reply = construct_single_snapshot_list_reply();
+const auto multiple_snapshots_list_reply = construct_multiple_snapshots_list_reply();
 
 const auto empty_networks_reply = mp::NetworksReply();
 const auto one_short_line_networks_reply = construct_one_short_line_networks_reply();
@@ -819,6 +909,7 @@ const auto multiple_snapshot_overview_info_reply = construct_multiple_snapshot_o
 
 const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
+    {&table_formatter, &empty_list_snapshot_reply, "No snapshots found.\n", "table_list_snapshot_empty"},
     {&table_formatter, &single_instance_list_reply,
      "Name                    State             IPv4             Image\n"
      "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n"
@@ -838,6 +929,18 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "trusty-190611-1539      Suspended         --               Not Available\n"
      "trusty-190611-1542      Running           --               Ubuntu N/A\n",
      "table_list_unsorted"},
+    {&table_formatter, &single_snapshot_list_reply,
+     "Instance   Snapshot    Parent   Comment\n"
+     "foo        snapshot1   --       This is a sample comment\n",
+     "table_list_single_snapshot"},
+    {&table_formatter, &multiple_snapshots_list_reply,
+     "Instance               Snapshot     Parent      Comment\n"
+     "hale-roller            pristine     --          A first snapshot\n"
+     "hale-roller            rocking      pristine    A very long comment that should be truncated by t…\n"
+     "hale-roller            rolling      pristine    Loaded with stuff\n"
+     "prosperous-spadefish   snapshot2    --          Before restoring snap1…\n"
+     "prosperous-spadefish   snapshot10   snapshot2   --\n",
+     "table_list_multiple_snapshots"},
 
     {&table_formatter, &empty_info_reply, "\n", "table_info_empty"},
     {&table_formatter, &empty_snapshot_overview_reply, "No snapshots found.\n", "table_snapshot_overview_empty"},
@@ -2391,6 +2494,12 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
     if (auto input = dynamic_cast<const mp::ListReply*>(reply))
     {
         mp::ListReply reply_copy;
+
+        if (input->has_instances())
+            reply_copy.mutable_instances();
+        else
+            reply_copy.mutable_snapshots();
+
         if (prepend)
         {
             add_petenv_to_reply(reply_copy);
@@ -2404,9 +2513,9 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
         output = formatter->format(reply_copy);
 
         if (dynamic_cast<const mp::TableFormatter*>(formatter))
-            regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
+            regex = fmt::format("((Name|Instance)[[:print:]]*\n{0}[[:space:]]+.*)", petenv_name());
         else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
-            regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
+            regex = fmt::format("(Name|Instance)[[:print:]]*\n{},.*", petenv_name());
         else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
             regex = fmt::format("{}:.*", petenv_name());
         else
