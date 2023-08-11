@@ -23,3 +23,6 @@
 [submodule "3rd-party/poco"]
 	path = 3rd-party/poco
 	url = https://github.com/pocoproject/poco.git
+[submodule "3rd-party/vcpkg"]
+	path = 3rd-party/vcpkg
+	url = https://github.com/microsoft/vcpkg
