@@ -65,9 +65,14 @@ final vmNamesProvider = Provider(
   (ref) => ref.watch(vmStatusesProvider).keys.toBuiltSet(),
 );
 
-final primaryNameProvider = Provider<String>((ref) {
+const primaryNameKey = 'client.primary-name';
+const _clientSettingsKeys = [primaryNameKey];
+
+final clientSettingsProvider = Provider<BuiltMap<String, String>>((ref) {
   Stream.periodic(1.seconds).listen(
-    (_) => ref.state = getSetting('client.primary-name'),
+    (_) => ref.state = BuiltMap.of({
+      for (final key in _clientSettingsKeys) key: getSetting(key),
+    }),
   );
-  return '';
+  return {for (final key in _clientSettingsKeys) key: ''}.build();
 });
