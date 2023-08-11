@@ -216,6 +216,10 @@ parts:
 
       cd ${CRAFT_PART_SRC}/3rd-party
       find . -name 'LICENSE*' -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
+    stage:
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libGLX_mesa.so*
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libEGL_mesa.so*
+      - -usr/share/glvnd/egl_vendor.d/50_mesa.json
 
   qemu:
     build-environment:
@@ -379,6 +383,14 @@ parts:
       - -usr/share/mime
       - -usr/share/pkgconfig
       - -usr/share/thumbnailers
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libGLX_mesa.so*
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libEGL_mesa.so*
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libgio*.so*
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libglib*.so*
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libgmodule*.so*
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libgobject*.so*
+      - -usr/lib/$CRAFT_ARCH_TRIPLET/libgthread*.so*
+      - -usr/share/glvnd/egl_vendor.d/50_mesa.json
     organize:
       usr/bin/xfce4-terminal.wrapper: bin/x-terminal-emulator
 
