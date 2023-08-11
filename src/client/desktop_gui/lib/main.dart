@@ -46,7 +46,7 @@ class MyHomePage extends ConsumerWidget {
           loading: () => const Text('Loading...'),
         );
 
-    final primaryName = ref.watch(primaryNameProvider);
+    final settings = ref.watch(clientSettingsProvider);
 
     return Scaffold(
       body: Column(
@@ -54,10 +54,8 @@ class MyHomePage extends ConsumerWidget {
         children: [
           instances,
           const Spacer(),
-          TextField(
-            onSubmitted: (value) => setSetting('client.primary-name', value),
-          ),
-          Text('$multipassVersion primary instance: $primaryName'),
+          Text(settings.entries.map((e) => '${e.key}: ${e.value}').join('\n')),
+          Text(multipassVersion),
         ],
       ),
     );

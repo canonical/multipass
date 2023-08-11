@@ -23,7 +23,9 @@ const actionAllowedStatuses = {
 };
 
 final trayMenuDataProvider = Provider((ref) {
-  final primaryName = ref.watch(primaryNameProvider);
+  final primaryName = ref.watch(clientSettingsProvider.select(
+    (settings) => settings[primaryNameKey]!,
+  ));
   final vmStatuses = ref.watch(vmInfosStreamProvider.select(
     (value) => value.whenData((data) => infosToStatusMap(data).build()),
   ));
