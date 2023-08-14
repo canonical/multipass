@@ -38,7 +38,9 @@ int main_impl(int argc, char* argv[])
 
     mp::client::register_global_settings_handlers();
 
-    mp::ClientConfig config{mp::client::get_server_address(), mp::client::get_cert_provider(), term.get()};
+    auto server_address = mp::client::get_server_address();
+    mp::ClientConfig config{mp::client::get_server_address(), mp::client::get_cert_provider(server_address),
+                            term.get()};
     mp::Client client{config};
 
     return client.run(QCoreApplication::arguments());

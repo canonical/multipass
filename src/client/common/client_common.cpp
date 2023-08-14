@@ -78,9 +78,8 @@ std::string message_box(const std::string& message)
     return '\n' + divider + '\n' + message + '\n' + divider + '\n';
 }
 
-grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const QString& cert_dir_path)
+grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider& cert_provider)
 {
-    mp::SSLCertProvider cert_provider{cert_dir_path};
     auto opts = grpc::SslCredentialsOptions();
 
     opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
@@ -191,51 +190,9 @@ void mp::client::register_global_settings_handlers()
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
-                                                        mp::CertProvider* cert_provider)
+                                                        const mp::CertProvider& cert_provider)
 {
-    // No common client certificates exist yet.
-    // TODO: Remove the following logic when we are comfortable all installed clients are using the common cert
-    if (!cert_provider)
-    {
-        auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
-        auto common_client_cert_dir_path{data_location + common_client_cert_dir};
-
-        // The following logic is for determing which certificate to use when the client starts up.
-        // 1. Check if the multipass-gui certificate exists and determine if it's authenticated
-        //    with the daemon already.  If it is, copy it to the common client certificate directory and use it.
-        // 2. If that fails, then try the certificate from the cli client in the same manner.
-        // 3. Delete any per-client certificate dirs.
-        // 4. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
-
-        const std::vector<QString> cert_dirs{data_location + gui_client_cert_dir, data_location + cli_client_cert_dir};
-        for (const auto& cert_dir : cert_dirs)
-        {
-            if (client_certs_exist(cert_dir))
-            {
-                if (auto rpc_channel{
-                        create_channel_and_validate(server_address, get_ssl_credentials_opts_from(cert_dir))})
-                {
-                    copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
-                    mp::utils::remove_directories(cert_dirs);
-
-                    return rpc_channel;
-                }
-            }
-        }
-
-        mp::utils::remove_directories(cert_dirs);
-        MP_UTILS.make_dir(common_client_cert_dir_path);
-
-        return grpc::CreateChannel(server_address,
-                                   grpc::SslCredentials(get_ssl_credentials_opts_from(common_client_cert_dir_path)));
-    }
-
-    auto opts = grpc::SslCredentialsOptions();
-    opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
-    opts.pem_cert_chain = cert_provider->PEM_certificate();
-    opts.pem_private_key = cert_provider->PEM_signing_key();
-
-    return grpc::CreateChannel(server_address, grpc::SslCredentials(opts));
+    return grpc::CreateChannel(server_address, grpc::SslCredentials(get_ssl_credentials_opts_from(cert_provider)));
 }
 
 std::string mp::client::get_server_address()
@@ -250,17 +207,46 @@ std::string mp::client::get_server_address()
     return mp::platform::default_server_address();
 }
 
-std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
+std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider(const std::string& server_address)
 {
     auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
     auto common_client_cert_dir_path{data_location + common_client_cert_dir};
 
     if (client_certs_exist(common_client_cert_dir_path))
     {
-        return std::make_unique<mp::SSLCertProvider>(common_client_cert_dir_path);
+        return std::make_unique<SSLCertProvider>(common_client_cert_dir_path);
     }
 
-    return nullptr;
+    // No common client certificates exist yet.
+    // TODO: Remove the following logic when we are comfortable all installed clients are using the common cert
+
+    // The following logic is for determining which certificate to use when the client starts up.
+    // 1. Check if the multipass-gui certificate exists and determine if it's authenticated
+    //    with the daemon already.  If it is, copy it to the common client certificate directory and use it.
+    // 2. If that fails, then try the certificate from the cli client in the same manner.
+    // 3. Delete any per-client certificate dirs.
+    // 4. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
+
+    const std::vector<QString> cert_dirs{data_location + gui_client_cert_dir, data_location + cli_client_cert_dir};
+    for (const auto& cert_dir : cert_dirs)
+    {
+        if (client_certs_exist(cert_dir))
+        {
+            auto ssl_cert_provider = std::make_unique<SSLCertProvider>(cert_dir);
+            if (auto rpc_channel{
+                    create_channel_and_validate(server_address, get_ssl_credentials_opts_from(*ssl_cert_provider))})
+            {
+                copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
+                utils::remove_directories(cert_dirs);
+
+                return ssl_cert_provider;
+            }
+        }
+    }
+
+    utils::remove_directories(cert_dirs);
+    MP_UTILS.make_dir(common_client_cert_dir_path);
+    return std::make_unique<SSLCertProvider>(common_client_cert_dir_path);
 }
 
 void mp::client::set_logger()
