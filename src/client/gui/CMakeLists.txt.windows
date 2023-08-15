@@ -12,6 +12,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+set_target_properties(dart_ffi PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+install(TARGETS dart_ffi DESTINATION bin/ COMPONENT desktop_gui)
+
 find_program(POWERSHELL_PATH NAMES powershell)
 set(DESKTOP_GUI_EXECUTABLE desktop_gui.exe)
 set(DESKTOP_GUI_TARGET windows)
