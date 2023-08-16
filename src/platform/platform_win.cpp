@@ -304,8 +304,12 @@ QString systemprofile_app_data_path()
 
 bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
 {
-    PACL pDacl;
+    PACL pOldDACL = NULL, pDACL = NULL;
+    PSECURITY_DESCRIPTOR pSD = NULL;
     EXPLICIT_ACCESS ea;
+
+    GetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &pOldDACL, NULL, &pSD);
+
     ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
 
     ea.grfAccessPermissions = access_mask;
@@ -315,9 +319,11 @@ bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
     ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
     ea.Trustee.ptstrName = (LPTSTR)pSid;
 
-    SetEntriesInAcl(1, &ea, NULL, &pDacl);
-    auto success = SetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, pDacl, NULL);
-    LocalFree(pDacl);
+    SetEntriesInAcl(1, &ea, pOldDACL, &pDACL);
+    auto success = SetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, pDACL, NULL);
+
+    LocalFree((HLOCAL)pSD);
+    LocalFree((HLOCAL)pDACL);
 
     return success;
 }
@@ -576,6 +582,7 @@ bool mp::platform::Platform::set_permissions(const multipass::Path path, const Q
     LPSTR lpPath = _strdup(path.toStdString().c_str());
     auto success = true;
 
+    // Wipe out current ACLs
     SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
 
     if (perms & 0x0007)
@@ -597,6 +604,9 @@ bool mp::platform::Platform::set_permissions(const multipass::Path path, const Q
     }
     if (perms & 0x7000)
         success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions((int)((perms & 0x7000) >> 12)));
+
+    // Give the Admins group blanket access
+    success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL);
 
     return success;
 }
