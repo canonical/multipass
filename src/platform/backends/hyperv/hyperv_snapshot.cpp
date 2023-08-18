@@ -36,10 +36,13 @@ void mp::HyperVSnapshot::capture_impl()
 {
     // TODO@no-merge verify snapshot name does not yet exist in hyper-v
     // TODO@no-merge extract and reuse checked_run
-    power_shell->run({
+    QStringList cmd{
         "Checkpoint-VM", "-Name", vm_name, "-SnapshotName",
         QString::fromStdString(get_name()) // TODO@no-merge quote and reuse tag format from Qemu implementation
-    });
+    };
+
+    if (!power_shell->run(cmd))
+        throw std::runtime_error{"Could not create snapshot"};
 }
 
 void mp::HyperVSnapshot::erase_impl()
