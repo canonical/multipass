@@ -95,6 +95,12 @@ mp::PowerShell::~PowerShell()
     }
 }
 
+void mp::PowerShell::checked_run(const QStringList& args, std::string&& error_msg)
+{
+    if (!run(args))
+        throw std::runtime_error{std::move(error_msg)};
+}
+
 bool mp::PowerShell::run(const QStringList& args, QString* output, bool whisper)
 {
     QString default_output;
