@@ -77,7 +77,7 @@ mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, 
 
 void mp::QemuSnapshot::capture_impl()
 {
-    auto tag = derive_tag();
+    auto tag = derive_id();
 
     // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
     // identify the snapshot by tag)
@@ -90,7 +90,7 @@ void mp::QemuSnapshot::capture_impl()
 
 void mp::QemuSnapshot::erase_impl()
 {
-    checked_exec_qemu_img(make_delete_spec(derive_tag(), image_path));
+    checked_exec_qemu_img(make_delete_spec(derive_id(), image_path));
 }
 
 void mp::QemuSnapshot::apply_impl()
@@ -102,6 +102,6 @@ void mp::QemuSnapshot::apply_impl()
     desc.mem_size = get_mem_size();
     desc.disk_space = get_disk_space();
 
-    checked_exec_qemu_img(make_restore_spec(derive_tag(), image_path));
+    checked_exec_qemu_img(make_restore_spec(derive_id(), image_path));
     rollback.dismiss();
 }
