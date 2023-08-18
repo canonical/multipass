@@ -20,10 +20,13 @@
 #include <shared/windows/powershell.h>
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@snapshots drop
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 
 #include <cassert>
 
 namespace mp = multipass;
+namespace mpl = mp::logging;
 
 namespace
 {
@@ -32,6 +35,23 @@ QString quoted(const QString& s)
     return '"' + s + '"';
 }
 
+void require_unique_id(mp::PowerShell* ps, const QString& vm_name, const QString& id)
+{
+    static const QString expected_error{"Unable to find a snapshot matching the given criteria."};
+
+    QString output;
+    if (ps->run({"Get-VMCheckpoint", "-VMName", vm_name, "-Name", id}, &output))
+        throw std::runtime_error{fmt::format("A snapshot called {} already exists for this VM in Hyper-V", id)};
+
+    if (!output.contains(expected_error))
+    {
+        mpl::log(mpl::Level::warning, vm_name.toStdString(),
+                 fmt::format("Get-VMCheckpoint failed with unexpected output: {}", output));
+        throw std::runtime_error{"Could not verify snapshot-name uniqueness"};
+    }
+
+    return; // we're good: the command failed with the expected error
+}
 } // namespace
 
 mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
@@ -44,6 +64,7 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& c
 void mp::HyperVSnapshot::capture_impl()
 {
     auto id = quoted(derive_id());
+    require_unique_id(power_shell, vm_name, id);
     power_shell->easy_run({"Checkpoint-VM", "-Name", vm_name, "-SnapshotName", id}, "Could not create snapshot");
 }
 
