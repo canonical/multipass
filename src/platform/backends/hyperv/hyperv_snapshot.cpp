@@ -25,6 +25,15 @@
 
 namespace mp = multipass;
 
+namespace
+{
+QString quoted(const QString& s)
+{
+    return '"' + s + '"';
+}
+
+} // namespace
+
 mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
                                    std::shared_ptr<Snapshot> parent, const QString& vm_name, PowerShell* power_shell)
     : BaseSnapshot{name, comment, specs, std::move(parent)}, vm_name{vm_name}, power_shell{power_shell}
@@ -34,9 +43,8 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& c
 
 void mp::HyperVSnapshot::capture_impl()
 {
-    // TODO@no-merge verify snapshot name does not yet exist in hyper-v
-    power_shell->easy_run({"Checkpoint-VM", "-Name", vm_name, "-SnapshotName", derive_id()},
-                          "Could not create snapshot");
+    auto id = quoted(derive_id());
+    power_shell->easy_run({"Checkpoint-VM", "-Name", vm_name, "-SnapshotName", id}, "Could not create snapshot");
 }
 
 void mp::HyperVSnapshot::erase_impl()
