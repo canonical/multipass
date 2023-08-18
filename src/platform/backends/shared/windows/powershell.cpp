@@ -95,7 +95,7 @@ mp::PowerShell::~PowerShell()
     }
 }
 
-void mp::PowerShell::checked_run(const QStringList& args, std::string&& error_msg)
+void mp::PowerShell::easy_run(const QStringList& args, std::string&& error_msg)
 {
     if (!run(args))
         throw std::runtime_error{std::move(error_msg)};
