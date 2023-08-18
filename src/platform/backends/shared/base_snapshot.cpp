@@ -201,7 +201,7 @@ QJsonObject multipass::BaseSnapshot::serialize() const
     return ret;
 }
 
-QString multipass::BaseSnapshot::derive_tag() const
+QString multipass::BaseSnapshot::derive_id() const
 {
     return snapshot_template.arg(get_name().c_str());
 }
