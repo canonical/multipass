@@ -37,7 +37,7 @@ QString quoted(const QString& s)
 
 void require_unique_id(mp::PowerShell* ps, const QString& vm_name, const QString& id)
 {
-    static const QString expected_error{"Unable to find a snapshot matching the given criteria."};
+    static const QString expected_error{"ObjectNotFound"};
 
     QString output;
     if (ps->run({"Get-VMCheckpoint", "-VMName", vm_name, "-Name", id}, &output))
