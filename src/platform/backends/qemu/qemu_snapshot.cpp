@@ -33,9 +33,6 @@ namespace mpp = mp::platform;
 
 namespace
 {
-const auto snapshot_template = QStringLiteral("@%1"); /* avoid colliding with suspension snapshots; prefix with a char
-                                                         that can't be part of the name, to avoid confusion */
-
 std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag, const mp::Path& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path},
@@ -107,9 +104,4 @@ void mp::QemuSnapshot::apply_impl()
 
     checked_exec_qemu_img(make_restore_spec(derive_tag(), image_path));
     rollback.dismiss();
-}
-
-QString mp::QemuSnapshot::derive_tag() const
-{
-    return snapshot_template.arg(get_name().c_str());
 }
