@@ -30,9 +30,9 @@ namespace mpl = multipass::logging;
 
 namespace multipass::utils
 {
-// Because AsyncPeriodicTask needs to be instantiated as data member of a class to work, and Class template argument
-// deduction (CTAD) does not work for data member, so that means we can not deduced type data member from the below code
-// snippet.
+// Because AsyncPeriodicTask needs to be instantiated as data member of a class to function properly, and Class template
+// argument deduction (CTAD) does not work for data member, so that means we can not deduced type data member from the
+// below code snippet.
 
 // template <typename Callable, typename...Args>
 // class AsyncPeriodicTask
@@ -50,7 +50,7 @@ class AsyncPeriodicTask
 {
 public:
     template <typename Callable, typename... Args>
-    void launch(std::string_view launch_msg, std::chrono::milliseconds msec, Callable&& func, Args&&... args)
+    AsyncPeriodicTask(std::string_view launch_msg, std::chrono::milliseconds msec, Callable&& func, Args&&... args)
     {
         // Log in a side thread will cause some unit tests (like launch_warns_when_overcommitting_disk) to have data
         // race on log, because the side thread log messes with the mock_logger. Because of that, we only allow the
@@ -71,6 +71,7 @@ public:
         });
         timer.start(msec);
     }
+
     void start_timer()
     {
         timer.start();

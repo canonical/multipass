@@ -1334,9 +1334,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
-
-    update_manifests_all_task.launch("fetch manifest periodically", std::chrono::seconds(10),
-                                     &Daemon::update_manifests_all, this, false);
 }
 
 mp::Daemon::~Daemon()
