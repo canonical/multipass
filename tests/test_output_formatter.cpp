@@ -1145,6 +1145,16 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "trusty-190611-1539,Suspended,,,Not Available,\"\"\n"
      "trusty-190611-1542,Running,,,Ubuntu N/A,\"\"\n",
      "csv_list_unsorted"},
+    {&csv_formatter, &empty_list_snapshot_reply, "Instance,Snapshot,Parent,Comment\n", "csv_list_snapshot_empty"},
+    {&csv_formatter, &single_snapshot_list_reply,
+     "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,\"This is a sample comment\"\n", "csv_list_single_snapshot"},
+    {&csv_formatter, &multiple_snapshots_list_reply,
+     "Instance,Snapshot,Parent,Comment\nhale-roller,pristine,,\"A first "
+     "snapshot\"\nhale-roller,rocking,pristine,\"A very long comment that should be truncated by the table "
+     "formatter\"\nhale-roller,rolling,pristine,\"Loaded with stuff\"\nprosperous-spadefish,snapshot2,,\"Before "
+     "restoring snap1\nContains a newline that\r\nshould be "
+     "truncated\"\nprosperous-spadefish,snapshot10,snapshot2,\"\"\n",
+     "csv_list_multiple_snapshots"},
 
     {&csv_formatter, &empty_info_reply, "", "csv_info_empty"},
     {&csv_formatter, &empty_snapshot_overview_reply, "Instance,Snapshot,Parent,Comment\n",
