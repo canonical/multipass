@@ -148,6 +148,41 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
 
     return fmt::to_string(buf);
 }
+
+std::string generate_instances_list(const mp::InstancesList& instances_list)
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4\n");
+
+    for (const auto& instance : mp::format::sorted(instances_list.info()))
+    {
+        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},\"{}\"\n", instance.name(),
+                       mp::format::status_string_for(instance.instance_status()),
+                       instance.ipv4_size() ? instance.ipv4(0) : "", instance.ipv6_size() ? instance.ipv6(0) : "",
+                       instance.current_release().empty() ? "Not Available"
+                                                          : fmt::format("Ubuntu {}", instance.current_release()),
+                       fmt::join(instance.ipv4(), ","));
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf), "Instance,Snapshot,Parent,Comment\n");
+
+    for (const auto& item : mp::format::sorted(snapshots_list.info()))
+    {
+        const auto& snapshot = item.fundamentals();
+        fmt::format_to(std::back_inserter(buf), "{},{},{},\"{}\"\n", item.name(), snapshot.snapshot_name(),
+                       snapshot.parent(), snapshot.comment());
+    }
+
+    return fmt::to_string(buf);
+}
 } // namespace
 
 std::string mp::CSVFormatter::format(const InfoReply& reply) const
@@ -169,21 +204,19 @@ std::string mp::CSVFormatter::format(const InfoReply& reply) const
 
 std::string mp::CSVFormatter::format(const ListReply& reply) const
 {
-    fmt::memory_buffer buf;
+    std::string output;
 
-    fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4\n");
-
-    for (const auto& instance : format::sorted(reply.instances().info()))
+    if (reply.has_instances())
     {
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},\"{}\"\n", instance.name(),
-                       mp::format::status_string_for(instance.instance_status()),
-                       instance.ipv4_size() ? instance.ipv4(0) : "", instance.ipv6_size() ? instance.ipv6(0) : "",
-                       instance.current_release().empty() ? "Not Available"
-                                                          : fmt::format("Ubuntu {}", instance.current_release()),
-                       fmt::join(instance.ipv4(), ","));
+        output = generate_instances_list(reply.instances());
+    }
+    else
+    {
+        assert(reply.has_snapshots() && "either one of instances or snapshots should be populated");
+        output = generate_snapshots_list(reply.snapshots());
     }
 
-    return fmt::to_string(buf);
+    return output;
 }
 
 std::string mp::CSVFormatter::format(const NetworksReply& reply) const
