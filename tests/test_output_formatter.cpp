@@ -1615,6 +1615,52 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "    ]\n"
      "}\n",
      "json_list_multiple"},
+    {&json_formatter, &single_snapshot_list_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"info\": {\n"
+     "        \"foo\": {\n"
+     "            \"snapshot1\": {\n"
+     "                \"comment\": \"This is a sample comment\",\n"
+     "                \"parent\": \"\"\n"
+     "            }\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_list_single_snapshot"},
+    {&json_formatter, &multiple_snapshots_list_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"info\": {\n"
+     "        \"hale-roller\": {\n"
+     "            \"pristine\": {\n"
+     "                \"comment\": \"A first snapshot\",\n"
+     "                \"parent\": \"\"\n"
+     "            },\n"
+     "            \"rocking\": {\n"
+     "                \"comment\": \"A very long comment that should be truncated by the table formatter\",\n"
+     "                \"parent\": \"pristine\"\n"
+     "            },\n"
+     "            \"rolling\": {\n"
+     "                \"comment\": \"Loaded with stuff\",\n"
+     "                \"parent\": \"pristine\"\n"
+     "            }\n"
+     "        },\n"
+     "        \"prosperous-spadefish\": {\n"
+     "            \"snapshot10\": {\n"
+     "                \"comment\": \"\",\n"
+     "                \"parent\": \"snapshot2\"\n"
+     "            },\n"
+     "            \"snapshot2\": {\n"
+     "                \"comment\": \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\",\n"
+     "                \"parent\": \"\"\n"
+     "            }\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_list_multiple_snapshots"},
     {&json_formatter, &empty_info_reply,
      "{\n"
      "    \"errors\": [\n"
