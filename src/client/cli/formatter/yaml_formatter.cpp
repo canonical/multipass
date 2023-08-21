@@ -212,6 +212,48 @@ YAML::Node generate_snapshot_overview_report(const mp::InfoReply& reply)
 
     return info_node;
 }
+
+std::string generate_instances_list(const mp::InstancesList& instances_list)
+{
+    YAML::Node list;
+
+    for (const auto& instance : mp::format::sorted(instances_list.info()))
+    {
+        YAML::Node instance_node;
+        instance_node["state"] = mp::format::status_string_for(instance.instance_status());
+
+        instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
+        for (const auto& ip : instance.ipv4())
+            instance_node["ipv4"].push_back(ip);
+
+        instance_node["release"] =
+            instance.current_release().empty() ? "Not Available" : fmt::format("Ubuntu {}", instance.current_release());
+
+        list[instance.name()].push_back(instance_node);
+    }
+
+    return mpu::emit_yaml(list);
+}
+
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
+{
+    YAML::Node info_node;
+
+    for (const auto& item : mp::format::sorted(snapshots_list.info()))
+    {
+        const auto& snapshot = item.fundamentals();
+        YAML::Node instance_node;
+        YAML::Node snapshot_node;
+
+        snapshot_node["parent"] = snapshot.parent().empty() ? YAML::Node() : YAML::Node(snapshot.parent());
+        snapshot_node["comment"] = snapshot.comment().empty() ? YAML::Node() : YAML::Node(snapshot.comment());
+
+        instance_node[snapshot.snapshot_name()].push_back(snapshot_node);
+        info_node[item.name()].push_back(instance_node);
+    }
+
+    return mpu::emit_yaml(info_node);
+}
 } // namespace
 
 std::string mp::YamlFormatter::format(const InfoReply& reply) const
@@ -233,24 +275,19 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
 std::string mp::YamlFormatter::format(const ListReply& reply) const
 {
-    YAML::Node list;
+    std::string output;
 
-    for (const auto& instance : format::sorted(reply.instances().info()))
+    if (reply.has_instances())
     {
-        YAML::Node instance_node;
-        instance_node["state"] = mp::format::status_string_for(instance.instance_status());
-
-        instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
-        for (const auto& ip : instance.ipv4())
-            instance_node["ipv4"].push_back(ip);
-
-        instance_node["release"] =
-            instance.current_release().empty() ? "Not Available" : fmt::format("Ubuntu {}", instance.current_release());
-
-        list[instance.name()].push_back(instance_node);
+        output = generate_instances_list(reply.instances());
+    }
+    else
+    {
+        assert(reply.has_snapshots() && "eitherr one of instances or snapshots should be populated");
+        output = generate_snapshots_list(reply.snapshots());
     }
 
-    return mpu::emit_yaml(list);
+    return output;
 }
 
 std::string mp::YamlFormatter::format(const NetworksReply& reply) const

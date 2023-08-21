@@ -1242,9 +1242,35 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "      []\n"
      "    release: Ubuntu N/A\n",
      "yaml_list_unsorted"},
+    {&yaml_formatter, &empty_list_snapshot_reply, "\n", "yaml_list_snapshot_empty"},
+    {&yaml_formatter, &single_snapshot_list_reply,
+     "foo:\n"
+     "  - snapshot1:\n"
+     "      - parent: ~\n"
+     "        comment: This is a sample comment\n",
+     "yaml_list_single_snapshot"},
+    {&yaml_formatter, &multiple_snapshots_list_reply,
+     "hale-roller:\n"
+     "  - pristine:\n"
+     "      - parent: ~\n"
+     "        comment: A first snapshot\n"
+     "  - rocking:\n"
+     "      - parent: pristine\n"
+     "        comment: A very long comment that should be truncated by the table formatter\n"
+     "  - rolling:\n"
+     "      - parent: pristine\n"
+     "        comment: Loaded with stuff\n"
+     "prosperous-spadefish:\n"
+     "  - snapshot2:\n"
+     "      - parent: ~\n"
+     "        comment: \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\"\n"
+     "  - snapshot10:\n"
+     "      - parent: snapshot2\n"
+     "        comment: ~\n",
+     "yaml_list_multiple_snapshots"},
+
     {&yaml_formatter, &empty_info_reply, "errors:\n  - ~\n", "yaml_info_empty"},
     {&yaml_formatter, &empty_snapshot_overview_reply, "errors:\n  - ~\n", "yaml_snapshot_overview_empty"},
-
     {&yaml_formatter, &single_instance_info_reply,
      "errors:\n"
      "  - ~\n"
