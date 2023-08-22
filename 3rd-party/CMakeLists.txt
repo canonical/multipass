@@ -127,33 +127,3 @@ add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
 
 # qhotkey config
 add_subdirectory(qhotkey EXCLUDE_FROM_ALL)
-
-# POCO library
-# Suppress CMake CMP0077 warning in POCO - see `cmake --help-policy CMP0077`
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-set(BUILD_SHARED_LIBS ON)
-option(ENABLE_NETSSL OFF)
-option(ENABLE_CRYPTO OFF)
-option(ENABLE_JWT OFF)
-option(ENABLE_ENCODINGS OFF)
-option(ENABLE_XML OFF)
-option(ENABLE_JSON OFF)
-option(ENABLE_MONGODB OFF)
-option(ENABLE_DATA_SQLITE OFF)
-option(ENABLE_REDIS OFF)
-option(ENABLE_UTIL OFF)
-option(ENABLE_NET OFF)
-option(ENABLE_PAGECOMPILER OFF)
-option(ENABLE_PAGECOMPILER_FILE2PAGE OFF)
-option(ENABLE_ACTIVERECORD_COMPILER OFF)
-option(ENABLE_ACTIVERECORD OFF)
-option(ENABLE_DATA OFF)
-option(ENABLE_PROMETHEUS OFF)
-
-add_subdirectory(poco EXCLUDE_FROM_ALL)
-
-install(TARGETS Foundation Zip LIBRARY COMPONENT multipassd)
-
-# Undo some settings that POCO sets to avoid polluting the rest of our build
-set(CMAKE_DEBUG_POSTFIX "" CACHE STRING "Set Debug library postfix" FORCE)
-set(BUILD_SHARED_LIBS OFF)

@@ -47,7 +47,7 @@ if(MULTIPASS_ENABLE_TESTS)
   add_target(utils_test)
 endif()
 
-add_library(poco_utils
+add_library(poco_utils STATIC
   poco_zip_utils.cpp)
 
 target_link_libraries(poco_utils
