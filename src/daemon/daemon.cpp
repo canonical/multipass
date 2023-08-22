@@ -1154,7 +1154,7 @@ bool is_ipv4_valid(const std::string& ipv4)
 struct SnapshotPick
 {
     std::unordered_set<std::string> pick;
-    bool all;
+    bool all_or_none;
 };
 using InstanceSnapshotPairs = google::protobuf::RepeatedPtrField<mp::InstanceSnapshotPair>;
 using InstanceSnapshotsMap = std::unordered_map<std::string, SnapshotPick>;
@@ -1169,7 +1169,7 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
         auto& snapshot_pick = instance_snapshots_map[instance];
 
         if (snapshot.empty())
-            snapshot_pick.all = true;
+            snapshot_pick.all_or_none = true;
         else
             snapshot_pick.pick.insert(snapshot);
     }
@@ -1321,7 +1321,7 @@ void populate_snapshot_info(mp::VirtualMachine& vm, std::shared_ptr<const mp::Sn
 
     // TODO@snapshots get snapshot size once available
 
-    for (const auto& child : vm.get_children(snapshot))
+    for (const auto& child : vm.get_childrens_names(snapshot.get()))
         snapshot_info->add_children(child);
 
     populate_snapshot_fundamentals(snapshot, fundamentals);
@@ -1708,17 +1708,13 @@ try // clang-format on
         const auto& name = vm.vm_name;
 
         const auto& it = instance_snapshots_map.find(name);
-        const auto& [pick, all] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
+        const auto& [pick, all_or_none] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
 
         try
         {
-            if (all)
-            {
+            if (all_or_none)
                 populate_instance_info(vm, response.mutable_detailed_report()->add_details(),
                                        request->no_runtime_information(), deleted, have_mounts);
-                for (const auto& snapshot : pick)
-                    vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
-            }
 
             for (const auto& snapshot : pick)
                 populate_snapshot_info(vm, vm.get_snapshot(snapshot), response.mutable_detailed_report()->add_details(),
@@ -1737,11 +1733,11 @@ try // clang-format on
         const auto& name = vm.vm_name;
 
         const auto& it = instance_snapshots_map.find(name);
-        const auto& [pick, all] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
+        const auto& [pick, all_or_none] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
 
         try
         {
-            if (all)
+            if (all_or_none)
             {
                 for (const auto& snapshot : pick)
                     vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
@@ -3357,8 +3353,8 @@ void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* se
     server->Write(reply);
 }
 
-void mp::Daemon::populate_instance_info(VirtualMachine& vm, mp::DetailedInfoItem* info, bool runtime_info, bool deleted,
-                                        bool& have_mounts)
+void mp::Daemon::populate_instance_info(VirtualMachine& vm, mp::DetailedInfoItem* info, bool no_runtime_info,
+                                        bool deleted, bool& have_mounts)
 {
     const auto& name = vm.vm_name;
     auto instance_info = info->mutable_instance_info();
@@ -3394,7 +3390,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm, mp::DetailedInfoItem
     auto mount_info = info->mutable_mount_info();
     populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
 
-    if (!runtime_info && mp::utils::is_running(present_state))
+    if (!no_runtime_info && mp::utils::is_running(present_state))
     {
         mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
 
