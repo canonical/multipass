@@ -343,17 +343,6 @@ struct Client : public Test
         };
     }
 
-    auto make_info_instance_details_request()
-    {
-        return [](Unused, grpc::ServerReaderWriter<mp::InfoReply, mp::InfoRequest>* server) {
-            mp::InfoReply reply;
-            reply.mutable_detailed_report();
-
-            server->Write(reply);
-            return grpc::Status{};
-        };
-    }
-
     std::string negate_flag_string(const std::string& orig)
     {
         auto flag = QVariant{QString::fromStdString(orig)}.toBool();
@@ -419,7 +408,7 @@ auto make_info_function(const std::string& source_path = "", const std::string& 
 
         if (request.instances_snapshots(0).instance_name() == "primary")
         {
-            auto vm_info = info_reply.mutable_detailed_report()->add_details();
+            auto vm_info = info_reply.add_details();
             vm_info->set_name("primary");
             vm_info->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
 
@@ -1733,13 +1722,13 @@ TEST_F(Client, info_cmd_fails_no_args)
 
 TEST_F(Client, info_cmd_ok_with_one_arg)
 {
-    EXPECT_CALL(mock_daemon, info(_, _)).WillOnce(make_info_instance_details_request());
+    EXPECT_CALL(mock_daemon, info(_, _));
     EXPECT_THAT(send_command({"info", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, info_cmd_succeeds_with_multiple_args)
 {
-    EXPECT_CALL(mock_daemon, info(_, _)).WillOnce(make_info_instance_details_request());
+    EXPECT_CALL(mock_daemon, info(_, _));
     EXPECT_THAT(send_command({"info", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -1750,7 +1739,7 @@ TEST_F(Client, info_cmd_help_ok)
 
 TEST_F(Client, info_cmd_succeeds_with_all)
 {
-    EXPECT_CALL(mock_daemon, info(_, _)).WillOnce(make_info_instance_details_request());
+    EXPECT_CALL(mock_daemon, info(_, _));
     EXPECT_THAT(send_command({"info", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -1762,33 +1751,27 @@ TEST_F(Client, info_cmd_fails_with_names_and_all)
 TEST_F(Client, infoCmdDoesNotDefaultToNoRuntimeInformationAndSucceeds)
 {
     const auto info_matcher = Property(&mp::InfoRequest::no_runtime_information, IsFalse());
-    mp::InfoReply reply;
-    reply.mutable_detailed_report();
 
     EXPECT_CALL(mock_daemon, info)
-        .WillOnce(WithArg<1>(check_request_and_return<mp::InfoReply, mp::InfoRequest>(info_matcher, ok, reply)));
+        .WillOnce(WithArg<1>(check_request_and_return<mp::InfoReply, mp::InfoRequest>(info_matcher, ok)));
     EXPECT_THAT(send_command({"info", "name1", "name2"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, infoCmdSucceedsWithInstanceNamesAndNoRuntimeInformation)
 {
     const auto info_matcher = Property(&mp::InfoRequest::no_runtime_information, IsTrue());
-    mp::InfoReply reply;
-    reply.mutable_detailed_report();
 
     EXPECT_CALL(mock_daemon, info)
-        .WillOnce(WithArg<1>(check_request_and_return<mp::InfoReply, mp::InfoRequest>(info_matcher, ok, reply)));
+        .WillOnce(WithArg<1>(check_request_and_return<mp::InfoReply, mp::InfoRequest>(info_matcher, ok)));
     EXPECT_THAT(send_command({"info", "name3", "name4", "--no-runtime-information"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, infoCmdSucceedsWithAllAndNoRuntimeInformation)
 {
     const auto info_matcher = Property(&mp::InfoRequest::no_runtime_information, IsTrue());
-    mp::InfoReply reply;
-    reply.mutable_detailed_report();
 
     EXPECT_CALL(mock_daemon, info)
-        .WillOnce(WithArg<1>(check_request_and_return<mp::InfoReply, mp::InfoRequest>(info_matcher, ok, reply)));
+        .WillOnce(WithArg<1>(check_request_and_return<mp::InfoReply, mp::InfoRequest>(info_matcher, ok)));
     EXPECT_THAT(send_command({"info", "name5", "--no-runtime-information"}), Eq(mp::ReturnCode::Ok));
 }
 

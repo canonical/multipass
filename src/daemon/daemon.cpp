@@ -1269,15 +1269,6 @@ void populate_snapshot_fundamentals(std::shared_ptr<const mp::Snapshot> snapshot
     timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
 }
 
-void populate_snapshot_overview(const std::string& instance_name, std::shared_ptr<const mp::Snapshot> snapshot,
-                                mp::SnapshotOverviewInfoItem* overview)
-{
-    auto fundamentals = overview->mutable_fundamentals();
-
-    overview->set_instance_name(instance_name);
-    populate_snapshot_fundamentals(snapshot, fundamentals);
-}
-
 void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mounts, mp::MountInfo* mount_info,
                          bool& have_mounts)
 {
@@ -1708,10 +1699,6 @@ try // clang-format on
                                                      server};
     InfoReply response;
     InstanceSnapshotsMap instance_snapshots_map;
-
-    // Need to 'touch' a report in the response so formatters know what to do with an otherwise empty response
-    request->snapshot_overview() ? (void)response.mutable_snapshot_overview()
-                                 : (void)response.mutable_detailed_report();
     bool have_mounts = false;
     bool deleted = false;
 
@@ -1725,44 +1712,11 @@ try // clang-format on
         try
         {
             if (all_or_none)
-                populate_instance_info(vm, response.mutable_detailed_report()->add_details(),
-                                       request->no_runtime_information(), deleted, have_mounts);
+                populate_instance_info(vm, response.add_details(), request->no_runtime_information(), deleted,
+                                       have_mounts);
 
             for (const auto& snapshot : pick)
-                populate_snapshot_info(vm, vm.get_snapshot(snapshot), response.mutable_detailed_report()->add_details(),
-                                       have_mounts);
-        }
-        catch (const NoSuchSnapshot& e)
-        {
-            add_fmt_to(errors, e.what());
-        }
-
-        return grpc_status_for(errors);
-    };
-
-    auto fetch_snapshot_overview = [&](VirtualMachine& vm) {
-        fmt::memory_buffer errors;
-        const auto& name = vm.vm_name;
-
-        const auto& it = instance_snapshots_map.find(name);
-        const auto& [pick, all_or_none] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
-
-        try
-        {
-            if (all_or_none)
-            {
-                for (const auto& snapshot : pick)
-                    vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
-
-                for (const auto& snapshot : vm.view_snapshots())
-                    populate_snapshot_overview(name, snapshot, response.mutable_snapshot_overview()->add_overview());
-            }
-            else
-            {
-                for (const auto& snapshot : pick)
-                    populate_snapshot_overview(name, vm.get_snapshot(snapshot),
-                                               response.mutable_snapshot_overview()->add_overview());
-            }
+                populate_snapshot_info(vm, vm.get_snapshot(snapshot), response.add_details(), have_mounts);
         }
         catch (const NoSuchSnapshot& e)
         {
@@ -1780,13 +1734,10 @@ try // clang-format on
     {
         instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
 
-        auto cmd = request->snapshot_overview() ? std::function(fetch_snapshot_overview)
-                                                : std::function(fetch_detailed_report);
-
-        if ((status = cmd_vms(instance_selection.operative_selection, cmd)).ok())
+        if ((status = cmd_vms(instance_selection.operative_selection, fetch_detailed_report)).ok())
         {
             deleted = true;
-            status = cmd_vms(instance_selection.deleted_selection, cmd);
+            status = cmd_vms(instance_selection.deleted_selection, fetch_detailed_report);
         }
 
         if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))

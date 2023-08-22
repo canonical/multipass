@@ -165,54 +165,6 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     return instance_node;
 }
 
-YAML::Node generate_instance_info_report(const mp::InfoReply& reply)
-{
-    YAML::Node info_node;
-
-    info_node["errors"].push_back(YAML::Null);
-
-    for (const auto& info : mp::format::sort_instances_and_snapshots(reply.detailed_report().details()))
-    {
-        if (info.has_instance_info())
-        {
-            info_node[info.name()].push_back(generate_instance_details(info));
-        }
-        else
-        {
-            assert(info.has_snapshot_info() && "either one of instance or snapshot details should be populated");
-
-            YAML::Node snapshot_node;
-            snapshot_node[info.snapshot_info().fundamentals().snapshot_name()] = generate_snapshot_details(info);
-
-            info_node[info.name()][0]["snapshots"].push_back(snapshot_node);
-        }
-    }
-
-    return info_node;
-}
-
-YAML::Node generate_snapshot_overview_report(const mp::InfoReply& reply)
-{
-    YAML::Node info_node;
-
-    info_node["errors"].push_back(YAML::Null);
-
-    for (const auto& item : mp::format::sort_snapshots(reply.snapshot_overview().overview()))
-    {
-        const auto& snapshot = item.fundamentals();
-        YAML::Node instance_node;
-        YAML::Node snapshot_node;
-
-        snapshot_node["parent"] = snapshot.parent().empty() ? YAML::Node() : YAML::Node(snapshot.parent());
-        snapshot_node["comment"] = snapshot.comment().empty() ? YAML::Node() : YAML::Node(snapshot.comment());
-
-        instance_node[snapshot.snapshot_name()].push_back(snapshot_node);
-        info_node[item.instance_name()].push_back(instance_node);
-    }
-
-    return info_node;
-}
-
 std::string generate_instances_list(const mp::InstancesList& instances_list)
 {
     YAML::Node list;
@@ -258,19 +210,28 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
 
 std::string mp::YamlFormatter::format(const InfoReply& reply) const
 {
-    YAML::Node info;
+    YAML::Node info_node;
 
-    if (reply.has_detailed_report())
+    info_node["errors"].push_back(YAML::Null);
+
+    for (const auto& info : mp::format::sort_instances_and_snapshots(reply.details()))
     {
-        info = generate_instance_info_report(reply);
-    }
-    else
-    {
-        assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
-        info = generate_snapshot_overview_report(reply);
+        if (info.has_instance_info())
+        {
+            info_node[info.name()].push_back(generate_instance_details(info));
+        }
+        else
+        {
+            assert(info.has_snapshot_info() && "either one of instance or snapshot details should be populated");
+
+            YAML::Node snapshot_node;
+            snapshot_node[info.snapshot_info().fundamentals().snapshot_name()] = generate_snapshot_details(info);
+
+            info_node[info.name()][0]["snapshots"].push_back(snapshot_node);
+        }
     }
 
-    return mpu::emit_yaml(info);
+    return mpu::emit_yaml(info_node);
 }
 
 std::string mp::YamlFormatter::format(const ListReply& reply) const
