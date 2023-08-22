@@ -96,7 +96,7 @@ public:
     virtual void delete_snapshot(const QDir& snapshot_dir, const std::string& name) = 0;
     virtual void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) = 0;
     virtual void load_snapshots(const QDir& snapshot_dir) = 0;
-    virtual std::vector<std::string> get_children(const std::shared_ptr<const Snapshot> parent) const = 0;
+    virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
