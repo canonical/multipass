@@ -157,15 +157,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
     EXPECT_CALL(daemon, ssh_info(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SSHInfoRequest, mp::SSHInfoReply>));
-    EXPECT_CALL(daemon, info(_, _, _)).WillOnce([](auto, auto server, auto status_promise) {
-        mp::InfoReply reply;
-        reply.mutable_detailed_report();
-
-        server->Write(reply);
-        status_promise->set_value(grpc::Status::OK);
-
-        return grpc::Status{};
-    });
+    EXPECT_CALL(daemon, info(_, _, _))
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::InfoRequest, mp::InfoReply>));
     EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto server, auto status_promise) {
         mp::ListReply reply;
         reply.mutable_instances();
@@ -2197,14 +2190,9 @@ TEST_F(Daemon, info_all_returns_all_instances)
                                                     Property(&mp::DetailedInfoItem::name, deleted_instance_name));
 
     StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
-    mp::InfoReply info_reply;
-
-    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+    EXPECT_CALL(mock_server, Write(Property(&mp::InfoReply::details, names_matcher), _)).WillOnce(Return(true));
 
     mp::Daemon daemon{config_builder.build()};
-
     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
-
-    EXPECT_THAT(info_reply.detailed_report().details(), names_matcher);
 }
 } // namespace

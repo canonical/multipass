@@ -166,7 +166,6 @@ message InstanceSnapshotPair {
 
 message InfoRequest {
     repeated InstanceSnapshotPair instances_snapshots = 1;
-    bool snapshot_overview = 2;
     int32 verbosity_level = 3;
     bool no_runtime_information = 4;
 }
@@ -245,26 +244,8 @@ message DetailedInfoItem {
     }
 }
 
-message SnapshotOverviewInfoItem {
-    string instance_name = 1;
-    SnapshotFundamentals fundamentals = 2;
-}
-
-message DetailedInfoReport {
-    repeated DetailedInfoItem details = 1;
-}
-
-message SnapshotOverviewInfoReport {
-    repeated SnapshotOverviewInfoItem overview = 1;
-}
-
 message InfoReply {
-    oneof info_contents
-    {
-        DetailedInfoReport detailed_report = 1;
-        SnapshotOverviewInfoReport snapshot_overview = 2;
-    }
-
+    repeated DetailedInfoItem details = 1;
     string log_line = 3;
 }
 

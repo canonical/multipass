@@ -70,9 +70,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         format_option_name,
         "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
         format_option_name, "table");
-    QCommandLineOption snapshotOverviewOption("snapshot-overview", "Display info on snapshots");
 
-    parser->addOptions({all_option, noRuntimeInfoOption, formatOption, snapshotOverviewOption});
+    parser->addOptions({all_option, noRuntimeInfoOption, formatOption});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -96,7 +95,6 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     }
 
     request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));
-    request.set_snapshot_overview(parser->isSet(snapshotOverviewOption));
 
     if (instance_found && snapshot_found && parser->value(format_option_name) == "csv")
     {
