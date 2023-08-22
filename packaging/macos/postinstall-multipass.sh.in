@@ -17,9 +17,9 @@ ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass" "${3}usr/local/bin/
 
 ### Set up symlink for bash competions
 # If HomeBrew installed (only looking for default path)
-if [ -d "${3}usr/local/etc/bash_completion.d" ]; then
+if [ -d "${3}$(brew --prefix)/etc/bash_completion.d" ]; then
     ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/bash/multipass" \
-            "${3}usr/local/etc/bash_completion.d/multipass"
+            "${3}$(brew --prefix)/etc/bash_completion.d/multipass"
     echo "Installed Bash completion file for HomeBrew"
 else
     echo "HomeBrew is not installed"
