@@ -174,13 +174,77 @@ QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
     return instance_info;
 }
 
-std::string generate_instance_info_report(const mp::InfoReply& reply)
+std::string generate_instances_list(const mp::InstancesList& instances_list)
+{
+    QJsonObject list_json;
+    QJsonArray instances;
+
+    for (const auto& instance : instances_list.info())
+    {
+        QJsonObject instance_obj;
+        instance_obj.insert("name", QString::fromStdString(instance.name()));
+        instance_obj.insert("state", QString::fromStdString(mp::format::status_string_for(instance.instance_status())));
+
+        QJsonArray ipv4_addrs;
+        for (const auto& ip : instance.ipv4())
+            ipv4_addrs.append(QString::fromStdString(ip));
+        instance_obj.insert("ipv4", ipv4_addrs);
+
+        instance_obj.insert("release",
+                            QString::fromStdString(instance.current_release().empty()
+                                                       ? "Not Available"
+                                                       : fmt::format("Ubuntu {}", instance.current_release())));
+
+        instances.append(instance_obj);
+    }
+
+    list_json.insert("list", instances);
+
+    return mp::json_to_string(list_json);
+}
+
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
 {
     QJsonObject info_json;
     QJsonObject info_obj;
     info_json.insert("errors", QJsonArray());
 
-    for (const auto& info : reply.detailed_report().details())
+    for (const auto& item : snapshots_list.info())
+    {
+        const auto& snapshot = item.fundamentals();
+        QJsonObject snapshot_obj;
+
+        snapshot_obj.insert("parent", QString::fromStdString(snapshot.parent()));
+        snapshot_obj.insert("comment", QString::fromStdString(snapshot.comment()));
+
+        auto it = info_obj.find(QString::fromStdString(item.name()));
+        if (it == info_obj.end())
+        {
+            info_obj.insert(QString::fromStdString(item.name()),
+                            QJsonObject{{QString::fromStdString(snapshot.snapshot_name()), snapshot_obj}});
+        }
+        else
+        {
+            QJsonObject obj = it.value().toObject();
+            obj.insert(QString::fromStdString(snapshot.snapshot_name()), snapshot_obj);
+            it.value() = obj;
+        }
+    }
+
+    info_json.insert("info", info_obj);
+
+    return mp::json_to_string(info_json);
+}
+} // namespace
+
+std::string mp::JsonFormatter::format(const InfoReply& reply) const
+{
+    QJsonObject info_json;
+    QJsonObject info_obj;
+
+    info_json.insert("errors", QJsonArray());
+
+    for (const auto& info : reply.details())
     {
         auto instance_it = info_obj.find(QString::fromStdString(info.name()));
 
@@ -238,121 +302,6 @@ std::string generate_instance_info_report(const mp::InfoReply& reply)
     info_json.insert("info", info_obj);
 
     return mp::json_to_string(info_json);
-}
-
-std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
-{
-    QJsonObject info_json;
-    QJsonObject info_obj;
-
-    info_json.insert("errors", QJsonArray());
-
-    for (const auto& item : reply.snapshot_overview().overview())
-    {
-        const auto& snapshot = item.fundamentals();
-        QJsonObject snapshot_obj;
-
-        snapshot_obj.insert("parent", QString::fromStdString(snapshot.parent()));
-        snapshot_obj.insert("comment", QString::fromStdString(snapshot.comment()));
-
-        auto it = info_obj.find(QString::fromStdString(item.instance_name()));
-        if (it == info_obj.end())
-        {
-            info_obj.insert(QString::fromStdString(item.instance_name()),
-                            QJsonObject{{QString::fromStdString(snapshot.snapshot_name()), snapshot_obj}});
-        }
-        else
-        {
-            QJsonObject obj = it.value().toObject();
-            obj.insert(QString::fromStdString(snapshot.snapshot_name()), snapshot_obj);
-            it.value() = obj;
-        }
-    }
-
-    info_json.insert("info", info_obj);
-
-    return mp::json_to_string(info_json);
-}
-
-std::string generate_instances_list(const mp::InstancesList& instances_list)
-{
-    QJsonObject list_json;
-    QJsonArray instances;
-
-    for (const auto& instance : instances_list.info())
-    {
-        QJsonObject instance_obj;
-        instance_obj.insert("name", QString::fromStdString(instance.name()));
-        instance_obj.insert("state", QString::fromStdString(mp::format::status_string_for(instance.instance_status())));
-
-        QJsonArray ipv4_addrs;
-        for (const auto& ip : instance.ipv4())
-            ipv4_addrs.append(QString::fromStdString(ip));
-        instance_obj.insert("ipv4", ipv4_addrs);
-
-        instance_obj.insert("release",
-                            QString::fromStdString(instance.current_release().empty()
-                                                       ? "Not Available"
-                                                       : fmt::format("Ubuntu {}", instance.current_release())));
-
-        instances.append(instance_obj);
-    }
-
-    list_json.insert("list", instances);
-
-    return mp::json_to_string(list_json);
-}
-
-std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
-{
-    QJsonObject info_json;
-    QJsonObject info_obj;
-
-    info_json.insert("errors", QJsonArray());
-
-    for (const auto& item : snapshots_list.info())
-    {
-        const auto& snapshot = item.fundamentals();
-        QJsonObject snapshot_obj;
-
-        snapshot_obj.insert("parent", QString::fromStdString(snapshot.parent()));
-        snapshot_obj.insert("comment", QString::fromStdString(snapshot.comment()));
-
-        auto it = info_obj.find(QString::fromStdString(item.name()));
-        if (it == info_obj.end())
-        {
-            info_obj.insert(QString::fromStdString(item.name()),
-                            QJsonObject{{QString::fromStdString(snapshot.snapshot_name()), snapshot_obj}});
-        }
-        else
-        {
-            QJsonObject obj = it.value().toObject();
-            obj.insert(QString::fromStdString(snapshot.snapshot_name()), snapshot_obj);
-            it.value() = obj;
-        }
-    }
-
-    info_json.insert("info", info_obj);
-
-    return mp::json_to_string(info_json);
-}
-} // namespace
-
-std::string mp::JsonFormatter::format(const InfoReply& reply) const
-{
-    std::string output;
-
-    if (reply.has_detailed_report())
-    {
-        output = generate_instance_info_report(reply);
-    }
-    else
-    {
-        assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
-        output = generate_snapshot_overview_report(reply);
-    }
-
-    return output;
 }
 
 std::string mp::JsonFormatter::format(const ListReply& reply) const

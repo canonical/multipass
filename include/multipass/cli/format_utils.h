@@ -43,9 +43,6 @@ Formatter* formatter_for(const std::string& format);
 template <typename Instances>
 Instances sorted(const Instances& instances);
 
-template <typename Snapshots>
-Snapshots sort_snapshots(const Snapshots& snapshots);
-
 template <typename Details>
 Details sort_instances_and_snapshots(const Details& details);
 
@@ -98,34 +95,6 @@ Container multipass::format::sorted(const Container& instances)
                 return a.name() < b.name();
             }
         }
-    });
-
-    return ret;
-}
-
-// TODO@snapshots DRY
-template <typename Snapshots>
-Snapshots multipass::format::sort_snapshots(const Snapshots& snapshots)
-{
-    using google::protobuf::util::TimeUtil;
-    if (snapshots.empty())
-        return snapshots;
-
-    auto ret = snapshots;
-    const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
-    std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
-        if (a.instance_name() == petenv_name && b.instance_name() != petenv_name)
-            return true;
-        else if (a.instance_name() != petenv_name && b.instance_name() == petenv_name)
-            return false;
-
-        if (a.instance_name() < b.instance_name())
-            return true;
-        else if (a.instance_name() > b.instance_name())
-            return false;
-
-        return TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
-               TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
     });
 
     return ret;
