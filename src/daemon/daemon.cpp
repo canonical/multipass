@@ -1269,6 +1269,15 @@ void populate_snapshot_fundamentals(std::shared_ptr<const mp::Snapshot> snapshot
     timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
 }
 
+void populate_snapshot_overview(const std::string& instance_name, std::shared_ptr<const mp::Snapshot> snapshot,
+                                mp::SnapshotOverviewInfoItem* overview)
+{
+    auto fundamentals = overview->mutable_fundamentals();
+
+    overview->set_instance_name(instance_name);
+    populate_snapshot_fundamentals(snapshot, fundamentals);
+}
+
 void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mounts, mp::MountInfo* mount_info,
                          bool& have_mounts)
 {
@@ -1743,24 +1752,13 @@ try // clang-format on
                     vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
 
                 for (const auto& snapshot : vm.view_snapshots())
-                {
-                    auto overview = response.mutable_snapshot_overview()->add_overview();
-                    auto fundamentals = overview->mutable_fundamentals();
-
-                    overview->set_instance_name(name);
-                    populate_snapshot_fundamentals(snapshot, fundamentals);
-                }
+                    populate_snapshot_overview(name, snapshot, response.mutable_snapshot_overview()->add_overview());
             }
             else
             {
                 for (const auto& snapshot : pick)
-                {
-                    auto overview = response.mutable_snapshot_overview()->add_overview();
-                    auto fundamentals = overview->mutable_fundamentals();
-
-                    overview->set_instance_name(name);
-                    populate_snapshot_fundamentals(vm.get_snapshot(snapshot), fundamentals);
-                }
+                    populate_snapshot_overview(name, vm.get_snapshot(snapshot),
+                                               response.mutable_snapshot_overview()->add_overview());
             }
         }
         catch (const NoSuchSnapshot& e)
