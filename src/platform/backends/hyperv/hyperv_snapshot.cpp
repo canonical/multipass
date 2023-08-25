@@ -75,7 +75,7 @@ void mp::HyperVSnapshot::erase_impl()
 
 void mp::HyperVSnapshot::apply_impl()
 {
-    power_shell->easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", quoted_id()},
+    power_shell->easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", quoted_id(), "-Confirm:$false"},
                           "Could not apply snapshot");
 }
 
