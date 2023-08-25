@@ -69,6 +69,7 @@ public:
     void delete_snapshot(const QDir& snapshot_dir, const std::string& name) override;
     void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) override;
     void load_snapshots(const QDir& snapshot_dir) override;
+    std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
