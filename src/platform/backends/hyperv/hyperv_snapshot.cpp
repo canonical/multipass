@@ -75,5 +75,6 @@ void mp::HyperVSnapshot::erase_impl()
 
 void mp::HyperVSnapshot::apply_impl()
 {
-    throw NotImplementedOnThisBackendException{"apply"}; // TODO@snapshots
+    auto id = quoted(derive_id());
+    power_shell->easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", id}, "Could not delete snapshot");
 }
