@@ -42,7 +42,7 @@ struct StubSnapshot : public Snapshot
         return QDateTime{};
     }
 
-    std::string get_parent_name() const override
+    std::string get_parents_name() const override
     {
         return {};
     }
