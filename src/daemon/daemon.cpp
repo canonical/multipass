@@ -1261,7 +1261,7 @@ void populate_snapshot_fundamentals(std::shared_ptr<const mp::Snapshot> snapshot
                                     mp::SnapshotFundamentals* fundamentals)
 {
     fundamentals->set_snapshot_name(snapshot->get_name());
-    fundamentals->set_parent(snapshot->get_parent_name());
+    fundamentals->set_parent(snapshot->get_parents_name());
     fundamentals->set_comment(snapshot->get_comment());
 
     auto timestamp = fundamentals->mutable_creation_timestamp();

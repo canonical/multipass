@@ -387,7 +387,7 @@ template <typename LockT>
 void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
 {
     auto num_snapshots = static_cast<int>(snapshots.size());
-    auto parent_name = head_snapshot->get_parent_name();
+    auto parent_name = head_snapshot->get_parents_name();
 
     assert(num_snapshots <= snapshot_count && "can't have more snapshots than were ever taken");
 
@@ -435,7 +435,7 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
 
 auto BaseVirtualMachine::make_head_file_rollback(const Path& head_path, QFile& head_file) const
 {
-    return sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parent_name(),
+    return sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parents_name(),
                                  existed = head_file.exists()]() noexcept {
         head_file_rollback_helper(head_path, head_file, old_head, existed);
     });
