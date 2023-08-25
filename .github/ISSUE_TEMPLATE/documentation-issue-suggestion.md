@@ -7,11 +7,11 @@ assignees: ''
 
 ---
 
-**What are issue or suggestion are you reporting?**
+**Description of documentation issue or suggestion**
 A description of the issue or suggestion you are making.
 
-**Do you have a proposal to fix the issue or enact the suggestion?**
-A description of how you think the issue should be fixed or how to enact your suggestion.
+**Proposal to fix issue or enact suggestion**
+If applicable, a description of how you think the issue should be fixed or how to enact your suggestion.
 
 **Additional context**
 Any additional context such as a link to the documentation page, a screenshot, etc.
