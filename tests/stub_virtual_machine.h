@@ -156,6 +156,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
+    std::vector<std::string> get_childrens_names(const Snapshot*) const override
+    {
+        return {};
+    }
+
     StubSnapshot snapshot;
 };
 } // namespace test

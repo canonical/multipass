@@ -152,7 +152,7 @@ QJsonObject multipass::BaseSnapshot::serialize() const
     snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
     snapshot.insert("state", static_cast<int>(state));
     snapshot.insert("metadata", metadata);
-    snapshot.insert("parent", QString::fromStdString(get_parent_name()));
+    snapshot.insert("parent", QString::fromStdString(get_parents_name()));
 
     // Extract mount serialization
     QJsonArray json_mounts;
