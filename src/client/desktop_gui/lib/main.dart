@@ -1,10 +1,8 @@
-import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'ffi.dart';
-import 'providers.dart';
+import 'sidebar.dart';
 import 'tray_menu.dart';
 
 void main() async {
@@ -22,49 +20,27 @@ void main() async {
   runApp(
     UncontrolledProviderScope(
       container: providerContainer,
-      child: const MaterialApp(
-        home: MyHomePage(),
-      ),
+      child: const App(),
     ),
   );
 }
 
-class MyHomePage extends ConsumerWidget {
-  const MyHomePage({super.key});
-
-  Widget _buildInfosColumn(BuiltMap<String, Status> infos) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: infos.entries
-          .map((info) => Text('${info.key} ${info.value}'))
-          .toList(),
-    );
-  }
+class App extends StatelessWidget {
+  const App({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final instances = ref
-        .watch(vmInfosStreamProvider.select((data) => data.whenData(
-              (infos) => infosToStatusMap(infos).build(),
-            )))
-        .when(
-          data: _buildInfosColumn,
-          error: (error, _) => Text('$error'),
-          loading: () => const Text('Loading...'),
-        );
-
-    final settings = ref.watch(clientSettingsProvider);
-
-    return Scaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          instances,
-          const Spacer(),
-          Text(settings.entries.map((e) => '${e.key}: ${e.value}').join('\n')),
-          Text(multipassVersion),
-        ],
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Consumer(
+        builder: (_, ref, __) {
+          final sidebarKey = ref.watch(sidebarKeyProvider);
+          return Row(children: [
+            const SideBar(),
+            Expanded(child: sidebarWidgets[sidebarKey]!),
+          ]);
+        },
       ),
+      theme: ThemeData(fontFamily: 'Ubuntu'),
     );
   }
 }
