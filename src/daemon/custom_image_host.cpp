@@ -51,6 +51,7 @@ struct CustomImageInfo
     QString os;
     QString release;
     QString release_string;
+    QString release_codename;
 };
 
 const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
@@ -60,13 +61,29 @@ const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
         {"core", "core16"},
         "Ubuntu",
         "core-16",
+        "Core 16",
         "Core 16"}},
       {{"ubuntu-core-18-amd64.img.xz"},
-       {"https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/", {"core18"}, "Ubuntu", "core-18", "Core 18"}},
+       {"https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/",
+        {"core18"},
+        "Ubuntu",
+        "core-18",
+        "Core 18",
+        "Core 18"}},
       {{"ubuntu-core-20-amd64.img.xz"},
-       {"https://cdimage.ubuntu.com/ubuntu-core/20/stable/current/", {"core20"}, "Ubuntu", "core-20", "Core 20"}},
+       {"https://cdimage.ubuntu.com/ubuntu-core/20/stable/current/",
+        {"core20"},
+        "Ubuntu",
+        "core-20",
+        "Core 20",
+        "Core 20"}},
       {{"ubuntu-core-22-amd64.img.xz"},
-       {"https://cdimage.ubuntu.com/ubuntu-core/22/stable/current/", {"core22"}, "Ubuntu", "core-22", "Core 22"}}}}};
+       {"https://cdimage.ubuntu.com/ubuntu-core/22/stable/current/",
+        {"core22"},
+        "Ubuntu",
+        "core-22",
+        "Core 22",
+        "Core 22"}}}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file, const bool is_force_update_from_network = false)
@@ -119,6 +136,7 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
                                custom_image_info.os,
                                custom_image_info.release,
                                custom_image_info.release_string,
+                               custom_image_info.release_codename,
                                true,                 // supported
                                image_url,            // image_location
                                base_image_info.hash, // id
