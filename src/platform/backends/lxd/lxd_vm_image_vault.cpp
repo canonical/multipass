@@ -265,8 +265,18 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
             last_modified = QDateTime::currentDateTime();
         }
 
-        info = VMImageInfo{
-            {}, {}, {}, {}, true, image_url.url(), id, {}, last_modified.toString(), 0, checksum.has_value()};
+        info = VMImageInfo{{},
+                           {},
+                           {},
+                           {},
+                           {},
+                           true,
+                           image_url.url(),
+                           id,
+                           {},
+                           last_modified.toString(),
+                           0,
+                           checksum.has_value()};
 
         source_image.id = id.toStdString();
         source_image.release_date = last_modified.toString(Qt::ISODateWithMs).toStdString();
