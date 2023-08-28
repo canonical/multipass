@@ -18,6 +18,7 @@ dependencies:
   flutter_riverpod: ^2.3.6
   grpc: ^3.1.0
   path_provider: ^2.1.0
+  flutter_svg: ^2.0.7
   tray_menu:
     git: https://github.com/andrei-toterman/tray_menu.git
   window_manager: ^0.3.5
