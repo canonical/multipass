@@ -59,6 +59,7 @@ mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::
             info.os,
             info.release,
             info.release_title,
+            info.release_codename,
             info.supported,
             host_url + info.image_location,
             info.id,
