@@ -7,6 +7,7 @@ import 'generated/multipass.pbgrpc.dart';
 
 typedef Status = InstanceStatus_Status;
 typedef VmInfo = DetailedInfoItem;
+typedef ImageInfo = FindReply_ImageInfo;
 
 class GrpcClient {
   final RpcClient _client;
@@ -80,9 +81,12 @@ class GrpcClient {
     return _client.info(Stream.value(request)).single.then((r) => r.details);
   }
 
-  Future<List<FindReply_ImageInfo>> find() {
-    final request = FindRequest(showImages: true, showBlueprints: true);
-    return _client.find(Stream.value(request)).single.then((r) => r.imagesInfo);
+  Future<FindReply> find({bool images = true, bool blueprints = true}) {
+    final request = FindRequest(
+      showImages: images,
+      showBlueprints: blueprints,
+    );
+    return _client.find(Stream.value(request)).single;
   }
 
   Future<String> version() {
