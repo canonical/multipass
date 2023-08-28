@@ -30,3 +30,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+  fonts:
+    - family: Ubuntu
+      fonts:
+        - asset: assets/Ubuntu-R.ttf
+        - asset: assets/Ubuntu-B.ttf
+          weight: 700
+        - asset: assets/Ubuntu-L.ttf
+          weight: 300
