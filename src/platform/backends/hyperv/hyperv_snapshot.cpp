@@ -36,12 +36,12 @@ QString quoted(const QString& s)
     return '"' + s + '"';
 }
 
-void require_unique_id(mp::PowerShell* ps, const QString& vm_name, const QString& id)
+void require_unique_id(mp::PowerShell& ps, const QString& vm_name, const QString& id)
 {
     static const QString expected_error{"ObjectNotFound"};
 
     QString output;
-    if (ps->run({"Get-VMCheckpoint", "-VMName", vm_name, "-Name", id}, &output))
+    if (ps.run({"Get-VMCheckpoint", "-VMName", vm_name, "-Name", id}, &output))
         throw std::runtime_error{fmt::format("A snapshot called {} already exists for this VM in Hyper-V", id)};
 
     if (!output.contains(expected_error))
@@ -56,14 +56,13 @@ void require_unique_id(mp::PowerShell* ps, const QString& vm_name, const QString
 } // namespace
 
 mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                                   std::shared_ptr<Snapshot> parent, const QString& vm_name, PowerShell* power_shell)
+                                   std::shared_ptr<Snapshot> parent, const QString& vm_name, PowerShell& power_shell)
     : BaseSnapshot{name, comment, specs, std::move(parent)}, vm_name{vm_name}, power_shell{power_shell}
 {
-    assert(power_shell);
 }
 
 mp::HyperVSnapshot::HyperVSnapshot(const QJsonObject& json, HyperVVirtualMachine& vm, const QString& vm_name,
-                                   PowerShell* power_shell)
+                                   PowerShell& power_shell)
     : BaseSnapshot{json, vm}, vm_name{vm_name}, power_shell{power_shell}
 {
 }
@@ -72,7 +71,7 @@ void mp::HyperVSnapshot::capture_impl()
 {
     auto id = quoted_id();
     require_unique_id(power_shell, vm_name, id);
-    power_shell->easy_run({"Checkpoint-VM", "-Name", vm_name, "-SnapshotName", id}, "Could not create snapshot");
+    power_shell.easy_run({"Checkpoint-VM", "-Name", vm_name, "-SnapshotName", id}, "Could not create snapshot");
 }
 
 void mp::HyperVSnapshot::erase_impl()
@@ -82,8 +81,8 @@ void mp::HyperVSnapshot::erase_impl()
 
 void mp::HyperVSnapshot::apply_impl()
 {
-    power_shell->easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", quoted_id(), "-Confirm:$false"},
-                          "Could not apply snapshot");
+    power_shell.easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", quoted_id(), "-Confirm:$false"},
+                         "Could not apply snapshot");
 }
 
 QString mp::HyperVSnapshot::quoted_id() const
