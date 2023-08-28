@@ -10,6 +10,13 @@ import 'tray_menu.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
+
+  const windowOptions = WindowOptions(size: Size(1400, 800));
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
   final providerContainer = ProviderContainer();
   setupTrayMenu(providerContainer);
   runApp(
