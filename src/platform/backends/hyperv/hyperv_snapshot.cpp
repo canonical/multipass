@@ -63,7 +63,7 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& c
 
 void mp::HyperVSnapshot::capture_impl()
 {
-    auto id = quoted(derive_id());
+    auto id = quoted_id();
     require_unique_id(power_shell, vm_name, id);
     power_shell->easy_run({"Checkpoint-VM", "-Name", vm_name, "-SnapshotName", id}, "Could not create snapshot");
 }
@@ -75,6 +75,11 @@ void mp::HyperVSnapshot::erase_impl()
 
 void mp::HyperVSnapshot::apply_impl()
 {
-    auto id = quoted(derive_id());
-    power_shell->easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", id}, "Could not delete snapshot");
+    power_shell->easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", quoted_id()},
+                          "Could not apply snapshot");
+}
+
+QString mp::HyperVSnapshot::quoted_id() const
+{
+    return quoted(derive_id());
 }

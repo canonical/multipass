@@ -38,6 +38,9 @@ protected:
     void apply_impl() override;
 
 private:
+    QString quoted_id() const;
+
+private:
     const QString& vm_name;
     PowerShell* power_shell;
 };
