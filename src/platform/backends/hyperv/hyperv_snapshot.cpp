@@ -16,6 +16,7 @@
  */
 
 #include "hyperv_snapshot.h"
+#include "hyperv_virtual_machine.h"
 
 #include <shared/windows/powershell.h>
 
@@ -59,6 +60,12 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& c
     : BaseSnapshot{name, comment, specs, std::move(parent)}, vm_name{vm_name}, power_shell{power_shell}
 {
     assert(power_shell);
+}
+
+mp::HyperVSnapshot::HyperVSnapshot(const QJsonObject& json, HyperVVirtualMachine& vm, const QString& vm_name,
+                                   PowerShell* power_shell)
+    : BaseSnapshot{json, vm}, vm_name{vm_name}, power_shell{power_shell}
+{
 }
 
 void mp::HyperVSnapshot::capture_impl()

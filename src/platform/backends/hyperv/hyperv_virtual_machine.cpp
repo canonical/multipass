@@ -326,5 +326,5 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+    return std::make_shared<HyperVSnapshot>(json, *this, name, power_shell.get());
 }

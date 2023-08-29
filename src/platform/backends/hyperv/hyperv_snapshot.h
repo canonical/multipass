@@ -24,6 +24,7 @@
 
 namespace multipass
 {
+class HyperVVirtualMachine;
 class PowerShell;
 
 class HyperVSnapshot : public BaseSnapshot
@@ -31,6 +32,7 @@ class HyperVSnapshot : public BaseSnapshot
 public:
     HyperVSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
                    std::shared_ptr<Snapshot> parent, const QString& vm_name, PowerShell* power_shell);
+    HyperVSnapshot(const QJsonObject& json, HyperVVirtualMachine& vm, const QString& vm_name, PowerShell* power_shell);
 
 protected:
     void capture_impl() override;
