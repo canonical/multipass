@@ -86,6 +86,9 @@ void mp::HyperVSnapshot::erase_impl()
     if (snapshot_exists(power_shell, vm_name, id))
         power_shell.easy_run({"Remove-VMCheckpoint", "-VMName", vm_name, "-Name", id, "-Confirm:$false"},
                              "Could not delete snapshot");
+    else
+        mpl::log(mpl::Level::warning, vm_name.toStdString(),
+                 fmt::format("Could not find underlying Hyper-V snapshot for \"{}\". Ignoring...", get_name()));
 }
 
 void mp::HyperVSnapshot::apply_impl()
