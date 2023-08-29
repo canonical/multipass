@@ -36,22 +36,28 @@ QString quoted(const QString& s)
     return '"' + s + '"';
 }
 
-void require_unique_id(mp::PowerShell& ps, const QString& vm_name, const QString& id)
+bool snapshot_exists(mp::PowerShell& ps, const QString& vm_name, const QString& id)
 {
     static const QString expected_error{"ObjectNotFound"};
 
     QString output;
     if (ps.run({"Get-VMCheckpoint", "-VMName", vm_name, "-Name", id}, &output))
-        throw std::runtime_error{fmt::format("A snapshot called {} already exists for this VM in Hyper-V", id)};
+        return true;
 
     if (!output.contains(expected_error))
     {
         mpl::log(mpl::Level::warning, vm_name.toStdString(),
                  fmt::format("Get-VMCheckpoint failed with unexpected output: {}", output));
-        throw std::runtime_error{"Could not verify snapshot-name uniqueness"};
+        throw std::runtime_error{"Failure while looking for snapshot name"};
     }
 
-    return; // we're good: the command failed with the expected error
+    return false; // we're good: the command failed with the expected error
+}
+
+void require_unique_id(mp::PowerShell& ps, const QString& vm_name, const QString& id)
+{
+    if (snapshot_exists(ps, vm_name, id))
+        throw std::runtime_error{fmt::format("A snapshot called {} already exists for this VM in Hyper-V", id)};
 }
 } // namespace
 
@@ -76,7 +82,10 @@ void mp::HyperVSnapshot::capture_impl()
 
 void mp::HyperVSnapshot::erase_impl()
 {
-    throw NotImplementedOnThisBackendException{"erase"}; // TODO@snapshots
+    auto id = quoted_id();
+    if (snapshot_exists(power_shell, vm_name, id))
+        power_shell.easy_run({"Remove-VMCheckpoint", "-VMName", vm_name, "-Name", id, "-Confirm:$false"},
+                             "Could not delete snapshot");
 }
 
 void mp::HyperVSnapshot::apply_impl()
