@@ -105,8 +105,6 @@ BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state, const std::s
 BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name, const mp::Path& instance_dir)
     : VirtualMachine(vm_name, instance_dir){};
 
-BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name){};
-
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {
     std::vector<std::string> all_ipv4;
