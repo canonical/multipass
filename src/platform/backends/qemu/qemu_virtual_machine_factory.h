@@ -44,6 +44,8 @@ public:
     std::vector<NetworkInterfaceInfo> networks() const override;
 
 private:
+    explicit QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const Path& data_dir);
+
     QemuPlatform::UPtr qemu_platform;
 };
 } // namespace multipass
