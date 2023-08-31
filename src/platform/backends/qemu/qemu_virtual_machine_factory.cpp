@@ -39,7 +39,7 @@ constexpr auto category = "qemu factory";
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
     : BaseVirtualMachineFactory(QString{}), qemu_platform{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir)}
 {
-    instances_dir = MP_UTILS.make_dir(QDir(data_dir, get_backend_directory_name()).filePath("vault"), "instances");
+    instances_dir = QDir(data_dir, get_backend_directory_name()).filePath("vault/instances");
 }
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
