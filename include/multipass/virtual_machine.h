@@ -101,13 +101,14 @@ public:
 
     VirtualMachine::State state;
     const std::string vm_name;
-    const QDir instance_dir;
     std::condition_variable state_wait;
     std::mutex state_mutex;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
 
 protected:
+    const QDir instance_dir;
+
     VirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir)
         : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
     VirtualMachine(const std::string& vm_name, const Path& instance_dir)
