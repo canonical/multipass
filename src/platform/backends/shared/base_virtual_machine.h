@@ -72,8 +72,6 @@ public:
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
 
 protected:
-    BaseVirtualMachine(const std::string& vm_name);
-
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
                                                              const VMSpecs& specs,
