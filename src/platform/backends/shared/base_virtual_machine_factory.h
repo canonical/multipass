@@ -37,6 +37,8 @@ public:
     BaseVirtualMachineFactory() = default;
     BaseVirtualMachineFactory(const Path& instances_dir);
 
+    void remove_resources_for(const std::string& name) override;
+
     FetchType fetch_type() override
     {
         return FetchType::ImageOnly;
