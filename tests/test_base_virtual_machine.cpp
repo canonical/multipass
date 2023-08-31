@@ -34,7 +34,7 @@ namespace
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
     StubBaseVirtualMachine(const mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
-        : mp::BaseVirtualMachine("stub")
+        : mp::BaseVirtualMachine("stub", "")
     {
         state = s;
     }
