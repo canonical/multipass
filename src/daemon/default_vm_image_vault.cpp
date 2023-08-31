@@ -634,6 +634,7 @@ QString mp::DefaultVMImageVault::extract_image_from(const std::string& instance_
                                                     const ProgressMonitor& monitor, const mp::Path& dest_dir)
 {
     const auto name = QString::fromStdString(instance_name);
+    MP_UTILS.make_dir(dest_dir, name);
     QFileInfo file_info{source_image.image_path};
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = QDir(dest_dir).filePath(image_name);
@@ -644,6 +645,8 @@ QString mp::DefaultVMImageVault::extract_image_from(const std::string& instance_
 mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& instance_name,
                                                          const VMImage& prepared_image, const mp::Path& dest_dir)
 {
+    MP_UTILS.make_dir(dest_dir, QString::fromStdString(instance_name));
+
     return {mp::vault::copy(prepared_image.image_path, dest_dir),
             prepared_image.id,
             prepared_image.original_release,
