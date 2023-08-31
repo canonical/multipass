@@ -51,7 +51,7 @@ public:
 
     QString get_instance_directory_name(const std::string& name) const override
     {
-        return MP_UTILS.make_dir(multipass::utils::backend_directory_path(instances_dir, QString::fromStdString(name)));
+        return multipass::utils::backend_directory_path(instances_dir, QString::fromStdString(name));
     }
 
     void prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) override
