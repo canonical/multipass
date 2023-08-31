@@ -52,9 +52,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
 void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
     qemu_platform->remove_resources_for(name);
-
-    QDir instance_dir{get_instance_directory_name(name)};
-    instance_dir.removeRecursively();
+    BaseVirtualMachineFactory::remove_resources_for(name);
 }
 
 mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)

@@ -150,8 +150,7 @@ void mp::LibVirtVirtualMachineFactory::remove_resources_for(const std::string& n
 
     libvirt_wrapper->virDomainUndefine(libvirt_wrapper->virDomainLookupByName(connection.get(), name.c_str()));
 
-    QDir instance_dir{get_instance_directory_name(name)};
-    instance_dir.removeRecursively();
+    BaseVirtualMachineFactory::remove_resources_for(name);
 }
 
 mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
