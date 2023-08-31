@@ -49,7 +49,7 @@ public:
         return {};
     };
 
-    QString get_instance_directory_name(const std::string& name) const override
+    Path get_instance_directory_name(const std::string& name) const override
     {
         return multipass::utils::backend_directory_path(instances_dir, QString::fromStdString(name));
     }
