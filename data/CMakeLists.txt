@@ -4,7 +4,7 @@ install(
 )
 
 install(
-  FILES multipass.gui.desktop
+  FILES multipass.desktop-gui.desktop
   DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
 )
 
