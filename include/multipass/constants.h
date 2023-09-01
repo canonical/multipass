@@ -58,12 +58,11 @@ constexpr auto driver_key = "local.driver";         // idem
 constexpr auto passphrase_key = "local.passphrase"; // idem
 constexpr auto bridged_interface_key = "local.bridged-network";       // idem
 constexpr auto mounts_key = "local.privileged-mounts";                // idem
-constexpr auto autostart_key = "client.gui.autostart";                // idem
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
 constexpr auto mirror_key = "local.image.mirror";                     // idem; this defines the mirror of simple streams
 
 [[maybe_unused]] // hands off clang-format
-constexpr auto key_examples = {autostart_key, driver_key, mounts_key};
+constexpr auto key_examples = {petenv_key, driver_key, mounts_key};
 
 constexpr auto petenv_default = "primary";
 

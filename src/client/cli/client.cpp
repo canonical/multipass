@@ -144,8 +144,6 @@ int mp::Client::run(const QStringList& arguments)
 
         try
         {
-            mp::client::pre_setup();
-
             ret = parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser)
                                                 : parser.returnCodeFrom(parse_status);
         }

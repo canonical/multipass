@@ -39,7 +39,6 @@ namespace mpl = multipass::logging;
 namespace
 {
 const auto client_root = QStringLiteral("client");
-const auto autostart_default = QStringLiteral("true");
 
 QString petenv_interpreter(QString val)
 {
@@ -129,7 +128,6 @@ QString mp::client::persistent_settings_filename()
 void mp::client::register_global_settings_handlers()
 {
     auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
-    settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
     settings.insert(std::make_unique<CustomSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
 
     MP_SETTINGS.register_handler(
@@ -175,19 +173,6 @@ void mp::client::set_logger()
 void mp::client::set_logger(mpl::Level verbosity)
 {
     mpl::set_logger(std::make_shared<mpl::StandardLogger>(verbosity));
-}
-
-void mp::client::pre_setup()
-{
-    try
-    {
-        platform::setup_gui_autostart_prerequisites();
-    }
-    catch (AutostartSetupException& e)
-    {
-        mpl::log(mpl::Level::error, "client", fmt::format("Failed to set up autostart prerequisites: {}", e.what()));
-        mpl::log(mpl::Level::debug, "client", e.get_detail());
-    }
 }
 
 void mp::client::post_setup()
