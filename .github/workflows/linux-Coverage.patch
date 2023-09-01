@@ -1,17 +1,17 @@
 diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
-index a72d9f09a..d23ed58e3 100644
+index 039b7e2ff..c35bb76c8 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -121,6 +121,7 @@ parts:
-     - pkg-config
-     - qt6-base-dev
-     - qt6-base-dev-tools
+@@ -113,6 +113,7 @@ parts:
+     - build-essential
+     - ccache
+     - git
 +    - lcov
-     stage-packages:
-     - apparmor
-     - on amd64: [libgl1]
-@@ -139,9 +140,8 @@ parts:
-     - dnsmasq-utils
+     - libapparmor-dev
+     - libgl1-mesa-dev
+     - libsystemd-dev
+@@ -141,9 +142,8 @@ parts:
+     - qt6-qpa-plugins
      source: .
      cmake-parameters:
 -    - -DCMAKE_BUILD_TYPE=Release
