@@ -82,54 +82,11 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
     return opts;
 }
 
-std::shared_ptr<grpc::Channel> create_channel_and_validate(const std::string& server_address,
-                                                           const grpc::SslCredentialsOptions& opts)
-{
-    auto rpc_channel{grpc::CreateChannel(server_address, grpc::SslCredentials(opts))};
-    mp::Rpc::Stub stub{rpc_channel};
-
-    grpc::ClientContext context;
-    auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(100); // should be enough...
-    context.set_deadline(deadline);
-
-    mp::PingRequest request;
-    mp::PingReply reply;
-    auto status = stub.ping(&context, request, &reply);
-
-    if (status.ok())
-    {
-        return rpc_channel;
-    }
-    else if (status.error_code() == grpc::StatusCode::UNAUTHENTICATED)
-    {
-        return nullptr;
-    }
-    // Throw for other error status as we don't want the client to process any further.  It will show up
-    // as an "unhandled exception" in the client, but this is fine in this case since this is just covering
-    // errors when the client is trying to determine the valid cert when upgrading from 1.8.
-    // This whole function will be deprecated in the future.
-    else
-    {
-        throw std::runtime_error(
-            fmt::format("Error connecting to the Multipass daemon: {}\nPlease try again in a few moments.",
-                        status.error_message()));
-    }
-}
-
 bool client_certs_exist(const QString& cert_dir_path)
 {
     QDir cert_dir{cert_dir_path};
 
     return cert_dir.exists(mp::client_cert_file) && cert_dir.exists(mp::client_key_file);
-}
-
-void copy_client_certs_to_common_dir(const QString& cert_dir_path, const QString& common_cert_dir_path)
-{
-    MP_UTILS.make_dir(common_cert_dir_path);
-    QDir common_dir{common_cert_dir_path}, cert_dir{cert_dir_path};
-
-    QFile::copy(cert_dir.filePath(mp::client_cert_file), common_dir.filePath(mp::client_cert_file));
-    QFile::copy(cert_dir.filePath(mp::client_key_file), common_dir.filePath(mp::client_key_file));
 }
 } // namespace
 
@@ -202,40 +159,11 @@ std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider(const std::st
     auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
     auto common_client_cert_dir_path{data_location + common_client_cert_dir};
 
-    if (client_certs_exist(common_client_cert_dir_path))
+    if (!client_certs_exist(common_client_cert_dir_path))
     {
-        return std::make_unique<SSLCertProvider>(common_client_cert_dir_path);
+        MP_UTILS.make_dir(common_client_cert_dir_path);
     }
 
-    // No common client certificates exist yet.
-    // TODO: Remove the following logic when we are comfortable all installed clients are using the common cert
-
-    // The following logic is for determining which certificate to use when the client starts up.
-    // 1. Check if the multipass-gui certificate exists and determine if it's authenticated
-    //    with the daemon already.  If it is, copy it to the common client certificate directory and use it.
-    // 2. If that fails, then try the certificate from the cli client in the same manner.
-    // 3. Delete any per-client certificate dirs.
-    // 4. Lastly, no known certificate for the user exists, so create a new common certificate and use that.
-
-    const std::vector<QString> cert_dirs{data_location + gui_client_cert_dir, data_location + cli_client_cert_dir};
-    for (const auto& cert_dir : cert_dirs)
-    {
-        if (client_certs_exist(cert_dir))
-        {
-            auto ssl_cert_provider = std::make_unique<SSLCertProvider>(cert_dir);
-            if (auto rpc_channel{
-                    create_channel_and_validate(server_address, get_ssl_credentials_opts_from(*ssl_cert_provider))})
-            {
-                copy_client_certs_to_common_dir(cert_dir, common_client_cert_dir_path);
-                utils::remove_directories(cert_dirs);
-
-                return ssl_cert_provider;
-            }
-        }
-    }
-
-    utils::remove_directories(cert_dirs);
-    MP_UTILS.make_dir(common_client_cert_dir_path);
     return std::make_unique<SSLCertProvider>(common_client_cert_dir_path);
 }
 

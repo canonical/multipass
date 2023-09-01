@@ -33,8 +33,6 @@
 namespace multipass
 {
 const QString common_client_cert_dir{"/multipass-client-certificate"};
-const QString gui_client_cert_dir{"/multipass-gui/client-certificate"};
-const QString cli_client_cert_dir{"/multipass/client-certificate"};
 const QString client_cert_prefix{"multipass_cert"};
 const QString cert_file_suffix{".pem"};
 const QString key_file_suffix{"_key.pem"};
