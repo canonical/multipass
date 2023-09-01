@@ -101,6 +101,3 @@ set_target_properties(semver PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # xz-decoder config
 add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
-
-# qhotkey config
-add_subdirectory(qhotkey EXCLUDE_FROM_ALL)

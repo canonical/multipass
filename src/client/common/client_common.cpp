@@ -33,8 +33,6 @@
 
 #include <fmt/ostream.h>
 
-#include <QKeySequence>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -42,11 +40,6 @@ namespace
 {
 const auto client_root = QStringLiteral("client");
 const auto autostart_default = QStringLiteral("true");
-
-QString default_hotkey()
-{
-    return QKeySequence{mp::hotkey_default}.toString(QKeySequence::NativeText); // outcome depends on platform
-}
 
 QString petenv_interpreter(QString val)
 {
@@ -181,9 +174,6 @@ void mp::client::register_global_settings_handlers()
     auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BoolSettingSpec>(autostart_key, autostart_default));
     settings.insert(std::make_unique<CustomSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
-    settings.insert(std::make_unique<CustomSettingSpec>(mp::hotkey_key, default_hotkey(), [](QString val) {
-        return mp::platform::interpret_setting(mp::hotkey_key, val);
-    }));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));

@@ -91,7 +91,6 @@ add_executable(multipass_tests
   test_output_formatter.cpp
   test_persistent_settings_handler.cpp
   test_petname.cpp
-  test_platform_shared.cpp
   test_private_pass_provider.cpp
   test_qemuimg_process_spec.cpp
   test_remote_settings_handler.cpp
