@@ -190,7 +190,7 @@ Finally, use multipass's clients:
 
 ```
 <multipass>/build/bin/multipass launch --name foo  # CLI client
-<multipass>/build/bin/multipass.gui                # GUI client
+<multipass>/build/bin/multipass.desktop-gui        # GUI client
 ```
 
 # More information
