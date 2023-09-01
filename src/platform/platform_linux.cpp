@@ -382,9 +382,6 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
-    if (key == hotkey_key)
-        return mp::platform::interpret_hotkey(val);
-
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingException(key, val, "Setting unavailable on Linux");
 }

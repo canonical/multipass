@@ -127,9 +127,6 @@ set_target_properties(semver PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # xz-decoder config
 add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
 
-# qhotkey config
-add_subdirectory(qhotkey EXCLUDE_FROM_ALL)
-
 # POCO library
 # Suppress CMake CMP0077 warning in POCO - see `cmake --help-policy CMP0077`
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)

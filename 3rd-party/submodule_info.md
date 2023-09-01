@@ -21,11 +21,6 @@ Version: 9.1.0 |
 <https://github.com/fmtlib/fmt.git> |
 <https://github.com/fmtlib/fmt/releases>
 
-### QHotKey
-Version: 1.4.2 |
-<https://github.com/Skycoder42/QHotkey.git> |
-<https://github.com/Skycoder42/QHotkey/releases>
-
 ### scope_guard
 Version: 1.1.0 |
 <https://github.com/ricab/scope_guard.git> |

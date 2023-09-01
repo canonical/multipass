@@ -2928,7 +2928,7 @@ TEST_P(TestBasicGetSetOptions, InteractiveSetWritesSettings)
 }
 
 INSTANTIATE_TEST_SUITE_P(Client, TestBasicGetSetOptions,
-                         Values(mp::petenv_key, mp::driver_key, mp::autostart_key, mp::hotkey_key,
+                         Values(mp::petenv_key, mp::driver_key, mp::autostart_key,
                                 mp::bridged_interface_key, mp::mounts_key, "anything.else.really"));
 
 TEST_F(Client, get_returns_setting)
@@ -3021,14 +3021,14 @@ TEST_F(Client, get_handles_persistent_settings_errors)
 
 TEST_F(Client, get_returns_special_representation_of_empty_value_by_default)
 {
-    const auto key = mp::hotkey_key;
+    const auto key = mp::petenv_key;
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(QStringLiteral("")));
     EXPECT_THAT(get_setting(key), Eq("<empty>"));
 }
 
 TEST_F(Client, get_returns_empty_string_on_empty_value_with_raw_option)
 {
-    const auto key = mp::hotkey_key;
+    const auto key = mp::petenv_key;
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(QStringLiteral("")));
     EXPECT_THAT(get_setting({key, "--raw"}), IsEmpty());
 }
@@ -3036,8 +3036,7 @@ TEST_F(Client, get_returns_empty_string_on_empty_value_with_raw_option)
 TEST_F(Client, get_keeps_other_values_untouched_with_raw_option)
 {
     std::vector<std::pair<const char*, QString>> keyvals{{mp::autostart_key, QStringLiteral("False")},
-                                                         {mp::petenv_key, QStringLiteral("a-pet-nAmE")},
-                                                         {mp::hotkey_key, QStringLiteral("Ctrl+Alt+U")}};
+                                                         {mp::petenv_key, QStringLiteral("a-pet-nAmE")}};
     for (const auto& [key, val] : keyvals)
     {
         EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(val));
