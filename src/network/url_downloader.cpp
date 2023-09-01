@@ -235,7 +235,7 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
     return download(url, false);
 }
 
-QByteArray mp::URLDownloader::download(const QUrl& url, bool is_force_update_from_network)
+QByteArray mp::URLDownloader::download(const QUrl& url, const bool is_force_update_from_network)
 {
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 

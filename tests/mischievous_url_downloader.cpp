@@ -35,7 +35,7 @@ QByteArray mpt::MischievousURLDownloader::download(const QUrl& url)
     return URLDownloader::download(choose_url(url));
 }
 
-QByteArray mpt::MischievousURLDownloader::download(const QUrl& url, bool is_force_update_from_network)
+QByteArray mpt::MischievousURLDownloader::download(const QUrl& url, const bool is_force_update_from_network)
 {
     return URLDownloader::download(choose_url(url), is_force_update_from_network);
 }

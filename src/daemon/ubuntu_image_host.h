@@ -50,7 +50,7 @@ public:
 private:
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
-    void fetch_manifests(bool is_force_update_from_network) override;
+    void fetch_manifests(const bool is_force_update_from_network) override;
     void clear() override;
     SimpleStreamsManifest* manifest_from(const std::string& remote);
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;

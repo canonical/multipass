@@ -74,7 +74,7 @@ bool is_default_constructed(const mp::VMImageInfo& image_info)
 }
 
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
-                         const QString& image_file, bool is_force_update_from_network = false)
+                         const QString& image_file, const bool is_force_update_from_network = false)
 {
     const auto last_modified = QLocale::c().toString(url_downloader->last_modified({image_url}), "yyyyMMdd");
     const auto sha256_sums = url_downloader->download({hash_url}, is_force_update_from_network).split('\n');
@@ -112,7 +112,7 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
 }
 
 auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
-                         bool is_force_update_from_network = false)
+                         const bool is_force_update_from_network = false)
 {
     std::vector<mp::VMImageInfo> default_images(custom_image_info.size());
 
@@ -233,7 +233,7 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
     return remotes;
 }
 
-void mp::CustomVMImageHost::fetch_manifests(bool is_force_update_from_network)
+void mp::CustomVMImageHost::fetch_manifests(const bool is_force_update_from_network)
 {
     for (const auto& spec : {std::make_pair(no_remote, multipass_image_info[arch])})
     {

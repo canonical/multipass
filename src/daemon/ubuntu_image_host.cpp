@@ -48,7 +48,8 @@ bool is_default_constructed(const std::pair<std::string, std::unique_ptr<mp::Sim
     return manifest_pair == std::pair<std::string, std::unique_ptr<mp::SimpleStreamsManifest>>{};
 }
 
-auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader, bool is_force_update_from_network)
+auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader,
+                       const bool is_force_update_from_network)
 {
     auto json_index = url_downloader->download({host_url + index_path}, is_force_update_from_network);
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
@@ -231,7 +232,7 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::fetch_manifests(bool is_force_update_from_network)
+void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_network)
 {
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> local_manifests(remotes.size());
     auto fetch_one_remote_and_write_to_index =

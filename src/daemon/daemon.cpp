@@ -3023,7 +3023,7 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
         async_op_result.status_promise->set_value(async_op_result.status);
 }
 
-void mp::Daemon::update_manifests_all(bool is_force_update_from_network)
+void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
 {
     std::vector<std::future<void>> empty_futures;
     empty_futures.reserve(config->image_hosts.size());
