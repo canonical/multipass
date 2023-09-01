@@ -71,7 +71,6 @@ std::string get_server_address();
 std::unique_ptr<SSLCertProvider> get_cert_provider();
 void set_logger();
 void set_logger(multipass::logging::Level verbosity); // full param qualification makes sure msvc is happy
-void pre_setup();
 void post_setup();
 const std::regex yes_answer{"y|yes", std::regex::icase | std::regex::optimize};
 const std::regex no_answer{"n|no", std::regex::icase | std::regex::optimize};
