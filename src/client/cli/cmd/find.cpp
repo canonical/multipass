@@ -95,7 +95,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(force_manifest_network_download) && parser->isSet(blueprintsOnlyOption))
     {
-        cerr << "Force updating blueprints are not currently supported\n";
+        cerr << "Force updating blueprints is not currently supported\n";
         return ParseCode::CommandLineError;
     }
 
