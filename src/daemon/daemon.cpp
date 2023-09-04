@@ -3038,7 +3038,7 @@ void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
     }
 }
 
-void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(bool force_manifest_network_download)
+void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(const bool force_manifest_network_download)
 {
     update_manifests_all_task.wait_ongoing_task_finish();
     if (force_manifest_network_download)
