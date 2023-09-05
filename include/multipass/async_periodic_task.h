@@ -59,13 +59,13 @@ public:
         // mock_logger in the unit tests.
 
         // TODO, remove the launch_msg parameter once we have better class separation.
-        mpl::log(mpl::Level::info, "async task", std::string(launch_msg));
+        mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
         future = std::async(std::launch::async, std::forward<Callable>(func), std::forward<Args>(args)...);
         QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {
             // skip it if the previous one is still running
             if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
             {
-                mpl::log(mpl::Level::info, "async task", std::string(launch_msg));
+                mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
                 future = std::async(std::launch::async, func, args...);
             }
         });

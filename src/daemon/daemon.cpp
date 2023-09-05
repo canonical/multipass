@@ -3044,7 +3044,7 @@ void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(const bo
     if (force_manifest_network_download)
     {
         update_manifests_all_task.stop_timer();
-        mpl::log(mpl::Level::info, "async task", "fetch manifest from the internet");
+        mpl::log(mpl::Level::debug, "async task", "fetch manifest from the internet");
         update_manifests_all(true);
         update_manifests_all_task.start_timer();
     }
