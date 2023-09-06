@@ -1746,7 +1746,6 @@ try // clang-format on
 
         const auto& it = instance_snapshots_map.find(name);
         const auto& [pick, all_or_none] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
-        auto overview = response.mutable_snapshot_overview()->add_overview();
 
         try
         {
@@ -1756,12 +1755,13 @@ try // clang-format on
                     vm.get_snapshot(snapshot); // verify validity of any snapshot name requested separately
 
                 for (const auto& snapshot : vm.view_snapshots())
-                    populate_snapshot_overview(name, snapshot, overview);
+                    populate_snapshot_overview(name, snapshot, response.mutable_snapshot_overview()->add_overview());
             }
             else
             {
                 for (const auto& snapshot : pick)
-                    populate_snapshot_overview(name, vm.get_snapshot(snapshot), overview);
+                    populate_snapshot_overview(name, vm.get_snapshot(snapshot),
+                                               response.mutable_snapshot_overview()->add_overview());
             }
         }
         catch (const NoSuchSnapshot& e)
