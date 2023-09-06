@@ -28,6 +28,7 @@
 
 #include <chrono>
 #include <functional>
+#include <future>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -110,8 +111,9 @@ std::string match_line_for(const std::string& output, const std::string& matcher
 
 // virtual machine helpers
 bool is_running(const VirtualMachine::State& state);
-void wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                       std::function<void()> const& ensure_vm_is_running = []() {});
+void wait_until_ssh_up(
+    VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
+    std::function<void()> const& ensure_vm_is_running = []() {});
 std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
 
 // yaml helpers
@@ -127,9 +129,47 @@ std::string qenum_to_string(RegisteredQtEnum val);
 // other helpers
 QString get_multipass_storage();
 QString make_uuid(const std::optional<std::string>& seed = std::nullopt);
+
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
                     Args&&... args);
+
+template <typename T>
+bool is_default_constructed(const T& input_type)
+{
+    return input_type == T{};
+}
+
+// simplified parallel transform, it takes a std container and a unary operation and
+// returns a std::vector<OutputValueType> where the OutputValueType is the unary operation return type
+template <typename Container, typename UnaryOperation>
+auto parallel_transform(const Container& input_container, UnaryOperation&& unary_op)
+{
+    using InputValueType = typename Container::value_type;
+    using OutputValueType = std::invoke_result_t<UnaryOperation, InputValueType>;
+    const auto num_elements = input_container.size();
+
+    // Pre-allocate space for futures
+    std::vector<std::future<OutputValueType>> futures(num_elements);
+
+    int index = 0;
+    for (const auto& item : input_container)
+    {
+        futures[index++] = std::async(std::launch::async, unary_op, item);
+    }
+
+    std::vector<OutputValueType> results;
+    for (auto& fut : futures)
+    {
+        auto item = fut.get();
+        if (!is_default_constructed(fut.get()))
+        {
+            results.emplace_back(std::move(item));
+        }
+    }
+
+    return results;
+}
 
 } // namespace utils
 
