@@ -23,6 +23,7 @@
 #include <multipass/settings/settings.h>
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
@@ -42,11 +43,6 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto index_path = "streams/v1/index.json";
-
-bool is_default_constructed(const std::pair<std::string, std::unique_ptr<mp::SimpleStreamsManifest>>& manifest_pair)
-{
-    return manifest_pair == std::pair<std::string, std::unique_ptr<mp::SimpleStreamsManifest>>{};
-}
 
 auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader,
                        const bool is_force_update_from_network)
@@ -234,10 +230,10 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
 
 void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_network)
 {
-    std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> local_manifests(remotes.size());
-    auto fetch_one_remote_and_write_to_index =
-        [this, &local_manifests, is_force_update_from_network](int index, const std::string& remote_name,
-                                                               const UbuntuVMImageRemote& remote_info) -> void {
+    auto fetch_one_remote =
+        [this, is_force_update_from_network](const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
+        -> std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>> {
+        const auto& [remote_name, remote_info] = remote_pair;
         try
         {
             check_remote_is_supported(remote_name);
@@ -256,7 +252,7 @@ void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_netw
             auto manifest = mp::SimpleStreamsManifest::fromJson(
                 manifest_bytes_from_official, manifest_bytes_from_mirror, mirror_site.value_or(official_site));
 
-            local_manifests[index] = std::make_pair(remote_name, std::move(manifest));
+            return std::make_pair(remote_name, std::move(manifest));
         }
         catch (mp::EmptyManifestException& /* e */)
         {
@@ -277,31 +273,13 @@ void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_netw
         catch (const mp::UnsupportedRemoteException&)
         {
         }
+        return {};
     };
 
-    std::vector<std::future<void>> empty_futures;
-    empty_futures.reserve(remotes.size());
-    int index = 0;
-    for (const auto& [remote_name, remote_info] : remotes)
-    {
-        empty_futures.emplace_back(
-            std::async(std::launch::async, fetch_one_remote_and_write_to_index, index, remote_name, remote_info));
-        ++index;
-    }
-
-    for (auto& empty_future : empty_futures)
-    {
-        empty_future.get(); // use get instead of wait to retain the exception throwing
-    }
-
-    // only collect the non-default ones so the behaviour is same as the original sequential code
-    for (auto& local_manifest : local_manifests)
-    {
-        if (!is_default_constructed(local_manifest))
-        {
-            manifests.emplace_back(std::move(local_manifest));
-        }
-    }
+    auto local_manifests = mp::utils::parallel_transform(remotes, fetch_one_remote);
+    // append local_manifests to manifests
+    manifests.insert(manifests.end(), std::make_move_iterator(local_manifests.begin()),
+                     std::make_move_iterator(local_manifests.end()));
 }
 
 void mp::UbuntuVMImageHost::clear()
