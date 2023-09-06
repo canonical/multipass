@@ -28,7 +28,7 @@
 set(CPACK_WARN_ON_ABSOLUTE_INSTALL_DESTINATION ON) # helps avoid errors
 
 set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
-set(CPACK_COMPONENTS_ALL multipassd multipass multipass_gui desktop_gui)
+set(CPACK_COMPONENTS_ALL multipassd multipass desktop_gui)
 
 set(CPACK_COMPONENT_MULTIPASSD_DISPLAY_NAME "Multipass Daemon")
 set(CPACK_COMPONENT_MULTIPASSD_DESCRIPTION
@@ -36,16 +36,12 @@ set(CPACK_COMPONENT_MULTIPASSD_DESCRIPTION
 set(CPACK_COMPONENT_MULTIPASS_DISPLAY_NAME "Clients (CLI and GUI)")
 set(CPACK_COMPONENT_MULTIPASS_DESCRIPTION
    "Command line tool to talk to the multipass daemon")
-set(CPACK_COMPONENT_MULTIPASS_GUI_DISPLAY_NAME "Multipass Status Menu")
-set(CPACK_COMPONENT_MULTIPASS_GUI_DESCRIPTION
-    "Status Menu integration for Multipass")
 set(CPACK_COMPONENT_DESKTOP_GUI_DISPLAY_NAME "Multipass Desktop GUI")
 set(CPACK_COMPONENT_DESKTOP_GUI_DESCRIPTION
     "Desktop client for Multipass")
 
 set(CPACK_COMPONENT_MULTIPASSD_REQUIRED TRUE)
 set(CPACK_COMPONENT_MULTIPASS_REQUIRED TRUE)
-set(CPACK_COMPONENT_MULTIPASS_GUI_REQUIRED TRUE)
 set(CPACK_COMPONENT_DESKTOP_GUI_REQUIRED TRUE)
 
 # set default CPack Packaging options
@@ -135,7 +131,6 @@ if (MSVC)
   # The EventLog registry entries register a Multipass EventSource, which prevents the Event Viewer app complaining
   # about missing EVENT ID sources, which makes it harder to read the log entries.
   # The App Paths registry entries are to register multipass.exe as a valid command that can be called via ShellExecute
-  # The Run key is to autostart the gui - explicit WOW6432Node as it'd go there anyway - see https://is.gd/lMTxdb
   # create shortcut installs a start-menu item for the multipass gui
   SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
     "
@@ -143,13 +138,12 @@ if (MSVC)
     WriteRegDWORD HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass' 'TypesSupported' '7'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' '' '$INSTDIR\\\\bin\\\\multipass.exe'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' 'Path' '$INSTDIR\\\\bin'
-    WriteRegStr HKLM 'SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' 'multipass-gui' '$INSTDIR\\\\bin\\\\multipass.gui.exe --autostarting'
     nsExec::ExecToLog '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /install'
     Pop '$0'
     DetailPrint '\\\"Daemon install result: $0\\\"'
     CopyFiles '$INSTDIR\\\\Fonts\\\\*' '$WINDIR\\\\Fonts'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Fonts' 'Ubuntu Mono (TrueType)' 'UbuntuMono-R.ttf'
-    CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\multipass.gui.exe'
+    CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\desktop_gui.exe'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Multipass' 'DisplayIcon' '$INSTDIR\\\\bin\\\\multipass_wt.ico'
     "
   )
@@ -176,7 +170,7 @@ if (MSVC)
     nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
     nsExec::ExecToLog 'TaskKill /IM multipassd.exe /F'
     nsExec::ExecToLog 'TaskKill /IM multipass.exe /F'
-    nsExec::ExecToLog 'TaskKill /IM multipass.gui.exe /F'
+    nsExec::ExecToLog 'TaskKill /IM desktop_gui.exe /F'
     DeleteRegKey HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass'
     DeleteRegKey HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe'
     DeleteRegValue HKLM 'SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' 'multipass-gui'
@@ -207,22 +201,16 @@ if(APPLE)
   list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qemu-and-deps.sh ${CMAKE_BINARY_DIR}")
 
   set(MULTIPASSD_PLIST "com.canonical.multipassd.plist")
-  set(MULTIPASSGUI_PLIST "com.canonical.multipass.gui.autostart.plist")
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSD_PLIST}.in"
                  "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipassd.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh" @ONLY)
-  configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass-gui.sh.in"
-                 "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-desktop-gui.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-desktop-gui.sh" @ONLY)
 
   install(FILES "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" DESTINATION Resources COMPONENT multipassd)
-  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSGUI_PLIST}" DESTINATION Resources COMPONENT multipass_gui)
-  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/Info.plist" DESTINATION Resources COMPONENT multipass_gui)
-  install(FILES "${CMAKE_SOURCE_DIR}/packaging/macos/icon.icns" DESTINATION Resources COMPONENT multipass_gui)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/completions" DESTINATION Resources COMPONENT multipass)
   install(DIRECTORY "${CMAKE_BINARY_DIR}/lib/" DESTINATION lib COMPONENT multipassd)
 
@@ -231,7 +219,6 @@ if(APPLE)
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
-  set(CPACK_POSTFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh")
   set(CPACK_POSTFLIGHT_DESKTOP_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-desktop-gui.sh")
 
   # Cleans up the installed package

@@ -445,8 +445,6 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
     if (key == mp::winterm_key)
         return interpret_winterm_setting(val);
-    else if (key == mp::hotkey_key)
-        return mp::platform::interpret_hotkey(val);
 
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingException(key, val, "Setting unavailable on Windows");
@@ -483,17 +481,6 @@ void mp::platform::sync_winterm_profiles()
     {
         mpl::log(mpl::Level::error, log_category, e.what());
     }
-}
-
-QString mp::platform::autostart_test_data()
-{
-    return "stub"; // TODO implement this when using setup_gui_autostart_prerequisites as the sole backend to `multipass
-                   // set client.gui.autostart`
-}
-
-void mp::platform::setup_gui_autostart_prerequisites()
-{
-    // TODO implement this to use as the sole backend to `multipass set client.gui.autostart`
 }
 
 std::string mp::platform::default_server_address()

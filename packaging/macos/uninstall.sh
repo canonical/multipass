@@ -49,7 +49,6 @@ echo "Removing Multipass:"
 rm -fv "$LAUNCH_AGENT_DEST"
 
 rm -fv /usr/local/bin/multipass
-rm -fv /usr/local/bin/multipass.gui
 rm -rfv /Applications/Multipass.app
 
 rm -rfv "/Library/Application Support/com.canonical.multipass"
@@ -68,7 +67,6 @@ rm -fv "/private/var/db/receipts/com.canonical.multipass.multipassd.bom"
 rm -fv "/private/var/db/receipts/com.canonical.multipass.multipassd.plist"
 rm -fv "/private/var/db/receipts/com.canonical.multipass.multipass.bom"
 rm -fv "/private/var/db/receipts/com.canonical.multipass.multipass.plist"
-rm -fv /private/var/db/receipts/com.canonical.multipass.multipass_gui.{bom,plist}
 
 echo .
 echo "Uninstall complete"

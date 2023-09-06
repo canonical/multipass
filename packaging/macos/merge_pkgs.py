@@ -110,7 +110,7 @@ with tempfile.TemporaryDirectory() as workdir:
     # Recreate the package
     pkgs = dest_work / "Packages"
     pkgs.mkdir()
-    for component in ("multipass", "multipassd", "multipass_gui"):
+    for component in ("multipass", "multipassd"):
         pkg = dest_work / f"multipass-{version}-Darwin-{component}.pkg"
         subprocess.check_call(["pkgbuild", "--root", pkg / "Payload.unpacked",
                                "--identifier", f"com.canonical.multipass.{component}",

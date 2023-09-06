@@ -12,10 +12,8 @@
 
 set -u
 
-BUNDLE_PATH="multipass.gui.app/Contents"
-QT_FRAMEWORKS="QtCore QtNetwork QtWidgets QtGui QtDBus QtPrintSupport"
-QT_COCOA_PLUGIN="${BUNDLE_PATH}/plugins/platforms/libqcocoa.dylib"
-BINARIES="multipass ${BUNDLE_PATH}/MacOS/multipass.gui multipassd ${QT_COCOA_PLUGIN} sshfs_server"
+QT_FRAMEWORKS="QtCore QtNetwork QtWidgets QtDBus QtPrintSupport"
+BINARIES="multipass multipassd sshfs_server"
 QT6_PATH="$(brew --prefix qt6)"
 
 if [ $# -ne 1 ]; then

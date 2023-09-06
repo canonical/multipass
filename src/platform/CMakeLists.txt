@@ -23,7 +23,6 @@ function(add_target TARGET_NAME)
   elseif(MSVC)
     add_library(${TARGET_NAME} STATIC
       platform_proprietary.cpp
-      platform_shared.cpp
       platform_win.cpp)
     qt6_disable_unicode_defines(${TARGET_NAME})
     target_link_libraries(${TARGET_NAME}
@@ -35,7 +34,6 @@ function(add_target TARGET_NAME)
     add_library(${TARGET_NAME} STATIC
       platform_osx.cpp
       platform_proprietary.cpp
-      platform_shared.cpp
       platform_unix.cpp)
     target_link_libraries(${TARGET_NAME}
       shared_macos)
