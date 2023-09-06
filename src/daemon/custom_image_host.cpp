@@ -20,6 +20,7 @@
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/unsupported_remote_exception.h>
@@ -68,11 +69,6 @@ const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
       {{"ubuntu-core-22-amd64.img.xz"},
        {"https://cdimage.ubuntu.com/ubuntu-core/22/stable/current/", {"core22"}, "Ubuntu", "core-22", "Core 22"}}}}};
 
-bool is_default_constructed(const mp::VMImageInfo& image_info)
-{
-    return image_info == mp::VMImageInfo{};
-}
-
 auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
                          const QString& image_file, const bool is_force_update_from_network = false)
 {
@@ -97,14 +93,10 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     std::unordered_map<std::string, const mp::VMImageInfo*> map;
     for (const auto& image : images)
     {
-        // non default entry filtering after parallel writing
-        if (!is_default_constructed(image))
+        map[image.id.toStdString()] = &image;
+        for (const auto& alias : image.aliases)
         {
-            map[image.id.toStdString()] = &image;
-            for (const auto& alias : image.aliases)
-            {
-                map[alias.toStdString()] = &image;
-            }
+            map[alias.toStdString()] = &image;
         }
     }
 
@@ -114,12 +106,8 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
 auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
                          const bool is_force_update_from_network = false)
 {
-    std::vector<mp::VMImageInfo> default_images(custom_image_info.size());
-
-    auto fetch_one_image_info_and_write_to_index =
-        [&default_images,
-         is_force_update_from_network](int index, mp::URLDownloader* url_downloader,
-                                       const std::pair<QString, CustomImageInfo>& image_info_pair) -> void {
+    auto fetch_one_image_info = [is_force_update_from_network, url_downloader](
+                                    const std::pair<QString, CustomImageInfo>& image_info_pair) -> mp::VMImageInfo {
         const QString& image_file_name = image_info_pair.first;
         const CustomImageInfo& custom_image_info = image_info_pair.second;
         const QString image_url{custom_image_info.url_prefix + image_info_pair.first};
@@ -128,35 +116,21 @@ auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info
         const auto base_image_info =
             base_image_info_for(url_downloader, image_url, hash_url, image_file_name, is_force_update_from_network);
 
-        default_images[index] = mp::VMImageInfo{custom_image_info.aliases,
-                                                custom_image_info.os,
-                                                custom_image_info.release,
-                                                custom_image_info.release_string,
-                                                true,                 // supported
-                                                image_url,            // image_location
-                                                base_image_info.hash, // id
-                                                "",
-                                                base_image_info.last_modified, // version
-                                                0,
-                                                true};
+        return mp::VMImageInfo{custom_image_info.aliases,
+                               custom_image_info.os,
+                               custom_image_info.release,
+                               custom_image_info.release_string,
+                               true,                 // supported
+                               image_url,            // image_location
+                               base_image_info.hash, // id
+                               "",
+                               base_image_info.last_modified, // version
+                               0,
+                               true};
     };
 
-    std::vector<std::future<void>> empty_futures;
-    empty_futures.reserve(custom_image_info.size());
-    int index = 0;
-    for (const auto& image_info_pair : custom_image_info.toStdMap())
-    {
-        empty_futures.emplace_back(std::async(std::launch::async, fetch_one_image_info_and_write_to_index, index,
-                                              url_downloader, image_info_pair));
-        ++index;
-    }
-
-    for (auto& empty_future : empty_futures)
-    {
-        empty_future.get(); // use get instead of wait to retain the exception throwing
-    }
-
-    return std::make_unique<mp::CustomManifest>(std::move(default_images));
+    return std::make_unique<mp::CustomManifest>(
+        mp::utils::parallel_transform(custom_image_info.toStdMap(), fetch_one_image_info));
 }
 
 } // namespace

@@ -162,7 +162,7 @@ auto parallel_transform(const Container& input_container, UnaryOperation&& unary
     for (auto& fut : futures)
     {
         auto item = fut.get();
-        if (!is_default_constructed(fut.get()))
+        if (!is_default_constructed(item))
         {
             results.emplace_back(std::move(item));
         }
