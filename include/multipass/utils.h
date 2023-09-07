@@ -171,6 +171,23 @@ auto parallel_transform(const Container& input_container, UnaryOperation&& unary
     return results;
 }
 
+template <typename Container, typename UnaryOperation>
+void parallel_for_each(Container& input_container, UnaryOperation&& unary_op)
+{
+    const auto num_elements = input_container.size();
+    std::vector<std::future<void>> empty_futures;
+    empty_futures.reserve(num_elements);
+
+    for (auto& item : input_container)
+    {
+        empty_futures.emplace_back(std::async(std::launch::async, unary_op, std::ref(item)));
+    }
+
+    for (auto& empty_future : empty_futures)
+    {
+        empty_future.get();
+    }
+}
 } // namespace utils
 
 class Utils : public Singleton<Utils>

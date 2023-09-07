@@ -3025,17 +3025,12 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 
 void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
 {
-    std::vector<std::future<void>> empty_futures;
-    empty_futures.reserve(config->image_hosts.size());
-    for (const auto& image_host : config->image_hosts)
-    {
-        empty_futures.emplace_back(std::async(std::launch::async, &VMImageHost::update_manifests, image_host.get(),
-                                              is_force_update_from_network));
-    }
-    for (auto& empty_future : empty_futures)
-    {
-        empty_future.get();
-    }
+    auto launch_update_manifests_from_vm_image_host =
+        [is_force_update_from_network](const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
+        vm_image_host_ptr->update_manifests(is_force_update_from_network);
+    };
+
+    utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);
 }
 
 void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(const bool force_manifest_network_download)
