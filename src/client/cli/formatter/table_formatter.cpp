@@ -28,6 +28,8 @@ namespace mp = multipass;
 
 namespace
 {
+const std::regex newline("(\r\n|\n)");
+
 std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
                           std::string type)
 {
@@ -95,7 +97,6 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
     }
 
     // TODO@snapshots split and align string if it extends onto several lines
-    std::regex newline("(\r\n|\n)");
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Comment:",
                    fundamentals.comment().empty()
                        ? "--"
@@ -238,7 +239,6 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
     const auto parent_column_width = mp::format::column_width(
         overview.begin(), overview.end(), [](const auto& item) -> int { return item.fundamentals().parent().length(); },
         parent_col_header.length());
-    const auto max_comment_column_width = 50;
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
 
@@ -247,7 +247,13 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
 
     for (const auto& item : mp::format::sort_snapshots(overview))
     {
+        size_t max_comment_column_width = 50;
+        std::smatch match;
         auto snapshot = item.fundamentals();
+
+        if (std::regex_search(snapshot.comment().begin(), snapshot.comment().end(), match, newline))
+            max_comment_column_width = std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
+
         fmt::format_to(std::back_inserter(buf), row_format, item.instance_name(), name_column_width,
                        snapshot.snapshot_name(), snapshot_column_width,
                        snapshot.parent().empty() ? "--" : snapshot.parent(), parent_column_width,

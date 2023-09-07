@@ -89,7 +89,7 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
     for (const auto& item : mp::format::sort_snapshots(reply.snapshot_overview().overview()))
     {
         const auto& snapshot = item.fundamentals();
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{}\n", item.instance_name(), snapshot.snapshot_name(),
+        fmt::format_to(std::back_inserter(buf), "{},{},{},\"{}\"\n", item.instance_name(), snapshot.snapshot_name(),
                        snapshot.parent(), snapshot.comment());
     }
 
