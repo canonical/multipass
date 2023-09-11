@@ -143,8 +143,8 @@ public:
     virtual void make_file_with_content(const std::string& file_name, const std::string& content,
                                         const bool& overwrite = false);
     virtual Path make_dir(const QDir& a_dir, const QString& name,
-                          QFileDevice::Permissions permissions = QFileDevice::Permissions());
-    virtual Path make_dir(const QDir& dir, QFileDevice::Permissions permissions = QFileDevice::Permissions());
+                          QFileDevice::Permissions permissions = QFileDevice::Permissions(0));
+    virtual Path make_dir(const QDir& dir, QFileDevice::Permissions permissions = QFileDevice::Permissions(0));
 
     // command and process helpers
     virtual std::string run_cmd_for_output(const QString& cmd, const QStringList& args,
