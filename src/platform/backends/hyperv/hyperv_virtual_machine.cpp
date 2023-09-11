@@ -131,6 +131,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     {
         state = instance_state_for(power_shell.get(), name);
     }
+
+    power_shell->easy_run({"Set-VM", "-Name", name, "-AutomaticCheckpointsEnabled", "$false"},
+                          "Could not disable automatic snapshots"); // TODO move to new VMs only in a couple of releases
 }
 
 void mp::HyperVVirtualMachine::setup_network_interfaces(const std::string& default_mac_address,
