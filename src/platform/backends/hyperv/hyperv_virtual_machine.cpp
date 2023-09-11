@@ -92,6 +92,13 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 
     return mp::VirtualMachine::State::unknown;
 }
+
+void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name)
+{
+    power_shell->easy_run({"Get-VMCheckpoint", "-VMName", name, "|", "Where-Object", "{", "$_.IsAutomaticCheckpoint",
+                           "}", "|", "Remove-VMCheckpoint", "-Confirm:$false"},
+                          "Could not delete existing automatic checkpoints");
+}
 } // namespace
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
@@ -134,6 +141,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 
     power_shell->easy_run({"Set-VM", "-Name", name, "-AutomaticCheckpointsEnabled", "$false"},
                           "Could not disable automatic snapshots"); // TODO move to new VMs only in a couple of releases
+    delete_automatic_snapshots(power_shell.get(), name); // TODO drop in a couple of releases (going in on v1.13)
 }
 
 void mp::HyperVVirtualMachine::setup_network_interfaces(const std::string& default_mac_address,
