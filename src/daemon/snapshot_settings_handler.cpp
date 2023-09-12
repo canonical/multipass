@@ -92,11 +92,11 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 
 auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name,
                                                 const std::string& snapshot_name) const
-    -> const std::shared_ptr<const Snapshot>
+    -> std::shared_ptr<const Snapshot>
 {
     try
     {
-        return find_instance(instance_name).get_snapshot(snapshot_name);
+        return find_instance(instance_name)->get_snapshot(snapshot_name);
     }
     catch (const NoSuchSnapshot& e)
     {
@@ -104,7 +104,8 @@ auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name
     }
 }
 
-auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name) const -> const VirtualMachine&
+auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name) const
+    -> std::shared_ptr<const VirtualMachine>
 {
     if (preparing_instances.find(instance_name) != preparing_instances.end())
         throw SnapshotSettingsException{instance_name, "instance is being prepared"};
