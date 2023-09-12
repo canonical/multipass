@@ -29,6 +29,7 @@
 
 namespace multipass
 {
+
 class SnapshotSettingsHandler : public SettingsHandler
 {
 public:
@@ -39,6 +40,10 @@ public:
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) override;
+
+private:
+    const std::shared_ptr<const Snapshot> find_snapshot(const std::string& instance_name,
+                                                        const std::string& snapshot_name) const;
 
 private:
     // references, careful
