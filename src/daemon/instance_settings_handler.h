@@ -34,6 +34,7 @@
 
 namespace multipass
 {
+
 class InstanceSettingsHandler : public SettingsHandler
 {
 public:

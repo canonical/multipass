@@ -206,7 +206,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     auto [instance_name, property] = parse_key(key);
 
     if (preparing_instances.find(instance_name) != preparing_instances.end())
-        throw InstanceSettingsException{operation_msg(Operation::Modify), instance_name, "Instance is being prepared"};
+        throw InstanceSettingsException{operation_msg(Operation::Modify), instance_name, "instance is being prepared"};
 
     auto& instance = modify_instance(instance_name); // we need this first, to refuse updating deleted instances
     auto& spec = modify_spec(instance_name);
