@@ -29,6 +29,7 @@ namespace
 {
 constexpr auto name_suffix = "name";
 constexpr auto comment_suffix = "comment";
+constexpr auto common_exception_msg = "Cannot access snapshot settings";
 
 std::tuple<std::string, QString, std::string> parse_key(const QString& key)
 {
@@ -37,8 +38,12 @@ std::tuple<std::string, QString, std::string> parse_key(const QString& key)
 } // namespace
 
 mp::SnapshotSettingsException::SnapshotSettingsException(const std::string& missing_instance, const std::string& detail)
-    : SettingsException{
-          fmt::format("Cannot access snapshot settings for instance {}; reason: {}", missing_instance, detail)}
+    : SettingsException{fmt::format("{}; instance: {}; reason: {}", common_exception_msg, missing_instance, detail)}
+{
+}
+
+mp::SnapshotSettingsException::SnapshotSettingsException(const std::string& detail)
+    : SettingsException{fmt::format("{}; reason: {}", common_exception_msg, detail)}
 {
 }
 
@@ -89,7 +94,14 @@ auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name
                                                 const std::string& snapshot_name) const
     -> const std::shared_ptr<const Snapshot>
 {
-    return find_instance(instance_name).get_snapshot(snapshot_name); // TODO@ricab try-catch NoSuchSnapshot
+    try
+    {
+        return find_instance(instance_name).get_snapshot(snapshot_name);
+    }
+    catch (const NoSuchSnapshot& e)
+    {
+        throw SnapshotSettingsException{e.what()};
+    }
 }
 
 auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name) const -> const VirtualMachine&

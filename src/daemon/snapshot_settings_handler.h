@@ -57,6 +57,7 @@ class SnapshotSettingsException : public SettingsException
 {
 public:
     SnapshotSettingsException(const std::string& missing_instance, const std::string& detail);
+    SnapshotSettingsException(const std::string& detail);
 };
 
 } // namespace multipass
