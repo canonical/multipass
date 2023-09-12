@@ -18,6 +18,7 @@
 #include "daemon.h"
 #include "base_cloud_init_config.h"
 #include "instance_settings_handler.h"
+#include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
 #include <multipass/constants.h>
@@ -1236,7 +1237,8 @@ register_snapshot_mod(std::unordered_map<std::string, mp::VirtualMachine::ShPtr>
                       const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
                       const std::unordered_set<std::string>& preparing_instances)
 {
-    return nullptr; // TODO@ricab
+    return MP_SETTINGS.register_handler(
+        std::make_unique<mp::SnapshotSettingsHandler>(operative_instances, deleted_instances, preparing_instances));
 }
 
 // Erase any outdated mount handlers for a given VM

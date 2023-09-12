@@ -39,6 +39,12 @@ public:
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) override;
+
+private:
+    // references, careful
+    std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances;
+    const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
+    const std::unordered_set<std::string>& preparing_instances;
 };
 } // namespace multipass
 
