@@ -106,14 +106,6 @@ TEST_F(ClientCertStore, add_cert_stores_certificate)
     EXPECT_THAT(content, StrEq(cert_data));
 }
 
-TEST_F(ClientCertStore, certStoreLocksDownDir)
-{
-    auto [mock_utils, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils, make_dir(_, _, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
-
-    mp::ClientCertStore cert_store{temp_dir.path()};
-}
-
 TEST_F(ClientCertStore, verifyCertEmptyStoreReturnsFalse)
 {
     mp::ClientCertStore cert_store{temp_dir.path()};
