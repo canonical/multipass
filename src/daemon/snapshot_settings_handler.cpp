@@ -82,11 +82,17 @@ QString mp::SnapshotSettingsHandler::get(const QString& key) const
 
 void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 {
+    // TODO@no-merge
 }
 
 auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name,
                                                 const std::string& snapshot_name) const
     -> const std::shared_ptr<const Snapshot>
 {
-    return nullptr;
+    return find_instance(instance_name).get_snapshot(snapshot_name); // TODO@ricab try-catch NoSuchSnapshot
+}
+
+auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name) const -> const VirtualMachine&
+{
+    throw std::logic_error{"TODO"}; // TODO@ricab complete
 }
