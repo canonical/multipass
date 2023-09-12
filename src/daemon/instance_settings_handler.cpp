@@ -163,11 +163,11 @@ mp::InstanceSettingsException::InstanceSettingsException(const std::string& reas
 
 mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
-    std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
+    std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
     const std::unordered_set<std::string>& preparing_instances, std::function<void()> instance_persister)
     : vm_instance_specs{vm_instance_specs},
-      vm_instances{vm_instances},
+      operative_instances{operative_instances},
       deleted_instances{deleted_instances},
       preparing_instances{preparing_instances},
       instance_persister{std::move(instance_persister)}
@@ -231,7 +231,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 
 auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name) -> VirtualMachine&
 {
-    auto ret = pick_instance(vm_instances, instance_name, Operation::Modify, deleted_instances);
+    auto ret = pick_instance(operative_instances, instance_name, Operation::Modify, deleted_instances);
 
     assert(ret && "can't have null instance");
     return *ret;
