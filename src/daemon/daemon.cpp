@@ -1223,13 +1223,13 @@ auto timeout_for(const int requested_timeout, const int blueprint_timeout)
 }
 
 mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
-                                           InstanceTable& vm_instances,
+                                           InstanceTable& operative_instances,
                                            const InstanceTable& deleted_instances,
                                            const std::unordered_set<std::string>& preparing_instances,
                                            std::function<void()> instance_persister)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(
-        vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
+        vm_instance_specs, operative_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
 }
 
 mp::SettingsHandler*
