@@ -51,6 +51,13 @@ private:
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
     const std::unordered_set<std::string>& preparing_instances;
 };
+
+class SnapshotSettingsException : public SettingsException
+{
+public:
+    SnapshotSettingsException(const std::string& missing_instance, const std::string& detail);
+};
+
 } // namespace multipass
 
 #endif // MULTIPASS_SNAPSHOT_SETTINGS_HANDLER_H
