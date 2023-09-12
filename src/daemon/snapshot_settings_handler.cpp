@@ -27,6 +27,11 @@ namespace
 {
 constexpr auto name_suffix = "name";
 constexpr auto comment_suffix = "comment";
+
+std::tuple<std::string, QString, std::string> parse_key(const QString& key)
+{
+    return {"fake_instance", "fake_snapshot", "fake_property"}; // TODO@no-merge
+}
 } // namespace
 
 mp::SnapshotSettingsHandler::SnapshotSettingsHandler(
@@ -56,9 +61,24 @@ std::set<QString> mp::SnapshotSettingsHandler::keys() const
 
 QString mp::SnapshotSettingsHandler::get(const QString& key) const
 {
-    return QString{};
+    auto [instance_name, snapshot_name, property] = parse_key(key);
+
+    auto snapshot = find_snapshot(instance_name, snapshot_name.toStdString());
+
+    if (property == name_suffix)
+        return snapshot_name; // not very useful, but for completeness
+
+    assert(property == comment_suffix);
+    return QString::fromStdString(snapshot->get_comment());
 }
 
 void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 {
+}
+
+auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name,
+                                                const std::string& snapshot_name) const
+    -> const std::shared_ptr<const Snapshot>
+{
+    return nullptr;
 }
