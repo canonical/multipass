@@ -21,13 +21,15 @@
 
 #include <QString>
 
+namespace mp = multipass;
+
 namespace
 {
 constexpr auto name_suffix = "name";
 constexpr auto comment_suffix = "comment";
 } // namespace
 
-multipass::SnapshotSettingsHandler::SnapshotSettingsHandler(
+mp::SnapshotSettingsHandler::SnapshotSettingsHandler(
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
     const std::unordered_set<std::string>& preparing_instances)
@@ -37,7 +39,7 @@ multipass::SnapshotSettingsHandler::SnapshotSettingsHandler(
 {
 }
 
-std::set<QString> multipass::SnapshotSettingsHandler::keys() const
+std::set<QString> mp::SnapshotSettingsHandler::keys() const
 {
     static const auto key_template = QStringLiteral("%1.%2.%3.%4").arg(daemon_settings_root);
     std::set<QString> ret;
@@ -52,11 +54,11 @@ std::set<QString> multipass::SnapshotSettingsHandler::keys() const
     return ret;
 }
 
-QString multipass::SnapshotSettingsHandler::get(const QString& key) const
+QString mp::SnapshotSettingsHandler::get(const QString& key) const
 {
     return QString{};
 }
 
-void multipass::SnapshotSettingsHandler::set(const QString& key, const QString& val)
+void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 {
 }
