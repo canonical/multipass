@@ -21,6 +21,9 @@ multipass::SnapshotSettingsHandler::SnapshotSettingsHandler(
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
     const std::unordered_set<std::string>& preparing_instances)
+    : operative_instances{operative_instances},
+      deleted_instances{deleted_instances},
+      preparing_instances{preparing_instances}
 {
 }
 
