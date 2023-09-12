@@ -389,7 +389,7 @@ _multipass_complete()
 
     if [[ -n "${opts}" ]]; then
         for word in "${COMP_WORDS[@]}"; do
-            if [[ " ${opts[@]} " =~ " $word " ]]; then
+            if [[ "${COMP_LINE}" == *"${word} "* ]]; then
                 opts=("${opts[@]/$word}")
             fi
         done
