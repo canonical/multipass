@@ -181,7 +181,7 @@ std::set<QString> mp::InstanceSettingsHandler::keys() const
     std::set<QString> ret;
     for (const auto& item : vm_instance_specs)
         for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix})
-            ret.insert(key_template.arg(item.first.c_str()).arg(suffix));
+            ret.insert(key_template.arg(item.first.c_str(), suffix));
 
     return ret;
 }
