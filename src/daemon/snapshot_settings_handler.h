@@ -44,6 +44,7 @@ public:
 private:
     const std::shared_ptr<const Snapshot> find_snapshot(const std::string& instance_name,
                                                         const std::string& snapshot_name) const;
+    const VirtualMachine& find_instance(const std::string& instance_name) const;
 
 private:
     // references, careful
