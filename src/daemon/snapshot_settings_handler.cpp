@@ -16,8 +16,10 @@
  */
 
 #include "snapshot_settings_handler.h"
+#include "multipass/exceptions/snapshot_exceptions.h"
 
 #include <multipass/constants.h>
+#include <multipass/format.h>
 
 #include <QString>
 
@@ -33,6 +35,12 @@ std::tuple<std::string, QString, std::string> parse_key(const QString& key)
     return {"fake_instance", "fake_snapshot", "fake_property"}; // TODO@no-merge
 }
 } // namespace
+
+mp::SnapshotSettingsException::SnapshotSettingsException(const std::string& missing_instance, const std::string& detail)
+    : SettingsException{
+          fmt::format("Cannot access snapshot settings for instance {}; reason: {}", missing_instance, detail)}
+{
+}
 
 mp::SnapshotSettingsHandler::SnapshotSettingsHandler(
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
