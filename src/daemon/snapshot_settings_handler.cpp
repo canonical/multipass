@@ -94,5 +94,8 @@ auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name
 
 auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name) const -> const VirtualMachine&
 {
+    if (preparing_instances.find(instance_name) != preparing_instances.end())
+        throw SnapshotSettingsException{instance_name, "instance is being prepared"};
+
     throw std::logic_error{"TODO"}; // TODO@ricab complete
 }
