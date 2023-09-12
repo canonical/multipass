@@ -1231,6 +1231,14 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
         vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
 }
 
+mp::SettingsHandler*
+register_snapshot_mod(std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
+                      const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
+                      const std::unordered_set<std::string>& preparing_instances)
+{
+    return nullptr; // TODO@ricab
+}
+
 // Erase any outdated mount handlers for a given VM
 bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
                            std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
@@ -1341,7 +1349,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
       instance_mod_handler{register_instance_mod(vm_instance_specs, operative_instances, deleted_instances,
-                                                 preparing_instances, [this] { persist_instances(); })}
+                                                 preparing_instances, [this] { persist_instances(); })},
+      snapshot_mod_handler{register_snapshot_mod(operative_instances, deleted_instances, preparing_instances)}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -1495,7 +1504,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
 mp::Daemon::~Daemon()
 {
-    mp::top_catch_all(category, [this] { MP_SETTINGS.unregister_handler(instance_mod_handler); });
+    mp::top_catch_all(category, [this] {
+        MP_SETTINGS.unregister_handler(instance_mod_handler);
+        MP_SETTINGS.unregister_handler(snapshot_mod_handler);
+    });
 }
 
 void mp::Daemon::create(const CreateRequest* request,
