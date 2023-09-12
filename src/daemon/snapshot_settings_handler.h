@@ -51,6 +51,7 @@ private:
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances;
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
     const std::unordered_set<std::string>& preparing_instances;
+    const std::unordered_map<std::string, VirtualMachine::ShPtr>& const_operative_instances = operative_instances;
 };
 
 class SnapshotSettingsException : public SettingsException
