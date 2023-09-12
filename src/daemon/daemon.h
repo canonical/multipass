@@ -219,6 +219,7 @@ private:
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
+    SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
 };
 } // namespace multipass
