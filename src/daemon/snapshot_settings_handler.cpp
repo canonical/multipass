@@ -31,9 +31,38 @@ constexpr auto name_suffix = "name";
 constexpr auto comment_suffix = "comment";
 constexpr auto common_exception_msg = "Cannot access snapshot settings";
 
+QRegularExpression make_key_regex()
+{
+    const auto instance_pattern = QStringLiteral("(?<instance>.+)");
+    const auto snapshot_pattern = QStringLiteral("(?<snapshot>.+)");
+
+    const auto property_template = QStringLiteral("(?<property>%1)");
+    const auto either_prop = QStringList{name_suffix, comment_suffix}.join("|");
+    const auto property_pattern = property_template.arg(either_prop);
+
+    const auto key_template = QStringLiteral(R"(%1\.%2\.%3\.%4)");
+    const auto key_pattern =
+        key_template.arg(mp::daemon_settings_root, instance_pattern, snapshot_pattern, property_pattern);
+
+    return QRegularExpression{QRegularExpression::anchoredPattern(key_pattern)};
+}
+
 std::tuple<std::string, QString, std::string> parse_key(const QString& key)
 {
-    return {"fake_instance", "fake_snapshot", "fake_property"}; // TODO@no-merge
+    static const auto key_regex = make_key_regex();
+
+    auto match = key_regex.match(key);
+    if (match.hasMatch())
+    {
+        auto instance = match.captured("instance");
+        auto snapshot = match.captured("snapshot");
+        auto property = match.captured("property");
+
+        assert(!instance.isEmpty() && !snapshot.isEmpty() && !property.isEmpty());
+        return {instance.toStdString(), snapshot, property.toStdString()};
+    }
+
+    throw mp::UnrecognizedSettingException{key};
 }
 } // namespace
 
