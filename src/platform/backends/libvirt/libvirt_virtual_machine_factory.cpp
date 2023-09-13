@@ -143,13 +143,11 @@ mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
     }
 }
 
-void mp::LibVirtVirtualMachineFactory::remove_resources_for(const std::string& name)
+void mp::LibVirtVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     auto connection = LibVirtVirtualMachine::open_libvirt_connection(libvirt_wrapper);
 
     libvirt_wrapper->virDomainUndefine(libvirt_wrapper->virDomainLookupByName(connection.get(), name.c_str()));
-
-    BaseVirtualMachineFactory::remove_resources_for(name);
 }
 
 mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage& source_image)

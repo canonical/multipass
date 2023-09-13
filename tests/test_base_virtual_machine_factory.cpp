@@ -39,7 +39,6 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
 {
     MOCK_METHOD(mp::VirtualMachine::UPtr, create_virtual_machine,
                 (const mp::VirtualMachineDescription&, mp::VMStatusMonitor&), (override));
-    MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
     MOCK_METHOD(void, prepare_instance_image, (const mp::VMImage&, const mp::VirtualMachineDescription&), (override));
     MOCK_METHOD(void, hypervisor_health_check, (), (override));
@@ -51,6 +50,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
                 (mp::NetworkInterface & net, std::vector<mp::NetworkInterfaceInfo>& host_nets,
                  const std::string& bridge_type),
                 (override));
+    MOCK_METHOD(void, remove_resources_for_impl, (const std::string&), (override));
 
     std::string base_create_bridge_with(const mp::NetworkInterfaceInfo& interface)
     {

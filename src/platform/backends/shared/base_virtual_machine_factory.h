@@ -37,7 +37,7 @@ public:
     BaseVirtualMachineFactory() = default;
     explicit BaseVirtualMachineFactory(const Path& instances_dir);
 
-    void remove_resources_for(const std::string& name) override;
+    void remove_resources_for(const std::string& name) final;
 
     FetchType fetch_type() override
     {
@@ -86,8 +86,17 @@ protected:
     virtual void prepare_interface(NetworkInterface& net, std::vector<NetworkInterfaceInfo>& host_nets,
                                    const std::string& bridge_type);
 
+    virtual void remove_resources_for_impl(const std::string& name) = 0;
+
     Path instances_dir;
 };
 } // namespace multipass
+
+inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std::string& name)
+{
+    remove_resources_for_impl(name);
+    QDir instance_dir{get_instance_directory_name(name)};
+    instance_dir.removeRecursively();
+}
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
