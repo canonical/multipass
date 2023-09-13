@@ -142,11 +142,15 @@ bool is_default_constructed(const T& input_type)
 
 // simplified parallel transform, it takes a std container and a unary operation and
 // returns a std::vector<OutputValueType> where the OutputValueType is the unary operation return type
+// There are two options of the return types, one is the one below and the other one is auto. Eventually, I went with
+// the std::invoke_result_t based one because it makes the function signature more expressive despite the fact that it
+// makes std::invoke_result_t<std::decay_t<UnaryOperation>, InputValueType> code duplicate.
 template <typename Container, typename UnaryOperation>
-auto parallel_transform(const Container& input_container, UnaryOperation&& unary_op)
+std::vector<std::invoke_result_t<std::decay_t<UnaryOperation>, typename Container::value_type>>
+parallel_transform(const Container& input_container, UnaryOperation&& unary_op)
 {
     using InputValueType = typename Container::value_type;
-    using OutputValueType = std::invoke_result_t<UnaryOperation, InputValueType>;
+    using OutputValueType = std::invoke_result_t<std::decay_t<UnaryOperation>, InputValueType>;
     const auto num_elements = input_container.size();
 
     // Pre-allocate space for futures
@@ -155,7 +159,7 @@ auto parallel_transform(const Container& input_container, UnaryOperation&& unary
     int index = 0;
     for (const auto& item : input_container)
     {
-        futures[index++] = std::async(std::launch::async, unary_op, item);
+        futures[index++] = std::async(std::launch::async, unary_op, std::cref(item));
     }
 
     std::vector<OutputValueType> results;

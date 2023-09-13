@@ -106,10 +106,10 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
 auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
                          const bool is_force_update_from_network = false)
 {
-    auto fetch_one_image_info = [is_force_update_from_network, url_downloader](
-                                    const std::pair<QString, CustomImageInfo>& image_info_pair) -> mp::VMImageInfo {
-        const QString& image_file_name = image_info_pair.first;
-        const CustomImageInfo& custom_image_info = image_info_pair.second;
+    auto fetch_one_image_info =
+        [is_force_update_from_network,
+         url_downloader](const std::pair<const QString, CustomImageInfo>& image_info_pair) -> mp::VMImageInfo {
+        const auto& [image_file_name, custom_image_info] = image_info_pair;
         const QString image_url{custom_image_info.url_prefix + image_info_pair.first};
         const QString hash_url{custom_image_info.url_prefix + QStringLiteral("SHA256SUMS")};
 
