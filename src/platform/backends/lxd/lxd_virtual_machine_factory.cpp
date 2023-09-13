@@ -106,10 +106,9 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
                                                    MP_UTILS.make_dir(get_instance_directory_name(desc.vm_name)));
 }
 
-void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
+void mp::LXDVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     mpl::log(mpl::Level::trace, category, fmt::format("No resources to remove for \"{}\"", name));
-    BaseVirtualMachineFactory::remove_resources_for(name);
 }
 
 auto mp::LXDVirtualMachineFactory::prepare_source_image(const VMImage& source_image) -> VMImage

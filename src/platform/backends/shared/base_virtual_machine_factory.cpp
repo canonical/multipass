@@ -41,12 +41,6 @@ auto find_bridge_with(const NetworkContainer& networks, const std::string& membe
 
 mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir) : instances_dir{instances_dir} {};
 
-void mp::BaseVirtualMachineFactory::remove_resources_for(const std::string& name)
-{
-    QDir instance_dir{get_instance_directory_name(name)};
-    instance_dir.removeRecursively();
-}
-
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
     auto instance_dir{mpu::base_dir(vm_desc.image.image_path)};
