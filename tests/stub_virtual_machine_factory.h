@@ -35,7 +35,7 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return std::make_unique<StubVirtualMachine>();
     }
 
-    void remove_resources_for(const std::string& name) override
+    void remove_resources_for_impl(const std::string& name) override
     {
     }
 
