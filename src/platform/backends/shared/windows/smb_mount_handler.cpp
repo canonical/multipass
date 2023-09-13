@@ -213,8 +213,7 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_k
              fmt::format("Initializing native mount {} => {} in '{}'", mount.source_path, target, vm->vm_name));
 
     auto data_location{MP_PLATFORM.multipass_storage_location() + "\\data"};
-    auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys",
-                                            QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner)};
+    auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys")};
     auto key_file = QFile{QDir{enc_key_dir_path}.filePath("aes.key")};
 
     if (MP_FILEOPS.exists(key_file))
