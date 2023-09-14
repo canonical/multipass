@@ -584,6 +584,9 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
 
     config_builder.vault = std::move(mock_image_vault);
+    auto mock_factory = use_a_mock_vm_factory();
+
+    EXPECT_CALL(*mock_factory, remove_resources_for(_)).WillRepeatedly(Return());
 
     std::string json_contents = make_instance_json(std::nullopt, {}, {"primary"});
 
