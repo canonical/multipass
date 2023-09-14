@@ -69,6 +69,8 @@ protected:
     virtual void erase_impl() = 0;
     virtual void apply_impl() = 0;
 
+    QString derive_id() const;
+
 private:
     struct InnerJsonTag
     {
