@@ -77,7 +77,7 @@ template <typename ProgressAction, typename DownloadAction, typename ErrorAction
 QByteArray
 download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
          DownloadAction&& on_download, ErrorAction&& on_error, const std::atomic_bool& abort_download,
-         QNetworkRequest::CacheLoadControl cache_load_control = QNetworkRequest::CacheLoadControl::PreferNetwork)
+         const QNetworkRequest::CacheLoadControl cache_load_control = QNetworkRequest::CacheLoadControl::PreferNetwork)
 {
     QTimer download_timeout;
     download_timeout.setInterval(timeout);

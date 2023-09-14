@@ -30,7 +30,6 @@
 #include <QMap>
 #include <QUrl>
 
-#include <future>
 #include <utility>
 
 namespace mp = multipass;

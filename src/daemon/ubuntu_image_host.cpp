@@ -35,7 +35,6 @@
 #include <QUrl>
 
 #include <algorithm>
-#include <future>
 #include <unordered_set>
 
 namespace mp = multipass;
