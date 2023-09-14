@@ -2560,8 +2560,8 @@ try
             {
                 reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
 
-                const auto snapshot = vm_ptr->take_snapshot(vm_specs, "",
-                                                            fmt::format("Before restoring {}", request->snapshot()));
+                const auto snapshot =
+                    vm_ptr->take_snapshot(vm_specs, "", fmt::format("Before restoring {}", request->snapshot()));
 
                 reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
                           /* sticky = */ true);
