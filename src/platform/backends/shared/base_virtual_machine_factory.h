@@ -88,6 +88,7 @@ protected:
 
     virtual void remove_resources_for_impl(const std::string& name) = 0;
 
+private:
     Path instances_dir;
 };
 } // namespace multipass
