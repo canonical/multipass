@@ -16,7 +16,9 @@
  */
 
 #include "hyperv_virtual_machine.h"
+#include "hyperv_snapshot.h"
 
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@snapshots drop
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
@@ -90,13 +92,6 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 
     return mp::VirtualMachine::State::unknown;
 }
-
-// require rvalue ref for the error msg, to avoid confusion with output parameter in PS::run
-void checked_ps_run(mp::PowerShell& ps, const QStringList& args, std::string&& error_msg)
-{
-    if (!ps.run(args))
-        throw std::runtime_error{std::move(error_msg)};
-}
 } // namespace
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
@@ -112,21 +107,21 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         auto mem_size = QString::number(desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
         `-MemoryStartupBytes` option; */
 
-        checked_ps_run(*power_shell, {QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)},
-                       "Could not find the default switch");
+        power_shell->easy_run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)},
+                              "Could not find the default switch");
 
-        checked_ps_run(*power_shell,
-                       {"New-VM", "-Name", name, "-Generation", "2", "-VHDPath", '"' + desc.image.image_path + '"',
-                        "-BootDevice", "VHD", "-SwitchName", "$switch.Name", "-MemoryStartupBytes", mem_size},
-                       "Could not create VM");
-        checked_ps_run(*power_shell, {"Set-VMFirmware", "-VMName", name, "-EnableSecureBoot", "Off"},
-                       "Could not disable secure boot");
-        checked_ps_run(*power_shell, {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
-                       "Could not configure VM processor");
-        checked_ps_run(*power_shell, {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
-                       "Could not setup cloud-init drive");
-        checked_ps_run(*power_shell, {"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
-                       "Could not disable dynamic memory");
+        power_shell->easy_run({"New-VM", "-Name", name, "-Generation", "2", "-VHDPath",
+                               '"' + desc.image.image_path + '"', "-BootDevice", "VHD", "-SwitchName", "$switch.Name",
+                               "-MemoryStartupBytes", mem_size},
+                              "Could not create VM");
+        power_shell->easy_run({"Set-VMFirmware", "-VMName", name, "-EnableSecureBoot", "Off"},
+                              "Could not disable secure boot");
+        power_shell->easy_run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
+                              "Could not configure VM processor");
+        power_shell->easy_run({"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
+                              "Could not setup cloud-init drive");
+        power_shell->easy_run({"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
+                              "Could not disable dynamic memory");
 
         setup_network_interfaces(desc.default_mac_address, desc.extra_interfaces);
 
@@ -141,20 +136,18 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 void mp::HyperVVirtualMachine::setup_network_interfaces(const std::string& default_mac_address,
                                                         const std::vector<NetworkInterface>& extra_interfaces)
 {
-    checked_ps_run(*power_shell,
-                   {"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
-                    QString::fromStdString('"' + default_mac_address + '"')},
-                   "Could not setup default adapter");
+    power_shell->easy_run({"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
+                           QString::fromStdString('"' + default_mac_address + '"')},
+                          "Could not setup default adapter");
 
     for (const auto& net : extra_interfaces)
     {
         const auto switch_ = '"' + QString::fromStdString(net.id) + '"';
-        checked_ps_run(*power_shell, {"Get-VMSwitch", "-Name", switch_},
-                       fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
-        checked_ps_run(*power_shell,
-                       {"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", switch_, "-StaticMacAddress",
-                        QString::fromStdString('"' + net.mac_address + '"')},
-                       fmt::format("Could not setup adapter for {}", net.id));
+        power_shell->easy_run({"Get-VMSwitch", "-Name", switch_},
+                              fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
+        power_shell->easy_run({"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", switch_, "-StaticMacAddress",
+                               QString::fromStdString('"' + net.mac_address + '"')},
+                              fmt::format("Could not setup adapter for {}", net.id));
     }
 }
 
@@ -296,8 +289,8 @@ void mp::HyperVVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
 
-    checked_ps_run(*power_shell, {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(num_cores)},
-                   "Could not update CPUs");
+    power_shell->easy_run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(num_cores)},
+                          "Could not update CPUs");
 }
 
 void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
@@ -305,7 +298,7 @@ void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
     assert(new_size.in_bytes() > 0);
 
     QStringList resize_cmd = {"Set-VMMemory", "-VMName", name, "-StartupBytes", QString::number(new_size.in_bytes())};
-    checked_ps_run(*power_shell, resize_cmd, "Could not resize memory");
+    power_shell->easy_run(resize_cmd, "Could not resize memory");
 }
 
 void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
@@ -313,7 +306,7 @@ void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
     assert(new_size.in_bytes() > 0);
 
     QStringList resize_cmd = {"Resize-VHD", "-Path", image_path, "-SizeBytes", QString::number(new_size.in_bytes())};
-    checked_ps_run(*power_shell, resize_cmd, "Could not resize disk");
+    power_shell->easy_run(resize_cmd, "Could not resize disk");
 }
 
 mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const mp::SSHKeyProvider* ssh_key_provider,
@@ -324,14 +317,15 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                              QFileInfo{image_path}.absolutePath());
 }
 
-auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
+auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
                                                       const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+    assert(power_shell);
+    return std::make_shared<HyperVSnapshot>(snapshot_name, comment, specs, std::move(parent), name, *power_shell);
 }
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+    return std::make_shared<HyperVSnapshot>(json, *this, name, *power_shell.get());
 }
