@@ -42,9 +42,6 @@ protected:
     void apply_impl() override;
 
 private:
-    QString derive_tag() const;
-
-private:
     VirtualMachineDescription& desc;
     const Path& image_path;
 };
