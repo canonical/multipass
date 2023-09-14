@@ -733,11 +733,13 @@ TEST_F(QemuBackend, get_backend_directory_name_calls_qemu_platform)
     bool get_directory_name_called{false};
     const QString backend_dir_name{"foo"};
 
-    EXPECT_CALL(*mock_qemu_platform, get_directory_name()).WillOnce([&get_directory_name_called, &backend_dir_name] {
-        get_directory_name_called = true;
+    EXPECT_CALL(*mock_qemu_platform, get_directory_name())
+        .Times(2)
+        .WillRepeatedly([&get_directory_name_called, &backend_dir_name] {
+            get_directory_name_called = true;
 
-        return backend_dir_name;
-    });
+            return backend_dir_name;
+        });
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
