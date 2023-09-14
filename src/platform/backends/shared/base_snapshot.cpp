@@ -29,6 +29,9 @@ namespace mp = multipass;
 
 namespace
 {
+const auto snapshot_template = QStringLiteral("@%1"); /* avoid colliding with suspension snapshots; prefix with a char
+                                                         that can't be part of the name, to avoid confusion */
+
 std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
 {
     std::unordered_map<std::string, mp::VMMount> mounts;
@@ -196,4 +199,9 @@ QJsonObject multipass::BaseSnapshot::serialize() const
     ret.insert("snapshot", snapshot);
 
     return ret;
+}
+
+QString multipass::BaseSnapshot::derive_id() const
+{
+    return snapshot_template.arg(get_name().c_str());
 }
