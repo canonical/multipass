@@ -46,7 +46,7 @@ protected:
     void remove_resources_for_impl(const std::string& name) override;
 
 private:
-    explicit QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const Path& data_dir);
+    QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const Path& data_dir);
 
     QemuPlatform::UPtr qemu_platform;
 };
