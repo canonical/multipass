@@ -34,7 +34,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "qemu factory";
-mp::Path derive_instances_dir(mp::QemuPlatform& qemu_platform, const mp::Path& data_dir)
+mp::Path derive_instances_dir(const mp::QemuPlatform& qemu_platform, const mp::Path& data_dir)
 {
     return QDir(data_dir, qemu_platform.get_directory_name()).filePath("vault/instances");
 }

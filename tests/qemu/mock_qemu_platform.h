@@ -41,7 +41,7 @@ struct MockQemuPlatform : public QemuPlatform
     MOCK_METHOD(void, platform_health_check, (), (override));
     MOCK_METHOD(QStringList, vmstate_platform_args, (), (override));
     MOCK_METHOD(QStringList, vm_platform_args, (const VirtualMachineDescription&), (override));
-    MOCK_METHOD(QString, get_directory_name, (), (override));
+    MOCK_METHOD(QString, get_directory_name, (), (const, override));
 };
 
 struct MockQemuPlatformFactory : public QemuPlatformFactory
