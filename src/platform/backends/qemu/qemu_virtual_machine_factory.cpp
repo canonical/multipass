@@ -34,12 +34,20 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "qemu factory";
+mp::Path derive_instances_dir(mp::QemuPlatform& qemu_platform, const mp::Path& data_dir)
+{
+    return QDir(data_dir, qemu_platform.get_directory_name()).filePath("vault/instances");
+}
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : BaseVirtualMachineFactory(QString{}), qemu_platform{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir)}
+    : QemuVirtualMachineFactory{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir), data_dir}
 {
-    instances_dir = QDir(data_dir, get_backend_directory_name()).filePath("vault/instances");
+}
+
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const mp::Path& data_dir)
+    : BaseVirtualMachineFactory(derive_instances_dir(*qemu_platform, data_dir)), qemu_platform{std::move(qemu_platform)}
+{
 }
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
