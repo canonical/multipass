@@ -29,7 +29,6 @@
 #include <memory>
 
 namespace mp = multipass;
-namespace mpp = mp::platform;
 
 namespace
 {
@@ -49,18 +48,6 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const QString& tag, con
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", tag, image_path},
                                                     /* src_img = */ "", image_path);
-}
-
-void checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
-{
-    auto process = mpp::make_process(std::move(spec));
-
-    auto process_state = process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(), process->read_all_standard_error()));
-    }
 }
 } // namespace
 
@@ -85,12 +72,12 @@ void mp::QemuSnapshot::capture_impl()
         throw std::runtime_error{fmt::format(
             "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
 
-    checked_exec_qemu_img(make_capture_spec(tag, image_path));
+    mp::backend::checked_exec_qemu_img(make_capture_spec(tag, image_path));
 }
 
 void mp::QemuSnapshot::erase_impl()
 {
-    checked_exec_qemu_img(make_delete_spec(derive_id(), image_path));
+    mp::backend::checked_exec_qemu_img(make_delete_spec(derive_id(), image_path));
 }
 
 void mp::QemuSnapshot::apply_impl()
@@ -102,6 +89,6 @@ void mp::QemuSnapshot::apply_impl()
     desc.mem_size = get_mem_size();
     desc.disk_space = get_disk_space();
 
-    checked_exec_qemu_img(make_restore_spec(derive_id(), image_path));
+    mp::backend::checked_exec_qemu_img(make_restore_spec(derive_id(), image_path));
     rollback.dismiss();
 }
