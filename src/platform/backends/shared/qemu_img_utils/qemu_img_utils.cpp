@@ -30,6 +30,19 @@
 #include <QStringList>
 
 namespace mp = multipass;
+namespace mpp = mp::platform;
+
+void mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
+{
+    auto process = mpp::make_process(std::move(spec));
+
+    auto process_state = process->execute();
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
+                                             process_state.failure_message(), process->read_all_standard_error()));
+    }
+}
 
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
