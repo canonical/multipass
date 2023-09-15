@@ -32,14 +32,15 @@
 namespace mp = multipass;
 namespace mpp = mp::platform;
 
-auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec) -> Process::UPtr
+auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec,
+                                        const std::string& custom_error_prefix) -> Process::UPtr
 {
     auto process = mpp::make_process(std::move(spec));
 
     auto process_state = process->execute();
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
+        throw std::runtime_error(fmt::format("{}: qemu-img failed ({}) with output:\n{}", custom_error_prefix,
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
 
@@ -50,16 +51,10 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
 {
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
     QStringList qemuimg_parameters{{"resize", image_path, disk_size}};
-    auto qemuimg_process =
-        mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path));
 
-    auto process_state = qemuimg_process->execute(mp::image_resize_timeout);
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_process->read_all_standard_error()));
-    }
+    // TODO@ricab pass in custom timeout: mp::image_resize_timeout
+    checked_exec_qemu_img(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path),
+                          "Cannot resize instance image");
 }
 
 mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
