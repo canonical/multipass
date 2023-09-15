@@ -19,6 +19,7 @@
 #define MULTIPASS_QEMU_IMG_UTILS_H
 
 #include <multipass/path.h>
+#include <multipass/platform.h>
 
 namespace multipass
 {
@@ -27,7 +28,7 @@ class QemuImgProcessSpec;
 
 namespace backend
 {
-void checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec);
+Process::UPtr checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec);
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
 Path convert_to_qcow_if_necessary(const Path& image_path);
 bool instance_image_has_snapshot(const Path& image_path, QString snapshot_tag);
