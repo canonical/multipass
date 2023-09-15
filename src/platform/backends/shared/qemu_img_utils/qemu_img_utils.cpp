@@ -84,6 +84,12 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     }
 }
 
+void mp::backend::amend_to_qcow2_v3(const multipass::Path& image_path)
+{
+    checked_exec_qemu_img(
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"amend", "-o", "compat=1.1", image_path}, image_path));
+}
+
 bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)
 {
     auto process = checked_exec_qemu_img(
