@@ -56,6 +56,7 @@ mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImag
 {
     VMImage image{source_image};
     image.image_path = mp::backend::convert_to_qcow_if_necessary(source_image.image_path);
+    mp::backend::amend_to_qcow2_v3(image.image_path);
     return image;
 }
 
