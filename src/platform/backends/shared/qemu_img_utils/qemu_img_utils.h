@@ -21,6 +21,8 @@
 #include <multipass/path.h>
 #include <multipass/platform.h>
 
+#include <optional>
+
 namespace multipass
 {
 class MemorySize;
@@ -29,7 +31,8 @@ class QemuImgProcessSpec;
 namespace backend
 {
 Process::UPtr checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec,
-                                    const std::string& custom_error_prefix = "Internal error");
+                                    const std::string& custom_error_prefix = "Internal error",
+                                    std::optional<int> timeout = std::nullopt);
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
 Path convert_to_qcow_if_necessary(const Path& image_path);
 bool instance_image_has_snapshot(const Path& image_path, QString snapshot_tag);
