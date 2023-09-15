@@ -46,29 +46,41 @@ std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
     return fmt::to_string(buf);
 }
 
+std::string format_mounts(const mp::MountInfo& mount_info)
+{
+    fmt::memory_buffer buf;
+    auto mount_paths = mount_info.mount_paths();
+
+    if (!mount_paths.size())
+        return {};
+
+    auto mount = mount_paths.cbegin();
+    for (; mount != --mount_paths.cend(); ++mount)
+        fmt::format_to(std::back_inserter(buf), "{} => {};", mount->source_path(), mount->target_path());
+    fmt::format_to(std::back_inserter(buf), "{} => {}", mount->source_path(), mount->target_path());
+
+    return fmt::to_string(buf);
+}
+
 std::string generate_snapshot_details(const mp::InfoReply reply)
 {
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf),
-                   "Snapshot,Instance,Size,CPU(s),Disk space,Memory size,Mounts,Created,Parent,Children,Comment\n");
+                   "Snapshot,Instance,CPU(s),Disk space,Memory size,Mounts,Created,Parent,Children,Comment\n");
 
     for (const auto& info : mp::format::sort_instances_and_snapshots(reply.detailed_report().details()))
     {
-        assert(info.has_snapshot_info() &&
-               "outputting instance and snapshot details together is not supported in csv format");
         const auto& fundamentals = info.snapshot_info().fundamentals();
 
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{},", fundamentals.snapshot_name(), info.name(),
-                       info.snapshot_info().size(), info.cpu_count(), info.disk_total(), info.memory_total());
+        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},", fundamentals.snapshot_name(), info.name(),
+                       info.cpu_count(), info.disk_total(), info.memory_total());
 
-        auto mount_paths = info.mount_info().mount_paths();
-        for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
-            fmt::format_to(std::back_inserter(buf), "{} => {};", mount->source_path(), mount->target_path());
+        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
 
-        fmt::format_to(std::back_inserter(buf), ",{},{},\"{}\";,\"{}\"\n",
+        fmt::format_to(std::back_inserter(buf), ",{},{},{},\"{}\"\n",
                        google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp()),
-                       fundamentals.parent(), fmt::join(info.snapshot_info().children(), ","), fundamentals.comment());
+                       fundamentals.parent(), fmt::join(info.snapshot_info().children(), ";"), fundamentals.comment());
     }
 
     return fmt::to_string(buf);
@@ -97,11 +109,9 @@ std::string generate_instance_details(const mp::InfoReply reply)
                        instance_details.disk_usage(), info.disk_total(), instance_details.memory_usage(),
                        info.memory_total());
 
-        auto mount_paths = info.mount_info().mount_paths();
-        for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
-            fmt::format_to(std::back_inserter(buf), "{} => {};", mount->source_path(), mount->target_path());
+        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
 
-        fmt::format_to(std::back_inserter(buf), ",\"{}\";,{},{}\n", fmt::join(instance_details.ipv4(), ","),
+        fmt::format_to(std::back_inserter(buf), ",{},{},{}\n", fmt::join(instance_details.ipv4(), ";"),
                        info.cpu_count(), instance_details.num_snapshots());
     }
 
@@ -118,10 +128,6 @@ std::string generate_instance_info_report(const mp::InfoReply& reply)
             output = generate_instance_details(reply);
         else
             output = generate_snapshot_details(reply);
-    }
-    else
-    {
-        output = "\n";
     }
 
     return output;
