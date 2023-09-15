@@ -35,6 +35,7 @@ Process::UPtr checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec,
                                     std::optional<int> timeout = std::nullopt);
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
 Path convert_to_qcow_if_necessary(const Path& image_path);
+void amend_to_qcow2_v3(const Path& image_path);
 bool instance_image_has_snapshot(const Path& image_path, QString snapshot_tag);
 
 } // namespace backend
