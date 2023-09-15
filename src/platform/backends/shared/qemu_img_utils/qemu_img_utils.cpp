@@ -32,7 +32,7 @@
 namespace mp = multipass;
 namespace mpp = mp::platform;
 
-void mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec)
+auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec) -> Process::UPtr
 {
     auto process = mpp::make_process(std::move(spec));
 
@@ -42,6 +42,8 @@ void mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> 
         throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
                                              process_state.failure_message(), process->read_all_standard_error()));
     }
+
+    return process;
 }
 
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
@@ -104,15 +106,8 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
 
 bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)
 {
-    auto process = mp::platform::make_process(
+    auto process = checked_exec_qemu_img(
         std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", image_path}, image_path));
-
-    auto process_state = process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(), process->read_all_standard_error()));
-    }
 
     QRegularExpression regex{snapshot_tag.append(R"(\s)")};
     return QString{process->read_all_standard_output()}.contains(regex);
