@@ -198,7 +198,10 @@ QJsonObject generate_instance_info_report(const mp::InfoReply& reply)
             {
                 QJsonObject obj = instance_it.value().toObject();
                 for (const auto& key : instance_details.keys())
+                {
+                    assert(obj.find(key) == obj.end() && "key already exists; overwriting");
                     obj.insert(key, instance_details[key]);
+                }
                 instance_it.value() = obj;
             }
         }
@@ -211,11 +214,11 @@ QJsonObject generate_instance_info_report(const mp::InfoReply& reply)
             // Nothing for the instance so far, so create the "snapshots" node and put snapshot details there
             if (instance_it == info_obj.end())
             {
-                QJsonObject obj, snapshot_obj;
+                QJsonObject instance_obj, snapshot_obj;
                 snapshot_obj.insert(QString::fromStdString(info.snapshot_info().fundamentals().snapshot_name()),
                                     snapshot_details);
-                obj.insert("snapshots", snapshot_obj);
-                info_obj.insert(QString::fromStdString(info.name()), obj);
+                instance_obj.insert("snapshots", snapshot_obj);
+                info_obj.insert(QString::fromStdString(info.name()), instance_obj);
             }
             // Some instance details already exist
             else
