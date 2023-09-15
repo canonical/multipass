@@ -33,11 +33,12 @@ namespace mp = multipass;
 namespace mpp = mp::platform;
 
 auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec,
-                                        const std::string& custom_error_prefix) -> Process::UPtr
+                                        const std::string& custom_error_prefix, std::optional<int> timeout)
+    -> Process::UPtr
 {
     auto process = mpp::make_process(std::move(spec));
 
-    auto process_state = process->execute();
+    auto process_state = timeout ? process->execute(*timeout) : process->execute();
     if (!process_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("{}: qemu-img failed ({}) with output:\n{}", custom_error_prefix,
@@ -52,9 +53,8 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
     QStringList qemuimg_parameters{{"resize", image_path, disk_size}};
 
-    // TODO@ricab pass in custom timeout: mp::image_resize_timeout
     checked_exec_qemu_img(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path),
-                          "Cannot resize instance image");
+                          "Cannot resize instance image", mp::image_resize_timeout);
 }
 
 mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
