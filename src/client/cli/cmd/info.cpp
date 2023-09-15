@@ -67,29 +67,42 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         "Retrieve from the daemon only the information obtained without running commands on the instance");
     noRuntimeInfoOption.setFlags(QCommandLineOption::HiddenFromHelp);
     QCommandLineOption formatOption(
-        "format", "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
-        "format", "table");
+        format_option_name,
+        "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
+        format_option_name, "table");
     QCommandLineOption snapshotOverviewOption("snapshot-overview", "Display info on snapshots");
 
     parser->addOptions({all_option, noRuntimeInfoOption, formatOption, snapshotOverviewOption});
 
     auto status = parser->commandParse(this);
-
     if (status != ParseCode::Ok)
-    {
         return status;
+
+    status = handle_format_option(parser, &chosen_formatter, cerr);
+
+    status = check_for_name_and_all_option_conflict(parser, cerr);
+    if (status != ParseCode::Ok)
+        return status;
+
+    bool instance_found = false, snapshot_found = false;
+    for (const auto& item : add_instance_and_snapshot_names(parser))
+    {
+        if (!item.has_snapshot_name())
+            instance_found = true;
+        else
+            snapshot_found = true;
+
+        request.add_instances_snapshots()->CopyFrom(item);
     }
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
-    if (parse_code != ParseCode::Ok)
-        return parse_code;
-
-    for (const auto& item : add_instance_and_snapshot_names(parser))
-        request.add_instances_snapshots()->CopyFrom(item);
     request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));
     request.set_snapshot_overview(parser->isSet(snapshotOverviewOption));
 
-    status = handle_format_option(parser, &chosen_formatter, cerr);
+    if (instance_found && snapshot_found && parser->value(format_option_name) == "csv")
+    {
+        cerr << "Mixed snapshot and instance arguments are not supported with CSV format\n";
+        return ParseCode::CommandLineError;
+    }
 
     return status;
 }
