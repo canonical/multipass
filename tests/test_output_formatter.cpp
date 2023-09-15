@@ -1036,7 +1036,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "trusty-190611-1542,Running,,,Ubuntu N/A,\"\"\n",
      "csv_list_unsorted"},
 
-    {&csv_formatter, &empty_info_reply, "\n", "csv_info_empty"},
+    {&csv_formatter, &empty_info_reply, "", "csv_info_empty"},
     {&csv_formatter, &empty_snapshot_overview_reply, "Instance,Snapshot,Parent,Comment\n",
      "csv_snapshot_overview_empty"},
     {&csv_formatter, &single_instance_info_reply,
@@ -1045,29 +1045,29 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
      "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
-     "=> test_dir;,\"10.168.32.2,200.3.123.29\";,1,0\n",
+     "=> test_dir,10.168.32.2;200.3.123.29,1,0\n",
      "csv_info_single_instance"},
     {&csv_formatter, &single_snapshot_info_reply,
-     "Snapshot,Instance,Size,CPU(s),Disk space,Memory "
-     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,128MiB,2,4.9GiB,0.9GiB,/home/user/source "
+     "Snapshot,Instance,CPU(s),Disk space,Memory "
+     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,2,4.9GiB,0.9GiB,/home/user/source "
      "=> "
-     "source;/home/user => Home;,1972-01-01T10:00:20.021Z,snapshot1,\"snapshot3,snapshot4\";,\"This is a comment with "
+     "source;/home/user => Home,1972-01-01T10:00:20.021Z,snapshot1,snapshot3;snapshot4,\"This is a comment with "
      "some\nnew\r\nlines.\"\n",
      "csv_info_single_snapshot_info_reply"},
     {&csv_formatter, &multiple_snapshots_info_reply,
-     "Snapshot,Instance,Size,CPU(s),Disk space,Memory "
-     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,,2,4.9GiB,0.9GiB,/home/user/source => "
+     "Snapshot,Instance,CPU(s),Disk space,Memory "
+     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,2,4.9GiB,0.9GiB,/home/user/source => "
      "source;/home/user => "
-     "Home;,1972-01-01T10:00:20.021Z,snapshot1,\"snapshot3,snapshot4\";,\"\"\nblack-hole,messier-87,,1,1024GiB,128GiB,,"
-     "2019-04-10T11:59:59Z,,\"\";,\"Captured by EHT\"\n",
+     "Home,1972-01-01T10:00:20.021Z,snapshot1,snapshot3;snapshot4,\"\"\nblack-hole,messier-87,1,1024GiB,128GiB,,"
+     "2019-04-10T11:59:59Z,,,\"Captured by EHT\"\n",
      "csv_info_multiple_snapshot_info_reply"},
     {&csv_formatter, &multiple_instances_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
      "usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
-     "source;,\"10.21.124.56\";,4,1\nbombastic,Stopped,,,,"
-     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,\"\";,,3\n",
+     "source,10.21.124.56,4,1\nbombastic,Stopped,,,,"
+     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,,,3\n",
      "csv_info_multiple_instances"},
     {&csv_formatter, &single_snapshot_overview_info_reply,
      "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,This is a sample comment\n", "csv_snapshot_overview_single"},
