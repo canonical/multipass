@@ -113,7 +113,6 @@ protected:
         : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
     VirtualMachine(const std::string& vm_name, const Path& instance_dir)
         : VirtualMachine(State::off, vm_name, instance_dir){};
-    VirtualMachine(const std::string& vm_name) : VirtualMachine(vm_name, ""){};
 };
 } // namespace multipass
 #endif // MULTIPASS_VIRTUAL_MACHINE_H

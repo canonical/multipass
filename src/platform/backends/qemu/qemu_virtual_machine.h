@@ -70,7 +70,8 @@ signals:
     void on_reset_network();
 
 protected:
-    QemuVirtualMachine(const std::string& name) : BaseVirtualMachine{name, ""}
+    // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
+    QemuVirtualMachine(const std::string& name, const mp::Path& instance_dir) : BaseVirtualMachine{name, instance_dir}
     {
     }
 
