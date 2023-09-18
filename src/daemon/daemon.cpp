@@ -251,7 +251,8 @@ std::vector<mp::NetworkInterface> read_extra_interfaces(const QJsonObject& recor
         {
             auto id = entry.toObject()["id"].toString().toStdString();
             auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
-            if (!mpu::valid_mac_address(mac_address))
+            // Allow empty addresses (for nonconfigured interfaces).
+            if (!mac_address.empty() && !mpu::valid_mac_address(mac_address))
             {
                 throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
             }
@@ -508,12 +509,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
 
         if (net_id == mp::bridged_network_name)
         {
-            const auto bridged_id = MP_SETTINGS.get(mp::bridged_interface_key);
-            if (bridged_id == "")
-                throw std::runtime_error(
-                    fmt::format("You have to `multipass set {}=<name>` to use the `--bridged` shortcut.",
-                                mp::bridged_interface_key));
-            net_id = bridged_id.toStdString();
+            net_id = get_bridged_interface_name();
         }
 
         if (!factory_networks)
@@ -1990,6 +1986,8 @@ try // clang-format on
                 mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
             }
 
+            configure_new_interfaces(vm, vm_instance_specs[name]);
+
             vm.start();
         }
 
@@ -2872,6 +2870,33 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
     return mount.mount_type == VMMount::MountType::Classic
                ? std::make_unique<SSHFSMountHandler>(vm, config->ssh_key_provider.get(), target, mount)
                : vm->make_native_mount_handler(config->ssh_key_provider.get(), target, mount);
+}
+
+void mp::Daemon::configure_new_interfaces(mp::VirtualMachine& vm, mp::VMSpecs& specs)
+{
+    std::vector<size_t> new_interfaces;
+
+    for (auto i = 0u; i < specs.extra_interfaces.size(); ++i)
+    {
+        auto& interface = specs.extra_interfaces[i];
+
+        if (interface.mac_address.empty()) // An empty MAC address means the interface needs to be configured.
+        {
+            new_interfaces.push_back(i);
+
+            interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+        }
+    }
+
+    if (!new_interfaces.empty())
+    {
+        config->factory->prepare_networking(specs.extra_interfaces);
+
+        for (const auto i : new_interfaces)
+        {
+            vm.add_network_interface(i, specs.extra_interfaces[i]);
+        }
+    }
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
