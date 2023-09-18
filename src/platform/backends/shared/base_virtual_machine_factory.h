@@ -34,7 +34,6 @@ constexpr auto log_category = "base factory";
 class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
-    BaseVirtualMachineFactory() = default;
     explicit BaseVirtualMachineFactory(const Path& instances_dir);
 
     void remove_resources_for(const std::string& name) final;

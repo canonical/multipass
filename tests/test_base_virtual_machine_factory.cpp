@@ -37,6 +37,15 @@ namespace
 {
 struct MockBaseFactory : mp::BaseVirtualMachineFactory
 {
+    MockBaseFactory() : MockBaseFactory{std::make_unique<mp::test::TempDir>()}
+    {
+    }
+
+    MockBaseFactory(std::unique_ptr<mp::test::TempDir>&& tmp_dir)
+        : mp::BaseVirtualMachineFactory{tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    {
+    }
+
     MOCK_METHOD(mp::VirtualMachine::UPtr, create_virtual_machine,
                 (const mp::VirtualMachineDescription&, mp::VMStatusMonitor&), (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
@@ -68,6 +77,8 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     {
         return mp::BaseVirtualMachineFactory::prepare_interface(net, host_nets, bridge_type); // protected
     }
+
+    std::unique_ptr<mp::test::TempDir> tmp_dir;
 };
 
 struct BaseFactory : public Test

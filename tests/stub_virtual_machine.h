@@ -32,7 +32,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    StubVirtualMachine(const std::string& name) : VirtualMachine{name}
+    StubVirtualMachine(const std::string& name) : VirtualMachine{name, "fake_dir"}
     {
     }
 
