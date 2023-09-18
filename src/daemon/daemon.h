@@ -171,6 +171,7 @@ private:
                                VirtualMachine* vm);
 
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
+    void configure_new_interfaces(VirtualMachine& vm, VMSpecs& specs);
 
     struct AsyncOperationStatus
     {
