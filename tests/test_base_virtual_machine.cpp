@@ -18,6 +18,7 @@
 #include "common.h"
 #include "dummy_ssh_key_provider.h"
 #include "mock_ssh_test_fixture.h"
+#include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
 
@@ -33,10 +34,15 @@ namespace
 {
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
-    StubBaseVirtualMachine(const mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
-        : mp::BaseVirtualMachine("stub", "")
+    StubBaseVirtualMachine(mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
+        : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
     {
         state = s;
+    }
+
+    StubBaseVirtualMachine(mp::VirtualMachine::State s, std::unique_ptr<mpt::TempDir>&& tmp_dir)
+        : mp::BaseVirtualMachine{"stub", tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    {
     }
 
     void stop() override
@@ -125,6 +131,8 @@ protected:
     {
         return nullptr;
     }
+
+    std::unique_ptr<mpt::TempDir>&& tmp_dir;
 };
 
 struct BaseVM : public Test
