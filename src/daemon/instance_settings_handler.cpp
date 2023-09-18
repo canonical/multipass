@@ -173,7 +173,9 @@ void update_bridged(const QString& key, const QString& val, mp::VirtualMachine& 
 
     if (bridged)
     {
-        // TODO: add the interface
+        // TODO: in this first approach, we add an interface with manual configuration.
+        // The empty string in the MAC indicates the daemon that the interface must be configured.
+        spec.extra_interfaces.push_back({br_interface, "", false});
     }
 }
 
@@ -197,7 +199,6 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
       preparing_instances{preparing_instances},
       instance_persister{std::move(instance_persister)},
       bridged_interface{std::move(bridged_interface)}
-
 {
 }
 
