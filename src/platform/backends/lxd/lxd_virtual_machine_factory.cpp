@@ -103,7 +103,7 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
 {
     return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name,
                                                    storage_pool,
-                                                   MP_UTILS.make_dir(get_instance_directory_name(desc.vm_name)));
+                                                   MP_UTILS.make_dir(get_instance_directory(desc.vm_name)));
 }
 
 void mp::LXDVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
