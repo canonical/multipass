@@ -41,7 +41,7 @@ mpt::fetch_image_lambda(const std::string& release, const std::string& remote, c
     return [&release, &remote, must_have_checksum](
                const mp::FetchType& fetch_type, const mp::Query& query, const mp::VMImageVault::PrepareAction& prepare,
                const mp::ProgressMonitor& monitor, const bool unlock, const std::optional<std::string>& checksum,
-               const mp::Path& download_dir) {
+               const mp::Path& save_dir) {
         EXPECT_EQ(query.release, release);
         if (remote.empty())
         {
@@ -57,7 +57,7 @@ mpt::fetch_image_lambda(const std::string& release, const std::string& remote, c
             EXPECT_NE(checksum, std::nullopt);
         }
 
-        return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor, unlock, checksum, download_dir);
+        return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor, unlock, checksum, save_dir);
     };
 }
 
