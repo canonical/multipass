@@ -466,6 +466,20 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToUnbridge)
                          mpt::match_what(HasSubstr("Bridged interface cannot be removed")));
 }
 
+TEST_F(TestInstanceSettingsHandler, setAddsInterface)
+{
+    constexpr auto target_instance_name = "pappo";
+    specs.insert({{"blues", {}}, {"local", {}}, {target_instance_name, {}}});
+    specs[target_instance_name].extra_interfaces = {{"id", "52:54:00:45:67:89", true}};
+
+    mock_vm(target_instance_name); // TODO: make this an expectation.
+
+    make_handler().set(make_key(target_instance_name, "bridged"), "true");
+
+    EXPECT_EQ(specs[target_instance_name].extra_interfaces.size(), 2u);
+    EXPECT_EQ(specs[target_instance_name].extra_interfaces[1].mac_address, "");
+}
+
 using VMSt = mp::VirtualMachine::State;
 using Property = const char*;
 using PropertyAndState = std::tuple<Property, VMSt>; // no subliminal political msg intended :)
