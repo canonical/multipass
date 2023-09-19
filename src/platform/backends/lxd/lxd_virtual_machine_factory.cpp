@@ -108,7 +108,7 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
 
 void mp::LXDVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
-    mpl::log(mpl::Level::trace, category, fmt::format("No resources to remove for \"{}\"", name));
+    mpl::log(mpl::Level::trace, category, fmt::format("No further resources to remove for \"{}\"", name));
 }
 
 auto mp::LXDVirtualMachineFactory::prepare_source_image(const VMImage& source_image) -> VMImage
