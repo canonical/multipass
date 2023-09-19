@@ -445,7 +445,7 @@ auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
     return vault.fetch_image(factory.fetch_type(), query, stub_prepare, stub_progress, false, std::nullopt,
-                             factory.get_instance_directory_name(name));
+                             factory.get_instance_directory(name));
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -2917,7 +2917,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             auto vm_image =
                 config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor, launch_from_blueprint,
-                                           checksum, config->factory->get_instance_directory_name(name));
+                                           checksum, config->factory->get_instance_directory(name));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(

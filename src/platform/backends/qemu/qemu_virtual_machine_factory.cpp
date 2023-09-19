@@ -54,7 +54,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
                                                                                VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc, qemu_platform.get(), monitor,
-                                                    MP_UTILS.make_dir(get_instance_directory_name(desc.vm_name)));
+                                                    MP_UTILS.make_dir(get_instance_directory(desc.vm_name)));
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
