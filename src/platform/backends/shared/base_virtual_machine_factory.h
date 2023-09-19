@@ -48,7 +48,7 @@ public:
         return {};
     };
 
-    Path get_instance_directory_name(const std::string& name) const override
+    Path get_instance_directory(const std::string& name) const override
     {
         return multipass::utils::backend_directory_path(instances_dir, QString::fromStdString(name));
     }
@@ -95,7 +95,7 @@ private:
 inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
     remove_resources_for_impl(name);
-    QDir instance_dir{get_instance_directory_name(name)};
+    QDir instance_dir{get_instance_directory(name)};
     instance_dir.removeRecursively();
 }
 

@@ -128,7 +128,7 @@ mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machin
         bridge_name = enable_libvirt_network(data_dir, libvirt_wrapper);
 
     return std::make_unique<mp::LibVirtVirtualMachine>(desc, bridge_name, monitor, libvirt_wrapper,
-                                                       get_instance_directory_name(desc.vm_name));
+                                                       get_instance_directory(desc.vm_name));
 }
 
 mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
