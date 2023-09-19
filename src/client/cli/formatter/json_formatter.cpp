@@ -22,7 +22,6 @@
 #include <multipass/utils.h>
 
 #include <QJsonArray>
-#include <QJsonDocument>
 #include <QJsonObject>
 
 namespace mp = multipass;
@@ -56,105 +55,192 @@ QJsonObject format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
     return images_obj;
 }
 
-std::string generate_instance_info_report(const mp::InfoReply& reply)
+QJsonObject generate_snapshot_details(const mp::DetailedInfoItem& item)
+{
+    const auto& snapshot_details = item.snapshot_info();
+    const auto& fundamentals = snapshot_details.fundamentals();
+    QJsonObject snapshot_info;
+
+    snapshot_info.insert("size", QString::fromStdString(snapshot_details.size()));
+    snapshot_info.insert("cpu_count", QString::fromStdString(item.cpu_count()));
+    snapshot_info.insert("disk_space", QString::fromStdString(item.disk_total()));
+    snapshot_info.insert("memory_size", QString::fromStdString(item.memory_total()));
+
+    QJsonObject mounts;
+    for (const auto& mount : item.mount_info().mount_paths())
+    {
+        QJsonObject entry;
+        entry.insert("source_path", QString::fromStdString(mount.source_path()));
+
+        mounts.insert(QString::fromStdString(mount.target_path()), entry);
+    }
+    snapshot_info.insert("mounts", mounts);
+
+    snapshot_info.insert("created", QString::fromStdString(
+                                        google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp())));
+    snapshot_info.insert("parent", QString::fromStdString(fundamentals.parent()));
+
+    QJsonArray children;
+    for (const auto& child : snapshot_details.children())
+        children.append(QString::fromStdString(child));
+    snapshot_info.insert("children", children);
+
+    snapshot_info.insert("comment", QString::fromStdString(fundamentals.comment()));
+
+    return snapshot_info;
+}
+
+QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
+{
+    const auto& instance_details = item.instance_info();
+
+    QJsonObject instance_info;
+    instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(item.instance_status())));
+    instance_info.insert("image_hash", QString::fromStdString(instance_details.id()));
+    instance_info.insert("image_release", QString::fromStdString(instance_details.image_release()));
+    instance_info.insert("release", QString::fromStdString(instance_details.current_release()));
+    instance_info.insert("cpu_count", QString::fromStdString(item.cpu_count()));
+    instance_info.insert("snapshot_count", QString::number(instance_details.num_snapshots()));
+
+    QJsonArray load;
+    if (!instance_details.load().empty())
+    {
+        auto loads = mp::utils::split(instance_details.load(), " ");
+        for (const auto& entry : loads)
+            load.append(std::stod(entry));
+    }
+    instance_info.insert("load", load);
+
+    QJsonObject disks;
+    QJsonObject disk;
+    if (!instance_details.disk_usage().empty())
+        disk.insert("used", QString::fromStdString(instance_details.disk_usage()));
+    if (!item.disk_total().empty())
+        disk.insert("total", QString::fromStdString(item.disk_total()));
+
+    // TODO: disk name should come from daemon
+    disks.insert("sda1", disk);
+    instance_info.insert("disks", disks);
+
+    QJsonObject memory;
+    if (!instance_details.memory_usage().empty())
+        memory.insert("used", std::stoll(instance_details.memory_usage()));
+    if (!item.memory_total().empty())
+        memory.insert("total", std::stoll(item.memory_total()));
+    instance_info.insert("memory", memory);
+
+    QJsonArray ipv4_addrs;
+    for (const auto& ip : instance_details.ipv4())
+        ipv4_addrs.append(QString::fromStdString(ip));
+    instance_info.insert("ipv4", ipv4_addrs);
+
+    QJsonObject mounts;
+    for (const auto& mount : item.mount_info().mount_paths())
+    {
+        QJsonObject entry;
+        QJsonArray mount_uids;
+        QJsonArray mount_gids;
+
+        auto mount_maps = mount.mount_maps();
+
+        for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
+        {
+            auto uid_map_pair = mount_maps.uid_mappings(i);
+            auto host_uid = uid_map_pair.host_id();
+            auto instance_uid = uid_map_pair.instance_id();
+
+            mount_uids.append(QString("%1:%2")
+                                  .arg(QString::number(host_uid))
+                                  .arg((instance_uid == mp::default_id) ? "default" : QString::number(instance_uid)));
+        }
+        for (auto i = 0; i < mount_maps.gid_mappings_size(); ++i)
+        {
+            auto gid_map_pair = mount_maps.gid_mappings(i);
+            auto host_gid = gid_map_pair.host_id();
+            auto instance_gid = gid_map_pair.instance_id();
+
+            mount_gids.append(QString("%1:%2")
+                                  .arg(QString::number(host_gid))
+                                  .arg((instance_gid == mp::default_id) ? "default" : QString::number(instance_gid)));
+        }
+        entry.insert("uid_mappings", mount_uids);
+        entry.insert("gid_mappings", mount_gids);
+        entry.insert("source_path", QString::fromStdString(mount.source_path()));
+
+        mounts.insert(QString::fromStdString(mount.target_path()), entry);
+    }
+    instance_info.insert("mounts", mounts);
+
+    return instance_info;
+}
+
+QJsonObject generate_instance_info_report(const mp::InfoReply& reply)
 {
     QJsonObject info_json;
     QJsonObject info_obj;
-
     info_json.insert("errors", QJsonArray());
 
     for (const auto& info : reply.detailed_report().details())
     {
-        const auto& instance_details = info.instance_info();
+        auto instance_it = info_obj.find(QString::fromStdString(info.name()));
 
-        QJsonObject instance_info;
-        instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(info.instance_status())));
-        instance_info.insert("image_hash", QString::fromStdString(instance_details.id()));
-        instance_info.insert("image_release", QString::fromStdString(instance_details.image_release()));
-        instance_info.insert("release", QString::fromStdString(instance_details.current_release()));
-        instance_info.insert("cpu_count", QString::fromStdString(info.cpu_count()));
-        instance_info.insert("snapshots", QString::number(instance_details.num_snapshots()));
-
-        QJsonArray load;
-        if (!instance_details.load().empty())
+        if (info.has_instance_info())
         {
-            auto loads = mp::utils::split(instance_details.load(), " ");
-            for (const auto& entry : loads)
-                load.append(std::stod(entry));
+            auto instance_details = generate_instance_details(info);
+
+            // Nothing for the instance so far, so insert normally
+            if (instance_it == info_obj.end())
+            {
+                info_obj.insert(QString::fromStdString(info.name()), instance_details);
+            }
+            // Some instance details already exist, so merge the values
+            else
+            {
+                QJsonObject obj = instance_it.value().toObject();
+                for (const auto& key : instance_details.keys())
+                {
+                    assert(obj.find(key) == obj.end() && "key already exists");
+                    obj.insert(key, instance_details[key]);
+                }
+                instance_it.value() = obj;
+            }
         }
-        instance_info.insert("load", load);
-
-        QJsonObject disks;
-        QJsonObject disk;
-        if (!instance_details.disk_usage().empty())
-            disk.insert("used", QString::fromStdString(instance_details.disk_usage()));
-        if (!info.disk_total().empty())
-            disk.insert("total", QString::fromStdString(info.disk_total()));
-
-        // TODO: disk name should come from daemon
-        disks.insert("sda1", disk);
-        instance_info.insert("disks", disks);
-
-        QJsonObject memory;
-        if (!instance_details.memory_usage().empty())
-            memory.insert("used", std::stoll(instance_details.memory_usage()));
-        if (!info.memory_total().empty())
-            memory.insert("total", std::stoll(info.memory_total()));
-        instance_info.insert("memory", memory);
-
-        QJsonArray ipv4_addrs;
-        for (const auto& ip : instance_details.ipv4())
-            ipv4_addrs.append(QString::fromStdString(ip));
-        instance_info.insert("ipv4", ipv4_addrs);
-
-        QJsonObject mounts;
-        for (const auto& mount : info.mount_info().mount_paths())
+        else
         {
-            QJsonObject entry;
-            QJsonArray mount_uids;
-            QJsonArray mount_gids;
+            assert(info.has_snapshot_info() && "either one of instance or snapshot details should be populated");
 
-            auto mount_maps = mount.mount_maps();
+            auto snapshot_details = generate_snapshot_details(info);
 
-            for (auto i = 0; i < mount_maps.uid_mappings_size(); ++i)
+            // Nothing for the instance so far, so create the "snapshots" node and put snapshot details there
+            if (instance_it == info_obj.end())
             {
-                auto uid_map_pair = mount_maps.uid_mappings(i);
-                auto host_uid = uid_map_pair.host_id();
-                auto instance_uid = uid_map_pair.instance_id();
-
-                mount_uids.append(
-                    QString("%1:%2")
-                        .arg(QString::number(host_uid))
-                        .arg((instance_uid == mp::default_id) ? "default" : QString::number(instance_uid)));
+                QJsonObject instance_obj, snapshot_obj;
+                snapshot_obj.insert(QString::fromStdString(info.snapshot_info().fundamentals().snapshot_name()),
+                                    snapshot_details);
+                instance_obj.insert("snapshots", snapshot_obj);
+                info_obj.insert(QString::fromStdString(info.name()), instance_obj);
             }
-            for (auto i = 0; i < mount_maps.gid_mappings_size(); ++i)
+            // Some instance details already exist
+            else
             {
-                auto gid_map_pair = mount_maps.gid_mappings(i);
-                auto host_gid = gid_map_pair.host_id();
-                auto instance_gid = gid_map_pair.instance_id();
+                auto instance_obj = instance_it.value().toObject();
+                auto snapshots_it = instance_obj.find("snapshots");
+                QJsonObject snapshots_obj =
+                    snapshots_it == instance_obj.end() ? QJsonObject() : snapshots_it.value().toObject();
 
-                mount_gids.append(
-                    QString("%1:%2")
-                        .arg(QString::number(host_gid))
-                        .arg((instance_gid == mp::default_id) ? "default" : QString::number(instance_gid)));
+                snapshots_obj.insert(QString::fromStdString(info.snapshot_info().fundamentals().snapshot_name()),
+                                     snapshot_details);
+                instance_obj.insert("snapshots", snapshots_obj);
+                instance_it.value() = instance_obj;
             }
-            entry.insert("uid_mappings", mount_uids);
-            entry.insert("gid_mappings", mount_gids);
-            entry.insert("source_path", QString::fromStdString(mount.source_path()));
-
-            mounts.insert(QString::fromStdString(mount.target_path()), entry);
         }
-        instance_info.insert("mounts", mounts);
-
-        info_obj.insert(QString::fromStdString(info.name()), instance_info);
     }
-
     info_json.insert("info", info_obj);
 
-    return mp::json_to_string(info_json);
+    return info_json;
 }
 
-std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
+QJsonObject generate_snapshot_overview_report(const mp::InfoReply& reply)
 {
     QJsonObject info_json;
     QJsonObject info_obj;
@@ -185,25 +271,25 @@ std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
 
     info_json.insert("info", info_obj);
 
-    return QString(QJsonDocument(info_json).toJson()).toStdString();
+    return info_json;
 }
 } // namespace
 
 std::string mp::JsonFormatter::format(const InfoReply& reply) const
 {
-    std::string output;
+    QJsonObject info_json;
 
     if (reply.has_detailed_report())
     {
-        output = generate_instance_info_report(reply);
+        info_json = generate_instance_info_report(reply);
     }
     else
     {
         assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
-        output = generate_snapshot_overview_report(reply);
+        info_json = generate_snapshot_overview_report(reply);
     }
 
-    return output;
+    return mp::json_to_string(info_json);
 }
 
 std::string mp::JsonFormatter::format(const ListReply& reply) const
