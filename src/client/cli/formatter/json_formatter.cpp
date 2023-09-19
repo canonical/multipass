@@ -199,7 +199,7 @@ QJsonObject generate_instance_info_report(const mp::InfoReply& reply)
                 QJsonObject obj = instance_it.value().toObject();
                 for (const auto& key : instance_details.keys())
                 {
-                    assert(obj.find(key) == obj.end() && "key already exists; overwriting");
+                    assert(obj.find(key) == obj.end() && "key already exists");
                     obj.insert(key, instance_details[key]);
                 }
                 instance_it.value() = obj;
