@@ -254,7 +254,7 @@ mp::DefaultVMImageVault::~DefaultVMImageVault()
 mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
                                                  const PrepareAction& prepare, const ProgressMonitor& monitor,
                                                  const bool unlock, const std::optional<std::string>& checksum,
-                                                 const mp::Path& download_dir)
+                                                 const mp::Path& save_dir)
 {
     {
         std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -282,11 +282,11 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image.image_path = extract_image_from(query.name, source_image, monitor, download_dir);
+            source_image.image_path = extract_image_from(query.name, source_image, monitor, save_dir);
         }
         else
         {
-            source_image = image_instance_from(query.name, source_image, download_dir);
+            source_image = image_instance_from(query.name, source_image, save_dir);
         }
 
         vm_image = prepare(source_image);
@@ -327,7 +327,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
                 if (last_modified.isValid() && (last_modified.toString().toStdString() == record.image.release_date))
                 {
-                    return finalize_image_records(query, record.image, id, download_dir);
+                    return finalize_image_records(query, record.image, id, save_dir);
                 }
             }
 
@@ -389,7 +389,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                         const auto prepared_image = record.second.image;
                         try
                         {
-                            return finalize_image_records(query, prepared_image, record.first, download_dir);
+                            return finalize_image_records(query, prepared_image, record.first, save_dir);
                         }
                         catch (const std::exception& e)
                         {
@@ -427,7 +427,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             auto prepared_image = future.result();
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             in_progress_image_fetches.erase(id);
-            return finalize_image_records(query, prepared_image, id, download_dir);
+            return finalize_image_records(query, prepared_image, id, save_dir);
         }
         catch (const std::exception&)
         {
