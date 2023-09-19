@@ -958,10 +958,10 @@ TEST_F(LXDBackend, unimplemented_functions_logs_trace_message)
 
     const std::string name{"foo"};
 
-    EXPECT_CALL(
-        *logger_scope.mock_logger,
-        log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
-            mpt::MockLogger::make_cstring_matcher(StrEq(fmt::format("No resources to remove for \"{}\"", name)))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        StrEq(fmt::format("No further resources to remove for \"{}\"", name)))));
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
