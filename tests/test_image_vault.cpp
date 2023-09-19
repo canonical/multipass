@@ -168,9 +168,9 @@ struct ImageVault : public testing::Test
         [](const mp::VMImage& source_image) -> mp::VMImage { return source_image; }};
     mpt::TempDir cache_dir;
     mpt::TempDir data_dir;
-    mpt::TempDir download_dir;
+    mpt::TempDir save_dir;
     std::string instance_name{"valley-pied-piper"};
-    QString instance_dir = download_dir.filePath(QString::fromStdString(instance_name));
+    QString instance_dir = save_dir.filePath(QString::fromStdString(instance_name));
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
 } // namespace
@@ -242,7 +242,7 @@ TEST_F(ImageVault, caches_prepared_images)
     auto another_query = default_query;
     another_query.name = "valley-pied-piper-chat";
     auto vm_image2 = vault.fetch_image(mp::FetchType::ImageOnly, another_query, prepare, stub_monitor, false,
-                                       std::nullopt, download_dir.filePath(QString::fromStdString(another_query.name)));
+                                       std::nullopt, save_dir.filePath(QString::fromStdString(another_query.name)));
 
     EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
     EXPECT_THAT(prepare_called_count, Eq(1));
@@ -289,7 +289,7 @@ TEST_F(ImageVault, remembers_prepared_images)
     mp::DefaultVMImageVault another_vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto vm_image2 =
         another_vault.fetch_image(mp::FetchType::ImageOnly, another_query, prepare, stub_monitor, false, std::nullopt,
-                                  download_dir.filePath(QString::fromStdString(another_query.name)));
+                                  save_dir.filePath(QString::fromStdString(another_query.name)));
 
     EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
     EXPECT_THAT(prepare_called_count, Eq(1));
