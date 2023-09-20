@@ -101,7 +101,7 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
 
         const auto release = product["release"].toString();
         const auto release_title = product["release_title"].toString();
-        const auto supported = product["supported"].toBool();
+        const auto supported = product["supported"].toBool() || product_aliases.contains("devel");
 
         const auto versions = product["versions"].toObject();
         if (versions.isEmpty())
