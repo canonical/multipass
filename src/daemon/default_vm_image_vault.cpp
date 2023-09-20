@@ -282,11 +282,11 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image.image_path = extract_image_from(query.name, source_image, monitor, save_dir);
+            source_image.image_path = extract_image_from(source_image, monitor, save_dir);
         }
         else
         {
-            source_image = image_instance_from(query.name, source_image, save_dir);
+            source_image = image_instance_from(source_image, save_dir);
         }
 
         vm_image = prepare(source_image);
@@ -630,11 +630,10 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
 }
 
-QString mp::DefaultVMImageVault::extract_image_from(const std::string& instance_name, const VMImage& source_image,
-                                                    const ProgressMonitor& monitor, const mp::Path& dest_dir)
+QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image, const ProgressMonitor& monitor,
+                                                    const mp::Path& dest_dir)
 {
-    const auto name = QString::fromStdString(instance_name);
-    MP_UTILS.make_dir(dest_dir, name);
+    MP_UTILS.make_dir(dest_dir);
     QFileInfo file_info{source_image.image_path};
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = QDir(dest_dir).filePath(image_name);
@@ -642,10 +641,9 @@ QString mp::DefaultVMImageVault::extract_image_from(const std::string& instance_
     return mp::vault::extract_image(image_path, monitor);
 }
 
-mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& instance_name,
-                                                         const VMImage& prepared_image, const mp::Path& dest_dir)
+mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared_image, const mp::Path& dest_dir)
 {
-    MP_UTILS.make_dir(dest_dir, QString::fromStdString(instance_name));
+    MP_UTILS.make_dir(dest_dir);
 
     return {mp::vault::copy(prepared_image.image_path, dest_dir),
             prepared_image.id,
@@ -673,7 +671,7 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
 
     if (!query.name.empty())
     {
-        vm_image = image_instance_from(query.name, prepared_image, dest_dir);
+        vm_image = image_instance_from(prepared_image, dest_dir);
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
     }
 
