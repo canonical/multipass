@@ -108,7 +108,8 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
                                                                const std::string& libvirt_object_path)
-    : BaseVirtualMachineFactory(QDir(data_dir, get_backend_directory_name()).filePath("vault/instances")),
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
       libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
       data_dir{data_dir},
       bridge_name{enable_libvirt_network(data_dir, libvirt_wrapper)},

@@ -34,10 +34,6 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "qemu factory";
-mp::Path derive_instances_dir(const mp::QemuPlatform& qemu_platform, const mp::Path& data_dir)
-{
-    return QDir(data_dir, qemu_platform.get_directory_name()).filePath("vault/instances");
-}
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
@@ -46,7 +42,9 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_di
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const mp::Path& data_dir)
-    : BaseVirtualMachineFactory(derive_instances_dir(*qemu_platform, data_dir)), qemu_platform{std::move(qemu_platform)}
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, qemu_platform->get_directory_name(), instances_subdir)),
+      qemu_platform{std::move(qemu_platform)}
 {
 }
 
@@ -54,7 +52,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
                                                                                VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc, qemu_platform.get(), monitor,
-                                                    MP_UTILS.make_dir(get_instance_directory(desc.vm_name)));
+                                                    get_instance_directory(desc.vm_name));
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
