@@ -61,12 +61,11 @@ public:
     MemorySize minimum_image_size_for(const std::string& id) override;
 
 private:
-    VMImage image_instance_from(const std::string& name, const VMImage& prepared_image, const Path& dest_dir);
+    VMImage image_instance_from(const VMImage& prepared_image, const Path& dest_dir);
     VMImage download_and_prepare_source_image(const VMImageInfo& info, std::optional<VMImage>& existing_source_image,
                                               const QDir& image_dir, const FetchType& fetch_type,
                                               const PrepareAction& prepare, const ProgressMonitor& monitor);
-    QString extract_image_from(const std::string& instance_name, const VMImage& source_image,
-                               const ProgressMonitor& monitor, const Path& dest_dir);
+    QString extract_image_from(const VMImage& source_image, const ProgressMonitor& monitor, const Path& dest_dir);
     std::optional<QFuture<VMImage>> get_image_future(const std::string& id);
     VMImage finalize_image_records(const Query& query, const VMImage& prepared_image, const std::string& id,
                                    const Path& dest_dir);
