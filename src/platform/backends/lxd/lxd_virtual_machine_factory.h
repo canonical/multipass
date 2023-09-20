@@ -54,8 +54,6 @@ public:
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
-
-protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
 
 private:
