@@ -533,7 +533,7 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     }
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     const auto driver = MP_SETTINGS.get(mp::driver_key);
 
@@ -547,7 +547,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path&)
           there.
         */
 
-        return std::make_unique<VirtualBoxVirtualMachineFactory>();
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
