@@ -691,5 +691,5 @@ mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir, const mp::Pat
     if (backend_directory_name.isEmpty())
         return QDir(data_dir).filePath(instances_subdir);
     else
-        return QDir(data_dir).filePath(QString("%1/%2").arg(backend_directory_name).arg(instances_subdir));
+        return QDir(QDir(data_dir).filePath(backend_directory_name)).filePath(instances_subdir);
 }
