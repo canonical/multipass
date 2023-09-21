@@ -58,7 +58,7 @@ QString cmd::Info::description() const
 
 mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("instance",
+    parser->addPositionalArgument("instance/snapshot",
                                   "Names of instances or snapshots to display information about",
                                   "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
