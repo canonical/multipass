@@ -538,7 +538,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     const auto driver = MP_SETTINGS.get(mp::driver_key);
 
     if (driver == QStringLiteral("hyperv"))
-        return std::make_unique<HyperVVirtualMachineFactory>();
+        return std::make_unique<HyperVVirtualMachineFactory>(data_dir);
     else if (driver == QStringLiteral("virtualbox"))
     {
         qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*
