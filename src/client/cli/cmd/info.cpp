@@ -53,7 +53,7 @@ QString cmd::Info::short_help() const
 
 QString cmd::Info::description() const
 {
-    return QStringLiteral("Display information about instances or snapshots");
+    return short_help();
 }
 
 mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
