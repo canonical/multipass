@@ -35,7 +35,7 @@ public:
     void platform_health_check() override;
     QStringList vmstate_platform_args() override;
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
-    QString get_directory_name() override;
+    QString get_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
 
 private:
