@@ -35,7 +35,7 @@ class VMStatusMonitor;
 class VirtualBoxVirtualMachine final : public BaseVirtualMachine
 {
 public:
-    VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor);
+    VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, const Path& instance_dir);
     ~VirtualBoxVirtualMachine() override;
     void stop() override;
     void start() override;

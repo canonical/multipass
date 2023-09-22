@@ -21,6 +21,7 @@
 #include "tests/mock_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
+#include "tests/temp_dir.h"
 #include "tests/temp_file.h"
 #include "tests/windows/powershell_test_helper.h"
 
@@ -113,6 +114,7 @@ struct HyperVBackend : public Test
 
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
+    mpt::TempDir data_dir;
     mp::VirtualMachineDescription default_description{2,
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used,
@@ -124,7 +126,7 @@ struct HyperVBackend : public Test
                                                       dummy_cloud_init_iso.name()};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::PowerShellTestHelper ps_helper;
-    mp::HyperVVirtualMachineFactory backend;
+    mp::HyperVVirtualMachineFactory backend{data_dir.path()};
     mpt::StubVMStatusMonitor stub_monitor;
 };
 
@@ -353,7 +355,8 @@ struct HyperVNetworks : public Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::MockPlatform::GuardedMock attr = mpt::MockPlatform::inject<NiceMock>();
     mpt::MockPlatform* mock_platform = attr.first;
-    mp::HyperVVirtualMachineFactory backend;
+    mpt::TempDir data_dir;
+    mp::HyperVVirtualMachineFactory backend{data_dir.path()};
 };
 
 struct HyperVNetworksPS : public HyperVNetworks

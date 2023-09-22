@@ -107,14 +107,19 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
 
 } // namespace
 
+mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(const mp::Path& data_dir)
+    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+{
+}
+
 mp::VirtualMachine::UPtr
 mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                             VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc, monitor);
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc, monitor, get_instance_directory(desc.vm_name));
 }
 
-void mp::VirtualBoxVirtualMachineFactory::remove_resources_for(const std::string& name)
+void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     QRegularExpression cloudinit_re("\"SATA_0-1-0\"=\"(?!emptydrive)(.+)\"");
 

@@ -101,8 +101,9 @@ void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name
 }
 } // namespace
 
-mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor)
-    : BaseVirtualMachine{desc.vm_name},
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
+                                               const mp::Path& instance_dir)
+    : BaseVirtualMachine{desc.vm_name, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       image_path{desc.image.image_path},

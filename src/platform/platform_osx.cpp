@@ -358,7 +358,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
           there.
         */
 
-        return std::make_unique<VirtualBoxVirtualMachineFactory>();
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
 #endif
     }
     else if (driver == QStringLiteral("qemu"))
