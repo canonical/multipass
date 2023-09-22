@@ -49,7 +49,8 @@ struct TestInstanceSettingsHandler : public Test
 {
     mp::InstanceSettingsHandler make_handler()
     {
-        return mp::InstanceSettingsHandler{specs, vms, deleted_vms, preparing_vms, make_fake_persister()};
+        return mp::InstanceSettingsHandler{
+            specs, vms, deleted_vms, preparing_vms, make_fake_persister(), make_fake_bridged_interface()};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)
@@ -63,6 +64,11 @@ struct TestInstanceSettingsHandler : public Test
     std::function<void()> make_fake_persister()
     {
         return [this] { fake_persister_called = true; };
+    }
+
+    std::function<std::string()> make_fake_bridged_interface()
+    {
+        return [] { return "eth8"; };
     }
 
     template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NiceMock>
@@ -195,25 +201,26 @@ TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
     EXPECT_EQ(handler.get(make_key(target_instance_name, "memory")), "337.6KiB");
 }
 
-struct TestBridgedInstanceSettings : public TestInstanceSettingsHandler, public WithParamInterface<bool>
+struct TestBridgedInstanceSettings : public TestInstanceSettingsHandler,
+                                     public WithParamInterface<std::pair<std::string, bool>>
 {
 };
 
 TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
 {
-    const auto bridged = GetParam();
+    const auto [br_interface, bridged] = GetParam();
 
     constexpr auto target_instance_name = "lemmy";
     specs.insert({{"mikkey", {}}, {"phil", {}}, {target_instance_name, {}}});
 
-    // An extra interface in auto mode will result in bridging.
-    specs[target_instance_name].extra_interfaces = {{"id", "52:54:00:12:34:56", bridged}};
+    specs[target_instance_name].extra_interfaces = {{br_interface, "52:54:00:12:34:56", true}};
 
     const auto got = make_handler().get(make_key(target_instance_name, "bridged"));
     EXPECT_EQ(got, bridged ? "true" : "false");
 }
 
-INSTANTIATE_TEST_SUITE_P(getFetchesBridged, TestBridgedInstanceSettings, Values(true, false));
+INSTANTIATE_TEST_SUITE_P(getFetchesBridged, TestBridgedInstanceSettings,
+                         Values(std::make_pair("eth8", true), std::make_pair("eth9", false)));
 
 TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState)
 {
@@ -450,7 +457,7 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToUnbridge)
 {
     constexpr auto target_instance_name = "hendrix";
     specs.insert({{"voodoo", {}}, {"chile", {}}, {target_instance_name, {}}});
-    specs[target_instance_name].extra_interfaces = {{"id", "52:54:00:78:90:12", true}};
+    specs[target_instance_name].extra_interfaces = {{"eth8", "52:54:00:78:90:12", true}};
 
     mock_vm(target_instance_name); // TODO: make this an expectation.
 
