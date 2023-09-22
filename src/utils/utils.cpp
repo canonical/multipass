@@ -684,3 +684,12 @@ void mp::utils::set_owner_for(mp::SSHSession& session, const std::string& root, 
                                   fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user,
                                               vm_group, relative_target.substr(0, relative_target.find_first_of('/'))));
 }
+
+mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir, const mp::Path& backend_directory_name,
+                                         const mp::Path& instances_subdir) const
+{
+    if (backend_directory_name.isEmpty())
+        return QDir(data_dir).filePath(instances_subdir);
+    else
+        return QDir(QDir(data_dir).filePath(backend_directory_name)).filePath(instances_subdir);
+}

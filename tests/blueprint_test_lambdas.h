@@ -39,7 +39,7 @@ namespace test
 {
 
 std::function<VMImage(const FetchType&, const Query&, const VMImageVault::PrepareAction&, const ProgressMonitor&,
-                      const bool, const std::optional<std::string>)>
+                      const bool, const std::optional<std::string>, const multipass::Path&)>
 fetch_image_lambda(const std::string& release, const std::string& remote, const bool must_have_checksum = false);
 
 std::function<VirtualMachine::UPtr(const VirtualMachineDescription&, VMStatusMonitor&)>

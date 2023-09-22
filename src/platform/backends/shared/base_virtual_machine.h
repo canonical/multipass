@@ -43,8 +43,8 @@ namespace multipass
 class BaseVirtualMachine : public VirtualMachine
 {
 public:
-    BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name);
-    BaseVirtualMachine(const std::string& vm_name);
+    BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name, const mp::Path& instance_dir);
+    BaseVirtualMachine(const std::string& vm_name, const mp::Path& instance_dir);
 
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
@@ -64,11 +64,11 @@ public:
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
     // derived classes is a big refactor
-    std::shared_ptr<const Snapshot> take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
-                                                  const std::string& name, const std::string& comment) override;
-    void delete_snapshot(const QDir& snapshot_dir, const std::string& name) override;
-    void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) override;
-    void load_snapshots(const QDir& snapshot_dir) override;
+    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
+                                                  const std::string& comment) override;
+    void delete_snapshot(const std::string& name) override;
+    void restore_snapshot(const std::string& name, VMSpecs& specs) override;
+    void load_snapshots() override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
 
 protected:
@@ -83,7 +83,7 @@ private:
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;
 
-    void load_generic_snapshot_info(const QDir& snapshot_dir);
+    void load_generic_snapshot_info();
     void load_snapshot_from_file(const QString& filename);
     void load_snapshot(const QJsonObject& json);
 
@@ -93,7 +93,7 @@ private:
     auto make_head_file_rollback(const Path& head_path, QFile& head_file) const;
     void head_file_rollback_helper(const Path& head_path, QFile& head_file, const std::string& old_head,
                                    bool existed) const;
-    void persist_head_snapshot(const QDir& snapshot_dir) const;
+    void persist_head_snapshot() const;
 
     void persist_head_snapshot_name(const Path& head_path) const;
     std::string generate_snapshot_name() const;
@@ -107,12 +107,12 @@ private:
     void deleted_head_rollback_helper(const Path& head_path, const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
 
-    void update_parents(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& deleted_parent,
+    void update_parents(std::shared_ptr<Snapshot>& deleted_parent,
                         std::unordered_map<Snapshot*, QString>& updated_snapshot_paths);
     auto make_parent_update_rollback(const std::shared_ptr<Snapshot>& deleted_parent,
                                      std::unordered_map<Snapshot*, QString>& updated_snapshot_paths) const;
 
-    void delete_snapshot_helper(const QDir& snapshot_dir, std::shared_ptr<Snapshot>& snapshot);
+    void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
 private:
     SnapshotMap snapshots;

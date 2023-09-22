@@ -218,15 +218,27 @@ mp::MemorySize get_image_size(const mp::Path& image_path)
 
     return image_size;
 }
+
+template <typename T>
+void persist_records(const T& records, const QString& path)
+{
+    QJsonObject json_records;
+    for (const auto& record : records)
+    {
+        auto key = QString::fromStdString(record.first);
+        json_records.insert(key, record_to_json(record.second));
+    }
+    mp::write_json(json_records, path);
+}
 } // namespace
 
 mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                             mp::Path cache_dir_path, mp::Path data_dir_path, mp::days days_to_expire)
+                                             const mp::Path& cache_dir_path, const mp::Path& data_dir_path,
+                                             const mp::days& days_to_expire)
     : BaseVMImageVault{image_hosts},
       url_downloader{downloader},
       cache_dir{QDir(cache_dir_path).filePath("vault")},
       data_dir{QDir(data_dir_path).filePath("vault")},
-      instances_dir(data_dir.filePath("instances")),
       images_dir(cache_dir.filePath("images")),
       days_to_expire{days_to_expire},
       prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
@@ -241,7 +253,8 @@ mp::DefaultVMImageVault::~DefaultVMImageVault()
 
 mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
                                                  const PrepareAction& prepare, const ProgressMonitor& monitor,
-                                                 const bool unlock, const std::optional<std::string>& checksum)
+                                                 const bool unlock, const std::optional<std::string>& checksum,
+                                                 const mp::Path& save_dir)
 {
     {
         std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -269,11 +282,11 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image.image_path = extract_image_from(query.name, source_image, monitor);
+            source_image.image_path = extract_image_from(source_image, monitor, save_dir);
         }
         else
         {
-            source_image = image_instance_from(query.name, source_image);
+            source_image = image_instance_from(source_image, save_dir);
         }
 
         vm_image = prepare(source_image);
@@ -314,7 +327,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
 
                 if (last_modified.isValid() && (last_modified.toString().toStdString() == record.image.release_date))
                 {
-                    return finalize_image_records(query, record.image, id);
+                    return finalize_image_records(query, record.image, id, save_dir);
                 }
             }
 
@@ -376,7 +389,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
                         const auto prepared_image = record.second.image;
                         try
                         {
-                            return finalize_image_records(query, prepared_image, record.first);
+                            return finalize_image_records(query, prepared_image, record.first, save_dir);
                         }
                         catch (const std::exception& e)
                         {
@@ -414,7 +427,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, co
             auto prepared_image = future.result();
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             in_progress_image_fetches.erase(id);
-            return finalize_image_records(query, prepared_image, id);
+            return finalize_image_records(query, prepared_image, id, save_dir);
         }
         catch (const std::exception&)
         {
@@ -430,10 +443,6 @@ void mp::DefaultVMImageVault::remove(const std::string& name)
     const auto& name_entry = instance_image_records.find(name);
     if (name_entry == instance_image_records.end())
         return;
-
-    QDir instance_dir{instances_dir};
-    if (instance_dir.cd(QString::fromStdString(name)))
-        instance_dir.removeRecursively();
 
     instance_image_records.erase(name);
     persist_instance_records();
@@ -523,7 +532,8 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
         mpl::log(mpl::Level::info, category, fmt::format("Updating {} source image to latest", record.query.release));
         try
         {
-            fetch_image(fetch_type, record.query, prepare, monitor, false, std::nullopt);
+            fetch_image(fetch_type, record.query, prepare, monitor, false, std::nullopt,
+                        QFileInfo{record.image.image_path}.absolutePath());
 
             // Remove old image
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -620,25 +630,22 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
 }
 
-QString mp::DefaultVMImageVault::extract_image_from(const std::string& instance_name, const VMImage& source_image,
-                                                    const ProgressMonitor& monitor)
+QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image, const ProgressMonitor& monitor,
+                                                    const mp::Path& dest_dir)
 {
-    const auto name = QString::fromStdString(instance_name);
-    const QDir output_dir{MP_UTILS.make_dir(instances_dir, name)};
+    MP_UTILS.make_dir(dest_dir);
     QFileInfo file_info{source_image.image_path};
     const auto image_name = file_info.fileName().remove(".xz");
-    const auto image_path = output_dir.filePath(image_name);
+    const auto image_path = QDir(dest_dir).filePath(image_name);
 
     return mp::vault::extract_image(image_path, monitor);
 }
 
-mp::VMImage mp::DefaultVMImageVault::image_instance_from(const std::string& instance_name,
-                                                         const VMImage& prepared_image)
+mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared_image, const mp::Path& dest_dir)
 {
-    auto name = QString::fromStdString(instance_name);
-    auto output_dir = MP_UTILS.make_dir(instances_dir, name);
+    MP_UTILS.make_dir(dest_dir);
 
-    return {mp::vault::copy(prepared_image.image_path, output_dir),
+    return {mp::vault::copy(prepared_image.image_path, dest_dir),
             prepared_image.id,
             prepared_image.original_release,
             prepared_image.current_release,
@@ -658,13 +665,13 @@ std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(co
 }
 
 mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, const VMImage& prepared_image,
-                                                            const std::string& id)
+                                                            const std::string& id, const mp::Path& dest_dir)
 {
     VMImage vm_image;
 
     if (!query.name.empty())
     {
-        vm_image = image_instance_from(query.name, prepared_image);
+        vm_image = image_instance_from(prepared_image, dest_dir);
         instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
     }
 
@@ -678,21 +685,6 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, 
 
     return vm_image;
 }
-
-namespace
-{
-template <typename T>
-void persist_records(const T& records, const QString& path)
-{
-    QJsonObject json_records;
-    for (const auto& record : records)
-    {
-        auto key = QString::fromStdString(record.first);
-        json_records.insert(key, record_to_json(record.second));
-    }
-    mp::write_json(json_records, path);
-}
-} // namespace
 
 void mp::DefaultVMImageVault::persist_instance_records()
 {
