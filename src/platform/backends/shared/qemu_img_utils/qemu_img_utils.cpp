@@ -30,21 +30,31 @@
 #include <QStringList>
 
 namespace mp = multipass;
+namespace mpp = mp::platform;
+
+auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec,
+                                        const std::string& custom_error_prefix, std::optional<int> timeout)
+    -> Process::UPtr
+{
+    auto process = mpp::make_process(std::move(spec));
+
+    auto process_state = timeout ? process->execute(*timeout) : process->execute();
+    if (!process_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("{}: qemu-img failed ({}) with output:\n{}", custom_error_prefix,
+                                             process_state.failure_message(), process->read_all_standard_error()));
+    }
+
+    return process;
+}
 
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
     auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
     QStringList qemuimg_parameters{{"resize", image_path, disk_size}};
-    auto qemuimg_process =
-        mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path));
 
-    auto process_state = qemuimg_process->execute(mp::image_resize_timeout);
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Cannot resize instance image: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_process->read_all_standard_error()));
-    }
+    checked_exec_qemu_img(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path),
+                          "Cannot resize instance image", mp::image_resize_timeout);
 }
 
 mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
@@ -53,17 +63,9 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     // TODO: we could support converting from other the image formats that qemu-img can deal with
     const auto qcow2_path{image_path + ".qcow2"};
 
-    auto qemuimg_info_spec =
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path}, image_path);
-    auto qemuimg_info_process = mp::platform::make_process(std::move(qemuimg_info_spec));
-
-    auto process_state = qemuimg_info_process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Cannot read image format: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_info_process->read_all_standard_error()));
-    }
+    auto qemuimg_info_process = checked_exec_qemu_img(
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path}, image_path),
+        "Cannot read image format");
 
     auto image_info = qemuimg_info_process->read_all_standard_output();
     auto image_record = QJsonDocument::fromJson(QString(image_info).toUtf8(), nullptr).object();
@@ -72,15 +74,8 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     {
         auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path}, image_path, qcow2_path);
-        auto qemuimg_convert_process = mp::platform::make_process(std::move(qemuimg_convert_spec));
-        process_state = qemuimg_convert_process->execute(mp::image_resize_timeout);
-
-        if (!process_state.completed_successfully())
-        {
-            throw std::runtime_error(
-                fmt::format("Failed to convert image format: qemu-img failed ({}) with output:\n{}",
-                            process_state.failure_message(), qemuimg_convert_process->read_all_standard_error()));
-        }
+        auto qemuimg_convert_process =
+            checked_exec_qemu_img(std::move(qemuimg_convert_spec), "Failed to convert image format");
         return qcow2_path;
     }
     else
@@ -89,17 +84,16 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     }
 }
 
+void mp::backend::amend_to_qcow2_v3(const multipass::Path& image_path)
+{
+    checked_exec_qemu_img(
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"amend", "-o", "compat=1.1", image_path}, image_path));
+}
+
 bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)
 {
-    auto process = mp::platform::make_process(
+    auto process = checked_exec_qemu_img(
         std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", image_path}, image_path));
-
-    auto process_state = process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(), process->read_all_standard_error()));
-    }
 
     QRegularExpression regex{snapshot_tag.append(R"(\s)")};
     return QString{process->read_all_standard_output()}.contains(regex);
