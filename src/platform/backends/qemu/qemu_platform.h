@@ -50,7 +50,7 @@ public:
         return {};
     };
     virtual QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) = 0;
-    virtual QString get_directory_name()
+    virtual QString get_directory_name() const
     {
         return {};
     };

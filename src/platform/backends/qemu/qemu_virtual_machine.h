@@ -41,7 +41,8 @@ class QemuVirtualMachine : public QObject, public BaseVirtualMachine
 public:
     using MountArgs = std::unordered_map<std::string, std::pair<std::string, QStringList>>;
 
-    QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform, VMStatusMonitor& monitor);
+    QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform, VMStatusMonitor& monitor,
+                       const Path& instance_dir);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -69,7 +70,8 @@ signals:
     void on_reset_network();
 
 protected:
-    QemuVirtualMachine(const std::string& name) : BaseVirtualMachine{name}
+    // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
+    QemuVirtualMachine(const std::string& name, const mp::Path& instance_dir) : BaseVirtualMachine{name, instance_dir}
     {
     }
 

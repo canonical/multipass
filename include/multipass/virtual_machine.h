@@ -20,6 +20,7 @@
 
 #include "disabled_copy_move.h"
 #include "ip_address.h"
+#include "path.h"
 
 #include <QDir>
 #include <QJsonObject>
@@ -91,11 +92,11 @@ public:
     virtual int get_num_snapshots() const noexcept = 0;
     virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
     virtual std::shared_ptr<Snapshot> get_snapshot(const std::string& name) = 0;
-    virtual std::shared_ptr<const Snapshot> take_snapshot(const QDir& snapshot_dir, const VMSpecs& specs,
-                                                          const std::string& name, const std::string& comment) = 0;
-    virtual void delete_snapshot(const QDir& snapshot_dir, const std::string& name) = 0;
-    virtual void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) = 0;
-    virtual void load_snapshots(const QDir& snapshot_dir) = 0;
+    virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
+                                                          const std::string& comment) = 0;
+    virtual void delete_snapshot(const std::string& name) = 0;
+    virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
+    virtual void load_snapshots() = 0;
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
 
     VirtualMachine::State state;
@@ -106,8 +107,12 @@ public:
     bool shutdown_while_starting{false};
 
 protected:
-    VirtualMachine(VirtualMachine::State state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};
-    VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name){};
+    const QDir instance_dir;
+
+    VirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir)
+        : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
+    VirtualMachine(const std::string& vm_name, const Path& instance_dir)
+        : VirtualMachine(State::off, vm_name, instance_dir){};
 };
 } // namespace multipass
 #endif // MULTIPASS_VIRTUAL_MACHINE_H

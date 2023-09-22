@@ -20,6 +20,8 @@
 
 #include "stub_mount_handler.h"
 #include "stub_snapshot.h"
+#include "temp_dir.h"
+
 #include <multipass/virtual_machine.h>
 
 namespace multipass
@@ -32,7 +34,12 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    StubVirtualMachine(const std::string& name) : VirtualMachine{name}
+    StubVirtualMachine(const std::string& name) : StubVirtualMachine{name, std::make_unique<TempDir>()}
+    {
+    }
+
+    StubVirtualMachine(const std::string& name, std::unique_ptr<TempDir>&& tmp_dir)
+        : VirtualMachine{name, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -138,21 +145,20 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    std::shared_ptr<const Snapshot> take_snapshot(const QDir&, const VMSpecs&, const std::string&,
-                                                  const std::string&) override
+    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs&, const std::string&, const std::string&) override
     {
         return {};
     }
 
-    void delete_snapshot(const QDir& snapshot_dir, const std::string&) override
+    void delete_snapshot(const std::string&) override
     {
     }
 
-    void restore_snapshot(const QDir& snapshot_dir, const std::string& name, VMSpecs& specs) override
+    void restore_snapshot(const std::string& name, VMSpecs& specs) override
     {
     }
 
-    void load_snapshots(const QDir&) override
+    void load_snapshots() override
     {
     }
 
@@ -162,6 +168,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     }
 
     StubSnapshot snapshot;
+    std::unique_ptr<TempDir> tmp_dir;
 };
 } // namespace test
 } // namespace multipass

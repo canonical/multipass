@@ -579,11 +579,14 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     auto mock_image_vault = std::make_unique<NaggyMock<mpt::MockVMImageVault>>();
 
     EXPECT_CALL(*mock_image_vault, remove(_)).WillRepeatedly(Return());
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillRepeatedly(Return(mp::VMImage{}));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillRepeatedly(Return(mp::VMImage{}));
     EXPECT_CALL(*mock_image_vault, prune_expired_images()).WillRepeatedly(Return());
     EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
 
     config_builder.vault = std::move(mock_image_vault);
+    auto mock_factory = use_a_mock_vm_factory();
+
+    EXPECT_CALL(*mock_factory, remove_resources_for(_)).WillRepeatedly(Return());
 
     std::string json_contents = make_instance_json(std::nullopt, {}, {"primary"});
 
