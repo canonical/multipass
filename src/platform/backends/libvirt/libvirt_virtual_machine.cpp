@@ -259,8 +259,9 @@ void update_max_and_property(virDomainPtr domain_ptr, Updater* fun_ptr, Integer 
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
                                                  const std::string& bridge_name, mp::VMStatusMonitor& monitor,
-                                                 const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
-    : BaseVirtualMachine{desc.vm_name},
+                                                 const mp::LibvirtWrapper::UPtr& libvirt_wrapper,
+                                                 const mp::Path& instance_dir)
+    : BaseVirtualMachine{desc.vm_name, instance_dir},
       username{desc.ssh_username},
       desc{desc},
       monitor{&monitor},

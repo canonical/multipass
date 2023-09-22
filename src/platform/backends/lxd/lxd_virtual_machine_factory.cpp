@@ -29,6 +29,7 @@
 #include <multipass/platform.h>
 #include <multipass/snap_utils.h>
 #include <multipass/utils.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -81,13 +82,13 @@ mp::NetworkInterfaceInfo munch_network(std::map<std::string, mp::NetworkInterfac
 
     return ret;
 }
-
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
                                                        const QUrl& base_url)
-    : manager{std::move(manager)},
-      data_dir{MP_UTILS.make_dir(data_dir, get_backend_directory_name())},
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
+      manager{std::move(manager)},
       base_url{base_url}
 {
 }
@@ -101,12 +102,13 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
                                                                               VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name,
-                                                   storage_pool);
+                                                   storage_pool,
+                                                   MP_UTILS.make_dir(get_instance_directory(desc.vm_name)));
 }
 
-void mp::LXDVirtualMachineFactory::remove_resources_for(const std::string& name)
+void mp::LXDVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
-    mpl::log(mpl::Level::trace, category, fmt::format("No resources to remove for \"{}\"", name));
+    mpl::log(mpl::Level::trace, category, fmt::format("No further resources to remove for \"{}\"", name));
 }
 
 auto mp::LXDVirtualMachineFactory::prepare_source_image(const VMImage& source_image) -> VMImage
@@ -205,7 +207,7 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     }
 }
 
-QString mp::LXDVirtualMachineFactory::get_backend_version_string()
+QString mp::LXDVirtualMachineFactory::get_backend_version_string() const
 {
     auto reply = lxd_request(manager.get(), "GET", base_url);
 

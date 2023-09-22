@@ -37,17 +37,25 @@ constexpr auto category = "qemu factory";
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : qemu_platform{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir)}
+    : QemuVirtualMachineFactory{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir), data_dir}
+{
+}
+
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const mp::Path& data_dir)
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, qemu_platform->get_directory_name(), instances_subdir)),
+      qemu_platform{std::move(qemu_platform)}
 {
 }
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::QemuVirtualMachine>(desc, qemu_platform.get(), monitor);
+    return std::make_unique<mp::QemuVirtualMachine>(desc, qemu_platform.get(), monitor,
+                                                    get_instance_directory(desc.vm_name));
 }
 
-void mp::QemuVirtualMachineFactory::remove_resources_for(const std::string& name)
+void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     qemu_platform->remove_resources_for(name);
 }
@@ -71,7 +79,7 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
     qemu_platform->platform_health_check();
 }
 
-QString mp::QemuVirtualMachineFactory::get_backend_version_string()
+QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
 {
     auto process =
         mp::platform::make_process(simple_process_spec(QString("qemu-system-%1").arg(HOST_ARCH), {"--version"}));
@@ -110,7 +118,7 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string()
     return QString("qemu-unknown");
 }
 
-QString mp::QemuVirtualMachineFactory::get_backend_directory_name()
+QString mp::QemuVirtualMachineFactory::get_backend_directory_name() const
 {
     return qemu_platform->get_directory_name();
 }

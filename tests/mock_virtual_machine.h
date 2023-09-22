@@ -19,6 +19,7 @@
 #define MULTIPASS_MOCK_VIRTUAL_MACHINE_H
 
 #include "common.h"
+#include "temp_dir.h"
 
 #include <multipass/memory_size.h>
 #include <multipass/mount_handler.h>
@@ -34,7 +35,13 @@ template <typename T = VirtualMachine, typename = std::enable_if_t<std::is_base_
 struct MockVirtualMachineT : public T
 {
     template <typename... Args>
-    MockVirtualMachineT(Args&&... args) : T{std::forward<Args>(args)...}
+    MockVirtualMachineT(Args&&... args) : MockVirtualMachineT{std::make_unique<TempDir>(), std::forward<Args>(args)...}
+    {
+    }
+
+    template <typename... Args>
+    MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
+        : T{std::forward<Args>(args)..., tmp_dir->path()}
     {
         ON_CALL(*this, current_state()).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port()).WillByDefault(Return(42));
@@ -71,11 +78,13 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (const std::string&), (const, override));
     MOCK_METHOD(std::shared_ptr<Snapshot>, get_snapshot, (const std::string&), (override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, take_snapshot,
-                (const QDir&, const VMSpecs&, const std::string&, const std::string&), (override));
-    MOCK_METHOD(void, delete_snapshot, (const QDir& snapshot_dir, const std::string& name), (override));
-    MOCK_METHOD(void, restore_snapshot, (const QDir& snapshot_dir, const std::string&, VMSpecs&), (override));
-    MOCK_METHOD(void, load_snapshots, (const QDir&), (override));
+                (const VMSpecs&, const std::string&, const std::string&), (override));
+    MOCK_METHOD(void, delete_snapshot, (const std::string& name), (override));
+    MOCK_METHOD(void, restore_snapshot, (const std::string&, VMSpecs&), (override));
+    MOCK_METHOD(void, load_snapshots, (), (override));
     MOCK_METHOD(std::vector<std::string>, get_childrens_names, (const Snapshot*), (const, override));
+
+    std::unique_ptr<TempDir> tmp_dir;
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;

@@ -437,19 +437,15 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     return json;
 }
 
-auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, mp::VMImageVault& vault)
+auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory, mp::VMImageVault& vault)
 {
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
     auto stub_progress = [](int download_type, int progress) { return true; };
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
-    return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress, false, std::nullopt);
-}
-
-QDir instance_directory(const std::string& instance_name, const mp::DaemonConfig& config)
-{ // TODO should we establish a more direct way to get to the instance's directory?
-    return mp::utils::base_dir(fetch_image_for(instance_name, config.factory->fetch_type(), *config.vault).image_path);
+    return vault.fetch_image(factory.fetch_type(), query, stub_prepare, stub_progress, false, std::nullopt,
+                             factory.get_instance_directory(name));
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -1383,7 +1379,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         if (!vm_image.image_path.isEmpty() && !QFile::exists(vm_image.image_path))
         {
             mpl::log(mpl::Level::warning, category,
@@ -1410,7 +1406,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
         auto instance = instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
-        instance->load_snapshots(instance_directory(name, *config));
+        instance->load_snapshots();
 
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
@@ -1821,7 +1817,7 @@ try // clang-format on
         entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
         // FIXME: Set the release to the cached current version when supported
-        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         auto current_release = vm_image.original_release;
 
         if (!vm_image.id.empty() && current_release.empty())
@@ -2267,7 +2263,7 @@ try // clang-format on
                     assert(purge && "precondition: snapshots can only be purged");
 
                     for (const auto& snapshot_name : pick)
-                        vm_it->second->delete_snapshot(instance_directory(instance_name, *config), snapshot_name);
+                        vm_it->second->delete_snapshot(snapshot_name);
                 }
             }
         }
@@ -2502,8 +2498,7 @@ try
         SnapshotReply reply;
 
         {
-            const auto snapshot = vm_ptr->take_snapshot(instance_directory(instance_name, *config), spec_it->second,
-                                                        snapshot_name, request->comment());
+            const auto snapshot = vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment());
 
             reply.set_snapshot(snapshot->get_name());
         }
@@ -2553,7 +2548,6 @@ try
         // Only need to check if the snapshot exists so the result is discarded
         vm_ptr->get_snapshot(request->snapshot());
 
-        const auto& vm_dir = instance_directory(instance_name, *config);
         if (!request->destructive())
         {
             RestoreReply confirm_action{};
@@ -2569,8 +2563,8 @@ try
             {
                 reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
 
-                const auto snapshot = vm_ptr->take_snapshot(vm_dir, vm_specs, "",
-                                                            fmt::format("Before restoring {}", request->snapshot()));
+                const auto snapshot =
+                    vm_ptr->take_snapshot(vm_specs, "", fmt::format("Before restoring {}", request->snapshot()));
 
                 reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
                           /* sticky = */ true);
@@ -2580,7 +2574,7 @@ try
         // Actually restore snapshot
         reply_msg(server, "Restoring snapshot");
         auto old_specs = vm_specs;
-        vm_ptr->restore_snapshot(vm_dir, request->snapshot(), vm_specs);
+        vm_ptr->restore_snapshot(request->snapshot(), vm_specs);
 
         auto mounts_it = mounts.find(instance_name);
         assert(mounts_it != mounts.end() && "uninitialized mounts");
@@ -2665,8 +2659,8 @@ void mp::Daemon::persist_instances()
 
 void mp::Daemon::release_resources(const std::string& instance)
 {
-    config->factory->remove_resources_for(instance);
     config->vault->remove(instance);
+    config->factory->remove_resources_for(instance);
 
     auto spec_it = vm_instance_specs.find(instance);
     if (spec_it != cend(vm_instance_specs))
@@ -2924,8 +2918,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             if (!vm_desc.image.id.empty())
                 checksum = vm_desc.image.id;
 
-            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor,
-                                                       launch_from_blueprint, checksum);
+            auto vm_image =
+                config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor, launch_from_blueprint,
+                                           checksum, config->factory->get_instance_directory(name));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
@@ -3388,7 +3383,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm, mp::DetailedInfoItem
     else
         info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
-    auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+    auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
     auto original_release = vm_image.original_release;
 
     if (!vm_image.id.empty() && original_release.empty())

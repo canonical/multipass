@@ -37,15 +37,14 @@ public:
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
-    void remove_resources_for(const std::string& name) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
-    QString get_backend_directory_name() override
+    QString get_backend_directory_name() const override
     {
         return "lxd";
     };
-    QString get_backend_version_string() override;
+    QString get_backend_version_string() const override;
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                           const Path& cache_dir_path, const Path& data_dir_path,
                                           const days& days_to_expire) override;
@@ -54,11 +53,11 @@ public:
     std::vector<NetworkInterfaceInfo> networks() const override;
 
 protected:
+    void remove_resources_for_impl(const std::string& name) override;
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
 
 private:
     NetworkAccessManager::UPtr manager;
-    const Path data_dir;
     const QUrl base_url;
     QString storage_pool;
 };

@@ -675,7 +675,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliases)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     auto alias = std::make_optional(std::make_pair(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir}));
 
@@ -714,7 +714,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspace)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce(
@@ -748,7 +748,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceConfined)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce(
@@ -786,7 +786,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceInExisting
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce(
@@ -829,7 +829,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotMountUnwrittableWo
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce(
@@ -873,7 +873,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundButCannotMount)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce(
@@ -921,7 +921,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundPassesExpectedAliasesWith
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, command_line_name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     auto alias = std::make_optional(std::make_pair(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir}));
 
@@ -968,7 +968,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliases)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     auto alias = std::make_optional(std::make_pair(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir}));
 
@@ -1017,7 +1017,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliasesIf
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     auto alias = std::make_optional(std::make_pair(alias_name, mp::AliasDefinition{name, alias_command, alias_wdir}));
 
@@ -1058,7 +1058,7 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, name));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
         .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote));
@@ -1086,7 +1086,7 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_not_found_passes_expected_data)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _))
         .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, empty));
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, empty));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillOnce(mpt::fetch_image_lambda(release, empty));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
@@ -1341,7 +1341,7 @@ TEST_F(DaemonCreateLaunchTestSuite, blueprintFromFileCallsCorrectFunction)
 
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(1);
 
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).Times(1);
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).Times(1);
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _)).Times(0);
 
@@ -1691,9 +1691,9 @@ TEST_F(Daemon, ctor_drops_removed_instances)
     config_builder.data_directory = temp_dir->path();
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, stayed), _, _, _, _))
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, stayed), _, _, _, _, _))
         .WillRepeatedly(DoDefault()); // returns an image that can be verified to exist for this instance
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, gone), _, _, _, _))
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, gone), _, _, _, _, _))
         .WillOnce(Return(mp::VMImage{"/path/to/nowhere", "", "", "", "", {}})); // an image that can't be verified to
                                                                                 // exist for this instance
     config_builder.vault = std::move(mock_image_vault);
