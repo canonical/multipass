@@ -155,17 +155,18 @@ void update_disk(const QString& key, const QString& val, mp::VirtualMachine& ins
     }
 }
 
-bool is_bridged(const mp::VMSpecs& spec)
+bool is_bridged(const mp::VMSpecs& spec, const std::string& br_interface)
 {
     return std::any_of(spec.extra_interfaces.cbegin(), spec.extra_interfaces.cend(),
-                       [](const auto& network) -> bool { return network.auto_mode; });
+                       [&br_interface](const auto& network) -> bool { return network.id == br_interface; });
 }
 
-void update_bridged(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec)
+void update_bridged(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec,
+                    const std::string& br_interface)
 {
     auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
 
-    if (!bridged && is_bridged(spec))
+    if (!bridged && is_bridged(spec, br_interface))
     {
         throw mp::InvalidSettingException{key, val, "Bridged interface cannot be removed"};
     }
@@ -188,12 +189,15 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
     std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
-    const std::unordered_set<std::string>& preparing_instances, std::function<void()> instance_persister)
+    const std::unordered_set<std::string>& preparing_instances, std::function<void()> instance_persister,
+    std::function<std::string()> bridged_interface)
     : vm_instance_specs{vm_instance_specs},
       vm_instances{vm_instances},
       deleted_instances{deleted_instances},
       preparing_instances{preparing_instances},
-      instance_persister{std::move(instance_persister)}
+      instance_persister{std::move(instance_persister)},
+      bridged_interface{std::move(bridged_interface)}
+
 {
 }
 
@@ -215,7 +219,7 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
     const auto& spec = find_spec(instance_name);
 
     if (property == bridged_suffix)
-        return is_bridged(spec) ? "true" : "false";
+        return is_bridged(spec, bridged_interface()) ? "true" : "false";
     if (property == cpus_suffix)
         return QString::number(spec.num_cores);
     if (property == mem_suffix)
@@ -241,7 +245,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
         update_cpus(key, val, instance, spec);
     else if (property == bridged_suffix)
     {
-        update_bridged(key, val, instance, spec);
+        update_bridged(key, val, instance, spec, bridged_interface());
     }
     else
     {
