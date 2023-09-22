@@ -520,8 +520,7 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
 
     auto snapshot = get_snapshot(name);
 
-    // TODO@snapshots convert into runtime_errors (persisted info could have been tampered with)
-    assert(specs.disk_space == snapshot->get_disk_space() && "resizing VMs with snapshots isn't yet supported");
+    // TODO@snapshots convert into runtime_error (persisted info could have been tampered with)
     assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
 
     snapshot->apply();
@@ -532,6 +531,7 @@ void BaseVirtualMachine::restore_snapshot(const QDir& snapshot_dir, const std::s
     specs.state = snapshot->get_state();
     specs.num_cores = snapshot->get_num_cores();
     specs.mem_size = snapshot->get_mem_size();
+    specs.disk_space = snapshot->get_disk_space();
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();
 
