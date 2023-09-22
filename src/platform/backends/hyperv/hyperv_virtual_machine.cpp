@@ -316,7 +316,10 @@ void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
-    QStringList resize_cmd = {"Resize-VHD", "-Path", image_path, "-SizeBytes", QString::number(new_size.in_bytes())};
+    // Resize the current disk layer, which will differ from the original image if there are snapshots
+    // clang-format off
+    QStringList resize_cmd = {"Get-VM", "-VMName", name, "|", "Select-Object", "VMId", "|", "Get-VHD", "|",
+                              "Resize-VHD", "-SizeBytes", QString::number(new_size.in_bytes())}; // clang-format on
     power_shell->easy_run(resize_cmd, "Could not resize disk");
 }
 
@@ -324,8 +327,10 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                                                            const std::string& target,
                                                                            const mp::VMMount& mount)
 {
-    return std::make_unique<SmbMountHandler>(this, ssh_key_provider, target, mount,
-                                             QFileInfo{image_path}.absolutePath());
+    return std::make_unique<SmbMountHandler>(
+        this, ssh_key_provider, target, mount,
+        QFileInfo{image_path}.absolutePath()); /* TODO@snapshots replace with instance directory (once merged) and
+                                                  remove image_path if possible */
 }
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
