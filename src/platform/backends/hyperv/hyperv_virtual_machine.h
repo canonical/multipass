@@ -72,7 +72,6 @@ private:
     // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
     const QString name;
     const std::string username;
-    const Path image_path;
     std::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;
