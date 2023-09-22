@@ -88,21 +88,26 @@ struct HyperVBackend : public Test
 
     std::vector<RunSpec> standard_ps_run_sequence(const std::vector<RunSpec>& network_runs = {default_network_run})
     {
-        std::vector<RunSpec> ret = base_ctor_runs;
+        std::vector<RunSpec> ret = prefix_ctor_runs;
         ret.insert(std::end(ret), std::cbegin(network_runs), std::cend(network_runs));
 
         auto failing_run_it = std::find_if(std::cbegin(network_runs), std::cend(network_runs),
                                            [](const auto& run) { return !run.will_return; });
         if (failing_run_it == std::cend(network_runs)) // if the ctor succeeds
-            ret.emplace_back(min_dtor_run); // network runs are executed in the ctor, so if they fail the object is
-                                            // never constructed and no dtor is called
+        {
+            // network runs are executed in the ctor, so if they fail the object is never contructed & no further cmds
+            // are executed for either ctor or dtor
+            ret.insert(std::end(ret), std::cbegin(postfix_ctor_runs), std::cend(postfix_ctor_runs));
+            ret.emplace_back(min_dtor_run);
+        }
 
         return ret;
     }
 
-    inline static const std::vector<RunSpec> base_ctor_runs = {
+    inline static const std::vector<RunSpec> prefix_ctor_runs = {
         {"Get-VM", "", false}, {"Get-VMSwitch"},   {"New-VM"},      {"-EnableSecureBoot Off"},
         {"Set-VMProcessor"},   {"Add-VMDvdDrive"}, {"Set-VMMemory"}};
+    inline static const std::vector<RunSpec> postfix_ctor_runs = {{"Set-VM"}, {"Get-VMCheckpoint"}};
     inline static const RunSpec default_network_run = {"Set-VMNetworkAdapter"};
     inline static const RunSpec min_dtor_run = {"-ExpandProperty State", "Off"};
 
