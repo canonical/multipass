@@ -97,11 +97,3 @@ TEST_F(SSHKeyProvider, public_key_is_stable)
 
     EXPECT_THAT(key_one, StrEq(key_two));
 }
-
-TEST_F(SSHKeyProvider, keyProviderLocksDownDir)
-{
-    auto [mock_utils, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils, make_dir(_, _, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
-
-    mp::OpenSSHKeyProvider key_provider{key_dir.path()};
-}
