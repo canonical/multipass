@@ -110,3 +110,14 @@ void mp::format::filter_aliases(google::protobuf::RepeatedPtrField<multipass::Fi
             aliases.DeleteSubrange(i, 1);
     }
 }
+
+std::string mp::format::convert_to_localtime(const google::protobuf::Timestamp& timestamp) const
+{
+    std::ostringstream oss;
+    std::time_t t = google::protobuf::util::TimeUtil::TimestampToTimeT(timestamp);
+
+    // ISO 8601: YYYY-MM-DDThh:mm:ss±hhmm
+    oss << std::put_time(std::localtime(&t), "%FT%T%z");
+
+    return oss.str();
+}

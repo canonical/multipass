@@ -43,6 +43,8 @@ Formatter* formatter_for(const std::string& format);
 template <typename Container>
 Container sorted(const Container& items);
 
+std::string convert_to_localtime(const google::protobuf::Timestamp& timestamp);
+
 void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases);
 
 // Computes the column width needed to display all the elements of a range [begin, end). get_width is a function
