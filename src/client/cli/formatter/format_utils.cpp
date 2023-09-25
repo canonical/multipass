@@ -111,7 +111,12 @@ void mp::format::filter_aliases(google::protobuf::RepeatedPtrField<multipass::Fi
     }
 }
 
-std::string mp::format::convert_to_localtime(const google::protobuf::Timestamp& timestamp) const
+mp::FormatUtils::FormatUtils(const Singleton<FormatUtils>::PrivatePass& pass) noexcept
+    : Singleton<FormatUtils>::Singleton{pass}
+{
+}
+
+std::string mp::FormatUtils::convert_to_localtime(const google::protobuf::Timestamp& timestamp) const
 {
     std::ostringstream oss;
     std::time_t t = google::protobuf::util::TimeUtil::TimestampToTimeT(timestamp);

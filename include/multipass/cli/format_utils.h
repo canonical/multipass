@@ -28,6 +28,8 @@
 #include <algorithm>
 #include <string>
 
+#define MP_FORMAT_UTILS multipass::FormatUtils::instance()
+
 namespace multipass
 {
 class Formatter;
@@ -42,8 +44,6 @@ Formatter* formatter_for(const std::string& format);
 
 template <typename Container>
 Container sorted(const Container& items);
-
-std::string convert_to_localtime(const google::protobuf::Timestamp& timestamp);
 
 void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases);
 
@@ -60,6 +60,14 @@ static constexpr auto column_width =
         return std::max({get_width(*max_width) + col_buffer, header_width + col_buffer, minimum_width});
     };
 } // namespace format
+
+class FormatUtils : public Singleton<FormatUtils>
+{
+public:
+    FormatUtils(const Singleton<FormatUtils>::PrivatePass&) noexcept;
+
+    virtual std::string convert_to_localtime(const google::protobuf::Timestamp& timestamp) const;
+};
 } // namespace multipass
 
 template <typename Container>
