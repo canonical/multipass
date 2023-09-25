@@ -302,6 +302,12 @@ QString systemprofile_app_data_path()
     return ret;
 }
 
+bool set_file_owner(LPSTR path)
+{
+    auto ps_cmd = QString("takeown /a /r /d Y /f \"%1\"").arg(QString::fromStdString(path).replace("/", "\\"));
+    return mp::PowerShell::exec({ps_cmd}, "chown");
+}
+
 bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
 {
     PACL pOldDACL = NULL, pDACL = NULL;
@@ -605,7 +611,8 @@ bool mp::platform::Platform::set_permissions(const multipass::Path path, const Q
     if (perms & 0x7000)
         success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions((int)((perms & 0x7000) >> 12)));
 
-    // Give the Admins group blanket access
+    // #3216 Set the owner as Admin and give the Admins group blanket access
+    success &= set_file_owner(lpPath);
     success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL);
 
     return success;
