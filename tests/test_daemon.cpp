@@ -252,6 +252,18 @@ TEST_F(Daemon, proxy_contains_valid_info)
     EXPECT_THAT(config->network_proxy->port(), port);
 }
 
+TEST_F(Daemon, daemonAppliesPermissionsToStorageDirectory)
+{
+    QTemporaryDir storage_dir;
+
+    mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
+
+    EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(mp::utils::get_multipass_storage()));
+    EXPECT_CALL(mock_utils, make_dir(_, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
+
+    auto config = config_builder.build();
+}
+
 TEST_F(Daemon, data_path_valid)
 {
     QTemporaryDir data_dir, cache_dir;

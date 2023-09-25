@@ -54,8 +54,7 @@ auto load_certs_from_file(const QDir& cert_dir)
 } // namespace
 
 mp::ClientCertStore::ClientCertStore(const multipass::Path& data_dir)
-    : cert_dir(MP_UTILS.make_dir(data_dir, mp::authenticated_certs_dir,
-                                 QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner)),
+    : cert_dir(MP_UTILS.make_dir(data_dir, mp::authenticated_certs_dir)),
       authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
     mpl::log(mpl::Level::trace, category, fmt::format("Loading client certs from {}", cert_dir.absolutePath()));
