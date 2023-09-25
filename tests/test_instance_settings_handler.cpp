@@ -49,7 +49,8 @@ struct TestInstanceSettingsHandler : public Test
 {
     mp::InstanceSettingsHandler make_handler()
     {
-        return mp::InstanceSettingsHandler{specs, vms, deleted_vms, preparing_vms, make_fake_persister()};
+        return mp::InstanceSettingsHandler{
+            specs, vms, deleted_vms, preparing_vms, make_fake_persister(), make_fake_bridged_interface()};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)
@@ -63,6 +64,11 @@ struct TestInstanceSettingsHandler : public Test
     std::function<void()> make_fake_persister()
     {
         return [this] { fake_persister_called = true; };
+    }
+
+    std::function<std::string()> make_fake_bridged_interface()
+    {
+        return [] { return "eth8"; };
     }
 
     template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NiceMock>
@@ -82,7 +88,9 @@ struct TestInstanceSettingsHandler : public Test
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr> deleted_vms;
     std::unordered_set<std::string> preparing_vms;
     bool fake_persister_called = false;
-    inline static constexpr auto properties = std::array{"cpus", "disk", "memory"};
+    inline static constexpr std::array numeric_properties{"cpus", "disk", "memory"};
+    inline static constexpr std::array boolean_properties{"bridged"};
+    inline static constexpr std::array properties{"cpus", "disk", "memory", "bridged"};
 };
 
 QString make_key(const QString& instance_name, const QString& property)
@@ -192,6 +200,27 @@ TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
     EXPECT_EQ(handler.get(make_key(target_instance_name, "disk")), "12.1MiB");
     EXPECT_EQ(handler.get(make_key(target_instance_name, "memory")), "337.6KiB");
 }
+
+struct TestBridgedInstanceSettings : public TestInstanceSettingsHandler,
+                                     public WithParamInterface<std::pair<std::string, bool>>
+{
+};
+
+TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
+{
+    const auto [br_interface, bridged] = GetParam();
+
+    constexpr auto target_instance_name = "lemmy";
+    specs.insert({{"mikkey", {}}, {"phil", {}}, {target_instance_name, {}}});
+
+    specs[target_instance_name].extra_interfaces = {{br_interface, "52:54:00:12:34:56", true}};
+
+    const auto got = make_handler().get(make_key(target_instance_name, "bridged"));
+    EXPECT_EQ(got, bridged ? "true" : "false");
+}
+
+INSTANTIATE_TEST_SUITE_P(getFetchesBridged, TestBridgedInstanceSettings,
+                         Values(std::make_pair("eth8", true), std::make_pair("eth9", false)));
 
 TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState)
 {
@@ -424,6 +453,19 @@ TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
 
+TEST_F(TestInstanceSettingsHandler, setRefusesToUnbridge)
+{
+    constexpr auto target_instance_name = "hendrix";
+    specs.insert({{"voodoo", {}}, {"chile", {}}, {target_instance_name, {}}});
+    specs[target_instance_name].extra_interfaces = {{"eth8", "52:54:00:78:90:12", true}};
+
+    mock_vm(target_instance_name); // TODO: make this an expectation.
+
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "bridged"), "false"),
+                         mp::InvalidSettingException,
+                         mpt::match_what(HasSubstr("Bridged interface cannot be removed")));
+}
+
 using VMSt = mp::VirtualMachine::State;
 using Property = const char*;
 using PropertyAndState = std::tuple<Property, VMSt>; // no subliminal political msg intended :)
@@ -476,7 +518,8 @@ TEST_P(TestInstanceModOnStoppedInstance, setWorksOnOtherStates)
 }
 
 INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceModOnStoppedInstance,
-                         Combine(ValuesIn(TestInstanceSettingsHandler::properties), Values(VMSt::off, VMSt::stopped)));
+                         Combine(ValuesIn(TestInstanceSettingsHandler::numeric_properties),
+                                 Values(VMSt::off, VMSt::stopped)));
 
 struct TestInstanceModPersists : public TestInstanceSettingsHandler, public WithParamInterface<Property>
 {
@@ -496,7 +539,7 @@ TEST_P(TestInstanceModPersists, setPersistsInstances)
 }
 
 INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceModPersists,
-                         ValuesIn(TestInstanceSettingsHandler::properties));
+                         ValuesIn(TestInstanceSettingsHandler::numeric_properties));
 
 TEST_F(TestInstanceSettingsHandler, setRefusesToModifyInstancesInSpecialState)
 {
@@ -554,12 +597,12 @@ TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnBadKey)
 
 using PlainValue = const char*;
 using PropertyValue = std::tuple<Property, PlainValue>;
-struct TestInstanceSettingsHandlerBadValues : public TestInstanceSettingsHandler,
-                                              public WithParamInterface<PropertyValue>
+struct TestInstanceSettingsHandlerBadNumericValues : public TestInstanceSettingsHandler,
+                                                     public WithParamInterface<PropertyValue>
 {
 };
 
-TEST_P(TestInstanceSettingsHandlerBadValues, setRefusesBadValues)
+TEST_P(TestInstanceSettingsHandlerBadNumericValues, setRefusesBadNumericValues)
 {
     constexpr auto target_instance_name = "xanana";
     const auto& [property, bad_val] = GetParam();
@@ -574,8 +617,32 @@ TEST_P(TestInstanceSettingsHandlerBadValues, setRefusesBadValues)
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandlerBadValues,
-                         Combine(ValuesIn(TestInstanceSettingsHandler::properties),
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandlerBadNumericValues,
+                         Combine(ValuesIn(TestInstanceSettingsHandler::numeric_properties),
                                  Values("0", "2u", "1.5f", "2.0", "0xa", "0x8", "-4", "-1", "rubbish", "  123nonsense ",
                                         "¤9", "\n", "\t", "^", "")));
+
+struct TestInstanceSettingsHandlerBadBooleanValues : public TestInstanceSettingsHandler,
+                                                     public WithParamInterface<PropertyValue>
+{
+};
+
+TEST_P(TestInstanceSettingsHandlerBadBooleanValues, setRefusesBadBooleanValues)
+{
+    constexpr auto target_instance_name = "zappa";
+    const auto& [property, bad_val] = GetParam();
+
+    const auto original_specs = specs[target_instance_name];
+    mock_vm(target_instance_name); // TODO: make this an expectation.
+
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, property), bad_val),
+                         mp::InvalidSettingException,
+                         mpt::match_what(AllOf(HasSubstr(bad_val), HasSubstr("try \"true\" or \"false\""))));
+
+    EXPECT_EQ(original_specs, specs[target_instance_name]);
+}
+
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandlerBadBooleanValues,
+                         Combine(ValuesIn(TestInstanceSettingsHandler::boolean_properties),
+                                 Values("apostrophe", "(')", "1974")));
 } // namespace
