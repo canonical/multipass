@@ -76,9 +76,8 @@ QJsonObject generate_snapshot_details(const mp::DetailedInfoItem& item)
     }
     snapshot_info.insert("mounts", mounts);
 
-    snapshot_info.insert(
-        "created",
-        QString::fromStdString(google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp())));
+    snapshot_info.insert("created",
+                         QString::fromStdString(mp::format::convert_to_localtime(fundamentals.creation_timestamp())));
     snapshot_info.insert("parent", QString::fromStdString(fundamentals.parent()));
 
     QJsonArray children;
