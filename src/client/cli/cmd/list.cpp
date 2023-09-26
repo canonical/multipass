@@ -91,6 +91,12 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    if (parser->isSet(snapshotsOption) && parser->isSet(noIpv4Option))
+    {
+        cerr << "IP addresses are not applicable in conjunction with listing snapshots\n";
+        return ParseCode::CommandLineError;
+    }
+
     request.set_snapshots(parser->isSet(snapshotsOption));
     request.set_request_ipv4(!parser->isSet(noIpv4Option));
 
