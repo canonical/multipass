@@ -148,6 +148,14 @@ TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
     EXPECT_EQ(base_vm.get_all_ipv4(key_provider).size(), 0u);
 }
 
+TEST_F(BaseVM, add_network_interface_throws)
+{
+    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+
+    MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, {"eth1", "52:54:00:00:00:00", true}),
+                         mp::NotImplementedOnThisBackendException, mpt::match_what(HasSubstr("bridging")));
+}
+
 struct IpTestParams
 {
     int exit_status;

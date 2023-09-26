@@ -2192,3 +2192,48 @@ TEST_F(LXDBackend, createsBridgesViaBackendUtils)
     EXPECT_CALL(*mock_backend, create_bridge_with(net.id)).WillOnce(Return(bridge));
     EXPECT_EQ(factory.create_bridge_with(net), bridge);
 }
+
+TEST_F(LXDBackend, addsNetworkInterface)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    unsigned times_called = 0;
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillRepeatedly([&times_called](auto, auto request, auto outgoingData) {
+            outgoingData->open(QIODevice::ReadOnly);
+            auto data = outgoingData->readAll();
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+            }
+            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+                     data.contains("stop"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+            }
+            else if (op == "PATCH")
+            {
+                ++times_called;
+
+                EXPECT_EQ(data.toStdString(), "{\"devices\":{\"eth2\":{\"hwaddr\":\"52:54:00:56:78:90\",\"name\":"
+                                              "\"eth2\",\"nictype\":\"bridged\",\"parent\":\"id\",\"type\":\"nic\"}}}");
+
+                return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+
+    machine->stop();
+
+    machine->add_network_interface(1, {"id", "52:54:00:56:78:90", true});
+
+    EXPECT_EQ(times_called, 1u);
+}

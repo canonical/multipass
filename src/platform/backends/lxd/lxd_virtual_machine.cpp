@@ -471,6 +471,22 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
     lxd_request(manager, "PATCH", url(), patch_json);
 }
 
+void mp::LXDVirtualMachine::add_network_interface(int index, const mp::NetworkInterface& net)
+{
+    assert(manager);
+
+    auto net_name = QStringLiteral("eth%1").arg(index + 1);
+    QJsonObject net_config{{"name", net_name},
+                           {"nictype", "bridged"},
+                           {"parent", QString::fromStdString(net.id)},
+                           {"type", "nic"},
+                           {"hwaddr", QString::fromStdString(net.mac_address)}};
+
+    QJsonObject patch_json{{"devices", QJsonObject{{net_name, net_config}}}};
+
+    lxd_request(manager, "PATCH", url(), patch_json);
+}
+
 std::unique_ptr<multipass::MountHandler>
 mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, const std::string& target,
                                                  const VMMount& mount)
