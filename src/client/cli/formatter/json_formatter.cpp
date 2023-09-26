@@ -217,7 +217,7 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
         snapshot_obj.insert("parent", QString::fromStdString(snapshot.parent()));
         snapshot_obj.insert("comment", QString::fromStdString(snapshot.comment()));
 
-        auto it = info_obj.find(QString::fromStdString(item.name()));
+        const auto& it = info_obj.find(QString::fromStdString(item.name()));
         if (it == info_obj.end())
         {
             info_obj.insert(QString::fromStdString(item.name()),
@@ -246,7 +246,7 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
 
     for (const auto& info : reply.details())
     {
-        auto instance_it = info_obj.find(QString::fromStdString(info.name()));
+        const auto& instance_it = info_obj.find(QString::fromStdString(info.name()));
 
         if (info.has_instance_info())
         {
