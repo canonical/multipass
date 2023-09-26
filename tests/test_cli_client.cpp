@@ -1808,6 +1808,11 @@ TEST_F(Client, list_cmd_no_ipv4_ok)
     EXPECT_THAT(send_command({"list", "--no-ipv4"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, listCmdFailsWithIpv4AndSnapshots)
+{
+    EXPECT_THAT(send_command({"list", "--no-ipv4", "--snapshots"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 // mount cli tests
 // Note: mpt::test_data_path() returns an absolute path
 TEST_F(Client, mount_cmd_good_absolute_source_path)
