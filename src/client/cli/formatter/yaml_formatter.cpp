@@ -165,11 +165,11 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     return instance_node;
 }
 
-std::string generate_instances_list(const mp::InstancesList& instances_list)
+std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     YAML::Node list;
 
-    for (const auto& instance : mp::format::sorted(instances_list.info()))
+    for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
@@ -187,11 +187,11 @@ std::string generate_instances_list(const mp::InstancesList& instances_list)
     return mpu::emit_yaml(list);
 }
 
-std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
 {
     YAML::Node info_node;
 
-    for (const auto& item : mp::format::sorted(snapshots_list.info()))
+    for (const auto& item : mp::format::sorted(snapshot_list.snapshots()))
     {
         const auto& snapshot = item.fundamentals();
         YAML::Node instance_node;
@@ -238,14 +238,14 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
 {
     std::string output;
 
-    if (reply.has_instances())
+    if (reply.has_instance_list())
     {
-        output = generate_instances_list(reply.instances());
+        output = generate_instances_list(reply.instance_list());
     }
     else
     {
-        assert(reply.has_snapshots() && "eitherr one of instances or snapshots should be populated");
-        output = generate_snapshots_list(reply.snapshots());
+        assert(reply.has_snapshot_list() && "eitherr one of instances or snapshots should be populated");
+        output = generate_snapshots_list(reply.snapshot_list());
     }
 
     return output;

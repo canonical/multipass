@@ -43,14 +43,14 @@ auto petenv_name()
 auto construct_empty_list_reply()
 {
     mp::ListReply list_reply;
-    list_reply.mutable_instances();
+    list_reply.mutable_instance_list();
     return list_reply;
 }
 
 auto construct_empty_list_snapshot_reply()
 {
     mp::ListReply list_reply;
-    list_reply.mutable_snapshots();
+    list_reply.mutable_snapshot_list();
     return list_reply;
 }
 
@@ -58,7 +58,7 @@ auto construct_single_instance_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.mutable_instances()->add_info();
+    auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
@@ -74,13 +74,13 @@ auto construct_multiple_instances_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.mutable_instances()->add_info();
+    auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
     list_entry->add_ipv4("10.21.124.56");
 
-    list_entry = list_reply.mutable_instances()->add_info();
+    list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("18.04 LTS");
@@ -92,22 +92,22 @@ auto construct_unsorted_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.mutable_instances()->add_info();
+    auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1542");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("N/A");
 
-    list_entry = list_reply.mutable_instances()->add_info();
+    list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("N/A");
 
-    list_entry = list_reply.mutable_instances()->add_info();
+    list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1539");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
     list_entry->set_current_release("");
 
-    list_entry = list_reply.mutable_instances()->add_info();
+    list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1529");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     list_entry->set_current_release("");
@@ -119,7 +119,7 @@ auto construct_single_snapshot_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.mutable_snapshots()->add_info();
+    auto list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
     list_entry->set_name("foo");
 
     auto fundamentals = list_entry->mutable_fundamentals();
@@ -138,7 +138,7 @@ auto construct_multiple_snapshots_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.mutable_snapshots()->add_info();
+    auto list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
     auto fundamentals = list_entry->mutable_fundamentals();
     google::protobuf::Timestamp timestamp;
 
@@ -148,7 +148,7 @@ auto construct_multiple_snapshots_list_reply()
     timestamp.set_seconds(1672531200);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
-    list_entry = list_reply.mutable_snapshots()->add_info();
+    list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
     fundamentals = list_entry->mutable_fundamentals();
     list_entry->set_name("hale-roller");
     fundamentals->set_snapshot_name("rolling");
@@ -157,7 +157,7 @@ auto construct_multiple_snapshots_list_reply()
     timestamp.set_seconds(25425952800);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
-    list_entry = list_reply.mutable_snapshots()->add_info();
+    list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
     fundamentals = list_entry->mutable_fundamentals();
     list_entry->set_name("hale-roller");
     fundamentals->set_snapshot_name("rocking");
@@ -166,7 +166,7 @@ auto construct_multiple_snapshots_list_reply()
     timestamp.set_seconds(2209234259);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
-    list_entry = list_reply.mutable_snapshots()->add_info();
+    list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
     fundamentals = list_entry->mutable_fundamentals();
     list_entry->set_name("hale-roller");
     fundamentals->set_snapshot_name("pristine");
@@ -174,7 +174,7 @@ auto construct_multiple_snapshots_list_reply()
     timestamp.set_seconds(409298914);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
-    list_entry = list_reply.mutable_snapshots()->add_info();
+    list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
     fundamentals = list_entry->mutable_fundamentals();
     list_entry->set_name("prosperous-spadefish");
     fundamentals->set_snapshot_name("snapshot2");
@@ -187,16 +187,16 @@ auto construct_multiple_snapshots_list_reply()
 
 auto add_petenv_to_reply(mp::ListReply& reply)
 {
-    if (reply.has_instances())
+    if (reply.has_instance_list())
     {
-        auto instance = reply.mutable_instances()->add_info();
+        auto instance = reply.mutable_instance_list()->add_instances();
         instance->set_name(petenv_name());
         instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         instance->set_current_release("Not Available");
     }
     else
     {
-        auto snapshot = reply.mutable_snapshots()->add_info();
+        auto snapshot = reply.mutable_snapshot_list()->add_snapshots();
         snapshot->set_name(petenv_name());
         snapshot->mutable_fundamentals()->set_snapshot_name("snapshot1");
         snapshot->mutable_fundamentals()->set_comment("An exemplary comment");
@@ -2372,10 +2372,10 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
     {
         mp::ListReply reply_copy;
 
-        if (input->has_instances())
-            reply_copy.mutable_instances();
+        if (input->has_instance_list())
+            reply_copy.mutable_instance_list();
         else
-            reply_copy.mutable_snapshots();
+            reply_copy.mutable_snapshot_list();
 
         if (prepend)
         {
