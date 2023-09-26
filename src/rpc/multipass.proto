@@ -270,18 +270,18 @@ message ListVMSnapshot {
 }
 
 message InstancesList {
-    repeated ListVMInstance info = 1;
+    repeated ListVMInstance instances = 1;
 }
 
 message SnapshotsList {
-    repeated ListVMSnapshot info = 1;
+    repeated ListVMSnapshot snapshots = 1;
 }
 
 message ListReply {
     oneof list_contents
     {
-        InstancesList instances = 1;
-        SnapshotsList snapshots = 2;
+        InstancesList instance_list = 1;
+        SnapshotsList snapshot_list = 2;
     }
 
     string log_line = 3;

@@ -161,7 +161,7 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::InfoRequest, mp::InfoReply>));
     EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto server, auto status_promise) {
         mp::ListReply reply;
-        reply.mutable_instances();
+        reply.mutable_instance_list();
 
         server->Write(reply);
         status_promise->set_value(grpc::Status::OK);
@@ -1423,7 +1423,7 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
         EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
         EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
-        EXPECT_THAT(list_reply.instances().info(), instance_matcher);
+        EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
     // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
@@ -1490,7 +1490,7 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
         EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
-        EXPECT_THAT(list_reply.instances().info(), instance_matcher);
+        EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
     QFile::remove(filename);    // Remove the JSON.
@@ -1729,7 +1729,7 @@ TEST_F(Daemon, ctor_drops_removed_instances)
     EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
-    EXPECT_THAT(list_reply.instances().info(), stayed_matcher);
+    EXPECT_THAT(list_reply.instance_list().instances(), stayed_matcher);
 
     auto updated_json = mpt::load(filename);
     EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));

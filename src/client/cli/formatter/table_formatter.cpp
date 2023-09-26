@@ -192,11 +192,11 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
     return fmt::to_string(buf);
 }
 
-std::string generate_instances_list(const mp::InstancesList& instances_list)
+std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     fmt::memory_buffer buf;
 
-    auto instances = instances_list.info();
+    auto instances = instance_list.instances();
 
     if (instances.empty())
         return "No instances found.\n";
@@ -212,7 +212,7 @@ std::string generate_instances_list(const mp::InstancesList& instances_list)
     fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State", state_column_width,
                    "IPv4", ip_column_width, "Image");
 
-    for (const auto& instance : mp::format::sorted(instances_list.info()))
+    for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         int ipv4_size = instance.ipv4_size();
 
@@ -232,11 +232,11 @@ std::string generate_instances_list(const mp::InstancesList& instances_list)
     return fmt::to_string(buf);
 }
 
-std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
 {
     fmt::memory_buffer buf;
 
-    auto snapshots = snapshots_list.info();
+    auto snapshots = snapshot_list.snapshots();
 
     if (snapshots.empty())
         return "No snapshots found.\n";
@@ -259,7 +259,7 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
     fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, snapshot_col_header,
                    snapshot_column_width, parent_col_header, parent_column_width, comment_col_header);
 
-    for (const auto& snapshot : mp::format::sorted(snapshots_list.info()))
+    for (const auto& snapshot : mp::format::sorted(snapshot_list.snapshots()))
     {
         size_t max_comment_column_width = 50;
         std::smatch match;
@@ -313,14 +313,14 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
 {
     std::string output;
 
-    if (reply.has_instances())
+    if (reply.has_instance_list())
     {
-        output = generate_instances_list(reply.instances());
+        output = generate_instances_list(reply.instance_list());
     }
     else
     {
-        assert(reply.has_snapshots() && "either one of instances or snapshots should be populated");
-        output = generate_snapshots_list(reply.snapshots());
+        assert(reply.has_snapshot_list() && "either one of instances or snapshots should be populated");
+        output = generate_snapshots_list(reply.snapshot_list());
     }
 
     return output;
