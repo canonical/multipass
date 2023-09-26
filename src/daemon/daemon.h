@@ -146,6 +146,7 @@ private:
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
+    void configure_new_interfaces(VirtualMachine& vm, VMSpecs& specs);
 
     struct AsyncOperationStatus
     {
