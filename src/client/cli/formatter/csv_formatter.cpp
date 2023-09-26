@@ -118,13 +118,13 @@ std::string generate_instance_details(const mp::InfoReply reply)
     return fmt::to_string(buf);
 }
 
-std::string generate_instances_list(const mp::InstancesList& instances_list)
+std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4\n");
 
-    for (const auto& instance : mp::format::sorted(instances_list.info()))
+    for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},\"{}\"\n", instance.name(),
                        mp::format::status_string_for(instance.instance_status()),
@@ -137,13 +137,13 @@ std::string generate_instances_list(const mp::InstancesList& instances_list)
     return fmt::to_string(buf);
 }
 
-std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
 {
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf), "Instance,Snapshot,Parent,Comment\n");
 
-    for (const auto& item : mp::format::sorted(snapshots_list.info()))
+    for (const auto& item : mp::format::sorted(snapshot_list.snapshots()))
     {
         const auto& snapshot = item.fundamentals();
         fmt::format_to(std::back_inserter(buf), "{},{},{},\"{}\"\n", item.name(), snapshot.snapshot_name(),
@@ -173,14 +173,14 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
 {
     std::string output;
 
-    if (reply.has_instances())
+    if (reply.has_instance_list())
     {
-        output = generate_instances_list(reply.instances());
+        output = generate_instances_list(reply.instance_list());
     }
     else
     {
-        assert(reply.has_snapshots() && "either one of instances or snapshots should be populated");
-        output = generate_snapshots_list(reply.snapshots());
+        assert(reply.has_snapshot_list() && "either one of instances or snapshots should be populated");
+        output = generate_snapshots_list(reply.snapshot_list());
     }
 
     return output;

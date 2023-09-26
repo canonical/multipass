@@ -191,14 +191,15 @@ void cmd::GuiCmd::update_menu()
 
     auto reply = list_future.result();
 
-    handle_petenv_instance(reply.instances().info());
+    handle_petenv_instance(reply.instance_list().instances());
 
     for (auto it = instances_entries.cbegin(); it != instances_entries.cend(); ++it)
     {
-        auto instance = std::find_if(reply.instances().info().cbegin(), reply.instances().info().cend(),
-                                     [it](const ListVMInstance& instance) { return it->first == instance.name(); });
+        auto instance =
+            std::find_if(reply.instance_list().instances().cbegin(), reply.instance_list().instances().cend(),
+                         [it](const ListVMInstance& instance) { return it->first == instance.name(); });
 
-        if (instance == reply.instances().info().cend())
+        if (instance == reply.instance_list().instances().cend())
         {
             instances_to_remove.push_back(it->first);
         }
@@ -209,7 +210,7 @@ void cmd::GuiCmd::update_menu()
         instances_entries.erase(instance);
     }
 
-    for (const auto& instance : reply.instances().info())
+    for (const auto& instance : reply.instance_list().instances())
     {
         auto name = instance.name();
         auto state = instance.instance_status();
