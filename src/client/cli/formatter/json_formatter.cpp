@@ -174,12 +174,12 @@ QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
     return instance_info;
 }
 
-std::string generate_instances_list(const mp::InstancesList& instances_list)
+std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     QJsonObject list_json;
     QJsonArray instances;
 
-    for (const auto& instance : instances_list.info())
+    for (const auto& instance : instance_list.instances())
     {
         QJsonObject instance_obj;
         instance_obj.insert("name", QString::fromStdString(instance.name()));
@@ -203,13 +203,13 @@ std::string generate_instances_list(const mp::InstancesList& instances_list)
     return mp::json_to_string(list_json);
 }
 
-std::string generate_snapshots_list(const mp::SnapshotsList& snapshots_list)
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
 {
     QJsonObject info_json;
     QJsonObject info_obj;
     info_json.insert("errors", QJsonArray());
 
-    for (const auto& item : snapshots_list.info())
+    for (const auto& item : snapshot_list.snapshots())
     {
         const auto& snapshot = item.fundamentals();
         QJsonObject snapshot_obj;
@@ -308,14 +308,14 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
 {
     std::string output;
 
-    if (reply.has_instances())
+    if (reply.has_instance_list())
     {
-        output = generate_instances_list(reply.instances());
+        output = generate_instances_list(reply.instance_list());
     }
     else
     {
-        assert(reply.has_snapshots() && "either one of the reports should be populated");
-        output = generate_snapshots_list(reply.snapshots());
+        assert(reply.has_snapshot_list() && "either one of the reports should be populated");
+        output = generate_snapshots_list(reply.snapshot_list());
     }
 
     return output;

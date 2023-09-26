@@ -333,7 +333,7 @@ struct Client : public Test
 
             for (mp::InstanceStatus_Status status : statuses)
             {
-                auto list_entry = list_reply.mutable_instances()->add_info();
+                auto list_entry = list_reply.mutable_instance_list()->add_instances();
                 list_entry->mutable_instance_status()->set_status(status);
             }
 
@@ -1780,7 +1780,7 @@ TEST_F(Client, list_cmd_ok_no_args)
 {
     const auto list_matcher = Property(&mp::ListRequest::request_ipv4, IsTrue());
     mp::ListReply reply;
-    reply.mutable_instances();
+    reply.mutable_instance_list();
 
     EXPECT_CALL(mock_daemon, list)
         .WillOnce(WithArg<1>(check_request_and_return<mp::ListReply, mp::ListRequest>(list_matcher, ok, reply)));
@@ -1801,7 +1801,7 @@ TEST_F(Client, list_cmd_no_ipv4_ok)
 {
     const auto list_matcher = Property(&mp::ListRequest::request_ipv4, IsFalse());
     mp::ListReply reply;
-    reply.mutable_instances();
+    reply.mutable_instance_list();
 
     EXPECT_CALL(mock_daemon, list)
         .WillOnce(WithArg<1>(check_request_and_return<mp::ListReply, mp::ListRequest>(list_matcher, ok, reply)));

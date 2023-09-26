@@ -204,7 +204,7 @@ TEST_F(TestDaemonRpc, listCertExistsCompletesSuccesfully)
     mpt::MockDaemon daemon{make_secure_server()};
     EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto* server, auto* status_promise) {
         mp::ListReply reply;
-        reply.mutable_instances();
+        reply.mutable_instance_list();
         server->Write(reply);
         status_promise->set_value(grpc::Status::OK);
     });
@@ -223,7 +223,7 @@ TEST_F(TestDaemonRpc, listNoCertsExistWillVerifyAndComplete)
     mpt::MockDaemon daemon{make_secure_server()};
     EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto* server, auto* status_promise) {
         mp::ListReply reply;
-        reply.mutable_instances();
+        reply.mutable_instance_list();
         server->Write(reply);
         status_promise->set_value(grpc::Status::OK);
     });
@@ -310,7 +310,7 @@ TEST_F(TestDaemonRpc, listSettingServerPermissionsFailLogsErrorAndExits)
 
     EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto* server, auto* status_promise) {
         mp::ListReply reply;
-        reply.mutable_instances();
+        reply.mutable_instance_list();
         server->Write(reply);
         status_promise->set_value(grpc::Status::OK);
     });

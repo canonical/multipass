@@ -1760,13 +1760,13 @@ try // clang-format on
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
     // Need to 'touch' a report in the response so formatters know what to do with an otherwise empty response
-    request->snapshots() ? (void)response.mutable_snapshots() : (void)response.mutable_instances();
+    request->snapshots() ? (void)response.mutable_snapshot_list() : (void)response.mutable_instance_list();
     bool deleted = false;
 
     auto fetch_instance = [&](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
         auto present_state = vm.current_state();
-        auto entry = response.mutable_instances()->add_info();
+        auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
         if (deleted)
             entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
@@ -1818,7 +1818,7 @@ try // clang-format on
         {
             for (const auto& snapshot : vm.view_snapshots())
             {
-                auto entry = response.mutable_snapshots()->add_info();
+                auto entry = response.mutable_snapshot_list()->add_snapshots();
                 auto fundamentals = entry->mutable_fundamentals();
 
                 entry->set_name(name);
