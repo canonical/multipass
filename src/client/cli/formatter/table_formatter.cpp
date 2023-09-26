@@ -149,7 +149,7 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
                    "Memory usage:", to_usage(instance_details.memory_usage(), item.memory_total()));
 
-    auto mount_paths = item.mount_info().mount_paths();
+    const auto& mount_paths = item.mount_info().mount_paths();
     fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
 
     for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
@@ -196,7 +196,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     fmt::memory_buffer buf;
 
-    auto instances = instance_list.instances();
+    const auto& instances = instance_list.instances();
 
     if (instances.empty())
         return "No instances found.\n";
@@ -236,7 +236,7 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
 {
     fmt::memory_buffer buf;
 
-    auto snapshots = snapshot_list.snapshots();
+    const auto& snapshots = snapshot_list.snapshots();
 
     if (snapshots.empty())
         return "No snapshots found.\n";
@@ -263,7 +263,7 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
     {
         size_t max_comment_column_width = 50;
         std::smatch match;
-        auto fundamentals = snapshot.fundamentals();
+        const auto& fundamentals = snapshot.fundamentals();
 
         if (std::regex_search(fundamentals.comment().begin(), fundamentals.comment().end(), match, newline))
             max_comment_column_width = std::min((size_t)(match.position(1)) + 1, max_comment_column_width);

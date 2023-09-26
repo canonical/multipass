@@ -49,7 +49,7 @@ std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
 std::string format_mounts(const mp::MountInfo& mount_info)
 {
     fmt::memory_buffer buf;
-    auto mount_paths = mount_info.mount_paths();
+    const auto& mount_paths = mount_info.mount_paths();
 
     if (!mount_paths.size())
         return {};
