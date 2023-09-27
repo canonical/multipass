@@ -69,7 +69,7 @@ std::string generate_snapshot_details(const mp::InfoReply reply)
     fmt::format_to(std::back_inserter(buf),
                    "Snapshot,Instance,CPU(s),Disk space,Memory size,Mounts,Created,Parent,Children,Comment\n");
 
-    for (const auto& info : mp::format::sort_instances_and_snapshots(reply.details()))
+    for (const auto& info : mp::format::sorted(reply.details()))
     {
         const auto& fundamentals = info.snapshot_info().fundamentals();
 
@@ -95,7 +95,7 @@ std::string generate_instance_details(const mp::InfoReply reply)
         "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
         "total,Mounts,AllIPv4,CPU(s),Snapshots\n");
 
-    for (const auto& info : mp::format::sort_instances_and_snapshots(reply.details()))
+    for (const auto& info : mp::format::sorted(reply.details()))
     {
         assert(info.has_instance_info() &&
                "outputting instance and snapshot details together is not supported in csv format");
