@@ -214,7 +214,7 @@ std::string mp::YamlFormatter::format(const InfoReply& reply) const
 
     info_node["errors"].push_back(YAML::Null);
 
-    for (const auto& info : mp::format::sort_instances_and_snapshots(reply.details()))
+    for (const auto& info : mp::format::sorted(reply.details()))
     {
         if (info.has_instance_info())
         {
