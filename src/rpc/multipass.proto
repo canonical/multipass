@@ -43,6 +43,7 @@ service Rpc {
     rpc authenticate (stream AuthenticateRequest) returns (stream AuthenticateReply);
     rpc snapshot (stream SnapshotRequest) returns (stream SnapshotReply);
     rpc restore (stream RestoreRequest) returns (stream RestoreReply);
+    rpc clone (stream CloneRequest) returns (stream CloneReply);
 }
 
 message LaunchRequest {
@@ -525,4 +526,13 @@ message RestoreReply {
     string log_line = 1;
     string reply_message = 2;
     bool confirm_destructive = 3;
+}
+
+message CloneRequest {
+    string source_name = 1;
+    optional string destination_name = 2;
+}
+
+message CloneReply {
+    string reply_message = 1;
 }
