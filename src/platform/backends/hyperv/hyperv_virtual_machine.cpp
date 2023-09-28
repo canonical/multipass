@@ -106,7 +106,6 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     : BaseVirtualMachine{desc.vm_name, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
-      image_path{desc.image.image_path},
       power_shell{std::make_unique<PowerShell>(vm_name)},
       monitor{&monitor}
 {
@@ -328,10 +327,7 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                                                            const std::string& target,
                                                                            const mp::VMMount& mount)
 {
-    return std::make_unique<SmbMountHandler>(
-        this, ssh_key_provider, target, mount,
-        QFileInfo{image_path}.absolutePath()); /* TODO@snapshots replace with instance directory (once merged) and
-                                                  remove image_path if possible */
+    return std::make_unique<SmbMountHandler>(this, ssh_key_provider, target, mount, instance_dir.absolutePath());
 }
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
