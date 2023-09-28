@@ -15,8 +15,10 @@
  *
  */
 
-#include "common.h"
+// The daemon test fixture contains premock code so it must be included first.
 #include "daemon_test_fixture.h"
+
+#include "common.h"
 #include "mock_image_host.h"
 #include "mock_mount_handler.h"
 #include "mock_platform.h"
@@ -83,7 +85,35 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
 
 TEST_F(TestDaemonStart, startConfiguresInterfaces)
 {
+    ssh_channel_callbacks callbacks{nullptr};
+    auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) {
+        callbacks = cb;
+        return SSH_OK;
+    };
+    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
+
+    int expected_status{0};
+    auto event_dopoll = [&callbacks, &expected_status](auto...) {
+        if (!callbacks)
+            return SSH_ERROR;
+        callbacks->channel_exit_status_function(nullptr, nullptr, expected_status, callbacks->userdata);
+        return SSH_OK;
+    };
+    REPLACE(ssh_event_dopoll, event_dopoll);
+
+    std::string expected_output{"some output"};
+    auto remaining = expected_output.size();
+    auto channel_read = [&expected_output, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+        const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
+        const auto begin = expected_output.begin() + expected_output.size() - remaining;
+        std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
+        remaining -= num_to_copy;
+        return num_to_copy;
+    };
+    REPLACE(ssh_channel_read_timeout, channel_read);
+
     std::vector<mp::NetworkInterface> unconfigured{{"eth7", "", true}};
+
     auto mock_factory = use_a_mock_vm_factory();
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, unconfigured));
 
@@ -91,6 +121,7 @@ TEST_F(TestDaemonStart, startConfiguresInterfaces)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
         return std::move(instance_ptr);
     });
+
     EXPECT_CALL(*instance_ptr, wait_until_ssh_up(_)).WillRepeatedly(Return());
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
