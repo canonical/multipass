@@ -15,7 +15,9 @@
  *
  */
 
+// This header contains premock code so it must be included first.
 #include "daemon_test_fixture.h"
+
 #include "common.h"
 #include "file_operations.h"
 #include "mock_cert_provider.h"
