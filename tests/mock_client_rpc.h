@@ -212,6 +212,19 @@ public:
                 PrepareAsyncrestoreRaw,
                 (grpc::ClientContext * context, grpc::CompletionQueue* cq),
                 (override));
+
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::CloneRequest, multipass::CloneReply>*),
+                cloneRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::CloneRequest, multipass::CloneReply>*),
+                AsynccloneRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::CloneRequest, multipass::CloneReply>*),
+                PrepareAsynccloneRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
 };
 } // namespace multipass::test
 
