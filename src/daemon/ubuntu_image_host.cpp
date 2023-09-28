@@ -55,11 +55,16 @@ auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloade
 
 mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::VMImageInfo& info)
 {
-    return {info.aliases,   info.os,
-            info.release,   info.release_title,
-            info.supported, host_url + info.image_location,
-            info.id,        info.stream_location,
-            info.version,   info.size,
+    return {info.aliases,
+            info.os,
+            info.release,
+            info.release_title,
+            info.supported,
+            host_url + info.image_location,
+            info.id,
+            info.stream_location,
+            info.version,
+            info.size,
             info.verify};
 }
 
