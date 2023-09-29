@@ -17,6 +17,7 @@
 
 #include "snapshot_settings_handler.h"
 #include "multipass/exceptions/snapshot_exceptions.h"
+#include "multipass/utils.h"
 
 #include <multipass/constants.h>
 #include <multipass/format.h>
@@ -121,7 +122,10 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 
     if (property == name_suffix)
     {
-        // TODO@no-merge need to verify name validity/uniqueness and update map
+        if (val_stdstr.empty() || !mp::utils::valid_hostname(val_stdstr))
+            throw mp::InvalidSettingException{key, val, "Invalid snapshot name."};
+
+        // TODO@no-merge need to verify name uniqueness and update map
         modify_vm(instance_name)->rename_snapshot(snapshot_name_stdstr, val_stdstr);
     }
     else
