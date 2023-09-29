@@ -115,7 +115,20 @@ QString mp::SnapshotSettingsHandler::get(const QString& key) const
 
 void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 {
-    // TODO@no-merge
+    auto [instance_name, snapshot_name, property] = parse_key(key);
+
+    if (property == name_suffix)
+    {
+        // TODO@no-merge need to verify name validity/uniqueness and update map
+        modify_vm(instance_name)->rename_snapshot(snapshot_name.toStdString(), val.toStdString());
+    }
+    else
+    {
+        assert(property == comment_suffix);
+        auto [vm, snapshot] = modify_snapshot(instance_name, snapshot_name.toStdString());
+        snapshot->set_comment(val.toStdString());
+    }
+    // TODO@no-merge persist (ideally would happen automatically in setters)
 }
 
 auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name,
@@ -151,4 +164,15 @@ auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name
     }
 
     throw SnapshotSettingsException{instance_name, "no such instance"};
+}
+
+auto mp::SnapshotSettingsHandler::modify_vm(const std::string& instance_name) -> std::shared_ptr<VirtualMachine>
+{
+    return nullptr; // TODO@no-merge
+}
+
+auto mp::SnapshotSettingsHandler::modify_snapshot(const std::string& instance_name, const std::string& snapshot_name)
+    -> std::pair<std::shared_ptr<VirtualMachine>, std::shared_ptr<Snapshot>>
+{
+    return {nullptr, nullptr}; // TODO@no-merge
 }

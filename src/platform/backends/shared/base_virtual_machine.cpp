@@ -337,6 +337,11 @@ void BaseVirtualMachine::update_parents(std::shared_ptr<Snapshot>& deleted_paren
     }
 }
 
+void BaseVirtualMachine::rename_snapshot(const std::string& old_name, const std::string& new_name)
+{
+    // TODO@no-merge
+}
+
 void BaseVirtualMachine::delete_snapshot(const std::string& name)
 {
     std::unique_lock lock{snapshot_mutex};
