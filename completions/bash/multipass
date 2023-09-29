@@ -200,7 +200,7 @@ _multipass_complete()
             opts="${opts} --working-directory --no-map-working-directory"
         ;;
         "info")
-            _add_nonrepeating_args "--all --format"
+            _add_nonrepeating_args "--format"
         ;;
         "list"|"ls"|"networks"|"aliases")
             _add_nonrepeating_args "--format"
