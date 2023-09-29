@@ -53,6 +53,7 @@ public:
     virtual void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                              const ProgressMonitor& monitor);
     virtual QByteArray download(const QUrl& url);
+    virtual QByteArray download(const QUrl& url, const bool is_force_update_from_network);
     virtual QDateTime last_modified(const QUrl& url);
     virtual void abort_all_downloads();
 
@@ -63,5 +64,5 @@ private:
     const Path cache_dir_path;
     std::chrono::milliseconds timeout;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_URL_DOWNLOADER_H

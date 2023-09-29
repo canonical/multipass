@@ -36,25 +36,25 @@ struct CustomManifest
 {
     const std::vector<VMImageInfo> products;
     const std::unordered_map<std::string, const VMImageInfo*> image_records;
+
+    CustomManifest(std::vector<VMImageInfo>&& images);
 };
 
 class CustomVMImageHost final : public CommonVMImageHost
 {
 public:
-    CustomVMImageHost(const QString& arch, URLDownloader* downloader, std::chrono::seconds manifest_time_to_live);
+    CustomVMImageHost(const QString& arch, URLDownloader* downloader);
 
     std::optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override;
     std::vector<std::string> supported_remotes() override;
 
-protected:
+private:
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
-    void fetch_manifests() override;
+    void fetch_manifests(const bool is_force_update_from_network) override;
     void clear() override;
-
-private:
     CustomManifest* manifest_from(const std::string& remote_name);
 
     const QString arch;

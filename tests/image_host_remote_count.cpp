@@ -30,6 +30,7 @@ size_t mpt::count_remotes(mp::VMImageHost& host)
 {
     std::set<std::string> remotes;
     auto counting_action = [&remotes](const std::string& remote, const VMImageInfo&) { remotes.insert(remote); };
+    host.update_manifests(false);
     host.for_each_entry_do(counting_action);
 
     return remotes.size();

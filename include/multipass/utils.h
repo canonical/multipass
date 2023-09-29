@@ -28,6 +28,7 @@
 
 #include <chrono>
 #include <functional>
+#include <future>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -127,10 +128,69 @@ std::string qenum_to_string(RegisteredQtEnum val);
 // other helpers
 QString get_multipass_storage();
 QString make_uuid(const std::optional<std::string>& seed = std::nullopt);
+
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
                     Args&&... args);
 
+template <typename T>
+bool is_default_constructed(const T& input_type)
+{
+    return input_type == T{};
+}
+
+// simplified parallel transform, it takes a std container and a unary operation and
+// returns a std::vector<OutputValueType> where the OutputValueType is the unary operation return type
+// There are two options of the return types, one is the one below and the other one is auto. Eventually, I went with
+// the std::invoke_result_t based one because it makes the function signature more expressive despite the fact that it
+// makes std::invoke_result_t<std::decay_t<UnaryOperation>, InputValueType> code duplicate.
+template <typename Container, typename UnaryOperation>
+std::vector<std::invoke_result_t<std::decay_t<UnaryOperation>, typename Container::value_type>>
+parallel_transform(const Container& input_container, UnaryOperation&& unary_op)
+{
+    using InputValueType = typename Container::value_type;
+    using OutputValueType = std::invoke_result_t<std::decay_t<UnaryOperation>, InputValueType>;
+    const auto num_elements = input_container.size();
+
+    // Pre-allocate space for futures
+    std::vector<std::future<OutputValueType>> futures(num_elements);
+
+    int index = 0;
+    for (const auto& item : input_container)
+    {
+        futures[index++] = std::async(std::launch::async, unary_op, std::cref(item));
+    }
+
+    std::vector<OutputValueType> results;
+    for (auto& fut : futures)
+    {
+        auto item = fut.get();
+        if (!is_default_constructed(item))
+        {
+            results.emplace_back(std::move(item));
+        }
+    }
+
+    return results;
+}
+
+template <typename Container, typename UnaryOperation>
+void parallel_for_each(Container& input_container, UnaryOperation&& unary_op)
+{
+    const auto num_elements = input_container.size();
+    std::vector<std::future<void>> empty_futures;
+    empty_futures.reserve(num_elements);
+
+    for (auto& item : input_container)
+    {
+        empty_futures.emplace_back(std::async(std::launch::async, unary_op, std::ref(item)));
+    }
+
+    for (auto& empty_future : empty_futures)
+    {
+        empty_future.get();
+    }
+}
 } // namespace utils
 
 class Utils : public Singleton<Utils>

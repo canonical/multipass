@@ -135,8 +135,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
     {
-        image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(),
-                                                                      url_downloader.get(), manifest_ttl));
+        image_hosts.push_back(
+            std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(), url_downloader.get()));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, UbuntuVMImageRemote>>{
                 {mp::release_remote, UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/", "releases/",
@@ -146,7 +146,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 {mp::snapcraft_remote, UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/", "buildd/daily/",
                                                            std::make_optional<QString>(mp::mirror_key)}},
                 {mp::appliance_remote, UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}}},
-            url_downloader.get(), manifest_ttl));
+            url_downloader.get()));
     }
     if (vault == nullptr)
     {
