@@ -3066,8 +3066,12 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
                 run_at_boot.erase(name);
             }
-            catch (const std::out_of_range&)
+            catch (const std::out_of_range&) // In case there is nothing to run on the instance, do nothing.
             {
+            }
+            catch (const std::runtime_error& e) // In case there is an error executing the command, report it.
+            {
+                add_fmt_to(errors, "{}: {}", name, e.what());
             }
         }
     }
