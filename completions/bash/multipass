@@ -388,12 +388,7 @@ _multipass_complete()
     fi
 
     if [[ -n "${opts}" ]]; then
-        for word in "${COMP_WORDS[@]}"; do
-            if [[ "${COMP_LINE}" == *"${word} "* ]]; then
-                opts=("${opts[@]/$word}")
-            fi
-        done
-        COMPREPLY=( $(compgen -W "${opts[*]}" -- ${cur}) )
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     fi
 
     return 0
