@@ -198,7 +198,8 @@ _multipass_complete()
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
     then
-        opts="--help --verbose"
+        _add_nonrepeating_args "--help"
+        opts="${opts} --verbose"
     fi
 
     case "${cmd}" in
@@ -206,41 +207,36 @@ _multipass_complete()
             opts="${opts} --working-directory --no-map-working-directory"
         ;;
         "info")
-            opts="${opts} --all --format"
+            _add_nonrepeating_args "--all --format"
         ;;
-        "list"|"ls")
-            opts="${opts} --format"
-        ;;
-        "networks")
-            opts="${opts} --format"
+        "list"|"ls"|"networks"|"aliases")
+            _add_nonrepeating_args "--format"
         ;;
         "delete")
-            opts="${opts} --all --purge"
+            _add_nonrepeating_args "--all --purge"
         ;;
         "launch")
-            opts="${opts} --cpus --disk --memory --name --cloud-init --network --bridged --mount"
+            _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount"
+            opts="${opts} --network --mount"
         ;;
         "mount")
             opts="${opts} --gid-map --uid-map"
         ;;
         "recover"|"start"|"suspend"|"restart")
-            opts="${opts} --all"
+            _add_nonrepeating_args "--all"
         ;;
         "stop")
-            opts="${opts} --all --cancel --time"
+            _add_nonrepeating_args "--all --cancel --time"
         ;;
         "find")
-            opts="${opts} --show-unsupported --force-update --format"
-        ;;
-        "aliases")
-            opts="${opts} --format"
+            _add_nonrepeating_args "--show-unsupported --force-update --format"
         ;;
         "unalias")
             _multipass_aliases
             _add_nonrepeating_args $multipass_aliases
         ;;
         "transfer"|"copy-files")
-            opts="${opts} --parents --recursive"
+            _add_nonrepeating_args "--parents --recursive"
         ;;
     esac
 
