@@ -339,7 +339,24 @@ void BaseVirtualMachine::update_parents(std::shared_ptr<Snapshot>& deleted_paren
 
 void BaseVirtualMachine::rename_snapshot(const std::string& old_name, const std::string& new_name)
 {
-    // TODO@no-merge
+    if (old_name == new_name)
+        return;
+
+    std::unique_lock lock{snapshot_mutex};
+
+    auto old_it = snapshots.find(old_name);
+    if (old_it == snapshots.end())
+        throw NoSuchSnapshot{vm_name, old_name};
+
+    if (snapshots.find(new_name) != snapshots.end())
+        throw SnapshotNameTaken{vm_name, new_name};
+
+    auto snapshot_node = snapshots.extract(old_it);
+    snapshot_node.key() = new_name;
+    snapshot_node.mapped()->set_name(new_name);
+
+    snapshots.insert(std::move(snapshot_node));
+    // TODO@no-merge persist!
 }
 
 void BaseVirtualMachine::delete_snapshot(const std::string& name)
