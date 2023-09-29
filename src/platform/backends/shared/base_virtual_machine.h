@@ -71,6 +71,7 @@ public:
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
     void load_snapshots() override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
+    void rename_snapshot(const std::string& old_name, const std::string& new_name) override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
