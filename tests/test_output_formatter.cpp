@@ -40,11 +40,25 @@ auto petenv_name()
     return MP_SETTINGS.get(mp::petenv_key).toStdString();
 }
 
+auto construct_empty_list_reply()
+{
+    mp::ListReply list_reply;
+    list_reply.mutable_instance_list();
+    return list_reply;
+}
+
+auto construct_empty_list_snapshot_reply()
+{
+    mp::ListReply list_reply;
+    list_reply.mutable_snapshot_list();
+    return list_reply;
+}
+
 auto construct_single_instance_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.add_instances();
+    auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
@@ -60,13 +74,13 @@ auto construct_multiple_instances_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.add_instances();
+    auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
     list_entry->add_ipv4("10.21.124.56");
 
-    list_entry = list_reply.add_instances();
+    list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("18.04 LTS");
@@ -78,22 +92,22 @@ auto construct_unsorted_list_reply()
 {
     mp::ListReply list_reply;
 
-    auto list_entry = list_reply.add_instances();
+    auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1542");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("N/A");
 
-    list_entry = list_reply.add_instances();
+    list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("N/A");
 
-    list_entry = list_reply.add_instances();
+    list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1539");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
     list_entry->set_current_release("");
 
-    list_entry = list_reply.add_instances();
+    list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1529");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     list_entry->set_current_release("");
@@ -101,12 +115,92 @@ auto construct_unsorted_list_reply()
     return list_reply;
 }
 
+auto construct_single_snapshot_list_reply()
+{
+    mp::ListReply list_reply;
+
+    auto list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
+    list_entry->set_name("foo");
+
+    auto fundamentals = list_entry->mutable_fundamentals();
+    fundamentals->set_snapshot_name("snapshot1");
+    fundamentals->set_comment("This is a sample comment");
+
+    google::protobuf::Timestamp timestamp;
+    timestamp.set_seconds(time(nullptr));
+    timestamp.set_nanos(0);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    return list_reply;
+}
+
+auto construct_multiple_snapshots_list_reply()
+{
+    mp::ListReply list_reply;
+
+    auto list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
+    auto fundamentals = list_entry->mutable_fundamentals();
+    google::protobuf::Timestamp timestamp;
+
+    list_entry->set_name("prosperous-spadefish");
+    fundamentals->set_snapshot_name("snapshot10");
+    fundamentals->set_parent("snapshot2");
+    timestamp.set_seconds(1672531200);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
+    fundamentals = list_entry->mutable_fundamentals();
+    list_entry->set_name("hale-roller");
+    fundamentals->set_snapshot_name("rolling");
+    fundamentals->set_parent("pristine");
+    fundamentals->set_comment("Loaded with stuff");
+    timestamp.set_seconds(25425952800);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
+    fundamentals = list_entry->mutable_fundamentals();
+    list_entry->set_name("hale-roller");
+    fundamentals->set_snapshot_name("rocking");
+    fundamentals->set_parent("pristine");
+    fundamentals->set_comment("A very long comment that should be truncated by the table formatter");
+    timestamp.set_seconds(2209234259);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
+    fundamentals = list_entry->mutable_fundamentals();
+    list_entry->set_name("hale-roller");
+    fundamentals->set_snapshot_name("pristine");
+    fundamentals->set_comment("A first snapshot");
+    timestamp.set_seconds(409298914);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    list_entry = list_reply.mutable_snapshot_list()->add_snapshots();
+    fundamentals = list_entry->mutable_fundamentals();
+    list_entry->set_name("prosperous-spadefish");
+    fundamentals->set_snapshot_name("snapshot2");
+    fundamentals->set_comment("Before restoring snap1\nContains a newline that\r\nshould be truncated");
+    timestamp.set_seconds(1671840000);
+    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
+
+    return list_reply;
+}
+
 auto add_petenv_to_reply(mp::ListReply& reply)
 {
-    auto instance = reply.add_instances();
-    instance->set_name(petenv_name());
-    instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
-    instance->set_current_release("Not Available");
+    if (reply.has_instance_list())
+    {
+        auto instance = reply.mutable_instance_list()->add_instances();
+        instance->set_name(petenv_name());
+        instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+        instance->set_current_release("Not Available");
+    }
+    else
+    {
+        auto snapshot = reply.mutable_snapshot_list()->add_snapshots();
+        snapshot->set_name(petenv_name());
+        snapshot->mutable_fundamentals()->set_snapshot_name("snapshot1");
+        snapshot->mutable_fundamentals()->set_comment("An exemplary comment");
+    }
 }
 
 auto construct_one_short_line_networks_reply()
@@ -148,25 +242,11 @@ auto construct_multiple_lines_networks_reply()
     return networks_reply;
 }
 
-auto construct_empty_info_reply()
-{
-    mp::InfoReply info_reply;
-    info_reply.mutable_detailed_report();
-    return info_reply;
-}
-
-auto construct_empty_snapshot_overview_reply()
-{
-    mp::InfoReply info_reply;
-    info_reply.mutable_snapshot_overview();
-    return info_reply;
-}
-
 auto construct_single_instance_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto info_entry = info_reply.add_details();
     info_entry->set_name("foo");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
@@ -219,7 +299,7 @@ auto construct_multiple_instances_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto info_entry = info_reply.add_details();
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
@@ -250,7 +330,7 @@ auto construct_multiple_instances_info_reply()
     info_entry->mutable_instance_info()->add_ipv4("10.21.124.56");
     info_entry->mutable_instance_info()->set_num_snapshots(1);
 
-    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
@@ -264,7 +344,7 @@ auto construct_single_snapshot_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto info_entry = info_reply.add_details();
     auto fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
 
     info_entry->set_name("bogus-instance");
@@ -297,7 +377,7 @@ auto construct_multiple_snapshots_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto info_entry = info_reply.add_details();
     auto fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
 
     info_entry->set_name("messier-87");
@@ -311,7 +391,7 @@ auto construct_multiple_snapshots_info_reply()
     timestamp.set_seconds(1554897599);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
-    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry = info_reply.add_details();
     fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
 
     info_entry->set_name("bogus-instance");
@@ -341,7 +421,7 @@ auto construct_mixed_instance_and_snapshot_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto info_entry = info_reply.add_details();
     auto fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
 
     info_entry->set_name("bogus-instance");
@@ -365,7 +445,7 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     timestamp.set_nanos(21000000);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
-    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
@@ -379,7 +459,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
 {
     mp::InfoReply info_reply;
 
-    auto info_entry = info_reply.mutable_detailed_report()->add_details();
+    auto info_entry = info_reply.add_details();
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
@@ -410,7 +490,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->mutable_instance_info()->add_ipv4("10.21.124.56");
     info_entry->mutable_instance_info()->set_num_snapshots(2);
 
-    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry = info_reply.add_details();
     auto fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
 
     info_entry->set_name("bogus-instance");
@@ -434,7 +514,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     timestamp.set_nanos(21000000);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
-    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry = info_reply.add_details();
     fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
 
     info_entry->set_name("bogus-instance");
@@ -447,14 +527,14 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     timestamp.set_nanos(21000000);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
-    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
     info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
 
-    info_entry = info_reply.mutable_detailed_report()->add_details();
+    info_entry = info_reply.add_details();
     fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
 
     info_entry->set_name("messier-87");
@@ -471,102 +551,22 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     return info_reply;
 }
 
-auto construct_single_snapshot_overview_info_reply()
-{
-    mp::InfoReply info_reply;
-
-    auto snapshot_entry = info_reply.mutable_snapshot_overview()->add_overview();
-    snapshot_entry->set_instance_name("foo");
-
-    auto fundamentals = snapshot_entry->mutable_fundamentals();
-    fundamentals->set_snapshot_name("snapshot1");
-    fundamentals->set_comment("This is a sample comment");
-
-    google::protobuf::Timestamp timestamp;
-    timestamp.set_seconds(time(nullptr));
-    timestamp.set_nanos(0);
-    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
-
-    return info_reply;
-}
-
-auto construct_multiple_snapshot_overview_info_reply()
-{
-    mp::InfoReply info_reply;
-
-    auto snapshot_entry = info_reply.mutable_snapshot_overview()->add_overview();
-    auto fundamentals = snapshot_entry->mutable_fundamentals();
-    google::protobuf::Timestamp timestamp;
-
-    snapshot_entry->set_instance_name("prosperous-spadefish");
-    fundamentals->set_snapshot_name("snapshot10");
-    fundamentals->set_parent("snapshot2");
-    timestamp.set_seconds(1672531200);
-    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
-
-    snapshot_entry = info_reply.mutable_snapshot_overview()->add_overview();
-    fundamentals = snapshot_entry->mutable_fundamentals();
-    snapshot_entry->set_instance_name("hale-roller");
-    fundamentals->set_snapshot_name("rolling");
-    fundamentals->set_parent("pristine");
-    fundamentals->set_comment("Loaded with stuff");
-    timestamp.set_seconds(25425952800);
-    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
-
-    snapshot_entry = info_reply.mutable_snapshot_overview()->add_overview();
-    fundamentals = snapshot_entry->mutable_fundamentals();
-    snapshot_entry->set_instance_name("hale-roller");
-    fundamentals->set_snapshot_name("rocking");
-    fundamentals->set_parent("pristine");
-    fundamentals->set_comment("A very long comment that should be truncated by the table formatter");
-    timestamp.set_seconds(2209234259);
-    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
-
-    snapshot_entry = info_reply.mutable_snapshot_overview()->add_overview();
-    fundamentals = snapshot_entry->mutable_fundamentals();
-    snapshot_entry->set_instance_name("hale-roller");
-    fundamentals->set_snapshot_name("pristine");
-    fundamentals->set_comment("A first snapshot");
-    timestamp.set_seconds(409298914);
-    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
-
-    snapshot_entry = info_reply.mutable_snapshot_overview()->add_overview();
-    fundamentals = snapshot_entry->mutable_fundamentals();
-    snapshot_entry->set_instance_name("prosperous-spadefish");
-    fundamentals->set_snapshot_name("snapshot2");
-    fundamentals->set_comment("Before restoring snap1\nContains a newline that\r\nshould be truncated");
-    timestamp.set_seconds(1671840000);
-    fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
-
-    return info_reply;
-}
-
 auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
 {
-    if (reply.has_detailed_report())
+    if ((csv_format && !snapshots) || !csv_format)
     {
-        if ((csv_format && !snapshots) || !csv_format)
-        {
-            auto entry = reply.mutable_detailed_report()->add_details();
-            entry->set_name(petenv_name());
-            entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
-            entry->mutable_instance_info()->set_image_release("18.10");
-            entry->mutable_instance_info()->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
-        }
-
-        if ((csv_format && snapshots) || !csv_format)
-        {
-            auto entry = reply.mutable_detailed_report()->add_details();
-            entry->set_name(petenv_name());
-            entry->mutable_snapshot_info()->mutable_fundamentals()->set_snapshot_name("snapshot1");
-        }
+        auto entry = reply.add_details();
+        entry->set_name(petenv_name());
+        entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
+        entry->mutable_instance_info()->set_image_release("18.10");
+        entry->mutable_instance_info()->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
     }
-    else
+
+    if ((csv_format && snapshots) || !csv_format)
     {
-        auto entry = reply.mutable_snapshot_overview()->add_overview();
-        entry->set_instance_name(petenv_name());
-        entry->mutable_fundamentals()->set_snapshot_name("snapshot1");
-        entry->mutable_fundamentals()->set_comment("An exemplary comment");
+        auto entry = reply.add_details();
+        entry->set_name(petenv_name());
+        entry->mutable_snapshot_info()->mutable_fundamentals()->set_snapshot_name("snapshot1");
     }
 }
 
@@ -788,18 +788,20 @@ const mp::JsonFormatter json_formatter;
 const mp::CSVFormatter csv_formatter;
 const mp::YamlFormatter yaml_formatter;
 
-const auto empty_list_reply = mp::ListReply();
+const auto empty_list_reply = construct_empty_list_reply();
+const auto empty_list_snapshot_reply = construct_empty_list_snapshot_reply();
 const auto single_instance_list_reply = construct_single_instance_list_reply();
 const auto multiple_instances_list_reply = construct_multiple_instances_list_reply();
 const auto unsorted_list_reply = construct_unsorted_list_reply();
+const auto single_snapshot_list_reply = construct_single_snapshot_list_reply();
+const auto multiple_snapshots_list_reply = construct_multiple_snapshots_list_reply();
 
 const auto empty_networks_reply = mp::NetworksReply();
 const auto one_short_line_networks_reply = construct_one_short_line_networks_reply();
 const auto one_long_line_networks_reply = construct_one_long_line_networks_reply();
 const auto multiple_lines_networks_reply = construct_multiple_lines_networks_reply();
 
-const auto empty_info_reply = construct_empty_info_reply();
-const auto empty_snapshot_overview_reply = construct_empty_snapshot_overview_reply();
+const auto empty_info_reply = mp::InfoReply();
 const auto single_instance_info_reply = construct_single_instance_info_reply();
 const auto multiple_instances_info_reply = construct_multiple_instances_info_reply();
 const auto single_snapshot_info_reply = construct_single_snapshot_info_reply();
@@ -807,11 +809,10 @@ const auto multiple_snapshots_info_reply = construct_multiple_snapshots_info_rep
 const auto mixed_instance_and_snapshot_info_reply = construct_mixed_instance_and_snapshot_info_reply();
 const auto multiple_mixed_instances_and_snapshots_info_reply =
     construct_multiple_mixed_instances_and_snapshots_info_reply();
-const auto single_snapshot_overview_info_reply = construct_single_snapshot_overview_info_reply();
-const auto multiple_snapshot_overview_info_reply = construct_multiple_snapshot_overview_info_reply();
 
 const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
+    {&table_formatter, &empty_list_snapshot_reply, "No snapshots found.\n", "table_list_snapshot_empty"},
     {&table_formatter, &single_instance_list_reply,
      "Name                    State             IPv4             Image\n"
      "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n"
@@ -831,9 +832,20 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "trusty-190611-1539      Suspended         --               Not Available\n"
      "trusty-190611-1542      Running           --               Ubuntu N/A\n",
      "table_list_unsorted"},
+    {&table_formatter, &single_snapshot_list_reply,
+     "Instance   Snapshot    Parent   Comment\n"
+     "foo        snapshot1   --       This is a sample comment\n",
+     "table_list_single_snapshot"},
+    {&table_formatter, &multiple_snapshots_list_reply,
+     "Instance               Snapshot     Parent      Comment\n"
+     "hale-roller            pristine     --          A first snapshot\n"
+     "hale-roller            rocking      pristine    A very long comment that should be truncated by t…\n"
+     "hale-roller            rolling      pristine    Loaded with stuff\n"
+     "prosperous-spadefish   snapshot2    --          Before restoring snap1…\n"
+     "prosperous-spadefish   snapshot10   snapshot2   --\n",
+     "table_list_multiple_snapshots"},
 
     {&table_formatter, &empty_info_reply, "\n", "table_info_empty"},
-    {&table_formatter, &empty_snapshot_overview_reply, "No snapshots found.\n", "table_snapshot_overview_empty"},
     {&table_formatter, &single_instance_info_reply,
      "Name:           foo\n"
      "State:          Running\n"
@@ -1005,18 +1017,6 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Children:       --\n"
      "Comment:        Captured by EHT\n",
      "table_info_multiple_mixed_instances_and_snapshots"},
-    {&table_formatter, &single_snapshot_overview_info_reply,
-     "Instance   Snapshot    Parent   Comment\n"
-     "foo        snapshot1   --       This is a sample comment\n",
-     "table_snapshot_overview_single"},
-    {&table_formatter, &multiple_snapshot_overview_info_reply,
-     "Instance               Snapshot     Parent      Comment\n"
-     "hale-roller            pristine     --          A first snapshot\n"
-     "hale-roller            rocking      pristine    A very long comment that should be truncated by t…\n"
-     "hale-roller            rolling      pristine    Loaded with stuff\n"
-     "prosperous-spadefish   snapshot2    --          Before restoring snap1…\n"
-     "prosperous-spadefish   snapshot10   snapshot2   --\n",
-     "table_snapshot_overview_multiple"},
 
     {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4\n", "csv_list_empty"},
     {&csv_formatter, &single_instance_list_reply,
@@ -1035,10 +1035,18 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "trusty-190611-1539,Suspended,,,Not Available,\"\"\n"
      "trusty-190611-1542,Running,,,Ubuntu N/A,\"\"\n",
      "csv_list_unsorted"},
+    {&csv_formatter, &empty_list_snapshot_reply, "Instance,Snapshot,Parent,Comment\n", "csv_list_snapshot_empty"},
+    {&csv_formatter, &single_snapshot_list_reply,
+     "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,\"This is a sample comment\"\n", "csv_list_single_snapshot"},
+    {&csv_formatter, &multiple_snapshots_list_reply,
+     "Instance,Snapshot,Parent,Comment\nhale-roller,pristine,,\"A first "
+     "snapshot\"\nhale-roller,rocking,pristine,\"A very long comment that should be truncated by the table "
+     "formatter\"\nhale-roller,rolling,pristine,\"Loaded with stuff\"\nprosperous-spadefish,snapshot2,,\"Before "
+     "restoring snap1\nContains a newline that\r\nshould be "
+     "truncated\"\nprosperous-spadefish,snapshot10,snapshot2,\"\"\n",
+     "csv_list_multiple_snapshots"},
 
     {&csv_formatter, &empty_info_reply, "", "csv_info_empty"},
-    {&csv_formatter, &empty_snapshot_overview_reply, "Instance,Snapshot,Parent,Comment\n",
-     "csv_snapshot_overview_empty"},
     {&csv_formatter, &single_instance_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
      "usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,10.168.32.2,2001:67c:1562:8007::aac:423a,Ubuntu "
@@ -1069,15 +1077,6 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "source,10.21.124.56,4,1\nbombastic,Stopped,,,,"
      "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,,,3\n",
      "csv_info_multiple_instances"},
-    {&csv_formatter, &single_snapshot_overview_info_reply,
-     "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,\"This is a sample comment\"\n", "csv_snapshot_overview_single"},
-    {&csv_formatter, &multiple_snapshot_overview_info_reply,
-     "Instance,Snapshot,Parent,Comment\nhale-roller,pristine,,\"A first "
-     "snapshot\"\nhale-roller,rocking,pristine,\"A very long comment that should be truncated by the table "
-     "formatter\"\nhale-roller,rolling,pristine,\"Loaded with stuff\"\nprosperous-spadefish,snapshot2,,\"Before "
-     "restoring snap1\nContains a newline that\r\nshould be "
-     "truncated\"\nprosperous-spadefish,snapshot10,snapshot2,\"\"\n",
-     "csv_snapshot_overview_multiple"},
 
     {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
     {&yaml_formatter, &single_instance_list_reply,
@@ -1122,9 +1121,34 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "      []\n"
      "    release: Ubuntu N/A\n",
      "yaml_list_unsorted"},
-    {&yaml_formatter, &empty_info_reply, "errors:\n  - ~\n", "yaml_info_empty"},
-    {&yaml_formatter, &empty_snapshot_overview_reply, "errors:\n  - ~\n", "yaml_snapshot_overview_empty"},
+    {&yaml_formatter, &empty_list_snapshot_reply, "\n", "yaml_list_snapshot_empty"},
+    {&yaml_formatter, &single_snapshot_list_reply,
+     "foo:\n"
+     "  - snapshot1:\n"
+     "      - parent: ~\n"
+     "        comment: This is a sample comment\n",
+     "yaml_list_single_snapshot"},
+    {&yaml_formatter, &multiple_snapshots_list_reply,
+     "hale-roller:\n"
+     "  - pristine:\n"
+     "      - parent: ~\n"
+     "        comment: A first snapshot\n"
+     "  - rocking:\n"
+     "      - parent: pristine\n"
+     "        comment: A very long comment that should be truncated by the table formatter\n"
+     "  - rolling:\n"
+     "      - parent: pristine\n"
+     "        comment: Loaded with stuff\n"
+     "prosperous-spadefish:\n"
+     "  - snapshot2:\n"
+     "      - parent: ~\n"
+     "        comment: \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\"\n"
+     "  - snapshot10:\n"
+     "      - parent: snapshot2\n"
+     "        comment: ~\n",
+     "yaml_list_multiple_snapshots"},
 
+    {&yaml_formatter, &empty_info_reply, "errors:\n  - ~\n", "yaml_info_empty"},
     {&yaml_formatter, &single_instance_info_reply,
      "errors:\n"
      "  - ~\n"
@@ -1395,36 +1419,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "          children:\n"
      "            []\n"
      "          comment: Captured by EHT\n",
-     "yaml_info_multiple_mixed_instances_and_snapshots"},
-    {&yaml_formatter, &single_snapshot_overview_info_reply,
-     "errors:\n"
-     "  - ~\n"
-     "foo:\n"
-     "  - snapshot1:\n"
-     "      - parent: ~\n"
-     "        comment: This is a sample comment\n",
-     "yaml_snapshot_overview_single"},
-    {&yaml_formatter, &multiple_snapshot_overview_info_reply,
-     "errors:\n"
-     "  - ~\n"
-     "hale-roller:\n"
-     "  - pristine:\n"
-     "      - parent: ~\n"
-     "        comment: A first snapshot\n"
-     "  - rocking:\n"
-     "      - parent: pristine\n"
-     "        comment: A very long comment that should be truncated by the table formatter\n"
-     "  - rolling:\n"
-     "      - parent: pristine\n"
-     "        comment: Loaded with stuff\n"
-     "prosperous-spadefish:\n"
-     "  - snapshot2:\n"
-     "      - parent: ~\n"
-     "        comment: \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\"\n"
-     "  - snapshot10:\n"
-     "      - parent: snapshot2\n"
-     "        comment: ~\n",
-     "yaml_snapshot_overview_multiple"}};
+     "yaml_info_multiple_mixed_instances_and_snapshots"}};
 
 const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
     {&json_formatter, &empty_list_reply,
@@ -1469,6 +1464,52 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "    ]\n"
      "}\n",
      "json_list_multiple"},
+    {&json_formatter, &single_snapshot_list_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"info\": {\n"
+     "        \"foo\": {\n"
+     "            \"snapshot1\": {\n"
+     "                \"comment\": \"This is a sample comment\",\n"
+     "                \"parent\": \"\"\n"
+     "            }\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_list_single_snapshot"},
+    {&json_formatter, &multiple_snapshots_list_reply,
+     "{\n"
+     "    \"errors\": [\n"
+     "    ],\n"
+     "    \"info\": {\n"
+     "        \"hale-roller\": {\n"
+     "            \"pristine\": {\n"
+     "                \"comment\": \"A first snapshot\",\n"
+     "                \"parent\": \"\"\n"
+     "            },\n"
+     "            \"rocking\": {\n"
+     "                \"comment\": \"A very long comment that should be truncated by the table formatter\",\n"
+     "                \"parent\": \"pristine\"\n"
+     "            },\n"
+     "            \"rolling\": {\n"
+     "                \"comment\": \"Loaded with stuff\",\n"
+     "                \"parent\": \"pristine\"\n"
+     "            }\n"
+     "        },\n"
+     "        \"prosperous-spadefish\": {\n"
+     "            \"snapshot10\": {\n"
+     "                \"comment\": \"\",\n"
+     "                \"parent\": \"snapshot2\"\n"
+     "            },\n"
+     "            \"snapshot2\": {\n"
+     "                \"comment\": \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\",\n"
+     "                \"parent\": \"\"\n"
+     "            }\n"
+     "        }\n"
+     "    }\n"
+     "}\n",
+     "json_list_multiple_snapshots"},
     {&json_formatter, &empty_info_reply,
      "{\n"
      "    \"errors\": [\n"
@@ -1477,14 +1518,6 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "    }\n"
      "}\n",
      "json_info_empty"},
-    {&json_formatter, &empty_snapshot_overview_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "    }\n"
-     "}\n",
-     "json_snapshot_overview_empty"},
     {&json_formatter, &single_instance_info_reply,
      "{\n"
      "    \"errors\": [\n"
@@ -1858,53 +1891,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "        }\n"
      "    }\n"
      "}\n",
-     "json_info_multiple_mixed_instances_and_snapshots"},
-    {&json_formatter, &single_snapshot_overview_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"foo\": {\n"
-     "            \"snapshot1\": {\n"
-     "                \"comment\": \"This is a sample comment\",\n"
-     "                \"parent\": \"\"\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
-     "json_snapshot_overview_single"},
-    {&json_formatter, &multiple_snapshot_overview_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"hale-roller\": {\n"
-     "            \"pristine\": {\n"
-     "                \"comment\": \"A first snapshot\",\n"
-     "                \"parent\": \"\"\n"
-     "            },\n"
-     "            \"rocking\": {\n"
-     "                \"comment\": \"A very long comment that should be truncated by the table formatter\",\n"
-     "                \"parent\": \"pristine\"\n"
-     "            },\n"
-     "            \"rolling\": {\n"
-     "                \"comment\": \"Loaded with stuff\",\n"
-     "                \"parent\": \"pristine\"\n"
-     "            }\n"
-     "        },\n"
-     "        \"prosperous-spadefish\": {\n"
-     "            \"snapshot10\": {\n"
-     "                \"comment\": \"\",\n"
-     "                \"parent\": \"snapshot2\"\n"
-     "            },\n"
-     "            \"snapshot2\": {\n"
-     "                \"comment\": \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\",\n"
-     "                \"parent\": \"\"\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
-     "json_snapshot_overview_multiple"}};
+     "json_info_multiple_mixed_instances_and_snapshots"}};
 
 const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
     {&table_formatter, &empty_networks_reply, "No network interfaces found.\n", "table_networks_empty"},
@@ -2384,6 +2371,12 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
     if (auto input = dynamic_cast<const mp::ListReply*>(reply))
     {
         mp::ListReply reply_copy;
+
+        if (input->has_instance_list())
+            reply_copy.mutable_instance_list();
+        else
+            reply_copy.mutable_snapshot_list();
+
         if (prepend)
         {
             add_petenv_to_reply(reply_copy);
@@ -2397,9 +2390,9 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
         output = formatter->format(reply_copy);
 
         if (dynamic_cast<const mp::TableFormatter*>(formatter))
-            regex = fmt::format("Name[[:print:]]*\n{}[[:space:]]+.*", petenv_name());
+            regex = fmt::format("((Name|Instance)[[:print:]]*\n{0}[[:space:]]+.*)", petenv_name());
         else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
-            regex = fmt::format("Name[[:print:]]*\n{},.*", petenv_name());
+            regex = fmt::format("(Name|Instance)[[:print:]]*\n{},.*", petenv_name());
         else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
             regex = fmt::format("{}:.*", petenv_name());
         else
@@ -2408,12 +2401,6 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
     {
         mp::InfoReply reply_copy;
-
-        if (input->has_detailed_report())
-            reply_copy.mutable_detailed_report();
-        else
-            reply_copy.mutable_snapshot_overview();
-
         if (prepend)
         {
             add_petenv_to_reply(reply_copy, dynamic_cast<const mp::CSVFormatter*>(formatter),
@@ -2429,23 +2416,13 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
         output = formatter->format(reply_copy);
 
         if (dynamic_cast<const mp::TableFormatter*>(formatter))
-        {
-            if (input->has_detailed_report())
-                regex = fmt::format("(Name:[[:space:]]+{0}.+)"
-                                    "(Snapshot:[[:print:]]*\nInstance:[[:space:]]+{0}.+)",
-                                    petenv_name());
-            else
-                regex = fmt::format("Instance[[:print:]]*\n{}.+", petenv_name());
-        }
+            regex = fmt::format("(Name:[[:space:]]+{0}.+)"
+                                "(Snapshot:[[:print:]]*\nInstance:[[:space:]]+{0}.+)",
+                                petenv_name());
         else if (dynamic_cast<const mp::CSVFormatter*>(formatter))
-        {
-            if (input->has_detailed_report())
-                regex = fmt::format("(Name[[:print:]]*\n{0},.*)|"
-                                    "(Snapshot[[:print:]]*\n[[:print:]]*,{0},.*)",
-                                    petenv_name());
-            else
-                regex = fmt::format("Instance[[:print:]]*\n{},.*", petenv_name());
-        }
+            regex = fmt::format("(Name[[:print:]]*\n{0},.*)|"
+                                "(Snapshot[[:print:]]*\n[[:print:]]*,{0},.*)",
+                                petenv_name());
         else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
             regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
         else
