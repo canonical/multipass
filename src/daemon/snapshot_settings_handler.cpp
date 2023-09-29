@@ -126,7 +126,7 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
             throw mp::InvalidSettingException{key, val, "Invalid snapshot name."};
 
         // TODO@no-merge need to verify name uniqueness and update map
-        modify_vm(instance_name)->rename_snapshot(snapshot_name_stdstr, val_stdstr);
+        modify_instance(instance_name)->rename_snapshot(snapshot_name_stdstr, val_stdstr);
     }
     else
     {
@@ -172,7 +172,7 @@ auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name
     throw SnapshotSettingsException{instance_name, "no such instance"};
 }
 
-auto mp::SnapshotSettingsHandler::modify_vm(const std::string& instance_name) -> std::shared_ptr<VirtualMachine>
+auto mp::SnapshotSettingsHandler::modify_instance(const std::string& instance_name) -> std::shared_ptr<VirtualMachine>
 {
     return nullptr; // TODO@no-merge
 }
