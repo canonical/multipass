@@ -44,7 +44,7 @@ public:
 private:
     std::shared_ptr<const Snapshot> find_snapshot(const std::string& instance_name,
                                                   const std::string& snapshot_name) const;
-    std::shared_ptr<const VirtualMachine> find_instance(const std::string& instance_name) const;
+    std::shared_ptr<const VirtualMachine> find_instance(const std::string& instance_name, bool deleted_ok = true) const;
 
     std::pair<std::shared_ptr<VirtualMachine>, std::shared_ptr<Snapshot>>
     modify_snapshot(const std::string& instance_name, const std::string& snapshot_name);
@@ -55,7 +55,6 @@ private:
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances;
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
     const std::unordered_set<std::string>& preparing_instances;
-    const std::unordered_map<std::string, VirtualMachine::ShPtr>& const_operative_instances = operative_instances;
 };
 
 class SnapshotSettingsException : public SettingsException

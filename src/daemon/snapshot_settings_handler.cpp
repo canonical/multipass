@@ -92,6 +92,7 @@ std::set<QString> mp::SnapshotSettingsHandler::keys() const
     static const auto key_template = QStringLiteral("%1.%2.%3.%4").arg(daemon_settings_root);
     std::set<QString> ret;
 
+    const auto& const_operative_instances = operative_instances;
     for (const auto* instance_map : {&const_operative_instances, &deleted_instances})
         for (const auto& [vm_name, vm] : *instance_map)
             for (const auto& snapshot : vm->view_snapshots())
@@ -151,30 +152,39 @@ auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name
     }
 }
 
-auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name) const
+auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name, bool deleted_ok) const
     -> std::shared_ptr<const VirtualMachine>
 {
     if (preparing_instances.find(instance_name) != preparing_instances.end())
         throw SnapshotSettingsException{instance_name, "instance is being prepared"};
 
-    for (const auto* instance_map : {&const_operative_instances, &deleted_instances})
+    try
     {
+        return operative_instances.at(instance_name);
+    }
+    catch (std::out_of_range&)
+    {
+        std::string error{"No such instance"};
+
         try
         {
-            return instance_map->at(instance_name);
+            const auto& del = deleted_instances.at(instance_name);
+            if (deleted_ok)
+                return del;
+
+            error = "Instance is deleted";
         }
         catch (std::out_of_range&)
         {
-            continue; // we're OK reading snapshot properties of deleted instances
         }
-    }
 
-    throw SnapshotSettingsException{instance_name, "no such instance"};
+        throw SnapshotSettingsException{instance_name, error};
+    }
 }
 
 auto mp::SnapshotSettingsHandler::modify_instance(const std::string& instance_name) -> std::shared_ptr<VirtualMachine>
 {
-    return nullptr; // TODO@no-merge
+    return std::const_pointer_cast<VirtualMachine>(find_instance(instance_name, false));
 }
 
 auto mp::SnapshotSettingsHandler::modify_snapshot(const std::string& instance_name, const std::string& snapshot_name)
