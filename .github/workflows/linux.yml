@@ -17,7 +17,7 @@ env:
 
 jobs:
   Lint:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
 
     if: ${{ github.event_name == 'pull_request' || contains('refs/heads/staging refs/heads/trying', github.ref) }}
 
@@ -31,7 +31,7 @@ jobs:
       uses: ./.github/actions/lint
 
   GetMatrix:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -73,7 +73,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
 
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, two-xlarge]
 
     env:
       SNAPCRAFT_BUILD_INFO: 1
@@ -219,7 +219,7 @@ jobs:
           || github.event.pull_request.head.repo.full_name == github.repository)
       }}
 
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
 
     timeout-minutes: 15
     steps:
@@ -243,7 +243,7 @@ jobs:
     needs:
     - BuildAndTest
 
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
 
     steps:
     - name: Report failure
@@ -265,7 +265,7 @@ jobs:
           || github.event.pull_request.head.repo.full_name == github.repository)
       }}
 
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
 
     steps:
     - name: Determine dispatch parameters

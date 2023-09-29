@@ -3,7 +3,7 @@ on: [pull_request]
 
 jobs:
   cla-check:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
     steps:
       - name: Check if CLA signed
         uses: canonical/has-signed-canonical-cla@v1
