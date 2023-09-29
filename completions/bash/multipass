@@ -21,7 +21,7 @@ _multipass_complete()
         local cmd="multipass list --format=csv --no-ipv4"
         [ -n "$state" ] && cmd="$cmd | \awk -F',' '\$2 == \"$state\"'"
 
-        local instances=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
+        local instances=$( \eval $cmd | \grep -Ev 'Name' | \cut -d',' -f 1 )
 
         local found
 
@@ -45,7 +45,7 @@ _multipass_complete()
     {
         local cmd="multipass networks --format=csv 2>/dev/null"
 
-        opts=$( \eval $cmd | \grep -Ev '(\+--|Name)' | \cut -d',' -f 1 )
+        opts=$( \eval $cmd | \grep -Ev 'Name' | \cut -d',' -f 1 )
     }
 
     _multipass_instances_with_colon()
@@ -96,7 +96,7 @@ _multipass_complete()
     {
         local cmd="multipass aliases --format=csv 2>/dev/null"
 
-        multipass_aliases=$( \eval $cmd | \grep -Ev '(\+--|Alias)' | \cut -d',' -f 1 )
+        multipass_aliases=$( \eval $cmd | \grep -Ev 'Alias' | \cut -d',' -f 1 )
     }
 
     # Set $unused_aliases to the list of aliases from which were not yet specified in the command-line.
