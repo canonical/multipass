@@ -123,6 +123,9 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 
     if (property == name_suffix)
     {
+        if (snapshot_name == val)
+            return;
+
         if (val_stdstr.empty() || !mp::utils::valid_hostname(val_stdstr))
             throw mp::InvalidSettingException{key, val, "Invalid snapshot name."};
 
