@@ -149,7 +149,7 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
                    "Memory usage:", to_usage(instance_details.memory_usage(), item.memory_total()));
 
-    auto mount_paths = item.mount_info().mount_paths();
+    const auto& mount_paths = item.mount_info().mount_paths();
     fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
 
     for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
@@ -192,103 +192,11 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
     return fmt::to_string(buf);
 }
 
-std::string generate_instance_info_report(const mp::InfoReply& reply)
+std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     fmt::memory_buffer buf;
 
-    for (const auto& info : mp::format::sort_instances_and_snapshots(reply.detailed_report().details()))
-    {
-        if (info.has_instance_info())
-        {
-            fmt::format_to(std::back_inserter(buf), generate_instance_details(info));
-        }
-        else
-        {
-            assert(info.has_snapshot_info() && "either one of instance or snapshot details should be populated");
-            fmt::format_to(std::back_inserter(buf), generate_snapshot_details(info));
-        }
-
-        fmt::format_to(std::back_inserter(buf), "\n");
-    }
-
-    std::string output = fmt::to_string(buf);
-    if (!reply.detailed_report().details().empty())
-        output.pop_back();
-    else
-        output = "\n";
-
-    return output;
-}
-
-std::string generate_snapshot_overview_report(const mp::InfoReply& reply)
-{
-    auto overview = reply.snapshot_overview().overview();
-    if (overview.empty())
-        return "No snapshots found.\n";
-
-    fmt::memory_buffer buf;
-    const std::string name_col_header = "Instance", snapshot_col_header = "Snapshot", parent_col_header = "Parent",
-                      comment_col_header = "Comment";
-    const auto name_column_width = mp::format::column_width(
-        overview.begin(), overview.end(), [](const auto& item) -> int { return item.instance_name().length(); },
-        name_col_header.length());
-    const auto snapshot_column_width = mp::format::column_width(
-        overview.begin(), overview.end(),
-        [](const auto& item) -> int { return item.fundamentals().snapshot_name().length(); },
-        snapshot_col_header.length());
-    const auto parent_column_width = mp::format::column_width(
-        overview.begin(), overview.end(), [](const auto& item) -> int { return item.fundamentals().parent().length(); },
-        parent_col_header.length());
-
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
-
-    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, snapshot_col_header,
-                   snapshot_column_width, parent_col_header, parent_column_width, comment_col_header);
-
-    for (const auto& item : mp::format::sort_snapshots(overview))
-    {
-        size_t max_comment_column_width = 50;
-        std::smatch match;
-        auto snapshot = item.fundamentals();
-
-        if (std::regex_search(snapshot.comment().begin(), snapshot.comment().end(), match, newline))
-            max_comment_column_width = std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
-
-        fmt::format_to(std::back_inserter(buf), row_format, item.instance_name(), name_column_width,
-                       snapshot.snapshot_name(), snapshot_column_width,
-                       snapshot.parent().empty() ? "--" : snapshot.parent(), parent_column_width,
-                       snapshot.comment().empty() ? "--"
-                       : snapshot.comment().length() > max_comment_column_width
-                           ? fmt::format("{}…", snapshot.comment().substr(0, max_comment_column_width - 1))
-                           : snapshot.comment());
-    }
-
-    return fmt::to_string(buf);
-}
-} // namespace
-
-std::string mp::TableFormatter::format(const InfoReply& reply) const
-{
-    std::string output;
-
-    if (reply.has_detailed_report())
-    {
-        output = generate_instance_info_report(reply);
-    }
-    else
-    {
-        assert(reply.has_snapshot_overview() && "either one of the reports should be populated");
-        output = generate_snapshot_overview_report(reply);
-    }
-
-    return output;
-}
-
-std::string mp::TableFormatter::format(const ListReply& reply) const
-{
-    fmt::memory_buffer buf;
-
-    auto instances = reply.instances();
+    const auto& instances = instance_list.instances();
 
     if (instances.empty())
         return "No instances found.\n";
@@ -304,7 +212,7 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State", state_column_width,
                    "IPv4", ip_column_width, "Image");
 
-    for (const auto& instance : format::sorted(reply.instances()))
+    for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         int ipv4_size = instance.ipv4_size();
 
@@ -322,6 +230,100 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     }
 
     return fmt::to_string(buf);
+}
+
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
+{
+    fmt::memory_buffer buf;
+
+    const auto& snapshots = snapshot_list.snapshots();
+
+    if (snapshots.empty())
+        return "No snapshots found.\n";
+
+    const std::string name_col_header = "Instance", snapshot_col_header = "Snapshot", parent_col_header = "Parent",
+                      comment_col_header = "Comment";
+    const auto name_column_width = mp::format::column_width(
+        snapshots.begin(), snapshots.end(), [](const auto& snapshot) -> int { return snapshot.name().length(); },
+        name_col_header.length());
+    const auto snapshot_column_width = mp::format::column_width(
+        snapshots.begin(), snapshots.end(),
+        [](const auto& snapshot) -> int { return snapshot.fundamentals().snapshot_name().length(); },
+        snapshot_col_header.length());
+    const auto parent_column_width = mp::format::column_width(
+        snapshots.begin(), snapshots.end(),
+        [](const auto& snapshot) -> int { return snapshot.fundamentals().parent().length(); },
+        parent_col_header.length());
+
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, snapshot_col_header,
+                   snapshot_column_width, parent_col_header, parent_column_width, comment_col_header);
+
+    for (const auto& snapshot : mp::format::sorted(snapshot_list.snapshots()))
+    {
+        size_t max_comment_column_width = 50;
+        std::smatch match;
+        const auto& fundamentals = snapshot.fundamentals();
+
+        if (std::regex_search(fundamentals.comment().begin(), fundamentals.comment().end(), match, newline))
+            max_comment_column_width = std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
+
+        fmt::format_to(std::back_inserter(buf), row_format, snapshot.name(), name_column_width,
+                       fundamentals.snapshot_name(), snapshot_column_width,
+                       fundamentals.parent().empty() ? "--" : fundamentals.parent(), parent_column_width,
+                       fundamentals.comment().empty() ? "--"
+                       : fundamentals.comment().length() > max_comment_column_width
+                           ? fmt::format("{}…", fundamentals.comment().substr(0, max_comment_column_width - 1))
+                           : fundamentals.comment());
+    }
+
+    return fmt::to_string(buf);
+}
+} // namespace
+
+std::string mp::TableFormatter::format(const InfoReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    for (const auto& info : mp::format::sorted(reply.details()))
+    {
+        if (info.has_instance_info())
+        {
+            fmt::format_to(std::back_inserter(buf), generate_instance_details(info));
+        }
+        else
+        {
+            assert(info.has_snapshot_info() && "either one of instance or snapshot details should be populated");
+            fmt::format_to(std::back_inserter(buf), generate_snapshot_details(info));
+        }
+
+        fmt::format_to(std::back_inserter(buf), "\n");
+    }
+
+    std::string output = fmt::to_string(buf);
+    if (!reply.details().empty())
+        output.pop_back();
+    else
+        output = "\n";
+
+    return output;
+}
+
+std::string mp::TableFormatter::format(const ListReply& reply) const
+{
+    std::string output;
+
+    if (reply.has_instance_list())
+    {
+        output = generate_instances_list(reply.instance_list());
+    }
+    else
+    {
+        assert(reply.has_snapshot_list() && "either one of instances or snapshots should be populated");
+        output = generate_snapshots_list(reply.snapshot_list());
+    }
+
+    return output;
 }
 
 std::string mp::TableFormatter::format(const NetworksReply& reply) const

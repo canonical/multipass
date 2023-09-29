@@ -157,17 +157,17 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
     EXPECT_CALL(daemon, ssh_info(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SSHInfoRequest, mp::SSHInfoReply>));
-    EXPECT_CALL(daemon, info(_, _, _)).WillOnce([](auto, auto server, auto status_promise) {
-        mp::InfoReply reply;
-        reply.mutable_detailed_report();
+    EXPECT_CALL(daemon, info(_, _, _))
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::InfoRequest, mp::InfoReply>));
+    EXPECT_CALL(daemon, list(_, _, _)).WillOnce([](auto, auto server, auto status_promise) {
+        mp::ListReply reply;
+        reply.mutable_instance_list();
 
         server->Write(reply);
         status_promise->set_value(grpc::Status::OK);
 
         return grpc::Status{};
     });
-    EXPECT_CALL(daemon, list(_, _, _))
-        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ListRequest, mp::ListReply>));
     EXPECT_CALL(daemon, recover(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::RecoverRequest, mp::RecoverReply>));
     EXPECT_CALL(daemon, start(_, _, _))
@@ -1406,6 +1406,10 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
+        return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+    }));
+
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
@@ -1413,12 +1417,13 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
     // Check that the instance was indeed read and there were no errors.
     {
         StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+        mp::ListReply list_reply;
 
-        auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
-        EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
-            .WillOnce(Return(true));
+        auto instance_matcher = UnorderedElementsAre(Property(&mp::ListVMInstance::name, "real-zebraphant"));
+        EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
         EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+        EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
     // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
@@ -1468,6 +1473,10 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
+        return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+    }));
+
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of the file.
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
@@ -1475,12 +1484,13 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
     // Check that the instance was indeed read and there were no errors.
     {
         StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+        mp::ListReply list_reply;
 
-        auto instance_matcher = Property(&mp::ListVMInstance::name, "real-zebraphant");
-        EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(instance_matcher)), _))
-            .WillOnce(Return(true));
+        auto instance_matcher = UnorderedElementsAre(Property(&mp::ListVMInstance::name, "real-zebraphant"));
+        EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
         EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+        EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
     QFile::remove(filename);    // Remove the JSON.
@@ -1501,6 +1511,10 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
 
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents("52:54:00:73:76:29", std::vector<mp::NetworkInterface>{}, mounts));
+
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine).WillRepeatedly(WithArg<0>([](const auto& desc) {
+        return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+    }));
 
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
@@ -1700,18 +1714,22 @@ TEST_F(Daemon, ctor_drops_removed_instances)
 
     auto mock_factory = use_a_mock_vm_factory();
     EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, stayed), _))
-        .Times(1);
+        .Times(1)
+        .WillRepeatedly(
+            WithArg<0>([](const auto& desc) { return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name); }));
     EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _))
         .Times(0);
 
     mp::Daemon daemon{config_builder.build()};
 
     StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
-    auto stayed_matcher = Property(&mp::ListVMInstance::name, stayed);
-    EXPECT_CALL(mock_server, Write(Property(&mp::ListReply::instances, ElementsAre(stayed_matcher)), _))
-        .WillOnce(Return(true));
+    mp::ListReply list_reply;
+
+    auto stayed_matcher = UnorderedElementsAre(Property(&mp::ListVMInstance::name, stayed));
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    EXPECT_THAT(list_reply.instance_list().instances(), stayed_matcher);
 
     auto updated_json = mpt::load(filename);
     EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
@@ -2184,14 +2202,9 @@ TEST_F(Daemon, info_all_returns_all_instances)
                                                     Property(&mp::DetailedInfoItem::name, deleted_instance_name));
 
     StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
-    mp::InfoReply info_reply;
-
-    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+    EXPECT_CALL(mock_server, Write(Property(&mp::InfoReply::details, names_matcher), _)).WillOnce(Return(true));
 
     mp::Daemon daemon{config_builder.build()};
-
     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
-
-    EXPECT_THAT(info_reply.detailed_report().details(), names_matcher);
 }
 } // namespace
