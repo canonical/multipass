@@ -1718,9 +1718,10 @@ TEST_F(Client, help_cmd_help_ok)
 }
 
 // info cli tests
-TEST_F(Client, info_cmd_fails_no_args)
+TEST_F(Client, infoCmdOkNoArgs)
 {
-    EXPECT_THAT(send_command({"info"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_CALL(mock_daemon, info(_, _));
+    EXPECT_THAT(send_command({"info"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, info_cmd_ok_with_one_arg)
