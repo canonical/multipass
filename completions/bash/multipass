@@ -23,21 +23,7 @@ _multipass_complete()
 
         local instances=$( \eval $cmd | \tail -n +2 | \cut -d',' -f 1 )
 
-        local found
-
-        _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
-        for instance in $instances; do
-            found=0
-            for ((i=2; i<CWORD; i++)); do
-                if [[ "${WORDS[i]}" == ${instance} ]]; then
-                    found=1
-                    break
-                fi
-            done
-            if [ ${found} == 0 ]; then
-                opts="${opts} ${instance}"
-            fi
-        done
+        _add_nonrepeating_args $instances
     }
 
     # Set $opts to the list of available networks.
@@ -97,30 +83,6 @@ _multipass_complete()
         local cmd="multipass aliases --format=csv 2>/dev/null"
 
         multipass_aliases=$( \eval $cmd | \tail -n +2 | \cut -d',' -f 1 )
-    }
-
-    # Set $unused_aliases to the list of aliases from which were not yet specified in the command-line.
-    _unused_aliases()
-    {
-        _multipass_aliases
-
-        local alias_found=0
-
-        unused_aliases=""
-
-        for j in $multipass_aliases; do
-            alias_found=0
-
-            for ((i=2; i<COMP_CWORD; ++i)); do
-                if [[ "${COMP_WORDS[$i]}" == "$j" ]]; then
-                    alias_found=1
-                fi
-            done
-
-            if [[ ${alias_found} == 0 ]]; then
-                unused_aliases="${unused_aliases} $j"
-            fi
-        done
     }
 
     # Removes the comma or equals sign at the end of $cur.
@@ -192,6 +154,26 @@ _multipass_complete()
         if [[ ${mode_found} == 0 ]]; then opts="${opts} mode="; fi
     }
 
+    # Adds the passed list to the opts array while filtering out duplicates
+    _add_nonrepeating_args()
+    {
+        local array=$1
+        local found
+        _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
+        for item in $array; do
+            found=0
+            for ((i=2; i<CWORD; i++)); do
+                if [[ "${WORDS[i]}" == ${item} ]]; then
+                    found=1
+                    break
+                fi
+            done
+            if [ ${found} == 0 ]; then
+                opts="${opts} ${item}"
+            fi
+        done
+    }
+
     # Add comma and equals sign to the list of word separators if they are not already there, useful to separate
     # options of the form "opt1=val1,opt2=val2".
     if [[ ! "${COMP_WORDBREAKS}" =~ "," ]]; then
@@ -254,8 +236,8 @@ _multipass_complete()
             opts="${opts} --format"
         ;;
         "unalias")
-            _unused_aliases
-            opts="${opts} ${unused_aliases}"
+            _multipass_aliases
+            _add_nonrepeating_args $multipass_aliases
         ;;
         "transfer"|"copy-files")
             opts="${opts} --parents --recursive"
