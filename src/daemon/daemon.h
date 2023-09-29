@@ -22,6 +22,7 @@
 #include "daemon_rpc.h"
 #include "vm_specs.h"
 
+#include <multipass/async_periodic_task.h>
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
@@ -164,6 +165,9 @@ private:
                              std::promise<grpc::Status>* status_promise, const std::string& errors);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
+    void update_manifests_all(const bool is_force_update_from_network = false);
+    // it is applied in Daemon::find wherever the image info fetching is involved, aka non-only-blueprints case
+    void wait_update_manifests_all_and_optionally_applied_force(const bool force_manifest_network_download);
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
@@ -173,6 +177,8 @@ private:
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
     QTimer source_images_maintenance_task;
+    multipass::utils::AsyncPeriodicTask<void> update_manifests_all_task{
+        "fetch manifest periodically", std::chrono::minutes(15), &Daemon::update_manifests_all, this, false};
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>> async_future_watchers;
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;

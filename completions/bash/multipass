@@ -248,7 +248,7 @@ _multipass_complete()
             opts="${opts} --all --cancel --time"
         ;;
         "find")
-            opts="${opts} --show-unsupported --format"
+            opts="${opts} --show-unsupported --force-update --format"
         ;;
         "aliases")
             opts="${opts} --format"

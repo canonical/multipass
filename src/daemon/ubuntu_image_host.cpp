@@ -23,6 +23,7 @@
 #include <multipass/settings/settings.h>
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
@@ -42,12 +43,13 @@ namespace
 {
 constexpr auto index_path = "streams/v1/index.json";
 
-auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader)
+auto download_manifest(const QString& host_url, mp::URLDownloader* url_downloader,
+                       const bool is_force_update_from_network)
 {
-    auto json_index = url_downloader->download({host_url + index_path});
+    auto json_index = url_downloader->download({host_url + index_path}, is_force_update_from_network);
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
-    auto json_manifest = url_downloader->download({host_url + index.manifest_path});
+    auto json_manifest = url_downloader->download({host_url + index.manifest_path}, is_force_update_from_network);
     return json_manifest;
 }
 
@@ -76,8 +78,8 @@ auto key_from(const std::string& search_string)
 } // namespace
 
 mp::UbuntuVMImageHost::UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
-                                         URLDownloader* downloader, std::chrono::seconds manifest_time_to_live)
-    : CommonVMImageHost{manifest_time_to_live}, url_downloader{downloader}, remotes{std::move(remotes)}
+                                         URLDownloader* downloader)
+    : url_downloader{downloader}, remotes{std::move(remotes)}
 {
 }
 
@@ -230,27 +232,31 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::fetch_manifests()
+void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_network)
 {
-    for (const auto& [remote_name, remote_info] : remotes)
-    {
+    auto fetch_one_remote =
+        [this, is_force_update_from_network](const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
+        -> std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>> {
+        const auto& [remote_name, remote_info] = remote_pair;
         try
         {
             check_remote_is_supported(remote_name);
             auto official_site = remote_info.get_official_url();
-            auto manifest_bytes_from_official = download_manifest(official_site, url_downloader);
+            auto manifest_bytes_from_official =
+                download_manifest(official_site, url_downloader, is_force_update_from_network);
 
             auto mirror_site = remote_info.get_mirror_url();
             std::optional<QByteArray> manifest_bytes_from_mirror = std::nullopt;
             if (mirror_site)
             {
-                auto bytes = download_manifest(mirror_site.value(), url_downloader);
+                auto bytes = download_manifest(mirror_site.value(), url_downloader, is_force_update_from_network);
                 manifest_bytes_from_mirror = std::make_optional(bytes);
             }
 
             auto manifest = mp::SimpleStreamsManifest::fromJson(
                 manifest_bytes_from_official, manifest_bytes_from_mirror, mirror_site.value_or(official_site));
-            manifests.emplace_back(std::make_pair(remote_name, std::move(manifest)));
+
+            return std::make_pair(remote_name, std::move(manifest));
         }
         catch (mp::EmptyManifestException& /* e */)
         {
@@ -262,13 +268,22 @@ void mp::UbuntuVMImageHost::fetch_manifests()
         }
         catch (mp::DownloadException& e)
         {
+            if (is_force_update_from_network)
+            {
+                throw e;
+            }
             on_manifest_update_failure(e.what());
         }
         catch (const mp::UnsupportedRemoteException&)
         {
-            continue;
         }
-    }
+        return {};
+    };
+
+    auto local_manifests = mp::utils::parallel_transform(remotes, fetch_one_remote);
+    // append local_manifests to manifests
+    manifests.insert(manifests.end(), std::make_move_iterator(local_manifests.begin()),
+                     std::make_move_iterator(local_manifests.end()));
 }
 
 void mp::UbuntuVMImageHost::clear()
@@ -280,12 +295,11 @@ mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::strin
 {
     check_remote_is_supported(remote);
 
-    update_manifests();
-
-    auto it = std::find_if(manifests.begin(), manifests.end(),
-                           [&remote](const std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>& element) {
-                               return element.first == remote;
-                           });
+    const auto it =
+        std::find_if(manifests.cbegin(), manifests.cend(),
+                     [&remote](const std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>& element) {
+                         return element.first == remote;
+                     });
 
     if (it == manifests.cend())
         throw std::runtime_error(fmt::format(

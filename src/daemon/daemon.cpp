@@ -1430,6 +1430,7 @@ try // clang-format on
 
         if (request->show_images())
         {
+            wait_update_manifests_all_and_optionally_applied_force(request->force_manifest_network_download());
             std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
 
             try
@@ -1491,6 +1492,7 @@ try // clang-format on
     {
         if (request->show_images())
         {
+            wait_update_manifests_all_and_optionally_applied_force(request->force_manifest_network_download());
             for (const auto& image_host : config->image_hosts)
             {
                 std::unordered_set<std::string> images_found;
@@ -1518,6 +1520,7 @@ try // clang-format on
     }
     else
     {
+        wait_update_manifests_all_and_optionally_applied_force(request->force_manifest_network_download());
         const auto& remote = request->remote_name();
         auto image_host = config->vault->image_host_for(remote);
         auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
@@ -3018,4 +3021,26 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 
     if (async_op_result.status_promise)
         async_op_result.status_promise->set_value(async_op_result.status);
+}
+
+void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
+{
+    auto launch_update_manifests_from_vm_image_host =
+        [is_force_update_from_network](const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
+        vm_image_host_ptr->update_manifests(is_force_update_from_network);
+    };
+
+    utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);
+}
+
+void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(const bool force_manifest_network_download)
+{
+    update_manifests_all_task.wait_ongoing_task_finish();
+    if (force_manifest_network_download)
+    {
+        update_manifests_all_task.stop_timer();
+        mpl::log(mpl::Level::debug, "async task", "fetch manifest from the internet");
+        update_manifests_all(true);
+        update_manifests_all_task.start_timer();
+    }
 }

@@ -60,6 +60,7 @@ struct CustomImageHost : public Test
 
         ON_CALL(mock_url_downloader, last_modified(_)).WillByDefault(Return(QDateTime::currentDateTime()));
         ON_CALL(mock_url_downloader, download(_)).WillByDefault(Return(sha256_sums));
+        ON_CALL(mock_url_downloader, download(_, _)).WillByDefault(Return(sha256_sums));
     }
 
     mp::Query make_query(std::string release, std::string remote)
@@ -68,7 +69,6 @@ struct CustomImageHost : public Test
     }
 
     NiceMock<mpt::MockURLDownloader> mock_url_downloader;
-    std::chrono::seconds default_ttl{1};
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject()};
     mpt::MockPlatform* mock_platform = attr.first;
@@ -87,8 +87,8 @@ TEST_P(ExpectedDataSuite, returns_expected_data)
 {
     const auto [aliases, remote, url, id, release, release_title] = GetParam();
 
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
-
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
     for (const auto& alias : aliases)
     {
         auto info = host.info_for(make_query(alias, remote));
@@ -114,8 +114,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(CustomImageHost, iterates_over_all_entries)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
-
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
     std::unordered_set<std::string> ids;
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
@@ -128,13 +128,12 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
 
 TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
-
     std::unordered_set<std::string> ids;
-    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
-
     EXPECT_CALL(*mock_platform, is_alias_supported("core18", _)).WillRepeatedly(Return(false));
 
+    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
     host.for_each_entry_do(action);
 
     const size_t expected_entries{3};
@@ -143,14 +142,14 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
 
 TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
-
-    std::unordered_set<std::string> ids;
-    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
-
     const std::string unsupported_remote{""};
     EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
 
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
+
+    std::unordered_set<std::string> ids;
+    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
     const size_t expected_entries{0};
@@ -159,8 +158,8 @@ TEST_F(CustomImageHost, unsupported_remote_iterates_over_expected_entries)
 
 TEST_F(CustomImageHost, all_images_for_no_remote_returns_appropriate_matches)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
-
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
     auto images = host.all_images_for("", false);
 
     const size_t expected_matches{4};
@@ -169,9 +168,10 @@ TEST_F(CustomImageHost, all_images_for_no_remote_returns_appropriate_matches)
 
 TEST_F(CustomImageHost, all_images_for_no_remote_unsupported_alias_returns_appropriate_matches)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
-    const std::string unsupported_alias{"core18"};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
 
+    const std::string unsupported_alias{"core18"};
     EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
 
     auto images = host.all_images_for("", false);
@@ -182,8 +182,8 @@ TEST_F(CustomImageHost, all_images_for_no_remote_unsupported_alias_returns_appro
 
 TEST_F(CustomImageHost, all_info_for_no_remote_returns_one_alias_match)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
-
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
     auto images_info = host.all_info_for(make_query("core20", ""));
 
     const size_t expected_matches{1};
@@ -192,7 +192,8 @@ TEST_F(CustomImageHost, all_info_for_no_remote_returns_one_alias_match)
 
 TEST_F(CustomImageHost, all_info_for_unsupported_alias_throws)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
 
     const std::string unsupported_alias{"core20"};
     EXPECT_CALL(*mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
@@ -204,7 +205,8 @@ TEST_F(CustomImageHost, all_info_for_unsupported_alias_throws)
 
 TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
 
     auto supported_remotes = host.supported_remotes();
 
@@ -216,14 +218,16 @@ TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
 
 TEST_F(CustomImageHost, invalid_image_returns_false)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
 
     EXPECT_FALSE(host.info_for(make_query("foo", "")));
 }
 
 TEST_F(CustomImageHost, invalid_remote_throws_error)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
 
     EXPECT_THROW(host.info_for(make_query("core", "foo")), std::runtime_error);
 }
@@ -234,36 +238,39 @@ TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
         .WillOnce(Throw(mp::DownloadException{"", ""}))
         .WillRepeatedly(DoDefault());
 
-    const auto ttl = 1h; // so that updates are only retried when unsuccessful
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
 
     const auto query = make_query("core20", "");
+    host.update_manifests(false);
     EXPECT_THROW(host.info_for(query), std::runtime_error);
 
+    host.update_manifests(false);
     EXPECT_TRUE(host.info_for(query));
 }
 
 TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
 {
-    const auto ttl = 0s; // to ensure updates are always retried
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
 
     const auto query = make_query("core20", "");
+    host.update_manifests(false);
     EXPECT_TRUE(host.info_for(query));
 
     EXPECT_CALL(mock_url_downloader, last_modified(_))
         .WillOnce(Throw(mp::DownloadException{"", ""}))
         .WillRepeatedly(DoDefault());
 
+    host.update_manifests(false);
     EXPECT_THROW(host.info_for(query), std::runtime_error);
 
+    host.update_manifests(false);
     EXPECT_TRUE(host.info_for(query));
 }
 
 TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
 {
-    const auto ttl = 0h;
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
 
     const auto num_remotes = mpt::count_remotes(host);
     EXPECT_GT(num_remotes, 0u);
@@ -287,7 +294,8 @@ TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
 
 TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
 
     const std::string unsupported_remote{"foo"};
     EXPECT_CALL(*mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
@@ -299,7 +307,8 @@ TEST_F(CustomImageHost, info_for_unsupported_remote_throws)
 
 TEST_F(CustomImageHost, info_for_full_hash_returns_empty_image_info)
 {
-    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
+    host.update_manifests(false);
 
     const auto info = host.info_for_full_hash("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7");
 
@@ -313,7 +322,8 @@ struct EmptyArchSuite : CustomImageHost, WithParamInterface<QString>
 TEST_P(EmptyArchSuite, empty_for_other_arches)
 {
     auto arch = GetParam();
-    mp::CustomVMImageHost host{arch, &mock_url_downloader, default_ttl};
+    mp::CustomVMImageHost host{arch, &mock_url_downloader};
+    host.update_manifests(false);
 
     EXPECT_CALL(mock_url_downloader, last_modified(_)).Times(0);
     EXPECT_CALL(mock_url_downloader, download(_)).Times(0);
