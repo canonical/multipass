@@ -83,7 +83,11 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     EXPECT_TRUE(status.ok());
 }
 
-TEST_F(TestDaemonStart, startConfiguresInterfaces)
+struct WithSSH : public TestDaemonStart, WithParamInterface<int>
+{
+};
+
+TEST_P(WithSSH, startConfiguresInterfaces)
 {
     ssh_channel_callbacks callbacks{nullptr};
     auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) {
@@ -92,7 +96,7 @@ TEST_F(TestDaemonStart, startConfiguresInterfaces)
     };
     REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
 
-    int expected_status{0};
+    int expected_status{GetParam()};
     auto event_dopoll = [&callbacks, &expected_status](auto...) {
         if (!callbacks)
             return SSH_ERROR;
@@ -101,11 +105,11 @@ TEST_F(TestDaemonStart, startConfiguresInterfaces)
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    std::string expected_output{"some output"};
-    auto remaining = expected_output.size();
-    auto channel_read = [&expected_output, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+    std::string fake_output{"some output"};
+    auto remaining = fake_output.size();
+    auto channel_read = [&fake_output, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
-        const auto begin = expected_output.begin() + expected_output.size() - remaining;
+        const auto begin = fake_output.begin() + fake_output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
         remaining -= num_to_copy;
         return num_to_copy;
@@ -138,8 +142,19 @@ TEST_F(TestDaemonStart, startConfiguresInterfaces)
     auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
                                    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
 
-    EXPECT_TRUE(status.ok());
+    if (0 == expected_status)
+    {
+        EXPECT_THAT(status.error_message(), StrEq(""));
+        EXPECT_TRUE(status.ok());
+    }
+    else
+    {
+        EXPECT_THAT(status.error_message(), HasSubstr(fake_output));
+        EXPECT_FALSE(status.ok());
+    }
 }
+
+INSTANTIATE_TEST_SUITE_P(TestDaemonStart, WithSSH, Values(0, 1, -1));
 
 TEST_F(TestDaemonStart, unknownStateDoesNotStart)
 {
