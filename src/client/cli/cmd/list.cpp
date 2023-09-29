@@ -59,24 +59,24 @@ std::vector<std::string> cmd::List::aliases() const
 
 QString cmd::List::short_help() const
 {
-    return QStringLiteral("List all available instances");
+    return QStringLiteral("List all available instances or snapshots");
 }
 
 QString cmd::List::description() const
 {
-    return QStringLiteral("List all instances which have been created.");
+    return QStringLiteral("List all instances or snapshots which have been created.");
 }
 
 mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 {
+    QCommandLineOption snapshotsOption("snapshots", "List all available snapshots");
     QCommandLineOption formatOption(
         "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
         "format", "table");
-
     QCommandLineOption noIpv4Option("no-ipv4", "Do not query the instances for the IPv4's they are using");
     noIpv4Option.setFlags(QCommandLineOption::HiddenFromHelp);
 
-    parser->addOptions({formatOption, noIpv4Option});
+    parser->addOptions({snapshotsOption, formatOption, noIpv4Option});
 
     auto status = parser->commandParse(this);
 
@@ -91,6 +91,13 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    if (parser->isSet(snapshotsOption) && parser->isSet(noIpv4Option))
+    {
+        cerr << "IP addresses are not applicable in conjunction with listing snapshots\n";
+        return ParseCode::CommandLineError;
+    }
+
+    request.set_snapshots(parser->isSet(snapshotsOption));
     request.set_request_ipv4(!parser->isSet(noIpv4Option));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);

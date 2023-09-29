@@ -40,14 +40,8 @@ std::string status_string_for(const InstanceStatus& status);
 std::string image_string_for(const multipass::FindReply_AliasInfo& alias);
 Formatter* formatter_for(const std::string& format);
 
-template <typename Instances>
-Instances sorted(const Instances& instances);
-
-template <typename Snapshots>
-Snapshots sort_snapshots(const Snapshots& snapshots);
-
-template <typename Details>
-Details sort_instances_and_snapshots(const Details& details);
+template <typename Container>
+Container sorted(const Container& items);
 
 void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases);
 
@@ -65,82 +59,49 @@ static constexpr auto column_width = [](const auto begin, const auto end, const 
 } // namespace format
 } // namespace multipass
 
-template <typename Instances>
-Instances multipass::format::sorted(const Instances& instances)
+template <typename Container>
+Container multipass::format::sorted(const Container& items)
 {
-    if (instances.empty())
-        return instances;
+    if (items.empty())
+        return items;
 
-    auto ret = instances;
+    auto ret = items;
     const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
     std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
-        if (a.name() == petenv_name)
-            return true;
-        else if (b.name() == petenv_name)
-            return false;
-        else
-            return a.name() < b.name();
-    });
+        using T = std::decay_t<decltype(a)>;
+        using google::protobuf::util::TimeUtil;
 
-    return ret;
-}
+        // Put instances first when sorting info reply
+        if constexpr (std::is_same_v<T, multipass::DetailedInfoItem>)
+        {
+            if (a.has_instance_info() && b.has_snapshot_info())
+                return true;
+            else if (a.has_snapshot_info() && b.has_instance_info())
+                return false;
+        }
 
-// TODO@snapshots DRY
-template <typename Snapshots>
-Snapshots multipass::format::sort_snapshots(const Snapshots& snapshots)
-{
-    using google::protobuf::util::TimeUtil;
-    if (snapshots.empty())
-        return snapshots;
-
-    auto ret = snapshots;
-    const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
-    std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
-        if (a.instance_name() == petenv_name && b.instance_name() != petenv_name)
-            return true;
-        else if (a.instance_name() != petenv_name && b.instance_name() == petenv_name)
-            return false;
-
-        if (a.instance_name() < b.instance_name())
-            return true;
-        else if (a.instance_name() > b.instance_name())
-            return false;
-
-        return TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
-               TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
-    });
-
-    return ret;
-}
-
-template <typename Details>
-Details multipass::format::sort_instances_and_snapshots(const Details& details)
-{
-    using google::protobuf::util::TimeUtil;
-    if (details.empty())
-        return details;
-
-    auto ret = details;
-    const auto petenv_name = MP_SETTINGS.get(petenv_key).toStdString();
-    std::sort(std::begin(ret), std::end(ret), [&petenv_name](const auto& a, const auto& b) {
-        if (a.has_instance_info() && b.has_snapshot_info())
-            return true;
-        else if (a.has_snapshot_info() && b.has_instance_info())
-            return false;
-
+        // Put petenv related entries first
         if (a.name() == petenv_name && b.name() != petenv_name)
             return true;
-        else if (a.name() != petenv_name && b.name() == petenv_name)
+        else if (b.name() == petenv_name && a.name() != petenv_name)
             return false;
-
-        if (a.has_instance_info())
-            return a.name() < b.name();
         else
         {
-            if (a.name() == b.name())
-                return TimeUtil::TimestampToNanoseconds(a.snapshot_info().fundamentals().creation_timestamp()) <
-                       TimeUtil::TimestampToNanoseconds(b.snapshot_info().fundamentals().creation_timestamp());
+            // Sort by timestamp when names are the same for snapshots
+            if constexpr (std::is_same_v<T, multipass::DetailedInfoItem>)
+            {
+                if (a.has_snapshot_info() && a.name() == b.name())
+                    return TimeUtil::TimestampToNanoseconds(a.snapshot_info().fundamentals().creation_timestamp()) <
+                           TimeUtil::TimestampToNanoseconds(b.snapshot_info().fundamentals().creation_timestamp());
+            }
+            else if constexpr (std::is_same_v<T, multipass::ListVMSnapshot>)
+            {
+                if (a.name() == b.name())
+                    return TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
+                           TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
+            }
 
+            // Lastly, sort by name
             return a.name() < b.name();
         }
     });
