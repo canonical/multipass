@@ -151,6 +151,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
+    void rename_snapshot(const std::string& old_name, const std::string& new_name) override
+    {
+    }
+
     void delete_snapshot(const std::string&) override
     {
     }

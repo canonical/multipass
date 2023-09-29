@@ -83,6 +83,7 @@ struct MockVirtualMachineT : public T
                 take_snapshot,
                 (const VMSpecs&, const std::string&, const std::string&),
                 (override));
+    MOCK_METHOD(void, rename_snapshot, (const std::string& old_name, const std::string& new_name), (override));
     MOCK_METHOD(void, delete_snapshot, (const std::string& name), (override));
     MOCK_METHOD(void, restore_snapshot, (const std::string&, VMSpecs&), (override));
     MOCK_METHOD(void, load_snapshots, (), (override));
