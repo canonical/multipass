@@ -531,8 +531,10 @@ message RestoreReply {
 message CloneRequest {
     string source_name = 1;
     optional string destination_name = 2;
+    int32 verbosity_level = 3;
 }
 
 message CloneReply {
     string reply_message = 1;
+    string log_line = 2;
 }
