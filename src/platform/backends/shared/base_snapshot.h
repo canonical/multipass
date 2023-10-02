@@ -179,36 +179,46 @@ inline void multipass::BaseSnapshot::set_name(const std::string& n)
 {
     const std::unique_lock lock{mutex};
     name = n;
+    // TODO@no-merge persist!
 }
 
 inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 {
     const std::unique_lock lock{mutex};
     comment = c;
+    // TODO@no-merge persist!
 }
 
 inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
 {
     const std::unique_lock lock{mutex};
     parent = std::move(p);
+    // TODO@no-merge persist!
+    // TODO@no-merge stop persisting elsewhere
 }
 
 inline void multipass::BaseSnapshot::capture()
 {
     const std::unique_lock lock{mutex};
     capture_impl();
+    // TODO@no-merge persist!
+    // TODO@no-merge stop persisting elsewhere
 }
 
 inline void multipass::BaseSnapshot::erase()
 {
     const std::unique_lock lock{mutex};
     erase_impl();
+    // TODO@no-merge persist!
+    // TODO@no-merge stop persisting elsewhere
 }
 
 inline void multipass::BaseSnapshot::apply()
 {
     const std::unique_lock lock{mutex};
     apply_impl();
+    // TODO@no-merge persist!
+    // TODO@no-merge stop persisting elsewhere
 }
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H

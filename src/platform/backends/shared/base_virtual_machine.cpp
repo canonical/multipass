@@ -353,12 +353,17 @@ void BaseVirtualMachine::rename_snapshot(const std::string& old_name, const std:
 
     auto snapshot_node = snapshots.extract(old_it);
     auto reinsert_guard = sg::make_scope_guard([this, &snapshot_node]() noexcept {
-        top_catch_all(vm_name, [this, &snapshot_node] { snapshots.insert(std::move(snapshot_node)); });
+        top_catch_all(vm_name, [this, &snapshot_node] {
+            const auto& current_name = snapshot_node.mapped()->get_name();
+            if (auto& key = snapshot_node.key(); key != current_name)
+                key = current_name; // best-effort rollback (this is very unlikely to fail)
+
+            snapshots.insert(std::move(snapshot_node));
+        });
     }); // we want this to execute both on failure and success
 
-    snapshot_node.mapped()->set_name(new_name);
     snapshot_node.key() = new_name;
-    // TODO@no-merge persist!
+    snapshot_node.mapped()->set_name(new_name);
 }
 
 void BaseVirtualMachine::delete_snapshot(const std::string& name)
