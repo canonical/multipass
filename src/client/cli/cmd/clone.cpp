@@ -25,6 +25,11 @@ namespace cmd = multipass::cmd;
 
 mp::ReturnCode cmd::Clone::run(ArgParser* parser)
 {
+    const auto parscode = parse_args(parser);
+    if (parscode != ParseCode::Ok)
+    {
+        return parser->returnCodeFrom(parscode);
+    }
 
     return {};
 }
@@ -46,6 +51,22 @@ QString cmd::Clone::description() const
 
 mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 {
+    parser->addPositionalArgument("source_name", "The name of the source virtual machine instance", "<source_name>");
+    parser->addPositionalArgument("target_name",
+                                  "An optional value for specifying the The name of cloned virtual machine ",
+                                  "[<target_name>]");
+
+    const auto status = parser->commandParse(this);
+    if (status != ParseCode::Ok)
+        return status;
+
+    // either 2 or 1 arguments are permmitted
+    const auto number_of_positional_arguments = parser->positionalArguments().count();
+    if (number_of_positional_arguments < 1 || number_of_positional_arguments > 2)
+    {
+        cerr << "Please provide one or two name arguments\n";
+        return ParseCode::CommandLineError;
+    }
 
     return ParseCode::Ok;
 }
