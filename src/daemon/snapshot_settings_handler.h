@@ -46,8 +46,7 @@ private:
                                                   const std::string& snapshot_name) const;
     std::shared_ptr<const VirtualMachine> find_instance(const std::string& instance_name, bool deleted_ok = true) const;
 
-    std::pair<std::shared_ptr<VirtualMachine>, std::shared_ptr<Snapshot>>
-    modify_snapshot(const std::string& instance_name, const std::string& snapshot_name);
+    std::shared_ptr<Snapshot> modify_snapshot(const std::string& instance_name, const std::string& snapshot_name);
     std::shared_ptr<VirtualMachine> modify_instance(const std::string& instance_name);
 
 private:

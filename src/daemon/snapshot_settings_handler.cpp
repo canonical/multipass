@@ -134,7 +134,7 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
     else
     {
         assert(property == comment_suffix);
-        auto [vm, snapshot] = modify_snapshot(instance_name, snapshot_name_stdstr);
+        auto snapshot = modify_snapshot(instance_name, snapshot_name_stdstr);
         snapshot->set_comment(val_stdstr);
     }
     // TODO@no-merge persist (ideally would happen automatically in setters)
@@ -190,7 +190,7 @@ auto mp::SnapshotSettingsHandler::modify_instance(const std::string& instance_na
 }
 
 auto mp::SnapshotSettingsHandler::modify_snapshot(const std::string& instance_name, const std::string& snapshot_name)
-    -> std::pair<std::shared_ptr<VirtualMachine>, std::shared_ptr<Snapshot>>
+    -> std::shared_ptr<Snapshot>
 {
-    return {nullptr, nullptr}; // TODO@no-merge
+    return nullptr; // TODO@no-merge
 }
