@@ -19,6 +19,7 @@
 #include "cmd/alias.h"
 #include "cmd/aliases.h"
 #include "cmd/authenticate.h"
+#include "cmd/clone.h"
 #include "cmd/delete.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
@@ -108,6 +109,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Delete>(aliases);
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
+    add_command<cmd::Clone>();
 
     sort_commands();
 
