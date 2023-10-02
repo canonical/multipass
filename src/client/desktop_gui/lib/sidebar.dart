@@ -4,10 +4,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'catalogue.dart';
+import 'providers.dart';
+import 'vm_table/vm_table_screen.dart';
 
 final sidebarKeyProvider = StateProvider((_) => CatalogueScreen.sidebarKey);
 const sidebarWidgets = {
   CatalogueScreen.sidebarKey: CatalogueScreen(),
+  VmTableScreen.sidebarKey: VmTableScreen(),
 };
 
 class SideBar extends ConsumerWidget {
@@ -61,6 +64,20 @@ class SideBar extends ConsumerWidget {
           CatalogueScreen.sidebarKey,
     );
 
+    final instances = buildButton(
+      icon: SvgPicture.asset('assets/instances.svg'),
+      sidebarKey: VmTableScreen.sidebarKey,
+      child: Row(children: [
+        const Expanded(child: Text('Instances')),
+        Consumer(builder: (_, ref, __) {
+          final nVms = ref.watch(vmInfosProvider.select((vms) => vms.length));
+          return Text('$nVms');
+        }),
+      ]),
+      onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
+          VmTableScreen.sidebarKey,
+    );
+
     final exit = buildButton(
       icon: SvgPicture.asset('assets/exit.svg'),
       child: const Text('Close Application'),
@@ -102,6 +119,7 @@ class SideBar extends ConsumerWidget {
           header,
           const SizedBox(height: 15),
           catalogue,
+          instances,
           const Spacer(),
           Divider(color: Colors.white.withOpacity(0.3)),
           exit,
