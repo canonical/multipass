@@ -67,11 +67,11 @@ public:
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
                                                   const std::string& name,
                                                   const std::string& comment) override;
+    void rename_snapshot(const std::string& old_name, const std::string& new_name) override;
     void delete_snapshot(const std::string& name) override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
     void load_snapshots() override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
-    void rename_snapshot(const std::string& old_name, const std::string& new_name) override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
@@ -102,6 +102,9 @@ private:
 
     void persist_head_snapshot_name(const Path& head_path) const;
     std::string generate_snapshot_name() const;
+
+    template <typename NodeT>
+    auto make_reinsert_guard(NodeT& snapshot_node);
 
     auto make_restore_rollback(const Path& head_path, VMSpecs& specs);
     void restore_rollback_helper(const Path& head_path,
