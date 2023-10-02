@@ -192,5 +192,5 @@ auto mp::SnapshotSettingsHandler::modify_instance(const std::string& instance_na
 auto mp::SnapshotSettingsHandler::modify_snapshot(const std::string& instance_name, const std::string& snapshot_name)
     -> std::shared_ptr<Snapshot>
 {
-    return nullptr; // TODO@no-merge
+    return std::const_pointer_cast<Snapshot>(find_snapshot(instance_name, snapshot_name));
 }
