@@ -31,7 +31,18 @@ mp::ReturnCode cmd::Clone::run(ArgParser* parser)
         return parser->returnCodeFrom(parscode);
     }
 
-    return {};
+    auto action_on_success = [this](CloneReply& reply) -> ReturnCode {
+        cout << reply.reply_message();
+
+        return ReturnCode::Ok;
+    };
+
+    auto action_on_failure = [this](grpc::Status& status, CloneReply& reply) -> ReturnCode {
+        return standard_failure_handler_for(name(), cerr, status, reply.reply_message());
+    };
+
+    rpc_request.set_verbosity_level(parser->verbosityLevel());
+    return dispatch(&RpcMethod::clone, rpc_request, action_on_success, action_on_failure);
 }
 
 std::string cmd::Clone::name() const
