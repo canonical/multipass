@@ -3440,5 +3440,8 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         auto current_release =
             mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
         instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
+
+        auto cpu_usage = mpu::run_in_ssh_session(session, "top -ibn1 | awk '/%Cpu\\(s\\)/ {print 100 - $8}'");
+        instance_info->set_cpu_usage(std::stof(cpu_usage));
     }
 }

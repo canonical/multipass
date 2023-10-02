@@ -218,6 +218,8 @@ message InstanceDetails {
     repeated string ipv4 = 7;
     repeated string ipv6 = 8;
     int32 num_snapshots = 9;
+    float cpu_usage = 10;
+
 }
 
 message SnapshotFundamentals {
