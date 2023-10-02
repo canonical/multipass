@@ -78,7 +78,7 @@ class GrpcClient {
         (name) => InstanceSnapshotPair(instanceName: name),
       ),
     );
-    return _client.info(Stream.value(request)).single.then((r) => r.details);
+    return _client.info(Stream.value(request)).single.then((r) => r.details.toList());
   }
 
   Future<FindReply> find({bool images = true, bool blueprints = true}) {
