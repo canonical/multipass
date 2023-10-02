@@ -40,7 +40,10 @@ class App extends StatelessWidget {
           ]);
         },
       ),
-      theme: ThemeData(fontFamily: 'Ubuntu'),
+      theme: ThemeData(
+        fontFamily: 'Ubuntu',
+        scaffoldBackgroundColor: Colors.white,
+      ),
     );
   }
 }
