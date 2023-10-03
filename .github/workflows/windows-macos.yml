@@ -228,6 +228,12 @@ jobs:
         paths: |
           ${{ github.workspace }}
 
+    - name: Set up vcpkg
+      id: setup-vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
