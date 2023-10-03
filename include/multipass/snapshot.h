@@ -54,7 +54,8 @@ public: // TODO@snapshots drop any accessors that we end up not needing
     virtual const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept = 0;
     virtual const QJsonObject& get_metadata() const noexcept = 0;
 
-    virtual QJsonObject serialize() const = 0;
+    virtual QJsonObject serialize() const = 0; // TODO@no-merge remove
+    virtual void persist() const = 0; // TODO@no-merge can we avoid exposing this at all (just persist when pertinent)?
 
     virtual void set_name(const std::string&) = 0; // TODO@snapshots don't forget to rename json file
     virtual void set_comment(const std::string&) = 0;

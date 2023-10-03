@@ -161,7 +161,7 @@ mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMac
 {
 }
 
-QJsonObject multipass::BaseSnapshot::serialize() const
+QJsonObject mp::BaseSnapshot::serialize() const
 {
     QJsonObject ret, snapshot{};
     const std::unique_lock lock{mutex};
@@ -220,7 +220,12 @@ QJsonObject multipass::BaseSnapshot::serialize() const
     return ret;
 }
 
-QString multipass::BaseSnapshot::derive_id() const
+void mp::BaseSnapshot::persist() const
+{
+    // TODO@no-merge
+}
+
+QString mp::BaseSnapshot::derive_id() const
 {
     return snapshot_template.arg(get_name().c_str());
 }
