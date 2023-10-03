@@ -3019,7 +3019,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                                      const std::vector<std::string>& vms, const std::chrono::seconds& timeout,
                                      std::promise<grpc::Status>* status_promise, const std::string& start_errors)
 {
-    fmt::memory_buffer errors;
+    fmt::memory_buffer errors, warnings;
     fmt::format_to(std::back_inserter(errors), "{}", start_errors);
 
     QFutureSynchronizer<std::string> start_synchronizer;
@@ -3047,6 +3047,8 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
         for (const auto& name : vms)
         {
+            bool warn_exec_failure{false};
+
             async_running_futures.erase(name);
 
             try
@@ -3071,7 +3073,17 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
             }
             catch (const std::runtime_error& e) // In case there is an error executing the command, report it.
             {
-                add_fmt_to(errors, "{}: {}", name, e.what());
+                warn_exec_failure = true;
+            }
+
+            if (warn_exec_failure)
+            {
+                // Currently, the only use of running commands at boot is to configure networks. For this reason, the
+                // warning shown here refers to that use. In the future, in case of using the feature for other
+                // purposes, it would be necessary to add a description or a failure message to show if the execution
+                // fails.
+                add_fmt_to(warnings, "failure configuring network interfaces in {}, you can still do it manually.\n",
+                           name);
             }
         }
     }
@@ -3082,10 +3094,23 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
     if (server && std::is_same<Reply, StartReply>::value)
     {
+        bool write_reply{false};
+        Reply reply;
+
         if (config->update_prompt->is_time_to_show())
         {
-            Reply reply;
             config->update_prompt->populate(reply.mutable_update_info());
+            write_reply = true;
+        }
+
+        if (warnings.size() > 0)
+        {
+            reply.set_log_line(fmt::to_string(warnings));
+            write_reply = true;
+        }
+
+        if (write_reply)
+        {
             server->Write(reply);
         }
     }
