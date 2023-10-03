@@ -151,7 +151,7 @@ _multipass_complete()
     {
         local array=$1
         local found
-        _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
+
         for item in $array; do
             found=0
             for ((i=2; i<CWORD; i++)); do
@@ -176,6 +176,7 @@ _multipass_complete()
     fi
 
     local cur cmd opts prev prev2 prev_opts multipass_aliases unused_aliases
+    _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
