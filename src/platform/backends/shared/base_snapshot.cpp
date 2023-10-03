@@ -17,11 +17,13 @@
 
 #include "base_snapshot.h"
 #include "daemon/vm_specs.h" // TODO@snapshots move this
+#include "multipass/json_utils.h"
 
 #include <multipass/id_mappings.h> // TODO@snapshots may be able to drop after extracting JSON utilities
 #include <multipass/vm_mount.h>
 
 #include <QJsonArray> // TODO@snapshots may be able to drop after extracting JSON utilities
+#include <QString>
 
 #include <stdexcept>
 
@@ -29,8 +31,21 @@ namespace mp = multipass;
 
 namespace
 {
+constexpr auto snapshot_extension = "snapshot.json";
+constexpr auto index_digits = 4; // these two go together
+constexpr auto max_snapshots = 1000;
 const auto snapshot_template = QStringLiteral("@%1"); /* avoid colliding with suspension snapshots; prefix with a char
                                                          that can't be part of the name, to avoid confusion */
+
+QString derive_index_string(int index)
+{
+    return QString{"%1"}.arg(index, index_digits, 10, QLatin1Char('0'));
+}
+
+QString derive_snapshot_filename(const QString& index, const QString& name)
+{
+    return QString{"%1-%2.%3"}.arg(index, name, snapshot_extension);
+}
 
 std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
 {
@@ -222,7 +237,12 @@ QJsonObject mp::BaseSnapshot::serialize() const
 
 void mp::BaseSnapshot::persist() const
 {
-    // TODO@no-merge
+    const std::unique_lock lock{mutex};
+
+    // TODO@no-merge rollback
+    const auto snapshot_filename = derive_snapshot_filename(derive_index_string(index), QString::fromStdString(name));
+    auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
+    mp::write_json(serialize(), snapshot_filepath);
 }
 
 QString mp::BaseSnapshot::derive_id() const

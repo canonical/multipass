@@ -186,6 +186,7 @@ inline void multipass::BaseSnapshot::set_name(const std::string& n)
 {
     const std::unique_lock lock{mutex};
     name = n;
+    // TODO@no-merge delete current file
     // TODO@no-merge persist!
 }
 
