@@ -72,6 +72,7 @@ public:
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
     void load_snapshots() override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
+    int get_snapshot_count() const override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
@@ -133,5 +134,11 @@ private:
 };
 
 } // namespace multipass
+
+inline int multipass::BaseVirtualMachine::get_snapshot_count() const
+{
+    const std::unique_lock lock{snapshot_mutex};
+    return snapshot_count;
+}
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_H
