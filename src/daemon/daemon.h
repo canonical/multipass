@@ -140,6 +140,8 @@ public slots:
     virtual void authenticate(const AuthenticateRequest* request,
                               grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>* server,
                               std::promise<grpc::Status>* status_promise);
+    virtual void clone(const CloneRequest* request, grpc::ServerReaderWriterInterface<CloneReply, CloneRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
 
     virtual void snapshot(const SnapshotRequest* request,
                           grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
