@@ -107,6 +107,8 @@ mp::BaseSnapshot::BaseSnapshot(int index,
       metadata{std::move(metadata)},
       parent{std::move(parent)}
 {
+    assert(index > 0 && "snapshot indices need to start at 1");
+
     if (name.empty())
         throw std::runtime_error{"Snapshot names cannot be empty"};
     if (num_cores < 1)
