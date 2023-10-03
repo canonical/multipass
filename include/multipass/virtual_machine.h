@@ -100,6 +100,7 @@ public:
     virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
     virtual void load_snapshots() = 0;
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
+    virtual int get_snapshot_count() const = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
