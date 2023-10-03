@@ -94,13 +94,12 @@ private:
                  std::shared_ptr<Snapshot> parent);
 
 private:
-    int index;
-    QDir storage_dir;
-
     std::string name;
     std::string comment;
 
     // This class is non-copyable and having these const simplifies thread safety
+    const int index;                                       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QDir storage_dir;                                // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QDateTime creation_timestamp;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
