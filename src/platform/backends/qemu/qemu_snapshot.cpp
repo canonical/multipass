@@ -56,11 +56,11 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const QString& tag, con
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name,
                                const std::string& comment,
-                               const VMSpecs& specs,
                                std::shared_ptr<Snapshot> parent,
+                               const VMSpecs& specs,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
-    : BaseSnapshot(name, comment, specs, std::move(parent), vm), desc{desc}, image_path{desc.image.image_path}
+    : BaseSnapshot(name, comment, std::move(parent), specs, vm), desc{desc}, image_path{desc.image.image_path}
 {
 }
 
