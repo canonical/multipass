@@ -59,8 +59,17 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     auto on_success = [&spinner, this](mp::StartReply& reply) {
         spinner.stop();
+
         if (term->is_live() && update_available(reply.update_info()))
+        {
             cout << update_notice(reply.update_info());
+        }
+
+        if (reply.log_line() != "")
+        {
+            cout << "Warning: " << reply.log_line();
+        }
+
         return ReturnCode::Ok;
     };
 
