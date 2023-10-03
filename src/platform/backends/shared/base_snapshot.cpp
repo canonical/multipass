@@ -82,7 +82,8 @@ std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMa
 }
 } // namespace
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-pass-by-value)
+mp::BaseSnapshot::BaseSnapshot(int index,
+                               const std::string& name,    // NOLINT(modernize-pass-by-value)
                                const std::string& comment, // NOLINT(modernize-pass-by-value)
                                const QDateTime& creation_timestamp,
                                int num_cores,
@@ -92,7 +93,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
                                std::unordered_map<std::string, VMMount> mounts,
                                QJsonObject metadata,
                                std::shared_ptr<Snapshot> parent)
-    : name{name},
+    : index{index},
+      name{name},
       comment{comment},
       creation_timestamp{creation_timestamp},
       num_cores{num_cores},
@@ -118,7 +120,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                                const VMSpecs& specs,
                                std::shared_ptr<Snapshot> parent,
                                VirtualMachine& vm)
-    : BaseSnapshot{name,
+    : BaseSnapshot{vm.get_snapshot_count() + 1,
+                   name,
                    comment,
                    QDateTime::currentDateTimeUtc(),
                    specs.num_cores,
@@ -137,17 +140,18 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
 }
 
 mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm)
-    : BaseSnapshot{json["name"].toString().toStdString(),    // name
-                   json["comment"].toString().toStdString(), // comment
-                   QDateTime::fromString(json["creation_timestamp"].toString(),
-                                         Qt::ISODateWithMs),                      // creation_timestamp
-                   json["num_cores"].toInt(),                                     // num_cores
-                   MemorySize{json["mem_size"].toString().toStdString()},         // mem_size
-                   MemorySize{json["disk_space"].toString().toStdString()},       // disk_space
-                   static_cast<mp::VirtualMachine::State>(json["state"].toInt()), // state
-                   load_mounts(json["mounts"].toArray()),                         // mounts
-                   json["metadata"].toObject(),                                   // metadata
-                   find_parent(json, vm)}                                         // parent
+    : BaseSnapshot{
+          0,                                                                               // TODO@ricab derive index
+          json["name"].toString().toStdString(),                                           // name
+          json["comment"].toString().toStdString(),                                        // comment
+          QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
+          json["num_cores"].toInt(),                                                       // num_cores
+          MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
+          MemorySize{json["disk_space"].toString().toStdString()},                         // disk_space
+          static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                   // state
+          load_mounts(json["mounts"].toArray()),                                           // mounts
+          json["metadata"].toObject(),                                                     // metadata
+          find_parent(json, vm)}                                                           // parent
 {
 }
 
