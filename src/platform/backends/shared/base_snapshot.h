@@ -58,6 +58,7 @@ public:
     const QJsonObject& get_metadata() const noexcept override;
 
     QJsonObject serialize() const override;
+    void persist() const override;
 
     void set_name(const std::string& n) override;
     void set_comment(const std::string& c) override;

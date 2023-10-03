@@ -92,6 +92,10 @@ struct StubSnapshot : public Snapshot
         return {};
     }
 
+    void persist() const override
+    {
+    }
+
     void set_name(const std::string&) override
     {
     }
