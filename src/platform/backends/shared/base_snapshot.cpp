@@ -164,7 +164,7 @@ mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMac
           json["name"].toString().toStdString(),                                           // name
           json["comment"].toString().toStdString(),                                        // comment
           find_parent(json, vm),                                                           // parent
-          0,                                                                               // index TODO@ricab
+          json["index"].toInt(),                                                           // index
           vm.instance_directory(),                                                         // storage_dir
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
           json["num_cores"].toInt(),                                                       // num_cores
@@ -183,13 +183,14 @@ QJsonObject mp::BaseSnapshot::serialize() const
 
     snapshot.insert("name", QString::fromStdString(name));
     snapshot.insert("comment", QString::fromStdString(comment));
+    snapshot.insert("parent", QString::fromStdString(get_parents_name()));
+    snapshot.insert("index", index);
     snapshot.insert("creation_timestamp", creation_timestamp.toString(Qt::ISODateWithMs));
     snapshot.insert("num_cores", num_cores);
     snapshot.insert("mem_size", QString::number(mem_size.in_bytes()));
     snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
     snapshot.insert("state", static_cast<int>(state));
     snapshot.insert("metadata", metadata);
-    snapshot.insert("parent", QString::fromStdString(get_parents_name()));
 
     // Extract mount serialization
     QJsonArray json_mounts;
