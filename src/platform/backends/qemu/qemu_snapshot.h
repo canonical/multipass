@@ -36,6 +36,7 @@ public:
                  const std::string& comment,
                  const VMSpecs& specs,
                  std::shared_ptr<Snapshot> parent,
+                 QemuVirtualMachine& vm,
                  VirtualMachineDescription& desc);
     QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, VirtualMachineDescription& desc);
 

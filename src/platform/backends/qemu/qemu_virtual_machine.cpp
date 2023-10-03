@@ -624,7 +624,7 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& name,
                                                     std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
     assert(state == VirtualMachine::State::off || state != VirtualMachine::State::stopped); // would need QMP otherwise
-    return std::make_shared<QemuSnapshot>(name, comment, specs, std::move(parent), desc);
+    return std::make_shared<QemuSnapshot>(name, comment, specs, std::move(parent), *this, desc);
 }
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>

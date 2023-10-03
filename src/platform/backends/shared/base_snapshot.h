@@ -37,7 +37,8 @@ public:
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
                  const VMSpecs& specs,
-                 std::shared_ptr<Snapshot> parent);
+                 std::shared_ptr<Snapshot> parent,
+                 VirtualMachine& vm);
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
 
     std::string get_name() const override;
