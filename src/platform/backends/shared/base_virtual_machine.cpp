@@ -39,6 +39,8 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
+// TODO@no-merge prune everything related to individual snapshot persistence
+
 namespace
 {
 using St = mp::VirtualMachine::State;
