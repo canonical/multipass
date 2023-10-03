@@ -96,7 +96,7 @@ TEST_P(WithSSH, startConfiguresInterfaces)
     };
     REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
 
-    int expected_status{GetParam()};
+    int expected_status{GetParam()}; // The exit status given by SSH polling.
     auto event_dopoll = [&callbacks, &expected_status](auto...) {
         if (!callbacks)
             return SSH_ERROR;
@@ -139,19 +139,23 @@ TEST_P(WithSSH, startConfiguresInterfaces)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> server;
 
-    if (0 == expected_status)
+    if (expected_status)
     {
-        EXPECT_THAT(status.error_message(), StrEq(""));
-        EXPECT_TRUE(status.ok());
+        EXPECT_CALL(server,
+                    Write(Property(&mp::StartReply::log_line, HasSubstr("failure configuring network interfaces")), _))
+            .Times(1);
     }
     else
     {
-        EXPECT_THAT(status.error_message(), HasSubstr(fake_output));
-        EXPECT_FALSE(status.ok());
+        EXPECT_CALL(server, Write(_, _)).Times(0);
     }
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
+
+    EXPECT_THAT(status.error_message(), StrEq(""));
+    EXPECT_TRUE(status.ok());
 }
 
 INSTANTIATE_TEST_SUITE_P(TestDaemonStart, WithSSH, Values(0, 1, -1));
