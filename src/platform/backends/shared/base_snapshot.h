@@ -83,7 +83,7 @@ private:
     BaseSnapshot(int index,
                  const QDir& storage_dir,
                  const std::string& name,
-                 const std::string& get_comment,
+                 const std::string& comment,
                  const QDateTime& creation_timestamp,
                  int num_cores,
                  MemorySize mem_size,
