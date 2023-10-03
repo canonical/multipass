@@ -21,9 +21,9 @@ _multipass_complete()
         local cmd="multipass list --format=csv --no-ipv4"
         [ -n "$state" ] && cmd="$cmd | \awk -F',' '\$2 == \"$state\"'"
 
-        local instances=$( \eval $cmd | \tail -n +2 | \cut -d',' -f 1 )
+        local instances=$( \eval $cmd | \tail -n +2 | \cut -d',' -f 1  | \tr '\r\n' ' ')
 
-        _add_nonrepeating_args $instances
+        _add_nonrepeating_args "$instances"
     }
 
     # Set $opts to the list of available networks.
