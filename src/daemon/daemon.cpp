@@ -549,6 +549,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
     QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_clone, &daemon, &mp::Daemon::clone);
     QObject::connect(&rpc, &mp::DaemonRpc::on_networks, &daemon, &mp::Daemon::networks);
     QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_recover, &daemon, &mp::Daemon::recover);
@@ -2666,6 +2667,26 @@ catch (const mp::NoSuchSnapshotException& e)
 catch (const std::exception& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInterface<CloneReply, CloneRequest>* server,
+                       std::promise<grpc::Status>* status_promise)
+{
+    try
+    {
+        mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+                                                           server};
+        CloneReply rpc_response;
+
+        throw std::runtime_error("clone feature is not ready yet");
+
+        server->Write(rpc_response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    }
 }
 
 void mp::Daemon::on_shutdown()

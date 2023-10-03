@@ -200,6 +200,19 @@ grpc::Status mp::DaemonRpc::list(grpc::ServerContext* context, grpc::ServerReade
         std::bind(&DaemonRpc::on_list, this, &request, server, std::placeholders::_1), client_cert_from(context));
 }
 
+grpc::Status mp::DaemonRpc::clone(grpc::ServerContext* context,
+                                  grpc::ServerReaderWriter<CloneReply, CloneRequest>* server)
+{
+    CloneRequest request;
+    server->Read(&request);
+
+    auto adapted_on_clone = [this, &request, server](auto&& arg) -> void {
+        this->on_clone(&request, server, std::forward<decltype(arg)>(arg));
+    };
+
+    return verify_client_and_dispatch_operation(adapted_on_clone, client_cert_from(context));
+}
+
 grpc::Status mp::DaemonRpc::networks(grpc::ServerContext* context,
                                      grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server)
 {
