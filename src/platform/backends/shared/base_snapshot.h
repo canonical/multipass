@@ -36,8 +36,8 @@ class BaseSnapshot : public Snapshot
 public:
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
-                 const VMSpecs& specs,
                  std::shared_ptr<Snapshot> parent,
+                 const VMSpecs& specs,
                  VirtualMachine& vm);
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
 
@@ -80,22 +80,23 @@ private:
     {
     };
     BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
-    BaseSnapshot(int index,
-                 const QDir& storage_dir,
-                 const std::string& name,
+    BaseSnapshot(const std::string& name,
                  const std::string& comment,
+                 std::shared_ptr<Snapshot> parent,
+                 int index,
+                 const QDir& storage_dir,
                  const QDateTime& creation_timestamp,
                  int num_cores,
                  MemorySize mem_size,
                  MemorySize disk_space,
                  VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts,
-                 QJsonObject metadata,
-                 std::shared_ptr<Snapshot> parent);
+                 QJsonObject metadata);
 
 private:
     std::string name;
     std::string comment;
+    std::shared_ptr<Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
     const int index;                                       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -107,8 +108,6 @@ private:
     const VirtualMachine::State state;                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-
-    std::shared_ptr<Snapshot> parent;
 
     mutable std::recursive_mutex mutex;
 };
