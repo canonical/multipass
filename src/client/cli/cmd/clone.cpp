@@ -79,5 +79,16 @@ mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
+    // fill in the rpc_request
+    // TODO, put it in function
+    const auto& source_name = parser->positionalArguments()[0];
+    rpc_request.set_source_name(source_name.toStdString());
+
+    if (number_of_positional_arguments == 2)
+    {
+        const auto& destination_name = parser->positionalArguments()[1];
+        rpc_request.set_destination_name(destination_name.toStdString());
+    }
+
     return ParseCode::Ok;
 }
