@@ -79,7 +79,8 @@ private:
     {
     };
     BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
-    BaseSnapshot(const std::string& name,
+    BaseSnapshot(int index,
+                 const std::string& name,
                  const std::string& get_comment,
                  const QDateTime& creation_timestamp,
                  int num_cores,
@@ -91,6 +92,7 @@ private:
                  std::shared_ptr<Snapshot> parent);
 
 private:
+    int index;
     std::string name;
     std::string comment;
 
