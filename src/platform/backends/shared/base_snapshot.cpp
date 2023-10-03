@@ -83,6 +83,7 @@ std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMa
 } // namespace
 
 mp::BaseSnapshot::BaseSnapshot(int index,
+                               const QDir& storage_dir,
                                const std::string& name,    // NOLINT(modernize-pass-by-value)
                                const std::string& comment, // NOLINT(modernize-pass-by-value)
                                const QDateTime& creation_timestamp,
@@ -94,6 +95,7 @@ mp::BaseSnapshot::BaseSnapshot(int index,
                                QJsonObject metadata,
                                std::shared_ptr<Snapshot> parent)
     : index{index},
+      storage_dir{storage_dir},
       name{name},
       comment{comment},
       creation_timestamp{creation_timestamp},
@@ -121,6 +123,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                                std::shared_ptr<Snapshot> parent,
                                VirtualMachine& vm)
     : BaseSnapshot{vm.get_snapshot_count() + 1,
+                   vm.instance_directory(),
                    name,
                    comment,
                    QDateTime::currentDateTimeUtc(),
@@ -141,7 +144,8 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
 
 mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm)
     : BaseSnapshot{
-          0,                                                                               // TODO@ricab derive index
+          0, // TODO@ricab derive index
+          vm.instance_directory(),
           json["name"].toString().toStdString(),                                           // name
           json["comment"].toString().toStdString(),                                        // comment
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp

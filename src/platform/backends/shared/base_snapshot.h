@@ -80,6 +80,7 @@ private:
     };
     BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
     BaseSnapshot(int index,
+                 const QDir& storage_dir,
                  const std::string& name,
                  const std::string& get_comment,
                  const QDateTime& creation_timestamp,
@@ -93,6 +94,8 @@ private:
 
 private:
     int index;
+    QDir storage_dir;
+
     std::string name;
     std::string comment;
 
