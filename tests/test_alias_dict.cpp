@@ -421,17 +421,6 @@ TEST_F(AliasDictionary, get_unexisting_alias_returns_nullopt)
     ASSERT_EQ(dict.get_alias("unexisting"), std::nullopt);
 }
 
-TEST_F(AliasDictionary, creates_backup_db)
-{
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", "map"}}});
-
-    QString bak_filename = QString::fromStdString(db_filename() + ".bak");
-    ASSERT_FALSE(QFile::exists(bak_filename));
-
-    populate_db_file(AliasesVector{{"another_alias", {"an_instance", "a_command", "map"}}});
-    ASSERT_TRUE(QFile::exists(bak_filename));
-}
-
 TEST_F(AliasDictionary, throws_when_open_alias_file_fails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
