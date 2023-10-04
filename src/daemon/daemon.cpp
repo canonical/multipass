@@ -2700,6 +2700,26 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
                                          " already exists, pick a new name or just run multipass clone <source_name>");
             }
         }
+        else
+        {
+            auto generate_clone_name = [is_name_already_used](const std::string& source_name) -> std::string {
+                std::string clone_name = source_name;
+                // try to generate clone name by appending "-clone"
+                const int number_of_appended_clone_substring = 5;
+                for (int i = 0; i < number_of_appended_clone_substring; ++i)
+                {
+                    clone_name += "-clone";
+                    if (!is_name_already_used(clone_name))
+                    {
+                        return clone_name;
+                    }
+                }
+
+                throw std::runtime_error("Can not generate clone name, try to specify an non-existing clone name. ");
+            };
+
+            destination_name = generate_clone_name(source_name);
+        }
 
         // main body of the program, the clone process
         throw std::runtime_error("clone feature is not ready yet");
