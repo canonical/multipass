@@ -843,6 +843,9 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotMountUnwrittableWo
         .WillOnce(Return(temp_dir.path()));
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _)).WillRepeatedly(Return(1234));
+    EXPECT_CALL(*mock_file_ops, commit(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
@@ -887,6 +890,9 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundButCannotMount)
         .WillOnce(Return(temp_dir.path()));
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _)).WillRepeatedly(Return(1234));
+    EXPECT_CALL(*mock_file_ops, commit(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
 
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
