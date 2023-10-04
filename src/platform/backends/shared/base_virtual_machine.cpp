@@ -92,7 +92,7 @@ void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted
     {
         snapshot->set_parent(deleted_parent);
         if (!snapshot_filepath.isEmpty())
-            mp::write_json(snapshot->serialize(), snapshot_filepath);
+            MP_JSONUTILS.write_json(snapshot->serialize(), snapshot_filepath);
     }
 }
 } // namespace
@@ -333,7 +333,7 @@ void BaseVirtualMachine::update_parents(std::shared_ptr<Snapshot>& deleted_paren
             updated_snapshot_paths[other.get()];
 
             const auto other_filepath = find_snapshot_file(instance_dir, other->get_name()).filePath();
-            write_json(other->serialize(), other_filepath);
+            MP_JSONUTILS.write_json(other->serialize(), other_filepath);
             updated_snapshot_paths[other.get()] = other_filepath;
         }
     }
@@ -525,7 +525,7 @@ void BaseVirtualMachine::persist_head_snapshot() const
         QFile{snapshot_filepath}.remove(); // best effort, ignore return
     });
 
-    mp::write_json(head_snapshot->serialize(), snapshot_filepath);
+    MP_JSONUTILS.write_json(head_snapshot->serialize(), snapshot_filepath);
 
     QFile head_file{head_path};
 
