@@ -2676,10 +2676,17 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
     {
         mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                            server};
-        CloneReply rpc_response;
 
+        const auto& source_name = request->source_name();
+        if (operative_instances.find(source_name) == operative_instances.end())
+        {
+            throw std::runtime_error(source_name + " is not an existing instance.");
+        }
+
+        // main body of the program, the clone process
         throw std::runtime_error("clone feature is not ready yet");
 
+        CloneReply rpc_response;
         server->Write(rpc_response);
         status_promise->set_value(grpc::Status::OK);
     }
