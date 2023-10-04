@@ -398,33 +398,13 @@ void mp::AliasDict::save_dict()
     QJsonObject dict_json = to_json();
 
     auto config_file_name = QString::fromStdString(aliases_file);
-
-    QTemporaryFile temp_file{mpu::create_temp_file_with_path(config_file_name)};
-
-    if (MP_FILEOPS.open(temp_file, QIODevice::ReadWrite))
+    auto temp_folder = QFileInfo(config_file_name).absoluteDir();
+    if (!MP_FILEOPS.mkpath(temp_folder, "."))
     {
-        temp_file.setAutoRemove(false);
-
-        mp::write_json(dict_json, temp_file.fileName());
-
-        temp_file.close();
-
-        if (MP_FILEOPS.exists(QFile{config_file_name}))
-        {
-            auto backup_file_name = config_file_name + ".bak";
-            QFile backup_file(backup_file_name);
-
-            if (MP_FILEOPS.exists(backup_file) && !MP_FILEOPS.remove(backup_file))
-                throw std::runtime_error(fmt::format("cannot remove old aliases backup file {}", backup_file_name));
-
-            QFile config_file(config_file_name);
-            if (!MP_FILEOPS.rename(config_file, backup_file_name))
-                throw std::runtime_error(fmt::format("cannot rename aliases config to {}", backup_file_name));
-        }
-
-        if (!MP_FILEOPS.rename(temp_file, config_file_name))
-            throw std::runtime_error(fmt::format("cannot create aliases config file {}", config_file_name));
+        throw std::runtime_error(fmt::format("Could not create path '{}'", temp_folder.absolutePath()));
     }
+
+    mp::write_json(dict_json, config_file_name);
 }
 
 // This function removes the contexts which do not contain aliases, except the active context.
