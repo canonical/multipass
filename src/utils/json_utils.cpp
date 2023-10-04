@@ -28,7 +28,11 @@
 
 namespace mp = multipass;
 
-void mp::write_json(const QJsonObject& root, QString file_name)
+mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept : Singleton<JsonUtils>{pass}
+{
+}
+
+void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 {
     QJsonDocument doc{root};
     auto raw_json = doc.toJson();
@@ -45,7 +49,7 @@ void mp::write_json(const QJsonObject& root, QString file_name)
         throw std::runtime_error{fmt::format("Could not commit transactional file; filename: {}", file_name)};
 }
 
-std::string mp::json_to_string(const QJsonObject& root)
+std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
 {
     // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a QByteArray.
     return QJsonDocument(root).toJson().toStdString();

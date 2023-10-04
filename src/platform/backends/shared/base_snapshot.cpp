@@ -243,7 +243,7 @@ void mp::BaseSnapshot::persist() const
     // TODO@no-merge rollback
     const auto snapshot_filename = derive_snapshot_filename(derive_index_string(index), QString::fromStdString(name));
     auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
-    mp::write_json(serialize(), snapshot_filepath);
+    MP_JSONUTILS.write_json(serialize(), snapshot_filepath);
 }
 
 QString mp::BaseSnapshot::derive_id() const

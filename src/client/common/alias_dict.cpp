@@ -404,7 +404,7 @@ void mp::AliasDict::save_dict()
         throw std::runtime_error(fmt::format("Could not create path '{}'", temp_folder.absolutePath()));
     }
 
-    mp::write_json(dict_json, config_file_name);
+    MP_JSONUTILS.write_json(dict_json, config_file_name);
 }
 
 // This function removes the contexts which do not contain aliases, except the active context.
