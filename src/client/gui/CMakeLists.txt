@@ -42,18 +42,18 @@ install(TARGETS multipass_gui
   DESTINATION bin
   COMPONENT multipass_gui)
 
+if(DEFINED ENV{QT_PLUGIN_PATH})
+  cmake_path(SET QT_PLATFORM_PLUGIN_PATH $ENV{QT_PLUGIN_PATH}/platforms)
+else()
+  cmake_path(SET QT_PLATFORM_PLUGIN_PATH ${PACKAGE_PREFIX_DIR}/plugins/platforms)
+endif()
+
 if(APPLE)
   # TODO: Convert this all into a proper Mac Application Bundle
 
   set_target_properties( multipass_gui PROPERTIES
     MACOSX_BUNDLE TRUE
     INSTALL_RPATH "@executable_path/../../../../lib")
-
-  if(DEFINED ENV{QT_PLUGIN_PATH})
-    set(QT_PLATFORM_PLUGIN_PATH $ENV{QT_PLUGIN_PATH}/platforms)
-  else()
-    set(QT_PLATFORM_PLUGIN_PATH ${PACKAGE_PREFIX_DIR}/plugins/platforms)
-  endif()
 
   # Copy the cocoa platform plugin
   file(COPY ${QT_PLATFORM_PLUGIN_PATH}/libqcocoa.dylib
@@ -89,7 +89,7 @@ if(MSVC)
   set_target_properties(multipass_gui PROPERTIES WIN32_EXECUTABLE true)
 
   # Copy the windows platform plugin
-  install(FILES ${PACKAGE_PREFIX_DIR}/plugins/platforms/qwindows.dll
+  install(FILES ${QT_PLATFORM_PLUGIN_PATH}/qwindows.dll
     DESTINATION bin/platforms
     COMPONENT multipass_gui)
 
