@@ -19,6 +19,7 @@
 #include "disabling_macros.h"
 #include "file_operations.h"
 #include "mock_image_host.h"
+#include "mock_json_utils.h"
 #include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "path.h"
@@ -163,6 +164,7 @@ struct ImageVault : public testing::Test
     mpt::TrackingURLDownloader url_downloader;
     std::vector<mp::VMImageHost*> hosts;
     NiceMock<mpt::MockImageHost> host;
+    mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
     mp::ProgressMonitor stub_monitor{[](int, int) { return true; }};
     mp::VMImageVault::PrepareAction stub_prepare{
         [](const mp::VMImage& source_image) -> mp::VMImage { return source_image; }};
