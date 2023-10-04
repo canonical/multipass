@@ -30,9 +30,9 @@ _multipass_complete()
     {
         local instance="${cur%%.*}"
         local cmd="multipass list --snapshots "${instance}" --format=csv 2>/dev/null"
-        local snapshots=$( \eval $cmd | \tail -n +2 | \cut -d',' -f 2 )
+        local snapshots=$( \eval $cmd | \tail -n +2 | \cut -d',' -f 2 | \tr '\r\n' ' ' )
 
-        _add_nonrepeating_args $snapshots
+        _add_nonrepeating_args "$snapshots"
     }
 
     _multipass_instances_and_snapshots()
@@ -49,9 +49,10 @@ _multipass_complete()
         local instances=$( multipass info --all --no-runtime-information --format=csv \
                            | \tail -n +2 \
                            | \awk -F',|\r?\n' '$2 == "Stopped" && $16 > 0' \
-                           | \cut -d',' -f 1 )
+                           | \cut -d',' -f 1 \
+                           | \tr '\r\n' ' ')
 
-        _add_nonrepeating_args $instances
+        _add_nonrepeating_args "$instances"
     }
 
     # Set $opts to the list of available networks.
