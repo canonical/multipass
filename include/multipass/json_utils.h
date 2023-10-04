@@ -27,7 +27,7 @@
 
 namespace multipass
 {
-void write_json(const QJsonObject& root, QString file_name);
+void write_json(const QJsonObject& root, QString file_name); // transactional; requires the parent directory to exist
 std::string json_to_string(const QJsonObject& root);
 }
 #endif // MULTIPASS_JSON_UTILS_H
