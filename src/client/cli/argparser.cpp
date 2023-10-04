@@ -271,8 +271,7 @@ QString mp::ArgParser::helpText(cmd::Command* command)
     text = text.replace(QCommandLineParser::tr("[options]") + " <command>",
                         QString::fromStdString(command->name()) + " " + QCommandLineParser::tr("[options]"));
 
-    int start =
-        text.indexOf(QRegularExpression(QRegularExpression::anchoredPattern("  command\\s*The command to execute")));
+    int start = text.indexOf(QRegularExpression("  command\\s*The command to execute"));
     int end = text.indexOf(nl, start);
     text = text.replace(start, end - start + 1, "");
 
