@@ -17,11 +17,14 @@
  *
  */
 
+#include "multipass/format.h"
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 
 #include <QJsonDocument>
 #include <QSaveFile>
+
+#include <stdexcept>
 
 namespace mp = multipass;
 
@@ -29,10 +32,17 @@ void mp::write_json(const QJsonObject& root, QString file_name)
 {
     QJsonDocument doc{root};
     auto raw_json = doc.toJson();
+
     QSaveFile db_file{file_name};
-    MP_FILEOPS.open(db_file, QIODevice::WriteOnly);
-    MP_FILEOPS.write(db_file, raw_json);
-    db_file.commit();
+    if (!MP_FILEOPS.open(db_file, QIODevice::WriteOnly))
+        throw std::runtime_error{fmt::format("Could not open transactional file for writing; filename: {}", file_name)};
+
+    if (MP_FILEOPS.write(db_file, raw_json) == -1)
+        throw std::runtime_error{fmt::format("Could not write json to transactional file; filename: {}; error: {}",
+                                             file_name, db_file.errorString())};
+
+    if (!db_file.commit())
+        throw std::runtime_error{fmt::format("Could not commit transactional file; filename: {}", file_name)};
 }
 
 std::string mp::json_to_string(const QJsonObject& root)
