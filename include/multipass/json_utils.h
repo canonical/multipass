@@ -20,14 +20,24 @@
 #ifndef MULTIPASS_JSON_UTILS_H
 #define MULTIPASS_JSON_UTILS_H
 
+#include "singleton.h"
+
 #include <string>
 
 #include <QJsonObject>
 #include <QString>
 
+#define MP_JSONUTILS multipass::JsonUtils::instance()
+
 namespace multipass
 {
-void write_json(const QJsonObject& root, QString file_name); // transactional; requires the parent directory to exist
-std::string json_to_string(const QJsonObject& root);
-}
+class JsonUtils : public Singleton<JsonUtils>
+{
+public:
+    explicit JsonUtils(const Singleton<JsonUtils>::PrivatePass&) noexcept;
+
+    virtual void write_json(const QJsonObject& root, QString file_name) const; // transactional; requires dir to exist
+    virtual std::string json_to_string(const QJsonObject& root) const;
+};
+} // namespace multipass
 #endif // MULTIPASS_JSON_UTILS_H
