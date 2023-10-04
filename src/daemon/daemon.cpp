@@ -2683,6 +2683,24 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
             throw std::runtime_error(source_name + " is not an existing instance.");
         }
 
+        // TODO: wrap the whole handling destination name thing into a function
+        auto is_name_already_used = [this](const std::string& destination_name) -> bool {
+            return operative_instances.find(destination_name) != operative_instances.end() ||
+                   deleted_instances.find(destination_name) != deleted_instances.end() ||
+                   delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
+        };
+        std::string destination_name;
+        if (request->has_destination_name())
+        {
+            destination_name = request->destination_name();
+
+            if (is_name_already_used(destination_name))
+            {
+                throw std::runtime_error(destination_name +
+                                         " already exists, pick a new name or just run multipass clone <source_name>");
+            }
+        }
+
         // main body of the program, the clone process
         throw std::runtime_error("clone feature is not ready yet");
 
