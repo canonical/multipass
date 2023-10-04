@@ -20,8 +20,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 
-#include <QFile>
 #include <QJsonDocument>
+#include <QSaveFile>
 
 namespace mp = multipass;
 
@@ -29,9 +29,10 @@ void mp::write_json(const QJsonObject& root, QString file_name)
 {
     QJsonDocument doc{root};
     auto raw_json = doc.toJson();
-    QFile db_file{file_name};
-    MP_FILEOPS.open(db_file, QIODevice::ReadWrite | QIODevice::Truncate);
+    QSaveFile db_file{file_name};
+    MP_FILEOPS.open(db_file, QIODevice::WriteOnly);
     MP_FILEOPS.write(db_file, raw_json);
+    db_file.commit();
 }
 
 std::string mp::json_to_string(const QJsonObject& root)
