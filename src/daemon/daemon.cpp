@@ -2721,6 +2721,15 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
             destination_name = generate_clone_name(source_name);
         }
 
+        const auto& source_vm_it = operative_instances[source_name];
+        const VirtualMachine::State source_vm_state = source_vm_it->current_state();
+
+        // should we consider more states?
+        if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
+        {
+            throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
+        }
+
         // main body of the program, the clone process
         throw std::runtime_error("clone feature is not ready yet");
 
