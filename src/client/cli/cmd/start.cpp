@@ -65,7 +65,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
             cout << update_notice(reply.update_info());
         }
 
-        if (reply.log_line() != "")
+        if (!reply.log_line().empty())
         {
             cout << "Warning: " << reply.log_line();
         }

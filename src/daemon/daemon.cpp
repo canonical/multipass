@@ -3022,9 +3022,6 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                                      const std::vector<std::string>& vms, const std::chrono::seconds& timeout,
                                      std::promise<grpc::Status>* status_promise, const std::string& start_errors)
 {
-    fmt::memory_buffer errors, warnings;
-    fmt::format_to(std::back_inserter(errors), "{}", start_errors);
-
     QFutureSynchronizer<std::string> start_synchronizer;
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
@@ -3046,50 +3043,56 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
     start_synchronizer.waitForFinished();
 
+    fmt::memory_buffer warnings;
+
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
         for (const auto& name : vms)
         {
-            bool warn_exec_failure{false};
-
             async_running_futures.erase(name);
 
-            try
+            const auto commands = run_at_boot.find(name);
+
+            if (commands != run_at_boot.end())
             {
-                const auto commands = run_at_boot.at(name);
+                bool warned_exec_failure{false};
 
-                auto vm = operative_instances[name];
-                auto vm_specs = vm_instance_specs[name];
+                const auto vm = operative_instances[name];
+                const auto vm_specs = vm_instance_specs[name];
 
-                mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
-                                       *config->ssh_key_provider};
-
-                for (const auto& command : commands)
+                try
                 {
-                    mpu::run_in_ssh_session(session, command);
+                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                                           *config->ssh_key_provider};
+
+                    for (const auto& command : commands->second)
+                    {
+                        mpu::run_in_ssh_session(session, command);
+                    }
+                }
+                catch (const std::runtime_error&) // In case there is an error executing the command, report it.
+                {
+                    // Currently, the only use of running commands at boot is to configure networks. For this reason,
+                    // the warning shown here refers to that use. In the future, in case of using the feature for other
+                    // purposes, it would be necessary to add a description or a failure message to show if the
+                    // execution fails.
+                    if (!warned_exec_failure)
+                    {
+                        add_fmt_to(warnings,
+                                   "failure configuring network interfaces in {}, you can still do it manually.\n",
+                                   name);
+                    }
+
+                    warned_exec_failure = true;
                 }
 
                 run_at_boot.erase(name);
             }
-            catch (const std::out_of_range&) // In case there is nothing to run on the instance, do nothing.
-            {
-            }
-            catch (const std::runtime_error& e) // In case there is an error executing the command, report it.
-            {
-                warn_exec_failure = true;
-            }
-
-            if (warn_exec_failure)
-            {
-                // Currently, the only use of running commands at boot is to configure networks. For this reason, the
-                // warning shown here refers to that use. In the future, in case of using the feature for other
-                // purposes, it would be necessary to add a description or a failure message to show if the execution
-                // fails.
-                add_fmt_to(warnings, "failure configuring network interfaces in {}, you can still do it manually.\n",
-                           name);
-            }
         }
     }
+
+    fmt::memory_buffer errors;
+    fmt::format_to(std::back_inserter(errors), "{}", start_errors);
 
     for (const auto& future : start_synchronizer.futures())
         if (auto error = future.result(); !error.empty())
