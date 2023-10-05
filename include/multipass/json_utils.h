@@ -36,7 +36,7 @@ class JsonUtils : public Singleton<JsonUtils>
 public:
     explicit JsonUtils(const Singleton<JsonUtils>::PrivatePass&) noexcept;
 
-    virtual void write_json(const QJsonObject& root, QString file_name) const; // transactional; requires dir to exist
+    virtual void write_json(const QJsonObject& root, QString file_name) const; // transactional; creates parent dirs
     virtual std::string json_to_string(const QJsonObject& root) const;
 };
 } // namespace multipass
