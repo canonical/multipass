@@ -394,17 +394,7 @@ void mp::AliasDict::load_dict()
 void mp::AliasDict::save_dict()
 {
     sanitize_contexts();
-
-    QJsonObject dict_json = to_json();
-
-    auto config_file_name = QString::fromStdString(aliases_file);
-    auto temp_folder = QFileInfo(config_file_name).absoluteDir();
-    if (!MP_FILEOPS.mkpath(temp_folder, "."))
-    {
-        throw std::runtime_error(fmt::format("Could not create path '{}'", temp_folder.absolutePath()));
-    }
-
-    MP_JSONUTILS.write_json(dict_json, config_file_name);
+    MP_JSONUTILS.write_json(to_json(), QString::fromStdString(aliases_file));
 }
 
 // This function removes the contexts which do not contain aliases, except the active context.

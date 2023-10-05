@@ -34,14 +34,15 @@ mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
 
 void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 {
-    QJsonDocument doc{root};
-    auto raw_json = doc.toJson();
+    auto dir = QFileInfo(file_name).absoluteDir();
+    if (!MP_FILEOPS.mkpath(dir, "."))
+        throw std::runtime_error(fmt::format("Could not create path '{}'", dir.absolutePath()));
 
     QSaveFile db_file{file_name};
     if (!MP_FILEOPS.open(db_file, QIODevice::WriteOnly))
         throw std::runtime_error{fmt::format("Could not open transactional file for writing; filename: {}", file_name)};
 
-    if (MP_FILEOPS.write(db_file, raw_json) == -1)
+    if (MP_FILEOPS.write(db_file, QJsonDocument{root}.toJson()) == -1)
         throw std::runtime_error{fmt::format("Could not write json to transactional file; filename: {}; error: {}",
                                              file_name, db_file.errorString())};
 
