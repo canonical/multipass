@@ -1,24 +1,3 @@
-include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
-
-FetchContent_Declare(gRPC
-  GIT_REPOSITORY https://github.com/CanonicalLtd/grpc.git
-  GIT_TAG e3acf245
-  GIT_SHALLOW TRUE
-  GIT_SUBMODULES "third_party/abseil-cpp third_party/cares/cares third_party/protobuf third_party/re2 third_party/zlib"
-  GIT_SUBMODULES_RECURSE false
-  GIT_PROGRESS TRUE
-)
-set(gRPC_SSL_PROVIDER "package" CACHE STRING "Provider of ssl library")
-
-FetchContent_MakeAvailable(gRPC)
-
-# Workaround for zlib placing its generated zconf.h file in the build dir,
-# and protobuf not knowing so finding the system version instead
-include_directories(${grpc_SOURCE_DIR}/third_party/zlib)
-
-set_property(DIRECTORY ${grpc_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
-
 if (MSVC)
   add_compile_options(-wd5045) #Disable warning about Spectre mitigation
 endif()
@@ -53,9 +32,9 @@ function(generate_grpc_cpp SRCS DEST)
       "${DEST}/${FIL_WE}.grpc.pb.h"
       "${DEST}/${FIL_WE}.pb.cc"
       "${DEST}/${FIL_WE}.pb.h"
-      COMMAND $<TARGET_FILE:protoc>
-      ARGS --grpc_out=${DEST} --cpp_out=${DEST} --proto_path=${FIL_DIR} --proto_path=${grpc_SOURCE_DIR}/third_party/protobuf/src --plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin> ${ABS_FIL}
-      DEPENDS ${ABS_FIL} protoc grpc_cpp_plugin
+      COMMAND $<TARGET_FILE:protobuf::protoc>
+      ARGS --grpc_out=${DEST} --cpp_out=${DEST} --proto_path=${FIL_DIR} --proto_path=${grpc_SOURCE_DIR}/third_party/protobuf/src --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin> ${ABS_FIL}
+      DEPENDS ${ABS_FIL}
       COMMENT "Running gRPC C++ protocol buffer compiler on ${FIL}"
       VERBATIM)
   endforeach ()
@@ -66,14 +45,9 @@ endfunction()
 
 add_library(gRPC INTERFACE)
 
-target_include_directories(gRPC INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/grpc/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/grpc/third_party/protobuf/src)
-
 target_link_libraries(gRPC INTERFACE
-  grpc++
-  libprotobuf
-  zlibstatic)
+  gRPC::grpc++
+  protobuf::libprotobuf)
 
 if (NOT MSVC)
   target_compile_options(gRPC INTERFACE "-Wno-unused-parameter" "-Wno-non-virtual-dtor" "-Wno-pedantic")

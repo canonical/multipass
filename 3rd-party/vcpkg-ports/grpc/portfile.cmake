@@ -14,7 +14,6 @@ vcpkg_from_github(
         00003-undef-base64-macro.patch
         00004-link-gdi32-on-windows.patch
         00005-fix-uwp-error.patch
-        00009-use-system-upb.patch
         snprintf.patch
         00012-fix-use-cxx17.patch
         00015-disable-download-archive.patch
