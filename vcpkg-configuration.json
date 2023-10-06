@@ -1,0 +1,5 @@
+{
+  "overlay-ports": [
+    "3rd-party/vcpkg-ports/grpc"
+  ]
+}
