@@ -240,7 +240,6 @@ void mp::BaseSnapshot::persist() const
 {
     const std::unique_lock lock{mutex};
 
-    // TODO@no-merge rollback
     const auto snapshot_filename = derive_snapshot_filename(derive_index_string(index), QString::fromStdString(name));
     auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
     MP_JSONUTILS.write_json(serialize(), snapshot_filepath);
