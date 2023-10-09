@@ -20,7 +20,7 @@
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
 #include "fake_alias_config.h"
-#include "json_utils.h"
+#include "json_test_utils.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
