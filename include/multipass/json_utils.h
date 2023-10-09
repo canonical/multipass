@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #ifndef MULTIPASS_JSON_UTILS_H
@@ -22,10 +20,10 @@
 
 #include "singleton.h"
 
-#include <string>
-
 #include <QJsonObject>
 #include <QString>
+
+#include <string>
 
 #define MP_JSONUTILS multipass::JsonUtils::instance()
 

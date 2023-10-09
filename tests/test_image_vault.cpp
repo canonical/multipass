@@ -18,7 +18,6 @@
 #include "common.h"
 #include "disabling_macros.h"
 #include "file_operations.h"
-#include "mock_file_ops.h"
 #include "mock_image_host.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
