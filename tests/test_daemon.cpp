@@ -25,6 +25,7 @@
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_image_host.h"
+#include "mock_json_utils.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
@@ -1315,6 +1316,9 @@ TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
     auto mock_factory = use_a_mock_vm_factory();
     config_builder.data_directory = QString("invalid_data_directory");
     mp::Daemon daemon{config_builder.build()};
+
+    auto [mock_json_utils, guard] = mpt::MockJsonUtils::inject<StrictMock>();
+    EXPECT_CALL(*mock_json_utils, write_json).Times(1); // avoid creating directory
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);
