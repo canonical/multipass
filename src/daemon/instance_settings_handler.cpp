@@ -157,11 +157,15 @@ void update_disk(const QString& key, const QString& val, mp::VirtualMachine& ins
 
 bool is_bridged(const mp::VMSpecs& spec, const std::string& br_interface)
 {
-    return std::any_of(spec.extra_interfaces.cbegin(), spec.extra_interfaces.cend(),
+    return std::any_of(spec.extra_interfaces.cbegin(),
+                       spec.extra_interfaces.cend(),
                        [&br_interface](const auto& network) -> bool { return network.id == br_interface; });
 }
 
-void update_bridged(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec,
+void update_bridged(const QString& key,
+                    const QString& val,
+                    mp::VirtualMachine& instance,
+                    mp::VMSpecs& spec,
                     const std::string& br_interface)
 {
     auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
@@ -191,7 +195,8 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
     std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
-    const std::unordered_set<std::string>& preparing_instances, std::function<void()> instance_persister,
+    const std::unordered_set<std::string>& preparing_instances,
+    std::function<void()> instance_persister,
     std::function<std::string()> bridged_interface)
     : vm_instance_specs{vm_instance_specs},
       vm_instances{vm_instances},

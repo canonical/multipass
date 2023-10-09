@@ -153,7 +153,8 @@ TEST_F(BaseVM, add_network_interface_throws)
     StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
 
     MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, {"eth1", "52:54:00:00:00:00", true}),
-                         mp::NotImplementedOnThisBackendException, mpt::match_what(HasSubstr("bridging")));
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("bridging")));
 }
 
 struct IpTestParams
