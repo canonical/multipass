@@ -2218,8 +2218,9 @@ TEST_F(LXDBackend, addsNetworkInterface)
             {
                 ++times_called;
 
-                EXPECT_EQ(data.toStdString(), "{\"devices\":{\"eth2\":{\"hwaddr\":\"52:54:00:56:78:90\",\"name\":"
-                                              "\"eth2\",\"nictype\":\"bridged\",\"parent\":\"id\",\"type\":\"nic\"}}}");
+                EXPECT_EQ(data.toStdString(),
+                          "{\"devices\":{\"eth2\":{\"hwaddr\":\"52:54:00:56:78:90\",\"name\":"
+                          "\"eth2\",\"nictype\":\"bridged\",\"parent\":\"id\",\"type\":\"nic\"}}}");
 
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
             }

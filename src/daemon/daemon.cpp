@@ -1174,16 +1174,20 @@ auto timeout_for(const int requested_timeout, const int blueprint_timeout)
     return mp::default_timeout;
 }
 
-mp::SettingsHandler*
-register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
-                      std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
-                      const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-                      const std::unordered_set<std::string>& preparing_instances,
-                      std::function<void()> instance_persister, std::function<std::string()> bridged_interface)
+mp::SettingsHandler* register_instance_mod(
+    std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
+    std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
+    const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
+    const std::unordered_set<std::string>& preparing_instances,
+    std::function<void()> instance_persister,
+    std::function<std::string()> bridged_interface)
 {
-    return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(
-        vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister),
-        std::move(bridged_interface)));
+    return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
+                                                                                      vm_instances,
+                                                                                      deleted_instances,
+                                                                                      preparing_instances,
+                                                                                      std::move(instance_persister),
+                                                                                      std::move(bridged_interface)));
 }
 
 std::string generate_netplan_script(int index, const std::string& mac_address)
@@ -1201,7 +1205,8 @@ std::string generate_netplan_script(int index, const std::string& mac_address)
                        "            optional: true\n"
                        "    version: 2"
                        "\" | sudo dd of=/etc/netplan/51-extra{0}.yaml oflag=append conv=notrunc",
-                       index, mac_address);
+                       index,
+                       mac_address);
 }
 } // namespace
 
@@ -1212,8 +1217,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
       instance_mod_handler{register_instance_mod(
-          vm_instance_specs, operative_instances, deleted_instances, preparing_instances,
-          [this] { persist_instances(); }, get_bridged_interface_name)}
+          vm_instance_specs,
+          operative_instances,
+          deleted_instances,
+          preparing_instances,
+          [this] { persist_instances(); },
+          get_bridged_interface_name)}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -3062,7 +3071,9 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
                 try
                 {
-                    mp::SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm_specs.ssh_username,
+                    mp::SSHSession session{vm->ssh_hostname(),
+                                           vm->ssh_port(),
+                                           vm_specs.ssh_username,
                                            *config->ssh_key_provider};
 
                     for (const auto& command : commands->second)
