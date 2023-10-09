@@ -26,7 +26,7 @@
 #include "daemon_test_fixture.h"
 #include "fake_alias_config.h"
 #include "file_operations.h"
-#include "json_utils.h"
+#include "json_test_utils.h"
 #include "mock_file_ops.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
