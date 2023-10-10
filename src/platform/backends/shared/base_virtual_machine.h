@@ -119,10 +119,9 @@ private:
                                       const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
 
-    void update_parents(std::shared_ptr<Snapshot>& deleted_parent,
-                        std::unordered_map<Snapshot*, QString>& updated_snapshot_paths);
+    void update_parents(std::shared_ptr<Snapshot>& deleted_parent, std::vector<Snapshot*>& updated_parents);
     auto make_parent_update_rollback(const std::shared_ptr<Snapshot>& deleted_parent,
-                                     std::unordered_map<Snapshot*, QString>& updated_snapshot_paths) const;
+                                     std::vector<Snapshot*>& updated_snapshot_paths) const;
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
