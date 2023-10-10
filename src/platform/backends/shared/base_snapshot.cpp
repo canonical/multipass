@@ -18,6 +18,7 @@
 #include "base_snapshot.h"
 #include "daemon/vm_specs.h" // TODO@snapshots move this
 
+#include <multipass/file_ops.h>
 #include <multipass/id_mappings.h> // TODO@snapshots may be able to drop after extracting JSON utilities
 #include <multipass/json_utils.h>
 #include <multipass/vm_mount.h>
@@ -259,12 +260,14 @@ void mp::BaseSnapshot::erase_helper()
     const auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
     const auto deleting_filepath = tmp_dir.filePath(snapshot_filename);
 
-    if (!QFile{snapshot_filepath}.rename(deleting_filepath)) // TODO@ricab use fileops
+    QFile snapshot_file{snapshot_filepath};
+    if (!MP_FILEOPS.rename(snapshot_file, deleting_filepath))
         throw std::runtime_error{
             fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
 
     auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
-        QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
+        QFile temp_file{deleting_filepath};
+        MP_FILEOPS.rename(temp_file, snapshot_filepath); // best effort, ignore return
     });
 
     erase_impl();
