@@ -510,6 +510,26 @@ void BaseVirtualMachine::head_file_rollback_helper(const Path& head_path,
         });
 }
 
+auto BaseVirtualMachine::make_count_file_rollback(const Path& count_path, QFile& count_file) const
+{
+    return sg::make_scope_guard([this, &count_path, &count_file, old_contents = std::to_string(snapshot_count),
+                                 existed = count_file.exists()]() noexcept {
+        count_file_rollback_helper(count_path, count_file, old_contents, existed);
+    });
+}
+
+void BaseVirtualMachine::count_file_rollback_helper(const Path& count_path, QFile& count_file,
+                                                    const std::string& old_contents, bool existed) const
+{
+    // best effort, ignore returns
+    if (!existed)
+        count_file.remove();
+    else
+        top_catch_all(vm_name, [&count_path, &old_contents] {
+            MP_UTILS.make_file_with_content(count_path.toStdString(), old_contents, yes_overwrite);
+        });
+}
+
 void BaseVirtualMachine::persist_head_snapshot() const
 {
     assert(head_snapshot);
@@ -517,24 +537,19 @@ void BaseVirtualMachine::persist_head_snapshot() const
     const auto snapshot_filename = derive_snapshot_filename(derive_index_string(snapshot_count),
                                                             QString::fromStdString(head_snapshot->get_name()));
 
-    auto snapshot_filepath = instance_dir.filePath(snapshot_filename);
     auto head_path = derive_head_path(instance_dir);
     auto count_path = instance_dir.filePath(count_filename);
 
-    auto rollback_snapshot_file = sg::make_scope_guard([&snapshot_filepath]() noexcept {
-        QFile{snapshot_filepath}.remove(); // best effort, ignore return
-    });
-
-    MP_JSONUTILS.write_json(head_snapshot->serialize(), snapshot_filepath);
-
     QFile head_file{head_path};
-
     auto head_file_rollback = make_head_file_rollback(head_path, head_file);
-
     persist_head_snapshot_name(head_path);
+
+    QFile count_file{count_path};
+    auto count_file_rollback = make_count_file_rollback(count_path, count_file);
     MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), yes_overwrite);
 
-    rollback_snapshot_file.dismiss();
+    head_snapshot->persist();
+    count_file_rollback.dismiss();
     head_file_rollback.dismiss();
 }
 
