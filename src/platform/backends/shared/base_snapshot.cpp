@@ -17,14 +17,18 @@
 
 #include "base_snapshot.h"
 #include "daemon/vm_specs.h" // TODO@snapshots move this
-#include "multipass/json_utils.h"
 
 #include <multipass/id_mappings.h> // TODO@snapshots may be able to drop after extracting JSON utilities
+#include <multipass/json_utils.h>
 #include <multipass/vm_mount.h>
+
+#include <scope_guard.hpp>
 
 #include <QJsonArray> // TODO@snapshots may be able to drop after extracting JSON utilities
 #include <QString>
 
+#include <QFile>
+#include <QTemporaryDir>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -248,4 +252,28 @@ void mp::BaseSnapshot::persist() const
 QString mp::BaseSnapshot::derive_id() const
 {
     return snapshot_template.arg(get_name().c_str());
+}
+
+void mp::BaseSnapshot::erase_helper()
+{
+    // Remove snapshot file
+    QTemporaryDir tmp_dir{};
+    if (!tmp_dir.isValid())
+        throw std::runtime_error{"Could not create temporary directory"};
+
+    const auto snapshot_filename = derive_snapshot_filename(
+        derive_index_string(index), QString::fromStdString(name)); // TODO@ricab turn into method
+    auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
+    auto deleting_filepath = tmp_dir.filePath(snapshot_filename);
+
+    if (!QFile{snapshot_filepath}.rename(deleting_filepath)) // TODO@ricab use fileops
+        throw std::runtime_error{
+            fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
+
+    auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
+        QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
+    });
+
+    erase_impl();
+    rollback_snapshot_file.dismiss();
 }

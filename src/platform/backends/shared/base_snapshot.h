@@ -93,6 +93,8 @@ private:
                  std::unordered_map<std::string, VMMount> mounts,
                  QJsonObject metadata);
 
+    void erase_helper();
+
 private:
     std::string name;
     std::string comment;
@@ -214,9 +216,7 @@ inline void multipass::BaseSnapshot::capture()
 inline void multipass::BaseSnapshot::erase()
 {
     const std::unique_lock lock{mutex};
-    erase_impl();
-    // TODO@no-merge persist!
-    // TODO@no-merge stop persisting elsewhere
+    erase_helper();
 }
 
 inline void multipass::BaseSnapshot::apply()
