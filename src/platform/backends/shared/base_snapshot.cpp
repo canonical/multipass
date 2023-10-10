@@ -39,8 +39,9 @@ namespace
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto index_digits = 4; // these two go together
 constexpr auto max_snapshots = 1000;
-const auto snapshot_template = QStringLiteral("@%1"); /* avoid colliding with suspension snapshots; prefix with a char
-                                                         that can't be part of the name, to avoid confusion */
+const auto snapshot_template = QStringLiteral("@s%1"); /* avoid confusion with snapshot names by prepending a character
+                                                          that can't be part of the name (users can call a snapshot
+                                                          "s1", but they cannot call it "@s1") */
 
 QString derive_index_string(int index)
 {
@@ -246,7 +247,7 @@ void mp::BaseSnapshot::persist() const
 
 QString mp::BaseSnapshot::derive_id() const
 {
-    return snapshot_template.arg(get_name().c_str());
+    return snapshot_template.arg(index);
 }
 
 auto mp::BaseSnapshot::erase_helper()
