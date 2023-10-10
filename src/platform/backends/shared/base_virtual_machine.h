@@ -55,10 +55,7 @@ public:
     };
 
     SnapshotVista view_snapshots() const noexcept override;
-    inline int get_num_snapshots() const noexcept override
-    {
-        return static_cast<int>(snapshots.size());
-    }
+    int get_num_snapshots() const noexcept override;
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
     std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override;
 
@@ -133,6 +130,11 @@ private:
 };
 
 } // namespace multipass
+
+inline int multipass::BaseVirtualMachine::get_num_snapshots() const noexcept
+{
+    return static_cast<int>(snapshots.size());
+}
 
 inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 {
