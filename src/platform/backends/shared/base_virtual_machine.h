@@ -101,6 +101,10 @@ private:
                                    bool existed) const;
     void persist_head_snapshot() const;
 
+    auto make_count_file_rollback(const Path& count_path, QFile& count_file) const;
+    void count_file_rollback_helper(const Path& count_path, QFile& count_file, const std::string& old_contents,
+                                    bool existed) const;
+
     void persist_head_snapshot_name(const Path& head_path) const;
     std::string generate_snapshot_name() const;
 
