@@ -24,6 +24,7 @@
 #include <multipass/vm_mount.h>
 
 #include <QJsonObject>
+#include <QString>
 
 #include <mutex>
 
@@ -94,6 +95,7 @@ private:
                  QJsonObject metadata);
 
     void erase_helper();
+    QString derive_snapshot_filename() const;
 
 private:
     std::string name;

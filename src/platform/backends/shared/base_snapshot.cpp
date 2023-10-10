@@ -46,11 +46,6 @@ QString derive_index_string(int index)
     return QString{"%1"}.arg(index, index_digits, 10, QLatin1Char('0'));
 }
 
-QString derive_snapshot_filename(const QString& index, const QString& name)
-{
-    return QString{"%1-%2.%3"}.arg(index, name, snapshot_extension);
-}
-
 std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
 {
     std::unordered_map<std::string, mp::VMMount> mounts;
@@ -244,8 +239,7 @@ void mp::BaseSnapshot::persist() const
 {
     const std::unique_lock lock{mutex};
 
-    const auto snapshot_filename = derive_snapshot_filename(derive_index_string(index), QString::fromStdString(name));
-    auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
+    auto snapshot_filepath = storage_dir.filePath(derive_snapshot_filename());
     MP_JSONUTILS.write_json(serialize(), snapshot_filepath);
 }
 
@@ -261,10 +255,9 @@ void mp::BaseSnapshot::erase_helper()
     if (!tmp_dir.isValid())
         throw std::runtime_error{"Could not create temporary directory"};
 
-    const auto snapshot_filename = derive_snapshot_filename(
-        derive_index_string(index), QString::fromStdString(name)); // TODO@ricab turn into method
-    auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
-    auto deleting_filepath = tmp_dir.filePath(snapshot_filename);
+    const auto snapshot_filename = derive_snapshot_filename();
+    const auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
+    const auto deleting_filepath = tmp_dir.filePath(snapshot_filename);
 
     if (!QFile{snapshot_filepath}.rename(deleting_filepath)) // TODO@ricab use fileops
         throw std::runtime_error{
@@ -276,4 +269,9 @@ void mp::BaseSnapshot::erase_helper()
 
     erase_impl();
     rollback_snapshot_file.dismiss();
+}
+
+QString mp::BaseSnapshot::derive_snapshot_filename() const
+{
+    return QString{"%1-%2.%3"}.arg(derive_index_string(index), QString::fromStdString(name), snapshot_extension);
 }
