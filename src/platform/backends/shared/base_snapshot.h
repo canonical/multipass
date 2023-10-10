@@ -42,13 +42,10 @@ public:
                  VirtualMachine& vm);
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
 
+    int get_index() const override;
     std::string get_name() const override;
     std::string get_comment() const override;
     QDateTime get_creation_timestamp() const override;
-    std::string get_parents_name() const override;
-    std::shared_ptr<const Snapshot> get_parent() const override;
-    std::shared_ptr<Snapshot> get_parent() override;
-
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
     MemorySize get_disk_space() const noexcept override;
@@ -57,6 +54,11 @@ public:
     // Note that these return references - careful not to delete the snapshot while they are in use
     const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept override;
     const QJsonObject& get_metadata() const noexcept override;
+
+    std::shared_ptr<const Snapshot> get_parent() const override;
+    std::shared_ptr<Snapshot> get_parent() override;
+    std::string get_parents_name() const override;
+    int get_parents_index() const override;
 
     QJsonObject serialize() const override;
     void persist() const override;
@@ -129,6 +131,11 @@ inline std::string multipass::BaseSnapshot::get_comment() const
     return comment;
 }
 
+inline int multipass::BaseSnapshot::get_index() const
+{
+    return index;
+}
+
 inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const
 {
     return creation_timestamp;
@@ -141,6 +148,12 @@ inline std::string multipass::BaseSnapshot::get_parents_name() const
     lock.unlock(); // avoid locking another snapshot while locked in here
 
     return par ? par->get_name() : "";
+}
+
+inline int multipass::BaseSnapshot::get_parents_index() const
+{
+    std::unique_lock lock{mutex};
+    return parent ? parent->get_index() : 0; // this doesn't lock
 }
 
 inline auto multipass::BaseSnapshot::get_parent() const -> std::shared_ptr<const Snapshot>

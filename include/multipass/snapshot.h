@@ -38,13 +38,10 @@ class Snapshot : private DisabledCopyMove
 public: // TODO@snapshots drop any accessors that we end up not needing
     virtual ~Snapshot() = default;
 
+    virtual int get_index() const = 0;
     virtual std::string get_name() const = 0;
     virtual std::string get_comment() const = 0;
-    virtual std::string get_parents_name() const = 0;
     virtual QDateTime get_creation_timestamp() const = 0;
-    virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
-    virtual std::shared_ptr<Snapshot> get_parent() = 0;
-
     virtual int get_num_cores() const noexcept = 0;
     virtual MemorySize get_mem_size() const noexcept = 0;
     virtual MemorySize get_disk_space() const noexcept = 0;
@@ -53,6 +50,11 @@ public: // TODO@snapshots drop any accessors that we end up not needing
     // Note that these return references - careful not to delete the snapshot while they are in use
     virtual const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept = 0;
     virtual const QJsonObject& get_metadata() const noexcept = 0;
+
+    virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
+    virtual std::shared_ptr<Snapshot> get_parent() = 0;
+    virtual std::string get_parents_name() const = 0;
+    virtual int get_parents_index() const = 0; // TODO@no-merge use this to reference parents in json and head_file
 
     virtual QJsonObject serialize() const = 0; // TODO@no-merge remove
     virtual void persist() const = 0; // TODO@no-merge can we avoid exposing this at all (just persist when pertinent)?
