@@ -183,7 +183,7 @@ void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it,
     if (old_head != head_snapshot)
     {
         assert(it->second && "snapshot not created despite modified head");
-        if (snapshot_count > old_count) // snapshot was created
+        if (snapshot_count > old_count) // snapshot was captured
         {
             assert(snapshot_count - old_count == 1);
             --snapshot_count;
