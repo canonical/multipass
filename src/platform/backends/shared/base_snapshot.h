@@ -203,7 +203,7 @@ inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
 {
     const std::unique_lock lock{mutex};
     parent = std::move(p);
-    // TODO@no-merge persist!
+    persist();
     // TODO@no-merge stop persisting elsewhere
 }
 

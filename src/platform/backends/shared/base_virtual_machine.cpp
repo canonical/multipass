@@ -70,29 +70,11 @@ QString derive_snapshot_filename(const QString& index, const QString& name)
     return QString{"%1-%2.%3"}.arg(index, name, snapshot_extension);
 }
 
-QFileInfo find_snapshot_file(const QDir& snapshot_dir, const std::string& snapshot_name)
-{
-    auto index_wildcard = "????";
-    auto pattern = derive_snapshot_filename(index_wildcard, QString::fromStdString(snapshot_name));
-    auto files = MP_FILEOPS.entryInfoList(snapshot_dir, {pattern}, QDir::Filter::Files | QDir::Filter::Readable);
-
-    if (auto num_found = files.count(); !num_found)
-        throw std::runtime_error{fmt::format("Could not find snapshot file for pattern '{}'", pattern)};
-    else if (num_found > 1)
-        throw std::runtime_error{fmt::format("Multiple snapshot files found for pattern '{}'", pattern)};
-
-    return files.first();
-}
-
 void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted_parent,
-                                    std::unordered_map<mp::Snapshot*, mp::Path>& updated_snapshot_paths)
+                                    std::vector<mp::Snapshot*>& updated_parents)
 {
-    for (auto [snapshot, snapshot_filepath] : updated_snapshot_paths)
-    {
+    for (auto snapshot : updated_parents)
         snapshot->set_parent(deleted_parent);
-        if (!snapshot_filepath.isEmpty())
-            MP_JSONUTILS.write_json(snapshot->serialize(), snapshot_filepath);
-    }
 }
 } // namespace
 
@@ -274,10 +256,10 @@ void BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
 }
 
 auto BaseVirtualMachine::make_parent_update_rollback(const std::shared_ptr<Snapshot>& deleted_parent,
-                                                     std::unordered_map<Snapshot*, Path>& updated_snapshot_paths) const
+                                                     std::vector<Snapshot*>& updated_parents) const
 {
-    return sg::make_scope_guard([this, &updated_snapshot_paths, deleted_parent]() noexcept {
-        top_catch_all(vm_name, &update_parents_rollback_helper, deleted_parent, updated_snapshot_paths);
+    return sg::make_scope_guard([this, &updated_parents, deleted_parent]() noexcept {
+        top_catch_all(vm_name, &update_parents_rollback_helper, deleted_parent, updated_parents);
     });
 }
 
@@ -290,11 +272,11 @@ void BaseVirtualMachine::delete_snapshot_helper(std::shared_ptr<Snapshot>& snaps
     wrote_head = updated_deleted_head(snapshot, head_path);
 
     // Update children of deleted snapshot
-    std::unordered_map<Snapshot*, QString> updated_snapshot_paths;
-    updated_snapshot_paths.reserve(snapshots.size());
+    std::vector<Snapshot*> updated_parents{};
+    updated_parents.reserve(snapshots.size());
 
-    auto rollback_parent_updates = make_parent_update_rollback(snapshot, updated_snapshot_paths);
-    update_parents(snapshot, updated_snapshot_paths);
+    auto rollback_parent_updates = make_parent_update_rollback(snapshot, updated_parents);
+    update_parents(snapshot, updated_parents);
 
     // Erase the snapshot with the backend and dismiss rollbacks on success
     snapshot->erase();
@@ -303,7 +285,7 @@ void BaseVirtualMachine::delete_snapshot_helper(std::shared_ptr<Snapshot>& snaps
 }
 
 void BaseVirtualMachine::update_parents(std::shared_ptr<Snapshot>& deleted_parent,
-                                        std::unordered_map<Snapshot*, Path>& updated_snapshot_paths)
+                                        std::vector<Snapshot*>& updated_parents)
 {
     auto new_parent = deleted_parent->get_parent();
     for (auto& [ignore, other] : snapshots)
@@ -311,11 +293,7 @@ void BaseVirtualMachine::update_parents(std::shared_ptr<Snapshot>& deleted_paren
         if (other->get_parent() == deleted_parent)
         {
             other->set_parent(new_parent);
-            updated_snapshot_paths[other.get()];
-
-            const auto other_filepath = find_snapshot_file(instance_dir, other->get_name()).filePath();
-            MP_JSONUTILS.write_json(other->serialize(), other_filepath);
-            updated_snapshot_paths[other.get()] = other_filepath;
+            updated_parents.push_back(other.get());
         }
     }
 }
