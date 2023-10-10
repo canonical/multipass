@@ -33,7 +33,6 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QTemporaryDir>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -284,23 +283,6 @@ auto BaseVirtualMachine::make_parent_update_rollback(const std::shared_ptr<Snaps
 
 void BaseVirtualMachine::delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot)
 {
-    // Remove snapshot file
-    QTemporaryDir tmp_dir{};
-    if (!tmp_dir.isValid())
-        throw std::runtime_error{"Could not create temporary directory"};
-
-    auto snapshot_fileinfo = find_snapshot_file(instance_dir, snapshot->get_name());
-    auto snapshot_filepath = snapshot_fileinfo.filePath();
-    auto deleting_filepath = tmp_dir.filePath(snapshot_fileinfo.fileName());
-
-    if (!QFile{snapshot_filepath}.rename(deleting_filepath))
-        throw std::runtime_error{
-            fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
-
-    auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
-        QFile{deleting_filepath}.rename(snapshot_filepath); // best effort, ignore return
-    });
-
     // Update head if deleted
     auto wrote_head = false;
     auto head_path = derive_head_path(instance_dir);
@@ -318,7 +300,6 @@ void BaseVirtualMachine::delete_snapshot_helper(std::shared_ptr<Snapshot>& snaps
     snapshot->erase();
     rollback_parent_updates.dismiss();
     rollback_head.dismiss();
-    rollback_snapshot_file.dismiss();
 }
 
 void BaseVirtualMachine::update_parents(std::shared_ptr<Snapshot>& deleted_parent,
