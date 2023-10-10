@@ -249,27 +249,43 @@ QString mp::BaseSnapshot::derive_id() const
     return snapshot_template.arg(get_name().c_str());
 }
 
-void mp::BaseSnapshot::erase_helper()
+auto mp::BaseSnapshot::erase_helper()
 {
     // Remove snapshot file
-    QTemporaryDir tmp_dir{};
-    if (!tmp_dir.isValid())
+    auto tmp_dir = std::make_unique<QTemporaryDir>(); // work around no move ctor
+    if (!tmp_dir->isValid())
         throw std::runtime_error{"Could not create temporary directory"};
 
     const auto snapshot_filename = derive_snapshot_filename();
     const auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
-    const auto deleting_filepath = tmp_dir.filePath(snapshot_filename);
+    const auto deleting_filepath = tmp_dir->filePath(snapshot_filename);
 
     QFile snapshot_file{snapshot_filepath};
     if (!MP_FILEOPS.rename(snapshot_file, deleting_filepath))
         throw std::runtime_error{
             fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
 
-    auto rollback_snapshot_file = sg::make_scope_guard([&deleting_filepath, &snapshot_filepath]() noexcept {
+    return sg::make_scope_guard([tmp_dir = std::move(tmp_dir), &deleting_filepath, &snapshot_filepath]() noexcept {
         QFile temp_file{deleting_filepath};
         MP_FILEOPS.rename(temp_file, snapshot_filepath); // best effort, ignore return
     });
+}
 
+void mp::BaseSnapshot::set_name(const std::string& n)
+{
+    const std::unique_lock lock{mutex};
+    auto rollback_old_file = erase_helper();
+
+    name = n;
+    persist();
+    rollback_old_file.dismiss();
+}
+
+void multipass::BaseSnapshot::erase()
+{
+    const std::unique_lock lock{mutex};
+
+    auto rollback_snapshot_file = erase_helper();
     erase_impl();
     rollback_snapshot_file.dismiss();
 }

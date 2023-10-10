@@ -94,7 +94,7 @@ private:
                  std::unordered_map<std::string, VMMount> mounts,
                  QJsonObject metadata);
 
-    void erase_helper();
+    auto erase_helper();
     QString derive_snapshot_filename() const;
 
 private:
@@ -184,14 +184,6 @@ inline const QJsonObject& multipass::BaseSnapshot::get_metadata() const noexcept
     return metadata;
 }
 
-inline void multipass::BaseSnapshot::set_name(const std::string& n)
-{
-    const std::unique_lock lock{mutex};
-    name = n;
-    // TODO@no-merge delete current file
-    // TODO@no-merge persist!
-}
-
 inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 {
     const std::unique_lock lock{mutex};
@@ -213,12 +205,6 @@ inline void multipass::BaseSnapshot::capture()
     capture_impl();
     // TODO@no-merge persist!
     // TODO@no-merge stop persisting elsewhere
-}
-
-inline void multipass::BaseSnapshot::erase()
-{
-    const std::unique_lock lock{mutex};
-    erase_helper();
 }
 
 inline void multipass::BaseSnapshot::apply()
