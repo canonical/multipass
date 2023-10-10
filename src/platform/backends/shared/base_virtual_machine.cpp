@@ -485,48 +485,27 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
     }
 }
 
-auto BaseVirtualMachine::make_head_file_rollback(const Path& head_path, QFile& head_file) const
+auto BaseVirtualMachine::make_common_file_rollback(const Path& file_path,
+                                                   QFile& file,
+                                                   const std::string& old_contents) const
 {
-    return sg::make_scope_guard([this,
-                                 &head_path,
-                                 &head_file,
-                                 old_head = head_snapshot->get_parents_name(),
-                                 existed = head_file.exists()]() noexcept {
-        head_file_rollback_helper(head_path, head_file, old_head, existed);
-    });
-}
-
-void BaseVirtualMachine::head_file_rollback_helper(const Path& head_path,
-                                                   QFile& head_file,
-                                                   const std::string& old_head,
-                                                   bool existed) const
-{
-    // best effort, ignore returns
-    if (!existed)
-        head_file.remove();
-    else
-        top_catch_all(vm_name, [&head_path, &old_head] {
-            MP_UTILS.make_file_with_content(head_path.toStdString(), old_head, yes_overwrite);
+    return sg::make_scope_guard(
+        [this, &file_path, &file, old_contents = old_contents, existed = file.exists()]() noexcept {
+            common_file_rollback_helper(file_path, file, old_contents, existed);
         });
 }
 
-auto BaseVirtualMachine::make_count_file_rollback(const Path& count_path, QFile& count_file) const
-{
-    return sg::make_scope_guard([this, &count_path, &count_file, old_contents = std::to_string(snapshot_count),
-                                 existed = count_file.exists()]() noexcept {
-        count_file_rollback_helper(count_path, count_file, old_contents, existed);
-    });
-}
-
-void BaseVirtualMachine::count_file_rollback_helper(const Path& count_path, QFile& count_file,
-                                                    const std::string& old_contents, bool existed) const
+void BaseVirtualMachine::common_file_rollback_helper(const Path& file_path,
+                                                     QFile& file,
+                                                     const std::string& old_contents,
+                                                     bool existed) const
 {
     // best effort, ignore returns
     if (!existed)
-        count_file.remove();
+        file.remove();
     else
-        top_catch_all(vm_name, [&count_path, &old_contents] {
-            MP_UTILS.make_file_with_content(count_path.toStdString(), old_contents, yes_overwrite);
+        top_catch_all(vm_name, [&file_path, &old_contents] {
+            MP_UTILS.make_file_with_content(file_path.toStdString(), old_contents, yes_overwrite);
         });
 }
 
@@ -541,11 +520,11 @@ void BaseVirtualMachine::persist_head_snapshot() const
     auto count_path = instance_dir.filePath(count_filename);
 
     QFile head_file{head_path};
-    auto head_file_rollback = make_head_file_rollback(head_path, head_file);
+    auto head_file_rollback = make_common_file_rollback(head_path, head_file, head_snapshot->get_parents_name());
     persist_head_snapshot_name(head_path);
 
     QFile count_file{count_path};
-    auto count_file_rollback = make_count_file_rollback(count_path, count_file);
+    auto count_file_rollback = make_common_file_rollback(count_path, count_file, std::to_string(snapshot_count));
     MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), yes_overwrite);
 
     head_snapshot->persist();

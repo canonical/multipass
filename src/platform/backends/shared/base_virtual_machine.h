@@ -94,17 +94,13 @@ private:
     auto make_take_snapshot_rollback(SnapshotMap::iterator it);
     void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, int old_count);
 
-    auto make_head_file_rollback(const Path& head_path, QFile& head_file) const;
-    void head_file_rollback_helper(const Path& head_path,
-                                   QFile& head_file,
-                                   const std::string& old_head,
-                                   bool existed) const;
+    auto make_common_file_rollback(const Path& file_path, QFile& file, const std::string& old_contents) const;
+    void common_file_rollback_helper(const Path& file_path,
+                                     QFile& file,
+                                     const std::string& old_contents,
+                                     bool existed) const;
+
     void persist_head_snapshot() const;
-
-    auto make_count_file_rollback(const Path& count_path, QFile& count_file) const;
-    void count_file_rollback_helper(const Path& count_path, QFile& count_file, const std::string& old_contents,
-                                    bool existed) const;
-
     void persist_head_snapshot_name(const Path& head_path) const;
     std::string generate_snapshot_name() const;
 
