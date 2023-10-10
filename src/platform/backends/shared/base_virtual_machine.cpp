@@ -141,9 +141,26 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     }
 }
 
+std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(int index) const
+{
+    const std::unique_lock lock{snapshot_mutex};
+
+    auto index_matcher = [index](const auto& elem) { return elem.second->get_index() == index; };
+    if (auto it = std::find_if(snapshots.begin(), snapshots.end(), index_matcher); it != snapshots.end())
+        return it->second;
+
+    throw std::runtime_error{
+        fmt::format("No snapshot with given index in instance; instance name: {}; snapshot index: {}", vm_name, index)};
+}
+
 std::shared_ptr<Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name)
 {
     return std::const_pointer_cast<Snapshot>(std::as_const(*this).get_snapshot(name));
+}
+
+std::shared_ptr<Snapshot> BaseVirtualMachine::get_snapshot(int index)
+{
+    return std::const_pointer_cast<Snapshot>(std::as_const(*this).get_snapshot(index));
 }
 
 void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it,

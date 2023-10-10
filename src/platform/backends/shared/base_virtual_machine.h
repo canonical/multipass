@@ -56,8 +56,11 @@ public:
 
     SnapshotVista view_snapshots() const noexcept override;
     int get_num_snapshots() const noexcept override;
+
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
+    std::shared_ptr<const Snapshot> get_snapshot(int index) const override;
     std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override;
+    std::shared_ptr<Snapshot> get_snapshot(int index) override;
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
     // derived classes is a big refactor
