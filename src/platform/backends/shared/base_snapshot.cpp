@@ -84,16 +84,16 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
 
 std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMachine& vm)
 {
-    auto parent_name = json["parent"].toString().toStdString();
+    auto parent_idx = json["parent"].toInt();
     try
     {
-        return parent_name.empty() ? nullptr : vm.get_snapshot(parent_name);
+        return parent_idx ? vm.get_snapshot(parent_idx) : nullptr;
     }
     catch (std::out_of_range&)
     {
-        throw std::runtime_error{fmt::format("Missing snapshot parent. Snapshot name: {}; parent name: {}",
+        throw std::runtime_error{fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}",
                                              json["name"].toString(),
-                                             parent_name)};
+                                             parent_idx)};
     }
 }
 } // namespace
@@ -184,7 +184,7 @@ QJsonObject mp::BaseSnapshot::serialize() const
 
     snapshot.insert("name", QString::fromStdString(name));
     snapshot.insert("comment", QString::fromStdString(comment));
-    snapshot.insert("parent", QString::fromStdString(get_parents_name()));
+    snapshot.insert("parent", get_parents_index());
     snapshot.insert("index", index);
     snapshot.insert("creation_timestamp", creation_timestamp.toString(Qt::ISODateWithMs));
     snapshot.insert("num_cores", num_cores);
