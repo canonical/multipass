@@ -42,6 +42,7 @@ public:
                  VirtualMachine& vm);
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
 
+    // TODO@snapshots tag as noexcept those that can be
     int get_index() const override;
     std::string get_name() const override;
     std::string get_comment() const override;
