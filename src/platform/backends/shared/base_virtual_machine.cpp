@@ -22,7 +22,6 @@
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
-#include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 #include <multipass/top_catch_all.h>
@@ -58,16 +57,6 @@ void assert_vm_stopped(St state)
 mp::Path derive_head_path(const QDir& snapshot_dir)
 {
     return snapshot_dir.filePath(head_filename);
-}
-
-QString derive_index_string(int index)
-{
-    return QString{"%1"}.arg(index, index_digits, 10, QLatin1Char('0'));
-}
-
-QString derive_snapshot_filename(const QString& index, const QString& name)
-{
-    return QString{"%1-%2.%3"}.arg(index, name, snapshot_extension);
 }
 
 void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted_parent,
@@ -471,9 +460,6 @@ void BaseVirtualMachine::common_file_rollback_helper(const Path& file_path,
 void BaseVirtualMachine::persist_head_snapshot() const
 {
     assert(head_snapshot);
-
-    const auto snapshot_filename = derive_snapshot_filename(derive_index_string(snapshot_count),
-                                                            QString::fromStdString(head_snapshot->get_name()));
 
     auto head_path = derive_head_path(instance_dir);
     auto count_path = instance_dir.filePath(count_filename);
