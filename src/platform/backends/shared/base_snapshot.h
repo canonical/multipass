@@ -68,7 +68,6 @@ public:
     void capture() final;
     void erase() final;
     void apply() final;
-    void persist() const override;
 
 protected:
     virtual void capture_impl() = 0;
@@ -95,6 +94,7 @@ private:
     auto erase_helper();
     QString derive_snapshot_filename() const;
     QJsonObject serialize() const;
+    void persist() const;
 
 private:
     std::string name;
