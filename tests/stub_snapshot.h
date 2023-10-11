@@ -97,11 +97,6 @@ struct StubSnapshot : public Snapshot
         return metadata;
     }
 
-    QJsonObject serialize() const override
-    {
-        return {};
-    }
-
     void persist() const override
     {
     }

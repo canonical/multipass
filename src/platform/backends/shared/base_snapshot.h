@@ -61,9 +61,6 @@ public:
     std::string get_parents_name() const override;
     int get_parents_index() const override;
 
-    QJsonObject serialize() const override;
-    void persist() const override;
-
     void set_name(const std::string& n) override;
     void set_comment(const std::string& c) override;
     void set_parent(std::shared_ptr<Snapshot> p) override;
@@ -71,6 +68,7 @@ public:
     void capture() final;
     void erase() final;
     void apply() final;
+    void persist() const override;
 
 protected:
     virtual void capture_impl() = 0;
@@ -99,6 +97,7 @@ private:
 
     auto erase_helper();
     QString derive_snapshot_filename() const;
+    QJsonObject serialize() const;
 
 private:
     std::string name;
