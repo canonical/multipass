@@ -427,7 +427,7 @@ void BaseVirtualMachine::load_snapshot_from_file(const QString& filename)
     QJsonParseError parse_error{};
     const auto& data = MP_FILEOPS.read_all(file);
 
-    if (auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
+    if (const auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
         throw std::runtime_error{fmt::v9::format("Could not parse snapshot JSON; error: {}; file: {}",
                                                  file.fileName(),
                                                  parse_error.errorString())};
