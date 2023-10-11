@@ -219,7 +219,7 @@ inline void multipass::BaseSnapshot::capture()
 {
     const std::unique_lock lock{mutex};
     capture_impl();
-    // TODO@no-merge persist!
+    persist();
     // TODO@no-merge stop persisting elsewhere
 }
 

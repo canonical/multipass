@@ -99,7 +99,7 @@ private:
                                      const std::string& old_contents,
                                      bool existed) const;
 
-    void persist_head_snapshot() const;
+    void persist_generic_snapshot_info() const;
     void persist_head_snapshot_index(const Path& head_path) const;
     std::string generate_snapshot_name() const;
 

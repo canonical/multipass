@@ -229,7 +229,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
         ret->capture();
 
         ++snapshot_count;
-        persist_head_snapshot();
+        persist_generic_snapshot_info();
 
         rollback_on_failure.dismiss();
         log_latest_snapshot(std::move(lock));
@@ -466,7 +466,7 @@ void BaseVirtualMachine::common_file_rollback_helper(const Path& file_path,
         });
 }
 
-void BaseVirtualMachine::persist_head_snapshot() const
+void BaseVirtualMachine::persist_generic_snapshot_info() const
 {
     assert(head_snapshot);
 
@@ -482,7 +482,6 @@ void BaseVirtualMachine::persist_head_snapshot() const
     auto count_file_rollback = make_common_file_rollback(count_path, count_file, std::to_string(snapshot_count) + "\n");
     MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count) + "\n", yes_overwrite);
 
-    head_snapshot->persist();
     count_file_rollback.dismiss();
     head_file_rollback.dismiss();
 }
