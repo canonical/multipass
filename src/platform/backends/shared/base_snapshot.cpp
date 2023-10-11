@@ -292,13 +292,6 @@ auto mp::BaseSnapshot::erase_helper()
     });
 }
 
-void mp::BaseSnapshot::set_name(const std::string& n)
-{
-    const std::unique_lock lock{mutex};
-    name = n;
-    persist();
-}
-
 void multipass::BaseSnapshot::erase()
 {
     const std::unique_lock lock{mutex};
