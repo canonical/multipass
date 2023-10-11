@@ -226,8 +226,8 @@ inline void multipass::BaseSnapshot::apply()
 {
     const std::unique_lock lock{mutex};
     apply_impl();
-    // TODO@no-merge persist!
-    // TODO@no-merge stop persisting elsewhere
+    // no need to persist here for the time being: only private fields of the base class are persisted for now, and
+    // those cannot be affected by apply_impl (except by setters, which already persist)
 }
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H
