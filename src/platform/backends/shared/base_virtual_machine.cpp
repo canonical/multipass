@@ -33,6 +33,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <regex>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
@@ -64,6 +66,16 @@ void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted
 {
     for (auto snapshot : updated_parents)
         snapshot->set_parent(deleted_parent);
+}
+
+std::string trim(const std::string& s)
+{
+    return std::regex_replace(s, std::regex{R"(^\s+|\s+$)"}, "");
+}
+
+std::string trimmed_contents_of(const QString& file_path)
+{
+    return trim(mpu::contents_of(file_path));
 }
 } // namespace
 
@@ -385,9 +397,9 @@ void BaseVirtualMachine::load_generic_snapshot_info()
 {
     try
     {
-        snapshot_count = std::stoi(mpu::contents_of(instance_dir.filePath(count_filename)));
+        snapshot_count = std::stoi(trimmed_contents_of(instance_dir.filePath(count_filename)));
 
-        auto head_index = std::stoi(mpu::contents_of(instance_dir.filePath(head_filename)));
+        auto head_index = std::stoi(trimmed_contents_of(instance_dir.filePath(head_filename)));
         head_snapshot = head_index ? get_snapshot(head_index) : nullptr;
     }
     catch (FileOpenFailedException&)
