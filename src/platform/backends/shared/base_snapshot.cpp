@@ -122,26 +122,26 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
                                const std::string& comment, // NOLINT(modernize-pass-by-value)
                                std::shared_ptr<Snapshot> parent,
                                int index,
-                               const QDir& storage_dir,
                                const QDateTime& creation_timestamp,
                                int num_cores,
                                MemorySize mem_size,
                                MemorySize disk_space,
                                VirtualMachine::State state,
                                std::unordered_map<std::string, VMMount> mounts,
-                               QJsonObject metadata)
+                               QJsonObject metadata,
+                               const QDir& storage_dir)
     : name{name},
       comment{comment},
       parent{std::move(parent)},
       index{index},
-      storage_dir{storage_dir},
       creation_timestamp{creation_timestamp},
       num_cores{num_cores},
       mem_size{mem_size},
       disk_space{disk_space},
       state{state},
       mounts{std::move(mounts)},
-      metadata{std::move(metadata)}
+      metadata{std::move(metadata)},
+      storage_dir{storage_dir}
 {
     assert(index > 0 && "snapshot indices need to start at 1");
 
@@ -164,14 +164,14 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                    comment,
                    std::move(parent),
                    vm.get_snapshot_count() + 1,
-                   vm.instance_directory(),
                    QDateTime::currentDateTimeUtc(),
                    specs.num_cores,
                    specs.mem_size,
                    specs.disk_space,
                    specs.state,
                    specs.mounts,
-                   specs.metadata}
+                   specs.metadata,
+                   vm.instance_directory()}
 {
 }
 
@@ -186,14 +186,14 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
           json["comment"].toString().toStdString(),                                        // comment
           find_parent(json, vm),                                                           // parent
           json["index"].toInt(),                                                           // index
-          vm.instance_directory(),                                                         // storage_dir
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
           json["num_cores"].toInt(),                                                       // num_cores
           MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
           MemorySize{json["disk_space"].toString().toStdString()},                         // disk_space
           static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                   // state
           load_mounts(json["mounts"].toArray()),                                           // mounts
-          json["metadata"].toObject()}                                                     // metadata
+          json["metadata"].toObject(),                                                     // metadata
+          vm.instance_directory()}                                                         // storage_dir
 {
 }
 

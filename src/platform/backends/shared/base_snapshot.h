@@ -82,14 +82,14 @@ private:
                  const std::string& comment,
                  std::shared_ptr<Snapshot> parent,
                  int index,
-                 const QDir& storage_dir,
                  const QDateTime& creation_timestamp,
                  int num_cores,
                  MemorySize mem_size,
                  MemorySize disk_space,
                  VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts,
-                 QJsonObject metadata);
+                 QJsonObject metadata,
+                 const QDir& storage_dir);
 
     auto erase_helper();
     QString derive_snapshot_filename() const;
@@ -103,7 +103,6 @@ private:
 
     // This class is non-copyable and having these const simplifies thread safety
     const int index;                                       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QDir storage_dir;                                // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QDateTime creation_timestamp;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -111,6 +110,7 @@ private:
     const VirtualMachine::State state;                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QDir storage_dir;                                // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     mutable std::recursive_mutex mutex;
 };
