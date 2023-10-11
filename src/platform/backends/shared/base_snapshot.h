@@ -205,7 +205,7 @@ inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 {
     const std::unique_lock lock{mutex};
     comment = c;
-    // TODO@no-merge persist!
+    persist();
 }
 
 inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
@@ -215,12 +215,11 @@ inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
     persist();
 }
 
-inline void multipass::BaseSnapshot::capture()
+inline void multipass::BaseSnapshot::capture() // TODO@ricab should only be called once
 {
     const std::unique_lock lock{mutex};
     capture_impl();
     persist();
-    // TODO@no-merge stop persisting elsewhere
 }
 
 inline void multipass::BaseSnapshot::apply()
