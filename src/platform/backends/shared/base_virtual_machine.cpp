@@ -37,8 +37,6 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
-// TODO@no-merge prune everything related to individual snapshot persistence
-
 namespace
 {
 using St = mp::VirtualMachine::State;
@@ -366,7 +364,7 @@ void BaseVirtualMachine::delete_snapshot(const std::string& name)
     mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
 }
 
-void BaseVirtualMachine::load_snapshots() // TODO@no-merge let snapshots load themselves
+void BaseVirtualMachine::load_snapshots()
 {
     std::unique_lock lock{snapshot_mutex};
 

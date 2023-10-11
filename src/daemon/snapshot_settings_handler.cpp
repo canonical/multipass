@@ -137,7 +137,6 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
         auto snapshot = modify_snapshot(instance_name, snapshot_name_stdstr);
         snapshot->set_comment(val_stdstr);
     }
-    // TODO@no-merge persist (ideally would happen automatically in setters)
 }
 
 auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name,
