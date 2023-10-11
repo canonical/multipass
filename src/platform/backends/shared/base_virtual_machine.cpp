@@ -268,8 +268,8 @@ void BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
         head_snapshot = std::move(old_head);
         if (wrote_head)
             top_catch_all(vm_name, [this, &head_path] {
-                MP_UTILS.make_file_with_content(head_path.toStdString(), std::to_string(head_snapshot->get_index()),
-                                                yes_overwrite);
+                MP_UTILS.make_file_with_content(head_path.toStdString(),
+                                                std::to_string(head_snapshot->get_index()) + "\n", yes_overwrite);
             });
     }
 }
@@ -496,12 +496,12 @@ void BaseVirtualMachine::persist_head_snapshot() const
 
     QFile head_file{head_path};
     auto head_file_rollback =
-        make_common_file_rollback(head_path, head_file, std::to_string(head_snapshot->get_parents_index()));
+        make_common_file_rollback(head_path, head_file, std::to_string(head_snapshot->get_parents_index()) + "\n");
     persist_head_snapshot_index(head_path);
 
     QFile count_file{count_path};
-    auto count_file_rollback = make_common_file_rollback(count_path, count_file, std::to_string(snapshot_count));
-    MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count), yes_overwrite);
+    auto count_file_rollback = make_common_file_rollback(count_path, count_file, std::to_string(snapshot_count) + "\n");
+    MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count) + "\n", yes_overwrite);
 
     head_snapshot->persist();
     count_file_rollback.dismiss();
@@ -511,7 +511,7 @@ void BaseVirtualMachine::persist_head_snapshot() const
 void BaseVirtualMachine::persist_head_snapshot_index(const Path& head_path) const
 {
     auto head_index = head_snapshot ? head_snapshot->get_index() : 0;
-    MP_UTILS.make_file_with_content(head_path.toStdString(), std::to_string(head_index), yes_overwrite);
+    MP_UTILS.make_file_with_content(head_path.toStdString(), std::to_string(head_index) + "\n", yes_overwrite);
 }
 
 std::string BaseVirtualMachine::generate_snapshot_name() const
