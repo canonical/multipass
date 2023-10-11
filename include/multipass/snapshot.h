@@ -54,7 +54,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
     virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
     virtual std::shared_ptr<Snapshot> get_parent() = 0;
     virtual std::string get_parents_name() const = 0;
-    virtual int get_parents_index() const = 0; // TODO@no-merge use this to reference parents in json and head_file
+    virtual int get_parents_index() const = 0;
 
     virtual QJsonObject serialize() const = 0; // TODO@no-merge remove
     virtual void persist() const = 0; // TODO@no-merge can we avoid exposing this at all (just persist when pertinent)?

@@ -233,7 +233,7 @@ bool BaseVirtualMachine::updated_deleted_head(std::shared_ptr<Snapshot>& snapsho
     if (head_snapshot == snapshot)
     {
         head_snapshot = snapshot->get_parent();
-        persist_head_snapshot_name(head_path);
+        persist_head_snapshot_index(head_path);
         return true;
     }
 
@@ -256,7 +256,8 @@ void BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
         head_snapshot = std::move(old_head);
         if (wrote_head)
             top_catch_all(vm_name, [this, &head_path] {
-                MP_UTILS.make_file_with_content(head_path.toStdString(), head_snapshot->get_name(), yes_overwrite);
+                MP_UTILS.make_file_with_content(head_path.toStdString(), std::to_string(head_snapshot->get_index()),
+                                                yes_overwrite);
             });
     }
 }
@@ -386,8 +387,8 @@ void BaseVirtualMachine::load_generic_snapshot_info()
     {
         snapshot_count = std::stoi(mpu::contents_of(instance_dir.filePath(count_filename)));
 
-        auto head_name = mpu::contents_of(instance_dir.filePath(head_filename));
-        head_snapshot = head_name.empty() ? nullptr : get_snapshot(head_name);
+        auto head_index = std::stoi(mpu::contents_of(instance_dir.filePath(head_filename)));
+        head_snapshot = head_index ? get_snapshot(head_index) : nullptr;
     }
     catch (FileOpenFailedException&)
     {
@@ -482,8 +483,9 @@ void BaseVirtualMachine::persist_head_snapshot() const
     auto count_path = instance_dir.filePath(count_filename);
 
     QFile head_file{head_path};
-    auto head_file_rollback = make_common_file_rollback(head_path, head_file, head_snapshot->get_parents_name());
-    persist_head_snapshot_name(head_path);
+    auto head_file_rollback =
+        make_common_file_rollback(head_path, head_file, std::to_string(head_snapshot->get_parents_index()));
+    persist_head_snapshot_index(head_path);
 
     QFile count_file{count_path};
     auto count_file_rollback = make_common_file_rollback(count_path, count_file, std::to_string(snapshot_count));
@@ -494,10 +496,10 @@ void BaseVirtualMachine::persist_head_snapshot() const
     head_file_rollback.dismiss();
 }
 
-void BaseVirtualMachine::persist_head_snapshot_name(const Path& head_path) const
+void BaseVirtualMachine::persist_head_snapshot_index(const Path& head_path) const
 {
-    auto head_name = head_snapshot ? head_snapshot->get_name() : "";
-    MP_UTILS.make_file_with_content(head_path.toStdString(), head_name, yes_overwrite);
+    auto head_index = head_snapshot ? head_snapshot->get_index() : 0;
+    MP_UTILS.make_file_with_content(head_path.toStdString(), std::to_string(head_index), yes_overwrite);
 }
 
 std::string BaseVirtualMachine::generate_snapshot_name() const
@@ -529,7 +531,7 @@ void BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
     if (old_head != head_snapshot)
     {
         head_snapshot = old_head;
-        persist_head_snapshot_name(head_path);
+        persist_head_snapshot_index(head_path);
     }
 }
 
@@ -558,7 +560,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     if (head_snapshot != snapshot)
     {
         head_snapshot = snapshot;
-        persist_head_snapshot_name(head_path);
+        persist_head_snapshot_index(head_path);
     }
 
     rollback.dismiss();

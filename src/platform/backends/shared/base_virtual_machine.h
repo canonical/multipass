@@ -101,7 +101,7 @@ private:
                                      bool existed) const;
 
     void persist_head_snapshot() const;
-    void persist_head_snapshot_name(const Path& head_path) const;
+    void persist_head_snapshot_index(const Path& head_path) const;
     std::string generate_snapshot_name() const;
 
     template <typename NodeT>
