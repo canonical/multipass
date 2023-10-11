@@ -295,11 +295,8 @@ auto mp::BaseSnapshot::erase_helper()
 void mp::BaseSnapshot::set_name(const std::string& n)
 {
     const std::unique_lock lock{mutex};
-    auto rollback_old_file = erase_helper();
-
     name = n;
     persist();
-    rollback_old_file.dismiss();
 }
 
 void multipass::BaseSnapshot::erase()
