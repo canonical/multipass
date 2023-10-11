@@ -194,6 +194,13 @@ inline const QJsonObject& multipass::BaseSnapshot::get_metadata() const noexcept
     return metadata;
 }
 
+inline void multipass::BaseSnapshot::set_name(const std::string& n)
+{
+    const std::unique_lock lock{mutex};
+    name = n;
+    persist();
+}
+
 inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 {
     const std::unique_lock lock{mutex};
@@ -206,7 +213,6 @@ inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
     const std::unique_lock lock{mutex};
     parent = std::move(p);
     persist();
-    // TODO@no-merge stop persisting elsewhere
 }
 
 inline void multipass::BaseSnapshot::capture()
