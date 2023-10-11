@@ -313,5 +313,5 @@ void multipass::BaseSnapshot::erase()
 
 QString mp::BaseSnapshot::derive_snapshot_filename() const
 {
-    return QString{"%1-%2.%3"}.arg(derive_index_string(index), QString::fromStdString(name), snapshot_extension);
+    return QString{"%1.%2"}.arg(derive_index_string(index), snapshot_extension);
 }
