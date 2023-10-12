@@ -199,6 +199,8 @@ inline const QJsonObject& multipass::BaseSnapshot::get_metadata() const noexcept
 inline void multipass::BaseSnapshot::set_name(const std::string& n)
 {
     const std::unique_lock lock{mutex};
+    assert(captured && "precondition: only captured snapshots can be edited");
+
     name = n;
     persist();
 }
@@ -206,6 +208,8 @@ inline void multipass::BaseSnapshot::set_name(const std::string& n)
 inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 {
     const std::unique_lock lock{mutex};
+    assert(captured && "precondition: only captured snapshots can be edited");
+
     comment = c;
     persist();
 }
@@ -213,6 +217,8 @@ inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
 {
     const std::unique_lock lock{mutex};
+    assert(captured && "precondition: only captured snapshots can be edited");
+
     parent = std::move(p);
     persist();
 }
