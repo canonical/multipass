@@ -43,8 +43,6 @@ using St = mp::VirtualMachine::State;
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
-constexpr auto index_digits = 4; // these two go together
-constexpr auto max_snapshots = 1000;
 constexpr auto yes_overwrite = true;
 
 void assert_vm_stopped(St state)
@@ -210,8 +208,6 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
         std::unique_lock lock{snapshot_mutex};
         assert_vm_stopped(state); // precondition
 
-        if (snapshot_count > max_snapshots)
-            throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded: {}", max_snapshots)};
         snapshot_name = name.empty() ? generate_snapshot_name() : name;
 
         const auto [it, success] = snapshots.try_emplace(snapshot_name, nullptr);
