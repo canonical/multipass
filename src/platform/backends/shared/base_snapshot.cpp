@@ -39,7 +39,7 @@ namespace
 {
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto index_digits = 4; // these two go together
-constexpr auto max_snapshots = 1000;
+constexpr auto max_snapshots = 9999;
 const auto snapshot_template = QStringLiteral("@s%1"); /* avoid confusion with snapshot names by prepending a character
                                                           that can't be part of the name (users can call a snapshot
                                                           "s1", but they cannot call it "@s1") */
