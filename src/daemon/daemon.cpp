@@ -2690,41 +2690,48 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
                    deleted_instances.find(destination_name) != deleted_instances.end() ||
                    delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
         };
-        std::string destination_name;
-        if (request->has_destination_name())
-        {
-            destination_name = request->destination_name();
 
-            if (is_name_already_used(destination_name))
+        auto generate_appended_clone_name = [is_name_already_used](const std::string& source_name) -> std::string {
+            std::string clone_name = source_name;
+            // try to generate clone name by appending "-clone"
+            const int number_of_appended_clone_substring = 5;
+            for (int i = 0; i < number_of_appended_clone_substring; ++i)
             {
-                throw std::runtime_error(destination_name +
-                                         " already exists, pick a new name or just run multipass clone <source_name>");
-            }
-        }
-        else
-        {
-            auto generate_clone_name = [is_name_already_used](const std::string& source_name) -> std::string {
-                std::string clone_name = source_name;
-                // try to generate clone name by appending "-clone"
-                const int number_of_appended_clone_substring = 5;
-                for (int i = 0; i < number_of_appended_clone_substring; ++i)
+                clone_name += "-clone";
+                if (!is_name_already_used(clone_name))
                 {
-                    clone_name += "-clone";
-                    if (!is_name_already_used(clone_name))
-                    {
-                        return clone_name;
-                    }
+                    return clone_name;
                 }
+            }
 
-                throw std::runtime_error("Can not generate clone name, try to specify an non-existing clone name. ");
-            };
+            throw std::runtime_error("Can not generate clone name, try to specify an non-existing clone name. ");
+        };
 
-            destination_name = generate_clone_name(source_name);
-        }
+        auto generate_destination_name = [is_name_already_used,
+                                          generate_appended_clone_name](const CloneRequest& request) -> std::string {
+            if (request.has_destination_name())
+            {
+                if (is_name_already_used(request.destination_name()))
+                {
+                    throw std::runtime_error(
+                        request.destination_name() +
+                        " already exists, pick a new name or just run multipass clone <source_name>");
+                }
+                else
+                {
+                    return request.destination_name();
+                }
+            }
+            else
+            {
+                return generate_appended_clone_name(request.source_name());
+            }
+        };
+
+        const std::string destination_name = generate_destination_name(*request);
 
         const auto& source_vm_ptr = operative_instances[source_name];
         const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
-
         // should we consider more states?
         if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
         {
