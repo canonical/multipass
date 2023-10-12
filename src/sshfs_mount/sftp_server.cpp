@@ -273,8 +273,12 @@ int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int id_if_
 int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int rev_id_if_not_found)
 {
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.second; });
+    auto default_found = std::find_if(id_maps.cbegin(), id_maps.cend(), [rev_id_if_not_found](std::pair<int, int> p) {
+        return rev_id_if_not_found == p.second;
+    });
 
-    return found == id_maps.cend() ? rev_id_if_not_found : found->first;
+    return found == id_maps.cend() ? (default_found == id_maps.cend() ? rev_id_if_not_found : default_found->first)
+                                   : found->first;
 }
 } // namespace
 
