@@ -203,6 +203,7 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
 
 QJsonObject mp::BaseSnapshot::serialize() const
 {
+    assert(captured && "precondition: only captured snapshots can be serialized");
     QJsonObject ret, snapshot{};
     const std::unique_lock lock{mutex};
 
@@ -299,6 +300,7 @@ auto mp::BaseSnapshot::erase_helper()
 void multipass::BaseSnapshot::erase()
 {
     const std::unique_lock lock{mutex};
+    assert(captured && "precondition: only captured snapshots can be erased");
 
     auto rollback_snapshot_file = erase_helper();
     erase_impl();
