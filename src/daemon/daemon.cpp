@@ -2674,7 +2674,8 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
 {
     try
     {
-        mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+        mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                           *config->logger,
                                                            server};
 
         const auto& source_name = request->source_name();

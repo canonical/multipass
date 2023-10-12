@@ -69,7 +69,8 @@ signals:
                  std::promise<grpc::Status>* status_promise);
     void on_list(const ListRequest* request, grpc::ServerReaderWriter<ListReply, ListRequest>* server,
                  std::promise<grpc::Status>* status_promise);
-    void on_clone(const CloneRequest* request, grpc::ServerReaderWriter<CloneReply, CloneRequest>* server,
+    void on_clone(const CloneRequest* request,
+                  grpc::ServerReaderWriter<CloneReply, CloneRequest>* server,
                   std::promise<grpc::Status>* status_promise);
     void on_networks(const NetworksRequest* request, grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server,
                      std::promise<grpc::Status>* status_promise);
