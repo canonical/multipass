@@ -364,10 +364,16 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
                                                       std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
     assert(power_shell);
-    return std::make_shared<HyperVSnapshot>(snapshot_name, comment, specs, std::move(parent), name, *power_shell);
+    return std::make_shared<HyperVSnapshot>(snapshot_name,
+                                            comment,
+                                            specs,
+                                            std::move(parent),
+                                            name,
+                                            *this,
+                                            *power_shell);
 }
 
-auto mp::HyperVVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
+auto mp::HyperVVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<HyperVSnapshot>(json, *this, name, *power_shell.get());
+    return std::make_shared<HyperVSnapshot>(filename, *this, name, *power_shell.get());
 }

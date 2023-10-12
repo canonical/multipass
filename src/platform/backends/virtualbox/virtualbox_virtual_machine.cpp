@@ -377,7 +377,7 @@ auto mp::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& nam
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
 
-auto mp::VirtualBoxVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
+auto mp::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& /*filename*/) -> std::shared_ptr<Snapshot>
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
