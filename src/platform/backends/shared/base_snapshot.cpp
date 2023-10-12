@@ -129,7 +129,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
                                VirtualMachine::State state,
                                std::unordered_map<std::string, VMMount> mounts,
                                QJsonObject metadata,
-                               const QDir& storage_dir)
+                               const QDir& storage_dir,
+                               bool captured)
     : name{name},
       comment{comment},
       parent{std::move(parent)},
@@ -141,7 +142,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
       state{state},
       mounts{std::move(mounts)},
       metadata{std::move(metadata)},
-      storage_dir{storage_dir}
+      storage_dir{storage_dir},
+      captured{captured}
 {
     assert(index > 0 && "snapshot indices need to start at 1");
 
@@ -171,7 +173,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                    specs.state,
                    specs.mounts,
                    specs.metadata,
-                   vm.instance_directory()}
+                   vm.instance_directory(),
+                   /*captured=*/false}
 {
 }
 
@@ -193,7 +196,8 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
           static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                   // state
           load_mounts(json["mounts"].toArray()),                                           // mounts
           json["metadata"].toObject(),                                                     // metadata
-          vm.instance_directory()}                                                         // storage_dir
+          vm.instance_directory(),                                                         // storage_dir
+          true}                                                                            // captured
 {
 }
 

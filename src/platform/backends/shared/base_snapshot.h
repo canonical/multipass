@@ -89,7 +89,8 @@ private:
                  VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts,
                  QJsonObject metadata,
-                 const QDir& storage_dir);
+                 const QDir& storage_dir,
+                 bool captured);
 
     auto erase_helper();
     QString derive_snapshot_filename() const;
@@ -112,6 +113,7 @@ private:
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QDir storage_dir;                                // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
+    bool captured;
     mutable std::recursive_mutex mutex;
 };
 } // namespace multipass
@@ -215,11 +217,18 @@ inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
     persist();
 }
 
-inline void multipass::BaseSnapshot::capture() // TODO@ricab should only be called once
+inline void multipass::BaseSnapshot::capture()
 {
     const std::unique_lock lock{mutex};
-    capture_impl();
-    persist();
+    assert(!captured &&
+           "pre-condition: capture should only be called once, and only for snapshots that were not loaded from disk");
+
+    if (!captured)
+    {
+        captured = true;
+        capture_impl();
+        persist();
+    }
 }
 
 inline void multipass::BaseSnapshot::apply()
