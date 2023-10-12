@@ -2731,6 +2731,34 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
             throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
         }
 
+        auto clone_spec_item_and_write_to_instance_db = [this](const std::string& source_name,
+                                                               const std::string& destination_name) -> void {
+            auto& dest_vm_spec = vm_instance_specs[destination_name] = vm_instance_specs[source_name];
+            // update default mac addr and extra_interface mac addr
+            dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
+            for (auto& extra_interface : dest_vm_spec.extra_interfaces)
+            {
+                extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+            }
+
+            QJsonValueRef arguments = dest_vm_spec.metadata["arguments"];
+            QJsonArray jsonArray = arguments.toArray();
+            for (QJsonValueRef item : jsonArray)
+            {
+                QString str = item.toString();
+
+                str.replace(vm_instance_specs[source_name].default_mac_address.c_str(),
+                            dest_vm_spec.default_mac_address.c_str());
+                str.replace(source_name.c_str(), destination_name.c_str());
+                mpl::log(mpl::Level::info, "general", fmt::format("str value is : {}", str));
+                item = str;
+            }
+            arguments = jsonArray;
+            persist_instances();
+        };
+
+        clone_spec_item_and_write_to_instance_db(source_name, destination_name);
+
         // main body of the program, the clone process
         throw std::runtime_error("clone feature is not ready yet");
 
