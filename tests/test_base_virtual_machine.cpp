@@ -128,7 +128,7 @@ protected:
         return nullptr;
     }
 
-    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QJsonObject& json) override
+    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QString& json) override
     {
         return nullptr;
     }

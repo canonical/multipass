@@ -29,6 +29,7 @@
 #include <QString>
 
 #include <QFile>
+#include <QJsonParseError>
 #include <QTemporaryDir>
 #include <stdexcept>
 
@@ -46,6 +47,25 @@ const auto snapshot_template = QStringLiteral("@s%1"); /* avoid confusion with s
 QString derive_index_string(int index)
 {
     return QString{"%1"}.arg(index, index_digits, 10, QLatin1Char('0'));
+}
+
+QJsonObject read_snapshot_json(const QString& filename)
+{
+    QFile file{filename};
+    if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
+        throw std::runtime_error{fmt::v9::format("Could not open snapshot file for for reading: {}", file.fileName())};
+
+    QJsonParseError parse_error{};
+    const auto& data = MP_FILEOPS.read_all(file);
+
+    if (const auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
+        throw std::runtime_error{fmt::v9::format("Could not parse snapshot JSON; error: {}; file: {}",
+                                                 file.fileName(),
+                                                 parse_error.errorString())};
+    else if (json.isEmpty())
+        throw std::runtime_error{fmt::v9::format("Empty snapshot JSON: {}", file.fileName())};
+    else
+        return json["snapshot"].toObject();
 }
 
 std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
@@ -155,12 +175,12 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
-    : BaseSnapshot(InnerJsonTag{}, json["snapshot"].toObject(), vm)
+mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm)
+    : BaseSnapshot{read_snapshot_json(filename), vm}
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm)
+mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
     : BaseSnapshot{
           json["name"].toString().toStdString(),                                           // name
           json["comment"].toString().toStdString(),                                        // comment

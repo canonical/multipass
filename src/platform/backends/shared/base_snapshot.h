@@ -40,7 +40,7 @@ public:
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
                  VirtualMachine& vm);
-    BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
+    BaseSnapshot(const QString& filename, VirtualMachine& vm);
 
     // TODO@snapshots tag as noexcept those that can be
     int get_index() const override;
@@ -78,10 +78,7 @@ protected:
     QString derive_id() const;
 
 private:
-    struct InnerJsonTag
-    {
-    };
-    BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
+    BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
                  std::shared_ptr<Snapshot> parent,
