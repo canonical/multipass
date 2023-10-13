@@ -82,7 +82,7 @@ private:
                  const std::string& comment,
                  std::shared_ptr<Snapshot> parent,
                  int index,
-                 const QDateTime& creation_timestamp,
+                 QDateTime&& creation_timestamp,
                  int num_cores,
                  MemorySize mem_size,
                  MemorySize disk_space,
@@ -151,7 +151,7 @@ inline std::string multipass::BaseSnapshot::get_parents_name() const
 
 inline int multipass::BaseSnapshot::get_parents_index() const
 {
-    std::unique_lock lock{mutex};
+    const std::unique_lock lock{mutex};
     return parent ? parent->get_index() : 0; // this doesn't lock
 }
 

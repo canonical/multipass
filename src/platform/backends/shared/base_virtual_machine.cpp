@@ -329,7 +329,7 @@ void BaseVirtualMachine::rename_snapshot(const std::string& old_name, const std:
     if (old_name == new_name)
         return;
 
-    std::unique_lock lock{snapshot_mutex};
+    const std::unique_lock lock{snapshot_mutex};
 
     auto old_it = snapshots.find(old_name);
     if (old_it == snapshots.end())
@@ -347,7 +347,7 @@ void BaseVirtualMachine::rename_snapshot(const std::string& old_name, const std:
 
 void BaseVirtualMachine::delete_snapshot(const std::string& name)
 {
-    std::unique_lock lock{snapshot_mutex};
+    const std::unique_lock lock{snapshot_mutex};
 
     auto it = snapshots.find(name);
     if (it == snapshots.end())
@@ -362,7 +362,7 @@ void BaseVirtualMachine::delete_snapshot(const std::string& name)
 
 void BaseVirtualMachine::load_snapshots()
 {
-    std::unique_lock lock{snapshot_mutex};
+    const std::unique_lock lock{snapshot_mutex};
 
     auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
                                                    {QString{"*.%1"}.arg(snapshot_extension)},
@@ -521,7 +521,7 @@ void BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
 
 void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
 {
-    std::unique_lock lock{snapshot_mutex};
+    const std::unique_lock lock{snapshot_mutex};
     assert_vm_stopped(state); // precondition
 
     auto snapshot = get_snapshot(name);

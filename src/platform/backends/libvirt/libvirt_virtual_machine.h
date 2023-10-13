@@ -39,7 +39,7 @@ public:
                           const std::string& bridge_name,
                           VMStatusMonitor& monitor,
                           const LibvirtWrapper::UPtr& libvirt_wrapper,
-                          const mp::Path& instance_dir);
+                          const Path& instance_dir);
     ~LibVirtVirtualMachine();
 
     void start() override;
