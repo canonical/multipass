@@ -630,7 +630,7 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& name,
     return std::make_shared<QemuSnapshot>(name, comment, std::move(parent), specs, *this, desc);
 }
 
-auto mp::QemuVirtualMachine::make_specific_snapshot(const QJsonObject& json) -> std::shared_ptr<Snapshot>
+auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<QemuSnapshot>(json, *this, desc);
+    return std::make_shared<QemuSnapshot>(filename, *this, desc);
 }

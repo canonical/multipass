@@ -75,7 +75,7 @@ public:
     int get_snapshot_count() const override;
 
 protected:
-    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
+    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) = 0;
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name,
                                                              const std::string& comment,
                                                              const VMSpecs& specs,
@@ -88,8 +88,7 @@ private:
     void log_latest_snapshot(LockT lock) const;
 
     void load_generic_snapshot_info();
-    void load_snapshot_from_file(const QString& filename);
-    void load_snapshot(const QJsonObject& json);
+    void load_snapshot(const QString& filename);
 
     auto make_take_snapshot_rollback(SnapshotMap::iterator it);
     void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, int old_count);

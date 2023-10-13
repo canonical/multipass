@@ -30,8 +30,6 @@
 #include <scope_guard.hpp>
 
 #include <QDir>
-#include <QJsonDocument>
-#include <QJsonObject>
 
 #include <regex>
 
@@ -377,7 +375,7 @@ void BaseVirtualMachine::load_snapshots() // TODO@no-merge let snapshots load th
                                                    QDir::Filter::Files | QDir::Filter::Readable,
                                                    QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
-        load_snapshot_from_file(finfo.filePath());
+        load_snapshot(finfo.filePath());
 
     load_generic_snapshot_info();
 }
@@ -431,28 +429,9 @@ void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
     }
 }
 
-void BaseVirtualMachine::load_snapshot_from_file(const QString& filename)
+void BaseVirtualMachine::load_snapshot(const QString& filename)
 {
-    QFile file{filename};
-    if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
-        throw std::runtime_error{fmt::v9::format("Could not open snapshot file for for reading: {}", file.fileName())};
-
-    QJsonParseError parse_error{};
-    const auto& data = MP_FILEOPS.read_all(file);
-
-    if (const auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
-        throw std::runtime_error{fmt::v9::format("Could not parse snapshot JSON; error: {}; file: {}",
-                                                 file.fileName(),
-                                                 parse_error.errorString())};
-    else if (json.isEmpty())
-        throw std::runtime_error{fmt::v9::format("Empty snapshot JSON: {}", file.fileName())};
-    else
-        load_snapshot(json);
-}
-
-void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
-{
-    auto snapshot = make_specific_snapshot(json);
+    auto snapshot = make_specific_snapshot(filename);
     const auto& name = snapshot->get_name();
     auto [it, success] = snapshots.try_emplace(name, snapshot);
 

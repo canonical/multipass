@@ -495,7 +495,7 @@ auto mp::LXDVirtualMachine::make_specific_snapshot(const std::string& name,
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
 
-std::shared_ptr<mp::Snapshot> mp::LXDVirtualMachine::make_specific_snapshot(const QJsonObject& json)
+std::shared_ptr<mp::Snapshot> mp::LXDVirtualMachine::make_specific_snapshot(const QString& /*filename*/)
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
