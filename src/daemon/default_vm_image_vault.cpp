@@ -582,6 +582,25 @@ mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string
 
     throw std::runtime_error(fmt::format("Cannot determine minimum image size for id \'{}\'", id));
 }
+void mp::DefaultVMImageVault::clone(const std::string& dist_instance_name, const std::string& source_instance_name)
+{
+    const auto source_iter = instance_image_records.find(source_instance_name);
+
+    if (source_iter == instance_image_records.end())
+    {
+        throw std::runtime_error(source_instance_name + " does not exist in the image records");
+    }
+
+    if (instance_image_records.find(dist_instance_name) != instance_image_records.end())
+    {
+        throw std::runtime_error(dist_instance_name + " already exists in the image records");
+    }
+
+    auto& dest_vault_record = instance_image_records[dist_instance_name] = instance_image_records[source_instance_name];
+    dest_vault_record.image.image_path.replace(source_instance_name.c_str(), dist_instance_name.c_str());
+    // change last accessed?
+    persist_instance_records();
+}
 
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     const VMImageInfo& info, std::optional<VMImage>& existing_source_image, const QDir& image_dir,

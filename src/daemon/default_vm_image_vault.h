@@ -66,6 +66,8 @@ public:
                        const ProgressMonitor& monitor) override;
     MemorySize minimum_image_size_for(const std::string& id) override;
 
+    void clone(const std::string& dist_instance_name, const std::string& source_instance_name);
+
 private:
     VMImage image_instance_from(const VMImage& prepared_image, const Path& dest_dir);
     VMImage download_and_prepare_source_image(const VMImageInfo& info, std::optional<VMImage>& existing_source_image,
