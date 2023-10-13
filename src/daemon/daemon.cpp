@@ -1395,6 +1395,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     {
         mpl::log(mpl::Level::warning, category, fmt::format("Removing invalid instance: {}", bad_spec));
         vm_instance_specs.erase(bad_spec);
+        config->vault->remove(bad_spec);
     }
 
     if (!invalid_specs.empty())
@@ -2766,6 +2767,7 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
 
         clone_spec_item_and_write_to_instance_db(source_name, destination_name);
 
+        config->vault->clone(source_name, destination_name);
         // main body of the program, the clone process
         throw std::runtime_error("clone feature is not ready yet");
 

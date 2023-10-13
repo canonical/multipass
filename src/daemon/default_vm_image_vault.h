@@ -65,8 +65,7 @@ public:
     void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                        const ProgressMonitor& monitor) override;
     MemorySize minimum_image_size_for(const std::string& id) override;
-
-    void clone(const std::string& dist_instance_name, const std::string& source_instance_name);
+    void clone(const std::string& source_instance_name, const std::string& dist_instance_name) override;
 
 private:
     VMImage image_instance_from(const VMImage& prepared_image, const Path& dest_dir);
