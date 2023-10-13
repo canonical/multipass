@@ -93,6 +93,7 @@ public:
     virtual void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                                const ProgressMonitor& monitor) = 0;
     virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
+    virtual void clone(const std::string& source_instance_name, const std::string& dist_instance_name) = 0;
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;
     virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const = 0;
 

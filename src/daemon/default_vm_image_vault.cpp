@@ -582,7 +582,7 @@ mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string
 
     throw std::runtime_error(fmt::format("Cannot determine minimum image size for id \'{}\'", id));
 }
-void mp::DefaultVMImageVault::clone(const std::string& dist_instance_name, const std::string& source_instance_name)
+void mp::DefaultVMImageVault::clone(const std::string& source_instance_name, const std::string& dist_instance_name)
 {
     const auto source_iter = instance_image_records.find(source_instance_name);
 
