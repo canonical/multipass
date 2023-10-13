@@ -163,7 +163,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                                const std::string& comment,
                                std::shared_ptr<Snapshot> parent,
                                const VMSpecs& specs,
-                               VirtualMachine& vm)
+                               const VirtualMachine& vm)
     : BaseSnapshot{name,
                    comment,
                    std::move(parent),

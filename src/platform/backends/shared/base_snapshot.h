@@ -39,7 +39,7 @@ public:
                  const std::string& comment,
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
-                 VirtualMachine& vm);
+                 const VirtualMachine& vm);
     BaseSnapshot(const QString& filename, VirtualMachine& vm);
 
     // TODO@snapshots tag as noexcept those that can be
