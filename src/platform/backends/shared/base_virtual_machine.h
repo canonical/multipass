@@ -34,22 +34,18 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace mp = multipass;
-namespace mpl = multipass::logging;
-namespace mpu = multipass::utils;
-
 namespace multipass
 {
 class BaseVirtualMachine : public VirtualMachine
 {
 public:
-    BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name, const mp::Path& instance_dir);
-    BaseVirtualMachine(const std::string& vm_name, const mp::Path& instance_dir);
+    BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir);
+    BaseVirtualMachine(const std::string& vm_name, const Path& instance_dir);
 
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target,
-                                                            const multipass::VMMount& mount) override
+                                                            const VMMount& mount) override
     {
         throw NotImplementedOnThisBackendException("native mounts");
     };

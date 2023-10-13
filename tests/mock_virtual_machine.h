@@ -91,8 +91,6 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, load_snapshots, (), (override));
     MOCK_METHOD(std::vector<std::string>, get_childrens_names, (const Snapshot*), (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
-
-    std::unique_ptr<TempDir> tmp_dir;
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;

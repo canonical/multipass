@@ -19,7 +19,6 @@
 #include "qemu_virtual_machine.h"
 #include "shared/qemu_img_utils/qemu_img_utils.h"
 
-#include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>

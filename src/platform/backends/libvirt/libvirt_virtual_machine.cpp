@@ -546,10 +546,11 @@ void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
     desc.disk_space = new_size;
 }
 
-auto mp::LibVirtVirtualMachine::make_specific_snapshot(const std::string& name,
-                                                       const std::string& comment,
-                                                       const VMSpecs& specs,
-                                                       std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
+auto mp::LibVirtVirtualMachine::make_specific_snapshot(const std::string& /*name*/,
+                                                       const std::string& /*comment*/,
+                                                       const VMSpecs& /*specs*/,
+                                                       std::shared_ptr<Snapshot> /*parent*/)
+    -> std::shared_ptr<Snapshot>
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
