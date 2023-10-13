@@ -18,6 +18,8 @@
 #include "lxd_mount_handler.h"
 #include "lxd_request.h"
 
+namespace mp = multipass;
+
 namespace
 {
 constexpr std::string_view category = "lxd-mount-handler";

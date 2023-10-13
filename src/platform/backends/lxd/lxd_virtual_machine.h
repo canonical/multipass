@@ -38,7 +38,7 @@ public:
                       const QUrl& base_url,
                       const QString& bridge_name,
                       const QString& storage_pool,
-                      const mp::Path& instance_dir);
+                      const Path& instance_dir);
     ~LXDVirtualMachine() override;
     void stop() override;
     void start() override;
@@ -61,8 +61,8 @@ public:
                                                             const std::string& target, const VMMount& mount) override;
 
 protected:
-    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QString& filename) override;
-    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name,
+    std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;

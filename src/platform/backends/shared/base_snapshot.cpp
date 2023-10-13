@@ -79,13 +79,13 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
         auto target_path = entry.toObject()["target_path"].toString().toStdString();
         auto source_path = entry.toObject()["source_path"].toString().toStdString();
 
-        for (QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
+        for (const QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
         {
             uid_mappings.push_back(
                 {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
         }
 
-        for (QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
+        for (const QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
         {
             gid_mappings.push_back(
                 {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
@@ -96,7 +96,7 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
         auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
 
         mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
-        mounts[target_path] = mount;
+        mounts[target_path] = std::move(mount);
     }
 
     return mounts;
@@ -122,7 +122,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
                                const std::string& comment, // NOLINT(modernize-pass-by-value)
                                std::shared_ptr<Snapshot> parent,
                                int index,
-                               const QDateTime& creation_timestamp,
+                               QDateTime&& creation_timestamp,
                                int num_cores,
                                MemorySize mem_size,
                                MemorySize disk_space,
@@ -135,7 +135,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
       comment{comment},
       parent{std::move(parent)},
       index{index},
-      creation_timestamp{creation_timestamp},
+      creation_timestamp{std::move(creation_timestamp)},
       num_cores{num_cores},
       mem_size{mem_size},
       disk_space{disk_space},
