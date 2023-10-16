@@ -261,7 +261,8 @@ void BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
         if (wrote_head)
             top_catch_all(vm_name, [this, &head_path] {
                 MP_UTILS.make_file_with_content(head_path.toStdString(),
-                                                std::to_string(head_snapshot->get_index()) + "\n", yes_overwrite);
+                                                std::to_string(head_snapshot->get_index()) + "\n",
+                                                yes_overwrite);
             });
     }
 }
