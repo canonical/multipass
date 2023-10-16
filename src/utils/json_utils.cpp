@@ -44,7 +44,8 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 
     if (MP_FILEOPS.write(db_file, QJsonDocument{root}.toJson()) == -1)
         throw std::runtime_error{fmt::format("Could not write json to transactional file; filename: {}; error: {}",
-                                             file_name, db_file.errorString())};
+                                             file_name,
+                                             db_file.errorString())};
 
     if (!MP_FILEOPS.commit(db_file))
         throw std::runtime_error{fmt::format("Could not commit transactional file; filename: {}", file_name)};
