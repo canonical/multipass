@@ -150,4 +150,15 @@ TEST_F(TestBaseSnapshot, retrieves_parents_properties)
     EXPECT_EQ(child.get_parents_index(), parent_index);
     EXPECT_EQ(child.get_parents_name(), parent_name);
 }
+
+TEST_F(TestBaseSnapshot, adopts_current_timestamp)
+{
+    auto before = QDateTime::currentDateTimeUtc();
+    auto snapshot = MockBaseSnapshot{"foo", "", nullptr, specs, vm};
+    auto after = QDateTime::currentDateTimeUtc();
+
+    EXPECT_GE(snapshot.get_creation_timestamp(), before);
+    EXPECT_LE(snapshot.get_creation_timestamp(), after);
+}
+
 } // namespace
