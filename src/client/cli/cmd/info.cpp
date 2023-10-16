@@ -58,7 +58,8 @@ QString cmd::Info::description() const
 
 mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("instance", "Names of instances or snapshots to display information about",
+    parser->addPositionalArgument("instance",
+                                  "Names of instances or snapshots to display information about",
                                   "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
     QCommandLineOption all_option(all_option_name, "Display info for all instances");
@@ -69,7 +70,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     QCommandLineOption formatOption(
         format_option_name,
         "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
-        format_option_name, "table");
+        format_option_name,
+        "table");
 
     parser->addOptions({all_option, noRuntimeInfoOption, formatOption});
 

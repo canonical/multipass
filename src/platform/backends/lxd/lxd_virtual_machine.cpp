@@ -166,9 +166,12 @@ bool uses_default_id_mappings(const multipass::VMMount& mount)
 
 } // namespace
 
-mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
-                                         NetworkAccessManager* manager, const QUrl& base_url,
-                                         const QString& bridge_name, const QString& storage_pool,
+mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
+                                         VMStatusMonitor& monitor,
+                                         NetworkAccessManager* manager,
+                                         const QUrl& base_url,
+                                         const QString& bridge_name,
+                                         const QString& storage_pool,
                                          const mp::Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
@@ -484,9 +487,10 @@ mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_p
     return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);
 }
 
-auto mp::LXDVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                   const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
-    -> std::shared_ptr<Snapshot>
+auto mp::LXDVirtualMachine::make_specific_snapshot(const std::string& name,
+                                                   const std::string& comment,
+                                                   const VMSpecs& specs,
+                                                   std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }

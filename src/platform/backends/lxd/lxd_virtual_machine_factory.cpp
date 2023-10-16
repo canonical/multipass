@@ -84,7 +84,8 @@ mp::NetworkInterfaceInfo munch_network(std::map<std::string, mp::NetworkInterfac
 }
 } // namespace
 
-mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const mp::Path& data_dir,
+mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager,
+                                                       const mp::Path& data_dir,
                                                        const QUrl& base_url)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
@@ -101,7 +102,11 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                               VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::LXDVirtualMachine>(desc, monitor, manager.get(), base_url, multipass_bridge_name,
+    return std::make_unique<mp::LXDVirtualMachine>(desc,
+                                                   monitor,
+                                                   manager.get(),
+                                                   base_url,
+                                                   multipass_bridge_name,
                                                    storage_pool,
                                                    MP_UTILS.make_dir(get_instance_directory(desc.vm_name)));
 }

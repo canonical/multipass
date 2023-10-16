@@ -84,7 +84,9 @@ public:
 
 protected:
     MountHandler() = default;
-    MountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, VMMount mount_spec,
+    MountHandler(VirtualMachine* vm,
+                 const SSHKeyProvider* ssh_key_provider,
+                 VMMount mount_spec,
                  const std::string& target)
         : vm{vm}, ssh_key_provider{ssh_key_provider}, mount_spec{std::move(mount_spec)}, target{target}, active{false}
     {

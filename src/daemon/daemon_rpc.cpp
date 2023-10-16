@@ -373,7 +373,8 @@ grpc::Status mp::DaemonRpc::snapshot(grpc::ServerContext* context,
     server->Read(&request);
 
     return verify_client_and_dispatch_operation(
-        std::bind(&DaemonRpc::on_snapshot, this, &request, server, std::placeholders::_1), client_cert_from(context));
+        std::bind(&DaemonRpc::on_snapshot, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
 }
 
 grpc::Status mp::DaemonRpc::restore(grpc::ServerContext* context,
@@ -383,7 +384,8 @@ grpc::Status mp::DaemonRpc::restore(grpc::ServerContext* context,
     server->Read(&request);
 
     return verify_client_and_dispatch_operation(
-        std::bind(&DaemonRpc::on_restore, this, &request, server, std::placeholders::_1), client_cert_from(context));
+        std::bind(&DaemonRpc::on_restore, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
 }
 
 template <typename OperationSignal>

@@ -73,14 +73,22 @@ std::string generate_snapshot_details(const mp::InfoReply reply)
     {
         const auto& fundamentals = info.snapshot_info().fundamentals();
 
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},", fundamentals.snapshot_name(), info.name(),
-                       info.cpu_count(), info.disk_total(), info.memory_total());
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{},{},{},",
+                       fundamentals.snapshot_name(),
+                       info.name(),
+                       info.cpu_count(),
+                       info.disk_total(),
+                       info.memory_total());
 
         fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
 
-        fmt::format_to(std::back_inserter(buf), ",{},{},{},\"{}\"\n",
+        fmt::format_to(std::back_inserter(buf),
+                       ",{},{},{},\"{}\"\n",
                        google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp()),
-                       fundamentals.parent(), fmt::join(info.snapshot_info().children(), ";"), fundamentals.comment());
+                       fundamentals.parent(),
+                       fmt::join(info.snapshot_info().children(), ";"),
+                       fundamentals.comment());
     }
 
     return fmt::to_string(buf);
@@ -101,18 +109,28 @@ std::string generate_instance_details(const mp::InfoReply reply)
                "outputting instance and snapshot details together is not supported in csv format");
         const auto& instance_details = info.instance_info();
 
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{},{},{},{},{},{},{},{},{},{},",
+                       info.name(),
                        mp::format::status_string_for(info.instance_status()),
                        instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
-                       instance_details.ipv6_size() ? instance_details.ipv6(0) : "", instance_details.current_release(),
-                       instance_details.id(), instance_details.image_release(), instance_details.load(),
-                       instance_details.disk_usage(), info.disk_total(), instance_details.memory_usage(),
+                       instance_details.ipv6_size() ? instance_details.ipv6(0) : "",
+                       instance_details.current_release(),
+                       instance_details.id(),
+                       instance_details.image_release(),
+                       instance_details.load(),
+                       instance_details.disk_usage(),
+                       info.disk_total(),
+                       instance_details.memory_usage(),
                        info.memory_total());
 
         fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
 
-        fmt::format_to(std::back_inserter(buf), ",{},{},{}\n", fmt::join(instance_details.ipv4(), ";"),
-                       info.cpu_count(), instance_details.num_snapshots());
+        fmt::format_to(std::back_inserter(buf),
+                       ",{},{},{}\n",
+                       fmt::join(instance_details.ipv4(), ";"),
+                       info.cpu_count(),
+                       instance_details.num_snapshots());
     }
 
     return fmt::to_string(buf);
@@ -146,8 +164,12 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
     for (const auto& item : mp::format::sorted(snapshot_list.snapshots()))
     {
         const auto& snapshot = item.fundamentals();
-        fmt::format_to(std::back_inserter(buf), "{},{},{},\"{}\"\n", item.name(), snapshot.snapshot_name(),
-                       snapshot.parent(), snapshot.comment());
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{},\"{}\"\n",
+                       item.name(),
+                       snapshot.snapshot_name(),
+                       snapshot.parent(),
+                       snapshot.comment());
     }
 
     return fmt::to_string(buf);

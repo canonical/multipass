@@ -26,8 +26,11 @@ namespace multipass
 class LXDMountHandler : public MountHandler
 {
 public:
-    LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDVirtualMachine* lxd_virtual_machine,
-                    const SSHKeyProvider* ssh_key_provider, const std::string& target_path, VMMount mount_spec);
+    LXDMountHandler(mp::NetworkAccessManager* network_manager,
+                    LXDVirtualMachine* lxd_virtual_machine,
+                    const SSHKeyProvider* ssh_key_provider,
+                    const std::string& target_path,
+                    VMMount mount_spec);
     ~LXDMountHandler() override;
 
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;

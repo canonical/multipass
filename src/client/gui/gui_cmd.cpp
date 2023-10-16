@@ -195,9 +195,9 @@ void cmd::GuiCmd::update_menu()
 
     for (auto it = instances_entries.cbegin(); it != instances_entries.cend(); ++it)
     {
-        auto instance =
-            std::find_if(reply.instance_list().instances().cbegin(), reply.instance_list().instances().cend(),
-                         [it](const ListVMInstance& instance) { return it->first == instance.name(); });
+        auto instance = std::find_if(reply.instance_list().instances().cbegin(),
+                                     reply.instance_list().instances().cend(),
+                                     [it](const ListVMInstance& instance) { return it->first == instance.name(); });
 
         if (instance == reply.instance_list().instances().cend())
         {

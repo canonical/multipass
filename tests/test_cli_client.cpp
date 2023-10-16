@@ -136,11 +136,13 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest> * server)),
                 (override));
-    MOCK_METHOD(grpc::Status, snapshot,
+    MOCK_METHOD(grpc::Status,
+                snapshot,
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest> * server)),
                 (override));
-    MOCK_METHOD(grpc::Status, restore,
+    MOCK_METHOD(grpc::Status,
+                restore,
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::RestoreReply, mp::RestoreRequest> * server)),
                 (override));
@@ -350,7 +352,8 @@ struct Client : public Test
     }
 
     template <typename ReplyType, typename RequestType, typename Matcher>
-    auto check_request_and_return(const Matcher& matcher, const grpc::Status& status,
+    auto check_request_and_return(const Matcher& matcher,
+                                  const grpc::Status& status,
                                   const ReplyType& reply = ReplyType{})
     {
         return [&matcher, &status, reply = std::move(reply)](grpc::ServerReaderWriter<ReplyType, RequestType>* server) {

@@ -41,7 +41,9 @@ class QemuVirtualMachine : public QObject, public BaseVirtualMachine
 public:
     using MountArgs = std::unordered_map<std::string, std::pair<std::string, QStringList>>;
 
-    QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform, VMStatusMonitor& monitor,
+    QemuVirtualMachine(const VirtualMachineDescription& desc,
+                       QemuPlatform* qemu_platform,
+                       VMStatusMonitor& monitor,
                        const Path& instance_dir);
     ~QemuVirtualMachine();
 
@@ -76,8 +78,10 @@ protected:
     }
 
     std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) override;
-    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                     const VMSpecs& specs, std::shared_ptr<Snapshot> parent) override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name,
+                                                     const std::string& comment,
+                                                     const VMSpecs& specs,
+                                                     std::shared_ptr<Snapshot> parent) override;
 
 private:
     void on_started();

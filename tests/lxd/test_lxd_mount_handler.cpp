@@ -168,8 +168,13 @@ TEST_F(LXDMountHandlerTestFixture, stopThrowsIfVMIsRunning)
 TEST_P(LXDMountHandlerInvalidGidUidParameterTests, mountWithGidOrUid)
 {
     mpt::TempDir instance_dir{};
-    mp::LXDVirtualMachine lxd_vm{default_description, stub_monitor,         &mock_network_access_manager, base_url,
-                                 bridge_name,         default_storage_pool, instance_dir.path()};
+    mp::LXDVirtualMachine lxd_vm{default_description,
+                                 stub_monitor,
+                                 &mock_network_access_manager,
+                                 base_url,
+                                 bridge_name,
+                                 default_storage_pool,
+                                 instance_dir.path()};
     const auto& [host_gid, instance_gid, host_uid, instance_uid] = GetParam();
     const mp::VMMount vm_mount{
         source_path, {{host_gid, instance_gid}}, {{host_uid, instance_uid}}, mp::VMMount::MountType::Native};
@@ -186,8 +191,13 @@ INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation, LXDMountHandlerInvalidG
 TEST_P(LXDMountHandlerValidGidUidParameterTests, mountWithGidOrUid)
 {
     mpt::TempDir instance_dir{};
-    mp::LXDVirtualMachine lxd_vm{default_description, stub_monitor,         &mock_network_access_manager, base_url,
-                                 bridge_name,         default_storage_pool, instance_dir.path()};
+    mp::LXDVirtualMachine lxd_vm{default_description,
+                                 stub_monitor,
+                                 &mock_network_access_manager,
+                                 base_url,
+                                 bridge_name,
+                                 default_storage_pool,
+                                 instance_dir.path()};
     const auto& [host_gid, host_uid] = GetParam();
     const int default_instance_id = -1;
     const mp::VMMount vm_mount{source_path,
