@@ -78,14 +78,21 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
     {
         if (mount != mount_paths.cbegin())
             fmt::format_to(std::back_inserter(buf), "{:<16}", "");
-        fmt::format_to(std::back_inserter(buf), "{:{}} => {}\n", mount->source_path(),
-                       item.mount_info().longest_path_len(), mount->target_path());
+        fmt::format_to(std::back_inserter(buf),
+                       "{:{}} => {}\n",
+                       mount->source_path(),
+                       item.mount_info().longest_path_len(),
+                       mount->target_path());
     }
 
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "Created:", google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp()));
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "Parent:", fundamentals.parent().empty() ? "--" : fundamentals.parent());
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Created:",
+                   google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp()));
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Parent:",
+                   fundamentals.parent().empty() ? "--" : fundamentals.parent());
 
     auto children = item.snapshot_info().children();
     fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Children:", children.empty() ? "--\n" : "");
@@ -97,7 +104,9 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
     }
 
     // TODO@snapshots split and align string if it extends onto several lines
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Comment:",
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Comment:",
                    fundamentals.comment().empty()
                        ? "--"
                        : std::regex_replace(fundamentals.comment(), newline, "$&" + std::string(16, ' ')));
@@ -111,8 +120,10 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
     const auto& instance_details = item.instance_info();
 
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Name:", item.name());
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "State:", mp::format::status_string_for(item.instance_status()));
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "State:",
+                   mp::format::status_string_for(item.instance_status()));
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
 
     int ipv4_size = instance_details.ipv4_size();
@@ -129,25 +140,37 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
             fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv6(i));
     }
 
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "Release:", instance_details.current_release().empty() ? "--" : instance_details.current_release());
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Release:",
+                   instance_details.current_release().empty() ? "--" : instance_details.current_release());
     fmt::format_to(std::back_inserter(buf), "{:<16}", "Image hash:");
     if (instance_details.id().empty())
         fmt::format_to(std::back_inserter(buf), "{}\n", "Not Available");
     else
-        fmt::format_to(std::back_inserter(buf), "{}{}\n", instance_details.id().substr(0, 12),
+        fmt::format_to(std::back_inserter(buf),
+                       "{}{}\n",
+                       instance_details.id().substr(0, 12),
                        !instance_details.image_release().empty()
                            ? fmt::format(" (Ubuntu {})", instance_details.image_release())
                            : "");
 
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "CPU(s):", item.cpu_count().empty() ? "--" : item.cpu_count());
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "Load:", instance_details.load().empty() ? "--" : instance_details.load());
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "Disk usage:", to_usage(instance_details.disk_usage(), item.disk_total()));
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n",
-                   "Memory usage:", to_usage(instance_details.memory_usage(), item.memory_total()));
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "CPU(s):",
+                   item.cpu_count().empty() ? "--" : item.cpu_count());
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Load:",
+                   instance_details.load().empty() ? "--" : instance_details.load());
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Disk usage:",
+                   to_usage(instance_details.disk_usage(), item.disk_total()));
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Memory usage:",
+                   to_usage(instance_details.memory_usage(), item.memory_total()));
 
     const auto& mount_paths = item.mount_info().mount_paths();
     fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
@@ -156,8 +179,11 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
     {
         if (mount != mount_paths.cbegin())
             fmt::format_to(std::back_inserter(buf), "{:<16}", "");
-        fmt::format_to(std::back_inserter(buf), "{:{}} => {}\n", mount->source_path(),
-                       item.mount_info().longest_path_len(), mount->target_path());
+        fmt::format_to(std::back_inserter(buf),
+                       "{:{}} => {}\n",
+                       mount->source_path(),
+                       item.mount_info().longest_path_len(),
+                       mount->target_path());
 
         auto mount_maps = mount->mount_maps();
         auto uid_mappings_size = mount_maps.uid_mappings_size();
@@ -168,7 +194,10 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
             auto host_uid = uid_map_pair.host_id();
             auto instance_uid = uid_map_pair.instance_id();
 
-            fmt::format_to(std::back_inserter(buf), "{:>{}}{}:{}{}", (i == 0) ? "UID map: " : "", (i == 0) ? 29 : 0,
+            fmt::format_to(std::back_inserter(buf),
+                           "{:>{}}{}:{}{}",
+                           (i == 0) ? "UID map: " : "",
+                           (i == 0) ? 29 : 0,
                            std::to_string(host_uid),
                            (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid),
                            (i == uid_mappings_size - 1) ? "\n" : ", ");
@@ -180,9 +209,11 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
             auto host_gid = gid_mapping->host_id();
             auto instance_gid = gid_mapping->instance_id();
 
-            fmt::format_to(std::back_inserter(buf), "{:>{}}{}:{}{}{}",
+            fmt::format_to(std::back_inserter(buf),
+                           "{:>{}}{}:{}{}{}",
                            (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
-                           (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0, std::to_string(host_gid),
+                           (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0,
+                           std::to_string(host_gid),
                            (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid),
                            (std::next(gid_mapping) != mount_maps.gid_mappings().cend()) ? ", " : "",
                            (std::next(gid_mapping) == mount_maps.gid_mappings().cend()) ? "\n" : "");
@@ -203,14 +234,24 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
 
     const std::string name_col_header = "Name";
     const auto name_column_width = mp::format::column_width(
-        instances.begin(), instances.end(), [](const auto& instance) -> int { return instance.name().length(); },
-        name_col_header.length(), 24);
+        instances.begin(),
+        instances.end(),
+        [](const auto& instance) -> int { return instance.name().length(); },
+        name_col_header.length(),
+        24);
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
-    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State", state_column_width,
-                   "IPv4", ip_column_width, "Image");
+    fmt::format_to(std::back_inserter(buf),
+                   row_format,
+                   name_col_header,
+                   name_column_width,
+                   "State",
+                   state_column_width,
+                   "IPv4",
+                   ip_column_width,
+                   "Image");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
@@ -244,20 +285,31 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
     const std::string name_col_header = "Instance", snapshot_col_header = "Snapshot", parent_col_header = "Parent",
                       comment_col_header = "Comment";
     const auto name_column_width = mp::format::column_width(
-        snapshots.begin(), snapshots.end(), [](const auto& snapshot) -> int { return snapshot.name().length(); },
+        snapshots.begin(),
+        snapshots.end(),
+        [](const auto& snapshot) -> int { return snapshot.name().length(); },
         name_col_header.length());
     const auto snapshot_column_width = mp::format::column_width(
-        snapshots.begin(), snapshots.end(),
+        snapshots.begin(),
+        snapshots.end(),
         [](const auto& snapshot) -> int { return snapshot.fundamentals().snapshot_name().length(); },
         snapshot_col_header.length());
     const auto parent_column_width = mp::format::column_width(
-        snapshots.begin(), snapshots.end(),
+        snapshots.begin(),
+        snapshots.end(),
         [](const auto& snapshot) -> int { return snapshot.fundamentals().parent().length(); },
         parent_col_header.length());
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
-    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, snapshot_col_header,
-                   snapshot_column_width, parent_col_header, parent_column_width, comment_col_header);
+    fmt::format_to(std::back_inserter(buf),
+                   row_format,
+                   name_col_header,
+                   name_column_width,
+                   snapshot_col_header,
+                   snapshot_column_width,
+                   parent_col_header,
+                   parent_column_width,
+                   comment_col_header);
 
     for (const auto& snapshot : mp::format::sorted(snapshot_list.snapshots()))
     {
@@ -268,9 +320,14 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
         if (std::regex_search(fundamentals.comment().begin(), fundamentals.comment().end(), match, newline))
             max_comment_column_width = std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
 
-        fmt::format_to(std::back_inserter(buf), row_format, snapshot.name(), name_column_width,
-                       fundamentals.snapshot_name(), snapshot_column_width,
-                       fundamentals.parent().empty() ? "--" : fundamentals.parent(), parent_column_width,
+        fmt::format_to(std::back_inserter(buf),
+                       row_format,
+                       snapshot.name(),
+                       name_column_width,
+                       fundamentals.snapshot_name(),
+                       snapshot_column_width,
+                       fundamentals.parent().empty() ? "--" : fundamentals.parent(),
+                       parent_column_width,
                        fundamentals.comment().empty() ? "--"
                        : fundamentals.comment().length() > max_comment_column_width
                            ? fmt::format("{}…", fundamentals.comment().substr(0, max_comment_column_width - 1))
@@ -337,15 +394,24 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
 
     const std::string name_col_header = "Name", type_col_header = "Type", desc_col_header = "Description";
     const auto name_column_width = mp::format::column_width(
-        interfaces.begin(), interfaces.end(), [](const auto& interface) -> int { return interface.name().length(); },
+        interfaces.begin(),
+        interfaces.end(),
+        [](const auto& interface) -> int { return interface.name().length(); },
         name_col_header.length());
     const auto type_column_width = mp::format::column_width(
-        interfaces.begin(), interfaces.end(), [](const auto& interface) -> int { return interface.type().length(); },
+        interfaces.begin(),
+        interfaces.end(),
+        [](const auto& interface) -> int { return interface.type().length(); },
         type_col_header.length());
 
     const auto row_format = "{:<{}}{:<{}}{:<}\n";
-    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, type_col_header,
-                   type_column_width, desc_col_header);
+    fmt::format_to(std::back_inserter(buf),
+                   row_format,
+                   name_col_header,
+                   name_column_width,
+                   type_col_header,
+                   type_column_width,
+                   desc_col_header);
 
     for (const auto& interface : format::sorted(reply.interfaces()))
     {
@@ -419,10 +485,12 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
 
     auto width = [&aliases](const auto get_width, int header_width) -> int {
         return mp::format::column_width(
-            aliases.cbegin(), aliases.cend(),
+            aliases.cbegin(),
+            aliases.cend(),
             [&, get_width](const auto& ctx) -> int {
                 return get_width(*std::max_element(
-                    ctx.second.cbegin(), ctx.second.cend(),
+                    ctx.second.cbegin(),
+                    ctx.second.cend(),
                     [&get_width](const auto& lhs, const auto& rhs) { return get_width(lhs) < get_width(rhs); }));
             },
             header_width);
@@ -438,7 +506,8 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     const auto command_width =
         width([](const auto& alias) -> int { return alias.second.command.length(); }, command_col_header.length());
     const auto context_width = mp::format::column_width(
-        aliases.cbegin(), aliases.cend(),
+        aliases.cbegin(),
+        aliases.cend(),
         [&aliases, &active_context](const auto& alias) -> int {
             return alias.first == aliases.active_context_name() ? alias.first.length() + active_context.length()
                                                                 : alias.first.length();
@@ -447,8 +516,16 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
 
     const auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
 
-    fmt::format_to(std::back_inserter(buf), row_format, alias_col_header, alias_width, instance_col_header,
-                   instance_width, command_col_header, command_width, context_col_header, context_width,
+    fmt::format_to(std::back_inserter(buf),
+                   row_format,
+                   alias_col_header,
+                   alias_width,
+                   instance_col_header,
+                   instance_width,
+                   command_col_header,
+                   command_width,
+                   context_col_header,
+                   context_width,
                    dir_col_header);
 
     for (const auto& [context_name, context_contents] : sort_dict(aliases))

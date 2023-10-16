@@ -51,7 +51,9 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::QemuVirtualMachine>(desc, qemu_platform.get(), monitor,
+    return std::make_unique<mp::QemuVirtualMachine>(desc,
+                                                    qemu_platform.get(),
+                                                    monitor,
                                                     get_instance_directory(desc.vm_name));
 }
 

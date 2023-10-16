@@ -444,7 +444,12 @@ auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
-    return vault.fetch_image(factory.fetch_type(), query, stub_prepare, stub_progress, false, std::nullopt,
+    return vault.fetch_image(factory.fetch_type(),
+                             query,
+                             stub_prepare,
+                             stub_progress,
+                             false,
+                             std::nullopt,
                              factory.get_instance_directory(name));
 }
 
@@ -1217,7 +1222,8 @@ auto timeout_for(const int requested_timeout, const int blueprint_timeout)
 }
 
 mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
-                                           InstanceTable& vm_instances, const InstanceTable& deleted_instances,
+                                           InstanceTable& vm_instances,
+                                           const InstanceTable& deleted_instances,
                                            const std::unordered_set<std::string>& preparing_instances,
                                            std::function<void()> instance_persister)
 {
@@ -1265,7 +1271,8 @@ void populate_snapshot_fundamentals(std::shared_ptr<const mp::Snapshot> snapshot
     timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
 }
 
-void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mounts, mp::MountInfo* mount_info,
+void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mounts,
+                         mp::MountInfo* mount_info,
                          bool& have_mounts)
 {
     mount_info->set_longest_path_len(0);
@@ -1300,8 +1307,10 @@ void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mou
     }
 }
 
-void populate_snapshot_info(mp::VirtualMachine& vm, std::shared_ptr<const mp::Snapshot> snapshot,
-                            mp::DetailedInfoItem* info, bool& have_mounts)
+void populate_snapshot_info(mp::VirtualMachine& vm,
+                            std::shared_ptr<const mp::Snapshot> snapshot,
+                            mp::DetailedInfoItem* info,
+                            bool& have_mounts)
 {
     auto snapshot_info = info->mutable_snapshot_info();
     auto fundamentals = snapshot_info->mutable_fundamentals();
@@ -1708,7 +1717,10 @@ try // clang-format on
         try
         {
             if (all_or_none)
-                populate_instance_info(vm, response.add_details(), request->no_runtime_information(), deleted,
+                populate_instance_info(vm,
+                                       response.add_details(),
+                                       request->no_runtime_information(),
+                                       deleted,
                                        have_mounts);
 
             for (const auto& snapshot : pick)
@@ -1722,9 +1734,11 @@ try // clang-format on
         return grpc_status_for(errors);
     };
 
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances, deleted_instances, request->instances_snapshots(),
-                                   InstanceGroup::All, require_existing_instances_reaction);
+    auto [instance_selection, status] = select_instances_and_react(operative_instances,
+                                                                   deleted_instances,
+                                                                   request->instances_snapshots(),
+                                                                   InstanceGroup::All,
+                                                                   require_existing_instances_reaction);
 
     if (status.ok())
     {
@@ -2216,9 +2230,11 @@ try // clang-format on
                                                          server};
     DeleteReply response;
 
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances, deleted_instances, request->instances_snapshots(),
-                                   InstanceGroup::All, require_existing_instances_reaction);
+    auto [instance_selection, status] = select_instances_and_react(operative_instances,
+                                                                   deleted_instances,
+                                                                   request->instances_snapshots(),
+                                                                   InstanceGroup::All,
+                                                                   require_existing_instances_reaction);
 
     if (status.ok())
     {
@@ -2452,10 +2468,13 @@ void mp::Daemon::snapshot(const mp::SnapshotRequest* request,
 try
 {
     mpl::ClientLogger<SnapshotReply, SnapshotRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                             *config->logger, server};
+                                                             *config->logger,
+                                                             server};
 
     const auto& instance_name = request->instance();
-    auto [instance_trail, status] = find_instance_and_react(operative_instances, deleted_instances, instance_name,
+    auto [instance_trail, status] = find_instance_and_react(operative_instances,
+                                                            deleted_instances,
+                                                            instance_name,
                                                             require_operative_instances_reaction);
 
     if (status.ok())
@@ -2504,12 +2523,15 @@ void mp::Daemon::restore(const mp::RestoreRequest* request,
                          std::promise<grpc::Status>* status_promise)
 try
 {
-    mpl::ClientLogger<RestoreReply, RestoreRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
+    mpl::ClientLogger<RestoreReply, RestoreRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                           *config->logger,
                                                            server};
 
     RestoreReply reply;
     const auto& instance_name = request->instance();
-    auto [instance_trail, status] = find_instance_and_react(operative_instances, deleted_instances, instance_name,
+    auto [instance_trail, status] = find_instance_and_react(operative_instances,
+                                                            deleted_instances,
+                                                            instance_name,
                                                             require_operative_instances_reaction);
 
     if (status.ok())
@@ -2548,7 +2570,8 @@ try
                 const auto snapshot =
                     vm_ptr->take_snapshot(vm_specs, "", fmt::format("Before restoring {}", request->snapshot()));
 
-                reply_msg(server, fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
+                reply_msg(server,
+                          fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
                           /* sticky = */ true);
             }
         }
@@ -2900,9 +2923,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             if (!vm_desc.image.id.empty())
                 checksum = vm_desc.image.id;
 
-            auto vm_image =
-                config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor, launch_from_blueprint,
-                                           checksum, config->factory->get_instance_directory(name));
+            auto vm_image = config->vault->fetch_image(fetch_type,
+                                                       query,
+                                                       prepare_action,
+                                                       progress_monitor,
+                                                       launch_from_blueprint,
+                                                       checksum,
+                                                       config->factory->get_instance_directory(name));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
@@ -3136,9 +3163,13 @@ bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>&
             }
             catch (const std::exception& e)
             {
-                mpl::log(mpl::Level::warning, category,
-                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", mount_spec.source_path, target,
-                                     vm->vm_name, e.what()));
+                mpl::log(mpl::Level::warning,
+                         category,
+                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})",
+                                     mount_spec.source_path,
+                                     target,
+                                     vm->vm_name,
+                                     e.what()));
 
                 specs_it = mount_specs.erase(specs_it); // unordered_map so only iterators to erased element invalidated
                 continue;
@@ -3353,8 +3384,11 @@ void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* se
     server->Write(reply);
 }
 
-void mp::Daemon::populate_instance_info(VirtualMachine& vm, mp::DetailedInfoItem* info, bool no_runtime_info,
-                                        bool deleted, bool& have_mounts)
+void mp::Daemon::populate_instance_info(VirtualMachine& vm,
+                                        mp::DetailedInfoItem* info,
+                                        bool no_runtime_info,
+                                        bool deleted,
+                                        bool& have_mounts)
 {
     const auto& name = vm.vm_name;
     auto instance_info = info->mutable_instance_info();

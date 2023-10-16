@@ -111,8 +111,10 @@ catch (const mp::ExitlessSSHProcessException&)
 
 namespace multipass
 {
-SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider,
-                                     const std::string& target, VMMount mount_spec)
+SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
+                                     const SSHKeyProvider* ssh_key_provider,
+                                     const std::string& target,
+                                     VMMount mount_spec)
     : MountHandler{vm, ssh_key_provider, std::move(mount_spec), target},
       process{nullptr},
       config{"",
@@ -125,7 +127,8 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm, const SSHKeyProvider* s
              this->mount_spec.gid_mappings,
              this->mount_spec.uid_mappings}
 {
-    mpl::log(mpl::Level::info, category,
+    mpl::log(mpl::Level::info,
+             category,
              fmt::format("initializing mount {} => {} in '{}'", this->mount_spec.source_path, target, vm->vm_name));
 }
 

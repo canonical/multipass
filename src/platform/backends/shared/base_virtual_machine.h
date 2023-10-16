@@ -64,7 +64,8 @@ public:
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
     // derived classes is a big refactor
-    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs, const std::string& name,
+    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
+                                                  const std::string& name,
                                                   const std::string& comment) override;
     void delete_snapshot(const std::string& name) override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
@@ -73,7 +74,8 @@ public:
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) = 0;
-    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
+    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name,
+                                                             const std::string& comment,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent) = 0;
 
@@ -91,7 +93,9 @@ private:
     void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, int old_count);
 
     auto make_head_file_rollback(const Path& head_path, QFile& head_file) const;
-    void head_file_rollback_helper(const Path& head_path, QFile& head_file, const std::string& old_head,
+    void head_file_rollback_helper(const Path& head_path,
+                                   QFile& head_file,
+                                   const std::string& old_head,
                                    bool existed) const;
     void persist_head_snapshot() const;
 
@@ -99,12 +103,15 @@ private:
     std::string generate_snapshot_name() const;
 
     auto make_restore_rollback(const Path& head_path, VMSpecs& specs);
-    void restore_rollback_helper(const Path& head_path, const std::shared_ptr<Snapshot>& old_head,
-                                 const VMSpecs& old_specs, VMSpecs& specs);
+    void restore_rollback_helper(const Path& head_path,
+                                 const std::shared_ptr<Snapshot>& old_head,
+                                 const VMSpecs& old_specs,
+                                 VMSpecs& specs);
 
     bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const Path& head_path);
     auto make_deleted_head_rollback(const Path& head_path, const bool& wrote_head);
-    void deleted_head_rollback_helper(const Path& head_path, const bool& wrote_head,
+    void deleted_head_rollback_helper(const Path& head_path,
+                                      const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
 
     void update_parents(std::shared_ptr<Snapshot>& deleted_parent,

@@ -34,14 +34,22 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
-std::function<mp::VMImage(const mp::FetchType&, const mp::Query&, const mp::VMImageVault::PrepareAction&,
-                          const mp::ProgressMonitor&, const bool, const std::optional<std::string>, const mp::Path&)>
+std::function<mp::VMImage(const mp::FetchType&,
+                          const mp::Query&,
+                          const mp::VMImageVault::PrepareAction&,
+                          const mp::ProgressMonitor&,
+                          const bool,
+                          const std::optional<std::string>,
+                          const mp::Path&)>
 mpt::fetch_image_lambda(const std::string& release, const std::string& remote, const bool must_have_checksum)
 {
-    return [&release, &remote, must_have_checksum](
-               const mp::FetchType& fetch_type, const mp::Query& query, const mp::VMImageVault::PrepareAction& prepare,
-               const mp::ProgressMonitor& monitor, const bool unlock, const std::optional<std::string>& checksum,
-               const mp::Path& save_dir) {
+    return [&release, &remote, must_have_checksum](const mp::FetchType& fetch_type,
+                                                   const mp::Query& query,
+                                                   const mp::VMImageVault::PrepareAction& prepare,
+                                                   const mp::ProgressMonitor& monitor,
+                                                   const bool unlock,
+                                                   const std::optional<std::string>& checksum,
+                                                   const mp::Path& save_dir) {
         EXPECT_EQ(query.release, release);
         if (remote.empty())
         {

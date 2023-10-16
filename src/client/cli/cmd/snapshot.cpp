@@ -45,7 +45,10 @@ mp::ReturnCode cmd::Snapshot::run(mp::ArgParser* parser)
     };
 
     spinner.start("Taking snapshot ");
-    return dispatch(&RpcMethod::snapshot, request, on_success, on_failure,
+    return dispatch(&RpcMethod::snapshot,
+                    request,
+                    on_success,
+                    on_failure,
                     make_logging_spinner_callback<SnapshotRequest, SnapshotReply>(spinner, cerr));
 }
 
@@ -72,8 +75,9 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
                                 "names (see `help launch`). Default: \"snapshotN\", where N is one plus the "
                                 "number of snapshots that were ever taken for <instance>.",
                                 "name");
-    QCommandLineOption comment_opt{
-        {"comment", "c", "m"}, "An optional free comment to associate with the snapshot.", "comment"};
+    QCommandLineOption comment_opt{{"comment", "c", "m"},
+                                   "An optional free comment to associate with the snapshot.",
+                                   "comment"};
     parser->addOptions({name_opt, comment_opt});
 
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)

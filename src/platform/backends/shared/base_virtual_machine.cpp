@@ -98,7 +98,8 @@ void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted
 namespace multipass
 {
 
-BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name,
+BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
+                                       const std::string& vm_name,
                                        const mp::Path& instance_dir)
     : VirtualMachine(state, vm_name, instance_dir){};
 
@@ -148,8 +149,9 @@ auto BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
 
     const std::unique_lock lock{snapshot_mutex};
     ret.reserve(snapshots.size());
-    std::transform(std::cbegin(snapshots), std::cend(snapshots), std::back_inserter(ret),
-                   [](const auto& pair) { return pair.second; });
+    std::transform(std::cbegin(snapshots), std::cend(snapshots), std::back_inserter(ret), [](const auto& pair) {
+        return pair.second;
+    });
 
     return ret;
 }
@@ -172,7 +174,8 @@ std::shared_ptr<Snapshot> BaseVirtualMachine::get_snapshot(const std::string& na
     return std::const_pointer_cast<Snapshot>(std::as_const(*this).get_snapshot(name));
 }
 
-void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head,
+void BaseVirtualMachine::take_snapshot_rollback_helper(SnapshotMap::iterator it,
+                                                       std::shared_ptr<Snapshot>& old_head,
                                                        int old_count)
 {
     if (old_head != head_snapshot)
@@ -200,7 +203,8 @@ auto BaseVirtualMachine::make_take_snapshot_rollback(SnapshotMap::iterator it)
         });
 }
 
-std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs& specs, const std::string& name,
+std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs& specs,
+                                                                  const std::string& name,
                                                                   const std::string& comment)
 {
     std::string snapshot_name;
@@ -254,7 +258,8 @@ auto BaseVirtualMachine::make_deleted_head_rollback(const Path& head_path, const
     });
 }
 
-void BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path, const bool& wrote_head,
+void BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
+                                                      const bool& wrote_head,
                                                       std::shared_ptr<Snapshot>& old_head)
 {
     if (head_snapshot != old_head)
@@ -351,8 +356,10 @@ void BaseVirtualMachine::load_snapshots()
 {
     std::unique_lock lock{snapshot_mutex};
 
-    auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir, {QString{"*.%1"}.arg(snapshot_extension)},
-                                                   QDir::Filter::Files | QDir::Filter::Readable, QDir::SortFlag::Name);
+    auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
+                                                   {QString{"*.%1"}.arg(snapshot_extension)},
+                                                   QDir::Filter::Files | QDir::Filter::Readable,
+                                                   QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
         load_snapshot_from_file(finfo.filePath());
 
@@ -399,8 +406,11 @@ void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
         auto name = head_snapshot->get_name();
         lock.unlock(); // unlock earlier
 
-        mpl::log(log_detail_lvl, vm_name,
-                 fmt::format(R"(New snapshot: "{}"; Descendant of: "{}"; Total snapshots: {})", name, parent_name,
+        mpl::log(log_detail_lvl,
+                 vm_name,
+                 fmt::format(R"(New snapshot: "{}"; Descendant of: "{}"; Total snapshots: {})",
+                             name,
+                             parent_name,
                              num_snapshots));
     }
 }
@@ -415,7 +425,8 @@ void BaseVirtualMachine::load_snapshot_from_file(const QString& filename)
     const auto& data = MP_FILEOPS.read_all(file);
 
     if (auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
-        throw std::runtime_error{fmt::v9::format("Could not parse snapshot JSON; error: {}; file: {}", file.fileName(),
+        throw std::runtime_error{fmt::v9::format("Could not parse snapshot JSON; error: {}; file: {}",
+                                                 file.fileName(),
                                                  parse_error.errorString())};
     else if (json.isEmpty())
         throw std::runtime_error{fmt::v9::format("Empty snapshot JSON: {}", file.fileName())};
@@ -438,13 +449,18 @@ void BaseVirtualMachine::load_snapshot(const QJsonObject& json)
 
 auto BaseVirtualMachine::make_head_file_rollback(const Path& head_path, QFile& head_file) const
 {
-    return sg::make_scope_guard([this, &head_path, &head_file, old_head = head_snapshot->get_parents_name(),
+    return sg::make_scope_guard([this,
+                                 &head_path,
+                                 &head_file,
+                                 old_head = head_snapshot->get_parents_name(),
                                  existed = head_file.exists()]() noexcept {
         head_file_rollback_helper(head_path, head_file, old_head, existed);
     });
 }
 
-void BaseVirtualMachine::head_file_rollback_helper(const Path& head_path, QFile& head_file, const std::string& old_head,
+void BaseVirtualMachine::head_file_rollback_helper(const Path& head_path,
+                                                   QFile& head_file,
+                                                   const std::string& old_head,
                                                    bool existed) const
 {
     // best effort, ignore returns
@@ -498,13 +514,20 @@ std::string BaseVirtualMachine::generate_snapshot_name() const
 auto BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpecs& specs)
 {
     return sg::make_scope_guard([this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
-        top_catch_all(vm_name, &BaseVirtualMachine::restore_rollback_helper, this, head_path, old_head, old_specs,
+        top_catch_all(vm_name,
+                      &BaseVirtualMachine::restore_rollback_helper,
+                      this,
+                      head_path,
+                      old_head,
+                      old_specs,
                       specs);
     });
 }
 
-void BaseVirtualMachine::restore_rollback_helper(const Path& head_path, const std::shared_ptr<Snapshot>& old_head,
-                                                 const VMSpecs& old_specs, VMSpecs& specs)
+void BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
+                                                 const std::shared_ptr<Snapshot>& old_head,
+                                                 const VMSpecs& old_specs,
+                                                 VMSpecs& specs)
 {
     // best effort only
     old_head->apply();

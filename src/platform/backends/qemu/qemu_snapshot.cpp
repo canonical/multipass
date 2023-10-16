@@ -35,24 +35,30 @@ namespace
 std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag, const mp::Path& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path},
-                                                    /* src_img = */ "", image_path);
+                                                    /* src_img = */ "",
+                                                    image_path);
 }
 
 std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag, const mp::Path& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-a", tag, image_path},
-                                                    /* src_img = */ "", image_path);
+                                                    /* src_img = */ "",
+                                                    image_path);
 }
 
 std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const QString& tag, const mp::Path& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", tag, image_path},
-                                                    /* src_img = */ "", image_path);
+                                                    /* src_img = */ "",
+                                                    image_path);
 }
 } // namespace
 
-mp::QemuSnapshot::QemuSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                               std::shared_ptr<Snapshot> parent, VirtualMachineDescription& desc)
+mp::QemuSnapshot::QemuSnapshot(const std::string& name,
+                               const std::string& comment,
+                               const VMSpecs& specs,
+                               std::shared_ptr<Snapshot> parent,
+                               VirtualMachineDescription& desc)
     : BaseSnapshot(name, comment, specs, std::move(parent)), desc{desc}, image_path{desc.image.image_path}
 {
 }
@@ -69,8 +75,10 @@ void mp::QemuSnapshot::capture_impl()
     // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
     // identify the snapshot by tag)
     if (backend::instance_image_has_snapshot(image_path, tag))
-        throw std::runtime_error{fmt::format(
-            "A snapshot with the same tag already exists in the image. Image: {}; tag: {})", image_path, tag)};
+        throw std::runtime_error{
+            fmt::format("A snapshot with the same tag already exists in the image. Image: {}; tag: {})",
+                        image_path,
+                        tag)};
 
     mp::backend::checked_exec_qemu_img(make_capture_spec(tag, image_path));
 }

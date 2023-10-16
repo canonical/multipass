@@ -34,7 +34,9 @@ bool mp::FileOps::isReadable(const QDir& dir) const
     return dir.isReadable();
 }
 
-QFileInfoList multipass::FileOps::entryInfoList(const QDir& dir, const QStringList& nameFilters, QDir::Filters filters,
+QFileInfoList multipass::FileOps::entryInfoList(const QDir& dir,
+                                                const QStringList& nameFilters,
+                                                QDir::Filters filters,
                                                 QDir::SortFlags sort) const
 {
     return dir.entryInfoList(nameFilters, filters, sort);

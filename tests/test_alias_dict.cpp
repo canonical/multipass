@@ -470,8 +470,10 @@ TEST_P(FormatterTestsuite, table)
 
 const std::string csv_head{"Alias,Instance,Command,Working directory,Context\n"};
 
-INSTANTIATE_TEST_SUITE_P(AliasDictionary, FormatterTestsuite,
-                         Values(std::make_tuple(AliasesVector{}, csv_head,
+INSTANTIATE_TEST_SUITE_P(AliasDictionary,
+                         FormatterTestsuite,
+                         Values(std::make_tuple(AliasesVector{},
+                                                csv_head,
                                                 "{\n"
                                                 "    \"active-context\": \"default\",\n"
                                                 "    \"contexts\": {\n"

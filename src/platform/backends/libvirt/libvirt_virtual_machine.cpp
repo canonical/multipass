@@ -258,7 +258,8 @@ void update_max_and_property(virDomainPtr domain_ptr, Updater* fun_ptr, Integer 
 } // namespace
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
-                                                 const std::string& bridge_name, mp::VMStatusMonitor& monitor,
+                                                 const std::string& bridge_name,
+                                                 mp::VMStatusMonitor& monitor,
                                                  const mp::LibvirtWrapper::UPtr& libvirt_wrapper,
                                                  const mp::Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, instance_dir},
@@ -545,9 +546,10 @@ void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
     desc.disk_space = new_size;
 }
 
-auto mp::LibVirtVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                       const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
-    -> std::shared_ptr<Snapshot>
+auto mp::LibVirtVirtualMachine::make_specific_snapshot(const std::string& name,
+                                                       const std::string& comment,
+                                                       const VMSpecs& specs,
+                                                       std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
