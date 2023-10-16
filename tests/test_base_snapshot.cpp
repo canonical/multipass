@@ -127,4 +127,13 @@ TEST_F(TestBaseSnapshot, adopts_custom_metadata)
     auto snapshot = MockBaseSnapshot{"snapshot", "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
 }
+
+TEST_F(TestBaseSnapshot, adopts_next_index)
+{
+    int count = 123;
+    EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(count));
+
+    auto snapshot = MockBaseSnapshot{"tau", "ceti", nullptr, specs, vm};
+    EXPECT_EQ(snapshot.get_index(), count + 1);
+}
 } // namespace
