@@ -1228,14 +1228,17 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            const std::unordered_set<std::string>& preparing_instances,
                                            std::function<void()> instance_persister)
 {
-    return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(
-        vm_instance_specs, operative_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
+    return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
+                                                                                      operative_instances,
+                                                                                      deleted_instances,
+                                                                                      preparing_instances,
+                                                                                      std::move(instance_persister)));
 }
 
-mp::SettingsHandler*
-register_snapshot_mod(std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
-                      const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-                      const std::unordered_set<std::string>& preparing_instances)
+mp::SettingsHandler* register_snapshot_mod(
+    std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
+    const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
+    const std::unordered_set<std::string>& preparing_instances)
 {
     return MP_SETTINGS.register_handler(
         std::make_unique<mp::SnapshotSettingsHandler>(operative_instances, deleted_instances, preparing_instances));
@@ -1350,8 +1353,11 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      instance_mod_handler{register_instance_mod(vm_instance_specs, operative_instances, deleted_instances,
-                                                 preparing_instances, [this] { persist_instances(); })},
+      instance_mod_handler{register_instance_mod(vm_instance_specs,
+                                                 operative_instances,
+                                                 deleted_instances,
+                                                 preparing_instances,
+                                                 [this] { persist_instances(); })},
       snapshot_mod_handler{register_snapshot_mod(operative_instances, deleted_instances, preparing_instances)}
 {
     connect_rpc(daemon_rpc, *this);
