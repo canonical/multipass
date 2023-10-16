@@ -173,6 +173,10 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       run: git config --local core.symlinks true
 
+    - name: Disable auto CRLF on Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: git config --local core.autocrlf false
+
     - name: Check out the code
       # This can't be easily abstracted into our `checkout` action due to a chicken'n'egg problem:
       # GitHub reads ./* actions from $PWD, so it needs to be checked out. It could be extracted
