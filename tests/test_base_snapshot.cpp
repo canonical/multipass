@@ -92,4 +92,39 @@ TEST_F(TestBaseSnapshot, adopts_null_parent)
     auto snapshot = MockBaseSnapshot{"descendant", "descends", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_parent(), nullptr);
 }
+
+TEST_F(TestBaseSnapshot, adopts_given_specs)
+{
+    auto snapshot = MockBaseSnapshot{"snapshot", "", nullptr, specs, vm};
+    EXPECT_EQ(snapshot.get_num_cores(), specs.num_cores);
+    EXPECT_EQ(snapshot.get_mem_size(), specs.mem_size);
+    EXPECT_EQ(snapshot.get_disk_space(), specs.disk_space);
+    EXPECT_EQ(snapshot.get_state(), specs.state);
+    EXPECT_EQ(snapshot.get_mounts(), specs.mounts);
+    EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
+}
+
+TEST_F(TestBaseSnapshot, adopts_custom_mounts)
+{
+    specs.mounts["toto"] =
+        mp::VMMount{"src", {{123, 234}, {567, 678}}, {{19, 91}}, multipass::VMMount::MountType::Classic};
+    specs.mounts["tata"] =
+        mp::VMMount{"fountain", {{234, 123}}, {{81, 18}, {9, 10}}, multipass::VMMount::MountType::Native};
+
+    auto snapshot = MockBaseSnapshot{"snapshot", "", nullptr, specs, vm};
+    EXPECT_EQ(snapshot.get_mounts(), specs.mounts);
+}
+
+TEST_F(TestBaseSnapshot, adopts_custom_metadata)
+{
+    QJsonObject json;
+    QJsonObject data;
+    data.insert("an-int", 7);
+    data.insert("a-str", "str");
+    json.insert("meta", data);
+    specs.metadata = json;
+
+    auto snapshot = MockBaseSnapshot{"snapshot", "", nullptr, specs, vm};
+    EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
+}
 } // namespace
