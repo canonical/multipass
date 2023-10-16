@@ -95,13 +95,23 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 
 void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name)
 {
-    power_shell->easy_run({"Get-VMCheckpoint", "-VMName", name, "|", "Where-Object", "{", "$_.IsAutomaticCheckpoint",
-                           "}", "|", "Remove-VMCheckpoint", "-Confirm:$false"},
+    power_shell->easy_run({"Get-VMCheckpoint",
+                           "-VMName",
+                           name,
+                           "|",
+                           "Where-Object",
+                           "{",
+                           "$_.IsAutomaticCheckpoint",
+                           "}",
+                           "|",
+                           "Remove-VMCheckpoint",
+                           "-Confirm:$false"},
                           "Could not delete existing automatic checkpoints");
 }
 } // namespace
 
-mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
+                                               VMStatusMonitor& monitor,
                                                const mp::Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
@@ -117,9 +127,19 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         power_shell->easy_run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)},
                               "Could not find the default switch");
 
-        power_shell->easy_run({"New-VM", "-Name", name, "-Generation", "2", "-VHDPath",
-                               '"' + desc.image.image_path + '"', "-BootDevice", "VHD", "-SwitchName", "$switch.Name",
-                               "-MemoryStartupBytes", mem_size},
+        power_shell->easy_run({"New-VM",
+                               "-Name",
+                               name,
+                               "-Generation",
+                               "2",
+                               "-VHDPath",
+                               '"' + desc.image.image_path + '"',
+                               "-BootDevice",
+                               "VHD",
+                               "-SwitchName",
+                               "$switch.Name",
+                               "-MemoryStartupBytes",
+                               mem_size},
                               "Could not create VM");
         power_shell->easy_run({"Set-VMFirmware", "-VMName", name, "-EnableSecureBoot", "Off"},
                               "Could not disable secure boot");
@@ -147,7 +167,10 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 void mp::HyperVVirtualMachine::setup_network_interfaces(const std::string& default_mac_address,
                                                         const std::vector<NetworkInterface>& extra_interfaces)
 {
-    power_shell->easy_run({"Set-VMNetworkAdapter", "-VMName", name, "-StaticMacAddress",
+    power_shell->easy_run({"Set-VMNetworkAdapter",
+                           "-VMName",
+                           name,
+                           "-StaticMacAddress",
                            QString::fromStdString('"' + default_mac_address + '"')},
                           "Could not setup default adapter");
 
@@ -156,7 +179,12 @@ void mp::HyperVVirtualMachine::setup_network_interfaces(const std::string& defau
         const auto switch_ = '"' + QString::fromStdString(net.id) + '"';
         power_shell->easy_run({"Get-VMSwitch", "-Name", switch_},
                               fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
-        power_shell->easy_run({"Add-VMNetworkAdapter", "-VMName", name, "-SwitchName", switch_, "-StaticMacAddress",
+        power_shell->easy_run({"Add-VMNetworkAdapter",
+                               "-VMName",
+                               name,
+                               "-SwitchName",
+                               switch_,
+                               "-StaticMacAddress",
                                QString::fromStdString('"' + net.mac_address + '"')},
                               fmt::format("Could not setup adapter for {}", net.id));
     }
@@ -330,9 +358,10 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
     return std::make_unique<SmbMountHandler>(this, ssh_key_provider, target, mount, instance_dir.absolutePath());
 }
 
-auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
-                                                      const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
-    -> std::shared_ptr<Snapshot>
+auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
+                                                      const std::string& comment,
+                                                      const VMSpecs& specs,
+                                                      std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
     assert(power_shell);
     return std::make_shared<HyperVSnapshot>(snapshot_name, comment, specs, std::move(parent), name, *power_shell);

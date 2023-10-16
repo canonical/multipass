@@ -46,7 +46,8 @@ bool snapshot_exists(mp::PowerShell& ps, const QString& vm_name, const QString& 
 
     if (!output.contains(expected_error))
     {
-        mpl::log(mpl::Level::warning, vm_name.toStdString(),
+        mpl::log(mpl::Level::warning,
+                 vm_name.toStdString(),
                  fmt::format("Get-VMCheckpoint failed with unexpected output: {}", output));
         throw std::runtime_error{"Failure while looking for snapshot name"};
     }
@@ -61,13 +62,19 @@ void require_unique_id(mp::PowerShell& ps, const QString& vm_name, const QString
 }
 } // namespace
 
-mp::HyperVSnapshot::HyperVSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
-                                   std::shared_ptr<Snapshot> parent, const QString& vm_name, PowerShell& power_shell)
+mp::HyperVSnapshot::HyperVSnapshot(const std::string& name,
+                                   const std::string& comment,
+                                   const VMSpecs& specs,
+                                   std::shared_ptr<Snapshot> parent,
+                                   const QString& vm_name,
+                                   PowerShell& power_shell)
     : BaseSnapshot{name, comment, specs, std::move(parent)}, vm_name{vm_name}, power_shell{power_shell}
 {
 }
 
-mp::HyperVSnapshot::HyperVSnapshot(const QJsonObject& json, HyperVVirtualMachine& vm, const QString& vm_name,
+mp::HyperVSnapshot::HyperVSnapshot(const QJsonObject& json,
+                                   HyperVVirtualMachine& vm,
+                                   const QString& vm_name,
                                    PowerShell& power_shell)
     : BaseSnapshot{json, vm}, vm_name{vm_name}, power_shell{power_shell}
 {
@@ -87,7 +94,8 @@ void mp::HyperVSnapshot::erase_impl()
         power_shell.easy_run({"Remove-VMCheckpoint", "-VMName", vm_name, "-Name", id, "-Confirm:$false"},
                              "Could not delete snapshot");
     else
-        mpl::log(mpl::Level::warning, vm_name.toStdString(),
+        mpl::log(mpl::Level::warning,
+                 vm_name.toStdString(),
                  fmt::format("Could not find underlying Hyper-V snapshot for \"{}\". Ignoring...", get_name()));
 }
 

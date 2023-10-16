@@ -142,7 +142,8 @@ QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const 
 
 } // namespace
 
-mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
+mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
+                                                       VMStatusMonitor& monitor,
                                                        const mp::Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
@@ -368,9 +369,10 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
                                 "Could not resize image: {}", name);
 }
 
-auto mp::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                          const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
-    -> std::shared_ptr<Snapshot>
+auto mp::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& name,
+                                                          const std::string& comment,
+                                                          const VMSpecs& specs,
+                                                          std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }

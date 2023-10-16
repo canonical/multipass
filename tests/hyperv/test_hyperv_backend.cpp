@@ -105,9 +105,13 @@ struct HyperVBackend : public Test
         return ret;
     }
 
-    inline static const std::vector<RunSpec> prefix_ctor_runs = {
-        {"Get-VM", "", false}, {"Get-VMSwitch"},   {"New-VM"},      {"-EnableSecureBoot Off"},
-        {"Set-VMProcessor"},   {"Add-VMDvdDrive"}, {"Set-VMMemory"}};
+    inline static const std::vector<RunSpec> prefix_ctor_runs = {{"Get-VM", "", false},
+                                                                 {"Get-VMSwitch"},
+                                                                 {"New-VM"},
+                                                                 {"-EnableSecureBoot Off"},
+                                                                 {"Set-VMProcessor"},
+                                                                 {"Add-VMDvdDrive"},
+                                                                 {"Set-VMMemory"}};
     inline static const std::vector<RunSpec> postfix_ctor_runs = {{"Set-VM"}, {"Get-VMCheckpoint"}};
     inline static const RunSpec default_network_run = {"Set-VMNetworkAdapter"};
     inline static const RunSpec min_dtor_run = {"-ExpandProperty State", "Off"};

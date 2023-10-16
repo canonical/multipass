@@ -62,8 +62,10 @@ public:
 
 protected:
     std::shared_ptr<Snapshot> make_specific_snapshot(const QJsonObject& json) override;
-    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name, const std::string& comment,
-                                                     const VMSpecs& specs, std::shared_ptr<Snapshot> parent) override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
+                                                     const std::string& comment,
+                                                     const VMSpecs& specs,
+                                                     std::shared_ptr<Snapshot> parent) override;
 
 private:
     void setup_network_interfaces(const std::string& default_mac_address,
