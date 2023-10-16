@@ -62,4 +62,24 @@ TEST_F(TestBaseSnapshot, adopts_given_valid_name)
     auto snapshot = MockBaseSnapshot{name, "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_name(), name);
 }
+
+TEST_F(TestBaseSnapshot, adopts_given_comment)
+{
+    auto comment = "some comment";
+    auto snapshot = MockBaseSnapshot{"whatever", comment, nullptr, specs, vm};
+    EXPECT_EQ(snapshot.get_comment(), comment);
+}
+
+TEST_F(TestBaseSnapshot, adopts_given_parent)
+{
+    auto parent = std::make_shared<MockBaseSnapshot>("root", "asdf", nullptr, specs, vm);
+    auto snapshot = MockBaseSnapshot{"descendant", "descends", parent, specs, vm};
+    EXPECT_EQ(snapshot.get_parent(), parent);
+}
+
+TEST_F(TestBaseSnapshot, adopts_null_parent)
+{
+    auto snapshot = MockBaseSnapshot{"descendant", "descends", nullptr, specs, vm};
+    EXPECT_EQ(snapshot.get_parent(), nullptr);
+}
 } // namespace
