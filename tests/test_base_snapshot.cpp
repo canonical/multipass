@@ -136,4 +136,18 @@ TEST_F(TestBaseSnapshot, adopts_next_index)
     auto snapshot = MockBaseSnapshot{"tau", "ceti", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_index(), count + 1);
 }
+
+TEST_F(TestBaseSnapshot, retrieves_parents_properties)
+{
+    int parent_index = 11;
+    std::string parent_name = "parent";
+
+    EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(parent_index - 1)).WillOnce(Return(31));
+
+    auto parent = std::make_shared<MockBaseSnapshot>(parent_name, "", nullptr, specs, vm);
+
+    auto child = MockBaseSnapshot{"child", "", parent, specs, vm};
+    EXPECT_EQ(child.get_parents_index(), parent_index);
+    EXPECT_EQ(child.get_parents_name(), parent_name);
+}
 } // namespace
