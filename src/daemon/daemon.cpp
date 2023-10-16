@@ -2768,8 +2768,25 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
         clone_spec_item_and_write_to_instance_db(source_name, destination_name);
 
         config->vault->clone(source_name, destination_name);
-        // main body of the program, the clone process
-        throw std::runtime_error("clone feature is not ready yet");
+
+        // create the directory and copy the image file and cloud-init-config.iso file
+        const QString backend_data_direcotry =
+            mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name());
+        const auto instances_data_directory =
+            std::filesystem::path(backend_data_direcotry.toStdString()) / "vault" / "instances";
+        const std::filesystem::path source_instance_data_directory = instances_data_directory / source_name;
+        const std::filesystem::path dest_instance_data_directory = instances_data_directory / destination_name;
+
+        std::filesystem::copy(source_instance_data_directory,
+                              dest_instance_data_directory,
+                              std::filesystem::copy_options::recursive);
+
+        mpl::log(mpl::Level::info,
+                 "general",
+                 fmt::format("source_instance_data_directory value is : {}", source_instance_data_directory.string()));
+        mpl::log(mpl::Level::info,
+                 "general",
+                 fmt::format("dest_instance_data_directory value is : {}", dest_instance_data_directory.string()));
 
         CloneReply rpc_response;
         server->Write(rpc_response);
