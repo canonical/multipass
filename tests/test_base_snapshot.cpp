@@ -23,6 +23,8 @@
 
 #include <multipass/memory_size.h>
 
+#include <stdexcept>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
@@ -53,7 +55,7 @@ struct TestBaseSnapshot : public Test
     }
 
     mp::VMSpecs specs = stub_specs();
-    mpt::MockVirtualMachine vm{"a-vm"};
+    mpt::MockVirtualMachine vm{"a-vm"}; // TODO@no-merge nice?
 };
 
 TEST_F(TestBaseSnapshot, adopts_given_valid_name)
@@ -61,6 +63,14 @@ TEST_F(TestBaseSnapshot, adopts_given_valid_name)
     auto name = "a-name";
     auto snapshot = MockBaseSnapshot{name, "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_name(), name);
+}
+
+TEST_F(TestBaseSnapshot, rejects_empty_name)
+{
+    std::string empty{};
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{empty, "asdf", nullptr, specs, vm}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("empty")));
 }
 
 TEST_F(TestBaseSnapshot, adopts_given_comment)
