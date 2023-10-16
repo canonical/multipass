@@ -207,8 +207,6 @@ _multipass_complete()
     local cur cmd opts prev prev2 prev_opts multipass_aliases unused_aliases
     _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
     COMPREPLY=()
-    instances=()
-    snapshots=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     if [[ ${COMP_CWORD} -gt 1 ]]; then
@@ -266,10 +264,10 @@ _multipass_complete()
             _add_nonrepeating_args "--parents --recursive"
         ;;
         "snapshot")
-            opts="${opts} --name --comment"
+            _add_nonrepeating_args "--name --comment"
         ;;
         "restore")
-            opts="${opts} --destructive"
+            _add_nonrepeating_args "--destructive"
         ;;
     esac
 
@@ -404,9 +402,6 @@ _multipass_complete()
                 opts=$multipass_cmds
             ;;
         esac
-
-        opts+="${instances}"
-        opts+="${snapshots}"
     fi
 
     if [[ ${COMP_CWORD} -eq 1 ]]; then
