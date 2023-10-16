@@ -47,15 +47,16 @@ void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_Alia
 
 // Computes the column width needed to display all the elements of a range [begin, end). get_width is a function
 // which takes as input the element in the range and returns its width in columns.
-static constexpr auto column_width = [](const auto begin, const auto end, const auto get_width, int header_width,
-                                        int minimum_width = 0) {
-    if (0 == std::distance(begin, end))
-        return std::max({header_width + col_buffer, minimum_width});
+static constexpr auto column_width =
+    [](const auto begin, const auto end, const auto get_width, int header_width, int minimum_width = 0) {
+        if (0 == std::distance(begin, end))
+            return std::max({header_width + col_buffer, minimum_width});
 
-    auto max_width =
-        std::max_element(begin, end, [&get_width](auto& lhs, auto& rhs) { return get_width(lhs) < get_width(rhs); });
-    return std::max({get_width(*max_width) + col_buffer, header_width + col_buffer, minimum_width});
-};
+        auto max_width = std::max_element(begin, end, [&get_width](auto& lhs, auto& rhs) {
+            return get_width(lhs) < get_width(rhs);
+        });
+        return std::max({get_width(*max_width) + col_buffer, header_width + col_buffer, minimum_width});
+    };
 } // namespace format
 } // namespace multipass
 

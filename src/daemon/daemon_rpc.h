@@ -98,9 +98,11 @@ signals:
     void on_authenticate(const AuthenticateRequest* request,
                          grpc::ServerReaderWriter<AuthenticateReply, AuthenticateRequest>* server,
                          std::promise<grpc::Status>* status_promise);
-    void on_snapshot(const SnapshotRequest* request, grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server,
+    void on_snapshot(const SnapshotRequest* request,
+                     grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server,
                      std::promise<grpc::Status>* status_promise);
-    void on_restore(const RestoreRequest* request, grpc::ServerReaderWriter<RestoreReply, RestoreRequest>* server,
+    void on_restore(const RestoreRequest* request,
+                    grpc::ServerReaderWriter<RestoreReply, RestoreRequest>* server,
                     std::promise<grpc::Status>* status_promise);
 
 private:

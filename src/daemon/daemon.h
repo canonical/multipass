@@ -162,12 +162,14 @@ private:
     void stop_mounts(const std::string& name);
 
     // This returns whether any specs were updated (and need persisting)
-    bool update_mounts(VMSpecs& vm_specs, std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
+    bool update_mounts(VMSpecs& vm_specs,
+                       std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
                        VirtualMachine* vm);
 
     // This returns whether all required mount handlers were successfully created
     bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
-                               std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts, VirtualMachine* vm);
+                               std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
+                               VirtualMachine* vm);
 
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
 
@@ -195,7 +197,10 @@ private:
     template <typename Reply, typename Request>
     void reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server, std::string&& msg, bool sticky = false);
 
-    void populate_instance_info(VirtualMachine& vm, DetailedInfoItem* info, bool runtime_info, bool deleted,
+    void populate_instance_info(VirtualMachine& vm,
+                                DetailedInfoItem* info,
+                                bool runtime_info,
+                                bool deleted,
                                 bool& have_mounts);
 
     std::unique_ptr<const DaemonConfig> config;

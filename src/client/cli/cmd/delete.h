@@ -46,7 +46,9 @@ private:
 
     ParseCode parse_args(ArgParser* parser);
     ParseCode parse_instances_snapshots(ArgParser* parser);
-    ParseCode enforce_purged_snapshots(std::string& instances, std::string& snapshots, bool instance_found,
+    ParseCode enforce_purged_snapshots(std::string& instances,
+                                       std::string& snapshots,
+                                       bool instance_found,
                                        bool snapshot_found);
 };
 } // namespace cmd

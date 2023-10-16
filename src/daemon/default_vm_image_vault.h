@@ -45,13 +45,19 @@ public:
 class DefaultVMImageVault final : public BaseVMImageVault
 {
 public:
-    DefaultVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader,
-                        const multipass::Path& cache_dir_path, const multipass::Path& data_dir_path,
+    DefaultVMImageVault(std::vector<VMImageHost*> image_host,
+                        URLDownloader* downloader,
+                        const multipass::Path& cache_dir_path,
+                        const multipass::Path& data_dir_path,
                         const multipass::days& days_to_expire);
     ~DefaultVMImageVault();
 
-    VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
-                        const ProgressMonitor& monitor, const bool unlock, const std::optional<std::string>& checksum,
+    VMImage fetch_image(const FetchType& fetch_type,
+                        const Query& query,
+                        const PrepareAction& prepare,
+                        const ProgressMonitor& monitor,
+                        const bool unlock,
+                        const std::optional<std::string>& checksum,
                         const Path& save_dir) override;
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
@@ -67,7 +73,9 @@ private:
                                               const PrepareAction& prepare, const ProgressMonitor& monitor);
     QString extract_image_from(const VMImage& source_image, const ProgressMonitor& monitor, const Path& dest_dir);
     std::optional<QFuture<VMImage>> get_image_future(const std::string& id);
-    VMImage finalize_image_records(const Query& query, const VMImage& prepared_image, const std::string& id,
+    VMImage finalize_image_records(const Query& query,
+                                   const VMImage& prepared_image,
+                                   const std::string& id,
                                    const Path& dest_dir);
     void persist_image_records();
     void persist_instance_records();

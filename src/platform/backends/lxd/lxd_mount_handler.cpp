@@ -27,8 +27,10 @@ constexpr int timeout_milliseconds = 30000;
 
 namespace multipass
 {
-LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDVirtualMachine* lxd_virtual_machine,
-                                 const SSHKeyProvider* ssh_key_provider, const std::string& target_path,
+LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager,
+                                 LXDVirtualMachine* lxd_virtual_machine,
+                                 const SSHKeyProvider* ssh_key_provider,
+                                 const std::string& target_path,
                                  VMMount mount_spec)
     : MountHandler{lxd_virtual_machine, ssh_key_provider, std::move(mount_spec), target_path},
       network_manager{network_manager},

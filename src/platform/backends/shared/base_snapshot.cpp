@@ -76,15 +76,21 @@ std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMa
     catch (std::out_of_range&)
     {
         throw std::runtime_error{fmt::format("Missing snapshot parent. Snapshot name: {}; parent name: {}",
-                                             json["name"].toString(), parent_name)};
+                                             json["name"].toString(),
+                                             parent_name)};
     }
 }
 } // namespace
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, // NOLINT(modernize-pass-by-value)
-                               const QDateTime& creation_timestamp, int num_cores, MemorySize mem_size,
-                               MemorySize disk_space, VirtualMachine::State state,
-                               std::unordered_map<std::string, VMMount> mounts, QJsonObject metadata,
+mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-pass-by-value)
+                               const std::string& comment, // NOLINT(modernize-pass-by-value)
+                               const QDateTime& creation_timestamp,
+                               int num_cores,
+                               MemorySize mem_size,
+                               MemorySize disk_space,
+                               VirtualMachine::State state,
+                               std::unordered_map<std::string, VMMount> mounts,
+                               QJsonObject metadata,
                                std::shared_ptr<Snapshot> parent)
     : name{name},
       comment{comment},
@@ -107,7 +113,9 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comme
         throw std::runtime_error{fmt::format("Invalid disk size for snapshot: {}", disk_bytes)};
 }
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name, const std::string& comment, const VMSpecs& specs,
+mp::BaseSnapshot::BaseSnapshot(const std::string& name,
+                               const std::string& comment,
+                               const VMSpecs& specs,
                                std::shared_ptr<Snapshot> parent)
     : BaseSnapshot{name,
                    comment,

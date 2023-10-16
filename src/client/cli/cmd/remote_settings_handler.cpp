@@ -122,7 +122,10 @@ public:
         mp::AnimatedSpinner spinner{cout};
 
         [[maybe_unused]] auto ret =
-            dispatch(&RpcMethod::set, set_request, on_success<mp::SetReply>, on_failure,
+            dispatch(&RpcMethod::set,
+                     set_request,
+                     on_success<mp::SetReply>,
+                     on_failure,
                      mp::make_reply_spinner_callback<mp::SetRequest, mp::SetReply>(spinner, cerr));
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }

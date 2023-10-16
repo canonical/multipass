@@ -95,7 +95,8 @@ QString cmd::Delete::description() const
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances and snapshots to delete",
+    parser->addPositionalArgument("name",
+                                  "Names of instances and snapshots to delete",
                                   "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
     QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
@@ -140,7 +141,9 @@ mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
     return enforce_purged_snapshots(instances, snapshots, instance_found, snapshot_found);
 }
 
-mp::ParseCode cmd::Delete::enforce_purged_snapshots(std::string& instances, std::string& snapshots, bool instance_found,
+mp::ParseCode cmd::Delete::enforce_purged_snapshots(std::string& instances,
+                                                    std::string& snapshots,
+                                                    bool instance_found,
                                                     bool snapshot_found)
 {
     if (snapshot_found && !request.purge())
@@ -148,7 +151,9 @@ mp::ParseCode cmd::Delete::enforce_purged_snapshots(std::string& instances, std:
         if (instance_found)
             cerr << fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
                                 "instances without purging them:\n\n\tmultipass delete {}\n",
-                                no_purge_base_error_msg, snapshots, instances);
+                                no_purge_base_error_msg,
+                                snapshots,
+                                instances);
         else
             cerr << fmt::format("{}.\n", no_purge_base_error_msg);
 

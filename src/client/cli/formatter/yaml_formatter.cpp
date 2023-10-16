@@ -144,7 +144,8 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
             auto instance_uid = uid_mapping.instance_id();
 
             mount_node["uid_mappings"].push_back(
-                fmt::format("{}:{}", std::to_string(host_uid),
+                fmt::format("{}:{}",
+                            std::to_string(host_uid),
                             (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid)));
         }
         for (const auto& gid_mapping : mount.mount_maps().gid_mappings())
@@ -153,7 +154,8 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
             auto instance_gid = gid_mapping.instance_id();
 
             mount_node["gid_mappings"].push_back(
-                fmt::format("{}:{}", std::to_string(host_gid),
+                fmt::format("{}:{}",
+                            std::to_string(host_gid),
                             (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid)));
         }
 

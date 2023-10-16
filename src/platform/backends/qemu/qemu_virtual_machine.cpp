@@ -196,11 +196,14 @@ auto generate_metadata(const QStringList& platform_args, const QStringList& proc
 }
 } // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform,
-                                           VMStatusMonitor& monitor, const mp::Path& instance_dir)
+mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
+                                           QemuPlatform* qemu_platform,
+                                           VMStatusMonitor& monitor,
+                                           const mp::Path& instance_dir)
     : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag) ? State::suspended
                                                                                                       : State::off,
-                         desc.vm_name, instance_dir},
+                         desc.vm_name,
+                         instance_dir},
       desc{desc},
       mac_addr{desc.default_mac_address},
       username{desc.ssh_username},
@@ -615,9 +618,10 @@ mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args
     return mount_args;
 }
 
-auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                    const VMSpecs& specs, std::shared_ptr<Snapshot> parent)
-    -> std::shared_ptr<Snapshot>
+auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& name,
+                                                    const std::string& comment,
+                                                    const VMSpecs& specs,
+                                                    std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
     assert(state == VirtualMachine::State::off || state != VirtualMachine::State::stopped); // would need QMP otherwise
     return std::make_shared<QemuSnapshot>(name, comment, specs, std::move(parent), desc);

@@ -71,14 +71,18 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, update_cpus, (int), (override));
     MOCK_METHOD(void, resize_memory, (const MemorySize&), (override));
     MOCK_METHOD(void, resize_disk, (const MemorySize&), (override));
-    MOCK_METHOD(std::unique_ptr<MountHandler>, make_native_mount_handler,
-                (const SSHKeyProvider*, const std::string&, const VMMount&), (override));
+    MOCK_METHOD(std::unique_ptr<MountHandler>,
+                make_native_mount_handler,
+                (const SSHKeyProvider*, const std::string&, const VMMount&),
+                (override));
     MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override, noexcept));
     MOCK_METHOD(int, get_num_snapshots, (), (const, override, noexcept));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (const std::string&), (const, override));
     MOCK_METHOD(std::shared_ptr<Snapshot>, get_snapshot, (const std::string&), (override));
-    MOCK_METHOD(std::shared_ptr<const Snapshot>, take_snapshot,
-                (const VMSpecs&, const std::string&, const std::string&), (override));
+    MOCK_METHOD(std::shared_ptr<const Snapshot>,
+                take_snapshot,
+                (const VMSpecs&, const std::string&, const std::string&),
+                (override));
     MOCK_METHOD(void, delete_snapshot, (const std::string& name), (override));
     MOCK_METHOD(void, restore_snapshot, (const std::string&, VMSpecs&), (override));
     MOCK_METHOD(void, load_snapshots, (), (override));

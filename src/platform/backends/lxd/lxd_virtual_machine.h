@@ -33,8 +33,12 @@ class VMStatusMonitor;
 class LXDVirtualMachine : public BaseVirtualMachine
 {
 public:
-    LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, NetworkAccessManager* manager,
-                      const QUrl& base_url, const QString& bridge_name, const QString& storage_pool,
+    LXDVirtualMachine(const VirtualMachineDescription& desc,
+                      VMStatusMonitor& monitor,
+                      NetworkAccessManager* manager,
+                      const QUrl& base_url,
+                      const QString& bridge_name,
+                      const QString& storage_pool,
                       const mp::Path& instance_dir);
     ~LXDVirtualMachine() override;
     void stop() override;
@@ -59,8 +63,10 @@ public:
 
 protected:
     std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QJsonObject& json) override;
-    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name, const std::string& comment,
-                                                     const VMSpecs& specs, std::shared_ptr<Snapshot> parent) override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& name,
+                                                     const std::string& comment,
+                                                     const VMSpecs& specs,
+                                                     std::shared_ptr<Snapshot> parent) override;
 
 private:
     const QString name;

@@ -232,8 +232,10 @@ void persist_records(const T& records, const QString& path)
 }
 } // namespace
 
-mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                             const mp::Path& cache_dir_path, const mp::Path& data_dir_path,
+mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts,
+                                             URLDownloader* downloader,
+                                             const mp::Path& cache_dir_path,
+                                             const mp::Path& data_dir_path,
                                              const mp::days& days_to_expire)
     : BaseVMImageVault{image_hosts},
       url_downloader{downloader},
@@ -251,9 +253,12 @@ mp::DefaultVMImageVault::~DefaultVMImageVault()
     url_downloader->abort_all_downloads();
 }
 
-mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type, const Query& query,
-                                                 const PrepareAction& prepare, const ProgressMonitor& monitor,
-                                                 const bool unlock, const std::optional<std::string>& checksum,
+mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
+                                                 const Query& query,
+                                                 const PrepareAction& prepare,
+                                                 const ProgressMonitor& monitor,
+                                                 const bool unlock,
+                                                 const std::optional<std::string>& checksum,
                                                  const mp::Path& save_dir)
 {
     {
@@ -532,7 +537,12 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
         mpl::log(mpl::Level::info, category, fmt::format("Updating {} source image to latest", record.query.release));
         try
         {
-            fetch_image(fetch_type, record.query, prepare, monitor, false, std::nullopt,
+            fetch_image(fetch_type,
+                        record.query,
+                        prepare,
+                        monitor,
+                        false,
+                        std::nullopt,
                         QFileInfo{record.image.image_path}.absolutePath());
 
             // Remove old image
@@ -630,7 +640,8 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
 }
 
-QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image, const ProgressMonitor& monitor,
+QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
+                                                    const ProgressMonitor& monitor,
                                                     const mp::Path& dest_dir)
 {
     MP_UTILS.make_dir(dest_dir);
@@ -664,8 +675,10 @@ std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(co
     return std::nullopt;
 }
 
-mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query, const VMImage& prepared_image,
-                                                            const std::string& id, const mp::Path& dest_dir)
+mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query,
+                                                            const VMImage& prepared_image,
+                                                            const std::string& id,
+                                                            const mp::Path& dest_dir)
 {
     VMImage vm_image;
 
