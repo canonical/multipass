@@ -107,8 +107,10 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 
     request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));
 
-    if (instance_found && snapshot_found && parser->value(format_option_name) == "csv" &&
-        !parser->isSet(snapshots_option))
+    const auto& snapshots_only = parser->isSet(snapshots_option);
+    request.set_snapshots(snapshots_only);
+
+    if (instance_found && snapshot_found && parser->value(format_option_name) == "csv" && !snapshots_only)
     {
         cerr << "Mixed snapshot and instance arguments are not supported with CSV format\n";
         return ParseCode::CommandLineError;

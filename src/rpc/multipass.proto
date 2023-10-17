@@ -169,6 +169,7 @@ message InfoRequest {
     repeated InstanceSnapshotPair instances_snapshots = 1;
     int32 verbosity_level = 3;
     bool no_runtime_information = 4;
+    bool snapshots = 5;
 }
 
 message IdMap {
