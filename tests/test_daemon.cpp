@@ -1030,10 +1030,10 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliasesIf
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
-    std::stringstream cout_stream;
-    send_command({"launch", name}, cout_stream);
+    std::stringstream cout_stream, cerr_stream;
+    send_command({"launch", name}, cout_stream, cerr_stream);
 
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Warning: unable to create alias " + alias_name));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Warning: unable to create alias " + alias_name));
 
     cout_stream.str("");
     send_command({"aliases", "--format=csv"}, cout_stream);
