@@ -86,6 +86,10 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
+    if (parser->isSet(all_option_name))
+        cerr << "Warning: the `--all` flag for the `info` command is deprecated. Please use `info` with no positional "
+                "arguments for the same effect.\n";
+
     bool instance_found = false, snapshot_found = false;
     for (const auto& item : add_instance_and_snapshot_names(parser))
     {
