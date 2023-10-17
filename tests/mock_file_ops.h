@@ -62,6 +62,12 @@ public:
     // QSaveFile mock methods
     MOCK_METHOD(bool, commit, (QSaveFile&), (const, override));
 
+    // posix mock methods
+    MOCK_METHOD((std::unique_ptr<NamedFd>), open_fd, (const fs::path&, int, int), (const, override));
+    MOCK_METHOD(int, read, (int, void*, size_t), (const, override));
+    MOCK_METHOD(int, write, (int, const void*, size_t), (const, override));
+    MOCK_METHOD(off_t, lseek, (int, off_t, int), (const, override));
+
     // Mock std methods
     MOCK_METHOD(void, open, (std::fstream&, const char*, std::ios_base::openmode), (const, override));
     MOCK_METHOD(std::unique_ptr<std::ostream>, open_write, (const fs::path& path, std::ios_base::openmode mode),
@@ -78,8 +84,13 @@ public:
     MOCK_METHOD(fs::path, read_symlink, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(void, permissions, (const fs::path& path, fs::perms perms, std::error_code& err), (override, const));
     MOCK_METHOD(fs::file_status, status, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(fs::file_status, symlink_status, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(std::unique_ptr<multipass::RecursiveDirIterator>, recursive_dir_iterator,
                 (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(std::unique_ptr<multipass::DirIterator>,
+                dir_iterator,
+                (const fs::path& path, std::error_code& err),
+                (override, const));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };

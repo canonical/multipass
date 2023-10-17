@@ -499,7 +499,7 @@ TEST(LinuxBackendUtils, get_subnet_not_in_file_writes_new_subnet_returns_expecte
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(0));
-    EXPECT_CALL(*mock_file_ops, write(_, _, _)).WillOnce([&generated_subnet](auto&, auto data, auto) {
+    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce([&generated_subnet](auto&, auto data, auto) {
         generated_subnet = std::string(data);
 
         return generated_subnet.length();

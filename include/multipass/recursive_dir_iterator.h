@@ -19,6 +19,7 @@
 #define RECURSIVE_DIR_ITERATOR_H
 
 #include <filesystem>
+#include <optional>
 
 namespace multipass
 {
@@ -247,6 +248,48 @@ public:
 
 private:
     fs::recursive_directory_iterator iter;
+    DirectoryEntry current;
+};
+
+// wrapper class around std::filesystem::directory_iterator used for mocking purposes
+class DirIterator
+{
+public:
+    DirIterator() = default;
+    DirIterator(const fs::path& path, std::error_code& err) : self{path / "."}, parent{path / ".."}, iter{path, err}
+    {
+    }
+
+    virtual bool hasNext()
+    {
+        return iter != fs::end(iter);
+    }
+
+    virtual const DirectoryEntry& next()
+    {
+        if (self)
+        {
+            const fs::directory_entry entry{*self};
+            self.reset();
+            return current = entry;
+        }
+
+        if (parent)
+        {
+            const fs::directory_entry entry{*parent};
+            parent.reset();
+            return current = entry;
+        }
+
+        return current = *iter++;
+    }
+
+    virtual ~DirIterator() = default;
+
+private:
+    std::optional<fs::path> self;
+    std::optional<fs::path> parent;
+    fs::directory_iterator iter;
     DirectoryEntry current;
 };
 } // namespace multipass

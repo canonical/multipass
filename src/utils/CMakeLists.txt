@@ -37,6 +37,8 @@ function(add_target TARGET_NAME)
 
   target_include_directories(${TARGET_NAME} PRIVATE
     ${OPENSSL_INCLUDE_DIR})
+
+  target_compile_definitions(${TARGET_NAME} PUBLIC O_BINARY=0)
 endfunction()
 
 add_target(utils)
