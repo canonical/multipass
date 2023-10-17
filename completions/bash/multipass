@@ -28,7 +28,6 @@ _multipass_complete()
 
     _multipass_snapshots()
     {
-        local instance="${cur%%.*}"
         local cmd="multipass list --snapshots --format=csv 2>/dev/null | \tail -n +2 | \awk -F',' '\$1 == \"$1\"'"
         local snapshots=$( \eval $cmd | \cut -d',' -f 1,2 | \tr ',' '.' | \tr '\r\n' ' ' )
 
@@ -38,13 +37,13 @@ _multipass_complete()
     _multipass_instances_and_snapshots()
     {
         if [[ "${cur}" =~ '.' ]]; then
-            _multipass_snapshots
+            _multipass_snapshots "${cur%%.*}"
         fi
 
         _multipass_instances
     }
 
-    _multipass_restorable_instances()
+    _multipass_restorable_snapshots()
     {
         local instances=$( multipass info --all --no-runtime-information --format=csv \
                            | \tail -n +2 \
@@ -52,7 +51,9 @@ _multipass_complete()
                            | \cut -d',' -f 1 \
                            | \tr '\r\n' ' ')
 
-        _add_nonrepeating_args "$instances"
+        for instance in ${instances}; do
+            _multipass_snapshots "${instance}"
+        done
     }
 
     # Set $opts to the list of available networks.
@@ -353,11 +354,7 @@ _multipass_complete()
                 _multipass_instances "Stopped"
             ;;
             "restore")
-                if [[ "${cur}" =~ '.' ]]; then
-                    _multipass_snapshots
-                else
-                    _multipass_restorable_instances
-                fi
+                _multipass_restorable_snapshots
             ;;
             "mount")
                 local source_set=0
