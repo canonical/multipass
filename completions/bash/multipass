@@ -232,7 +232,7 @@ _multipass_complete()
             _add_nonrepeating_args "--all --format"
         ;;
         "list"|"ls")
-            _add_nonrepeating_arg "--format --snapshots"
+            _add_nonrepeating_args "--format --snapshots"
         ;;
         "networks"|"aliases")
             _add_nonrepeating_args "--format"
