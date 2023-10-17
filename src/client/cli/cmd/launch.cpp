@@ -318,7 +318,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
         if (!conversion_pass || cpu_count < 1)
         {
-            fmt::print(cerr, "error: Invalid CPU count '{}', need a positive integer value.\n", cpu_text);
+            fmt::print(cerr, "Error: invalid CPU count '{}', need a positive integer value.\n", cpu_text);
             return ParseCode::CommandLineError;
         }
 
@@ -329,14 +329,14 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         if (parser->isSet(memOption) && parser->isSet(memOptionDeprecated))
         {
-            cerr << "error: Invalid option(s) used for memory allocation. Please use \"--memory\" to specify "
-                    "amount of memory to allocate.\n";
+            cerr << "Error: invalid option(s) used for memory allocation. Please use \"--memory\" to specify amount of "
+                    "memory to allocate.\n";
             return ParseCode::CommandLineError;
         }
 
         if (parser->isSet(memOptionDeprecated))
-            cout << "warning: \"--mem\" long option will be deprecated in favour of \"--memory\" in a future release. "
-                    "Please update any scripts, etc.\n";
+            cerr << "Warning: the \"--mem\" long option is deprecated in favour of \"--memory\". Please update any "
+                    "scripts, etc.\n";
 
         auto arg_mem_size = parser->isSet(memOption) ? parser->value(memOption).toStdString()
                                                      : parser->value(memOptionDeprecated).toStdString();
@@ -484,7 +484,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         }
 
         if (warning_aliases.size())
-            cout << fmt::format("Warning: unable to create {} {}.\n", warning_aliases.size() == 1 ? "alias" : "aliases",
+            cerr << fmt::format("Warning: unable to create {} {}.\n",
+                                warning_aliases.size() == 1 ? "alias" : "aliases",
                                 fmt::join(warning_aliases, ", "));
 
         for (const auto& workspace_to_be_created : reply.workspaces_to_be_created())

@@ -1031,11 +1031,11 @@ TEST_F(Client, launch_cmd_memory_fails_duplicate_options)
 
 TEST_F(Client, launch_cmd_memory_deprecated_option_warning)
 {
-    std::stringstream cout_stream;
+    std::stringstream cerr_stream;
 
     EXPECT_CALL(mock_daemon, launch(_, _));
-    EXPECT_THAT(send_command({"launch", "--mem", "2048M"}, cout_stream, trash_stream), Eq(mp::ReturnCode::Ok));
-    EXPECT_NE(std::string::npos, cout_stream.str().find("warning: \"--mem\"")) << "cout has: " << cout_stream.str();
+    EXPECT_THAT(send_command({"launch", "--mem", "2048M"}, trash_stream, cerr_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_NE(std::string::npos, cerr_stream.str().find("Warning: the \"--mem\"")) << "cout has: " << cerr_stream.str();
 }
 
 TEST_F(Client, launch_cmd_cpu_option_ok)
@@ -1718,9 +1718,10 @@ TEST_F(Client, help_cmd_help_ok)
 }
 
 // info cli tests
-TEST_F(Client, info_cmd_fails_no_args)
+TEST_F(Client, infoCmdOkNoArgs)
 {
-    EXPECT_THAT(send_command({"info"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_CALL(mock_daemon, info(_, _));
+    EXPECT_THAT(send_command({"info"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, info_cmd_ok_with_one_arg)
