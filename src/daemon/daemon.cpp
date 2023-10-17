@@ -1706,6 +1706,7 @@ try // clang-format on
     InstanceSnapshotsMap instance_snapshots_map;
     bool have_mounts = false;
     bool deleted = false;
+    bool snapshots_only = request->snapshots();
 
     auto fetch_detailed_report = [&](VirtualMachine& vm) {
         fmt::memory_buffer errors;
@@ -1716,15 +1717,28 @@ try // clang-format on
 
         try
         {
+            // TODO@ricab streamline this code
             if (all_or_none)
-                populate_instance_info(vm,
-                                       response.add_details(),
-                                       request->no_runtime_information(),
-                                       deleted,
-                                       have_mounts);
+            {
+                if (snapshots_only)
+                    for (const auto& snapshot : vm.view_snapshots())
+                        populate_snapshot_info(vm,
+                                               snapshot,
+                                               response.add_details(),
+                                               have_mounts); // TODO@snapshots have_mounts doesn't make much sense here
+                else
+                    populate_instance_info(vm,
+                                           response.add_details(),
+                                           request->no_runtime_information(),
+                                           deleted,
+                                           have_mounts);
+            }
 
             for (const auto& snapshot : pick)
-                populate_snapshot_info(vm, vm.get_snapshot(snapshot), response.add_details(), have_mounts);
+                populate_snapshot_info(vm,
+                                       vm.get_snapshot(snapshot),
+                                       response.add_details(),
+                                       have_mounts); // TODO@snapshots have_mounts doesn't make much sense here
         }
         catch (const NoSuchSnapshot& e)
         {
