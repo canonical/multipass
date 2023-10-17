@@ -68,13 +68,17 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         "no-runtime-information",
         "Retrieve from the daemon only the information obtained without running commands on the instance");
     noRuntimeInfoOption.setFlags(QCommandLineOption::HiddenFromHelp);
-    QCommandLineOption formatOption(
+    QCommandLineOption snapshots_option{"snapshots",
+                                        "Display detailed information about the snapshots of specified instances. This "
+                                        "option has no effect on snapshot arguments. Omit instance/snapshot arguments "
+                                        "to obtain detailed information on all the snapshots of all instances."};
+    QCommandLineOption format_option(
         format_option_name,
         "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml",
         format_option_name,
         "table");
 
-    parser->addOptions({all_option, noRuntimeInfoOption, formatOption});
+    parser->addOptions({all_option, noRuntimeInfoOption, snapshots_option, formatOption});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -103,7 +107,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 
     request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));
 
-    if (instance_found && snapshot_found && parser->value(format_option_name) == "csv")
+    if (instance_found && snapshot_found && parser->value(format_option_name) == "csv" &&
+        !parser->isSet(snapshots_option))
     {
         cerr << "Mixed snapshot and instance arguments are not supported with CSV format\n";
         return ParseCode::CommandLineError;
