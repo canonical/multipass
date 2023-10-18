@@ -441,10 +441,9 @@ auto BaseVirtualMachine::make_common_file_rollback(const Path& file_path,
                                                    QFile& file,
                                                    const std::string& old_contents) const
 {
-    return sg::make_scope_guard(
-        [this, &file_path, &file, old_contents = old_contents, existed = file.exists()]() noexcept {
-            common_file_rollback_helper(file_path, file, old_contents, existed);
-        });
+    return sg::make_scope_guard([this, &file_path, &file, old_contents, existed = file.exists()]() noexcept {
+        common_file_rollback_helper(file_path, file, old_contents, existed);
+    });
 }
 
 void BaseVirtualMachine::common_file_rollback_helper(const Path& file_path,
@@ -474,7 +473,8 @@ void BaseVirtualMachine::persist_generic_snapshot_info() const
     persist_head_snapshot_index(head_path);
 
     QFile count_file{count_path};
-    auto count_file_rollback = make_common_file_rollback(count_path, count_file, std::to_string(snapshot_count) + "\n");
+    auto count_file_rollback =
+        make_common_file_rollback(count_path, count_file, std::to_string(snapshot_count - 1) + "\n");
     MP_UTILS.make_file_with_content(count_path.toStdString(), std::to_string(snapshot_count) + "\n", yes_overwrite);
 
     count_file_rollback.dismiss();
