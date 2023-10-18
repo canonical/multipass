@@ -850,7 +850,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "prosperous-spadefish   snapshot10   snapshot2   --\n",
      "table_list_multiple_snapshots"},
 
-    {&table_formatter, &empty_info_reply, "\n", "table_info_empty"},
+    {&table_formatter, &empty_info_reply, "No instances found.\n", "table_info_empty"},
     {&table_formatter,
      &single_instance_info_reply,
      "Name:           foo\n"
