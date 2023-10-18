@@ -479,6 +479,11 @@ std::string mp::utils::contents_of(const multipass::Path& file_path)
     return stream.str();
 }
 
+std::string mp::Utils::contents_of(const multipass::Path& file_path) const
+{
+    return mp::utils::contents_of(file_path);
+}
+
 std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
 {
     std::vector<uint8_t> bytes(len, 0);
@@ -495,6 +500,11 @@ std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
 #endif
 
     return bytes;
+}
+
+QString mp::Utils::make_uuid(const std::optional<std::string>& seed) const
+{
+    return mp::utils::make_uuid(seed);
 }
 
 bool mp::utils::has_only_digits(const std::string& value)
