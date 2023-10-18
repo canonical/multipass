@@ -2777,9 +2777,9 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
         const std::filesystem::path source_instance_data_directory = instances_data_directory / source_name;
         const std::filesystem::path dest_instance_data_directory = instances_data_directory / destination_name;
 
-        std::filesystem::copy(source_instance_data_directory,
-                              dest_instance_data_directory,
-                              std::filesystem::copy_options::recursive);
+        MP_FILEOPS.copy(source_instance_data_directory,
+                        dest_instance_data_directory,
+                        std::filesystem::copy_options::recursive);
 
         mpl::log(mpl::Level::info,
                  "general",
