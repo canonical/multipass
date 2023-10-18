@@ -19,6 +19,7 @@
 #include "qemu_virtual_machine.h"
 #include "shared/qemu_img_utils/qemu_img_utils.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
@@ -86,10 +87,15 @@ void mp::QemuSnapshot::capture_impl()
 void mp::QemuSnapshot::erase_impl()
 {
     const auto tag = derive_id();
-    if (!backend::instance_image_has_snapshot(image_path, tag))
-        return; // already gone
-
-    mp::backend::checked_exec_qemu_img(make_delete_spec(tag, image_path));
+    if (backend::instance_image_has_snapshot(image_path, tag))
+        mp::backend::checked_exec_qemu_img(make_delete_spec(tag, image_path));
+    else
+        mpl::log(
+            mpl::Level::warning,
+            BaseSnapshot::get_name(),
+            fmt::format("Could not find the underlying QEMU snapshot. Assuming it is already gone. Image: {}; tag: {}",
+                        image_path,
+                        tag));
 }
 
 void mp::QemuSnapshot::apply_impl()
