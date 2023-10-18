@@ -1707,6 +1707,7 @@ try // clang-format on
     bool have_mounts = false;
     bool deleted = false;
     bool snapshots_only = request->snapshots();
+    response.set_snapshots(snapshots_only);
 
     auto populate_info = [&](VirtualMachine& vm, const std::shared_ptr<const Snapshot>& snapshot) {
         auto* details = response.add_details();
