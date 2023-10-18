@@ -293,7 +293,9 @@ auto mp::BaseSnapshot::erase_helper()
         throw std::runtime_error{
             fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
 
-    return sg::make_scope_guard([tmp_dir = std::move(tmp_dir), &deleting_filepath, &snapshot_filepath]() noexcept {
+    return sg::make_scope_guard([tmp_dir = std::move(tmp_dir),
+                                 deleting_filepath = std::move(deleting_filepath),
+                                 snapshot_filepath = std::move(snapshot_filepath)]() noexcept {
         QFile temp_file{deleting_filepath};
         MP_FILEOPS.rename(temp_file, snapshot_filepath); // best effort, ignore return
     });
