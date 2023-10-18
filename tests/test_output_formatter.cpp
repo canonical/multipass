@@ -242,6 +242,13 @@ auto construct_multiple_lines_networks_reply()
     return networks_reply;
 }
 
+auto construct_empty_info_snapshot_reply()
+{
+    mp::InfoReply info_reply;
+    info_reply.set_snapshots(true);
+    return info_reply;
+}
+
 auto construct_single_instance_info_reply()
 {
     mp::InfoReply info_reply;
@@ -802,6 +809,7 @@ const auto one_long_line_networks_reply = construct_one_long_line_networks_reply
 const auto multiple_lines_networks_reply = construct_multiple_lines_networks_reply();
 
 const auto empty_info_reply = mp::InfoReply();
+const auto empty_info_snapshot_reply = construct_empty_info_snapshot_reply();
 const auto single_instance_info_reply = construct_single_instance_info_reply();
 const auto multiple_instances_info_reply = construct_multiple_instances_info_reply();
 const auto single_snapshot_info_reply = construct_single_snapshot_info_reply();
@@ -851,6 +859,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "table_list_multiple_snapshots"},
 
     {&table_formatter, &empty_info_reply, "No instances found.\n", "table_info_empty"},
+    {&table_formatter, &empty_info_snapshot_reply, "No snapshots found.\n", "table_info_snapshot_empty"},
     {&table_formatter,
      &single_instance_info_reply,
      "Name:           foo\n"
