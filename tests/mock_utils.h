@@ -35,6 +35,7 @@ public:
     MOCK_METHOD(void, exit, (int), (override));
     MOCK_METHOD(std::string, run_cmd_for_output, (const QString&, const QStringList&, const int), (const, override));
     MOCK_METHOD(bool, run_cmd_for_status, (const QString&, const QStringList&, const int), (const, override));
+    MOCK_METHOD(std::string, contents_of, (const multipass::Path&), (const, override));
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&), ());
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&, const bool&), (override));
     MOCK_METHOD(Path, make_dir, (const QDir&, const QString&, QFileDevice::Permissions), (override));
@@ -45,6 +46,7 @@ public:
     MOCK_METHOD(QString, generate_scrypt_hash_for, (const QString&), (const, override));
     MOCK_METHOD(bool, client_certs_exist, (const QString&), (const));
     MOCK_METHOD(void, copy_client_certs_to_common_dir, (const QString&, const QString&), (const));
+    MOCK_METHOD(QString, make_uuid, (const std::optional<std::string>&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };

@@ -200,6 +200,7 @@ public:
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code);
+    virtual std::string contents_of(const multipass::Path& file_path) const;
     virtual void make_file_with_content(const std::string& file_name, const std::string& content,
                                         const bool& overwrite = false);
     virtual Path make_dir(const QDir& a_dir, const QString& name,
@@ -222,6 +223,7 @@ public:
     virtual QString generate_scrypt_hash_for(const QString& passphrase) const;
 
     virtual std::vector<uint8_t> random_bytes(size_t len);
+    virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
 };
 } // namespace multipass
 
