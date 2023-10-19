@@ -53,17 +53,17 @@ QJsonObject read_snapshot_json(const QString& filename)
 {
     QFile file{filename};
     if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
-        throw std::runtime_error{fmt::v9::format("Could not open snapshot file for for reading: {}", file.fileName())};
+        throw std::runtime_error{fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
 
     QJsonParseError parse_error{};
     const auto& data = MP_FILEOPS.read_all(file);
 
     if (const auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
-        throw std::runtime_error{fmt::v9::format("Could not parse snapshot JSON; error: {}; file: {}",
-                                                 file.fileName(),
-                                                 parse_error.errorString())};
+        throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
+                                             file.fileName(),
+                                             parse_error.errorString())};
     else if (json.isEmpty())
-        throw std::runtime_error{fmt::v9::format("Empty snapshot JSON: {}", file.fileName())};
+        throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
     else
         return json["snapshot"].toObject();
 }
