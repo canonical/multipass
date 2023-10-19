@@ -1732,12 +1732,11 @@ try // clang-format on
 
         const auto& it = instance_snapshots_map.find(name);
         const auto& snapshot_pick = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
-        const auto& [pick, all_or_none] = snapshot_pick;
 
         try
         {
             process_snapshot_pick(vm, snapshot_pick);
-            if (all_or_none)
+            if (snapshot_pick.all_or_none)
             {
                 if (snapshots_only)
                     for (const auto& snapshot : vm.view_snapshots())
