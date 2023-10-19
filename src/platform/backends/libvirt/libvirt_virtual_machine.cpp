@@ -546,7 +546,7 @@ void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
     desc.disk_space = new_size;
 }
 
-auto mp::LibVirtVirtualMachine::make_specific_snapshot(const std::string& /*name*/,
+auto mp::LibVirtVirtualMachine::make_specific_snapshot(const std::string& /*snapshot_name*/,
                                                        const std::string& /*comment*/,
                                                        const VMSpecs& /*specs*/,
                                                        std::shared_ptr<Snapshot> /*parent*/)

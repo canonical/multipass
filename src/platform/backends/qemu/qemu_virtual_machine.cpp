@@ -618,13 +618,13 @@ mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args
     return mount_args;
 }
 
-auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& name,
+auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                     const std::string& comment,
                                                     const VMSpecs& specs,
                                                     std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
     assert(state == VirtualMachine::State::off || state != VirtualMachine::State::stopped); // would need QMP otherwise
-    return std::make_shared<QemuSnapshot>(name, comment, std::move(parent), specs, *this, desc);
+    return std::make_shared<QemuSnapshot>(snapshot_name, comment, std::move(parent), specs, *this, desc);
 }
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
