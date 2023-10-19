@@ -1,3 +1,5 @@
+set(BUILD_SHARED_LIBS OFF)
+
 if (MSVC)
   add_compile_options(-wd5045) #Disable warning about Spectre mitigation
 endif()
@@ -91,7 +93,6 @@ target_compile_definitions(scope_guard INTERFACE
   SG_REQUIRE_NOEXCEPT_IN_CPP17)
 
 # semver library
-set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(semver EXCLUDE_FROM_ALL)
 target_include_directories(semver INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/semver/include)
