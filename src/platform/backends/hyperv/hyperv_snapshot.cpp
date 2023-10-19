@@ -67,16 +67,17 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name,
                                    const VMSpecs& specs,
                                    std::shared_ptr<Snapshot> parent,
                                    const QString& vm_name,
+                                   HyperVVirtualMachine& vm,
                                    PowerShell& power_shell)
-    : BaseSnapshot{name, comment, specs, std::move(parent)}, vm_name{vm_name}, power_shell{power_shell}
+    : BaseSnapshot{name, comment, std::move(parent), specs, vm}, vm_name{vm_name}, power_shell{power_shell}
 {
 }
 
-mp::HyperVSnapshot::HyperVSnapshot(const QJsonObject& json,
+mp::HyperVSnapshot::HyperVSnapshot(const QString& filename,
                                    HyperVVirtualMachine& vm,
                                    const QString& vm_name,
                                    PowerShell& power_shell)
-    : BaseSnapshot{json, vm}, vm_name{vm_name}, power_shell{power_shell}
+    : BaseSnapshot{filename, vm}, vm_name{vm_name}, power_shell{power_shell}
 {
 }
 
