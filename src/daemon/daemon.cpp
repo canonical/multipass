@@ -1726,25 +1726,44 @@ try // clang-format on
     InstanceSnapshotsMap instance_snapshots_map;
     bool have_mounts = false;
     bool deleted = false;
+    bool snapshots_only = request->snapshots();
+
+    auto populate_info = [&](VirtualMachine& vm, const std::shared_ptr<const Snapshot>& snapshot) {
+        auto* details = response.add_details();
+        if (snapshot)
+            populate_snapshot_info(vm, snapshot, details, have_mounts); // TODO@snapshots remove have_mounts
+        else
+            populate_instance_info(vm, details, request->no_runtime_information(), deleted, have_mounts);
+    };
+
+    auto process_snapshot_pick = [populate_info, snapshots_only](VirtualMachine& vm,
+                                                                 const SnapshotPick& snapshot_pick) {
+        for (const auto& snapshot_name : snapshot_pick.pick)
+        {
+            const auto snapshot = vm.get_snapshot(snapshot_name); // verify validity even if unused
+            if (!snapshot_pick.all_or_none || !snapshots_only)
+                populate_info(vm, snapshot);
+        }
+    };
 
     auto fetch_detailed_report = [&](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
 
         const auto& it = instance_snapshots_map.find(name);
-        const auto& [pick, all_or_none] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
+        const auto& snapshot_pick = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
 
         try
         {
-            if (all_or_none)
-                populate_instance_info(vm,
-                                       response.add_details(),
-                                       request->no_runtime_information(),
-                                       deleted,
-                                       have_mounts);
-
-            for (const auto& snapshot : pick)
-                populate_snapshot_info(vm, vm.get_snapshot(snapshot), response.add_details(), have_mounts);
+            process_snapshot_pick(vm, snapshot_pick);
+            if (snapshot_pick.all_or_none)
+            {
+                if (snapshots_only)
+                    for (const auto& snapshot : vm.view_snapshots())
+                        populate_info(vm, snapshot);
+                else
+                    populate_info(vm, nullptr);
+            }
         }
         catch (const NoSuchSnapshot& e)
         {
