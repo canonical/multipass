@@ -97,7 +97,7 @@ public:
     virtual std::shared_ptr<Snapshot> get_snapshot(int index) = 0;
 
     virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
-                                                          const std::string& name,
+                                                          const std::string& snapshot_name,
                                                           const std::string& comment) = 0;
     virtual void rename_snapshot(const std::string& old_name, const std::string& new_name) = 0; // TODO@snapshots remove
     virtual void delete_snapshot(const std::string& name) = 0;

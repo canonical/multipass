@@ -199,27 +199,27 @@ auto BaseVirtualMachine::make_take_snapshot_rollback(SnapshotMap::iterator it)
 }
 
 std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs& specs,
-                                                                  const std::string& name,
+                                                                  const std::string& snapshot_name,
                                                                   const std::string& comment)
 {
-    std::string snapshot_name;
+    std::string sname;
 
     {
         std::unique_lock lock{snapshot_mutex};
         assert_vm_stopped(state); // precondition
 
-        snapshot_name = name.empty() ? generate_snapshot_name() : name;
+        sname = snapshot_name.empty() ? generate_snapshot_name() : snapshot_name;
 
-        const auto [it, success] = snapshots.try_emplace(snapshot_name, nullptr);
+        const auto [it, success] = snapshots.try_emplace(sname, nullptr);
         if (!success)
         {
-            mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", snapshot_name));
-            throw SnapshotNameTaken{vm_name, snapshot_name};
+            mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", sname));
+            throw SnapshotNameTaken{vm_name, sname};
         }
 
         auto rollback_on_failure = make_take_snapshot_rollback(it);
 
-        auto ret = head_snapshot = it->second = make_specific_snapshot(snapshot_name, comment, specs, head_snapshot);
+        auto ret = head_snapshot = it->second = make_specific_snapshot(sname, comment, specs, head_snapshot);
         ret->capture();
 
         ++snapshot_count;
