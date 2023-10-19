@@ -2923,14 +2923,21 @@ void mp::Daemon::configure_new_interfaces(const std::string& name, mp::VirtualMa
 
         auto& commands = run_at_boot[name];
 
-        for (const auto i : new_interfaces)
+        try
         {
-            vm.add_network_interface(i, specs.extra_interfaces[i]);
+            for (const auto i : new_interfaces)
+            {
+                vm.add_network_interface(i, specs.extra_interfaces[i]);
 
-            commands.push_back(generate_netplan_script(i, specs.extra_interfaces[i].mac_address));
+                commands.push_back(generate_netplan_script(i, specs.extra_interfaces[i].mac_address));
+            }
+
+            commands.push_back("sudo netplan apply");
         }
-
-        commands.push_back("sudo netplan apply");
+        catch (const mp::NotImplementedOnThisBackendException&)
+        {
+            run_at_boot.erase(name);
+        }
     }
 }
 
