@@ -2826,6 +2826,14 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
         const std::string unmount_command = fmt::format("umount {}", cloud_init_mount_point.string());
         std::system(unmount_command.c_str());
 
+        // delete the created mount folder
+        if (std::error_code err; !MP_FILEOPS.remove(cloud_init_mount_point, err))
+        {
+            throw std::runtime_error{
+                fmt::format("Could not remove mount point for cloud-init-config.iso file of the instance: {} ",
+                            destination_name)};
+        }
+
         mpl::log(mpl::Level::info,
                  "general",
                  fmt::format("source_instance_data_directory value is : {}", source_instance_data_directory.string()));
