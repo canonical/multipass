@@ -1716,15 +1716,15 @@ try // clang-format on
             populate_instance_info(vm, details, request->no_runtime_information(), deleted, have_mounts);
     };
 
-    auto process_snapshot_pick =
-        [populate_info](VirtualMachine& vm, const SnapshotPick& snapshot_pick, bool snapshots_only) {
-            for (const auto& snapshot_name : snapshot_pick.pick)
-            {
-                const auto snapshot = vm.get_snapshot(snapshot_name); // verify validity even if unused
-                if (!snapshot_pick.all_or_none || !snapshots_only)
-                    populate_info(vm, snapshot);
-            }
-        };
+    auto process_snapshot_pick = [populate_info, snapshots_only](VirtualMachine& vm,
+                                                                 const SnapshotPick& snapshot_pick) {
+        for (const auto& snapshot_name : snapshot_pick.pick)
+        {
+            const auto snapshot = vm.get_snapshot(snapshot_name); // verify validity even if unused
+            if (!snapshot_pick.all_or_none || !snapshots_only)
+                populate_info(vm, snapshot);
+        }
+    };
 
     auto fetch_detailed_report = [&](VirtualMachine& vm) {
         fmt::memory_buffer errors;
@@ -1736,7 +1736,7 @@ try // clang-format on
 
         try
         {
-            process_snapshot_pick(vm, snapshot_pick, snapshots_only); // TODO@ricab capture snapshots only
+            process_snapshot_pick(vm, snapshot_pick);
             if (all_or_none)
             {
                 if (snapshots_only)
