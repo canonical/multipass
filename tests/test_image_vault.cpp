@@ -19,6 +19,7 @@
 #include "disabling_macros.h"
 #include "file_operations.h"
 #include "mock_image_host.h"
+#include "mock_json_utils.h"
 #include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "path.h"
@@ -163,6 +164,8 @@ struct ImageVault : public testing::Test
     mpt::TrackingURLDownloader url_downloader;
     std::vector<mp::VMImageHost*> hosts;
     NiceMock<mpt::MockImageHost> host;
+    mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
+    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
     mp::ProgressMonitor stub_monitor{[](int, int) { return true; }};
     mp::VMImageVault::PrepareAction stub_prepare{
         [](const mp::VMImage& source_image) -> mp::VMImage { return source_image; }};
@@ -294,6 +297,10 @@ TEST_F(ImageVault, remembers_instance_images)
         return source_image;
     };
 
+    EXPECT_CALL(mock_json_utils, write_json).WillRepeatedly([this](auto&&... args) {
+        return mock_json_utils.JsonUtils::write_json(std::forward<decltype(args)>(args)...); // call the real thing
+    });
+
     mp::DefaultVMImageVault first_vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto vm_image1 = first_vault.fetch_image(mp::FetchType::ImageOnly,
                                              default_query,
@@ -324,6 +331,10 @@ TEST_F(ImageVault, remembers_prepared_images)
         ++prepare_called_count;
         return source_image;
     };
+
+    EXPECT_CALL(mock_json_utils, write_json).WillRepeatedly([this](auto&&... args) {
+        return mock_json_utils.JsonUtils::write_json(std::forward<decltype(args)>(args)...); // call the real thing
+    });
 
     mp::DefaultVMImageVault first_vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto vm_image1 = first_vault.fetch_image(mp::FetchType::ImageOnly,

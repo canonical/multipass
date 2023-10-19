@@ -141,14 +141,28 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override
+    std::shared_ptr<Snapshot> get_snapshot(const std::string&) override
     {
         return {};
+    }
+
+    std::shared_ptr<const Snapshot> get_snapshot(int) const override
+    {
+        return nullptr;
+    }
+
+    std::shared_ptr<Snapshot> get_snapshot(int) override
+    {
+        return nullptr;
     }
 
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs&, const std::string&, const std::string&) override
     {
         return {};
+    }
+
+    void rename_snapshot(const std::string& old_name, const std::string& new_name) override
+    {
     }
 
     void delete_snapshot(const std::string&) override
@@ -166,6 +180,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     std::vector<std::string> get_childrens_names(const Snapshot*) const override
     {
         return {};
+    }
+
+    int get_snapshot_count() const override
+    {
+        return 0;
     }
 
     StubSnapshot snapshot;
