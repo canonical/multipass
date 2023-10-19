@@ -57,6 +57,16 @@ struct StubSnapshot : public Snapshot
         return nullptr;
     }
 
+    int get_index() const override
+    {
+        return 0;
+    }
+
+    int get_parents_index() const override
+    {
+        return 0;
+    }
+
     int get_num_cores() const noexcept override
     {
         return 0;
@@ -85,11 +95,6 @@ struct StubSnapshot : public Snapshot
     const QJsonObject& get_metadata() const noexcept override
     {
         return metadata;
-    }
-
-    QJsonObject serialize() const override
-    {
-        return {};
     }
 
     void set_name(const std::string&) override

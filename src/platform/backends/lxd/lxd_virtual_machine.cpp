@@ -487,7 +487,7 @@ mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_p
     return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);
 }
 
-auto mp::LXDVirtualMachine::make_specific_snapshot(const std::string& name,
+auto mp::LXDVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                    const std::string& comment,
                                                    const VMSpecs& specs,
                                                    std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
@@ -495,7 +495,7 @@ auto mp::LXDVirtualMachine::make_specific_snapshot(const std::string& name,
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }
 
-std::shared_ptr<mp::Snapshot> mp::LXDVirtualMachine::make_specific_snapshot(const QJsonObject& json)
+std::shared_ptr<mp::Snapshot> mp::LXDVirtualMachine::make_specific_snapshot(const QString& /*filename*/)
 {
     throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
 }

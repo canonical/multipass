@@ -24,6 +24,7 @@
 #include <multipass/vm_mount.h>
 
 #include <QJsonObject>
+#include <QString>
 
 #include <mutex>
 
@@ -36,17 +37,16 @@ class BaseSnapshot : public Snapshot
 public:
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
+                 std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
-                 std::shared_ptr<Snapshot> parent);
-    BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
+                 const VirtualMachine& vm);
+    BaseSnapshot(const QString& filename, VirtualMachine& vm);
 
+    // TODO@snapshots tag as noexcept those that can be
+    int get_index() const override;
     std::string get_name() const override;
     std::string get_comment() const override;
     QDateTime get_creation_timestamp() const override;
-    std::string get_parents_name() const override;
-    std::shared_ptr<const Snapshot> get_parent() const override;
-    std::shared_ptr<Snapshot> get_parent() override;
-
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
     MemorySize get_disk_space() const noexcept override;
@@ -56,7 +56,10 @@ public:
     const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept override;
     const QJsonObject& get_metadata() const noexcept override;
 
-    QJsonObject serialize() const override;
+    std::shared_ptr<const Snapshot> get_parent() const override;
+    std::shared_ptr<Snapshot> get_parent() override;
+    std::string get_parents_name() const override;
+    int get_parents_index() const override;
 
     void set_name(const std::string& n) override;
     void set_comment(const std::string& c) override;
@@ -74,26 +77,33 @@ protected:
     QString derive_id() const;
 
 private:
-    struct InnerJsonTag
-    {
-    };
-    BaseSnapshot(InnerJsonTag, const QJsonObject& json, VirtualMachine& vm);
+    BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
     BaseSnapshot(const std::string& name,
-                 const std::string& get_comment,
-                 const QDateTime& creation_timestamp,
+                 const std::string& comment,
+                 std::shared_ptr<Snapshot> parent,
+                 int index,
+                 QDateTime&& creation_timestamp,
                  int num_cores,
                  MemorySize mem_size,
                  MemorySize disk_space,
                  VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts,
                  QJsonObject metadata,
-                 std::shared_ptr<Snapshot> parent);
+                 const QDir& storage_dir,
+                 bool captured);
+
+    auto erase_helper();
+    QString derive_snapshot_filename() const;
+    QJsonObject serialize() const;
+    void persist() const;
 
 private:
     std::string name;
     std::string comment;
+    std::shared_ptr<Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
+    const int index;                                       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QDateTime creation_timestamp;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -101,9 +111,9 @@ private:
     const VirtualMachine::State state;                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QDir storage_dir;                                // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-    std::shared_ptr<Snapshot> parent;
-
+    bool captured;
     mutable std::recursive_mutex mutex;
 };
 } // namespace multipass
@@ -120,6 +130,11 @@ inline std::string multipass::BaseSnapshot::get_comment() const
     return comment;
 }
 
+inline int multipass::BaseSnapshot::get_index() const
+{
+    return index;
+}
+
 inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const
 {
     return creation_timestamp;
@@ -132,6 +147,12 @@ inline std::string multipass::BaseSnapshot::get_parents_name() const
     lock.unlock(); // avoid locking another snapshot while locked in here
 
     return par ? par->get_name() : "";
+}
+
+inline int multipass::BaseSnapshot::get_parents_index() const
+{
+    const std::unique_lock lock{mutex};
+    return parent ? parent->get_index() : 0; // this doesn't lock
 }
 
 inline auto multipass::BaseSnapshot::get_parent() const -> std::shared_ptr<const Snapshot>
@@ -178,37 +199,50 @@ inline const QJsonObject& multipass::BaseSnapshot::get_metadata() const noexcept
 inline void multipass::BaseSnapshot::set_name(const std::string& n)
 {
     const std::unique_lock lock{mutex};
+    assert(captured && "precondition: only captured snapshots can be edited");
+
     name = n;
+    persist();
 }
 
 inline void multipass::BaseSnapshot::set_comment(const std::string& c)
 {
     const std::unique_lock lock{mutex};
+    assert(captured && "precondition: only captured snapshots can be edited");
+
     comment = c;
+    persist();
 }
 
 inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
 {
     const std::unique_lock lock{mutex};
+    assert(captured && "precondition: only captured snapshots can be edited");
+
     parent = std::move(p);
+    persist();
 }
 
 inline void multipass::BaseSnapshot::capture()
 {
     const std::unique_lock lock{mutex};
-    capture_impl();
-}
+    assert(!captured &&
+           "pre-condition: capture should only be called once, and only for snapshots that were not loaded from disk");
 
-inline void multipass::BaseSnapshot::erase()
-{
-    const std::unique_lock lock{mutex};
-    erase_impl();
+    if (!captured)
+    {
+        captured = true;
+        capture_impl();
+        persist();
+    }
 }
 
 inline void multipass::BaseSnapshot::apply()
 {
     const std::unique_lock lock{mutex};
     apply_impl();
+    // no need to persist here for the time being: only private fields of the base class are persisted for now, and
+    // those cannot be affected by apply_impl (except by setters, which already persist)
 }
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H

@@ -18,6 +18,7 @@
 #include "daemon.h"
 #include "base_cloud_init_config.h"
 #include "instance_settings_handler.h"
+#include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
 #include <multipass/constants.h>
@@ -1222,13 +1223,25 @@ auto timeout_for(const int requested_timeout, const int blueprint_timeout)
 }
 
 mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
-                                           InstanceTable& vm_instances,
+                                           InstanceTable& operative_instances,
                                            const InstanceTable& deleted_instances,
                                            const std::unordered_set<std::string>& preparing_instances,
                                            std::function<void()> instance_persister)
 {
-    return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(
-        vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
+    return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
+                                                                                      operative_instances,
+                                                                                      deleted_instances,
+                                                                                      preparing_instances,
+                                                                                      std::move(instance_persister)));
+}
+
+mp::SettingsHandler* register_snapshot_mod(
+    std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
+    const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
+    const std::unordered_set<std::string>& preparing_instances)
+{
+    return MP_SETTINGS.register_handler(
+        std::make_unique<mp::SnapshotSettingsHandler>(operative_instances, deleted_instances, preparing_instances));
 }
 
 // Erase any outdated mount handlers for a given VM
@@ -1340,8 +1353,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      instance_mod_handler{register_instance_mod(vm_instance_specs, operative_instances, deleted_instances,
-                                                 preparing_instances, [this] { persist_instances(); })}
+      instance_mod_handler{register_instance_mod(vm_instance_specs,
+                                                 operative_instances,
+                                                 deleted_instances,
+                                                 preparing_instances,
+                                                 [this] { persist_instances(); })},
+      snapshot_mod_handler{register_snapshot_mod(operative_instances, deleted_instances, preparing_instances)}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -1495,7 +1512,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
 mp::Daemon::~Daemon()
 {
-    mp::top_catch_all(category, [this] { MP_SETTINGS.unregister_handler(instance_mod_handler); });
+    mp::top_catch_all(category, [this] {
+        MP_SETTINGS.unregister_handler(instance_mod_handler);
+        MP_SETTINGS.unregister_handler(snapshot_mod_handler);
+    });
 }
 
 void mp::Daemon::create(const CreateRequest* request,
@@ -2659,7 +2679,7 @@ void mp::Daemon::persist_instances()
     }
     QDir data_dir{
         mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name())};
-    mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
+    MP_JSONUTILS.write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
 void mp::Daemon::release_resources(const std::string& instance)

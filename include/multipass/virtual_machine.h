@@ -90,15 +90,23 @@ public:
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid confusion with C++ views
     virtual SnapshotVista view_snapshots() const noexcept = 0;
     virtual int get_num_snapshots() const noexcept = 0;
+
     virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
+    virtual std::shared_ptr<const Snapshot> get_snapshot(int index) const = 0;
     virtual std::shared_ptr<Snapshot> get_snapshot(const std::string& name) = 0;
+    virtual std::shared_ptr<Snapshot> get_snapshot(int index) = 0;
+
     virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
-                                                          const std::string& name,
+                                                          const std::string& snapshot_name,
                                                           const std::string& comment) = 0;
+    virtual void rename_snapshot(const std::string& old_name, const std::string& new_name) = 0; // TODO@snapshots remove
     virtual void delete_snapshot(const std::string& name) = 0;
     virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
     virtual void load_snapshots() = 0;
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
+    virtual int get_snapshot_count() const = 0;
+
+    QDir instance_directory() const;
 
     VirtualMachine::State state;
     const std::string vm_name;
@@ -116,4 +124,10 @@ protected:
         : VirtualMachine(State::off, vm_name, instance_dir){};
 };
 } // namespace multipass
+
+inline QDir multipass::VirtualMachine::instance_directory() const
+{
+    return instance_dir; // TODO this should probably only be known at the level of the base VM
+}
+
 #endif // MULTIPASS_VIRTUAL_MACHINE_H
