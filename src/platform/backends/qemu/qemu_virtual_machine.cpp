@@ -623,6 +623,11 @@ void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
     desc.disk_space = new_size;
 }
 
+void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */, const NetworkInterface& net)
+{
+    return qemu_platform->add_network_interface(desc, net);
+}
+
 mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                                          const std::string& target,
                                                                          const VMMount& mount)

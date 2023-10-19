@@ -41,6 +41,7 @@ public:
     void remove_resources_for(const std::string& name) override;
     void platform_health_check() override;
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
+    void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& net) override;
 
 private:
     const QString bridge_name;
