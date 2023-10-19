@@ -2822,6 +2822,10 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
         }
         qemu_iso.write_to(QString::fromStdString(cloud_init_config_iso_file_path.string()));
 
+        // sudo umount /root/.local/share/multipassd/vault/instances/adaptive-cat-clone/cidata
+        const std::string unmount_command = fmt::format("umount {}", cloud_init_mount_point.string());
+        std::system(unmount_command.c_str());
+
         mpl::log(mpl::Level::info,
                  "general",
                  fmt::format("source_instance_data_directory value is : {}", source_instance_data_directory.string()));
