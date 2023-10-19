@@ -26,7 +26,7 @@ namespace multipass
 class LXDMountHandler : public MountHandler
 {
 public:
-    LXDMountHandler(mp::NetworkAccessManager* network_manager,
+    LXDMountHandler(NetworkAccessManager* network_manager,
                     LXDVirtualMachine* lxd_virtual_machine,
                     const SSHKeyProvider* ssh_key_provider,
                     const std::string& target_path,
@@ -46,7 +46,7 @@ private:
     void lxd_device_remove();
 
     // data member
-    mp::NetworkAccessManager* network_manager{nullptr};
+    NetworkAccessManager* network_manager{nullptr};
     const QUrl lxd_instance_endpoint{};
     const std::string device_name{};
 };

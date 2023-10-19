@@ -78,17 +78,19 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override, noexcept));
     MOCK_METHOD(int, get_num_snapshots, (), (const, override, noexcept));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (const std::string&), (const, override));
+    MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (int index), (const, override));
     MOCK_METHOD(std::shared_ptr<Snapshot>, get_snapshot, (const std::string&), (override));
+    MOCK_METHOD(std::shared_ptr<Snapshot>, get_snapshot, (int index), (override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>,
                 take_snapshot,
                 (const VMSpecs&, const std::string&, const std::string&),
                 (override));
+    MOCK_METHOD(void, rename_snapshot, (const std::string& old_name, const std::string& new_name), (override));
     MOCK_METHOD(void, delete_snapshot, (const std::string& name), (override));
     MOCK_METHOD(void, restore_snapshot, (const std::string&, VMSpecs&), (override));
     MOCK_METHOD(void, load_snapshots, (), (override));
     MOCK_METHOD(std::vector<std::string>, get_childrens_names, (const Snapshot*), (const, override));
-
-    std::unique_ptr<TempDir> tmp_dir;
+    MOCK_METHOD(int, get_snapshot_count, (), (const, override));
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;

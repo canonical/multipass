@@ -20,11 +20,12 @@
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
 #include "fake_alias_config.h"
-#include "json_utils.h"
+#include "json_test_utils.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_image_host.h"
+#include "mock_json_utils.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
@@ -843,7 +844,10 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotMountUnwrittableWo
         .WillOnce(Return(temp_dir.path()));
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _)).WillRepeatedly(Return(1234));
+    EXPECT_CALL(*mock_file_ops, commit(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)).WillOnce(Return(true)).WillOnce(Return(false));
 
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     config_builder.vault = std::move(mock_image_vault);
@@ -887,7 +891,10 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundButCannotMount)
         .WillOnce(Return(temp_dir.path()));
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _)).WillRepeatedly(Return(1234));
+    EXPECT_CALL(*mock_file_ops, commit(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)).WillOnce(Return(true)).WillOnce(Return(true));
 
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     config_builder.vault = std::move(mock_image_vault);
@@ -1309,6 +1316,9 @@ TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
     auto mock_factory = use_a_mock_vm_factory();
     config_builder.data_directory = QString("invalid_data_directory");
     mp::Daemon daemon{config_builder.build()};
+
+    auto [mock_json_utils, guard] = mpt::MockJsonUtils::inject<StrictMock>();
+    EXPECT_CALL(*mock_json_utils, write_json).Times(1); // avoid creating directory
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).Times(0);

@@ -201,7 +201,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
 
     list_json.insert("list", instances);
 
-    return mp::json_to_string(list_json);
+    return MP_JSONUTILS.json_to_string(list_json);
 }
 
 std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
@@ -234,7 +234,7 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
 
     info_json.insert("info", info_obj);
 
-    return mp::json_to_string(info_json);
+    return MP_JSONUTILS.json_to_string(info_json);
 }
 } // namespace
 
@@ -302,7 +302,7 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
     }
     info_json.insert("info", info_obj);
 
-    return mp::json_to_string(info_json);
+    return MP_JSONUTILS.json_to_string(info_json);
 }
 
 std::string mp::JsonFormatter::format(const ListReply& reply) const
@@ -339,7 +339,7 @@ std::string mp::JsonFormatter::format(const NetworksReply& reply) const
 
     list_json.insert("list", interfaces);
 
-    return mp::json_to_string(list_json);
+    return MP_JSONUTILS.json_to_string(list_json);
 }
 
 std::string mp::JsonFormatter::format(const FindReply& reply) const
@@ -350,7 +350,7 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
     find_json.insert("blueprints", format_images(reply.blueprints_info()));
     find_json.insert("images", format_images(reply.images_info()));
 
-    return mp::json_to_string(find_json);
+    return MP_JSONUTILS.json_to_string(find_json);
 }
 
 std::string mp::JsonFormatter::format(const VersionReply& reply, const std::string& client_version) const
@@ -373,10 +373,10 @@ std::string mp::JsonFormatter::format(const VersionReply& reply, const std::stri
             version_json.insert("update", update);
         }
     }
-    return mp::json_to_string(version_json);
+    return MP_JSONUTILS.json_to_string(version_json);
 }
 
 std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
-    return mp::json_to_string(aliases.to_json());
+    return MP_JSONUTILS.json_to_string(aliases.to_json());
 }

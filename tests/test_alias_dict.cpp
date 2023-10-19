@@ -26,7 +26,7 @@
 #include "daemon_test_fixture.h"
 #include "fake_alias_config.h"
 #include "file_operations.h"
-#include "json_utils.h"
+#include "json_test_utils.h"
 #include "mock_file_ops.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
@@ -419,17 +419,6 @@ TEST_F(AliasDictionary, get_unexisting_alias_returns_nullopt)
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.get_alias("unexisting"), std::nullopt);
-}
-
-TEST_F(AliasDictionary, creates_backup_db)
-{
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", "map"}}});
-
-    QString bak_filename = QString::fromStdString(db_filename() + ".bak");
-    ASSERT_FALSE(QFile::exists(bak_filename));
-
-    populate_db_file(AliasesVector{{"another_alias", {"an_instance", "a_command", "map"}}});
-    ASSERT_TRUE(QFile::exists(bak_filename));
 }
 
 TEST_F(AliasDictionary, throws_when_open_alias_file_fails)

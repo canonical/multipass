@@ -15,27 +15,26 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_UTILS_H
-#define MULTIPASS_JSON_UTILS_H
+#ifndef MULTIPASS_MOCK_JSON_UTILS_H
+#define MULTIPASS_MOCK_JSON_UTILS_H
 
-#include "singleton.h"
+#include "common.h"
+#include "mock_singleton_helpers.h"
 
-#include <QJsonObject>
-#include <QString>
+#include <multipass/json_utils.h>
 
-#include <string>
-
-#define MP_JSONUTILS multipass::JsonUtils::instance()
-
-namespace multipass
+namespace multipass::test
 {
-class JsonUtils : public Singleton<JsonUtils>
+class MockJsonUtils : public JsonUtils
 {
 public:
-    explicit JsonUtils(const Singleton<JsonUtils>::PrivatePass&) noexcept;
+    using JsonUtils::JsonUtils;
 
-    virtual void write_json(const QJsonObject& root, QString file_name) const; // transactional; creates parent dirs
-    virtual std::string json_to_string(const QJsonObject& root) const;
+    MOCK_METHOD(void, write_json, (const QJsonObject&, QString), (const, override));
+    MOCK_METHOD(std::string, json_to_string, (const QJsonObject& root), (const, override));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockJsonUtils, JsonUtils);
 };
-} // namespace multipass
-#endif // MULTIPASS_JSON_UTILS_H
+} // namespace multipass::test
+
+#endif // MULTIPASS_MOCK_JSON_UTILS_H

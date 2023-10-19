@@ -37,11 +37,10 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     StubBaseVirtualMachine(mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
         : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
     {
-        state = s;
     }
 
     StubBaseVirtualMachine(mp::VirtualMachine::State s, std::unique_ptr<mpt::TempDir>&& tmp_dir)
-        : mp::BaseVirtualMachine{"stub", tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+        : mp::BaseVirtualMachine{s, "stub", tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -75,7 +74,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return 42;
     }
 
-    std::string ssh_hostname(std::chrono::milliseconds timeout) override
+    std::string ssh_hostname(std::chrono::milliseconds /*timeout*/) override
     {
         return "localhost";
     }
@@ -95,7 +94,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "";
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds timeout) override
+    void wait_until_ssh_up(std::chrono::milliseconds /*timeout*/) override
     {
     }
 
@@ -120,15 +119,15 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     }
 
 protected:
-    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const std::string& name,
-                                                         const std::string& comment,
-                                                         const mp::VMSpecs& specs,
-                                                         std::shared_ptr<mp::Snapshot> parent) override
+    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const std::string& /*snapshot_name*/,
+                                                         const std::string& /*comment*/,
+                                                         const mp::VMSpecs& /*specs*/,
+                                                         std::shared_ptr<mp::Snapshot> /*parent*/) override
     {
         return nullptr;
     }
 
-    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QJsonObject& json) override
+    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QString& /*json*/) override
     {
         return nullptr;
     }

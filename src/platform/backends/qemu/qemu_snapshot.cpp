@@ -19,7 +19,6 @@
 #include "qemu_virtual_machine.h"
 #include "shared/qemu_img_utils/qemu_img_utils.h"
 
-#include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
@@ -56,15 +55,16 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const QString& tag, con
 
 mp::QemuSnapshot::QemuSnapshot(const std::string& name,
                                const std::string& comment,
-                               const VMSpecs& specs,
                                std::shared_ptr<Snapshot> parent,
+                               const VMSpecs& specs,
+                               QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
-    : BaseSnapshot(name, comment, specs, std::move(parent)), desc{desc}, image_path{desc.image.image_path}
+    : BaseSnapshot(name, comment, std::move(parent), specs, vm), desc{desc}, image_path{desc.image.image_path}
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, VirtualMachineDescription& desc)
-    : BaseSnapshot(json, vm), desc{desc}, image_path{desc.image.image_path}
+mp::QemuSnapshot::QemuSnapshot(const QString& filename, QemuVirtualMachine& vm, VirtualMachineDescription& desc)
+    : BaseSnapshot(filename, vm), desc{desc}, image_path{desc.image.image_path}
 {
 }
 

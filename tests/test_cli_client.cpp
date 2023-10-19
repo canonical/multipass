@@ -3907,64 +3907,18 @@ TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
                                               "another_alias,another_instance,another_command,default,default*\n");
 }
 
-TEST_F(ClientAlias, fails_when_remove_backup_alias_file_fails)
+TEST_F(ClientAlias, fails_if_unable_to_create_directory)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>()))
-        .WillOnce(Return(false))
-        .WillOnce(Return(true))
-        .WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
-    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, remove(_)).WillOnce(Return(false));
-
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::stringstream cerr_stream;
     send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
 
-    ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot remove old aliases backup file "));
-}
-
-TEST_F(ClientAlias, fails_renaming_alias_file_fails)
-{
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>()))
-        .WillOnce(Return(false))
-        .WillOnce(Return(true))
-        .WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
-    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
-
-    EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
-
-    std::stringstream cerr_stream;
-    send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
-
-    ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot rename aliases config to "));
-}
-
-TEST_F(ClientAlias, fails_creating_alias_file_fails)
-{
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true)); // mpu::create_temp_file_with_path()
-    EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
-
-    EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
-
-    std::stringstream cerr_stream;
-    send_command({"alias", "primary:command", "alias_name"}, trash_stream, cerr_stream);
-
-    ASSERT_THAT(cerr_stream.str(), HasSubstr("cannot create aliases config file "));
+    ASSERT_THAT(cerr_stream.str(), HasSubstr("Could not create path"));
 }
 
 TEST_F(ClientAlias, creating_first_alias_displays_message)

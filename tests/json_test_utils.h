@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_UTILS_H
-#define MULTIPASS_JSON_UTILS_H
+#ifndef MULTIPASS_JSON_TEST_UTILS_H
+#define MULTIPASS_JSON_TEST_UTILS_H
 
 #include "temp_dir.h"
 
@@ -43,4 +43,4 @@ void check_interfaces_in_json(const QString& file, const std::string& mac,
 
 void check_mounts_in_json(const QString& file, std::unordered_map<std::string, mp::VMMount>& mounts);
 
-#endif // MULTIPASS_JSON_UTILS_H
+#endif // MULTIPASS_JSON_TEST_UTILS_H

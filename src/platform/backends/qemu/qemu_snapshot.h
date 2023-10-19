@@ -34,10 +34,11 @@ class QemuSnapshot : public BaseSnapshot
 public:
     QemuSnapshot(const std::string& name,
                  const std::string& comment,
-                 const VMSpecs& specs,
                  std::shared_ptr<Snapshot> parent,
+                 const VMSpecs& specs,
+                 QemuVirtualMachine& vm,
                  VirtualMachineDescription& desc);
-    QemuSnapshot(const QJsonObject& json, QemuVirtualMachine& vm, VirtualMachineDescription& desc);
+    QemuSnapshot(const QString& filename, QemuVirtualMachine& vm, VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;
