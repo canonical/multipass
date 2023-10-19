@@ -2803,6 +2803,14 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
                             destination_name)};
         }
 
+        // sudo mount -o loop cloud-init-config.iso
+        // /root/.local/share/multipassd/vault/instances/adaptive-cat-clone/cidata
+        const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
+        const std::string mount_command = fmt::format("mount -o loop {} {}",
+                                                      cloud_init_config_iso_file_path.string(),
+                                                      cloud_init_mount_point.string());
+        std::system(mount_command.c_str());
+
         mpl::log(mpl::Level::info,
                  "general",
                  fmt::format("source_instance_data_directory value is : {}", source_instance_data_directory.string()));
