@@ -1716,34 +1716,35 @@ try // clang-format on
             populate_instance_info(vm, details, request->no_runtime_information(), deleted, have_mounts);
     };
 
+    auto process_snapshot_pick =
+        [populate_info](VirtualMachine& vm, const SnapshotPick& snapshot_pick, bool snapshots_only) {
+            for (const auto& snapshot_name : snapshot_pick.pick)
+            {
+                const auto snapshot = vm.get_snapshot(snapshot_name); // verify validity even if unused
+                if (!snapshot_pick.all_or_none || !snapshots_only)
+                    populate_info(vm, snapshot);
+            }
+        };
+
     auto fetch_detailed_report = [&](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
 
         const auto& it = instance_snapshots_map.find(name);
-        const auto& [pick, all_or_none] = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
+        const auto& snapshot_pick = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
+        const auto& [pick, all_or_none] = snapshot_pick;
 
         try
         {
+            process_snapshot_pick(vm, snapshot_pick, snapshots_only); // TODO@ricab capture snapshots only
             if (all_or_none)
             {
                 if (snapshots_only)
-                {
-                    for (const auto& snapshot_name : pick)
-                        vm.get_snapshot(snapshot_name); // still verify validity of explicit snapshot names
                     for (const auto& snapshot : vm.view_snapshots())
                         populate_info(vm, snapshot);
-                }
                 else
-                {
                     populate_info(vm, nullptr);
-                    for (const auto& snapshot_name : pick)
-                        populate_info(vm, vm.get_snapshot(snapshot_name));
-                }
             }
-            else
-                for (const auto& snapshot_name : pick)
-                    populate_info(vm, vm.get_snapshot(snapshot_name));
         }
         catch (const NoSuchSnapshot& e)
         {
