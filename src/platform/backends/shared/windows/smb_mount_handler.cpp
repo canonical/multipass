@@ -60,57 +60,61 @@ catch (const mp::ExitlessSSHProcessException&)
     mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'cifs-utils' in '{}'", name));
     throw std::runtime_error("Timeout installing cifs-utils");
 }
-
-auto quote(const QString& string)
-{
-    return "'" + string + "'";
-}
-
 } // namespace
 
 namespace multipass
 {
-bool SmbMountHandler::smb_share_exists()
+bool SmbManager::share_exists(const QString& share_name) const
 {
     PSHARE_INFO_0 share_info;
-
-    auto res = NetShareGetInfo(nullptr, reinterpret_cast<LPWSTR>(share_name.data()), 0, (LPBYTE*)&share_info);
-
+    auto wide_share_name = share_name.toStdWString();
+    const auto res = NetShareGetInfo(nullptr, wide_share_name.data(), 0, (LPBYTE*)&share_info);
     NetApiBufferFree(share_info);
-
     return res == 0;
 }
 
-void SmbMountHandler::create_smb_share(const QString& user)
+void SmbManager::create_share(const QString& share_name, const QString& source, const QString& user) const
 {
-    if (smb_share_exists())
+    if (share_exists(share_name))
         return;
 
-    if (!can_user_access_source(user))
+    // TODO: I tried to use the proper Windows API to get ACL permissions for the user being passed in, but
+    // alas, the API is very convoluted. At some point, another attempt should be made to use the proper API though...
+    QString user_access_output;
+    const auto user_access_res = PowerShell::exec(
+        {QString{"(Get-Acl '%1').Access | ?{($_.IdentityReference -match '%2') -and ($_.FileSystemRights "
+                 "-eq 'FullControl')}"}
+             .arg(source, user)},
+        "Get ACLs",
+        &user_access_output);
+
+    if (!user_access_res || user_access_output.isEmpty())
         throw std::runtime_error{fmt::format("cannot access \"{}\"", source)};
 
-    std::string remark("Multipass mount share");
+    std::wstring remark = L"Multipass mount share";
+    auto wide_share_name = share_name.toStdWString();
+    auto wide_source = source.toStdWString();
 
     DWORD parm_err = 0;
     SHARE_INFO_2 share_info;
-    share_info.shi2_netname = reinterpret_cast<LPWSTR>(share_name.data());
-    share_info.shi2_remark = reinterpret_cast<LPWSTR>(remark.data());
+    share_info.shi2_netname = wide_share_name.data();
+    share_info.shi2_remark = remark.data();
     share_info.shi2_type = STYPE_DISKTREE;
     share_info.shi2_permissions = 0;
     share_info.shi2_max_uses = -1;
     share_info.shi2_current_uses = 0;
-    share_info.shi2_path = reinterpret_cast<LPWSTR>(source.data());
+    share_info.shi2_path = wide_source.data();
     share_info.shi2_passwd = nullptr;
 
     if (NetShareAdd(nullptr, 2, (LPBYTE)&share_info, &parm_err) != 0)
         throw std::runtime_error{fmt::format("failed creating SMB share for \"{}\": {}", source, parm_err)};
 }
 
-void SmbMountHandler::remove_smb_share()
+void SmbManager::remove_share(const QString& share_name) const
 {
-    if (smb_share_exists() && NetShareDel(nullptr, reinterpret_cast<LPWSTR>(share_name.data()), 0) != 0)
-        mpl::log(mpl::Level::warning, category,
-                 fmt::format("Failed removing SMB share \"{}\" for '{}'", share_name, vm->vm_name));
+    auto wide_share_name = share_name.toStdWString();
+    if (share_exists(share_name) && NetShareDel(nullptr, wide_share_name.data(), 0) != 0)
+        mpl::log(mpl::Level::warning, category, fmt::format("Failed removing SMB share \"{}\"'", share_name));
 }
 
 void SmbMountHandler::remove_cred_files(const QString& user_id)
@@ -125,36 +129,17 @@ void SmbMountHandler::remove_cred_files(const QString& user_id)
     MP_FILEOPS.remove(iv_file);
 }
 
-bool SmbMountHandler::can_user_access_source(const QString& user)
-{
-    // TODO: I tried to use the proper Windows API to get ACL permissions for the user being passed in, but
-    // alas, the API is very convoluted. At some point, another attempt should be made to use the proper
-    // API though...
-    QString output;
-    return PowerShell::exec(
-               {QString{"(Get-Acl '%1').Access | ?{($_.IdentityReference -match '%2') -and ($_.FileSystemRights "
-                        "-eq 'FullControl')}"}
-                    .arg(source, user)},
-               "Get ACLs", &output) &&
-           !output.isEmpty();
-}
-
-void SmbMountHandler::encrypt_credentials_to_file(const QString& cred_filename, const QString& iv_filename,
-                                                  const std::string& ptext)
+void SmbMountHandler::encrypt_credentials_to_file(const QString& cred_filename,
+                                                  const QString& iv_filename,
+                                                  const std::string& data)
 try
 {
-    std::string ctext;
-    QFile cred_file{cred_dir.filePath(cred_filename)};
-    QFile iv_file{cred_dir.filePath(iv_filename)};
-    auto iv = MP_UTILS.random_bytes(MP_AES.aes_256_block_size());
+    const auto iv = MP_UTILS.random_bytes(MP_AES.aes_256_block_size());
+    const auto encrypted_data = MP_AES.encrypt(enc_key, iv, data);
 
-    MP_AES.encrypt(enc_key, iv, ptext, ctext);
-
-    MP_FILEOPS.open(iv_file, QIODevice::WriteOnly);
-    MP_FILEOPS.write(iv_file, (const char*)(iv.data()), MP_AES.aes_256_block_size());
-
-    MP_FILEOPS.open(cred_file, QIODevice::WriteOnly);
-    MP_FILEOPS.write(cred_file, (const char*)(ctext.data()), ctext.size());
+    MP_UTILS.make_file_with_content(cred_dir.filePath(iv_filename).toStdString(), {iv.begin(), iv.end()});
+    MP_UTILS.make_file_with_content(cred_dir.filePath(cred_filename).toStdString(),
+                                    {encrypted_data.begin(), encrypted_data.end()});
 
     mpl::log(mpl::Level::info, category, "Successfully encrypted credentials");
 }
@@ -166,32 +151,14 @@ catch (const std::exception& e)
 std::string SmbMountHandler::decrypt_credentials_from_file(const QString& cred_filename, const QString& iv_filename)
 try
 {
-    std::vector<uint8_t> iv;
-    std::string ctext;
-    std::string rtext;
-    QFile cred_file{cred_dir.filePath(cred_filename)};
-    QFile iv_file{cred_dir.filePath(iv_filename)};
-
-    if (!MP_FILEOPS.exists(cred_file))
-        throw std::runtime_error(fmt::format("File not found: {}", cred_filename));
-
-    if (!MP_FILEOPS.exists(iv_file))
-        throw std::runtime_error(fmt::format("File not found: {}", iv_filename));
-
+    const auto encrypted_data = MP_UTILS.contents_of(cred_dir.filePath(cred_filename));
+    const auto iv_str = MP_UTILS.contents_of(cred_dir.filePath(iv_filename));
+    std::vector<uint8_t> iv{iv_str.begin(), iv_str.end()};
     iv.resize(MP_AES.aes_256_block_size());
-    ctext.resize(cred_file.size());
 
-    MP_FILEOPS.open(iv_file, QIODevice::ReadOnly);
-    MP_FILEOPS.read(iv_file, (char*)(iv.data()), MP_AES.aes_256_block_size());
-
-    MP_FILEOPS.open(cred_file, QIODevice::ReadOnly);
-    MP_FILEOPS.read(cred_file, ctext.data(), ctext.size());
-
-    MP_AES.decrypt(enc_key, iv, ctext, rtext);
-
+    auto decrypted_data = MP_AES.decrypt(enc_key, iv, encrypted_data);
     mpl::log(mpl::Level::info, category, "Successfully decrypted credentials");
-
-    return rtext;
+    return decrypted_data;
 }
 catch (const std::exception& e)
 {
@@ -203,14 +170,17 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
                                  const SSHKeyProvider* ssh_key_provider,
                                  const std::string& target,
                                  VMMount mount_spec,
-                                 const mp::Path& cred_dir)
+                                 const mp::Path& cred_dir,
+                                 const SmbManager& smb_manager)
     : MountHandler{vm, ssh_key_provider, std::move(mount_spec), target},
       source{QString::fromStdString(get_mount_spec().source_path)},
       // share name must be unique and 80 chars max
-      share_name{QString("%1_%2:%3")
-                     .arg(mpu::make_uuid(), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
-                     .left(80)},
-      cred_dir{cred_dir}
+      share_name{
+          QString("%1_%2:%3")
+              .arg(MP_UTILS.make_uuid(target), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
+              .left(80)},
+      cred_dir{cred_dir},
+      smb_manager{&smb_manager}
 {
     mpl::log(mpl::Level::info,
              category,
@@ -218,19 +188,18 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
 
     auto data_location{MP_PLATFORM.multipass_storage_location() + "\\data"};
     auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys")};
-    auto key_file = QFile{QDir{enc_key_dir_path}.filePath("aes.key")};
+    auto key_file = QDir{enc_key_dir_path}.filePath("aes.key");
 
-    if (MP_FILEOPS.exists(key_file))
+    if (MP_FILEOPS.exists(QFile{key_file}))
     {
+        const auto key_str = MP_UTILS.contents_of(key_file);
+        enc_key.assign(key_str.begin(), key_str.end());
         enc_key.resize(MP_AES.aes_256_key_size());
-        MP_FILEOPS.open(key_file, QIODevice::ReadOnly);
-        MP_FILEOPS.read(key_file, (char*)(enc_key.data()), MP_AES.aes_256_key_size());
     }
     else
     {
         enc_key = MP_UTILS.random_bytes(MP_AES.aes_256_key_size());
-        MP_FILEOPS.open(key_file, QIODevice::WriteOnly);
-        MP_FILEOPS.write(key_file, (const char*)(enc_key.data()), MP_AES.aes_256_key_size());
+        MP_UTILS.make_file_with_content(key_file.toStdString(), {enc_key.begin(), enc_key.end()});
         mpl::log(mpl::Level::info, category, "Successfully generated new encryption key");
     }
 }
@@ -238,9 +207,11 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
 bool SmbMountHandler::is_active()
 try
 {
-    return active && smb_share_exists() &&
+    return active && smb_manager->share_exists(share_name) &&
            !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
-                .exec(fmt::format("findmnt --type cifs | grep '{} //{}/{}'", target, QHostInfo::localHostName(),
+                .exec(fmt::format("findmnt --type cifs | grep '{} //{}/{}'",
+                                  target,
+                                  QHostInfo::localHostName(),
                                   share_name))
                 .exit_code();
 }
@@ -257,7 +228,7 @@ try
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
     const auto username = MP_PLATFORM.get_username();
-    const auto user_id = mpu::make_uuid(username.toStdString());
+    const auto user_id = MP_UTILS.make_uuid(username.toStdString());
     const auto iv_filename = user_id + ".iv";
     const auto cred_filename = user_id + ".cifs";
 
@@ -284,7 +255,7 @@ try
     if (password.empty())
     {
         password = std::visit(
-            [this, &session, timeout](auto&& server) {
+            [](auto&& server) {
                 auto reply = server ? make_reply_from_server(server)
                                     : throw std::runtime_error("Cannot get password without client connection");
 
@@ -306,7 +277,7 @@ try
         encrypt_credentials_to_file(cred_filename, iv_filename, fmt::format("password={}", password));
     }
 
-    create_smb_share(username);
+    smb_manager->create_share(share_name, source, username);
 
     // The following mkdir in the instance will be replaced with refactored code
     auto mkdir_proc = session.exec(fmt::format("mkdir -p {}", target));
@@ -326,6 +297,7 @@ try
         session.exec(fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)", hostname,
                                  share_name, target, credentials_path));
     auto mount_exit_code = mount_proc.exit_code();
+    auto mount_error_msg = mount_proc.read_std_error();
 
     auto rm_proc = session.exec(fmt::format("sudo rm {}", credentials_path));
     if (rm_proc.exit_code() != 0)
@@ -335,12 +307,12 @@ try
     if (mount_exit_code != 0)
     {
         remove_cred_files(user_id);
-        throw std::runtime_error(fmt::format("Error: {}", mount_proc.read_std_error()));
+        throw std::runtime_error(fmt::format("Error: {}", mount_error_msg));
     }
 }
 catch (...)
 {
-    remove_smb_share();
+    smb_manager->remove_share(share_name);
     throw;
 }
 
@@ -351,7 +323,7 @@ try
              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
-    remove_smb_share();
+    smb_manager->remove_share(share_name);
 }
 catch (const std::exception& e)
 {
@@ -359,7 +331,7 @@ catch (const std::exception& e)
         throw;
     mpl::log(mpl::Level::warning, category,
              fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
-    remove_smb_share();
+    smb_manager->remove_share(share_name);
 }
 
 SmbMountHandler::~SmbMountHandler()

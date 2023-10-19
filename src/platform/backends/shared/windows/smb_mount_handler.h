@@ -25,6 +25,13 @@
 
 namespace multipass
 {
+struct SmbManager
+{
+    virtual bool share_exists(const QString& share_name) const;
+    virtual void create_share(const QString& share_name, const QString& source, const QString& user) const;
+    virtual void remove_share(const QString& share_name) const;
+};
+
 class SmbMountHandler : public MountHandler
 {
 public:
@@ -32,7 +39,8 @@ public:
                     const SSHKeyProvider* ssh_key_provider,
                     const std::string& target,
                     VMMount mount_spec,
-                    const multipass::Path& cred_dir);
+                    const multipass::Path& cred_dir,
+                    const SmbManager& smb_manager);
     ~SmbMountHandler() override;
 
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
@@ -44,12 +52,9 @@ private:
     QString share_name;
     QDir cred_dir;
     std::vector<uint8_t> enc_key;
+    const SmbManager* smb_manager;
 
-    bool smb_share_exists();
-    void create_smb_share(const QString& user);
-    void remove_smb_share();
     void remove_cred_files(const QString& user_id);
-    bool can_user_access_source(const QString& user);
     void encrypt_credentials_to_file(const QString& cred_filename, const QString& iv_filename,
                                      const std::string& ptext);
     std::string decrypt_credentials_from_file(const QString& cred_filename, const QString& iv_filename);
