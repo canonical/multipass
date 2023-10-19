@@ -361,7 +361,7 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
     if (!reply.details().empty())
         output.pop_back();
     else
-        output = "\n";
+        output = fmt::format("No {} found.\n", reply.snapshots() ? "snapshots" : "instances");
 
     return output;
 }
