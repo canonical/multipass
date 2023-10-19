@@ -2811,6 +2811,17 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
                                                       cloud_init_mount_point.string());
         std::system(mount_command.c_str());
 
+        // load files and add to qemu_iso and write to the .iso file
+        for (const auto filename_str : {"user-data", "vendor-data"})
+        {
+            const auto stream = MP_FILEOPS.open_read(cloud_init_mount_point / fs::path(filename_str));
+            std::stringstream buffer;
+            buffer << stream->rdbuf();
+            const std::string file_contents = buffer.str();
+            qemu_iso.add_file(filename_str, file_contents);
+        }
+        qemu_iso.write_to(QString::fromStdString(cloud_init_config_iso_file_path.string()));
+
         mpl::log(mpl::Level::info,
                  "general",
                  fmt::format("source_instance_data_directory value is : {}", source_instance_data_directory.string()));
