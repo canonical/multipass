@@ -1728,14 +1728,22 @@ try // clang-format on
             if (all_or_none)
             {
                 if (snapshots_only)
+                {
+                    for (const auto& snapshot_name : pick)
+                        vm.get_snapshot(snapshot_name); // still verify validity of explicit snapshot names
                     for (const auto& snapshot : vm.view_snapshots())
                         populate_info(vm, snapshot);
+                }
                 else
+                {
                     populate_info(vm, nullptr);
+                    for (const auto& snapshot_name : pick)
+                        populate_info(vm, vm.get_snapshot(snapshot_name));
+                }
             }
-
-            for (const auto& snapshot_name : pick)
-                populate_info(vm, vm.get_snapshot(snapshot_name));
+            else
+                for (const auto& snapshot_name : pick)
+                    populate_info(vm, vm.get_snapshot(snapshot_name));
         }
         catch (const NoSuchSnapshot& e)
         {
