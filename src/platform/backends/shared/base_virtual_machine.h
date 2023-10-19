@@ -61,7 +61,7 @@ public:
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
     // derived classes is a big refactor
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
-                                                  const std::string& name,
+                                                  const std::string& snapshot_name,
                                                   const std::string& comment) override;
     void rename_snapshot(const std::string& old_name, const std::string& new_name) override;
     void delete_snapshot(const std::string& name) override;
