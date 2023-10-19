@@ -277,6 +277,12 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: ilammy/msvc-dev-cmd@v1
 
+    - name: Wokaround broken cmake on Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        $env:PATH = $env:PATH -replace "C:\\Strawberry\\c\\bin;", ""
+        "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
+
     - name: Configure
       run: >
         ${{ env.ARCH_WRAPPER }}
