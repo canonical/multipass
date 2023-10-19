@@ -2794,6 +2794,15 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
         const YAML::Node meta_data = make_cloud_init_meta_config(destination_name);
         qemu_iso.add_file("meta-data", mpu::emit_cloud_config(meta_data));
 
+        // create the mount folder
+        const fs::path cloud_init_mount_point = dest_instance_data_directory / "cidata";
+        if (std::error_code err; !MP_FILEOPS.create_directory(cloud_init_mount_point, err))
+        {
+            throw std::runtime_error{
+                fmt::format("Could not create mount point for cloud-init-config.iso file of the instance: {} ",
+                            destination_name)};
+        }
+
         mpl::log(mpl::Level::info,
                  "general",
                  fmt::format("source_instance_data_directory value is : {}", source_instance_data_directory.string()));
