@@ -75,7 +75,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return 42;
     }
 
-    std::string ssh_hostname(std::chrono::milliseconds timeout) override
+    std::string ssh_hostname(std::chrono::milliseconds /*timeout*/) override
     {
         return "localhost";
     }
@@ -95,7 +95,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "";
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds timeout, const mp::SSHKeyProvider& key_provider) override
+    void wait_until_ssh_up(std::chrono::milliseconds /*timeout*/, const mp::SSHKeyProvider& /*key_provider*/) override
     {
     }
 
@@ -120,15 +120,15 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     }
 
 protected:
-    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const std::string& snapshot_name,
-                                                         const std::string& comment,
-                                                         const mp::VMSpecs& specs,
-                                                         std::shared_ptr<mp::Snapshot> parent) override
+    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const std::string& /*snapshot_name*/,
+                                                         const std::string& /*comment*/,
+                                                         const mp::VMSpecs& /*specs*/,
+                                                         std::shared_ptr<mp::Snapshot> /*parent*/) override
     {
         return nullptr;
     }
 
-    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QString& json) override
+    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QString& /*json*/) override
     {
         return nullptr;
     }
