@@ -121,7 +121,7 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
     return all_ipv4;
 }
 
-auto BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
+auto BaseVirtualMachine::view_snapshots() const -> SnapshotVista
 {
     SnapshotVista ret;
 

@@ -50,7 +50,7 @@ public:
         throw NotImplementedOnThisBackendException("native mounts");
     };
 
-    SnapshotVista view_snapshots() const noexcept override;
+    SnapshotVista view_snapshots() const override;
     int get_num_snapshots() const noexcept override;
 
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
