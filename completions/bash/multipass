@@ -45,7 +45,7 @@ _multipass_complete()
 
     _multipass_restorable_snapshots()
     {
-        local instances=$( multipass info --all --no-runtime-information --format=csv \
+        local instances=$( multipass info --no-runtime-information --format=csv \
                            | \tail -n +2 \
                            | \awk -F',|\r?\n' '$2 == "Stopped" && $16 > 0' \
                            | \cut -d',' -f 1 \
