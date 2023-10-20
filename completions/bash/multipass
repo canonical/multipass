@@ -28,7 +28,9 @@ _multipass_complete()
 
     _multipass_snapshots()
     {
-        local cmd="multipass list --snapshots --format=csv 2>/dev/null | \tail -n +2 | \awk -F',' '\$1 == \"$1\"'"
+        local instance=$1
+        local cmd="multipass list --snapshots --format=csv 2>/dev/null | \tail -n +2"
+        [ -n "$instance" ] && cmd="$cmd | \awk -F',' '\$1 == \"$instance\"'"
         local snapshots=$( \eval $cmd | \cut -d',' -f 1,2 | \tr ',' '.' | \tr '\r\n' ' ' )
 
         _add_nonrepeating_args "$snapshots"
@@ -36,10 +38,7 @@ _multipass_complete()
 
     _multipass_instances_and_snapshots()
     {
-        if [[ "${cur}" =~ '.' ]]; then
-            _multipass_snapshots "${cur%%.*}"
-        fi
-
+        _multipass_snapshots
         _multipass_instances
     }
 
