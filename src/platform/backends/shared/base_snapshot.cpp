@@ -25,7 +25,7 @@
 
 #include <scope_guard.hpp>
 
-#include <QJsonArray> // TODO@snapshots may be able to drop after extracting JSON utilities
+#include <QJsonArray>
 #include <QString>
 
 #include <QFile>
