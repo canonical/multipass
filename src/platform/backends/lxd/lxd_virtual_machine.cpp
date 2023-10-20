@@ -492,10 +492,10 @@ auto mp::LXDVirtualMachine::make_specific_snapshot(const std::string& snapshot_n
                                                    const VMSpecs& specs,
                                                    std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+    throw NotImplementedOnThisBackendException{"Snapshots"};
 }
 
 std::shared_ptr<mp::Snapshot> mp::LXDVirtualMachine::make_specific_snapshot(const QString& /*filename*/)
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"}; // TODO@snapshots
+    throw NotImplementedOnThisBackendException{"Snapshots"};
 }
