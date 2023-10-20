@@ -38,6 +38,8 @@ struct VMMount
     VMMount(const QJsonObject& json);
     VMMount(const std::string& sourcePath, id_mappings gidMappings, id_mappings uidMappings, MountType mountType);
 
+    QJsonObject serialize() const;
+
     std::string source_path;
     id_mappings gid_mappings;
     id_mappings uid_mappings;
