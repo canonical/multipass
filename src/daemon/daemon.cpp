@@ -325,30 +325,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
         for (QJsonValueRef entry : record["mounts"].toArray())
         {
-            mp::id_mappings uid_mappings;
-            mp::id_mappings gid_mappings;
-
-            auto target_path = entry.toObject()["target_path"].toString().toStdString();
-            auto source_path = entry.toObject()["source_path"].toString().toStdString();
-
-            for (QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
-            {
-                uid_mappings.push_back(
-                    {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
-            }
-
-            for (QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
-            {
-                gid_mappings.push_back(
-                    {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
-            }
-
-            uid_mappings = mp::unique_id_mappings(uid_mappings);
-            gid_mappings = mp::unique_id_mappings(gid_mappings);
-            auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
-
-            mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
-            mounts[target_path] = mount;
+            const auto& json = entry.toObject();
+            mounts[json["target_path"].toString().toStdString()] = mp::VMMount{json};
         }
 
         reconstructed_records[key] = {num_cores,
