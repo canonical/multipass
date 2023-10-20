@@ -20,6 +20,8 @@
 
 #include <multipass/id_mappings.h>
 
+#include <QJsonObject>
+
 #include <string>
 
 namespace multipass
@@ -33,6 +35,7 @@ struct VMMount
     };
 
     VMMount() = default;
+    VMMount(const QJsonObject& json);
     VMMount(const std::string& sourcePath, id_mappings gidMappings, id_mappings uidMappings, MountType mountType);
 
     std::string source_path;
