@@ -2834,6 +2834,25 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
                             destination_name)};
         }
 
+        // start to construct VirtualMachineDescription
+        mp::VirtualMachineDescription dest_vm_desc{
+            dest_vm_spec.num_cores,
+            dest_vm_spec.mem_size,
+            dest_vm_spec.disk_space,
+            destination_name,
+            dest_vm_spec.default_mac_address,
+            dest_vm_spec.extra_interfaces,
+            dest_vm_spec.ssh_username,
+            fetch_image_for(destination_name, config->factory->fetch_type(), *config->vault),
+            cloud_init_config_iso_file_path.string().c_str(),
+            {},
+            {},
+            {},
+            {}};
+
+        operative_instances[destination_name] = config->factory->create_virtual_machine(dest_vm_desc, *this);
+        init_mounts(destination_name);
+
         mpl::log(mpl::Level::info,
                  "general",
                  fmt::format("source_instance_data_directory value is : {}", source_instance_data_directory.string()));
