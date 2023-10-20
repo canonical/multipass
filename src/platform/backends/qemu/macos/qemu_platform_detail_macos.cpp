@@ -115,6 +115,11 @@ std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
     return networks;
 }
 
+void mp::QemuPlatformDetail::add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& net)
+{
+    desc.extra_interfaces.push_back(net);
+}
+
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
     return std::make_unique<mp::QemuPlatformDetail>();
