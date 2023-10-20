@@ -126,7 +126,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return std::make_unique<StubMountHandler>();
     }
 
-    SnapshotVista view_snapshots() const noexcept override
+    SnapshotVista view_snapshots() const override
     {
         return {};
     }
