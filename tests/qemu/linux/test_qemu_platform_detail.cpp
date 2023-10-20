@@ -208,3 +208,12 @@ TEST_F(QemuPlatformDetail, writing_ipforward_file_failure_logs_expected_message)
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 }
+
+TEST_F(QemuPlatformDetail, add_network_interface_throws)
+{
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+
+    mp::VirtualMachineDescription desc;
+    mp::NetworkInterface net{"id", "52:54:00:98:76:54", true};
+    EXPECT_THROW(qemu_platform_detail.add_network_interface(desc, net), mp::NotImplementedOnThisBackendException);
+}
