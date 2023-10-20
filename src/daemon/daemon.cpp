@@ -1167,13 +1167,12 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
     for (const auto& it : instances_snapshots)
     {
         const auto& instance = it.instance_name();
-        const auto& snapshot = it.snapshot_name();
         auto& snapshot_pick = instance_snapshots_map[instance];
 
-        if (snapshot.empty())
+        if (!it.has_snapshot_name())
             snapshot_pick.all_or_none = true;
         else
-            snapshot_pick.pick.insert(snapshot);
+            snapshot_pick.pick.insert(it.snapshot_name());
     }
 
     return instance_snapshots_map;
