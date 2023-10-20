@@ -17,7 +17,37 @@
 
 #include <multipass/vm_mount.h>
 
+#include <QJsonArray>
+
 namespace mp = multipass;
+
+namespace
+{
+mp::VMMount parse_json(const QJsonObject& json)
+{
+    mp::id_mappings uid_mappings;
+    mp::id_mappings gid_mappings;
+    auto source_path = json["source_path"].toString().toStdString();
+
+    for (const QJsonValueRef uid_entry : json["uid_mappings"].toArray())
+    {
+        uid_mappings.push_back(
+            {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
+    }
+
+    for (const QJsonValueRef gid_entry : json["gid_mappings"].toArray())
+    {
+        gid_mappings.push_back(
+            {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
+    }
+
+    uid_mappings = mp::unique_id_mappings(uid_mappings);
+    gid_mappings = mp::unique_id_mappings(gid_mappings);
+    auto mount_type = mp::VMMount::MountType(json["mount_type"].toInt());
+
+    return mp::VMMount{std::move(source_path), std::move(gid_mappings), std::move(uid_mappings), mount_type};
+}
+} // namespace
 
 mp::VMMount::VMMount(const std::string& sourcePath,
                      id_mappings gidMappings,
@@ -27,5 +57,9 @@ mp::VMMount::VMMount(const std::string& sourcePath,
       gid_mappings(std::move(gidMappings)),
       uid_mappings(std::move(uidMappings)),
       mount_type(mountType)
+{
+}
+
+mp::VMMount::VMMount(const QJsonObject& json) : VMMount{parse_json(json)} // delegate on copy ctor
 {
 }
