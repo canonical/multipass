@@ -17,8 +17,8 @@
  *
  */
 
-#include "multipass/format.h"
 #include <multipass/file_ops.h>
+#include <multipass/format.h>
 #include <multipass/json_utils.h>
 
 #include <QJsonDocument>
