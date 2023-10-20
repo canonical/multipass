@@ -153,7 +153,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
     if (index < 1)
         throw std::runtime_error{fmt::format("Snapshot index not positive: {}", index)};
     if (index > max_snapshots)
-        throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded: {}", max_snapshots)};
+        throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded: {}", index)};
     if (name.empty())
         throw std::runtime_error{"Snapshot names cannot be empty"};
     if (num_cores < 1)
