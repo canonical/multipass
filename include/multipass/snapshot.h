@@ -35,7 +35,7 @@ struct VMMount;
 
 class Snapshot : private DisabledCopyMove
 {
-public: // TODO@snapshots drop any accessors that we end up not needing
+public:
     virtual ~Snapshot() = default;
 
     virtual int get_index() const = 0;
