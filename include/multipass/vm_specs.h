@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_VM_SPECS_H
 #define MULTIPASS_VM_SPECS_H
 
-#include <multipass/memory_size.h>
-#include <multipass/network_interface.h>
-#include <multipass/virtual_machine.h>
-#include <multipass/vm_mount.h>
+#include "memory_size.h"
+#include "network_interface.h"
+#include "virtual_machine.h"
+#include "vm_mount.h"
 
 #include <string>
 #include <tuple>
@@ -48,10 +48,25 @@ struct VMSpecs
 
 inline bool operator==(const VMSpecs& a, const VMSpecs& b)
 {
-    return std::tie(a.num_cores, a.mem_size, a.disk_space, a.default_mac_address, a.extra_interfaces, a.ssh_username,
-                    a.state, a.mounts, a.deleted, a.metadata) ==
-           std::tie(b.num_cores, b.mem_size, b.disk_space, b.default_mac_address, b.extra_interfaces, b.ssh_username,
-                    b.state, b.mounts, b.deleted, b.metadata);
+    return std::tie(a.num_cores,
+                    a.mem_size,
+                    a.disk_space,
+                    a.default_mac_address,
+                    a.extra_interfaces,
+                    a.ssh_username,
+                    a.state,
+                    a.mounts,
+                    a.deleted,
+                    a.metadata) == std::tie(b.num_cores,
+                                            b.mem_size,
+                                            b.disk_space,
+                                            b.default_mac_address,
+                                            b.extra_interfaces,
+                                            b.ssh_username,
+                                            b.state,
+                                            b.mounts,
+                                            b.deleted,
+                                            b.metadata);
 }
 
 inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20

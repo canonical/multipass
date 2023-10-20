@@ -20,9 +20,9 @@
 
 #include <multipass/constants.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/vm_specs.h>
 
 #include <src/daemon/instance_settings_handler.h>
-#include <src/daemon/vm_specs.h>
 
 #include <QString>
 

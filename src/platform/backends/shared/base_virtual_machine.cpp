@@ -16,7 +16,6 @@
  */
 
 #include "base_virtual_machine.h"
-#include "daemon/vm_specs.h" // TODO@snapshots move this
 
 #include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -26,6 +25,7 @@
 #include <multipass/snapshot.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
+#include <multipass/vm_specs.h>
 
 #include <scope_guard.hpp>
 
