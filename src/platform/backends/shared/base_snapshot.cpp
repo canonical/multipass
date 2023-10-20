@@ -150,6 +150,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
     using St = VirtualMachine::State;
     if (state != St::off && state != St::stopped)
         throw std::runtime_error{fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(state))};
+    if (index < 1)
+        throw std::runtime_error{fmt::format("Snapshot index not positive: {}", index)};
     if (index > max_snapshots)
         throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded: {}", max_snapshots)};
     if (name.empty())
