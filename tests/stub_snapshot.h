@@ -57,7 +57,7 @@ struct StubSnapshot : public Snapshot
         return nullptr;
     }
 
-    int get_index() const override
+    int get_index() const noexcept override
     {
         return 0;
     }
