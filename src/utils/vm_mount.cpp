@@ -63,3 +63,38 @@ mp::VMMount::VMMount(const std::string& sourcePath,
 mp::VMMount::VMMount(const QJsonObject& json) : VMMount{parse_json(json)} // delegate on copy ctor
 {
 }
+
+QJsonObject mp::VMMount::serialize() const
+{
+    QJsonObject ret;
+    ret.insert("source_path", QString::fromStdString(source_path));
+
+    QJsonArray uid_mappings_json;
+
+    for (const auto& map : uid_mappings)
+    {
+        QJsonObject map_entry;
+        map_entry.insert("host_uid", map.first);
+        map_entry.insert("instance_uid", map.second);
+
+        uid_mappings_json.append(map_entry);
+    }
+
+    ret.insert("uid_mappings", uid_mappings_json);
+
+    QJsonArray gid_mappings_json;
+
+    for (const auto& map : gid_mappings)
+    {
+        QJsonObject map_entry;
+        map_entry.insert("host_gid", map.first);
+        map_entry.insert("instance_gid", map.second);
+
+        gid_mappings_json.append(map_entry);
+    }
+
+    ret.insert("gid_mappings", gid_mappings_json);
+
+    ret.insert("mount_type", static_cast<int>(mount_type));
+    return ret;
+}
