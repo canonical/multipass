@@ -38,10 +38,10 @@ class Snapshot : private DisabledCopyMove
 public:
     virtual ~Snapshot() = default;
 
-    virtual int get_index() const = 0;
+    virtual int get_index() const noexcept = 0;
     virtual std::string get_name() const = 0;
     virtual std::string get_comment() const = 0;
-    virtual QDateTime get_creation_timestamp() const = 0;
+    virtual QDateTime get_creation_timestamp() const noexcept = 0;
     virtual int get_num_cores() const noexcept = 0;
     virtual MemorySize get_mem_size() const noexcept = 0;
     virtual MemorySize get_disk_space() const noexcept = 0;
