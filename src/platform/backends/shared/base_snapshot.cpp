@@ -19,7 +19,6 @@
 #include "multipass/virtual_machine.h"
 
 #include <multipass/file_ops.h>
-#include <multipass/id_mappings.h> // TODO@snapshots may be able to drop after extracting JSON utilities
 #include <multipass/json_utils.h>
 #include <multipass/vm_mount.h>
 #include <multipass/vm_specs.h>
@@ -69,35 +68,13 @@ QJsonObject read_snapshot_json(const QString& filename)
         return json["snapshot"].toObject();
 }
 
-std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& json)
+std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mounts_json)
 {
     std::unordered_map<std::string, mp::VMMount> mounts;
-    for (const auto& entry : json)
+    for (const auto& entry : mounts_json)
     {
-        mp::id_mappings uid_mappings;
-        mp::id_mappings gid_mappings;
-
-        auto target_path = entry.toObject()["target_path"].toString().toStdString();
-        auto source_path = entry.toObject()["source_path"].toString().toStdString();
-
-        for (const QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
-        {
-            uid_mappings.push_back(
-                {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
-        }
-
-        for (const QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
-        {
-            gid_mappings.push_back(
-                {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
-        }
-
-        uid_mappings = mp::unique_id_mappings(uid_mappings);
-        gid_mappings = mp::unique_id_mappings(gid_mappings);
-        auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
-
-        mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
-        mounts[target_path] = std::move(mount);
+        const auto& json = entry.toObject();
+        mounts[json["target_path"].toString().toStdString()] = mp::VMMount{json};
     }
 
     return mounts;
