@@ -16,12 +16,12 @@
  */
 
 #include "base_snapshot.h"
-#include "daemon/vm_specs.h" // TODO@snapshots move this
 
 #include <multipass/file_ops.h>
 #include <multipass/id_mappings.h> // TODO@snapshots may be able to drop after extracting JSON utilities
 #include <multipass/json_utils.h>
 #include <multipass/vm_mount.h>
+#include <multipass/vm_specs.h>
 
 #include <scope_guard.hpp>
 
