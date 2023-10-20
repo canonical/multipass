@@ -2809,7 +2809,10 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
         const std::string mount_command = fmt::format("mount -o loop {} {}",
                                                       cloud_init_config_iso_file_path.string(),
                                                       cloud_init_mount_point.string());
-        std::system(mount_command.c_str());
+        if (int return_code = std::system(mount_command.c_str()); return_code != 0)
+        {
+            throw std::runtime_error{fmt::format("Error executing command : {} ", mount_command)};
+        }
 
         // load files and add to qemu_iso and write to the .iso file
         for (const auto filename_str : {"user-data", "vendor-data"})
@@ -2824,7 +2827,10 @@ void mp::Daemon::clone(const CloneRequest* request, grpc::ServerReaderWriterInte
 
         // sudo umount /root/.local/share/multipassd/vault/instances/adaptive-cat-clone/cidata
         const std::string unmount_command = fmt::format("umount {}", cloud_init_mount_point.string());
-        std::system(unmount_command.c_str());
+        if (int return_code = std::system(unmount_command.c_str()); return_code != 0)
+        {
+            throw std::runtime_error{fmt::format("Error executing command : {} ", unmount_command)};
+        }
 
         // delete the created mount folder
         if (std::error_code err; !MP_FILEOPS.remove(cloud_init_mount_point, err))
