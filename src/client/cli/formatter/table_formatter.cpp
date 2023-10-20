@@ -103,7 +103,8 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
         fmt::format_to(std::back_inserter(buf), "{}\n", *child);
     }
 
-    // TODO@snapshots split and align string if it extends onto several lines
+    /* TODO split and align string if it extends onto several lines; but actually better implement generic word-wrapping
+       for all output, taking both terminal width and current indentation level into account */
     fmt::format_to(std::back_inserter(buf),
                    "{:<16}{}\n",
                    "Comment:",
