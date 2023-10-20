@@ -32,6 +32,15 @@ struct VMMount
         Native = 1
     };
 
+    VMMount() = default;
+    VMMount(const std::string& sourcePath, id_mappings gidMappings, id_mappings uidMappings, MountType mountType)
+        : source_path(sourcePath),
+          gid_mappings(std::move(gidMappings)),
+          uid_mappings(std::move(uidMappings)),
+          mount_type(mountType)
+    {
+    }
+
     std::string source_path;
     id_mappings gid_mappings;
     id_mappings uid_mappings;
