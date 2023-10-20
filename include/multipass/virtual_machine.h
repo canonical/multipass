@@ -99,7 +99,8 @@ public:
     virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
                                                           const std::string& snapshot_name,
                                                           const std::string& comment) = 0;
-    virtual void rename_snapshot(const std::string& old_name, const std::string& new_name) = 0; // TODO@snapshots remove
+    virtual void rename_snapshot(const std::string& old_name,
+                                 const std::string& new_name) = 0; // only VM can avoid repeated names
     virtual void delete_snapshot(const std::string& name) = 0;
     virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
     virtual void load_snapshots() = 0;
