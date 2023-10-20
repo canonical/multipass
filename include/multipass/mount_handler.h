@@ -67,7 +67,7 @@ public:
         active = false;
     }
 
-    const VMMount& get_mount_spec() const
+    const VMMount& get_mount_spec() const noexcept
     {
         return mount_spec;
     }
