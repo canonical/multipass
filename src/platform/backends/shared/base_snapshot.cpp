@@ -16,6 +16,7 @@
  */
 
 #include "base_snapshot.h"
+#include "multipass/virtual_machine.h"
 
 #include <multipass/file_ops.h>
 #include <multipass/id_mappings.h> // TODO@snapshots may be able to drop after extracting JSON utilities
@@ -146,9 +147,11 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
       captured{captured}
 {
     assert(index > 0 && "snapshot indices need to start at 1");
+    using St = VirtualMachine::State;
+    if (state != St::off && state != St::stopped)
+        throw std::runtime_error{fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(state))};
     if (index > max_snapshots)
         throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded: {}", max_snapshots)};
-
     if (name.empty())
         throw std::runtime_error{"Snapshot names cannot be empty"};
     if (num_cores < 1)

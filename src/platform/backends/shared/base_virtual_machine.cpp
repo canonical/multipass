@@ -522,8 +522,6 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     assert_vm_stopped(state); // precondition
 
     auto snapshot = get_snapshot(name);
-
-    // TODO@snapshots convert into runtime_error (persisted info could have been tampered with)
     assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
 
     snapshot->apply();
