@@ -238,8 +238,8 @@ auto mp::BaseSnapshot::erase_helper()
         throw std::runtime_error{"Could not create temporary directory"};
 
     const auto snapshot_filename = derive_snapshot_filename();
-    const auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
-    const auto deleting_filepath = tmp_dir->filePath(snapshot_filename);
+    auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
+    auto deleting_filepath = tmp_dir->filePath(snapshot_filename);
 
     QFile snapshot_file{snapshot_filepath};
     if (!MP_FILEOPS.rename(snapshot_file, deleting_filepath))
