@@ -197,11 +197,8 @@ private:
     template <typename Reply, typename Request>
     void reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server, std::string&& msg, bool sticky = false);
 
-    void populate_instance_info(VirtualMachine& vm,
-                                DetailedInfoItem* info,
-                                bool runtime_info,
-                                bool deleted,
-                                bool& have_mounts);
+    void
+    populate_instance_info(VirtualMachine& vm, InfoReply& response, bool runtime_info, bool deleted, bool& have_mounts);
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;

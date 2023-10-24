@@ -150,7 +150,7 @@ auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name
     {
         return find_instance(instance_name)->get_snapshot(snapshot_name);
     }
-    catch (const NoSuchSnapshot& e)
+    catch (const NoSuchSnapshotException& e)
     {
         throw SnapshotSettingsException{e.what()};
     }
