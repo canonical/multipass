@@ -637,9 +637,9 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
         {
             std::string answer;
             std::getline(term->cin(), answer);
-            if (std::regex_match(answer, yes))
+            if (std::regex_match(answer, yes_answer))
                 return true;
-            else if (std::regex_match(answer, no))
+            else if (std::regex_match(answer, no_answer))
                 return false;
             else
                 cout << "Please answer yes/no: ";

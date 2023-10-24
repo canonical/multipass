@@ -143,8 +143,8 @@ bool cmd::Restore::confirm_destruction(const std::string& instance_name)
     mp::PlainPrompter prompter(term);
 
     auto answer = prompter.prompt(fmt::format(prompt_text, instance_name));
-    while (!answer.empty() && !std::regex_match(answer, yes) && !std::regex_match(answer, no))
+    while (!answer.empty() && !std::regex_match(answer, yes_answer) && !std::regex_match(answer, no_answer))
         answer = prompter.prompt(invalid_input);
 
-    return std::regex_match(answer, no);
+    return std::regex_match(answer, no_answer);
 }
