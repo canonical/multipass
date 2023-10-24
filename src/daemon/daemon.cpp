@@ -1158,6 +1158,7 @@ struct SnapshotPick
     std::unordered_set<std::string> pick;
     bool all_or_none;
 };
+
 using InstanceSnapshotPairs = google::protobuf::RepeatedPtrField<mp::InstanceSnapshotPair>;
 using InstanceSnapshotsMap = std::unordered_map<std::string, SnapshotPick>;
 InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& instances_snapshots)
@@ -1321,9 +1322,10 @@ void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mou
 
 void populate_snapshot_info(mp::VirtualMachine& vm,
                             std::shared_ptr<const mp::Snapshot> snapshot,
-                            mp::DetailedInfoItem* info,
+                            mp::InfoReply& response,
                             bool& have_mounts)
 {
+    auto* info = response.add_details();
     auto snapshot_info = info->mutable_snapshot_info();
     auto fundamentals = snapshot_info->mutable_fundamentals();
 
@@ -1728,25 +1730,24 @@ try // clang-format on
     bool snapshots_only = request->snapshots();
     response.set_snapshots(snapshots_only);
 
-    auto populate_info = [&](VirtualMachine& vm, const std::shared_ptr<const Snapshot>& snapshot) {
-        auto* details = response.add_details();
-        if (snapshot)
-            populate_snapshot_info(vm, snapshot, details, have_mounts); // TODO@snapshots remove have_mounts
-        else
-            populate_instance_info(vm, details, request->no_runtime_information(), deleted, have_mounts);
-    };
-
-    auto process_snapshot_pick = [populate_info, snapshots_only](VirtualMachine& vm,
-                                                                 const SnapshotPick& snapshot_pick) {
+    auto process_snapshot_pick = [&response, &have_mounts, snapshots_only](VirtualMachine& vm,
+                                                                           const SnapshotPick& snapshot_pick) {
         for (const auto& snapshot_name : snapshot_pick.pick)
         {
             const auto snapshot = vm.get_snapshot(snapshot_name); // verify validity even if unused
             if (!snapshot_pick.all_or_none || !snapshots_only)
-                populate_info(vm, snapshot);
+                populate_snapshot_info(vm, snapshot, response, have_mounts);
         }
     };
 
-    auto fetch_detailed_report = [&](VirtualMachine& vm) {
+    auto fetch_detailed_report = [this,
+                                  &instance_snapshots_map,
+                                  process_snapshot_pick,
+                                  snapshots_only,
+                                  request,
+                                  &response,
+                                  &have_mounts,
+                                  &deleted](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
 
@@ -1760,12 +1761,12 @@ try // clang-format on
             {
                 if (snapshots_only)
                     for (const auto& snapshot : vm.view_snapshots())
-                        populate_info(vm, snapshot);
+                        populate_snapshot_info(vm, snapshot, response, have_mounts);
                 else
-                    populate_info(vm, nullptr);
+                    populate_instance_info(vm, response, request->no_runtime_information(), deleted, have_mounts);
             }
         }
-        catch (const NoSuchSnapshot& e)
+        catch (const NoSuchSnapshotException& e)
         {
             add_fmt_to(errors, e.what());
         }
@@ -1815,7 +1816,7 @@ try // clang-format on
     request->snapshots() ? (void)response.mutable_snapshot_list() : (void)response.mutable_instance_list();
     bool deleted = false;
 
-    auto fetch_instance = [&](VirtualMachine& vm) {
+    auto fetch_instance = [this, request, &response, &deleted](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
@@ -1862,7 +1863,7 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
-    auto fetch_snapshot = [&](VirtualMachine& vm) {
+    auto fetch_snapshot = [&response](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
 
@@ -1877,7 +1878,7 @@ try // clang-format on
                 populate_snapshot_fundamentals(snapshot, fundamentals);
             }
         }
-        catch (const NoSuchSnapshot& e)
+        catch (const NoSuchSnapshotException& e)
         {
             add_fmt_to(errors, e.what());
         }
@@ -2536,19 +2537,14 @@ try
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
 
         SnapshotReply reply;
-
-        {
-            const auto snapshot = vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment());
-
-            reply.set_snapshot(snapshot->get_name());
-        }
+        reply.set_snapshot(vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
 
         server->Write(reply);
     }
 
     status_promise->set_value(status);
 }
-catch (const SnapshotNameTaken& e)
+catch (const SnapshotNameTakenException& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
@@ -2631,7 +2627,7 @@ try
 
     status_promise->set_value(status);
 }
-catch (const mp::NoSuchSnapshot& e)
+catch (const mp::NoSuchSnapshotException& e)
 {
     status_promise->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
 }
@@ -3424,15 +3420,18 @@ void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* se
 }
 
 void mp::Daemon::populate_instance_info(VirtualMachine& vm,
-                                        mp::DetailedInfoItem* info,
+                                        mp::InfoReply& response,
                                         bool no_runtime_info,
                                         bool deleted,
                                         bool& have_mounts)
 {
-    const auto& name = vm.vm_name;
+    auto* info = response.add_details();
     auto instance_info = info->mutable_instance_info();
     auto present_state = vm.current_state();
+
+    const auto& name = vm.vm_name;
     info->set_name(name);
+
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     else

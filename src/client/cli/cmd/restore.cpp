@@ -24,16 +24,8 @@
 #include <multipass/cli/prompters.h>
 #include <multipass/exceptions/cli_exceptions.h>
 
-#include <regex>
-
 namespace mp = multipass;
-namespace cmd = mp::cmd;
-
-namespace
-{
-const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
-const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
-} // namespace
+namespace cmd = multipass::cmd;
 
 mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
 {
@@ -74,7 +66,7 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
                 client_response.set_destructive(confirm_destruction(request.instance()));
             else
                 throw std::runtime_error("Unable to query client for confirmation. Use '--destructive' to "
-                                         "automatically discard current machine state");
+                                         "automatically discard current machine state.");
 
             client->Write(client_response);
             spinner.start();
@@ -151,8 +143,8 @@ bool cmd::Restore::confirm_destruction(const std::string& instance_name)
     mp::PlainPrompter prompter(term);
 
     auto answer = prompter.prompt(fmt::format(prompt_text, instance_name));
-    while (!answer.empty() && !std::regex_match(answer, yes) && !std::regex_match(answer, no))
+    while (!answer.empty() && !std::regex_match(answer, yes_answer) && !std::regex_match(answer, no_answer))
         answer = prompter.prompt(invalid_input);
 
-    return std::regex_match(answer, no);
+    return std::regex_match(answer, no_answer);
 }

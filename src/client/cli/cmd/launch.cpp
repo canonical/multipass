@@ -42,7 +42,6 @@
 #include <QTimeZone>
 #include <QUrl>
 #include <filesystem>
-#include <regex>
 #include <unordered_map>
 
 namespace mp = multipass;
@@ -53,9 +52,6 @@ namespace fs = std::filesystem;
 
 namespace
 {
-const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
-const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
-
 constexpr bool on_windows()
 { // TODO when we have remote client-daemon communication, we need to get the daemon's platform
     return
@@ -641,9 +637,9 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
         {
             std::string answer;
             std::getline(term->cin(), answer);
-            if (std::regex_match(answer, yes))
+            if (std::regex_match(answer, yes_answer))
                 return true;
-            else if (std::regex_match(answer, no))
+            else if (std::regex_match(answer, no_answer))
                 return false;
             else
                 cout << "Please answer yes/no: ";
