@@ -102,7 +102,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
 
             info_request.set_verbosity_level(parser->verbosityLevel());
 
-            info_request.add_instances_snapshots()->set_instance_name(instance_name);
+            info_request.add_instance_snapshot_pairs()->set_instance_name(instance_name);
             info_request.set_no_runtime_information(true);
 
             dispatch(&RpcMethod::info, info_request, on_info_success, on_info_failure);

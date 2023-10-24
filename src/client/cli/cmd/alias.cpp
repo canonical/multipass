@@ -116,7 +116,7 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
     auto instance = definition.left(colon_pos).toStdString();
     auto working_directory = parser->isSet(no_alias_dir_mapping_option) ? "default" : "map";
 
-    info_request.add_instances_snapshots()->set_instance_name(instance);
+    info_request.add_instance_snapshot_pairs()->set_instance_name(instance);
     info_request.set_verbosity_level(0);
     info_request.set_no_runtime_information(true);
 
