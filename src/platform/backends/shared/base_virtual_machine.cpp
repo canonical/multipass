@@ -202,12 +202,10 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
                                                                   const std::string& snapshot_name,
                                                                   const std::string& comment)
 {
-    std::string sname;
-
     std::unique_lock lock{snapshot_mutex};
     assert_vm_stopped(state); // precondition
 
-    sname = snapshot_name.empty() ? generate_snapshot_name() : snapshot_name;
+    auto sname = snapshot_name.empty() ? generate_snapshot_name() : snapshot_name;
 
     const auto [it, success] = snapshots.try_emplace(sname, nullptr);
     if (!success)
