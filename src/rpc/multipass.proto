@@ -166,7 +166,7 @@ message InstanceSnapshotPair {
 }
 
 message InfoRequest {
-    repeated InstanceSnapshotPair instances_snapshots = 1;
+    repeated InstanceSnapshotPair instance_snapshot_pairs = 1;
     int32 verbosity_level = 3;
     bool no_runtime_information = 4;
     bool snapshots = 5;
@@ -425,7 +425,7 @@ message RestartReply {
 }
 
 message DeleteRequest {
-    repeated InstanceSnapshotPair instances_snapshots = 1;
+    repeated InstanceSnapshotPair instance_snapshot_pairs = 1;
     bool purge = 2;
     int32 verbosity_level = 3;
 }

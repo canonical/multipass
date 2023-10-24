@@ -409,7 +409,7 @@ auto make_info_function(const std::string& source_path = "", const std::string& 
 
         mp::InfoReply info_reply;
 
-        if (request.instances_snapshots(0).instance_name() == "primary")
+        if (request.instance_snapshot_pairs(0).instance_name() == "primary")
         {
             auto vm_info = info_reply.add_details();
             vm_info->set_name("primary");
