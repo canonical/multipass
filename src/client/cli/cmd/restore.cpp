@@ -27,7 +27,7 @@
 #include <regex>
 
 namespace mp = multipass;
-namespace cmd = mp::cmd;
+namespace cmd = multipass::cmd;
 
 namespace
 {
