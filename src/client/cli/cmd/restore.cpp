@@ -74,7 +74,7 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
                 client_response.set_destructive(confirm_destruction(request.instance()));
             else
                 throw std::runtime_error("Unable to query client for confirmation. Use '--destructive' to "
-                                         "automatically discard current machine state");
+                                         "automatically discard current machine state.");
 
             client->Write(client_response);
             spinner.start();
