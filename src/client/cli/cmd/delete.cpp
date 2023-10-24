@@ -135,7 +135,7 @@ mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
             snapshot_found = true;
         }
 
-        request.add_instances_snapshots()->CopyFrom(item);
+        request.add_instance_snapshot_pairs()->CopyFrom(item);
     }
 
     return enforce_purged_snapshots(instances, snapshots, instance_found, snapshot_found);

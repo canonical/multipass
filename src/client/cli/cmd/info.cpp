@@ -102,7 +102,7 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         else
             snapshot_found = true;
 
-        request.add_instances_snapshots()->CopyFrom(item);
+        request.add_instance_snapshot_pairs()->CopyFrom(item);
     }
 
     request.set_no_runtime_information(parser->isSet(noRuntimeInfoOption));

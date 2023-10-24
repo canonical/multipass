@@ -1776,13 +1776,13 @@ try // clang-format on
 
     auto [instance_selection, status] = select_instances_and_react(operative_instances,
                                                                    deleted_instances,
-                                                                   request->instances_snapshots(),
+                                                                   request->instance_snapshot_pairs(),
                                                                    InstanceGroup::All,
                                                                    require_existing_instances_reaction);
 
     if (status.ok())
     {
-        instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
+        instance_snapshots_map = map_snapshots_to_instances(request->instance_snapshot_pairs());
 
         if ((status = cmd_vms(instance_selection.operative_selection, fetch_detailed_report)).ok())
         {
@@ -2272,7 +2272,7 @@ try // clang-format on
 
     auto [instance_selection, status] = select_instances_and_react(operative_instances,
                                                                    deleted_instances,
-                                                                   request->instances_snapshots(),
+                                                                   request->instance_snapshot_pairs(),
                                                                    InstanceGroup::All,
                                                                    require_existing_instances_reaction);
 
@@ -2281,7 +2281,7 @@ try // clang-format on
         const bool purge = request->purge();
         auto instances_dirty = false;
 
-        auto instance_snapshots_map = map_snapshots_to_instances(request->instances_snapshots());
+        auto instance_snapshots_map = map_snapshots_to_instances(request->instance_snapshot_pairs());
         verify_snapshot_picks(instance_selection, instance_snapshots_map); // avoid deleting if any snapshot is missing
 
         // start with deleted instances, to avoid iterator invalidation when moving instances there
