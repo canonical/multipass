@@ -2537,12 +2537,7 @@ try
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
 
         SnapshotReply reply;
-
-        {
-            const auto snapshot = vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment());
-
-            reply.set_snapshot(snapshot->get_name());
-        }
+        reply.set_snapshot(vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
 
         server->Write(reply);
     }
