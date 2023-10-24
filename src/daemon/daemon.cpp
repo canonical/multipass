@@ -1322,9 +1322,10 @@ void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mou
 
 void populate_snapshot_info(mp::VirtualMachine& vm,
                             std::shared_ptr<const mp::Snapshot> snapshot,
-                            mp::DetailedInfoItem* info,
+                            mp::InfoReply& response,
                             bool& have_mounts)
 {
+    auto* info = response.add_details();
     auto snapshot_info = info->mutable_snapshot_info();
     auto fundamentals = snapshot_info->mutable_fundamentals();
 
@@ -1730,11 +1731,10 @@ try // clang-format on
     response.set_snapshots(snapshots_only);
 
     auto populate_info = [&](VirtualMachine& vm, const std::shared_ptr<const Snapshot>& snapshot) {
-        auto* details = response.add_details();
         if (snapshot)
-            populate_snapshot_info(vm, snapshot, details, have_mounts); // TODO@snapshots remove have_mounts
+            populate_snapshot_info(vm, snapshot, response, have_mounts); // TODO@snapshots remove have_mounts
         else
-            populate_instance_info(vm, details, request->no_runtime_information(), deleted, have_mounts);
+            populate_instance_info(vm, response, request->no_runtime_information(), deleted, have_mounts);
     };
 
     auto process_snapshot_pick = [populate_info, snapshots_only](VirtualMachine& vm,
@@ -3425,15 +3425,18 @@ void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* se
 }
 
 void mp::Daemon::populate_instance_info(VirtualMachine& vm,
-                                        mp::DetailedInfoItem* info,
+                                        mp::InfoReply& response,
                                         bool no_runtime_info,
                                         bool deleted,
                                         bool& have_mounts)
 {
-    const auto& name = vm.vm_name;
+    auto* info = response.add_details();
     auto instance_info = info->mutable_instance_info();
     auto present_state = vm.current_state();
+
+    const auto& name = vm.vm_name;
     info->set_name(name);
+
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     else
