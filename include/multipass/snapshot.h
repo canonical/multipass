@@ -64,7 +64,7 @@ public: // TODO@snapshots drop any accessors that we end up not needing
     // precondition: capture only once
     virtual void capture() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
     // precondition: call only on captured snapshots
-    virtual void erase() = 0;   // not using the destructor, we want snapshots to stick around when daemon quits
+    virtual void erase() = 0; // not using the destructor, we want snapshots to stick around when daemon quits
     // precondition: call only on captured snapshots
     virtual void apply() = 0;
 };
