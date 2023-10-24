@@ -24,16 +24,8 @@
 #include <multipass/cli/prompters.h>
 #include <multipass/exceptions/cli_exceptions.h>
 
-#include <regex>
-
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
-
-namespace
-{
-const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
-const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
-} // namespace
 
 mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
 {

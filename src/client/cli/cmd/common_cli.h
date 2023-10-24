@@ -26,6 +26,8 @@
 
 #include <QString>
 
+#include <regex>
+
 using RpcMethod = multipass::Rpc::StubInterface;
 
 namespace multipass
@@ -39,6 +41,8 @@ namespace cmd
 {
 const QString all_option_name{"all"};
 const QString format_option_name{"format"};
+const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
+const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
 
 ParseCode check_for_name_and_all_option_conflict(const ArgParser* parser, std::ostream& cerr, bool allow_empty = false);
 InstanceNames add_instance_names(const ArgParser* parser);

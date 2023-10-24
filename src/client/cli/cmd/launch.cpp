@@ -42,7 +42,6 @@
 #include <QTimeZone>
 #include <QUrl>
 #include <filesystem>
-#include <regex>
 #include <unordered_map>
 
 namespace mp = multipass;
@@ -53,9 +52,6 @@ namespace fs = std::filesystem;
 
 namespace
 {
-const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
-const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
-
 constexpr bool on_windows()
 { // TODO when we have remote client-daemon communication, we need to get the daemon's platform
     return
