@@ -29,7 +29,7 @@ class SnapshotNameTakenException : public std::runtime_error
 {
 public:
     SnapshotNameTakenException(const std::string& instance_name, const std::string& snapshot_name)
-        : std::runtime_error{fmt::format(R"(Snapshot "{}.{}" already exists)", instance_name, snapshot_name)}
+        : std::runtime_error{fmt::format("Snapshot already exists: {}.{}", instance_name, snapshot_name)}
     {
     }
 };
