@@ -50,7 +50,7 @@ public:
 
     Path get_instance_directory(const std::string& name) const override
     {
-        return multipass::utils::backend_directory_path(instances_dir, QString::fromStdString(name));
+        return utils::backend_directory_path(instances_dir, QString::fromStdString(name));
     }
 
     void prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) override

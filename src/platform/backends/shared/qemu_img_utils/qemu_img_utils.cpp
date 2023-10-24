@@ -30,7 +30,7 @@
 #include <QStringList>
 
 namespace mp = multipass;
-namespace mpp = mp::platform;
+namespace mpp = multipass::platform;
 
 auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec,
                                         const std::string& custom_error_prefix,
@@ -87,7 +87,7 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     }
 }
 
-void mp::backend::amend_to_qcow2_v3(const multipass::Path& image_path)
+void mp::backend::amend_to_qcow2_v3(const mp::Path& image_path)
 {
     checked_exec_qemu_img(
         std::make_unique<mp::QemuImgProcessSpec>(QStringList{"amend", "-o", "compat=1.1", image_path}, image_path));
