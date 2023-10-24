@@ -1158,6 +1158,7 @@ struct SnapshotPick
     std::unordered_set<std::string> pick;
     bool all_or_none;
 };
+
 using InstanceSnapshotPairs = google::protobuf::RepeatedPtrField<mp::InstanceSnapshotPair>;
 using InstanceSnapshotsMap = std::unordered_map<std::string, SnapshotPick>;
 InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& instances_snapshots)
