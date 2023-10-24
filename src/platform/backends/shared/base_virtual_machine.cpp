@@ -143,7 +143,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
     }
     catch (const std::out_of_range&)
     {
-        throw NoSuchSnapshot{vm_name, name};
+        throw NoSuchSnapshotException{vm_name, name};
     }
 }
 
@@ -214,7 +214,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
         if (!success)
         {
             mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", sname));
-            throw SnapshotNameTaken{vm_name, sname};
+            throw SnapshotNameTakenException{vm_name, sname};
         }
 
         auto rollback_on_failure = make_take_snapshot_rollback(it);
@@ -334,10 +334,10 @@ void BaseVirtualMachine::rename_snapshot(const std::string& old_name, const std:
 
     auto old_it = snapshots.find(old_name);
     if (old_it == snapshots.end())
-        throw NoSuchSnapshot{vm_name, old_name};
+        throw NoSuchSnapshotException{vm_name, old_name};
 
     if (snapshots.find(new_name) != snapshots.end())
-        throw SnapshotNameTaken{vm_name, new_name};
+        throw SnapshotNameTakenException{vm_name, new_name};
 
     auto snapshot_node = snapshots.extract(old_it);
     const auto reinsert_guard = make_reinsert_guard(snapshot_node); // we want this to execute both on failure & success
@@ -352,7 +352,7 @@ void BaseVirtualMachine::delete_snapshot(const std::string& name)
 
     auto it = snapshots.find(name);
     if (it == snapshots.end())
-        throw NoSuchSnapshot{vm_name, name};
+        throw NoSuchSnapshotException{vm_name, name};
 
     auto snapshot = it->second;
     delete_snapshot_helper(snapshot);
@@ -433,7 +433,7 @@ void BaseVirtualMachine::load_snapshot(const QString& filename)
     if (!success)
     {
         mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
-        throw SnapshotNameTaken{vm_name, name};
+        throw SnapshotNameTakenException{vm_name, name};
     }
 }
 
