@@ -1740,7 +1740,14 @@ try // clang-format on
         }
     };
 
-    auto fetch_detailed_report = [&](VirtualMachine& vm) {
+    auto fetch_detailed_report = [this,
+                                  &instance_snapshots_map,
+                                  process_snapshot_pick,
+                                  snapshots_only,
+                                  request,
+                                  &response,
+                                  &have_mounts,
+                                  &deleted](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
 
@@ -1809,7 +1816,7 @@ try // clang-format on
     request->snapshots() ? (void)response.mutable_snapshot_list() : (void)response.mutable_instance_list();
     bool deleted = false;
 
-    auto fetch_instance = [&](VirtualMachine& vm) {
+    auto fetch_instance = [this, request, &response, &deleted](VirtualMachine& vm) {
         const auto& name = vm.vm_name;
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
@@ -1856,7 +1863,7 @@ try // clang-format on
         return grpc::Status::OK;
     };
 
-    auto fetch_snapshot = [&](VirtualMachine& vm) {
+    auto fetch_snapshot = [&response](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.vm_name;
 
