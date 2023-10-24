@@ -1730,20 +1730,13 @@ try // clang-format on
     bool snapshots_only = request->snapshots();
     response.set_snapshots(snapshots_only);
 
-    auto populate_info = [&](VirtualMachine& vm, const std::shared_ptr<const Snapshot>& snapshot) {
-        if (snapshot)
-            populate_snapshot_info(vm, snapshot, response, have_mounts); // TODO@snapshots remove have_mounts
-        else
-            populate_instance_info(vm, response, request->no_runtime_information(), deleted, have_mounts);
-    };
-
-    auto process_snapshot_pick = [populate_info, snapshots_only](VirtualMachine& vm,
-                                                                 const SnapshotPick& snapshot_pick) {
+    auto process_snapshot_pick = [&response, &have_mounts, snapshots_only](VirtualMachine& vm,
+                                                                           const SnapshotPick& snapshot_pick) {
         for (const auto& snapshot_name : snapshot_pick.pick)
         {
             const auto snapshot = vm.get_snapshot(snapshot_name); // verify validity even if unused
             if (!snapshot_pick.all_or_none || !snapshots_only)
-                populate_info(vm, snapshot);
+                populate_snapshot_info(vm, snapshot, response, have_mounts);
         }
     };
 
@@ -1761,9 +1754,9 @@ try // clang-format on
             {
                 if (snapshots_only)
                     for (const auto& snapshot : vm.view_snapshots())
-                        populate_info(vm, snapshot);
+                        populate_snapshot_info(vm, snapshot, response, have_mounts);
                 else
-                    populate_info(vm, nullptr);
+                    populate_instance_info(vm, response, request->no_runtime_information(), deleted, have_mounts);
             }
         }
         catch (const NoSuchSnapshotException& e)
