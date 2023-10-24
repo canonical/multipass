@@ -19,17 +19,16 @@
 
 #include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
-#include <multipass/file_ops.h>
-#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utils.h>
 
-#include <QDateTime>
 #include <QDir>
 #include <QFile>
+
+#include <fcntl.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -159,32 +158,6 @@ auto longname_from(const QFileInfo& file_info, const std::string& filename)
     return out;
 }
 
-auto to_qt_permissions(uint32_t perms)
-{
-    QFile::Permissions out;
-
-    if (perms & Permissions::read_user)
-        out |= QFileDevice::ReadUser;
-    if (perms & Permissions::write_user)
-        out |= QFileDevice::WriteUser;
-    if (perms & Permissions::exec_user)
-        out |= QFileDevice::ExeUser;
-    if (perms & Permissions::read_group)
-        out |= QFileDevice::ReadGroup;
-    if (perms & Permissions::write_group)
-        out |= QFileDevice::WriteGroup;
-    if (perms & Permissions::exec_group)
-        out |= QFileDevice::ExeGroup;
-    if (perms & Permissions::read_other)
-        out |= QFileDevice::ReadOther;
-    if (perms & Permissions::write_other)
-        out |= QFileDevice::WriteOther;
-    if (perms & Permissions::exec_other)
-        out |= QFileDevice::ExeOther;
-
-    return out;
-}
-
 auto to_unix_permissions(QFile::Permissions perms)
 {
     int out = 0;
@@ -217,16 +190,6 @@ auto validate_path(const std::string& source_path, const std::string& current_pa
         return false;
 
     return current_path.compare(0, source_path.length(), source_path) == 0;
-}
-
-template <typename T>
-auto handle_from(sftp_client_message msg, const std::unordered_map<void*, std::unique_ptr<T>>& handles) -> T*
-{
-    const auto id = sftp_handle(msg->sftp, msg->handle);
-    auto entry = handles.find(id);
-    if (entry != handles.end())
-        return entry->second.get();
-    return nullptr;
 }
 
 void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
@@ -472,10 +435,7 @@ void mp::SftpServer::stop()
 int mp::SftpServer::handle_close(sftp_client_message msg)
 {
     const auto id = sftp_handle(sftp_server_session.get(), msg->handle);
-
-    auto erased = open_file_handles.erase(id);
-    erased += open_dir_handles.erase(id);
-    if (erased == 0)
+    if (!open_file_handles.erase(id) && !open_dir_handles.erase(id))
     {
         mpl::log(mpl::Level::trace, category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "close");
@@ -487,14 +447,16 @@ int mp::SftpServer::handle_close(sftp_client_message msg)
 
 int mp::SftpServer::handle_fstat(sftp_client_message msg)
 {
-    auto file = handle_from(msg, open_file_handles);
-    if (file == nullptr)
+    const auto handle = get_handle<NamedFd>(msg);
+    if (handle == nullptr)
     {
         mpl::log(mpl::Level::trace, category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "fstat");
     }
 
-    QFileInfo file_info(*file);
+    const auto& [path, _] = *handle;
+
+    QFileInfo file_info(path.string().c_str());
 
     if (file_info.isSymLink())
         file_info = QFileInfo(file_info.symLinkTarget());
@@ -508,24 +470,26 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(
-            mpl::Level::trace, category,
-            fmt::format("{}: cannot validate path \'{}\' against source \'{}\'", __FUNCTION__, filename, source_path));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot validate path '{}' against source '{}'", __FUNCTION__, filename, source_path));
         return reply_perm_denied(msg);
     }
 
     QDir dir(filename);
     if (!dir.mkdir(filename))
     {
-        mpl::log(mpl::Level::trace, category, fmt::format("{}: mkdir failed for \'{}\'", __FUNCTION__, filename));
+        mpl::log(mpl::Level::trace, category, fmt::format("{}: mkdir failed for '{}'", __FUNCTION__, filename));
         return reply_failure(msg);
     }
 
-    QFile file(filename);
-    if (!MP_FILEOPS.setPermissions(file, to_qt_permissions(msg->attr->permissions)))
+    std::error_code err;
+    MP_FILEOPS.permissions(filename, static_cast<fs::perms>(msg->attr->permissions), err);
+    if (err)
     {
-        mpl::log(mpl::Level::trace, category,
-                 fmt::format("{}: set permissions failed for \'{}\'", __FUNCTION__, filename));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: set permissions failed for '{}': {}", __FUNCTION__, filename, err.message()));
         return reply_failure(msg);
     }
 
@@ -548,16 +512,21 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(
-            mpl::Level::trace, category,
-            fmt::format("{}: cannot validate path \'{}\' against source \'{}\'", __FUNCTION__, filename, source_path));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot validate path '{}' against source '{}'", __FUNCTION__, filename, source_path));
         return reply_perm_denied(msg);
     }
 
-    QDir dir(filename);
-    if (!MP_FILEOPS.rmdir(dir, filename))
+    std::error_code err;
+    if (!MP_FILEOPS.remove(filename, err) && !err)
+        err = std::make_error_code(std::errc::no_such_file_or_directory);
+
+    if (err)
     {
-        mpl::log(mpl::Level::trace, category, fmt::format("{}: rmdir failed for \'{}\'", __FUNCTION__, filename));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: rmdir failed for '{}': {}", __FUNCTION__, filename, err.message()));
         return reply_failure(msg);
     }
 
@@ -569,45 +538,58 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(
-            mpl::Level::trace, category,
-            fmt::format("{}: cannot validate path \'{}\' against source \'{}\'", __FUNCTION__, filename, source_path));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot validate path '{}' against source '{}'", __FUNCTION__, filename, source_path));
         return reply_perm_denied(msg);
     }
 
-    QIODevice::OpenMode mode{QIODevice::NotOpen};
+    int mode = 0;
     const auto flags = sftp_client_message_get_flags(msg);
+
     if (flags & SSH_FXF_READ)
-        mode |= QIODevice::ReadOnly;
+        mode |= O_RDONLY;
 
     if (flags & SSH_FXF_WRITE)
-        mode |= QIODevice::WriteOnly;
+        mode |= O_WRONLY;
+
+    if ((flags & SSH_FXF_READ) && (flags & SSH_FXF_WRITE))
+    {
+        mode &= ~O_RDONLY;
+        mode &= ~O_WRONLY;
+        mode |= O_RDWR;
+    }
 
     if (flags & SSH_FXF_APPEND)
-        mode |= QIODevice::Append;
+        mode |= O_APPEND;
 
     if (flags & SSH_FXF_TRUNC)
-        mode |= QIODevice::Truncate;
+        mode |= O_TRUNC;
 
-    auto file = std::make_unique<QFile>(filename);
+    if (flags & SSH_FXF_CREAT)
+        mode |= O_CREAT;
 
-    auto exists = QFileInfo(filename).isSymLink() || file->exists();
+    if (flags & SSH_FXF_EXCL)
+        mode |= O_EXCL;
 
-    if (!MP_FILEOPS.open(*file, mode))
+    std::error_code err;
+    const auto status = MP_FILEOPS.symlink_status(filename, err);
+    if (err && status.type() != fs::file_type::not_found)
     {
-        mpl::log(mpl::Level::trace, category, fmt::format("Cannot open \'{}\': {}", filename, file->errorString()));
+        mpl::log(mpl::Level::trace, category, fmt::format("Cannot get status of '{}': {}", filename, err.message()));
+        return reply_perm_denied(msg);
+    }
+    const auto exists = fs::is_symlink(status) || fs::is_regular_file(status);
+
+    auto named_fd = MP_FILEOPS.open_fd(filename, mode, msg->attr ? msg->attr->permissions : 0);
+    if (named_fd->fd == -1)
+    {
+        mpl::log(mpl::Level::trace, category, fmt::format("Cannot open '{}': {}", filename, std::strerror(errno)));
         return reply_failure(msg);
     }
 
     if (!exists)
     {
-        if (!MP_FILEOPS.setPermissions(*file, to_qt_permissions(msg->attr->permissions)))
-        {
-            mpl::log(mpl::Level::trace, category,
-                     fmt::format("Cannot set permissions for \'{}\': {}", filename, file->errorString()));
-            return reply_failure(msg);
-        }
-
         QFileInfo current_file(filename);
         QFileInfo current_dir(current_file.path());
 
@@ -622,124 +604,121 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         }
     }
 
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), file.get()), ssh_string_free};
+    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), named_fd.get()), ssh_string_free};
     if (!sftp_handle)
     {
         mpl::log(mpl::Level::trace, category, "Cannot allocate handle for open()");
         return reply_failure(msg);
     }
 
-    open_file_handles.emplace(file.get(), std::move(file));
+    open_file_handles.emplace(named_fd.get(), std::move(named_fd));
 
     return sftp_reply_handle(msg, sftp_handle.get());
 }
 
 int mp::SftpServer::handle_opendir(sftp_client_message msg)
 {
-    auto filename = sftp_client_message_get_filename(msg);
+    const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(
-            mpl::Level::trace, category,
-            fmt::format("{}: cannot validate path \'{}\' against source \'{}\'", __FUNCTION__, filename, source_path));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot validate path '{}' against source '{}'", __FUNCTION__, filename, source_path));
         return reply_perm_denied(msg);
     }
 
-    QDir dir(filename);
-    if (!dir.exists())
+    std::error_code err;
+    auto dir_iterator = MP_FILEOPS.dir_iterator(filename, err);
+
+    if (err.value() == int(std::errc::no_such_file_or_directory) || err.value() == int(std::errc::no_such_process))
     {
-        mpl::log(mpl::Level::trace, category, fmt::format("Cannot open directory \'{}\': no such directory", filename));
+        mpl::log(mpl::Level::trace, category, fmt::format("Cannot open directory '{}': {}", filename, err.message()));
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
     }
 
-    if (!MP_FILEOPS.isReadable(dir))
+    if (err.value() == int(std::errc::permission_denied))
     {
-        mpl::log(mpl::Level::trace, category, fmt::format("Cannot read directory \'{}\': permission denied", filename));
+        mpl::log(mpl::Level::trace, category, fmt::format("Cannot read directory '{}': {}", filename, err.message()));
         return reply_perm_denied(msg);
     }
 
-    auto entry_list =
-        std::make_unique<QFileInfoList>(dir.entryInfoList(QDir::AllEntries | QDir::System | QDir::Hidden));
-
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), entry_list.get()), ssh_string_free};
+    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), dir_iterator.get()), ssh_string_free};
     if (!sftp_handle)
     {
         mpl::log(mpl::Level::trace, category, "Cannot allocate handle for opendir()");
         return reply_failure(msg);
     }
 
-    open_dir_handles.emplace(entry_list.get(), std::move(entry_list));
+    open_dir_handles.emplace(dir_iterator.get(), std::move(dir_iterator));
 
     return sftp_reply_handle(msg, sftp_handle.get());
 }
 
 int mp::SftpServer::handle_read(sftp_client_message msg)
 {
-    auto file = handle_from(msg, open_file_handles);
-    if (file == nullptr)
+    const auto handle = get_handle<NamedFd>(msg);
+    if (handle == nullptr)
     {
         mpl::log(mpl::Level::trace, category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "read");
     }
 
-    const auto max_packet_size = 65536u;
-    const auto len = std::min(msg->len, max_packet_size);
+    const auto& [path, file] = *handle;
 
-    std::vector<char> data;
-    data.reserve(len);
-
-    if (!MP_FILEOPS.seek(*file, msg->offset))
+    if (MP_FILEOPS.lseek(file, msg->offset, SEEK_SET) == -1)
     {
-        mpl::log(mpl::Level::trace, category,
-                 fmt::format("{}: cannot seek to position {} in \'{}\'", __FUNCTION__, msg->offset, file->fileName()));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot seek to position {} in '{}'", __FUNCTION__, msg->offset, path.string()));
         return reply_failure(msg);
     }
 
-    auto r = MP_FILEOPS.read(*file, data.data(), len);
-    if (r < 0)
-    {
-        mpl::log(mpl::Level::trace, category,
-                 fmt::format("{}: read failed for {}: {}", __FUNCTION__, file->fileName(), file->errorString()));
-        return sftp_reply_status(msg, SSH_FX_FAILURE, file->errorString().toStdString().c_str());
-    }
+    constexpr auto max_packet_size = 65536u;
+    std::array<char, max_packet_size> buffer{};
+
+    if (const auto r = MP_FILEOPS.read(file, buffer.data(), std::min(msg->len, max_packet_size)); r > 0)
+        return sftp_reply_data(msg, buffer.data(), r);
     else if (r == 0)
         return sftp_reply_status(msg, SSH_FX_EOF, "End of file");
 
-    return sftp_reply_data(msg, data.data(), r);
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("{}: read failed for '{}': {}", __FUNCTION__, path.string(), std::strerror(errno)));
+    return sftp_reply_status(msg, SSH_FX_FAILURE, std::strerror(errno));
 }
 
 int mp::SftpServer::handle_readdir(sftp_client_message msg)
 {
-    auto dir_entries = handle_from(msg, open_dir_handles);
-    if (dir_entries == nullptr)
+    const auto handle = get_handle<DirIterator>(msg);
+    if (handle == nullptr)
     {
         mpl::log(mpl::Level::trace, category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "readdir");
     }
 
-    if (dir_entries->empty())
+    auto& dir_iterator = *handle;
+
+    if (!dir_iterator.hasNext())
         return sftp_reply_status(msg, SSH_FX_EOF, nullptr);
 
     const auto max_num_entries_per_packet = 50ll;
-    const auto num_entries = std::min(dir_entries->size(), max_num_entries_per_packet);
-
-    for (int i = 0; i < num_entries; i++)
+    for (int i = 0; i < max_num_entries_per_packet && dir_iterator.hasNext(); i++)
     {
-        const QFileInfo entry = dir_entries->takeFirst();
-        const auto filename = entry.fileName().toStdString();
+        const auto& entry = dir_iterator.next();
+        QFileInfo file_info{entry.path().string().c_str()};
         sftp_attributes_struct attr{};
-        if (entry.isSymLink())
+        if (entry.is_symlink())
         {
-            mp::platform::symlink_attr_from(entry.absoluteFilePath().toStdString().c_str(), &attr);
+            mp::platform::symlink_attr_from(file_info.absoluteFilePath().toStdString().c_str(), &attr);
             attr.uid = mapped_uid_for(attr.uid);
             attr.gid = mapped_gid_for(attr.gid);
         }
         else
         {
-            attr = attr_from(entry);
+            attr = attr_from(file_info);
         }
-        const auto longname = longname_from(entry, filename);
-        sftp_reply_names_add(msg, filename.c_str(), longname.data(), &attr);
+        const auto longname = longname_from(file_info, entry.path().string());
+        sftp_reply_names_add(msg, entry.path().filename().string().c_str(), longname.data(), &attr);
     }
 
     return sftp_reply_names(msg);
@@ -785,19 +764,24 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
 
 int mp::SftpServer::handle_remove(sftp_client_message msg)
 {
-    auto filename = sftp_client_message_get_filename(msg);
+    const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(
-            mpl::Level::trace, category,
-            fmt::format("{}: cannot validate path \'{}\' against source \'{}\'", __FUNCTION__, filename, source_path));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot validate path '{}' against source '{}'", __FUNCTION__, filename, source_path));
         return reply_perm_denied(msg);
     }
 
-    QFile file{filename};
-    if (!MP_FILEOPS.remove(file))
+    std::error_code err;
+    if (!MP_FILEOPS.remove(filename, err) && !err)
+        err = std::make_error_code(std::errc::no_such_file_or_directory);
+
+    if (err)
     {
-        mpl::log(mpl::Level::trace, category, fmt::format("{}: cannot remove \'{}\'", __FUNCTION__, filename));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot remove '{}': {}", __FUNCTION__, filename, err.message()));
         return reply_failure(msg);
     }
 
@@ -859,30 +843,33 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (sftp_client_message_get_type(msg) == SFTP_FSETSTAT)
     {
-        auto handle = handle_from(msg, open_file_handles);
+        const auto handle = get_handle<NamedFd>(msg);
         if (handle == nullptr)
         {
             mpl::log(mpl::Level::trace, category, fmt::format("{}: bad handle requested", __FUNCTION__));
             return reply_bad_handle(msg, "setstat");
         }
 
-        filename = handle->fileName();
+        const auto& [path, _] = *handle;
+        filename = path.string().c_str();
     }
     else
     {
         filename = sftp_client_message_get_filename(msg);
         if (!validate_path(source_path, filename.toStdString()))
         {
-            mpl::log(mpl::Level::trace, category,
-                     fmt::format("{}: cannot validate path \'{}\' against source \'{}\'", __FUNCTION__, filename,
-                                 source_path));
+            mpl::log(
+                mpl::Level::trace,
+                category,
+                fmt::format("{}: cannot validate path '{}' against source '{}'", __FUNCTION__, filename, source_path));
             return reply_perm_denied(msg);
         }
 
         if (!QFileInfo(filename).isSymLink() && !QFile::exists(filename))
         {
-            mpl::log(mpl::Level::trace, category,
-                     fmt::format("{}: cannot setstat \'{}\': no such file", __FUNCTION__, filename));
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: cannot setstat '{}': no such file", __FUNCTION__, filename));
             return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
         }
     }
@@ -893,17 +880,20 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     {
         if (!MP_FILEOPS.resize(file, msg->attr->size))
         {
-            mpl::log(mpl::Level::trace, category, fmt::format("{}: cannot resize \'{}\'", __FUNCTION__, filename));
+            mpl::log(mpl::Level::trace, category, fmt::format("{}: cannot resize '{}'", __FUNCTION__, filename));
             return reply_failure(msg);
         }
     }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
     {
-        if (!MP_FILEOPS.setPermissions(file, to_qt_permissions(msg->attr->permissions)))
+        std::error_code err;
+        MP_FILEOPS.permissions(file.fileName().toStdString(), static_cast<fs::perms>(msg->attr->permissions), err);
+        if (err)
         {
-            mpl::log(mpl::Level::trace, category,
-                     fmt::format("{}: set permissions failed for \'{}\'", __FUNCTION__, filename));
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: set permissions failed for '{}': {}", __FUNCTION__, filename, err.message()));
             return reply_failure(msg);
         }
     }
@@ -912,8 +902,9 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     {
         if (MP_PLATFORM.utime(filename.toStdString().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
         {
-            mpl::log(mpl::Level::trace, category,
-                     fmt::format("{}: cannot set modification date for \'{}\'", __FUNCTION__, filename));
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: cannot set modification date for '{}'", __FUNCTION__, filename));
             return reply_failure(msg);
         }
     }
@@ -922,8 +913,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         (MP_PLATFORM.chown(filename.toStdString().c_str(), reverse_uid_for(msg->attr->uid, msg->attr->uid),
                            reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0))
     {
-        mpl::log(mpl::Level::trace, category,
-                 fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
+        mpl::log(mpl::Level::trace, category, fmt::format("{}: cannot set ownership for '{}'", __FUNCTION__, filename));
         return reply_failure(msg);
     }
 
@@ -993,34 +983,36 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 
 int mp::SftpServer::handle_write(sftp_client_message msg)
 {
-    auto file = handle_from(msg, open_file_handles);
-    if (file == nullptr)
+    const auto handle = get_handle<NamedFd>(msg);
+    if (handle == nullptr)
     {
         mpl::log(mpl::Level::trace, category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "write");
     }
 
-    auto len = ssh_string_len(msg->data);
-    auto data_ptr = ssh_string_get_char(msg->data);
-    if (!MP_FILEOPS.seek(*file, msg->offset))
+    const auto& [path, file] = *handle;
+
+    if (MP_FILEOPS.lseek(file, msg->offset, SEEK_SET) == -1)
     {
-        mpl::log(mpl::Level::trace, category,
-                 fmt::format("{}: cannot seek to position {} in \'{}\'", __FUNCTION__, msg->offset, file->fileName()));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot seek to position {} in '{}'", __FUNCTION__, msg->offset, path.string()));
         return reply_failure(msg);
     }
 
+    auto len = ssh_string_len(msg->data);
+    auto data_ptr = ssh_string_get_char(msg->data);
+
     do
     {
-        auto r = MP_FILEOPS.write(*file, data_ptr, len);
-        if (r < 0)
+        const auto r = MP_FILEOPS.write(file, data_ptr, len);
+        if (r == -1)
         {
-            mpl::log(
-                mpl::Level::trace, category,
-                fmt::format("{}: write failed for \'{}\': {}", __FUNCTION__, file->fileName(), file->errorString()));
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: write failed for '{}': {}", __FUNCTION__, path.string(), std::strerror(errno)));
             return reply_failure(msg);
         }
-
-        file->flush();
 
         data_ptr += r;
         len -= r;
@@ -1070,4 +1062,10 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     }
 
     return reply_ok(msg);
+}
+
+template <typename T>
+T* multipass::SftpServer::get_handle(sftp_client_message msg)
+{
+    return static_cast<T*>(sftp_handle(msg->sftp, msg->handle));
 }
