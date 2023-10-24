@@ -1765,7 +1765,7 @@ try // clang-format on
                     populate_info(vm, nullptr);
             }
         }
-        catch (const NoSuchSnapshot& e)
+        catch (const NoSuchSnapshotException& e)
         {
             add_fmt_to(errors, e.what());
         }
@@ -1877,7 +1877,7 @@ try // clang-format on
                 populate_snapshot_fundamentals(snapshot, fundamentals);
             }
         }
-        catch (const NoSuchSnapshot& e)
+        catch (const NoSuchSnapshotException& e)
         {
             add_fmt_to(errors, e.what());
         }
@@ -2548,7 +2548,7 @@ try
 
     status_promise->set_value(status);
 }
-catch (const SnapshotNameTaken& e)
+catch (const SnapshotNameTakenException& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
@@ -2631,7 +2631,7 @@ try
 
     status_promise->set_value(status);
 }
-catch (const mp::NoSuchSnapshot& e)
+catch (const mp::NoSuchSnapshotException& e)
 {
     status_promise->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
 }
