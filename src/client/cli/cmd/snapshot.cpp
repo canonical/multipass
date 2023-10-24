@@ -76,7 +76,8 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
                                 "number of snapshots that were ever taken for <instance>.",
                                 "name");
     QCommandLineOption comment_opt{{"comment", "c", "m"},
-                                   "An optional free comment to associate with the snapshot.",
+                                   "An optional free comment to associate with the snapshot. (Tip: quote the text to "
+                                   "avoid spaces being parsed by your shell)",
                                    "comment"};
     parser->addOptions({name_opt, comment_opt});
 
