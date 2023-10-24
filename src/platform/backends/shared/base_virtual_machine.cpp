@@ -204,32 +204,30 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
 {
     std::string sname;
 
+    std::unique_lock lock{snapshot_mutex};
+    assert_vm_stopped(state); // precondition
+
+    sname = snapshot_name.empty() ? generate_snapshot_name() : snapshot_name;
+
+    const auto [it, success] = snapshots.try_emplace(sname, nullptr);
+    if (!success)
     {
-        std::unique_lock lock{snapshot_mutex};
-        assert_vm_stopped(state); // precondition
-
-        sname = snapshot_name.empty() ? generate_snapshot_name() : snapshot_name;
-
-        const auto [it, success] = snapshots.try_emplace(sname, nullptr);
-        if (!success)
-        {
-            mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", sname));
-            throw SnapshotNameTakenException{vm_name, sname};
-        }
-
-        auto rollback_on_failure = make_take_snapshot_rollback(it);
-
-        auto ret = head_snapshot = it->second = make_specific_snapshot(sname, comment, specs, head_snapshot);
-        ret->capture();
-
-        ++snapshot_count;
-        persist_generic_snapshot_info();
-
-        rollback_on_failure.dismiss();
-        log_latest_snapshot(std::move(lock));
-
-        return ret;
+        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", sname));
+        throw SnapshotNameTakenException{vm_name, sname};
     }
+
+    auto rollback_on_failure = make_take_snapshot_rollback(it);
+
+    auto ret = head_snapshot = it->second = make_specific_snapshot(sname, comment, specs, head_snapshot);
+    ret->capture();
+
+    ++snapshot_count;
+    persist_generic_snapshot_info();
+
+    rollback_on_failure.dismiss();
+    log_latest_snapshot(std::move(lock));
+
+    return ret;
 }
 
 bool BaseVirtualMachine::updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const Path& head_path)
