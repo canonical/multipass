@@ -21,8 +21,7 @@
 #include "temp_dir.h"
 
 #include <multipass/network_interface.h>
-
-#include <src/daemon/vm_specs.h>
+#include <multipass/vm_mount.h>
 
 #include <string>
 #include <vector>

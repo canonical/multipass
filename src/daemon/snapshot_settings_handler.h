@@ -35,7 +35,7 @@ class SnapshotSettingsHandler : public SettingsHandler
 public:
     SnapshotSettingsHandler(std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
                             const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
-                            const std::unordered_set<std::string>& preparing_instances);
+                            const std::unordered_set<std::string>& preparing_instances) noexcept;
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;

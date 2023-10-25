@@ -16,7 +16,6 @@
  */
 
 #include "base_virtual_machine.h"
-#include "daemon/vm_specs.h" // TODO@snapshots move this
 
 #include <multipass/exceptions/file_not_found_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -26,6 +25,7 @@
 #include <multipass/snapshot.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
+#include <multipass/vm_specs.h>
 
 #include <scope_guard.hpp>
 
@@ -121,7 +121,7 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
     return all_ipv4;
 }
 
-auto BaseVirtualMachine::view_snapshots() const noexcept -> SnapshotVista
+auto BaseVirtualMachine::view_snapshots() const -> SnapshotVista
 {
     SnapshotVista ret;
 
@@ -522,8 +522,6 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     assert_vm_stopped(state); // precondition
 
     auto snapshot = get_snapshot(name);
-
-    // TODO@snapshots convert into runtime_error (persisted info could have been tampered with)
     assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
 
     snapshot->apply();

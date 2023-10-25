@@ -20,13 +20,12 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
-#include "multipass/virtual_machine.h"
-#include "vm_specs.h"
 
 #include <multipass/async_periodic_task.h>
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <chrono>

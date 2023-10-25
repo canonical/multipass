@@ -325,30 +325,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
         for (QJsonValueRef entry : record["mounts"].toArray())
         {
-            mp::id_mappings uid_mappings;
-            mp::id_mappings gid_mappings;
-
-            auto target_path = entry.toObject()["target_path"].toString().toStdString();
-            auto source_path = entry.toObject()["source_path"].toString().toStdString();
-
-            for (QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
-            {
-                uid_mappings.push_back(
-                    {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
-            }
-
-            for (QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
-            {
-                gid_mappings.push_back(
-                    {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
-            }
-
-            uid_mappings = mp::unique_id_mappings(uid_mappings);
-            gid_mappings = mp::unique_id_mappings(gid_mappings);
-            auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
-
-            mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
-            mounts[target_path] = mount;
+            const auto& json = entry.toObject();
+            mounts[json["target_path"].toString().toStdString()] = mp::VMMount{json};
         }
 
         reconstructed_records[key] = {num_cores,
@@ -400,37 +378,8 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     QJsonArray json_mounts;
     for (const auto& mount : specs.mounts)
     {
-        QJsonObject entry;
-        entry.insert("source_path", QString::fromStdString(mount.second.source_path));
+        auto entry = mount.second.serialize();
         entry.insert("target_path", QString::fromStdString(mount.first));
-
-        QJsonArray uid_mappings;
-
-        for (const auto& map : mount.second.uid_mappings)
-        {
-            QJsonObject map_entry;
-            map_entry.insert("host_uid", map.first);
-            map_entry.insert("instance_uid", map.second);
-
-            uid_mappings.append(map_entry);
-        }
-
-        entry.insert("uid_mappings", uid_mappings);
-
-        QJsonArray gid_mappings;
-
-        for (const auto& map : mount.second.gid_mappings)
-        {
-            QJsonObject map_entry;
-            map_entry.insert("host_gid", map.first);
-            map_entry.insert("instance_gid", map.second);
-
-            gid_mappings.append(map_entry);
-        }
-
-        entry.insert("gid_mappings", gid_mappings);
-
-        entry.insert("mount_type", static_cast<int>(mount.second.mount_type));
         json_mounts.append(entry);
     }
 
