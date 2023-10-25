@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
 #define MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
 
-
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings/settings_handler.h>
 #include <multipass/virtual_machine.h>
