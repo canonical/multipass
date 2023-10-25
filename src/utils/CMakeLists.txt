@@ -21,7 +21,8 @@ function(add_target TARGET_NAME)
     standard_paths.cpp
     timer.cpp
     utils.cpp
-    vm_image_vault_utils.cpp)
+    vm_image_vault_utils.cpp
+    vm_mount.cpp)
 
   target_link_libraries(${TARGET_NAME}
     cert

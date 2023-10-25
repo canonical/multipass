@@ -42,11 +42,10 @@ public:
                  const VirtualMachine& vm);
     BaseSnapshot(const QString& filename, VirtualMachine& vm);
 
-    // TODO@snapshots tag as noexcept those that can be
-    int get_index() const override;
+    int get_index() const noexcept override;
     std::string get_name() const override;
     std::string get_comment() const override;
-    QDateTime get_creation_timestamp() const override;
+    QDateTime get_creation_timestamp() const noexcept override;
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
     MemorySize get_disk_space() const noexcept override;
@@ -130,12 +129,12 @@ inline std::string multipass::BaseSnapshot::get_comment() const
     return comment;
 }
 
-inline int multipass::BaseSnapshot::get_index() const
+inline int multipass::BaseSnapshot::get_index() const noexcept
 {
     return index;
 }
 
-inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const
+inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const noexcept
 {
     return creation_timestamp;
 }
