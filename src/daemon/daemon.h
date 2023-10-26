@@ -148,6 +148,10 @@ private:
     void stop_mounts(const std::string& name);
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
     void configure_new_interfaces(const std::string& name, VirtualMachine& vm, VMSpecs& specs);
+    void remove_new_interfaces(const std::string& name,
+                               std::shared_ptr<VirtualMachine>& vm,
+                               VMSpecs& specs,
+                               std::vector<size_t> interfaces_to_remove);
 
     struct AsyncOperationStatus
     {

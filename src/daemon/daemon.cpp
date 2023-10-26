@@ -2941,6 +2941,35 @@ void mp::Daemon::configure_new_interfaces(const std::string& name, mp::VirtualMa
     }
 }
 
+void mp::Daemon::remove_new_interfaces(const std::string& name,
+                                       std::shared_ptr<mp::VirtualMachine>& vm,
+                                       mp::VMSpecs& specs,
+                                       std::vector<size_t> interfaces_to_remove)
+{
+    // Remove from run_at_boot if needed.
+    if (run_at_boot.count(name))
+    {
+        run_at_boot.erase(name);
+    }
+
+    // Remove from specs.
+    std::vector<mp::NetworkInterface> new_extra_interfaces;
+    auto n = specs.extra_interfaces.size();
+
+    for (size_t i = 0; i < n; ++i)
+    {
+        if (std::find(interfaces_to_remove.cbegin(), interfaces_to_remove.cend(), i) == interfaces_to_remove.cend())
+        {
+            new_extra_interfaces.push_back(specs.extra_interfaces[i]);
+        }
+
+        // Remove from VM.
+        vm->remove_network_interface(specs.extra_interfaces[i].mac_address);
+    }
+
+    std::swap(new_extra_interfaces, specs.extra_interfaces);
+}
+
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
 mp::Daemon::create_future_watcher(std::function<void()> const& finished_op)
 {
@@ -3073,8 +3102,8 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
             {
                 bool warned_exec_failure{false};
 
-                const auto vm = operative_instances[name];
-                const auto vm_specs = vm_instance_specs[name];
+                auto vm = operative_instances[name];
+                auto vm_specs = vm_instance_specs[name];
 
                 try
                 {
@@ -3088,7 +3117,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                         mpu::run_in_ssh_session(session, command);
                     }
                 }
-                catch (const std::runtime_error&) // In case there is an error executing the command, report it.
+                catch (const SSHException&) // In case there is an error executing the command, report it.
                 {
                     // Currently, the only use of running commands at boot is to configure networks. For this reason,
                     // the warning shown here refers to that use. In the future, in case of using the feature for other
@@ -3102,6 +3131,10 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                     }
 
                     warned_exec_failure = true;
+                }
+                catch (const std::runtime_error&) // Any other error will force reverting adding interfaces.
+                {
+                    remove_new_interfaces(name, vm, vm_specs, std::vector<size_t>{});
                 }
 
                 run_at_boot.erase(name);
