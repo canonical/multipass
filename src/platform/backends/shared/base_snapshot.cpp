@@ -254,7 +254,7 @@ auto mp::BaseSnapshot::erase_helper()
     });
 }
 
-void multipass::BaseSnapshot::erase()
+void mp::BaseSnapshot::erase()
 {
     const std::unique_lock lock{mutex};
     assert(captured && "precondition: only captured snapshots can be erased");
