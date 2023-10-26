@@ -20,6 +20,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -375,7 +376,7 @@ std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::st
         auto error_msg = proc.read_std_error();
         mpl::log(mpl::Level::warning, category,
                  fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-        throw std::runtime_error(mp::utils::trim_end(error_msg));
+        throw mp::SSHException(mp::utils::trim_end(error_msg));
     }
 
     auto output = proc.read_std_output();
