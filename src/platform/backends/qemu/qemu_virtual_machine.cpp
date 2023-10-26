@@ -628,6 +628,15 @@ void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backe
     return qemu_platform->add_network_interface(desc, net);
 }
 
+void mp::QemuVirtualMachine::remove_network_interface(const std::string& mac_address)
+{
+    std::remove_if(desc.extra_interfaces.begin(), desc.extra_interfaces.end(), [&mac_address](const auto& iface) {
+        return iface.mac_address == mac_address;
+    });
+
+    return;
+}
+
 mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                                          const std::string& target,
                                                                          const VMMount& mount)

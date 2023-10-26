@@ -62,6 +62,7 @@ public:
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
     virtual void add_network_interface(int index, const NetworkInterface& net) override;
+    virtual void remove_network_interface(const std::string& mac_address) override;
     virtual MountArgs& modifiable_mount_args();
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target, const VMMount& mount) override;
