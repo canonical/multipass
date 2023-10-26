@@ -24,6 +24,7 @@
 #include <multipass/vm_mount.h>
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <QString>
