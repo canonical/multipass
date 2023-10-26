@@ -44,7 +44,7 @@ mp::ReturnCode cmd::Snapshot::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    spinner.start("Taking snapshot ");
+    spinner.start("Taking snapshot");
     return dispatch(&RpcMethod::snapshot,
                     request,
                     on_success,
