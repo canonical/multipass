@@ -113,6 +113,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
       comment{comment},
       parent{std::move(parent)},
       index{index},
+      id{snapshot_template.arg(index)},
       creation_timestamp{std::move(creation_timestamp)},
       num_cores{num_cores},
       mem_size{mem_size},
@@ -223,11 +224,6 @@ void mp::BaseSnapshot::persist() const
 
     auto snapshot_filepath = storage_dir.filePath(derive_snapshot_filename());
     MP_JSONUTILS.write_json(serialize(), snapshot_filepath);
-}
-
-QString mp::BaseSnapshot::derive_id() const
-{
-    return snapshot_template.arg(index);
 }
 
 auto mp::BaseSnapshot::erase_helper()

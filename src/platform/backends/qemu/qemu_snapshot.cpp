@@ -71,7 +71,7 @@ mp::QemuSnapshot::QemuSnapshot(const QString& filename, QemuVirtualMachine& vm, 
 
 void mp::QemuSnapshot::capture_impl()
 {
-    const auto tag = derive_id();
+    const auto& tag = get_id();
 
     // Avoid creating more than one snapshot with the same tag (creation would succeed, but we'd then be unable to
     // identify the snapshot by tag)
@@ -86,7 +86,7 @@ void mp::QemuSnapshot::capture_impl()
 
 void mp::QemuSnapshot::erase_impl()
 {
-    const auto tag = derive_id();
+    const auto& tag = get_id();
     if (backend::instance_image_has_snapshot(image_path, tag))
         mp::backend::checked_exec_qemu_img(make_delete_spec(tag, image_path));
     else
@@ -107,6 +107,6 @@ void mp::QemuSnapshot::apply_impl()
     desc.mem_size = get_mem_size();
     desc.disk_space = get_disk_space();
 
-    mp::backend::checked_exec_qemu_img(make_restore_spec(derive_id(), image_path));
+    mp::backend::checked_exec_qemu_img(make_restore_spec(get_id(), image_path));
     rollback.dismiss();
 }

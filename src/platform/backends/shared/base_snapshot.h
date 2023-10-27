@@ -69,11 +69,11 @@ public:
     void apply() final;
 
 protected:
+    const QString& get_id() const noexcept;
+
     virtual void capture_impl() = 0;
     virtual void erase_impl() = 0;
     virtual void apply_impl() = 0;
-
-    QString derive_id() const;
 
 private:
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
@@ -103,6 +103,7 @@ private:
 
     // This class is non-copyable and having these const simplifies thread safety
     const int index;                                       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QString id;                                      // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QDateTime creation_timestamp;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -242,6 +243,11 @@ inline void multipass::BaseSnapshot::apply()
     apply_impl();
     // no need to persist here for the time being: only private fields of the base class are persisted for now, and
     // those cannot be affected by apply_impl (except by setters, which already persist)
+}
+
+inline const QString& multipass::BaseSnapshot::get_id() const noexcept
+{
+    return id;
 }
 
 #endif // MULTIPASS_BASE_SNAPSHOT_H
