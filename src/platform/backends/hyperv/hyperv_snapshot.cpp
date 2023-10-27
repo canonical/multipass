@@ -69,7 +69,10 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name,
                                    const QString& vm_name,
                                    HyperVVirtualMachine& vm,
                                    PowerShell& power_shell)
-    : BaseSnapshot{name, comment, std::move(parent), specs, vm}, vm_name{vm_name}, power_shell{power_shell}
+    : BaseSnapshot{name, comment, std::move(parent), specs, vm},
+      quoted_id{quoted(get_id())},
+      vm_name{vm_name},
+      power_shell{power_shell}
 {
 }
 
@@ -83,16 +86,14 @@ mp::HyperVSnapshot::HyperVSnapshot(const QString& filename,
 
 void mp::HyperVSnapshot::capture_impl()
 {
-    auto id = quoted_id();
-    require_unique_id(power_shell, vm_name, id);
-    power_shell.easy_run({"Checkpoint-VM", "-Name", vm_name, "-SnapshotName", id}, "Could not create snapshot");
+    require_unique_id(power_shell, vm_name, quoted_id);
+    power_shell.easy_run({"Checkpoint-VM", "-Name", vm_name, "-SnapshotName", quoted_id}, "Could not create snapshot");
 }
 
 void mp::HyperVSnapshot::erase_impl()
 {
-    auto id = quoted_id();
-    if (snapshot_exists(power_shell, vm_name, id))
-        power_shell.easy_run({"Remove-VMCheckpoint", "-VMName", vm_name, "-Name", id, "-Confirm:$false"},
+    if (snapshot_exists(power_shell, vm_name, quoted_id))
+        power_shell.easy_run({"Remove-VMCheckpoint", "-VMName", vm_name, "-Name", quoted_id, "-Confirm:$false"},
                              "Could not delete snapshot");
     else
         mpl::log(mpl::Level::warning,
@@ -102,11 +103,6 @@ void mp::HyperVSnapshot::erase_impl()
 
 void mp::HyperVSnapshot::apply_impl()
 {
-    power_shell.easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", quoted_id(), "-Confirm:$false"},
+    power_shell.easy_run({"Restore-VMCheckpoint", "-VMName", vm_name, "-Name", quoted_id, "-Confirm:$false"},
                          "Could not apply snapshot");
-}
-
-QString mp::HyperVSnapshot::quoted_id() const
-{
-    return quoted(get_id());
 }
