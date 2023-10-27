@@ -95,17 +95,9 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 
 void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name)
 {
-    power_shell->easy_run({"Get-VMCheckpoint",
-                           "-VMName",
+    power_shell->easy_run({"Get-VMCheckpoint -VMName",
                            name,
-                           "|",
-                           "Where-Object",
-                           "{",
-                           "$_.IsAutomaticCheckpoint",
-                           "}",
-                           "|",
-                           "Remove-VMCheckpoint",
-                           "-Confirm:$false"},
+                           "| Where-Object { $_.IsAutomaticCheckpoint } | Remove-VMCheckpoint -Confirm:$false"},
                           "Could not delete existing automatic checkpoints");
 }
 } // namespace
