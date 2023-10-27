@@ -101,14 +101,47 @@ bool valid_mac_address(const std::string& mac);
 
 // string helpers
 bool has_only_digits(const std::string& value);
-std::string& trim(
-    std::string& s,
-    std::function<bool(char)> filter = [](char ch) { return std::isspace(ch); });
-std::string& trim_begin(
-    std::string& s,
-    std::function<bool(char)> filter = [](char ch) { return std::isspace(ch); });
-std::string& trim_end(
-    std::string& s, std::function<bool(char)> filter = [](char ch) { return std::isspace(ch); });
+
+template <typename Str, typename Filter>
+Str&& trim_begin(Str&& s, Filter&& filter)
+{
+    const auto it = std::find_if_not(s.begin(), s.end(), std::forward<Filter>(filter));
+    s.erase(s.begin(), it);
+    return std::forward<Str>(s);
+}
+
+template <typename Str>
+Str&& trim_begin(Str&& s)
+{
+    return trim_begin(std::forward<Str>(s), [](auto ch) { return std::isspace(ch); });
+}
+
+template <typename Str, typename Filter>
+Str&& trim_end(Str&& s, Filter&& filter)
+{
+    auto rev_it = std::find_if_not(s.rbegin(), s.rend(), std::forward<Filter>(filter));
+    s.erase(rev_it.base(), s.end());
+    return std::forward<Str>(s);
+}
+
+template <typename Str>
+Str&& trim_end(Str&& s)
+{
+    return trim_end(std::forward<Str>(s), [](auto ch) { return std::isspace(ch); });
+}
+
+template <typename Str, typename Filter>
+Str&& trim(Str&& s, Filter&& filter)
+{
+    return trim_begin(trim_end(std::forward<Str>(s), std::forward<Filter>(filter)));
+}
+
+template <typename Str>
+Str&& trim(Str&& s)
+{
+    return trim(std::forward<Str>(s), [](auto ch) { return std::isspace(ch); });
+}
+
 std::string& trim_newline(std::string& s);
 std::string escape_char(const std::string& s, char c);
 std::string escape_for_shell(const std::string& s);

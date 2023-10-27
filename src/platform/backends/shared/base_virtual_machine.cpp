@@ -62,8 +62,7 @@ void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted
 
 std::string trimmed_contents_of(const QString& file_path)
 {
-    auto contents = mpu::contents_of(file_path);
-    return mpu::trim(contents);
+    return mpu::trim(mpu::contents_of(file_path));
 }
 } // namespace
 
