@@ -108,5 +108,5 @@ void mp::HyperVSnapshot::apply_impl()
 
 QString mp::HyperVSnapshot::quoted_id() const
 {
-    return quoted(derive_id());
+    return quoted(get_id());
 }
