@@ -89,7 +89,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "";
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds timeout) override
+    void wait_until_ssh_up(std::chrono::milliseconds timeout, const mp::SSHKeyProvider& key_provider) override
     {
     }
 

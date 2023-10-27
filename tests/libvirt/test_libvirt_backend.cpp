@@ -51,7 +51,7 @@ struct LibVirtBackend : public Test
                                                       "pied-piper-valley",
                                                       "",
                                                       {},
-                                                      "",
+                                                      "ubuntu",
                                                       {dummy_image.name(), "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
                                                       {},
@@ -130,7 +130,9 @@ TEST_F(LibVirtBackend, creates_in_suspended_state_with_managed_save)
 
 TEST_F(LibVirtBackend, machine_sends_monitoring_events)
 {
+    const mpt::StubSSHKeyProvider key_provider;
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
 
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virNetworkGetDHCPLeases = [](auto, auto, auto leases, auto) {
@@ -154,7 +156,7 @@ TEST_F(LibVirtBackend, machine_sends_monitoring_events)
         return 0;
     };
 
-    machine->wait_until_ssh_up(2min);
+    machine->wait_until_ssh_up(2min, key_provider);
 
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();

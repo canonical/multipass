@@ -18,6 +18,7 @@
 #include "common.h"
 #include "mock_ssh_test_fixture.h"
 #include "signal.h"
+#include "stub_ssh_key_provider.h"
 #include "stub_virtual_machine.h"
 
 #include <multipass/delayed_shutdown_timer.h>
@@ -39,9 +40,10 @@ struct DelayedShutdown : public Test
         vm->state = mp::VirtualMachine::State::running;
     }
 
+    const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mp::VirtualMachine::UPtr vm;
-    mp::SSHSession session{"a", 42};
+    mp::SSHSession session{"a", 42, "ubuntu", key_provider};
     QEventLoop loop;
     ssh_channel_callbacks callbacks{nullptr};
 };

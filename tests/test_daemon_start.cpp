@@ -63,7 +63,7 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
         return std::move(instance_ptr);
     });
-    EXPECT_CALL(*instance_ptr, wait_until_ssh_up(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*instance_ptr, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
 
