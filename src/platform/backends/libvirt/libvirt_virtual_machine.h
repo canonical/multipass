@@ -61,13 +61,6 @@ public:
 
     static ConnectionUPtr open_libvirt_connection(const LibvirtWrapper::UPtr& libvirt_wrapper);
 
-protected:
-    std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
-    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
-                                                     const std::string& comment,
-                                                     const VMSpecs& specs,
-                                                     std::shared_ptr<Snapshot> parent) override;
-
 private:
     DomainUPtr initialize_domain_info(virConnectPtr connection);
     DomainUPtr checked_vm_domain() const;

@@ -555,17 +555,3 @@ void mp::LibVirtVirtualMachine::resize_disk(const MemorySize& new_size)
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
 }
-
-auto mp::LibVirtVirtualMachine::make_specific_snapshot(const std::string& /*snapshot_name*/,
-                                                       const std::string& /*comment*/,
-                                                       const VMSpecs& /*specs*/,
-                                                       std::shared_ptr<Snapshot> /*parent*/)
-    -> std::shared_ptr<Snapshot>
-{
-    throw NotImplementedOnThisBackendException{"Snapshots"};
-}
-
-auto mp::LibVirtVirtualMachine::make_specific_snapshot(const QString& /*filename*/) -> std::shared_ptr<Snapshot>
-{
-    throw NotImplementedOnThisBackendException{"Snapshots"};
-}

@@ -545,4 +545,17 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     rollback.dismiss();
 }
 
+std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const std::string& /*snapshot_name*/,
+                                                                     const std::string& /*comment*/,
+                                                                     const VMSpecs& /*specs*/,
+                                                                     std::shared_ptr<Snapshot> /*parent*/)
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"};
+}
+
+std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const QString& /*filename*/)
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"};
+}
+
 } // namespace multipass
