@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_FILE_NOT_FOUND_EXCEPTION_H
-#define MULTIPASS_FILE_NOT_FOUND_EXCEPTION_H
+#ifndef MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H
+#define MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H
 
 #include <cerrno>
 #include <cstring>
@@ -34,4 +34,4 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_FILE_NOT_FOUND_EXCEPTION_H
+#endif // MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H

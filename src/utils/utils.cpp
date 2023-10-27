@@ -18,7 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
-#include <multipass/exceptions/file_not_found_exception.h>
+#include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
