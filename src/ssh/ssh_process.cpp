@@ -114,13 +114,19 @@ std::string mp::SSHProcess::read_std_error()
 
 std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 {
-    mpl::log(mpl::Level::debug, category,
-             fmt::format("{}:{} {}(type = {}, timeout = {}): ", __FILE__, __LINE__, __FUNCTION__,
-                         static_cast<int>(type), timeout));
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("{}:{} {}(type = {}, timeout = {}): ",
+                         __FILE__,
+                         __LINE__,
+                         __FUNCTION__,
+                         static_cast<int>(type),
+                         timeout));
     // If the channel is closed there's no output to read
     if (ssh_channel_is_closed(channel.get()))
     {
-        mpl::log(mpl::Level::debug, category,
+        mpl::log(mpl::Level::trace,
+                 category,
                  fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
         return std::string();
     }
@@ -132,14 +138,16 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
     do
     {
         num_bytes = ssh_channel_read_timeout(channel.get(), buffer.data(), buffer.size(), is_std_err, timeout);
-        mpl::log(mpl::Level::debug, category,
+        mpl::log(mpl::Level::trace,
+                 category,
                  fmt::format("{}:{} {}(): num_bytes = {}", __FILE__, __LINE__, __FUNCTION__, num_bytes));
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of returning 0 bytes
             if (ssh_channel_is_closed(channel.get()))
             {
-                mpl::log(mpl::Level::debug, category,
+                mpl::log(mpl::Level::trace,
+                         category,
                          fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
                 return output.str();
             }
