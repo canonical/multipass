@@ -101,52 +101,18 @@ bool valid_mac_address(const std::string& mac);
 
 // string helpers
 bool has_only_digits(const std::string& value);
-
-namespace detail
-{
-auto is_space = static_cast<int (*)(int)>(std::isspace);
-}
-
 template <typename Str, typename Filter>
-Str&& trim_begin(Str&& s, Filter&& filter)
-{
-    const auto it = std::find_if_not(s.begin(), s.end(), std::forward<Filter>(filter));
-    s.erase(s.begin(), it);
-    return std::forward<Str>(s);
-}
-
+Str&& trim_begin(Str&& s, Filter&& filter);
 template <typename Str>
-Str&& trim_begin(Str&& s)
-{
-    return trim_begin(std::forward<Str>(s), detail::is_space);
-}
-
+Str&& trim_begin(Str&& s);
 template <typename Str, typename Filter>
-Str&& trim_end(Str&& s, Filter&& filter)
-{
-    auto rev_it = std::find_if_not(s.rbegin(), s.rend(), std::forward<Filter>(filter));
-    s.erase(rev_it.base(), s.end());
-    return std::forward<Str>(s);
-}
-
+Str&& trim_end(Str&& s, Filter&& filter);
 template <typename Str>
-Str&& trim_end(Str&& s)
-{
-    return trim_end(std::forward<Str>(s), detail::is_space);
-}
-
+Str&& trim_end(Str&& s);
 template <typename Str, typename Filter>
-Str&& trim(Str&& s, Filter&& filter)
-{
-    return trim_begin(trim_end(std::forward<Str>(s), std::forward<Filter>(filter)));
-}
-
+Str&& trim(Str&& s, Filter&& filter);
 template <typename Str>
-Str&& trim(Str&& s)
-{
-    return trim(std::forward<Str>(s), detail::is_space);
-}
-
+Str&& trim(Str&& s);
 std::string& trim_newline(std::string& s);
 std::string escape_char(const std::string& s, char c);
 std::string escape_for_shell(const std::string& s);
@@ -276,6 +242,51 @@ public:
     virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
 };
 } // namespace multipass
+
+namespace multipass::utils::detail
+{
+inline constexpr auto is_space = static_cast<int (*)(int)>(std::isspace);
+}
+
+template <typename Str, typename Filter>
+Str&& multipass::utils::trim_begin(Str&& s, Filter&& filter)
+{
+    const auto it = std::find_if_not(s.begin(), s.end(), std::forward<Filter>(filter));
+    s.erase(s.begin(), it);
+    return std::forward<Str>(s);
+}
+
+template <typename Str>
+Str&& multipass::utils::trim_begin(Str&& s)
+{
+    return trim_begin(std::forward<Str>(s), detail::is_space);
+}
+
+template <typename Str, typename Filter>
+Str&& multipass::utils::trim_end(Str&& s, Filter&& filter)
+{
+    auto rev_it = std::find_if_not(s.rbegin(), s.rend(), std::forward<Filter>(filter));
+    s.erase(rev_it.base(), s.end());
+    return std::forward<Str>(s);
+}
+
+template <typename Str>
+Str&& multipass::utils::trim_end(Str&& s)
+{
+    return trim_end(std::forward<Str>(s), detail::is_space);
+}
+
+template <typename Str, typename Filter>
+Str&& multipass::utils::trim(Str&& s, Filter&& filter)
+{
+    return trim_begin(trim_end(std::forward<Str>(s), std::forward<Filter>(filter)));
+}
+
+template <typename Str>
+Str&& multipass::utils::trim(Str&& s)
+{
+    return trim(std::forward<Str>(s), detail::is_space);
+}
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout,
