@@ -238,6 +238,18 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
     return cmd;
 }
 
+std::string& mp::utils::trim(std::string& s, std::function<bool(char)> filter)
+{
+    return trim_begin(trim_end(s, filter));
+}
+
+std::string& mp::utils::trim_begin(std::string& s, std::function<bool(char)> filter)
+{
+    const auto it = std::find_if(s.begin(), s.end(), filter);
+    s.erase(s.begin(), it);
+    return s;
+}
+
 std::string& mp::utils::trim_end(std::string& s, std::function<bool(char)> filter)
 {
     auto rev_it = std::find_if_not(s.rbegin(), s.rend(), filter);

@@ -101,6 +101,12 @@ bool valid_mac_address(const std::string& mac);
 
 // string helpers
 bool has_only_digits(const std::string& value);
+std::string& trim(
+    std::string& s,
+    std::function<bool(char)> filter = [](char ch) { return std::isspace(ch); });
+std::string& trim_begin(
+    std::string& s,
+    std::function<bool(char)> filter = [](char ch) { return std::isspace(ch); });
 std::string& trim_end(
     std::string& s, std::function<bool(char)> filter = [](char ch) { return std::isspace(ch); });
 std::string& trim_newline(std::string& s);
