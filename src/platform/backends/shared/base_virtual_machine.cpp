@@ -31,8 +31,6 @@
 
 #include <QDir>
 
-#include <regex>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
@@ -62,14 +60,10 @@ void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted
         snapshot->set_parent(deleted_parent);
 }
 
-std::string trim(const std::string& s)
-{
-    return std::regex_replace(s, std::regex{R"(^\s+|\s+$)"}, "");
-}
-
 std::string trimmed_contents_of(const QString& file_path)
 {
-    return trim(mpu::contents_of(file_path));
+    auto contents = mpu::contents_of(file_path);
+    return mpu::trim(contents);
 }
 } // namespace
 
