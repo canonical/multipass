@@ -459,9 +459,12 @@ std::string mp::LibVirtVirtualMachine::ipv6()
     return {};
 }
 
-void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
+void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
-    mp::utils::wait_until_ssh_up(this, timeout, std::bind(&LibVirtVirtualMachine::ensure_vm_is_running, this));
+    mp::utils::wait_until_ssh_up(this,
+                                 timeout,
+                                 key_provider,
+                                 std::bind(&LibVirtVirtualMachine::ensure_vm_is_running, this));
 }
 
 void mp::LibVirtVirtualMachine::update_state()

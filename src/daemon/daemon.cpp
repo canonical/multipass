@@ -2888,7 +2888,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
     {
         auto it = operative_instances.find(name);
         auto vm = it->second;
-        vm->wait_until_ssh_up(timeout);
+        vm->wait_until_ssh_up(timeout, *config->ssh_key_provider);
 
         if (std::is_same<Reply, LaunchReply>::value)
         {
