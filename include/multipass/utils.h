@@ -102,6 +102,11 @@ bool valid_mac_address(const std::string& mac);
 // string helpers
 bool has_only_digits(const std::string& value);
 
+namespace detail
+{
+auto is_space = static_cast<int (*)(int)>(std::isspace);
+}
+
 template <typename Str, typename Filter>
 Str&& trim_begin(Str&& s, Filter&& filter)
 {
@@ -113,7 +118,7 @@ Str&& trim_begin(Str&& s, Filter&& filter)
 template <typename Str>
 Str&& trim_begin(Str&& s)
 {
-    return trim_begin(std::forward<Str>(s), [](auto ch) { return std::isspace(ch); });
+    return trim_begin(std::forward<Str>(s), detail::is_space);
 }
 
 template <typename Str, typename Filter>
@@ -127,7 +132,7 @@ Str&& trim_end(Str&& s, Filter&& filter)
 template <typename Str>
 Str&& trim_end(Str&& s)
 {
-    return trim_end(std::forward<Str>(s), [](auto ch) { return std::isspace(ch); });
+    return trim_end(std::forward<Str>(s), detail::is_space);
 }
 
 template <typename Str, typename Filter>
@@ -139,7 +144,7 @@ Str&& trim(Str&& s, Filter&& filter)
 template <typename Str>
 Str&& trim(Str&& s)
 {
-    return trim(std::forward<Str>(s), [](auto ch) { return std::isspace(ch); });
+    return trim(std::forward<Str>(s), detail::is_space);
 }
 
 std::string& trim_newline(std::string& s);
