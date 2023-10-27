@@ -38,7 +38,7 @@ QString quoted(const QString& s)
 
 bool snapshot_exists(mp::PowerShell& ps, const QString& vm_name, const QString& id)
 {
-    static const QString expected_error{"ObjectNotFound"};
+    static const auto expected_error = QStringLiteral("ObjectNotFound");
 
     QString output;
     if (ps.run({"Get-VMCheckpoint", "-VMName", vm_name, "-Name", id}, &output))
