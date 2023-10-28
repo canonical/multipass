@@ -380,7 +380,7 @@ std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::st
         auto error_msg = proc.read_std_error();
         mpl::log(mpl::Level::warning, category,
                  fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-        throw std::runtime_error(mp::utils::trim_end(error_msg));
+        throw mp::SSHExecFailure(mp::utils::trim_end(error_msg));
     }
 
     auto output = proc.read_std_output();
