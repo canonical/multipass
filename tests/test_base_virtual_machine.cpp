@@ -79,7 +79,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4() override
+    std::string management_ipv4(const mp::SSHKeyProvider&) override
     {
         return "1.2.3.4";
     }

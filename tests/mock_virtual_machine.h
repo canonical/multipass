@@ -41,7 +41,7 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_hostname(_)).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_username()).WillByDefault(Return("ubuntu"));
-        ON_CALL(*this, management_ipv4()).WillByDefault(Return("0.0.0.0"));
+        ON_CALL(*this, management_ipv4(_)).WillByDefault(Return("0.0.0.0"));
         ON_CALL(*this, get_all_ipv4(_)).WillByDefault(Return(std::vector<std::string>{"192.168.2.123"}));
         ON_CALL(*this, ipv6()).WillByDefault(Return("::/0"));
     }
@@ -55,7 +55,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (std::chrono::milliseconds), (override));
     MOCK_METHOD(std::string, ssh_username, (), (override));
-    MOCK_METHOD(std::string, management_ipv4, (), (override));
+    MOCK_METHOD(std::string, management_ipv4, (const SSHKeyProvider&), (override));
     MOCK_METHOD(std::vector<std::string>, get_all_ipv4, (const SSHKeyProvider&), (override));
     MOCK_METHOD(std::string, ipv6, (), (override));
     MOCK_METHOD(void, ensure_vm_is_running, (), (override));

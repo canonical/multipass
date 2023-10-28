@@ -25,6 +25,7 @@
 #include "tests/mock_logger.h"
 #include "tests/mock_platform.h"
 #include "tests/mock_status_monitor.h"
+#include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/stub_url_downloader.h"
 #include "tests/temp_dir.h"
@@ -1099,7 +1100,7 @@ TEST_P(LXDNetworkInfoSuite, returns_expected_network_info)
     mp::LXDVirtualMachine machine{default_description, stub_monitor,        mock_network_access_manager.get(), base_url,
                                   bridge_name,         default_storage_pool};
 
-    EXPECT_EQ(machine.management_ipv4(), "10.217.27.168");
+    EXPECT_EQ(machine.management_ipv4(mpt::StubSSHKeyProvider()), "10.217.27.168");
     EXPECT_TRUE(machine.ipv6().empty());
     EXPECT_EQ(machine.ssh_username(), default_description.ssh_username);
     EXPECT_EQ(machine.ssh_port(), 22);
@@ -1182,7 +1183,7 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
     mp::LXDVirtualMachine machine{default_description, stub_monitor,        mock_network_access_manager.get(), base_url,
                                   bridge_name,         default_storage_pool};
 
-    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
+    EXPECT_EQ(machine.management_ipv4(mpt::StubSSHKeyProvider()), "UNKNOWN");
 }
 
 TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
