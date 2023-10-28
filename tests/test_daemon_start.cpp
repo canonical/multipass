@@ -126,7 +126,7 @@ TEST_P(WithSSH, startConfiguresInterfaces)
         return std::move(instance_ptr);
     });
 
-    EXPECT_CALL(*instance_ptr, wait_until_ssh_up(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*instance_ptr, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
     EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(1);
