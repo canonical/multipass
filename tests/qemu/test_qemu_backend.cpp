@@ -641,7 +641,7 @@ TEST_F(QemuBackend, gets_management_ip)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_EQ(machine.management_ipv4(), expected_ip);
+    EXPECT_EQ(machine.management_ipv4(mpt::StubSSHKeyProvider()), expected_ip);
 }
 
 TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
@@ -655,7 +655,7 @@ TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
+    EXPECT_EQ(machine.management_ipv4(mpt::StubSSHKeyProvider()), "UNKNOWN");
 }
 
 TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)

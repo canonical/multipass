@@ -20,6 +20,7 @@
 #include "mock_ssh_process_exit_status.h"
 #include "sftp_server_test_fixture.h"
 #include "signal.h"
+#include "stub_ssh_key_provider.h"
 
 #include <src/sshfs_mount/sshfs_mount.h>
 
@@ -48,7 +49,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 {
     mp::SshfsMount make_sshfsmount(std::optional<std::string> target = std::nullopt)
     {
-        mp::SSHSession session{"a", 42};
+        mp::SSHSession session{"a", 42, "ubuntu", key_provider};
         return {std::move(session), default_source, target.value_or(default_target), default_mappings,
                 default_mappings};
     }
@@ -181,6 +182,7 @@ struct SshfsMount : public mp::test::SftpServerTest
     mp::id_mappings default_mappings;
     int default_id{1000};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    const mpt::StubSSHKeyProvider key_provider;
 
     const std::unordered_map<std::string, std::string> default_cmds{
         {"snap run multipass-sshfs.env", "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n"},

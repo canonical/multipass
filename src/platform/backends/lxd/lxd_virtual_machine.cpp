@@ -365,7 +365,7 @@ std::string mp::LXDVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::LXDVirtualMachine::management_ipv4()
+std::string mp::LXDVirtualMachine::management_ipv4(const SSHKeyProvider& /* unused on this backend */)
 {
     if (!management_ip)
     {
@@ -385,9 +385,9 @@ std::string mp::LXDVirtualMachine::ipv6()
     return {};
 }
 
-void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
+void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
-    mpu::wait_until_ssh_up(this, timeout, [this] { ensure_vm_is_running(); });
+    mpu::wait_until_ssh_up(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
 }
 
 const QUrl mp::LXDVirtualMachine::url()

@@ -255,6 +255,22 @@ void update_max_and_property(virDomainPtr domain_ptr, Updater* fun_ptr, Integer 
         flags &= ~max_flag;
     } while (!twice++); // first set the maximum, then actual
 }
+
+std::string management_ipv4_impl(std::optional<mp::IPAddress>& management_ip,
+                                 const std::string& mac_addr,
+                                 const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
+{
+    if (!management_ip)
+    {
+        auto result = instance_ip_for(mac_addr, libvirt_wrapper);
+        if (result)
+            management_ip.emplace(result.value());
+        else
+            return "UNKNOWN";
+    }
+
+    return management_ip.value().as_string();
+}
 } // namespace
 
 mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
@@ -440,18 +456,9 @@ std::string mp::LibVirtVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::LibVirtVirtualMachine::management_ipv4()
+std::string mp::LibVirtVirtualMachine::management_ipv4(const SSHKeyProvider& /* not used on this backend */)
 {
-    if (!management_ip)
-    {
-        auto result = instance_ip_for(mac_addr, libvirt_wrapper);
-        if (result)
-            management_ip.emplace(result.value());
-        else
-            return "UNKNOWN";
-    }
-
-    return management_ip.value().as_string();
+    return management_ipv4_impl(management_ip, mac_addr, libvirt_wrapper);
 }
 
 std::string mp::LibVirtVirtualMachine::ipv6()
@@ -459,9 +466,12 @@ std::string mp::LibVirtVirtualMachine::ipv6()
     return {};
 }
 
-void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
+void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
-    mp::utils::wait_until_ssh_up(this, timeout, std::bind(&LibVirtVirtualMachine::ensure_vm_is_running, this));
+    mp::utils::wait_until_ssh_up(this,
+                                 timeout,
+                                 key_provider,
+                                 std::bind(&LibVirtVirtualMachine::ensure_vm_is_running, this));
 }
 
 void mp::LibVirtVirtualMachine::update_state()
@@ -481,7 +491,7 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_doma
     if (mac_addr.empty())
         mac_addr = instance_mac_addr_for(domain.get(), libvirt_wrapper);
 
-    management_ipv4(); // To set ip
+    management_ipv4_impl(management_ip, mac_addr, libvirt_wrapper); // To set the IP.
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
 
     return domain;

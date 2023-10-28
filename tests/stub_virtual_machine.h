@@ -71,7 +71,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4() override
+    std::string management_ipv4(const SSHKeyProvider& key_provider) override
     {
         return {};
     }
@@ -91,7 +91,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         throw std::runtime_error("Not running");
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds) override
+    void wait_until_ssh_up(std::chrono::milliseconds, const SSHKeyProvider&) override
     {
     }
 

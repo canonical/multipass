@@ -32,8 +32,11 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
-                           const SSHKeyProvider* key_provider, const std::chrono::milliseconds timeout)
+mp::SSHSession::SSHSession(const std::string& host,
+                           int port,
+                           const std::string& username,
+                           const SSHKeyProvider& key_provider,
+                           const std::chrono::milliseconds timeout)
     : session{ssh_new(), ssh_free}
 {
     if (session == nullptr)
@@ -53,22 +56,12 @@ mp::SSHSession::SSHSession(const std::string& host, int port, const std::string&
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
     SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
-    if (key_provider)
-    {
-        SSH::throw_on_error(session, "ssh failed to authenticate", ssh_userauth_publickey, nullptr,
-                            key_provider->private_key());
-    }
-}
 
-mp::SSHSession::SSHSession(const std::string& host, int port, const std::string& username,
-                           const SSHKeyProvider& key_provider, const std::chrono::milliseconds timeout)
-    : SSHSession(host, port, username, &key_provider, timeout)
-{
-}
-
-mp::SSHSession::SSHSession(const std::string& host, int port, const std::chrono::milliseconds timeout)
-    : SSHSession(host, port, "ubuntu", nullptr, timeout)
-{
+    SSH::throw_on_error(session,
+                        "ssh failed to authenticate",
+                        ssh_userauth_publickey,
+                        nullptr,
+                        key_provider.private_key());
 }
 
 mp::SSHProcess mp::SSHSession::exec(const std::string& cmd)
