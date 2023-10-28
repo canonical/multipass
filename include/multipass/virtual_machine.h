@@ -68,7 +68,7 @@ public:
     };
     virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
-    virtual std::string management_ipv4() = 0;
+    virtual std::string management_ipv4(const SSHKeyProvider& key_provider) = 0;
     virtual std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) = 0;
     virtual std::string ipv6() = 0;
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) = 0;

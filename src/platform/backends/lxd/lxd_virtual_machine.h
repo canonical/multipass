@@ -44,7 +44,7 @@ public:
     int ssh_port() override;
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
-    std::string management_ipv4() override;
+    std::string management_ipv4(const SSHKeyProvider& key_provider) override;
     std::string ipv6() override;
     void ensure_vm_is_running() override;
     void ensure_vm_is_running(const std::chrono::milliseconds& timeout);
