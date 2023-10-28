@@ -3081,7 +3081,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                         mpu::run_in_ssh_session(session, command);
                     }
                 }
-                catch (const std::runtime_error&) // In case there is an error executing the command, report it.
+                catch (const mp::SSHExecFailure&) // In case there is an error executing the command, report it.
                 {
                     // Currently, the only use of running commands at boot is to configure networks. For this reason,
                     // the warning shown here refers to that use. In the future, in case of using the feature for other
