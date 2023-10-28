@@ -313,7 +313,7 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::VirtualBoxVirtualMachine::management_ipv4()
+std::string mp::VirtualBoxVirtualMachine::management_ipv4(const SSHKeyProvider& /* unused on this backend */)
 {
     return "N/A";
 }
@@ -333,9 +333,13 @@ std::string mp::VirtualBoxVirtualMachine::ipv6()
     return {};
 }
 
-void mp::VirtualBoxVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
+void mp::VirtualBoxVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout,
+                                                     const SSHKeyProvider& key_provider)
 {
-    mpu::wait_until_ssh_up(this, timeout, std::bind(&VirtualBoxVirtualMachine::ensure_vm_is_running, this));
+    mpu::wait_until_ssh_up(this,
+                           timeout,
+                           key_provider,
+                           std::bind(&VirtualBoxVirtualMachine::ensure_vm_is_running, this));
 }
 
 void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
