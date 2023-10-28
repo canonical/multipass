@@ -320,17 +320,22 @@ bool mp::utils::valid_mac_address(const std::string& mac)
     return match.hasMatch();
 }
 
-void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
+void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine,
+                                  std::chrono::milliseconds timeout,
+                                  const mp::SSHKeyProvider& key_provider,
                                   std::function<void()> const& ensure_vm_is_running)
 {
     static constexpr auto wait_step = 1s;
     mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
 
-    auto action = [virtual_machine, &ensure_vm_is_running] {
+    auto action = [virtual_machine, &key_provider, &ensure_vm_is_running] {
         ensure_vm_is_running();
         try
         {
-            mp::SSHSession session{virtual_machine->ssh_hostname(wait_step), virtual_machine->ssh_port()};
+            mp::SSHSession session{virtual_machine->ssh_hostname(wait_step),
+                                   virtual_machine->ssh_port(),
+                                   virtual_machine->ssh_username(),
+                                   key_provider};
 
             std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             virtual_machine->state = VirtualMachine::State::running;

@@ -23,6 +23,7 @@
 #include "mock_sftp_dir_iterator.h"
 #include "mock_sftp_utils.h"
 #include "mock_ssh_test_fixture.h"
+#include "stub_ssh_key_provider.h"
 #include <Poco/TeeStream.h>
 
 #include <multipass/ssh/sftp_client.h>
@@ -70,15 +71,16 @@ struct SFTPClient : public testing::Test
         close.returnValue(SSH_OK);
     }
 
-    static mp::SFTPClient make_sftp_client()
+    mp::SFTPClient make_sftp_client()
     {
-        return {std::make_unique<mp::SSHSession>("b", 43)};
+        return {std::make_unique<mp::SSHSession>("b", 43, "ubuntu", key_provider)};
     }
 
     decltype(MOCK(sftp_close)) close{MOCK(sftp_close)};
     MockScope<decltype(mock_sftp_new)> sftp_new;
     MockScope<decltype(mock_sftp_free)> free_sftp;
 
+    const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};

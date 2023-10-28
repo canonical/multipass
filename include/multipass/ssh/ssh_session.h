@@ -32,8 +32,10 @@ class SSHKeyProvider;
 class SSHSession
 {
 public:
-    SSHSession(const std::string& host, int port, const std::chrono::milliseconds timeout = std::chrono::seconds(1));
-    SSHSession(const std::string& host, int port, const std::string& ssh_username, const SSHKeyProvider& key_provider,
+    SSHSession(const std::string& host,
+               int port,
+               const std::string& ssh_username,
+               const SSHKeyProvider& key_provider,
                const std::chrono::milliseconds timeout = std::chrono::seconds(20));
 
     SSHProcess exec(const std::string& cmd);
@@ -42,9 +44,6 @@ public:
     operator ssh_session() const;
 
 private:
-    SSHSession(const std::string& host, int port, const std::string& ssh_username, const SSHKeyProvider* key_provider);
-    SSHSession(const std::string& host, int port, const std::string& ssh_username, const SSHKeyProvider* key_provider,
-               const std::chrono::milliseconds timeout = std::chrono::seconds(20));
     void set_option(ssh_options_e type, const void* value);
     std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
 };

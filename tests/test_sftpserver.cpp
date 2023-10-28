@@ -24,6 +24,7 @@
 #include "mock_ssh_process_exit_status.h"
 #include "path.h"
 #include "sftp_server_test_fixture.h"
+#include "stub_ssh_key_provider.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
@@ -56,7 +57,7 @@ struct SftpServer : public mp::test::SftpServerTest
     mp::SftpServer make_sftpserver(const std::string& path, const mp::id_mappings& gid_mappings = {},
                                    const mp::id_mappings& uid_mappings = {})
     {
-        mp::SSHSession session{"a", 42};
+        mp::SSHSession session{"a", 42, "ubuntu", key_provider};
         return {std::move(session), path, path, gid_mappings, uid_mappings, default_id, default_id, "sshfs"};
     }
 
@@ -92,6 +93,7 @@ struct SftpServer : public mp::test::SftpServerTest
         return reply_status;
     }
 
+    const mpt::StubSSHKeyProvider key_provider;
     mpt::ExitStatusMock exit_status_mock;
     std::queue<sftp_client_message> messages;
     int default_id{1000};

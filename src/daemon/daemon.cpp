@@ -1629,7 +1629,7 @@ try // clang-format on
                 mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"));
             info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
 
-            std::string management_ip = vm.management_ipv4();
+            std::string management_ip = vm.management_ipv4(*config->ssh_key_provider);
             auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
 
             if (is_ipv4_valid(management_ip))
@@ -1710,7 +1710,7 @@ try // clang-format on
 
         if (request->request_ipv4() && mp::utils::is_running(present_state))
         {
-            std::string management_ip = vm->management_ipv4();
+            std::string management_ip = vm->management_ipv4(*config->ssh_key_provider);
             auto all_ipv4 = vm->get_all_ipv4(*config->ssh_key_provider);
 
             if (is_ipv4_valid(management_ip))
@@ -2888,7 +2888,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
     {
         auto it = operative_instances.find(name);
         auto vm = it->second;
-        vm->wait_until_ssh_up(timeout);
+        vm->wait_until_ssh_up(timeout, *config->ssh_key_provider);
 
         if (std::is_same<Reply, LaunchReply>::value)
         {
