@@ -40,10 +40,13 @@ namespace
 const QString default_switch_guid{"C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"};
 const QString snapshot_name{"suspend"};
 
-std::optional<mp::IPAddress> remote_ip(const std::string& host, int port) // clang-format off
+std::optional<mp::IPAddress> remote_ip(const std::string& host,
+                                       int port,
+                                       const std::string& username,
+                                       const mp::SSHKeyProvider& key_provider) // clang-format off
 try // clang-format on
 {
-    mp::SSHSession session{host, port};
+    mp::SSHSession session{host, port, username, key_provider};
 
     sockaddr_in addr{};
     int size = sizeof(addr);
@@ -265,11 +268,11 @@ std::string mp::HyperVVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::HyperVVirtualMachine::management_ipv4()
+std::string mp::HyperVVirtualMachine::management_ipv4(const SSHKeyProvider& key_provider)
 {
     if (!ip)
     {
-        auto result = remote_ip(VirtualMachine::ssh_hostname(), ssh_port());
+        auto result = remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
         if (result)
             ip.emplace(result.value());
     }
@@ -281,9 +284,12 @@ std::string mp::HyperVVirtualMachine::ipv6()
     return {};
 }
 
-void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
+void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
-    mp::utils::wait_until_ssh_up(this, timeout, std::bind(&HyperVVirtualMachine::ensure_vm_is_running, this));
+    mp::utils::wait_until_ssh_up(this,
+                                 timeout,
+                                 key_provider,
+                                 std::bind(&HyperVVirtualMachine::ensure_vm_is_running, this));
 }
 
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)
