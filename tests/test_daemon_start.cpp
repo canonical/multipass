@@ -144,7 +144,7 @@ TEST_P(WithSSH, startConfiguresInterfaces)
     if (expected_status)
     {
         EXPECT_CALL(server,
-                    Write(Property(&mp::StartReply::log_line, HasSubstr("failure configuring network interfaces")), _))
+                    Write(Property(&mp::StartReply::log_line, HasSubstr("Failure configuring network interfaces")), _))
             .Times(1);
     }
     else
