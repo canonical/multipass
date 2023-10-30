@@ -245,7 +245,8 @@ public:
 
 namespace multipass::utils::detail
 {
-inline constexpr auto is_space = static_cast<int (*)(int)>(std::isspace);
+// see https://en.cppreference.com/w/cpp/string/byte/isspace#Notes
+inline constexpr auto is_space = [](unsigned char c) { return std::isspace(c); };
 }
 
 template <typename Str, typename Filter>
