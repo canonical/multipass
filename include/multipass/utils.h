@@ -280,7 +280,8 @@ Str&& multipass::utils::trim_end(Str&& s)
 template <typename Str, typename Filter>
 Str&& multipass::utils::trim(Str&& s, Filter&& filter)
 {
-    return trim_begin(trim_end(std::forward<Str>(s), std::forward<Filter>(filter)));
+    auto&& ret = trim_end(std::forward<Str>(s), filter);
+    return trim_begin(std::forward<decltype(ret)>(ret), std::forward<Filter>(filter));
 }
 
 template <typename Str>
