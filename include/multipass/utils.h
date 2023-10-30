@@ -247,7 +247,7 @@ namespace multipass::utils::detail
 {
 // see https://en.cppreference.com/w/cpp/string/byte/isspace#Notes
 inline constexpr auto is_space = [](unsigned char c) { return std::isspace(c); };
-}
+} // namespace multipass::utils::detail
 
 template <typename Str, typename Filter>
 Str&& multipass::utils::trim_begin(Str&& s, Filter&& filter)
