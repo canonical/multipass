@@ -45,41 +45,104 @@ std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
 
     return fmt::to_string(buf);
 }
-} // namespace
 
-std::string mp::CSVFormatter::format(const InfoReply& reply) const
+std::string format_mounts(const mp::MountInfo& mount_info)
 {
     fmt::memory_buffer buf;
-    fmt::format_to(
-        std::back_inserter(buf),
-        "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
-        "total,Mounts,AllIPv4,CPU(s)\n");
+    const auto& mount_paths = mount_info.mount_paths();
 
-    for (const auto& info : format::sorted(reply.info()))
-    {
-        fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},{},{},{},{},{},{},{},", info.name(),
-                       mp::format::status_string_for(info.instance_status()), info.ipv4_size() ? info.ipv4(0) : "",
-                       info.ipv6_size() ? info.ipv6(0) : "", info.current_release(), info.id(), info.image_release(),
-                       info.load(), info.disk_usage(), info.disk_total(), info.memory_usage(), info.memory_total());
+    if (!mount_paths.size())
+        return {};
 
-        auto mount_paths = info.mount_info().mount_paths();
-        for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
-        {
-            fmt::format_to(std::back_inserter(buf), "{} => {};", mount->source_path(), mount->target_path());
-        }
+    auto mount = mount_paths.cbegin();
+    for (; mount != --mount_paths.cend(); ++mount)
+        fmt::format_to(std::back_inserter(buf), "{} => {};", mount->source_path(), mount->target_path());
+    fmt::format_to(std::back_inserter(buf), "{} => {}", mount->source_path(), mount->target_path());
 
-        fmt::format_to(std::back_inserter(buf), ",\"{}\";,{}\n", fmt::join(info.ipv4(), ","), info.cpu_count());
-    }
     return fmt::to_string(buf);
 }
 
-std::string mp::CSVFormatter::format(const ListReply& reply) const
+std::string generate_snapshot_details(const mp::InfoReply reply)
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf),
+                   "Snapshot,Instance,CPU(s),Disk space,Memory size,Mounts,Created,Parent,Children,Comment\n");
+
+    for (const auto& info : mp::format::sorted(reply.details()))
+    {
+        const auto& fundamentals = info.snapshot_info().fundamentals();
+
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{},{},{},",
+                       fundamentals.snapshot_name(),
+                       info.name(),
+                       info.cpu_count(),
+                       info.disk_total(),
+                       info.memory_total());
+
+        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
+
+        fmt::format_to(std::back_inserter(buf),
+                       ",{},{},{},\"{}\"\n",
+                       google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp()),
+                       fundamentals.parent(),
+                       fmt::join(info.snapshot_info().children(), ";"),
+                       fundamentals.comment());
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string generate_instance_details(const mp::InfoReply reply)
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(
+        std::back_inserter(buf),
+        "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
+        "total,Mounts,AllIPv4,CPU(s),Snapshots\n");
+
+    for (const auto& info : mp::format::sorted(reply.details()))
+    {
+        assert(info.has_instance_info() &&
+               "outputting instance and snapshot details together is not supported in csv format");
+        const auto& instance_details = info.instance_info();
+
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{},{},{},{},{},{},{},{},{},{},",
+                       info.name(),
+                       mp::format::status_string_for(info.instance_status()),
+                       instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
+                       instance_details.ipv6_size() ? instance_details.ipv6(0) : "",
+                       instance_details.current_release(),
+                       instance_details.id(),
+                       instance_details.image_release(),
+                       instance_details.load(),
+                       instance_details.disk_usage(),
+                       info.disk_total(),
+                       instance_details.memory_usage(),
+                       info.memory_total());
+
+        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
+
+        fmt::format_to(std::back_inserter(buf),
+                       ",{},{},{}\n",
+                       fmt::join(instance_details.ipv4(), ";"),
+                       info.cpu_count(),
+                       instance_details.num_snapshots());
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4\n");
 
-    for (const auto& instance : format::sorted(reply.instances()))
+    for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         fmt::format_to(std::back_inserter(buf), "{},{},{},{},{},\"{}\"\n", instance.name(),
                        mp::format::status_string_for(instance.instance_status()),
@@ -90,6 +153,59 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
     }
 
     return fmt::to_string(buf);
+}
+
+std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf), "Instance,Snapshot,Parent,Comment\n");
+
+    for (const auto& item : mp::format::sorted(snapshot_list.snapshots()))
+    {
+        const auto& snapshot = item.fundamentals();
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{},\"{}\"\n",
+                       item.name(),
+                       snapshot.snapshot_name(),
+                       snapshot.parent(),
+                       snapshot.comment());
+    }
+
+    return fmt::to_string(buf);
+}
+} // namespace
+
+std::string mp::CSVFormatter::format(const InfoReply& reply) const
+{
+    std::string output;
+
+    if (reply.details_size() > 0)
+    {
+        if (reply.details()[0].has_instance_info())
+            output = generate_instance_details(reply);
+        else
+            output = generate_snapshot_details(reply);
+    }
+
+    return output;
+}
+
+std::string mp::CSVFormatter::format(const ListReply& reply) const
+{
+    std::string output;
+
+    if (reply.has_instance_list())
+    {
+        output = generate_instances_list(reply.instance_list());
+    }
+    else
+    {
+        assert(reply.has_snapshot_list() && "either one of instances or snapshots should be populated");
+        output = generate_snapshots_list(reply.snapshot_list());
+    }
+
+    return output;
 }
 
 std::string mp::CSVFormatter::format(const NetworksReply& reply) const

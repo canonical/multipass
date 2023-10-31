@@ -19,6 +19,9 @@
 #define MULTIPASS_STUB_VIRTUAL_MACHINE_H
 
 #include "stub_mount_handler.h"
+#include "stub_snapshot.h"
+#include "temp_dir.h"
+
 #include <multipass/virtual_machine.h>
 
 namespace multipass
@@ -31,7 +34,12 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    StubVirtualMachine(const std::string& name) : VirtualMachine{name}
+    StubVirtualMachine(const std::string& name) : StubVirtualMachine{name, std::make_unique<TempDir>()}
+    {
+    }
+
+    StubVirtualMachine(const std::string& name, std::unique_ptr<TempDir>&& tmp_dir)
+        : VirtualMachine{name, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -111,11 +119,76 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                            const std::string& target, const VMMount& mount) override
+    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider*,
+                                                            const std::string&,
+                                                            const VMMount&) override
     {
         return std::make_unique<StubMountHandler>();
     }
+
+    SnapshotVista view_snapshots() const override
+    {
+        return {};
+    }
+
+    int get_num_snapshots() const noexcept override
+    {
+        return 0;
+    }
+
+    std::shared_ptr<const Snapshot> get_snapshot(const std::string&) const override
+    {
+        return {};
+    }
+
+    std::shared_ptr<Snapshot> get_snapshot(const std::string&) override
+    {
+        return {};
+    }
+
+    std::shared_ptr<const Snapshot> get_snapshot(int) const override
+    {
+        return nullptr;
+    }
+
+    std::shared_ptr<Snapshot> get_snapshot(int) override
+    {
+        return nullptr;
+    }
+
+    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs&, const std::string&, const std::string&) override
+    {
+        return {};
+    }
+
+    void rename_snapshot(const std::string& old_name, const std::string& new_name) override
+    {
+    }
+
+    void delete_snapshot(const std::string&) override
+    {
+    }
+
+    void restore_snapshot(const std::string& name, VMSpecs& specs) override
+    {
+    }
+
+    void load_snapshots() override
+    {
+    }
+
+    std::vector<std::string> get_childrens_names(const Snapshot*) const override
+    {
+        return {};
+    }
+
+    int get_snapshot_count() const override
+    {
+        return 0;
+    }
+
+    StubSnapshot snapshot;
+    std::unique_ptr<TempDir> tmp_dir;
 };
 } // namespace test
 } // namespace multipass

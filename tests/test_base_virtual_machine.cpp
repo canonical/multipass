@@ -18,6 +18,7 @@
 #include "common.h"
 #include "dummy_ssh_key_provider.h"
 #include "mock_ssh_test_fixture.h"
+#include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
 
@@ -33,10 +34,14 @@ namespace
 {
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
-    StubBaseVirtualMachine(const mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
-        : mp::BaseVirtualMachine("stub")
+    StubBaseVirtualMachine(mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
+        : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
     {
-        state = s;
+    }
+
+    StubBaseVirtualMachine(mp::VirtualMachine::State s, std::unique_ptr<mpt::TempDir>&& tmp_dir)
+        : mp::BaseVirtualMachine{s, "stub", tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    {
     }
 
     void stop() override
@@ -69,7 +74,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return 42;
     }
 
-    std::string ssh_hostname(std::chrono::milliseconds timeout) override
+    std::string ssh_hostname(std::chrono::milliseconds /*timeout*/) override
     {
         return "localhost";
     }
@@ -89,7 +94,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "";
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds timeout, const mp::SSHKeyProvider& key_provider) override
+    void wait_until_ssh_up(std::chrono::milliseconds /*timeout*/, const mp::SSHKeyProvider& /*key_provider*/) override
     {
     }
 
@@ -112,6 +117,22 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     void resize_disk(const mp::MemorySize&) override
     {
     }
+
+protected:
+    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const std::string& /*snapshot_name*/,
+                                                         const std::string& /*comment*/,
+                                                         const mp::VMSpecs& /*specs*/,
+                                                         std::shared_ptr<mp::Snapshot> /*parent*/) override
+    {
+        return nullptr;
+    }
+
+    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QString& /*json*/) override
+    {
+        return nullptr;
+    }
+
+    std::unique_ptr<mpt::TempDir>&& tmp_dir;
 };
 
 struct BaseVM : public Test

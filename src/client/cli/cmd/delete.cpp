@@ -24,6 +24,13 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+namespace
+{
+constexpr auto no_purge_base_error_msg =
+    "Snapshots can only be purged (after deletion, they cannot be recovered). Please use the `--purge` "
+    "flag if that is what you want";
+}
+
 mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -75,38 +82,83 @@ std::string cmd::Delete::name() const
 
 QString cmd::Delete::short_help() const
 {
-    return QStringLiteral("Delete instances");
+    return QStringLiteral("Delete instances and snapshots");
 }
 
 QString cmd::Delete::description() const
 {
-    return QStringLiteral("Delete instances, to be purged with the \"purge\" command,\n"
-                          "or recovered with the \"recover\" command.");
+    return QStringLiteral(
+        "Delete instances and snapshots. Instances can be purged immediately or later on,\n"
+        "with the \"purge\" command. Until they are purged, instances can be recovered\n"
+        "with the \"recover\" command. Snapshots cannot be recovered after deletion and must be purged at once.");
 }
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Names of instances to delete", "<name> [<name> ...]");
+    parser->addPositionalArgument("name",
+                                  "Names of instances and snapshots to delete",
+                                  "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
-    QCommandLineOption all_option(all_option_name, "Delete all instances");
-    parser->addOption(all_option);
-
-    QCommandLineOption purge_option({"p", "purge"}, "Purge instances immediately");
-    parser->addOption(purge_option);
+    QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
+    QCommandLineOption purge_option({"p", "purge"}, "Permanently delete specified instances and snapshots immediately");
+    parser->addOptions({all_option, purge_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr);
-    if (parse_code != ParseCode::Ok)
-        return parse_code;
+    status = check_for_name_and_all_option_conflict(parser, cerr);
+    if (status != ParseCode::Ok)
+        return status;
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
+    request.set_purge(parser->isSet(purge_option));
 
-    if (parser->isSet(purge_option))
-    {
-        request.set_purge(true);
-    }
+    status = parse_instances_snapshots(parser);
+
     return status;
+}
+
+mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
+{
+    bool instance_found = false, snapshot_found = false;
+    std::string instances, snapshots;
+    for (const auto& item : cmd::add_instance_and_snapshot_names(parser))
+    {
+        if (!item.has_snapshot_name())
+        {
+            instances.append(fmt::format("{} ", item.instance_name()));
+            instance_found = true;
+        }
+        else
+        {
+            snapshots.append(fmt::format("{}.{} ", item.instance_name(), item.snapshot_name()));
+            snapshot_found = true;
+        }
+
+        request.add_instance_snapshot_pairs()->CopyFrom(item);
+    }
+
+    return enforce_purged_snapshots(instances, snapshots, instance_found, snapshot_found);
+}
+
+mp::ParseCode cmd::Delete::enforce_purged_snapshots(std::string& instances,
+                                                    std::string& snapshots,
+                                                    bool instance_found,
+                                                    bool snapshot_found)
+{
+    if (snapshot_found && !request.purge())
+    {
+        if (instance_found)
+            cerr << fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
+                                "instances without purging them:\n\n\tmultipass delete {}\n",
+                                no_purge_base_error_msg,
+                                snapshots,
+                                instances);
+        else
+            cerr << fmt::format("{}.\n", no_purge_base_error_msg);
+
+        return mp::ParseCode::CommandLineError;
+    }
+
+    return mp::ParseCode::Ok;
 }

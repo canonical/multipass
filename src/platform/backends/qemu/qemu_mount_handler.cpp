@@ -21,6 +21,7 @@
 
 #include <QUuid>
 
+namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
@@ -31,9 +32,11 @@ constexpr auto category = "qemu-mount-handler";
 
 namespace multipass
 {
-QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider* ssh_key_provider,
-                                   const std::string& target, const VMMount& mount)
-    : MountHandler{vm, ssh_key_provider, target, mount.source_path},
+QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
+                                   const SSHKeyProvider* ssh_key_provider,
+                                   const std::string& target,
+                                   VMMount mount_spec)
+    : MountHandler{vm, ssh_key_provider, std::move(mount_spec), target},
       vm_mount_args{vm->modifiable_mount_args()},
       // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes long so part of the
       // uuid must be truncated. First character of tag must also be alphabetical.
@@ -53,14 +56,16 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm, const SSHKeyProvider*
     }
 
     // Need to ensure no more than one uid/gid map is passed in here.
-    if (mount.uid_mappings.size() > 1 || mount.gid_mappings.size() > 1)
+    if (this->mount_spec.uid_mappings.size() > 1 || this->mount_spec.gid_mappings.size() > 1)
         throw std::runtime_error("Only one mapping per native mount allowed.");
 
     mpl::log(mpl::Level::info, category,
              fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
 
-    const auto uid_map = mount.uid_mappings.empty() ? std::make_pair(1000, 1000) : mount.uid_mappings[0];
-    const auto gid_map = mount.gid_mappings.empty() ? std::make_pair(1000, 1000) : mount.gid_mappings[0];
+    const auto uid_map =
+        this->mount_spec.uid_mappings.empty() ? std::make_pair(1000, 1000) : this->mount_spec.uid_mappings[0];
+    const auto gid_map =
+        this->mount_spec.gid_mappings.empty() ? std::make_pair(1000, 1000) : this->mount_spec.gid_mappings[0];
     const auto uid_arg = QString("uid_map=%1:%2,").arg(uid_map.first).arg(uid_map.second == -1 ? 1000 : uid_map.second);
     const auto gid_arg = QString{"gid_map=%1:%2,"}.arg(gid_map.first).arg(gid_map.second == -1 ? 1000 : gid_map.second);
     vm_mount_args[tag] = {

@@ -24,6 +24,7 @@ add_library(daemon STATIC
   daemon_rpc.cpp
   default_vm_image_vault.cpp
   instance_settings_handler.cpp
+  snapshot_settings_handler.cpp
   ubuntu_image_host.cpp)
 
 include_directories(daemon

@@ -26,7 +26,7 @@
 #include "daemon_test_fixture.h"
 #include "fake_alias_config.h"
 #include "file_operations.h"
-#include "json_utils.h"
+#include "json_test_utils.h"
 #include "mock_file_ops.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
@@ -421,17 +421,6 @@ TEST_F(AliasDictionary, get_unexisting_alias_returns_nullopt)
     ASSERT_EQ(dict.get_alias("unexisting"), std::nullopt);
 }
 
-TEST_F(AliasDictionary, creates_backup_db)
-{
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", "map"}}});
-
-    QString bak_filename = QString::fromStdString(db_filename() + ".bak");
-    ASSERT_FALSE(QFile::exists(bak_filename));
-
-    populate_db_file(AliasesVector{{"another_alias", {"an_instance", "a_command", "map"}}});
-    ASSERT_TRUE(QFile::exists(bak_filename));
-}
-
 TEST_F(AliasDictionary, throws_when_open_alias_file_fails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
@@ -470,32 +459,56 @@ TEST_P(FormatterTestsuite, table)
 
 const std::string csv_head{"Alias,Instance,Command,Working directory,Context\n"};
 
-INSTANTIATE_TEST_SUITE_P(
-    AliasDictionary, FormatterTestsuite,
-    Values(std::make_tuple(AliasesVector{}, csv_head,
-                           "{\n    \"active-context\": \"default\",\n    \"contexts\": {\n        \"default\": {\n"
-                           "        }\n    }\n}\n",
-                           "No aliases defined.\n", "active_context: default\naliases:\n  default: ~\n"),
-           std::make_tuple(
-               AliasesVector{{"lsp", {"primary", "ls", "map"}}, {"llp", {"primary", "ls", "map"}}},
-               csv_head + "llp,primary,ls,map,default*\nlsp,primary,ls,map,default*\n",
-               "{\n    \"active-context\": \"default\",\n    \"contexts\": {\n"
-               "        \"default\": {\n"
-               "            \"llp\": {\n"
-               "                \"command\": \"ls\",\n"
-               "                \"instance\": \"primary\",\n"
-               "                \"working-directory\": \"map\"\n"
-               "            },\n"
-               "            \"lsp\": {\n"
-               "                \"command\": \"ls\",\n"
-               "                \"instance\": \"primary\",\n"
-               "                \"working-directory\": \"map\"\n"
-               "            }\n        }\n    }\n}\n",
-               "Alias  Instance  Command  Context   Working directory\n"
-               "llp    primary   ls       default*  map\nlsp    primary   ls       default*  map\n",
-               "active_context: default\naliases:\n  default:\n"
-               "    - alias: llp\n      command: ls\n      instance: primary\n      working-directory: map\n"
-               "    - alias: lsp\n      command: ls\n      instance: primary\n      working-directory: map\n")));
+INSTANTIATE_TEST_SUITE_P(AliasDictionary,
+                         FormatterTestsuite,
+                         Values(std::make_tuple(AliasesVector{},
+                                                csv_head,
+                                                "{\n"
+                                                "    \"active-context\": \"default\",\n"
+                                                "    \"contexts\": {\n"
+                                                "        \"default\": {\n"
+                                                "        }\n"
+                                                "    }\n"
+                                                "}\n",
+                                                "No aliases defined.\n",
+                                                "active_context: default\n"
+                                                "aliases:\n"
+                                                "  default: ~\n"),
+                                std::make_tuple(AliasesVector{{"lsp", {"primary", "ls", "map"}},
+                                                              {"llp", {"primary", "ls", "map"}}},
+                                                csv_head + "llp,primary,ls,map,default*\n"
+                                                           "lsp,primary,ls,map,default*\n",
+                                                "{\n"
+                                                "    \"active-context\": \"default\",\n"
+                                                "    \"contexts\": {\n"
+                                                "        \"default\": {\n"
+                                                "            \"llp\": {\n"
+                                                "                \"command\": \"ls\",\n"
+                                                "                \"instance\": \"primary\",\n"
+                                                "                \"working-directory\": \"map\"\n"
+                                                "            },\n"
+                                                "            \"lsp\": {\n"
+                                                "                \"command\": \"ls\",\n"
+                                                "                \"instance\": \"primary\",\n"
+                                                "                \"working-directory\": \"map\"\n"
+                                                "            }\n"
+                                                "        }\n"
+                                                "    }\n"
+                                                "}\n",
+                                                "Alias   Instance   Command   Context    Working directory\n"
+                                                "llp     primary    ls        default*   map\n"
+                                                "lsp     primary    ls        default*   map\n",
+                                                "active_context: default\n"
+                                                "aliases:\n"
+                                                "  default:\n"
+                                                "    - alias: llp\n"
+                                                "      command: ls\n"
+                                                "      instance: primary\n"
+                                                "      working-directory: map\n"
+                                                "    - alias: lsp\n"
+                                                "      command: ls\n"
+                                                "      instance: primary\n"
+                                                "      working-directory: map\n")));
 
 struct RemoveInstanceTestsuite : public AliasDictionary,
                                  public WithParamInterface<std::pair<AliasesVector, std::vector<std::string>>>
@@ -557,11 +570,14 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     auto mock_image_vault = std::make_unique<NaggyMock<mpt::MockVMImageVault>>();
 
     EXPECT_CALL(*mock_image_vault, remove(_)).WillRepeatedly(Return());
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _)).WillRepeatedly(Return(mp::VMImage{}));
+    EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillRepeatedly(Return(mp::VMImage{}));
     EXPECT_CALL(*mock_image_vault, prune_expired_images()).WillRepeatedly(Return());
     EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
 
     config_builder.vault = std::move(mock_image_vault);
+    auto mock_factory = use_a_mock_vm_factory();
+
+    EXPECT_CALL(*mock_factory, remove_resources_for(_)).WillRepeatedly(Return());
 
     std::string json_contents = make_instance_json(std::nullopt, {}, {"primary"});
 

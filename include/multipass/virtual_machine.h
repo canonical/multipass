@@ -20,6 +20,10 @@
 
 #include "disabled_copy_move.h"
 #include "ip_address.h"
+#include "path.h"
+
+#include <QDir>
+#include <QJsonObject>
 
 #include <chrono>
 #include <condition_variable>
@@ -34,7 +38,9 @@ namespace multipass
 class MemorySize;
 class SSHKeyProvider;
 struct VMMount;
+struct VMSpecs;
 class MountHandler;
+class Snapshot;
 
 class VirtualMachine : private DisabledCopyMove
 {
@@ -81,6 +87,28 @@ public:
                                                                     const std::string& target,
                                                                     const VMMount& mount) = 0;
 
+    using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid confusion with C++ views
+    virtual SnapshotVista view_snapshots() const = 0;
+    virtual int get_num_snapshots() const noexcept = 0;
+
+    virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
+    virtual std::shared_ptr<const Snapshot> get_snapshot(int index) const = 0;
+    virtual std::shared_ptr<Snapshot> get_snapshot(const std::string& name) = 0;
+    virtual std::shared_ptr<Snapshot> get_snapshot(int index) = 0;
+
+    virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
+                                                          const std::string& snapshot_name,
+                                                          const std::string& comment) = 0;
+    virtual void rename_snapshot(const std::string& old_name,
+                                 const std::string& new_name) = 0; // only VM can avoid repeated names
+    virtual void delete_snapshot(const std::string& name) = 0;
+    virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
+    virtual void load_snapshots() = 0;
+    virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
+    virtual int get_snapshot_count() const = 0;
+
+    QDir instance_directory() const;
+
     VirtualMachine::State state;
     const std::string vm_name;
     std::condition_variable state_wait;
@@ -89,8 +117,18 @@ public:
     bool shutdown_while_starting{false};
 
 protected:
-    VirtualMachine(VirtualMachine::State state, const std::string& vm_name) : state{state}, vm_name{vm_name} {};
-    VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name){};
+    const QDir instance_dir;
+
+    VirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir)
+        : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
+    VirtualMachine(const std::string& vm_name, const Path& instance_dir)
+        : VirtualMachine(State::off, vm_name, instance_dir){};
 };
 } // namespace multipass
+
+inline QDir multipass::VirtualMachine::instance_directory() const
+{
+    return instance_dir; // TODO this should probably only be known at the level of the base VM
+}
+
 #endif // MULTIPASS_VIRTUAL_MACHINE_H

@@ -108,7 +108,9 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
                                                                const std::string& libvirt_object_path)
-    : libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
+      libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
       data_dir{data_dir},
       bridge_name{enable_libvirt_network(data_dir, libvirt_wrapper)},
       libvirt_object_path{libvirt_object_path}
@@ -126,7 +128,11 @@ mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machin
     if (bridge_name.empty())
         bridge_name = enable_libvirt_network(data_dir, libvirt_wrapper);
 
-    return std::make_unique<mp::LibVirtVirtualMachine>(desc, bridge_name, monitor, libvirt_wrapper);
+    return std::make_unique<mp::LibVirtVirtualMachine>(desc,
+                                                       bridge_name,
+                                                       monitor,
+                                                       libvirt_wrapper,
+                                                       get_instance_directory(desc.vm_name));
 }
 
 mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
@@ -141,7 +147,7 @@ mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
     }
 }
 
-void mp::LibVirtVirtualMachineFactory::remove_resources_for(const std::string& name)
+void mp::LibVirtVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     auto connection = LibVirtVirtualMachine::open_libvirt_connection(libvirt_wrapper);
 
@@ -175,7 +181,7 @@ void mp::LibVirtVirtualMachineFactory::hypervisor_health_check()
         bridge_name = enable_libvirt_network(data_dir, libvirt_wrapper);
 }
 
-QString mp::LibVirtVirtualMachineFactory::get_backend_version_string()
+QString mp::LibVirtVirtualMachineFactory::get_backend_version_string() const
 {
     try
     {

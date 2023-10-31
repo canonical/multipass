@@ -80,9 +80,13 @@ public:
     using PrepareAction = std::function<VMImage(const VMImage&)>;
 
     virtual ~VMImageVault() = default;
-    virtual VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
-                                const ProgressMonitor& monitor, const bool unlock,
-                                const std::optional<std::string>& checksum) = 0;
+    virtual VMImage fetch_image(const FetchType& fetch_type,
+                                const Query& query,
+                                const PrepareAction& prepare,
+                                const ProgressMonitor& monitor,
+                                const bool unlock,
+                                const std::optional<std::string>& checksum,
+                                const Path& save_dir) = 0;
     virtual void remove(const std::string& name) = 0;
     virtual bool has_record_for(const std::string& name) = 0;
     virtual void prune_expired_images() = 0;

@@ -163,11 +163,12 @@ mp::InstanceSettingsException::InstanceSettingsException(const std::string& reas
 
 mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
-    std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
+    std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
-    const std::unordered_set<std::string>& preparing_instances, std::function<void()> instance_persister)
+    const std::unordered_set<std::string>& preparing_instances,
+    std::function<void()> instance_persister)
     : vm_instance_specs{vm_instance_specs},
-      vm_instances{vm_instances},
+      operative_instances{operative_instances},
       deleted_instances{deleted_instances},
       preparing_instances{preparing_instances},
       instance_persister{std::move(instance_persister)}
@@ -181,7 +182,7 @@ std::set<QString> mp::InstanceSettingsHandler::keys() const
     std::set<QString> ret;
     for (const auto& item : vm_instance_specs)
         for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix})
-            ret.insert(key_template.arg(item.first.c_str()).arg(suffix));
+            ret.insert(key_template.arg(item.first.c_str(), suffix));
 
     return ret;
 }
@@ -206,7 +207,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     auto [instance_name, property] = parse_key(key);
 
     if (preparing_instances.find(instance_name) != preparing_instances.end())
-        throw InstanceSettingsException{operation_msg(Operation::Modify), instance_name, "Instance is being prepared"};
+        throw InstanceSettingsException{operation_msg(Operation::Modify), instance_name, "instance is being prepared"};
 
     auto& instance = modify_instance(instance_name); // we need this first, to refuse updating deleted instances
     auto& spec = modify_spec(instance_name);
@@ -231,7 +232,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 
 auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name) -> VirtualMachine&
 {
-    auto ret = pick_instance(vm_instances, instance_name, Operation::Modify, deleted_instances);
+    auto ret = pick_instance(operative_instances, instance_name, Operation::Modify, deleted_instances);
 
     assert(ret && "can't have null instance");
     return *ret;

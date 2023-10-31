@@ -19,7 +19,7 @@
 
 #include "common.h"
 #include "file_operations.h"
-#include "json_utils.h"
+#include "json_test_utils.h"
 
 #include <fmt/format.h>
 

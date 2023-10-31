@@ -35,17 +35,23 @@ class MockVMImageVault : public VMImageVault
 public:
     MockVMImageVault()
     {
-        ON_CALL(*this, fetch_image(_, _, _, _, _, _))
-            .WillByDefault([this](auto, auto, const PrepareAction& prepare, auto, auto, auto) {
+        ON_CALL(*this, fetch_image(_, _, _, _, _, _, _))
+            .WillByDefault([this](auto, auto, const PrepareAction& prepare, auto, auto, auto, auto) {
                 return VMImage{dummy_image.name(), {}, {}, {}, {}, {}};
             });
         ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
         ON_CALL(*this, minimum_image_size_for(_)).WillByDefault(Return(MemorySize{"1048576"}));
     };
 
-    MOCK_METHOD(VMImage, fetch_image,
-                (const FetchType&, const Query&, const PrepareAction&, const ProgressMonitor&, const bool,
-                 const std::optional<std::string>&),
+    MOCK_METHOD(VMImage,
+                fetch_image,
+                (const FetchType&,
+                 const Query&,
+                 const PrepareAction&,
+                 const ProgressMonitor&,
+                 const bool,
+                 const std::optional<std::string>&,
+                 const mp::Path&),
                 (override));
     MOCK_METHOD(void, remove, (const std::string&), (override));
     MOCK_METHOD(bool, has_record_for, (const std::string&), (override));

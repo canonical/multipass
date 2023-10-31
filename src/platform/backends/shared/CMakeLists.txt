@@ -13,6 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(shared STATIC
+  base_snapshot.cpp
   base_virtual_machine.cpp
   base_virtual_machine_factory.cpp
   sshfs_server_process_spec.cpp
@@ -22,6 +23,7 @@ add_library(shared STATIC
 target_link_libraries(shared
   iso
   process
+  scope_guard
   utils
   Qt6::Core)
 

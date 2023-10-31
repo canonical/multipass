@@ -101,8 +101,18 @@ bool valid_mac_address(const std::string& mac);
 
 // string helpers
 bool has_only_digits(const std::string& value);
-std::string& trim_end(
-    std::string& s, std::function<bool(char)> filter = [](char ch) { return std::isspace(ch); });
+template <typename Str, typename Filter>
+Str&& trim_begin(Str&& s, Filter&& filter);
+template <typename Str>
+Str&& trim_begin(Str&& s);
+template <typename Str, typename Filter>
+Str&& trim_end(Str&& s, Filter&& filter);
+template <typename Str>
+Str&& trim_end(Str&& s);
+template <typename Str, typename Filter>
+Str&& trim(Str&& s, Filter&& filter);
+template <typename Str>
+Str&& trim(Str&& s);
 std::string& trim_newline(std::string& s);
 std::string escape_char(const std::string& s, char c);
 std::string escape_for_shell(const std::string& s);
@@ -218,6 +228,9 @@ public:
     // virtual machine helpers
     virtual void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
                                      const SSHKeyProvider& key_provider) const;
+    virtual Path derive_instances_dir(const Path& data_dir,
+                                      const Path& backend_directory_name,
+                                      const Path& instances_subdir) const;
 
     // system info helpers
     virtual std::string get_kernel_version() const;
@@ -229,6 +242,53 @@ public:
     virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
 };
 } // namespace multipass
+
+namespace multipass::utils::detail
+{
+// see https://en.cppreference.com/w/cpp/string/byte/isspace#Notes
+inline constexpr auto is_space = [](unsigned char c) { return std::isspace(c); };
+} // namespace multipass::utils::detail
+
+template <typename Str, typename Filter>
+Str&& multipass::utils::trim_begin(Str&& s, Filter&& filter)
+{
+    const auto it = std::find_if_not(s.begin(), s.end(), std::forward<Filter>(filter));
+    s.erase(s.begin(), it);
+    return std::forward<Str>(s);
+}
+
+template <typename Str>
+Str&& multipass::utils::trim_begin(Str&& s)
+{
+    return trim_begin(std::forward<Str>(s), detail::is_space);
+}
+
+template <typename Str, typename Filter>
+Str&& multipass::utils::trim_end(Str&& s, Filter&& filter)
+{
+    auto rev_it = std::find_if_not(s.rbegin(), s.rend(), std::forward<Filter>(filter));
+    s.erase(rev_it.base(), s.end());
+    return std::forward<Str>(s);
+}
+
+template <typename Str>
+Str&& multipass::utils::trim_end(Str&& s)
+{
+    return trim_end(std::forward<Str>(s), detail::is_space);
+}
+
+template <typename Str, typename Filter>
+Str&& multipass::utils::trim(Str&& s, Filter&& filter)
+{
+    auto&& ret = trim_end(std::forward<Str>(s), filter);
+    return trim_begin(std::forward<decltype(ret)>(ret), std::forward<Filter>(filter));
+}
+
+template <typename Str>
+Str&& multipass::utils::trim(Str&& s)
+{
+    return trim(std::forward<Str>(s), detail::is_space);
+}
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout,

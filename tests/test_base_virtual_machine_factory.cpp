@@ -37,13 +37,21 @@ namespace
 {
 struct MockBaseFactory : mp::BaseVirtualMachineFactory
 {
+    MockBaseFactory() : MockBaseFactory{std::make_unique<mp::test::TempDir>()}
+    {
+    }
+
+    MockBaseFactory(std::unique_ptr<mp::test::TempDir>&& tmp_dir)
+        : mp::BaseVirtualMachineFactory{tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    {
+    }
+
     MOCK_METHOD(mp::VirtualMachine::UPtr, create_virtual_machine,
                 (const mp::VirtualMachineDescription&, mp::VMStatusMonitor&), (override));
-    MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
     MOCK_METHOD(void, prepare_instance_image, (const mp::VMImage&, const mp::VirtualMachineDescription&), (override));
     MOCK_METHOD(void, hypervisor_health_check, (), (override));
-    MOCK_METHOD(QString, get_backend_version_string, (), (override));
+    MOCK_METHOD(QString, get_backend_version_string, (), (const, override));
     MOCK_METHOD(void, prepare_networking, (std::vector<mp::NetworkInterface>&), (override));
     MOCK_METHOD(std::vector<mp::NetworkInterfaceInfo>, networks, (), (const, override));
     MOCK_METHOD(std::string, create_bridge_with, (const mp::NetworkInterfaceInfo&), (override));
@@ -51,6 +59,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
                 (mp::NetworkInterface & net, std::vector<mp::NetworkInterfaceInfo>& host_nets,
                  const std::string& bridge_type),
                 (override));
+    MOCK_METHOD(void, remove_resources_for_impl, (const std::string&), (override));
 
     std::string base_create_bridge_with(const mp::NetworkInterfaceInfo& interface)
     {
@@ -68,6 +77,8 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     {
         return mp::BaseVirtualMachineFactory::prepare_interface(net, host_nets, bridge_type); // protected
     }
+
+    std::unique_ptr<mp::test::TempDir> tmp_dir;
 };
 
 struct BaseFactory : public Test

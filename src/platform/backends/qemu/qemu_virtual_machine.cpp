@@ -17,6 +17,7 @@
 
 #include "qemu_virtual_machine.h"
 #include "qemu_mount_handler.h"
+#include "qemu_snapshot.h"
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
@@ -27,7 +28,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
-#include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
@@ -148,30 +148,6 @@ auto hmc_to_qmp_json(const QString& command_line)
     return QJsonDocument(qmp).toJson();
 }
 
-bool instance_image_has_snapshot(const mp::Path& image_path)
-{
-    auto process =
-        mp::platform::make_process(mp::simple_process_spec("qemu-img", QStringList{"snapshot", "-l", image_path}));
-    auto process_state = process->execute();
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Internal error: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(), process->read_all_standard_error()));
-    }
-
-    auto output = process->read_all_standard_output().split('\n');
-
-    for (const auto& line : output)
-    {
-        if (line.contains(suspend_tag))
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 auto get_qemu_machine_type(const QStringList& platform_args)
 {
     QTemporaryFile dump_file;
@@ -220,10 +196,14 @@ auto generate_metadata(const QStringList& platform_args, const QStringList& proc
 }
 } // namespace
 
-mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc, QemuPlatform* qemu_platform,
-                                           VMStatusMonitor& monitor)
-    : BaseVirtualMachine{instance_image_has_snapshot(desc.image.image_path) ? State::suspended : State::off,
-                         desc.vm_name},
+mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
+                                           QemuPlatform* qemu_platform,
+                                           VMStatusMonitor& monitor,
+                                           const mp::Path& instance_dir)
+    : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag) ? State::suspended
+                                                                                                      : State::off,
+                         desc.vm_name,
+                         instance_dir},
       desc{desc},
       mac_addr{desc.default_mac_address},
       username{desc.ssh_username},
@@ -231,6 +211,9 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
+    // convert existing VMs to v3 too (doesn't affect images that are already v3)
+    mp::backend::amend_to_qcow2_v3(desc.image.image_path); // TODO drop in a couple of releases (going in on v1.13)
+
     QObject::connect(
         this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
         [this] {
@@ -636,4 +619,18 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const S
 mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args()
 {
     return mount_args;
+}
+
+auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
+                                                    const std::string& comment,
+                                                    const VMSpecs& specs,
+                                                    std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
+{
+    assert(state == VirtualMachine::State::off || state != VirtualMachine::State::stopped); // would need QMP otherwise
+    return std::make_shared<QemuSnapshot>(snapshot_name, comment, std::move(parent), specs, *this, desc);
+}
+
+auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
+{
+    return std::make_shared<QemuSnapshot>(filename, *this, desc);
 }
