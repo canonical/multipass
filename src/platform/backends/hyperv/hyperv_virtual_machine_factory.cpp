@@ -245,13 +245,18 @@ std::string error_msg_helper(const std::string& msg_core, const QString& ps_outp
 
 } // namespace
 
+mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& data_dir)
+    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+{
+}
+
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                  VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(desc, monitor);
+    return std::make_unique<mp::HyperVVirtualMachine>(desc, monitor, get_instance_directory(desc.vm_name));
 }
 
-void mp::HyperVVirtualMachineFactory::remove_resources_for(const std::string& name)
+void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     PowerShell::exec({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
 }

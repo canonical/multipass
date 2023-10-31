@@ -92,7 +92,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     return qemu_args;
 }
 
-QString mp::QemuPlatformDetail::get_directory_name()
+QString mp::QemuPlatformDetail::get_directory_name() const
 {
     return "qemu";
 }

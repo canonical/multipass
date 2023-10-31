@@ -39,7 +39,7 @@ class VMStatusMonitor;
 class HyperVVirtualMachine final : public BaseVirtualMachine
 {
 public:
-    HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor);
+    HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, const Path& instance_dir);
     ~HyperVVirtualMachine();
     void stop() override;
     void start() override;
@@ -60,6 +60,13 @@ public:
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target, const VMMount& mount) override;
 
+protected:
+    std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
+                                                     const std::string& comment,
+                                                     const VMSpecs& specs,
+                                                     std::shared_ptr<Snapshot> parent) override;
+
 private:
     void setup_network_interfaces(const std::string& default_mac_address,
                                   const std::vector<NetworkInterface>& extra_interfaces);
@@ -67,7 +74,6 @@ private:
     // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
     const QString name;
     const std::string username;
-    const Path image_path;
     std::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;

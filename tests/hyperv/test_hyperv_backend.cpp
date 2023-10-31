@@ -21,6 +21,7 @@
 #include "tests/mock_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
+#include "tests/temp_dir.h"
 #include "tests/temp_file.h"
 #include "tests/windows/powershell_test_helper.h"
 
@@ -88,26 +89,36 @@ struct HyperVBackend : public Test
 
     std::vector<RunSpec> standard_ps_run_sequence(const std::vector<RunSpec>& network_runs = {default_network_run})
     {
-        std::vector<RunSpec> ret = base_ctor_runs;
+        std::vector<RunSpec> ret = prefix_ctor_runs;
         ret.insert(std::end(ret), std::cbegin(network_runs), std::cend(network_runs));
 
         auto failing_run_it = std::find_if(std::cbegin(network_runs), std::cend(network_runs),
                                            [](const auto& run) { return !run.will_return; });
         if (failing_run_it == std::cend(network_runs)) // if the ctor succeeds
-            ret.emplace_back(min_dtor_run); // network runs are executed in the ctor, so if they fail the object is
-                                            // never constructed and no dtor is called
+        {
+            // network runs are executed in the ctor, so if they fail the object is never contructed & no further cmds
+            // are executed for either ctor or dtor
+            ret.insert(std::end(ret), std::cbegin(postfix_ctor_runs), std::cend(postfix_ctor_runs));
+            ret.emplace_back(min_dtor_run);
+        }
 
         return ret;
     }
 
-    inline static const std::vector<RunSpec> base_ctor_runs = {
-        {"Get-VM", "", false}, {"Get-VMSwitch"},   {"New-VM"},      {"-EnableSecureBoot Off"},
-        {"Set-VMProcessor"},   {"Add-VMDvdDrive"}, {"Set-VMMemory"}};
+    inline static const std::vector<RunSpec> prefix_ctor_runs = {{"Get-VM", "", false},
+                                                                 {"Get-VMSwitch"},
+                                                                 {"New-VM"},
+                                                                 {"-EnableSecureBoot Off"},
+                                                                 {"Set-VMProcessor"},
+                                                                 {"Add-VMDvdDrive"},
+                                                                 {"Set-VMMemory"}};
+    inline static const std::vector<RunSpec> postfix_ctor_runs = {{"Set-VM"}, {"Get-VMCheckpoint"}};
     inline static const RunSpec default_network_run = {"Set-VMNetworkAdapter"};
     inline static const RunSpec min_dtor_run = {"-ExpandProperty State", "Off"};
 
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
+    mpt::TempDir data_dir;
     mp::VirtualMachineDescription default_description{2,
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used,
@@ -119,7 +130,7 @@ struct HyperVBackend : public Test
                                                       dummy_cloud_init_iso.name()};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::PowerShellTestHelper ps_helper;
-    mp::HyperVVirtualMachineFactory backend;
+    mp::HyperVVirtualMachineFactory backend{data_dir.path()};
     mpt::StubVMStatusMonitor stub_monitor;
 };
 
@@ -348,7 +359,8 @@ struct HyperVNetworks : public Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::MockPlatform::GuardedMock attr = mpt::MockPlatform::inject<NiceMock>();
     mpt::MockPlatform* mock_platform = attr.first;
-    mp::HyperVVirtualMachineFactory backend;
+    mpt::TempDir data_dir;
+    mp::HyperVVirtualMachineFactory backend{data_dir.path()};
 };
 
 struct HyperVNetworksPS : public HyperVNetworks

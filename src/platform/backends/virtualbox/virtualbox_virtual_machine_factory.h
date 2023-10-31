@@ -25,21 +25,25 @@ namespace multipass
 class VirtualBoxVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
+    explicit VirtualBoxVirtualMachineFactory(const Path& data_dir);
+
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
-    void remove_resources_for(const std::string& name) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
-    QString get_backend_directory_name() override
+    QString get_backend_directory_name() const override
     {
         return "virtualbox";
     };
-    QString get_backend_version_string() override
+    QString get_backend_version_string() const override
     {
         return "virtualbox";
     };
     std::vector<NetworkInterfaceInfo> networks() const override;
+
+protected:
+    void remove_resources_for_impl(const std::string& name) override;
 };
 } // namespace multipass
 

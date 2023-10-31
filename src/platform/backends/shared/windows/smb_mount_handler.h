@@ -28,8 +28,11 @@ namespace multipass
 class SmbMountHandler : public MountHandler
 {
 public:
-    SmbMountHandler(VirtualMachine* vm, const SSHKeyProvider* ssh_key_provider, const std::string& target,
-                    const VMMount& mount, const multipass::Path& cred_dir);
+    SmbMountHandler(VirtualMachine* vm,
+                    const SSHKeyProvider* ssh_key_provider,
+                    const std::string& target,
+                    VMMount mount_spec,
+                    const multipass::Path& cred_dir);
     ~SmbMountHandler() override;
 
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
