@@ -16,6 +16,8 @@
 syntax = "proto3";
 package multipass;
 
+import "google/protobuf/timestamp.proto";
+
 service Rpc {
     rpc create (stream LaunchRequest) returns (stream LaunchReply);
     rpc launch (stream LaunchRequest) returns (stream LaunchReply);
@@ -39,6 +41,8 @@ service Rpc {
     rpc set (stream SetRequest) returns (stream SetReply);
     rpc keys (stream KeysRequest) returns (stream KeysReply);
     rpc authenticate (stream AuthenticateRequest) returns (stream AuthenticateReply);
+    rpc snapshot (stream SnapshotRequest) returns (stream SnapshotReply);
+    rpc restore (stream RestoreRequest) returns (stream RestoreReply);
 }
 
 message LaunchRequest {
@@ -156,14 +160,16 @@ message FindReply {
     string log_line = 5;
 }
 
-message InstanceNames {
-    repeated string instance_name = 1;
+message InstanceSnapshotPair {
+    string instance_name = 1;
+    optional string snapshot_name = 2; // if this is present, the msg specifies a snapshot; otherwise, an instance
 }
 
 message InfoRequest {
-    InstanceNames instance_names = 1;
-    int32 verbosity_level = 2;
-    bool no_runtime_information = 3;
+    repeated InstanceSnapshotPair instance_snapshot_pairs = 1;
+    int32 verbosity_level = 3;
+    bool no_runtime_information = 4;
+    bool snapshots = 5;
 }
 
 message IdMap {
@@ -201,30 +207,55 @@ message InstanceStatus {
     Status status = 1;
 }
 
-message InfoReply {
-    message Info {
-        string name = 1;
-        InstanceStatus instance_status = 2;
-        string image_release = 3;
-        string current_release = 4;
-        string id = 5;
-        string load = 6;
-        string memory_usage = 7;
-        string memory_total = 8;
-        string disk_usage = 9;
-        string disk_total = 10;
-        repeated string ipv4 = 11;
-        repeated string ipv6 = 12;
-        MountInfo mount_info = 13;
-        string cpu_count = 14;
+message InstanceDetails {
+    string image_release = 1;
+    string current_release = 2;
+    string id = 3;
+    string load = 4;
+    string memory_usage = 5;
+    string disk_usage = 6;
+    repeated string ipv4 = 7;
+    repeated string ipv6 = 8;
+    int32 num_snapshots = 9;
+}
+
+message SnapshotFundamentals {
+    string snapshot_name = 1;
+    string parent = 2;
+    string comment = 3;
+    google.protobuf.Timestamp creation_timestamp = 4;
+}
+
+message SnapshotDetails {
+    SnapshotFundamentals fundamentals = 1;
+    string size = 2;
+    repeated string children = 4;
+}
+
+message DetailedInfoItem {
+    string name = 1;
+    InstanceStatus instance_status = 2;
+    string memory_total = 3;
+    string disk_total = 4;
+    string cpu_count = 5;
+    MountInfo mount_info = 6;
+
+    oneof extra_info {
+        InstanceDetails instance_info = 7;
+        SnapshotDetails snapshot_info = 8;
     }
-    repeated Info info = 1;
-    string log_line = 2;
+}
+
+message InfoReply {
+    repeated DetailedInfoItem details = 1;
+    bool snapshots = 2; // useful to determine what entity (instance/snapshot) was absent when details are empty
+    string log_line = 3;
 }
 
 message ListRequest {
     int32 verbosity_level = 1;
-    bool request_ipv4 = 2;
+    bool snapshots = 2;
+    bool request_ipv4 = 3;
 }
 
 message ListVMInstance {
@@ -235,12 +266,29 @@ message ListVMInstance {
     string current_release = 5;
 }
 
-message ListReply {
-    repeated ListVMInstance instances = 1;
-    string log_line = 2;
-    UpdateInfo update_info = 3;
+message ListVMSnapshot {
+    string name = 1;
+    SnapshotFundamentals fundamentals = 2;
 }
 
+message InstancesList {
+    repeated ListVMInstance instances = 1;
+}
+
+message SnapshotsList {
+    repeated ListVMSnapshot snapshots = 1;
+}
+
+message ListReply {
+    oneof list_contents
+    {
+        InstancesList instance_list = 1;
+        SnapshotsList snapshot_list = 2;
+    }
+
+    string log_line = 3;
+    UpdateInfo update_info = 4;
+}
 
 message NetworksRequest {
     int32 verbosity_level = 1;
@@ -286,6 +334,10 @@ message PingRequest {
 }
 
 message PingReply {
+}
+
+message InstanceNames {
+    repeated string instance_name = 1;
 }
 
 message RecoverRequest {
@@ -373,7 +425,7 @@ message RestartReply {
 }
 
 message DeleteRequest {
-    InstanceNames instance_names = 1;
+    repeated InstanceSnapshotPair instance_snapshot_pairs = 1;
     bool purge = 2;
     int32 verbosity_level = 3;
 }
@@ -439,4 +491,29 @@ message AuthenticateRequest {
 
 message AuthenticateReply {
     string log_line = 1;
+}
+
+message SnapshotRequest {
+    string instance = 1;
+    string snapshot = 2;
+    string comment = 3;
+    int32 verbosity_level = 4;
+}
+
+message SnapshotReply {
+    string snapshot = 1; // automatically generated unless specifically requested
+    string log_line = 2;
+}
+
+message RestoreRequest {
+    string instance = 1;
+    string snapshot = 2;
+    bool destructive = 3;
+    int32 verbosity_level = 4;
+}
+
+message RestoreReply {
+    string log_line = 1;
+    string reply_message = 2;
+    bool confirm_destructive = 3;
 }

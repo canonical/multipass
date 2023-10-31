@@ -98,6 +98,12 @@ signals:
     void on_authenticate(const AuthenticateRequest* request,
                          grpc::ServerReaderWriter<AuthenticateReply, AuthenticateRequest>* server,
                          std::promise<grpc::Status>* status_promise);
+    void on_snapshot(const SnapshotRequest* request,
+                     grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server,
+                     std::promise<grpc::Status>* status_promise);
+    void on_restore(const RestoreRequest* request,
+                    grpc::ServerReaderWriter<RestoreReply, RestoreRequest>* server,
+                    std::promise<grpc::Status>* status_promise);
 
 private:
     template <typename OperationSignal>
@@ -145,6 +151,10 @@ protected:
     grpc::Status keys(grpc::ServerContext* context, grpc::ServerReaderWriter<KeysReply, KeysRequest>* server) override;
     grpc::Status authenticate(grpc::ServerContext* context,
                               grpc::ServerReaderWriter<AuthenticateReply, AuthenticateRequest>* server) override;
+    grpc::Status snapshot(grpc::ServerContext* context,
+                          grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server) override;
+    grpc::Status restore(grpc::ServerContext* context,
+                         grpc::ServerReaderWriter<RestoreReply, RestoreRequest>* server) override;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H

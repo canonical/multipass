@@ -210,7 +210,8 @@ TEST(StaticFormatFunctions, columnWidthOnEmptyInputWorks)
     const auto get_width = [](const auto& str) -> int { return str.length(); };
     int min_w = 3;
 
-    ASSERT_EQ(mp::format::column_width(empty_vector.begin(), empty_vector.end(), get_width, min_w), min_w);
+    ASSERT_EQ(mp::format::column_width(empty_vector.begin(), empty_vector.end(), get_width, 0, min_w),
+              mp::format::col_buffer);
 }
 
 TEST(StaticFormatFunctions, columnWidthOnWideInputWorks)
@@ -222,16 +223,16 @@ TEST(StaticFormatFunctions, columnWidthOnWideInputWorks)
     int min_w = 3;
     int space = 1;
 
-    ASSERT_EQ(mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, min_w, space),
-              wider_str.length() + space);
+    ASSERT_EQ(mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, space, min_w),
+              wider_str.length() + mp::format::col_buffer);
 }
 
 TEST(StaticFormatFunctions, columnWidthOnNarrowInputWorks)
 {
     const auto str_vector = std::vector<std::string>{"n", "n2"};
     const auto get_width = [](const auto& str) -> int { return str.length(); };
-    int min_w = 3;
+    int min_w = 7;
     int space = 2;
 
-    ASSERT_EQ(mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, min_w, space), 4);
+    ASSERT_EQ(mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, space, min_w), min_w);
 }

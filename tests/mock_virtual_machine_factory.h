@@ -40,8 +40,9 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD(VMImage, prepare_source_image, (const VMImage&), (override));
     MOCK_METHOD(void, prepare_instance_image, (const VMImage&, const VirtualMachineDescription&), (override));
     MOCK_METHOD(void, hypervisor_health_check, (), (override));
-    MOCK_METHOD(QString, get_backend_directory_name, (), (override));
-    MOCK_METHOD(QString, get_backend_version_string, (), (override));
+    MOCK_METHOD(QString, get_backend_directory_name, (), (const, override));
+    MOCK_METHOD(QString, get_instance_directory, (const std::string&), (const, override));
+    MOCK_METHOD(QString, get_backend_version_string, (), (const, override));
     MOCK_METHOD(VMImageVault::UPtr, create_image_vault,
                 (std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&), (override));
     MOCK_METHOD(void, configure, (VirtualMachineDescription&), (override));

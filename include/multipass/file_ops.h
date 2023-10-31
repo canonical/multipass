@@ -24,6 +24,7 @@
 #include <QByteArray>
 #include <QDir>
 #include <QFileDevice>
+#include <QFileInfoList>
 #include <QSaveFile>
 #include <QString>
 #include <QTextStream>
@@ -45,6 +46,10 @@ public:
     // QDir operations
     virtual bool exists(const QDir& dir) const;
     virtual bool isReadable(const QDir& dir) const;
+    virtual QFileInfoList entryInfoList(const QDir& dir,
+                                        const QStringList& nameFilters,
+                                        QDir::Filters filters = QDir::NoFilter,
+                                        QDir::SortFlags sort = QDir::NoSort) const;
     virtual bool mkpath(const QDir& dir, const QString& dirName) const;
     virtual bool rmdir(QDir& dir, const QString& dirName) const;
 

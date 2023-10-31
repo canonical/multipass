@@ -20,6 +20,7 @@
 
 #include "stub_virtual_machine.h"
 #include "stub_vm_image_vault.h"
+#include "temp_dir.h"
 
 #include <platform/backends/shared/base_virtual_machine_factory.h>
 
@@ -29,13 +30,22 @@ namespace test
 {
 struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 {
+    StubVirtualMachineFactory() : StubVirtualMachineFactory{std::make_unique<TempDir>()}
+    {
+    }
+
+    StubVirtualMachineFactory(std::unique_ptr<TempDir>&& tmp_dir)
+        : mp::BaseVirtualMachineFactory{tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    {
+    }
+
     multipass::VirtualMachine::UPtr create_virtual_machine(const multipass::VirtualMachineDescription&,
                                                            multipass::VMStatusMonitor&) override
     {
         return std::make_unique<StubVirtualMachine>();
     }
 
-    void remove_resources_for(const std::string& name) override
+    void remove_resources_for_impl(const std::string& name) override
     {
     }
 
@@ -58,12 +68,17 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     {
     }
 
-    QString get_backend_directory_name() override
+    QString get_backend_directory_name() const override
     {
         return {};
     }
 
-    QString get_backend_version_string() override
+    QString get_instance_directory(const std::string& name) const override
+    {
+        return tmp_dir->path();
+    }
+
+    QString get_backend_version_string() const override
     {
         return "stub-5678";
     }
@@ -74,6 +89,8 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     {
         return std::make_unique<StubVMImageVault>();
     }
+
+    std::unique_ptr<TempDir> tmp_dir;
 };
 }
 }

@@ -166,10 +166,14 @@ bool uses_default_id_mappings(const multipass::VMMount& mount)
 
 } // namespace
 
-mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor,
-                                         NetworkAccessManager* manager, const QUrl& base_url,
-                                         const QString& bridge_name, const QString& storage_pool)
-    : BaseVirtualMachine{desc.vm_name},
+mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
+                                         VMStatusMonitor& monitor,
+                                         NetworkAccessManager* manager,
+                                         const QUrl& base_url,
+                                         const QString& bridge_name,
+                                         const QString& storage_pool,
+                                         const mp::Path& instance_dir)
+    : BaseVirtualMachine{desc.vm_name, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor},
@@ -421,7 +425,7 @@ void mp::LXDVirtualMachine::request_state(const QString& new_state)
     }
 }
 
-void multipass::LXDVirtualMachine::update_cpus(int num_cores)
+void mp::LXDVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
     assert(manager);

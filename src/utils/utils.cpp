@@ -18,6 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -235,13 +236,6 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
     auto cmd = fmt::to_string(buf);
     cmd.pop_back();
     return cmd;
-}
-
-std::string& mp::utils::trim_end(std::string& s, std::function<bool(char)> filter)
-{
-    auto rev_it = std::find_if_not(s.rbegin(), s.rend(), filter);
-    s.erase(rev_it.base(), s.end());
-    return s;
 }
 
 std::string& mp::utils::trim_newline(std::string& s)
@@ -472,12 +466,12 @@ QString mp::utils::make_uuid(const std::optional<std::string>& seed)
     return uuid.toString(QUuid::WithoutBraces);
 }
 
-std::string mp::utils::contents_of(const multipass::Path& file_path)
+std::string mp::utils::contents_of(const multipass::Path& file_path) // TODO this should protect against long contents
 {
     const std::string name{file_path.toStdString()};
     std::ifstream in(name, std::ios::in | std::ios::binary);
     if (!in)
-        throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", name, strerror(errno), errno));
+        throw FileOpenFailedException(name);
 
     std::stringstream stream;
     stream << in.rdbuf();
@@ -687,4 +681,14 @@ void mp::utils::set_owner_for(mp::SSHSession& session, const std::string& root, 
     mp::utils::run_in_ssh_session(session,
                                   fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user,
                                               vm_group, relative_target.substr(0, relative_target.find_first_of('/'))));
+}
+
+mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
+                                         const mp::Path& backend_directory_name,
+                                         const mp::Path& instances_subdir) const
+{
+    if (backend_directory_name.isEmpty())
+        return QDir(data_dir).filePath(instances_subdir);
+    else
+        return QDir(QDir(data_dir).filePath(backend_directory_name)).filePath(instances_subdir);
 }

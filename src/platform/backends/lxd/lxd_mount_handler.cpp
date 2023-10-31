@@ -18,6 +18,8 @@
 #include "lxd_mount_handler.h"
 #include "lxd_request.h"
 
+namespace mp = multipass;
+
 namespace
 {
 constexpr std::string_view category = "lxd-mount-handler";
@@ -27,10 +29,12 @@ constexpr int timeout_milliseconds = 30000;
 
 namespace multipass
 {
-LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager, LXDVirtualMachine* lxd_virtual_machine,
-                                 const SSHKeyProvider* ssh_key_provider, const std::string& target_path,
-                                 const VMMount& mount)
-    : MountHandler{lxd_virtual_machine, ssh_key_provider, target_path, mount.source_path},
+LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager,
+                                 LXDVirtualMachine* lxd_virtual_machine,
+                                 const SSHKeyProvider* ssh_key_provider,
+                                 const std::string& target_path,
+                                 VMMount mount_spec)
+    : MountHandler{lxd_virtual_machine, ssh_key_provider, std::move(mount_spec), target_path},
       network_manager{network_manager},
       lxd_instance_endpoint{
           QString("%1/instances/%2").arg(lxd_socket_url.toString(), lxd_virtual_machine->vm_name.c_str())},

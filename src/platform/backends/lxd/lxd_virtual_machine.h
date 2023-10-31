@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_LXD_VIRTUAL_MACHINE_H
 #define MULTIPASS_LXD_VIRTUAL_MACHINE_H
 
-#include <QJsonObject>
 #include <QString>
 #include <QUrl>
 
@@ -33,8 +32,13 @@ class VMStatusMonitor;
 class LXDVirtualMachine : public BaseVirtualMachine
 {
 public:
-    LXDVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, NetworkAccessManager* manager,
-                      const QUrl& base_url, const QString& bridge_name, const QString& storage_pool);
+    LXDVirtualMachine(const VirtualMachineDescription& desc,
+                      VMStatusMonitor& monitor,
+                      NetworkAccessManager* manager,
+                      const QUrl& base_url,
+                      const QString& bridge_name,
+                      const QString& storage_pool,
+                      const Path& instance_dir);
     ~LXDVirtualMachine() override;
     void stop() override;
     void start() override;

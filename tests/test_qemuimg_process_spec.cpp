@@ -75,7 +75,7 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
     mp::QemuImgProcessSpec spec({}, source_image);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rk,").arg(source_image)));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
 }
 
 TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_target_correct)
@@ -89,7 +89,7 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_target_correc
     mp::QemuImgProcessSpec spec({}, source_image, target_image);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rk,").arg(source_image)));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
 }
 
@@ -125,7 +125,7 @@ TEST(TestQemuImgProcessSpec,
     mp::QemuImgProcessSpec spec({}, source_image);
 
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rk,").arg(source_image)));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
 }
 
 TEST(TestQemuImgProcessSpec, apparmor_profile_not_running_as_snap_correct)

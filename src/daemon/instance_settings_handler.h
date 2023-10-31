@@ -18,11 +18,10 @@
 #ifndef MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
 #define MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
 
-#include "vm_specs.h"
-
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings/settings_handler.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/vm_specs.h>
 
 #include <QString>
 
@@ -34,11 +33,12 @@
 
 namespace multipass
 {
+
 class InstanceSettingsHandler : public SettingsHandler
 {
 public:
     InstanceSettingsHandler(std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
-                            std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances,
+                            std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
                             const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
                             const std::unordered_set<std::string>& preparing_instances,
                             std::function<void()> instance_persister);
@@ -55,7 +55,7 @@ private:
 private:
     // references, careful
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs;
-    std::unordered_map<std::string, VirtualMachine::ShPtr>& vm_instances;
+    std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances;
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
     const std::unordered_set<std::string>& preparing_instances;
     std::function<void()> instance_persister;

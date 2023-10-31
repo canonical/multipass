@@ -39,9 +39,13 @@ public:
     LXDVMImageVault(std::vector<VMImageHost*> image_host, URLDownloader* downloader, NetworkAccessManager* manager,
                     const QUrl& base_url, const QString& cache_dir_path, const multipass::days& days_to_expire);
 
-    VMImage fetch_image(const FetchType& fetch_type, const Query& query, const PrepareAction& prepare,
-                        const ProgressMonitor& monitor, const bool unlock,
-                        const std::optional<std::string>& checksum) override;
+    VMImage fetch_image(const FetchType& fetch_type,
+                        const Query& query,
+                        const PrepareAction& prepare,
+                        const ProgressMonitor& monitor,
+                        const bool unlock,
+                        const std::optional<std::string>& checksum,
+                        const Path& /* save_dir */) override;
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;

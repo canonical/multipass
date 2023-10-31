@@ -18,6 +18,7 @@
 #include "daemon.h"
 #include "base_cloud_init_config.h"
 #include "instance_settings_handler.h"
+#include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
 #include <multipass/constants.h>
@@ -27,6 +28,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/format.h>
@@ -39,6 +41,7 @@
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
+#include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
@@ -322,30 +325,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
 
         for (QJsonValueRef entry : record["mounts"].toArray())
         {
-            mp::id_mappings uid_mappings;
-            mp::id_mappings gid_mappings;
-
-            auto target_path = entry.toObject()["target_path"].toString().toStdString();
-            auto source_path = entry.toObject()["source_path"].toString().toStdString();
-
-            for (QJsonValueRef uid_entry : entry.toObject()["uid_mappings"].toArray())
-            {
-                uid_mappings.push_back(
-                    {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
-            }
-
-            for (QJsonValueRef gid_entry : entry.toObject()["gid_mappings"].toArray())
-            {
-                gid_mappings.push_back(
-                    {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
-            }
-
-            uid_mappings = mp::unique_id_mappings(uid_mappings);
-            gid_mappings = mp::unique_id_mappings(gid_mappings);
-            auto mount_type = mp::VMMount::MountType(entry.toObject()["mount_type"].toInt());
-
-            mp::VMMount mount{source_path, gid_mappings, uid_mappings, mount_type};
-            mounts[target_path] = mount;
+            const auto& json = entry.toObject();
+            mounts[json["target_path"].toString().toStdString()] = mp::VMMount{json};
         }
 
         reconstructed_records[key] = {num_cores,
@@ -397,37 +378,8 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     QJsonArray json_mounts;
     for (const auto& mount : specs.mounts)
     {
-        QJsonObject entry;
-        entry.insert("source_path", QString::fromStdString(mount.second.source_path));
+        auto entry = mount.second.serialize();
         entry.insert("target_path", QString::fromStdString(mount.first));
-
-        QJsonArray uid_mappings;
-
-        for (const auto& map : mount.second.uid_mappings)
-        {
-            QJsonObject map_entry;
-            map_entry.insert("host_uid", map.first);
-            map_entry.insert("instance_uid", map.second);
-
-            uid_mappings.append(map_entry);
-        }
-
-        entry.insert("uid_mappings", uid_mappings);
-
-        QJsonArray gid_mappings;
-
-        for (const auto& map : mount.second.gid_mappings)
-        {
-            QJsonObject map_entry;
-            map_entry.insert("host_gid", map.first);
-            map_entry.insert("instance_gid", map.second);
-
-            gid_mappings.append(map_entry);
-        }
-
-        entry.insert("gid_mappings", gid_mappings);
-
-        entry.insert("mount_type", static_cast<int>(mount.second.mount_type));
         json_mounts.append(entry);
     }
 
@@ -435,14 +387,20 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     return json;
 }
 
-auto fetch_image_for(const std::string& name, const mp::FetchType& fetch_type, mp::VMImageVault& vault)
+auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory, mp::VMImageVault& vault)
 {
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
     auto stub_progress = [](int download_type, int progress) { return true; };
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
-    return vault.fetch_image(fetch_type, query, stub_prepare, stub_progress, false, std::nullopt);
+    return vault.fetch_image(factory.fetch_type(),
+                             query,
+                             stub_prepare,
+                             stub_progress,
+                             false,
+                             std::nullopt,
+                             factory.get_instance_directory(name));
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -655,6 +613,8 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_set, &daemon, &mp::Daemon::set);
     QObject::connect(&rpc, &mp::DaemonRpc::on_keys, &daemon, &mp::Daemon::keys);
     QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
 }
 
 enum class InstanceGroup
@@ -665,7 +625,10 @@ enum class InstanceGroup
     All
 };
 
-using InstanceTable = std::unordered_map<std::string, mp::VirtualMachine::ShPtr>;
+// Hack to import typedef here, without making it part of the Daemon's public interface
+// clang-format off
+struct TapDaemon : private mp::Daemon { using Daemon::InstanceTable; }; // clang-format on
+using InstanceTable = TapDaemon::InstanceTable;
 using InstanceTrail = std::variant<InstanceTable::iterator,                    // operative instances
                                    InstanceTable::iterator,                    // deleted instances
                                    std::reference_wrapper<const std::string>>; // missing instances
@@ -738,10 +701,17 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances, Ins
 
         for (const auto& name : names)
         {
-            if (seen_instances.insert(name).second)
+            using T = std::decay_t<decltype(name)>;
+            const std::string* vm_name;
+            if constexpr (std::is_same_v<T, std::string>)
+                vm_name = &name;
+            else
+                vm_name = &name.instance_name();
+
+            if (seen_instances.insert(*vm_name).second)
             {
-                auto trail = find_instance(operative_instances, deleted_instances, name);
-                rank_instance(name, trail, ret);
+                auto trail = find_instance(operative_instances, deleted_instances, *vm_name);
+                rank_instance(*vm_name, trail, ret);
             }
         }
     }
@@ -1132,6 +1102,42 @@ bool is_ipv4_valid(const std::string& ipv4)
     return true;
 }
 
+struct SnapshotPick
+{
+    std::unordered_set<std::string> pick;
+    bool all_or_none;
+};
+
+using InstanceSnapshotPairs = google::protobuf::RepeatedPtrField<mp::InstanceSnapshotPair>;
+using InstanceSnapshotsMap = std::unordered_map<std::string, SnapshotPick>;
+InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& instances_snapshots)
+{
+    InstanceSnapshotsMap instance_snapshots_map;
+
+    for (const auto& it : instances_snapshots)
+    {
+        const auto& instance = it.instance_name();
+        auto& snapshot_pick = instance_snapshots_map[instance];
+
+        if (!it.has_snapshot_name())
+            snapshot_pick.all_or_none = true;
+        else
+            snapshot_pick.pick.insert(it.snapshot_name());
+    }
+
+    return instance_snapshots_map;
+}
+
+void verify_snapshot_picks(const InstanceSelectionReport& report,
+                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks)
+{
+    for (const auto& selection : {report.deleted_selection, report.operative_selection})
+        for (const auto& vm_it : selection)
+            if (auto pick_it = snapshot_picks.find(vm_it->first); pick_it != snapshot_picks.end())
+                for (const auto& snapshot_name : pick_it->second.pick)
+                    vm_it->second->get_snapshot(snapshot_name); // throws if it doesn't exist
+}
+
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container, const std::string& remote_name,
                  const mp::VMImageInfo& info, const std::string& default_remote)
 {
@@ -1165,15 +1171,128 @@ auto timeout_for(const int requested_timeout, const int blueprint_timeout)
     return mp::default_timeout;
 }
 
-mp::SettingsHandler*
-register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
-                      std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& vm_instances,
-                      const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-                      const std::unordered_set<std::string>& preparing_instances,
-                      std::function<void()> instance_persister)
+mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
+                                           InstanceTable& operative_instances,
+                                           const InstanceTable& deleted_instances,
+                                           const std::unordered_set<std::string>& preparing_instances,
+                                           std::function<void()> instance_persister)
 {
-    return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(
-        vm_instance_specs, vm_instances, deleted_instances, preparing_instances, std::move(instance_persister)));
+    return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
+                                                                                      operative_instances,
+                                                                                      deleted_instances,
+                                                                                      preparing_instances,
+                                                                                      std::move(instance_persister)));
+}
+
+mp::SettingsHandler* register_snapshot_mod(
+    std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
+    const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
+    const std::unordered_set<std::string>& preparing_instances)
+{
+    return MP_SETTINGS.register_handler(
+        std::make_unique<mp::SnapshotSettingsHandler>(operative_instances, deleted_instances, preparing_instances));
+}
+
+// Erase any outdated mount handlers for a given VM
+bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
+                           std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
+{
+    auto removed = false;
+    auto handlers_it = vm_mounts.begin();
+    while (handlers_it != vm_mounts.end())
+    {
+        const auto& [target, handler] = *handlers_it;
+        if (auto specs_it = mount_specs.find(target);
+            specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
+        {
+            if (handler->is_mount_managed_by_backend())
+            {
+                assert(handler->is_active());
+                handler->deactivate();
+            }
+
+            handlers_it = vm_mounts.erase(handlers_it);
+            removed = true;
+        }
+        else
+            ++handlers_it;
+    }
+
+    return removed;
+}
+
+void populate_snapshot_fundamentals(std::shared_ptr<const mp::Snapshot> snapshot,
+                                    mp::SnapshotFundamentals* fundamentals)
+{
+    fundamentals->set_snapshot_name(snapshot->get_name());
+    fundamentals->set_parent(snapshot->get_parents_name());
+    fundamentals->set_comment(snapshot->get_comment());
+
+    auto timestamp = fundamentals->mutable_creation_timestamp();
+    timestamp->set_seconds(snapshot->get_creation_timestamp().toSecsSinceEpoch());
+    timestamp->set_nanos(snapshot->get_creation_timestamp().time().msec() * 1'000'000);
+}
+
+void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mounts,
+                         mp::MountInfo* mount_info,
+                         bool& have_mounts)
+{
+    mount_info->set_longest_path_len(0);
+
+    if (!mounts.empty())
+        have_mounts = true;
+
+    if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
+    {
+        for (const auto& mount : mounts)
+        {
+            if (mount.second.source_path.size() > mount_info->longest_path_len())
+                mount_info->set_longest_path_len(mount.second.source_path.size());
+
+            auto entry = mount_info->add_mount_paths();
+            entry->set_source_path(mount.second.source_path);
+            entry->set_target_path(mount.first);
+
+            for (const auto& uid_mapping : mount.second.uid_mappings)
+            {
+                auto uid_pair = entry->mutable_mount_maps()->add_uid_mappings();
+                uid_pair->set_host_id(uid_mapping.first);
+                uid_pair->set_instance_id(uid_mapping.second);
+            }
+            for (const auto& gid_mapping : mount.second.gid_mappings)
+            {
+                auto gid_pair = entry->mutable_mount_maps()->add_gid_mappings();
+                gid_pair->set_host_id(gid_mapping.first);
+                gid_pair->set_instance_id(gid_mapping.second);
+            }
+        }
+    }
+}
+
+void populate_snapshot_info(mp::VirtualMachine& vm,
+                            std::shared_ptr<const mp::Snapshot> snapshot,
+                            mp::InfoReply& response,
+                            bool& have_mounts)
+{
+    auto* info = response.add_details();
+    auto snapshot_info = info->mutable_snapshot_info();
+    auto fundamentals = snapshot_info->mutable_fundamentals();
+
+    info->set_name(vm.vm_name);
+    info->mutable_instance_status()->set_status(grpc_instance_status_for(snapshot->get_state()));
+    info->set_memory_total(snapshot->get_mem_size().human_readable());
+    info->set_disk_total(snapshot->get_disk_space().human_readable());
+    info->set_cpu_count(std::to_string(snapshot->get_num_cores()));
+
+    auto mount_info = info->mutable_mount_info();
+    populate_mount_info(snapshot->get_mounts(), mount_info, have_mounts);
+
+    // TODO@snapshots get snapshot size once available
+
+    for (const auto& child : vm.get_childrens_names(snapshot.get()))
+        snapshot_info->add_children(child);
+
+    populate_snapshot_fundamentals(snapshot, fundamentals);
 }
 
 } // namespace
@@ -1184,8 +1303,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory, config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      instance_mod_handler{register_instance_mod(vm_instance_specs, operative_instances, deleted_instances,
-                                                 preparing_instances, [this] { persist_instances(); })}
+      instance_mod_handler{register_instance_mod(vm_instance_specs,
+                                                 operative_instances,
+                                                 deleted_instances,
+                                                 preparing_instances,
+                                                 [this] { persist_instances(); })},
+      snapshot_mod_handler{register_snapshot_mod(operative_instances, deleted_instances, preparing_instances)}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -1223,7 +1346,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         if (!vm_image.image_path.isEmpty() && !QFile::exists(vm_image.image_path))
         {
             mpl::log(mpl::Level::warning, category,
@@ -1249,7 +1372,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
-        instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
+        auto instance = instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
+        instance->load_snapshots();
 
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
@@ -1338,7 +1462,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
 mp::Daemon::~Daemon()
 {
-    mp::top_catch_all(category, [this] { MP_SETTINGS.unregister_handler(instance_mod_handler); });
+    mp::top_catch_all(category, [this] {
+        MP_SETTINGS.unregister_handler(instance_mod_handler);
+        MP_SETTINGS.unregister_handler(snapshot_mod_handler);
+    });
 }
 
 void mp::Daemon::create(const CreateRequest* request,
@@ -1388,8 +1515,10 @@ try // clang-format on
 
     for (const auto& del : deleted_instances)
     {
-        release_resources(del.first);
-        response.add_purged_instances(del.first);
+        const auto& name = del.first;
+        release_resources(name);
+        response.add_purged_instances(name);
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
     }
 
     deleted_instances.clear();
@@ -1544,119 +1673,71 @@ try // clang-format on
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     InfoReply response;
+    InstanceSnapshotsMap instance_snapshots_map;
     bool have_mounts = false;
     bool deleted = false;
-    auto fetch_info = [&](VirtualMachine& vm) {
-        const auto& name = vm.vm_name;
-        auto info = response.add_info();
-        auto present_state = vm.current_state();
-        info->set_name(name);
-        if (deleted)
+    bool snapshots_only = request->snapshots();
+    response.set_snapshots(snapshots_only);
+
+    auto process_snapshot_pick = [&response, &have_mounts, snapshots_only](VirtualMachine& vm,
+                                                                           const SnapshotPick& snapshot_pick) {
+        for (const auto& snapshot_name : snapshot_pick.pick)
         {
-            info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+            const auto snapshot = vm.get_snapshot(snapshot_name); // verify validity even if unused
+            if (!snapshot_pick.all_or_none || !snapshots_only)
+                populate_snapshot_info(vm, snapshot, response, have_mounts);
         }
-        else
-        {
-            info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
-        }
-
-        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
-        auto original_release = vm_image.original_release;
-
-        if (!vm_image.id.empty() && original_release.empty())
-        {
-            try
-            {
-                auto vm_image_info = config->image_hosts.back()->info_for_full_hash(vm_image.id);
-                original_release = vm_image_info.release_title.toStdString();
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::warning, category, fmt::format("Cannot fetch image information: {}", e.what()));
-            }
-        }
-
-        info->set_image_release(original_release);
-        info->set_id(vm_image.id);
-
-        auto vm_specs = vm_instance_specs[name];
-
-        auto mount_info = info->mutable_mount_info();
-
-        mount_info->set_longest_path_len(0);
-
-        if (!vm_specs.mounts.empty())
-            have_mounts = true;
-
-        if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
-        {
-            for (const auto& mount : vm_specs.mounts)
-            {
-                if (mount.second.source_path.size() > mount_info->longest_path_len())
-                {
-                    mount_info->set_longest_path_len(mount.second.source_path.size());
-                }
-
-                auto entry = mount_info->add_mount_paths();
-                entry->set_source_path(mount.second.source_path);
-                entry->set_target_path(mount.first);
-
-                for (const auto& uid_mapping : mount.second.uid_mappings)
-                {
-                    auto uid_pair = entry->mutable_mount_maps()->add_uid_mappings();
-                    uid_pair->set_host_id(uid_mapping.first);
-                    uid_pair->set_instance_id(uid_mapping.second);
-                }
-                for (const auto& gid_mapping : mount.second.gid_mappings)
-                {
-                    auto gid_pair = entry->mutable_mount_maps()->add_gid_mappings();
-                    gid_pair->set_host_id(gid_mapping.first);
-                    gid_pair->set_instance_id(gid_mapping.second);
-                }
-            }
-        }
-
-        if (!request->no_runtime_information() && mp::utils::is_running(present_state))
-        {
-            mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
-
-            info->set_load(mpu::run_in_ssh_session(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
-            info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
-            info->set_memory_total(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $2}'"));
-            info->set_disk_usage(
-                mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"));
-            info->set_disk_total(
-                mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"));
-            info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
-
-            std::string management_ip = vm.management_ipv4(*config->ssh_key_provider);
-            auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
-
-            if (is_ipv4_valid(management_ip))
-                info->add_ipv4(management_ip);
-            else if (all_ipv4.empty())
-                info->add_ipv4("N/A");
-
-            for (const auto& extra_ipv4 : all_ipv4)
-                if (extra_ipv4 != management_ip)
-                    info->add_ipv4(extra_ipv4);
-
-            auto current_release =
-                mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
-            info->set_current_release(!current_release.empty() ? current_release : original_release);
-        }
-        return grpc::Status::OK;
     };
 
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances, deleted_instances, request->instance_names().instance_name(),
-                                   InstanceGroup::All, require_existing_instances_reaction);
+    auto fetch_detailed_report = [this,
+                                  &instance_snapshots_map,
+                                  process_snapshot_pick,
+                                  snapshots_only,
+                                  request,
+                                  &response,
+                                  &have_mounts,
+                                  &deleted](VirtualMachine& vm) {
+        fmt::memory_buffer errors;
+        const auto& name = vm.vm_name;
+
+        const auto& it = instance_snapshots_map.find(name);
+        const auto& snapshot_pick = it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
+
+        try
+        {
+            process_snapshot_pick(vm, snapshot_pick);
+            if (snapshot_pick.all_or_none)
+            {
+                if (snapshots_only)
+                    for (const auto& snapshot : vm.view_snapshots())
+                        populate_snapshot_info(vm, snapshot, response, have_mounts);
+                else
+                    populate_instance_info(vm, response, request->no_runtime_information(), deleted, have_mounts);
+            }
+        }
+        catch (const NoSuchSnapshotException& e)
+        {
+            add_fmt_to(errors, e.what());
+        }
+
+        return grpc_status_for(errors);
+    };
+
+    auto [instance_selection, status] = select_instances_and_react(operative_instances,
+                                                                   deleted_instances,
+                                                                   request->instance_snapshot_pairs(),
+                                                                   InstanceGroup::All,
+                                                                   require_existing_instances_reaction);
 
     if (status.ok())
     {
-        cmd_vms(instance_selection.operative_selection, fetch_info);
-        deleted = true;
-        cmd_vms(instance_selection.deleted_selection, fetch_info);
+        instance_snapshots_map = map_snapshots_to_instances(request->instance_snapshot_pairs());
+
+        if ((status = cmd_vms(instance_selection.operative_selection, fetch_detailed_report)).ok())
+        {
+            deleted = true;
+            status = cmd_vms(instance_selection.deleted_selection, fetch_detailed_report);
+        }
 
         if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
             mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
@@ -1680,17 +1761,22 @@ try // clang-format on
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
-    for (const auto& instance : operative_instances)
-    {
-        const auto& name = instance.first;
-        const auto& vm = instance.second;
-        auto present_state = vm->current_state();
-        auto entry = response.add_instances();
+    // Need to 'touch' a report in the response so formatters know what to do with an otherwise empty response
+    request->snapshots() ? (void)response.mutable_snapshot_list() : (void)response.mutable_instance_list();
+    bool deleted = false;
+
+    auto fetch_instance = [this, request, &response, &deleted](VirtualMachine& vm) {
+        const auto& name = vm.vm_name;
+        auto present_state = vm.current_state();
+        auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
-        entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
+        if (deleted)
+            entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+        else
+            entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
         // FIXME: Set the release to the cached current version when supported
-        auto vm_image = fetch_image_for(name, config->factory->fetch_type(), *config->vault);
+        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         auto current_release = vm_image.original_release;
 
         if (!vm_image.id.empty() && current_release.empty())
@@ -1710,8 +1796,8 @@ try // clang-format on
 
         if (request->request_ipv4() && mp::utils::is_running(present_state))
         {
-            std::string management_ip = vm->management_ipv4(*config->ssh_key_provider);
-            auto all_ipv4 = vm->get_all_ipv4(*config->ssh_key_provider);
+            std::string management_ip = vm.management_ipv4(*config->ssh_key_provider);
+            auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
 
             if (is_ipv4_valid(management_ip))
                 entry->add_ipv4(management_ip);
@@ -1722,18 +1808,44 @@ try // clang-format on
                 if (extra_ipv4 != management_ip)
                     entry->add_ipv4(extra_ipv4);
         }
-    }
 
-    for (const auto& instance : deleted_instances)
+        return grpc::Status::OK;
+    };
+
+    auto fetch_snapshot = [&response](VirtualMachine& vm) {
+        fmt::memory_buffer errors;
+        const auto& name = vm.vm_name;
+
+        try
+        {
+            for (const auto& snapshot : vm.view_snapshots())
+            {
+                auto entry = response.mutable_snapshot_list()->add_snapshots();
+                auto fundamentals = entry->mutable_fundamentals();
+
+                entry->set_name(name);
+                populate_snapshot_fundamentals(snapshot, fundamentals);
+            }
+        }
+        catch (const NoSuchSnapshotException& e)
+        {
+            add_fmt_to(errors, e.what());
+        }
+
+        return grpc_status_for(errors);
+    };
+
+    auto cmd = request->snapshots() ? std::function(fetch_snapshot) : std::function(fetch_instance);
+
+    auto status = cmd_vms(select_all(operative_instances), cmd);
+    if (status.ok() && !request->snapshots())
     {
-        const auto& name = instance.first;
-        auto entry = response.add_instances();
-        entry->set_name(name);
-        entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+        deleted = true;
+        status = cmd_vms(select_all(deleted_instances), cmd);
     }
 
     server->Write(response);
-    status_promise->set_value(grpc::Status::OK);
+    status_promise->set_value(status);
 }
 catch (const std::exception& e)
 {
@@ -1880,6 +1992,7 @@ try // clang-format on
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
             init_mounts(name);
+            mpl::log(mpl::Level::debug, category, fmt::format("Instance recovered: {}", name));
         }
         persist_instances();
     }
@@ -2106,53 +2219,44 @@ try // clang-format on
                                                          server};
     DeleteReply response;
 
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances, deleted_instances, request->instance_names().instance_name(),
-                                   InstanceGroup::All, require_existing_instances_reaction);
+    auto [instance_selection, status] = select_instances_and_react(operative_instances,
+                                                                   deleted_instances,
+                                                                   request->instance_snapshot_pairs(),
+                                                                   InstanceGroup::All,
+                                                                   require_existing_instances_reaction);
 
     if (status.ok())
     {
         const bool purge = request->purge();
+        auto instances_dirty = false;
 
-        for (const auto& vm_it : instance_selection.operative_selection)
+        auto instance_snapshots_map = map_snapshots_to_instances(request->instance_snapshot_pairs());
+        verify_snapshot_picks(instance_selection, instance_snapshots_map); // avoid deleting if any snapshot is missing
+
+        // start with deleted instances, to avoid iterator invalidation when moving instances there
+        for (const auto& selection : {instance_selection.deleted_selection, instance_selection.operative_selection})
         {
-            const auto& name = vm_it->first;
-            auto& instance = vm_it->second;
-            assert(!vm_instance_specs[name].deleted);
-
-            if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
-                delayed_shutdown_instances.erase(name);
-
-            mounts[name].clear();
-            instance->shutdown();
-
-            if (purge)
+            for (const auto& vm_it : selection)
             {
-                release_resources(name);
-                response.add_purged_instances(name);
-            }
-            else
-            {
-                deleted_instances[name] = std::move(instance);
-                vm_instance_specs[name].deleted = true;
-            }
+                const auto& instance_name = vm_it->first;
 
-            operative_instances.erase(vm_it);
-        }
+                auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
+                const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end() ? SnapshotPick{{}, true}
+                                                                                           : snapshot_pick_it->second;
+                if (all) // we're asked to delete the VM
+                    instances_dirty |= delete_vm(vm_it, purge, response);
+                else // we're asked to delete snapshots
+                {
+                    assert(purge && "precondition: snapshots can only be purged");
 
-        if (purge)
-        {
-            for (const auto& vm_it : instance_selection.deleted_selection)
-            {
-                const auto& name = vm_it->first;
-                assert(vm_instance_specs[name].deleted);
-                response.add_purged_instances(name);
-                release_resources(name);
-                deleted_instances.erase(vm_it);
+                    for (const auto& snapshot_name : pick)
+                        vm_it->second->delete_snapshot(snapshot_name);
+                }
             }
         }
 
-        persist_instances();
+        if (instances_dirty)
+            persist_instances();
     }
 
     server->Write(response);
@@ -2347,6 +2451,140 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
+void mp::Daemon::snapshot(const mp::SnapshotRequest* request,
+                          grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
+                          std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<SnapshotReply, SnapshotRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                             *config->logger,
+                                                             server};
+
+    const auto& instance_name = request->instance();
+    auto [instance_trail, status] = find_instance_and_react(operative_instances,
+                                                            deleted_instances,
+                                                            instance_name,
+                                                            require_operative_instances_reaction);
+
+    if (status.ok())
+    {
+        assert(instance_trail.index() == 0);
+        auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+        assert(vm_ptr);
+
+        using St = VirtualMachine::State;
+        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+            return status_promise->set_value(
+                grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only take snapshots of stopped instances."});
+
+        auto snapshot_name = request->snapshot();
+        if (!snapshot_name.empty() && !mp::utils::valid_hostname(snapshot_name))
+            return status_promise->set_value(
+                grpc::Status{grpc::INVALID_ARGUMENT, fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
+
+        const auto spec_it = vm_instance_specs.find(instance_name);
+        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
+
+        SnapshotReply reply;
+        reply.set_snapshot(vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
+
+        server->Write(reply);
+    }
+
+    status_promise->set_value(status);
+}
+catch (const SnapshotNameTakenException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::restore(const mp::RestoreRequest* request,
+                         grpc::ServerReaderWriterInterface<RestoreReply, RestoreRequest>* server,
+                         std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<RestoreReply, RestoreRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                           *config->logger,
+                                                           server};
+
+    RestoreReply reply;
+    const auto& instance_name = request->instance();
+    auto [instance_trail, status] = find_instance_and_react(operative_instances,
+                                                            deleted_instances,
+                                                            instance_name,
+                                                            require_operative_instances_reaction);
+
+    if (status.ok())
+    {
+        assert(instance_trail.index() == 0);
+        auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+        assert(vm_ptr);
+
+        using St = VirtualMachine::State;
+        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+            return status_promise->set_value(
+                grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only restore snapshots of stopped instances."});
+
+        auto spec_it = vm_instance_specs.find(instance_name);
+        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
+        auto& vm_specs = spec_it->second;
+
+        // Only need to check if the snapshot exists so the result is discarded
+        vm_ptr->get_snapshot(request->snapshot());
+
+        if (!request->destructive())
+        {
+            RestoreReply confirm_action{};
+            confirm_action.set_confirm_destructive(true);
+            if (!server->Write(confirm_action))
+                throw std::runtime_error("Cannot request confirmation from client. Aborting...");
+
+            RestoreRequest client_response;
+            if (!server->Read(&client_response))
+                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
+
+            if (!client_response.destructive())
+            {
+                reply_msg(server, fmt::format("Taking snapshot before restoring {}", instance_name));
+
+                const auto snapshot =
+                    vm_ptr->take_snapshot(vm_specs, "", fmt::format("Before restoring {}", request->snapshot()));
+
+                reply_msg(server,
+                          fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
+                          /* sticky = */ true);
+            }
+        }
+
+        // Actually restore snapshot
+        reply_msg(server, "Restoring snapshot");
+        auto old_specs = vm_specs;
+        vm_ptr->restore_snapshot(request->snapshot(), vm_specs);
+
+        auto mounts_it = mounts.find(instance_name);
+        assert(mounts_it != mounts.end() && "uninitialized mounts");
+
+        if (update_mounts(vm_specs, mounts_it->second, vm_ptr) || vm_specs != old_specs)
+            persist_instances();
+
+        server->Write(reply);
+    }
+
+    status_promise->set_value(status);
+}
+catch (const mp::NoSuchSnapshotException& e)
+{
+    status_promise->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
 void mp::Daemon::on_shutdown()
 {
 }
@@ -2405,13 +2643,13 @@ void mp::Daemon::persist_instances()
     }
     QDir data_dir{
         mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name())};
-    mp::write_json(instance_records_json, data_dir.filePath(instance_db_name));
+    MP_JSONUTILS.write_json(instance_records_json, data_dir.filePath(instance_db_name));
 }
 
 void mp::Daemon::release_resources(const std::string& instance)
 {
-    config->factory->remove_resources_for(instance);
     config->vault->remove(instance);
+    config->factory->remove_resources_for(instance);
 
     auto spec_it = vm_instance_specs.find(instance);
     if (spec_it != cend(vm_instance_specs))
@@ -2669,8 +2907,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             if (!vm_desc.image.id.empty())
                 checksum = vm_desc.image.id;
 
-            auto vm_image = config->vault->fetch_image(fetch_type, query, prepare_action, progress_monitor,
-                                                       launch_from_blueprint, checksum);
+            auto vm_image = config->vault->fetch_image(fetch_type,
+                                                       query,
+                                                       prepare_action,
+                                                       progress_monitor,
+                                                       launch_from_blueprint,
+                                                       checksum,
+                                                       config->factory->get_instance_directory(name));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
@@ -2724,6 +2967,49 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     };
 
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
+}
+
+bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response)
+{
+    auto& [name, instance] = *vm_it;
+    auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
+    auto instances_dirty = false;
+
+    if (!vm_instance_specs[name].deleted)
+    {
+        mpl::log(mpl::Level::debug, category, fmt::format("Deleting instance: {}", name));
+        erase_from = &operative_instances;
+        if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
+            delayed_shutdown_instances.erase(name);
+
+        mounts[name].clear();
+        instance->shutdown();
+
+        if (!purge)
+        {
+            vm_instance_specs[name].deleted = true;
+            deleted_instances[name] = std::move(instance);
+
+            instances_dirty = true;
+            mpl::log(mpl::Level::debug, category, fmt::format("Instance deleted: {}", name));
+        }
+    }
+    else
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance is already deleted: {}", name));
+
+    if (purge)
+    {
+        response.add_purged_instances(name);
+        release_resources(name);
+
+        instances_dirty = true;
+        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
+    }
+
+    if (erase_from)
+        erase_from->erase(vm_it);
+
+    return instances_dirty;
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
@@ -2820,27 +3106,8 @@ void mp::Daemon::init_mounts(const std::string& name)
 {
     auto& vm_mounts = mounts[name];
     auto& vm_spec_mounts = vm_instance_specs[name].mounts;
-    std::vector<std::string> mounts_to_remove;
-    for (const auto& [target, vm_mount] : vm_spec_mounts)
-    {
-        if (vm_mounts.find(target) == vm_mounts.end())
-            try
-            {
-                vm_mounts[target] = make_mount(operative_instances[name].get(), target, vm_mount);
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::warning, category,
-                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})", vm_mount.source_path, target, name,
-                                     e.what()));
-                mounts_to_remove.push_back(target);
-            }
-    }
 
-    for (const auto& mount_target : mounts_to_remove)
-        vm_spec_mounts.erase(mount_target);
-
-    if (!mounts_to_remove.empty())
+    if (!create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
         persist_instances();
 }
 
@@ -2853,6 +3120,50 @@ void mp::Daemon::stop_mounts(const std::string& name)
             mount->deactivate(/*force=*/true);
         }
     }
+}
+
+bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
+                               std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                               mp::VirtualMachine* vm)
+{
+    auto& mount_specs = vm_specs.mounts;
+    return prune_obsolete_mounts(mount_specs, vm_mounts) || !create_missing_mounts(mount_specs, vm_mounts, vm);
+}
+
+bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
+                                       std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                                       mp::VirtualMachine* vm)
+{
+    auto initial_mount_count = mount_specs.size();
+    auto specs_it = mount_specs.begin();
+    while (specs_it != mount_specs.end()) // TODO@C++20 replace with erase_if over mount_specs
+    {
+        const auto& [target, mount_spec] = *specs_it;
+        if (vm_mounts.find(target) == vm_mounts.end())
+        {
+            try
+            {
+                vm_mounts[target] = make_mount(vm, target, mount_spec);
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::warning,
+                         category,
+                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})",
+                                     mount_spec.source_path,
+                                     target,
+                                     vm->vm_name,
+                                     e.what()));
+
+                specs_it = mount_specs.erase(specs_it); // unordered_map so only iterators to erased element invalidated
+                continue;
+            }
+        }
+        ++specs_it;
+    }
+
+    assert(mount_specs.size() <= initial_mount_count);
+    return mount_specs.size() != initial_mount_count;
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
@@ -3042,5 +3353,91 @@ void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(const bo
         mpl::log(mpl::Level::debug, "async task", "fetch manifest from the internet");
         update_manifests_all(true);
         update_manifests_all_task.start_timer();
+    }
+}
+
+template <typename Reply, typename Request>
+void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server, std::string&& msg, bool sticky)
+{
+    Reply reply{};
+    if (sticky)
+        reply.set_reply_message(fmt::format("{}\n", std::forward<decltype(msg)>(msg)));
+    else
+        reply.set_reply_message(std::forward<decltype(msg)>(msg));
+
+    server->Write(reply);
+}
+
+void mp::Daemon::populate_instance_info(VirtualMachine& vm,
+                                        mp::InfoReply& response,
+                                        bool no_runtime_info,
+                                        bool deleted,
+                                        bool& have_mounts)
+{
+    auto* info = response.add_details();
+    auto instance_info = info->mutable_instance_info();
+    auto present_state = vm.current_state();
+
+    const auto& name = vm.vm_name;
+    info->set_name(name);
+
+    if (deleted)
+        info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
+    else
+        info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
+
+    auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
+    auto original_release = vm_image.original_release;
+
+    if (!vm_image.id.empty() && original_release.empty())
+    {
+        try
+        {
+            auto vm_image_info = config->image_hosts.back()->info_for_full_hash(vm_image.id);
+            original_release = vm_image_info.release_title.toStdString();
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, category, fmt::format("Cannot fetch image information: {}", e.what()));
+        }
+    }
+
+    instance_info->set_num_snapshots(vm.get_num_snapshots());
+    instance_info->set_image_release(original_release);
+    instance_info->set_id(vm_image.id);
+
+    auto vm_specs = vm_instance_specs[name];
+
+    auto mount_info = info->mutable_mount_info();
+    populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
+
+    if (!no_runtime_info && mp::utils::is_running(present_state))
+    {
+        mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
+
+        instance_info->set_load(mpu::run_in_ssh_session(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
+        instance_info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
+        info->set_memory_total(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $2}'"));
+        instance_info->set_disk_usage(
+            mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"));
+        info->set_disk_total(
+            mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"));
+        info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
+
+        std::string management_ip = vm.management_ipv4(*config->ssh_key_provider);
+        auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
+
+        if (is_ipv4_valid(management_ip))
+            instance_info->add_ipv4(management_ip);
+        else if (all_ipv4.empty())
+            instance_info->add_ipv4("N/A");
+
+        for (const auto& extra_ipv4 : all_ipv4)
+            if (extra_ipv4 != management_ip)
+                instance_info->add_ipv4(extra_ipv4);
+
+        auto current_release =
+            mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
+        instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
     }
 }

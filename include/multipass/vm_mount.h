@@ -20,6 +20,8 @@
 
 #include <multipass/id_mappings.h>
 
+#include <QJsonObject>
+
 #include <string>
 
 namespace multipass
@@ -32,6 +34,12 @@ struct VMMount
         Native = 1
     };
 
+    VMMount() = default;
+    VMMount(const QJsonObject& json);
+    VMMount(const std::string& sourcePath, id_mappings gidMappings, id_mappings uidMappings, MountType mountType);
+
+    QJsonObject serialize() const;
+
     std::string source_path;
     id_mappings gid_mappings;
     id_mappings uid_mappings;
@@ -43,6 +51,12 @@ inline bool operator==(const VMMount& a, const VMMount& b)
     return std::tie(a.source_path, a.gid_mappings, a.uid_mappings) ==
            std::tie(b.source_path, b.gid_mappings, b.uid_mappings);
 }
+
+inline bool operator!=(const VMMount& a, const VMMount& b) // TODO drop in C++20
+{
+    return !(a == b);
+}
+
 } // namespace multipass
 
 namespace fmt

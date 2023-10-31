@@ -49,8 +49,11 @@ namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
-{ // copied from QemuVirtualMachine implementation
+{
+// copied from QemuVirtualMachine implementation
 constexpr auto suspend_tag = "suspend";
+// we need a whitespace to terminate the tag column in the fake output of qemu-img
+const QByteArray fake_snapshot_list_with_suspend_tag = QByteArray{suspend_tag} + " ";
 } // namespace
 
 struct QemuBackend : public mpt::TestWithMockedBinPath
@@ -77,6 +80,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       {},
                                                       {}};
     mpt::TempDir data_dir;
+    mpt::TempDir instance_dir;
     const std::string tap_device{"tapfoo"};
     const QString bridge_name{"dummy-bridge"};
     const std::string subnet{"192.168.64"};
@@ -88,7 +92,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
             mp::ProcessState exit_state;
             exit_state.exit_code = 0;
             ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
-            ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(suspend_tag));
+            ON_CALL(*process, read_all_standard_output()).WillByDefault(Return(fake_snapshot_list_with_suspend_tag));
         }
         else if (process->program() == "iptables")
         {
@@ -475,8 +479,6 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image_uses_metad
 
 TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
 {
-    constexpr auto suspend_tag = "suspend";
-
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
@@ -487,7 +489,7 @@ TEST_F(QemuBackend, verify_qemu_arguments_from_metadata_are_used)
             mp::ProcessState exit_state;
             exit_state.exit_code = 0;
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(suspend_tag));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(fake_snapshot_list_with_suspend_tag));
         }
     };
 
@@ -622,7 +624,7 @@ TEST_F(QemuBackend, ssh_hostname_returns_expected_value)
         return std::optional<mp::IPAddress>{expected_ip};
     });
 
-    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -637,7 +639,7 @@ TEST_F(QemuBackend, gets_management_ip)
 
     EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(expected_ip));
 
-    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -651,7 +653,7 @@ TEST_F(QemuBackend, fails_to_get_management_ip_if_dnsmasq_does_not_return_an_ip)
 
     EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(std::nullopt));
 
-    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -665,7 +667,7 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 
     ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([](auto...) { return std::nullopt; });
 
-    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor};
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
@@ -731,11 +733,13 @@ TEST_F(QemuBackend, get_backend_directory_name_calls_qemu_platform)
     bool get_directory_name_called{false};
     const QString backend_dir_name{"foo"};
 
-    EXPECT_CALL(*mock_qemu_platform, get_directory_name()).WillOnce([&get_directory_name_called, &backend_dir_name] {
-        get_directory_name_called = true;
+    EXPECT_CALL(*mock_qemu_platform, get_directory_name())
+        .Times(2)
+        .WillRepeatedly([&get_directory_name_called, &backend_dir_name] {
+            get_directory_name_called = true;
 
-        return backend_dir_name;
-    });
+            return backend_dir_name;
+        });
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
