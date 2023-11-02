@@ -270,6 +270,13 @@ int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int id_if_
     return id;
 }
 
+int reverse_id_for(const mp::id_mappings& id_maps, const int id)
+{
+    auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.second; });
+
+    return found == id_maps.cend() ? -1 : found->first;
+}
+
 int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
 {
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.second; });
@@ -347,6 +354,16 @@ inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id)
 inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id)
 {
     return reverse_id_for(gid_mappings, gid, default_id);
+}
+
+inline int mp::SftpServer::reverse_uid_for(const int uid)
+{
+    return reverse_id_for(uid_mappings, uid);
+}
+
+inline int mp::SftpServer::reverse_gid_for(const int gid)
+{
+    return reverse_id_for(uid_mappings, gid);
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
@@ -594,8 +611,35 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         mode |= QIODevice::Truncate;
 
     auto file = std::make_unique<QFile>(filename);
+    QFileInfo file_info(filename);
 
-    auto exists = QFileInfo(filename).isSymLink() || file->exists();
+    auto exists = file_info.isSymLink() || file->exists();
+
+    if (exists)
+    {
+        sftp_attributes_struct attr{};
+
+        if (file_info.isSymLink())
+        {
+            mp::platform::symlink_attr_from(filename, &attr);
+            attr.uid = mapped_uid_for(attr.uid);
+            attr.gid = mapped_gid_for(attr.gid);
+        }
+        else
+        {
+            attr = attr_from(file_info);
+        }
+
+        if ((attr.uid == 0 && reverse_uid_for(attr.uid) == -1) || (attr.gid == 0 && reverse_gid_for(attr.gid) == -1))
+        {
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: permission denied: cannot access path \'{}\' without mapping for root",
+                                 __FUNCTION__,
+                                 filename));
+            return reply_perm_denied(msg);
+        }
+    }
 
     if (!MP_FILEOPS.open(*file, mode))
     {
