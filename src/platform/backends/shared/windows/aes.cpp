@@ -35,52 +35,66 @@ mp::AES::AES(const Singleton<AES>::PrivatePass& pass) noexcept : Singleton<AES>:
 {
 }
 
-int mp::AES::aes_256_key_size()
+int mp::AES::aes_256_key_size() const
 {
     return key_size;
 }
 
-int mp::AES::aes_256_block_size()
+int mp::AES::aes_256_block_size() const
 {
     return block_size;
 }
 
-void mp::AES::decrypt(const std::vector<uint8_t> key, const std::vector<uint8_t> iv, const std::string& ctext,
-                      std::string& rtext)
+std::string mp::AES::decrypt(const std::vector<uint8_t>& key,
+                             const std::vector<uint8_t>& iv,
+                             const std::string& encrypted_data) const
 {
     EVP_CIPHER_CTX_free_ptr ctx(EVP_CIPHER_CTX_new(), ::EVP_CIPHER_CTX_free);
     if (!EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data()))
         throw std::runtime_error("EVP_DecryptInit_ex failed");
 
-    rtext.resize(ctext.size());
-    int out_len1 = (int)rtext.size();
+    std::string decrypted_data;
+    decrypted_data.resize(encrypted_data.size());
+    int out_len1 = (int)decrypted_data.size();
 
-    if (!EVP_DecryptUpdate(ctx.get(), (uint8_t*)&rtext[0], &out_len1, (const uint8_t*)&ctext[0], (int)ctext.size()))
+    if (!EVP_DecryptUpdate(ctx.get(),
+                           (uint8_t*)&decrypted_data[0],
+                           &out_len1,
+                           (const uint8_t*)&encrypted_data[0],
+                           (int)encrypted_data.size()))
         throw std::runtime_error("EVP_DecryptUpdate failed");
 
-    int out_len2 = (int)rtext.size() - out_len1;
-    if (!EVP_DecryptFinal_ex(ctx.get(), (uint8_t*)&rtext[0] + out_len1, &out_len2))
+    int out_len2 = (int)decrypted_data.size() - out_len1;
+    if (!EVP_DecryptFinal_ex(ctx.get(), (uint8_t*)&decrypted_data[0] + out_len1, &out_len2))
         throw std::runtime_error("EVP_DecryptFinal_ex failed");
 
-    rtext.resize(out_len1 + out_len2);
+    decrypted_data.resize(out_len1 + out_len2);
+    return decrypted_data;
 }
 
-void mp::AES::encrypt(const std::vector<uint8_t> key, const std::vector<uint8_t> iv, const std::string& ptext,
-                      std::string& ctext)
+std::string mp::AES::encrypt(const std::vector<uint8_t>& key,
+                             const std::vector<uint8_t>& iv,
+                             const std::string& data) const
 {
     EVP_CIPHER_CTX_free_ptr ctx(EVP_CIPHER_CTX_new(), ::EVP_CIPHER_CTX_free);
     if (!EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data()))
         throw std::runtime_error("EVP_EncryptInit_ex failed");
 
-    ctext.resize(ptext.size() + iv.size());
-    int out_len1 = (int)ctext.size();
+    std::string encrypted_data;
+    encrypted_data.resize(data.size() + iv.size());
+    int out_len1 = (int)encrypted_data.size();
 
-    if (!EVP_EncryptUpdate(ctx.get(), (uint8_t*)&ctext[0], &out_len1, (const uint8_t*)&ptext[0], (int)ptext.size()))
+    if (!EVP_EncryptUpdate(ctx.get(),
+                           (uint8_t*)&encrypted_data[0],
+                           &out_len1,
+                           (const uint8_t*)&data[0],
+                           (int)data.size()))
         throw std::runtime_error("EVP_EncryptUpdate failed");
 
-    int out_len2 = (int)ctext.size() - out_len1;
-    if (!EVP_EncryptFinal_ex(ctx.get(), (uint8_t*)&ctext[0] + out_len1, &out_len2))
+    int out_len2 = (int)encrypted_data.size() - out_len1;
+    if (!EVP_EncryptFinal_ex(ctx.get(), (uint8_t*)&encrypted_data[0] + out_len1, &out_len2))
         throw std::runtime_error("EVP_EncryptFinal_ex failed");
 
-    ctext.resize(out_len1 + out_len2);
+    encrypted_data.resize(out_len1 + out_len2);
+    return encrypted_data;
 }

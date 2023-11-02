@@ -347,7 +347,13 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                                                            const std::string& target,
                                                                            const mp::VMMount& mount)
 {
-    return std::make_unique<SmbMountHandler>(this, ssh_key_provider, target, mount, instance_dir.absolutePath());
+    static const SmbManager smb_manager{};
+    return std::make_unique<SmbMountHandler>(this,
+                                             ssh_key_provider,
+                                             target,
+                                             mount,
+                                             instance_dir.absolutePath(),
+                                             smb_manager);
 }
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,

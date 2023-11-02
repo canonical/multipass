@@ -32,12 +32,14 @@ class AES : public Singleton<AES>
 public:
     AES(const Singleton<AES>::PrivatePass&) noexcept;
 
-    virtual int aes_256_key_size();
-    virtual int aes_256_block_size();
-    virtual void decrypt(const std::vector<uint8_t> key, const std::vector<uint8_t> iv, const std::string& ctext,
-                         std::string& rtext);
-    virtual void encrypt(const std::vector<uint8_t> key, const std::vector<uint8_t> iv, const std::string& ptext,
-                         std::string& ctext);
+    virtual int aes_256_key_size() const;
+    virtual int aes_256_block_size() const;
+    virtual std::string decrypt(const std::vector<uint8_t>& key,
+                                const std::vector<uint8_t>& iv,
+                                const std::string& encrypted_data) const;
+    virtual std::string encrypt(const std::vector<uint8_t>& key,
+                                const std::vector<uint8_t>& iv,
+                                const std::string& data) const;
 };
 } // namespace multipass
 
