@@ -935,6 +935,17 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
+    if ((msg->attr->uid == 0 && reverse_uid_for(msg->attr->uid) == -1) ||
+        (msg->attr->gid == 0 && reverse_gid_for(msg->attr->gid) == -1))
+    {
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: permission denied: cannot modify path \'{}\' without reverse mapping for root",
+                             __FUNCTION__,
+                             filename));
+        return reply_perm_denied(msg);
+    }
+
     QFile file{filename};
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
