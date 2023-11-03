@@ -238,7 +238,7 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       run: |
         set FLUTTER_ZIP_URL_BASE https://storage.googleapis.com/flutter_infra_release/releases/stable/windows
-        set FLUTTER_VERSION 3.10.4
+        set FLUTTER_VERSION 3.16.9
         set FLUTTER_ZIP_FILE flutter_windows_$FLUTTER_VERSION-stable.zip
 
         echo "Creating directory to uncompress Flutter"
@@ -279,7 +279,7 @@ jobs:
       run: |
         rm -rf flutter/ flutter_macos*.zip
         export FLUTTER_ZIP_URL_BASE=https://storage.googleapis.com/flutter_infra_release/releases/stable/macos
-        export FLUTTER_VERSION=3.10.4
+        export FLUTTER_VERSION=3.16.9
         if [ ${{ matrix.arch }} == "arm64" ]; then
             export FLUTTER_ZIP_FILE=flutter_macos_arm64_$FLUTTER_VERSION-stable.zip
         else
