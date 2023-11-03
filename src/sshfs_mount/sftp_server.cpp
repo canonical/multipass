@@ -581,18 +581,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         mode |= QIODevice::ReadOnly;
 
     if (flags & SSH_FXF_WRITE)
-    {
         mode |= QIODevice::WriteOnly;
-
-        // This is needed to workaround an issue where sshfs does not pass through
-        // O_APPEND.  This is fixed in sshfs v. 3.2.
-        // Note: This goes against the default behavior of open().
-        if (flags == SSH_FXF_WRITE)
-        {
-            mode |= QIODevice::Append;
-            mpl::log(mpl::Level::info, category, "adding sshfs O_APPEND workaround");
-        }
-    }
 
     if (flags & SSH_FXF_APPEND)
         mode |= QIODevice::Append;
