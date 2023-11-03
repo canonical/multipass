@@ -1036,6 +1036,16 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
         attr = attr_from(file_info);
     }
 
+    if ((attr.uid == 0 && reverse_uid_for(attr.uid) == -1) || (attr.gid == 0 && reverse_gid_for(attr.gid) == -1))
+    {
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: permission denied: cannot access path \'{}\' without mapping for root",
+                             __FUNCTION__,
+                             filename));
+        return reply_perm_denied(msg);
+    }
+
     return sftp_reply_attr(msg, &attr);
 }
 
