@@ -935,8 +935,22 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    if ((msg->attr->uid == 0 && reverse_uid_for(msg->attr->uid) == -1) ||
-        (msg->attr->gid == 0 && reverse_gid_for(msg->attr->gid) == -1))
+    QFile file{filename};
+    QFileInfo file_info(filename);
+    sftp_attributes_struct attr{};
+
+    if (file_info.isSymLink())
+    {
+        mp::platform::symlink_attr_from(filename.toStdString().c_str(), &attr);
+        attr.uid = mapped_uid_for(attr.uid);
+        attr.gid = mapped_gid_for(attr.gid);
+    }
+    else
+    {
+        attr = attr_from(file_info);
+    }
+
+    if ((attr.uid != 0 && msg->attr->uid == 0) || (attr.gid != 0 && msg->attr->gid == 0))
     {
         mpl::log(mpl::Level::trace,
                  category,
@@ -945,8 +959,6 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
                              filename));
         return reply_perm_denied(msg);
     }
-
-    QFile file{filename};
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
