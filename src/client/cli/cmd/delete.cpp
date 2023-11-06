@@ -26,9 +26,9 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
-constexpr auto no_purge_base_error_msg =
-    "Snapshots can only be purged (after deletion, they cannot be recovered). Please use the `--purge` "
-    "flag if that is what you want";
+constexpr auto no_purge_base_error_msg = "Unable to query client for confirmation. Snapshots can only be purged (after "
+                                         "deletion, they cannot be recovered). Please use the `--purge` flag if that "
+                                         "is what you want";
 }
 
 mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
@@ -79,7 +79,12 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         if (reply.confirm_snapshot_purging())
         {
             DeleteRequest client_response;
-            client_response.set_purge_snapshots(true); // TODO@ricab
+
+            if (term->is_live())
+                client_response.set_purge_snapshots(true); // TODO@ricab
+            else
+                throw std::runtime_error{generate_snapshot_purge_msg()};
+
             client->Write(client_response);
         }
     };
@@ -144,4 +149,16 @@ mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
     }
 
     return mp::ParseCode::Ok;
+}
+
+std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
+{
+    if (!instance_args.empty())
+        return fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
+                           "instances without purging them:\n\n\tmultipass delete {}\n",
+                           no_purge_base_error_msg,
+                           snapshot_args,
+                           instance_args);
+    else
+        return fmt::format("{}.\n", no_purge_base_error_msg);
 }
