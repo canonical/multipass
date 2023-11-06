@@ -71,7 +71,20 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
-    return dispatch(&RpcMethod::delet, request, on_success, on_failure);
+    using Client = grpc::ClientReaderWriterInterface<DeleteRequest, DeleteReply>;
+    auto streaming_callback = [this](const mp::DeleteReply& reply, Client* client) {
+        if (!reply.log_line().empty())
+            cerr << reply.log_line();
+
+        if (reply.confirm_snapshot_purging())
+        {
+            DeleteRequest client_response;
+            client_response.set_purge_snapshots(true); // TODO@ricab
+            client->Write(client_response);
+        }
+    };
+
+    return dispatch(&RpcMethod::delet, request, on_success, on_failure, streaming_callback);
 }
 
 std::string cmd::Delete::name() const
@@ -146,19 +159,6 @@ mp::ParseCode cmd::Delete::enforce_purged_snapshots(std::string& instances,
                                                     bool instance_found,
                                                     bool snapshot_found)
 {
-    if (snapshot_found && !request.purge())
-    {
-        if (instance_found)
-            cerr << fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
-                                "instances without purging them:\n\n\tmultipass delete {}\n",
-                                no_purge_base_error_msg,
-                                snapshots,
-                                instances);
-        else
-            cerr << fmt::format("{}.\n", no_purge_base_error_msg);
-
-        return mp::ParseCode::CommandLineError;
-    }
 
     return mp::ParseCode::Ok;
 }
