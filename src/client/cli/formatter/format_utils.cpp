@@ -116,7 +116,7 @@ mp::FormatUtils::FormatUtils(const Singleton<FormatUtils>::PrivatePass& pass) no
 {
 }
 
-std::string mp::FormatUtils::convert_to_localtime(const google::protobuf::Timestamp& timestamp) const
+std::string mp::FormatUtils::convert_to_user_locale(const google::protobuf::Timestamp& timestamp) const
 {
     auto current_locale = std::locale();
     std::cout.imbue(std::locale::global(std::locale("")));

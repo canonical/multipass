@@ -66,7 +66,7 @@ class FormatUtils : public Singleton<FormatUtils>
 public:
     FormatUtils(const Singleton<FormatUtils>::PrivatePass&) noexcept;
 
-    virtual std::string convert_to_localtime(const google::protobuf::Timestamp& timestamp) const;
+    virtual std::string convert_to_user_locale(const google::protobuf::Timestamp& timestamp) const;
 };
 } // namespace multipass
 

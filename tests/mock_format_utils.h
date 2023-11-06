@@ -29,7 +29,7 @@ class MockFormatUtils : public FormatUtils
 public:
     using FormatUtils::FormatUtils;
 
-    MOCK_METHOD(std::string, convert_to_localtime, (const google::protobuf::Timestamp&), (const, override));
+    MOCK_METHOD(std::string, convert_to_user_locale, (const google::protobuf::Timestamp&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFormatUtils, FormatUtils);
 };

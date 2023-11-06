@@ -751,7 +751,7 @@ public:
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet"));
 
         // Timestamps in tests need to be in a consistent locale
-        EXPECT_CALL(mock_format_utils, convert_to_localtime(_)).WillRepeatedly([](const auto timestamp) {
+        EXPECT_CALL(mock_format_utils, convert_to_user_locale(_)).WillRepeatedly([](const auto timestamp) {
             return google::protobuf::util::TimeUtil::ToString(timestamp);
         });
     }
