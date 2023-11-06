@@ -118,12 +118,12 @@ std::string cn_name_from(const std::string& server_name)
     return server_name;
 }
 
-void set_san_name(X509 *c, std::string server_name)
+void set_san_name(X509* c, std::string server_name)
 {
     std::string san_dns = server_name;
-    GENERAL_NAMES *gens = sk_GENERAL_NAME_new_null();
-    GENERAL_NAME *gen = GENERAL_NAME_new();
-    ASN1_IA5STRING *ia5 = ASN1_IA5STRING_new();
+    GENERAL_NAMES* gens = sk_GENERAL_NAME_new_null();
+    GENERAL_NAME* gen = GENERAL_NAME_new();
+    ASN1_IA5STRING* ia5 = ASN1_IA5STRING_new();
     ASN1_STRING_set(ia5, san_dns.data(), san_dns.length());
     GENERAL_NAME_set0_value(gen, GEN_DNS, ia5);
     sk_GENERAL_NAME_push(gens, gen);
@@ -165,7 +165,6 @@ public:
         X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
         X509_set_issuer_name(x509.get(), name);
         set_san_name(x509.get(), server_name);
-        
 
         if (!X509_set_pubkey(x509.get(), key.get()))
             throw std::runtime_error("Failed to set certificate public key");
