@@ -133,32 +133,15 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 
 mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
 {
-    bool instance_found = false, snapshot_found = false;
-    std::string instances, snapshots;
     for (const auto& item : cmd::add_instance_and_snapshot_names(parser))
     {
         if (!item.has_snapshot_name())
-        {
-            instances.append(fmt::format("{} ", item.instance_name()));
-            instance_found = true;
-        }
+            instance_args.append(fmt::format("{} ", item.instance_name()));
         else
-        {
-            snapshots.append(fmt::format("{}.{} ", item.instance_name(), item.snapshot_name()));
-            snapshot_found = true;
-        }
+            snapshot_args.append(fmt::format("{}.{} ", item.instance_name(), item.snapshot_name()));
 
         request.add_instance_snapshot_pairs()->CopyFrom(item);
     }
-
-    return enforce_purged_snapshots(instances, snapshots, instance_found, snapshot_found);
-}
-
-mp::ParseCode cmd::Delete::enforce_purged_snapshots(std::string& instances,
-                                                    std::string& snapshots,
-                                                    bool instance_found,
-                                                    bool snapshot_found)
-{
 
     return mp::ParseCode::Ok;
 }
