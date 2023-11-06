@@ -1128,14 +1128,17 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
     return instance_snapshots_map;
 }
 
-void verify_snapshot_picks(const InstanceSelectionReport& report,
+bool verify_snapshot_picks(const InstanceSelectionReport& report,
                            const std::unordered_map<std::string, SnapshotPick>& snapshot_picks)
 {
+    auto any_snapshot = false;
     for (const auto* selection : {&report.deleted_selection, &report.operative_selection})
         for (const auto& vm_it : *selection)
             if (auto pick_it = snapshot_picks.find(vm_it->first); pick_it != snapshot_picks.end())
                 for (const auto& snapshot_name : pick_it->second.pick)
-                    vm_it->second->get_snapshot(snapshot_name); // throws if it doesn't exist
+                    any_snapshot = true, vm_it->second->get_snapshot(snapshot_name); // throws if missing
+
+    return any_snapshot;
 }
 
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container, const std::string& remote_name,
@@ -2228,10 +2231,27 @@ try // clang-format on
     if (status.ok())
     {
         const bool purge = request->purge();
+        bool purge_snapshots = request->purge_snapshots();
         auto instances_dirty = false;
 
         auto instance_snapshots_map = map_snapshots_to_instances(request->instance_snapshot_pairs());
-        verify_snapshot_picks(instance_selection, instance_snapshots_map); // avoid deleting if any snapshot is missing
+
+        // avoid deleting if any snapshot is missing or if we don't get confirmation
+        auto any_snapshot_args = verify_snapshot_picks(instance_selection, instance_snapshots_map);
+        if (any_snapshot_args && !purge && !purge_snapshots)
+        {
+            DeleteReply confirm_action{};
+            confirm_action.set_confirm_snapshot_purging(true);
+            // TODO@ricab refactor with restore
+            if (!server->Write(confirm_action))
+                throw std::runtime_error("Cannot request confirmation from client. Aborting...");
+            DeleteRequest client_response;
+            if (!server->Read(&client_response))
+                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
+
+            if (!(purge_snapshots = client_response.purge_snapshots()))
+                return status_promise->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
+        }
 
         // start with deleted instances, to avoid iterator invalidation when moving instances there
         for (const auto* selection : {&instance_selection.deleted_selection, &instance_selection.operative_selection})
@@ -2247,7 +2267,7 @@ try // clang-format on
                     instances_dirty |= delete_vm(vm_it, purge, response);
                 else // we're asked to delete snapshots
                 {
-                    assert(purge && "precondition: snapshots can only be purged");
+                    assert((purge || purge_snapshots) && "precondition: snapshots can only be purged");
 
                     for (const auto& snapshot_name : pick)
                         vm_it->second->delete_snapshot(snapshot_name);
