@@ -118,11 +118,15 @@ mp::FormatUtils::FormatUtils(const Singleton<FormatUtils>::PrivatePass& pass) no
 
 std::string mp::FormatUtils::convert_to_localtime(const google::protobuf::Timestamp& timestamp) const
 {
+    auto current_locale = std::locale();
+    std::cout.imbue(std::locale::global(std::locale("")));
+
     std::ostringstream oss;
     std::time_t t = google::protobuf::util::TimeUtil::TimestampToTimeT(timestamp);
 
-    // ISO 8601: YYYY-MM-DDThh:mm:ss±hhmm
-    oss << std::put_time(std::localtime(&t), "%FT%T%z");
+    oss << std::put_time(std::localtime(&t), "%c %Z");
+
+    std::locale::global(current_locale);
 
     return oss.str();
 }
