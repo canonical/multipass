@@ -71,7 +71,6 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
-    request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::delet, request, on_success, on_failure);
 }
 
@@ -112,6 +111,7 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
         return status;
 
     request.set_purge(parser->isSet(purge_option));
+    request.set_verbosity_level(parser->verbosityLevel());
 
     status = parse_instances_snapshots(parser);
 
