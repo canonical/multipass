@@ -15,13 +15,14 @@
  *
  */
 
+#include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/cli/formatter.h>
-
-#include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
+
+#include <sstream>
 
 namespace mp = multipass;
 
