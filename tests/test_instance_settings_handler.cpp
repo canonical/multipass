@@ -49,8 +49,12 @@ struct TestInstanceSettingsHandler : public Test
 {
     mp::InstanceSettingsHandler make_handler()
     {
-        return mp::InstanceSettingsHandler{
-            specs, vms, deleted_vms, preparing_vms, make_fake_persister(), make_fake_bridged_interface()};
+        return mp::InstanceSettingsHandler{specs,
+                                           vms,
+                                           deleted_vms,
+                                           preparing_vms,
+                                           make_fake_persister(),
+                                           make_fake_bridged_interface()};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)
@@ -219,7 +223,8 @@ TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
     EXPECT_EQ(got, bridged ? "true" : "false");
 }
 
-INSTANTIATE_TEST_SUITE_P(getFetchesBridged, TestBridgedInstanceSettings,
+INSTANTIATE_TEST_SUITE_P(getFetchesBridged,
+                         TestBridgedInstanceSettings,
                          Values(std::make_pair("eth8", true), std::make_pair("eth9", false)));
 
 TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState)
@@ -531,7 +536,8 @@ TEST_P(TestInstanceModOnStoppedInstance, setWorksOnOtherStates)
     EXPECT_THAT(props, Contains(QString{val}.toLongLong()));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceModOnStoppedInstance,
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
+                         TestInstanceModOnStoppedInstance,
                          Combine(ValuesIn(TestInstanceSettingsHandler::numeric_properties),
                                  Values(VMSt::off, VMSt::stopped)));
 
@@ -552,7 +558,8 @@ TEST_P(TestInstanceModPersists, setPersistsInstances)
     EXPECT_TRUE(fake_persister_called);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceModPersists,
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
+                         TestInstanceModPersists,
                          ValuesIn(TestInstanceSettingsHandler::numeric_properties));
 
 TEST_F(TestInstanceSettingsHandler, setRefusesToModifyInstancesInSpecialState)
@@ -631,10 +638,24 @@ TEST_P(TestInstanceSettingsHandlerBadNumericValues, setRefusesBadNumericValues)
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandlerBadNumericValues,
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
+                         TestInstanceSettingsHandlerBadNumericValues,
                          Combine(ValuesIn(TestInstanceSettingsHandler::numeric_properties),
-                                 Values("0", "2u", "1.5f", "2.0", "0xa", "0x8", "-4", "-1", "rubbish", "  123nonsense ",
-                                        "¤9", "\n", "\t", "^", "")));
+                                 Values("0",
+                                        "2u",
+                                        "1.5f",
+                                        "2.0",
+                                        "0xa",
+                                        "0x8",
+                                        "-4",
+                                        "-1",
+                                        "rubbish",
+                                        "  123nonsense ",
+                                        "¤9",
+                                        "\n",
+                                        "\t",
+                                        "^",
+                                        "")));
 
 struct TestInstanceSettingsHandlerBadBooleanValues : public TestInstanceSettingsHandler,
                                                      public WithParamInterface<PropertyValue>
@@ -656,7 +677,8 @@ TEST_P(TestInstanceSettingsHandlerBadBooleanValues, setRefusesBadBooleanValues)
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceSettingsHandlerBadBooleanValues,
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
+                         TestInstanceSettingsHandlerBadBooleanValues,
                          Combine(ValuesIn(TestInstanceSettingsHandler::boolean_properties),
                                  Values("apostrophe", "(')", "1974")));
 } // namespace

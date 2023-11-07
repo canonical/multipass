@@ -198,7 +198,8 @@ TEST_P(BridgePrompterTests, correctlyReturns)
     EXPECT_EQ(prompter.bridge_prompt(nets), ret);
 }
 
-INSTANTIATE_TEST_SUITE_P(CLIPrompters, BridgePrompterTests,
+INSTANTIATE_TEST_SUITE_P(CLIPrompters,
+                         BridgePrompterTests,
                          Values(std::make_tuple(std::vector<std::string>{"eth1"}, "yes", true),
                                 std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "y", true),
                                 std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "no", false),
