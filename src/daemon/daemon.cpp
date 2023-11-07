@@ -2242,7 +2242,8 @@ try // clang-format on
         {
             DeleteReply confirm_action{};
             confirm_action.set_confirm_snapshot_purging(true);
-            // TODO@ricab refactor with restore
+
+            // TODO refactor with bridging and restore prompts
             if (!server->Write(confirm_action))
                 throw std::runtime_error("Cannot request confirmation from client. Aborting...");
             DeleteRequest client_response;

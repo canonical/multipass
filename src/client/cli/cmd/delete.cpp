@@ -75,12 +75,13 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         if (!reply.log_line().empty())
             cerr << reply.log_line();
 
+        // TODO refactor with bridging and restore prompts
         if (reply.confirm_snapshot_purging())
         {
             DeleteRequest client_response;
 
             if (term->is_live())
-                client_response.set_purge_snapshots(confirm_snapshot_purge()); // TODO@ricab
+                client_response.set_purge_snapshots(confirm_snapshot_purge());
             else
                 throw std::runtime_error{generate_snapshot_purge_msg()};
 
@@ -150,7 +151,7 @@ mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
     return mp::ParseCode::Ok;
 }
 
-// TODO@ricab refactor with restore and networks
+// TODO refactor with bridging and restore prompts
 bool multipass::cmd::Delete::confirm_snapshot_purge() const
 {
     static constexpr auto prompt_text = "{}. Are you sure you want to continue? (Yes/no)";
