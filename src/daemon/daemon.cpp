@@ -2263,15 +2263,13 @@ try // clang-format on
                 auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
                 const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end() ? SnapshotPick{{}, true}
                                                                                            : snapshot_pick_it->second;
-                if (all) // we're asked to delete the VM
-                    instances_dirty |= delete_vm(vm_it, purge, response);
-                else // we're asked to delete snapshots
-                {
-                    assert((purge || purge_snapshots) && "precondition: snapshots can only be purged");
 
+                if (!all || !purge) // if we're not purging the instance, we need to delete specified snapshots
                     for (const auto& snapshot_name : pick)
                         vm_it->second->delete_snapshot(snapshot_name);
-                }
+
+                if (all) // we're asked to delete the VM
+                    instances_dirty |= delete_vm(vm_it, purge, response);
             }
         }
 
