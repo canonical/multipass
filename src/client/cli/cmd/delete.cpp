@@ -27,11 +27,7 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
-// TODO@ricab unduplicate
 constexpr auto snapshot_purge_notice_msg = "Snapshots can only be purged (after deletion, they cannot be recovered)";
-constexpr auto no_purge_base_error_msg = "Unable to query client for confirmation. Snapshots can only be purged (after "
-                                         "deletion, they cannot be recovered). Please use the `--purge` flag if that "
-                                         "is what you want";
 }
 
 mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
@@ -170,6 +166,10 @@ bool multipass::cmd::Delete::confirm_snapshot_purge() const
 
 std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
 {
+    const auto no_purge_base_error_msg = fmt::format("Unable to query client for confirmation. {}. Please use the "
+                                                     "`--purge` flag if that is what you want",
+                                                     snapshot_purge_notice_msg);
+
     if (!instance_args.empty())
         return fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
                            "instances without purging them:\n\n\tmultipass delete {}\n",
