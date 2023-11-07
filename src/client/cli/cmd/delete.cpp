@@ -166,7 +166,7 @@ bool multipass::cmd::Delete::confirm_snapshot_purge() const
 
 std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
 {
-    const auto no_purge_base_error_msg = fmt::format("Unable to query client for confirmation. {}. Please use the "
+    const auto no_purge_base_error_msg = fmt::format("{}. Unable to query client for confirmation. Please use the "
                                                      "`--purge` flag if that is what you want",
                                                      snapshot_purge_notice_msg);
 
