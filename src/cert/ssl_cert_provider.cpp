@@ -118,7 +118,7 @@ std::string cn_name_from(const std::string& server_name)
     return server_name;
 }
 
-void set_san_name(X509* c, std::string server_name)
+void set_san_name(X509* c, const std::string& server_name)
 {
     std::string san_dns = server_name;
     GENERAL_NAMES* gens = sk_GENERAL_NAME_new_null();
