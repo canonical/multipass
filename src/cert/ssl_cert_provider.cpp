@@ -172,6 +172,7 @@ public:
         if (!X509_sign(x509.get(), key.get(), EVP_sha256()))
             throw std::runtime_error("Failed to sign certificate");
     }
+
     std::string as_pem()
     {
         mp::BIOMem mem;
