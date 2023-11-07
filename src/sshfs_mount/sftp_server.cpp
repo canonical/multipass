@@ -950,18 +950,18 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         attr = attr_from(file_info);
     }
 
-    if ((attr.uid != 0 && msg->attr->uid == 0) || (attr.gid != 0 && msg->attr->gid == 0))
-    {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: permission denied: cannot modify path \'{}\' without reverse mapping for root",
-                             __FUNCTION__,
-                             filename));
-        return reply_perm_denied(msg);
-    }
-
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
+        if ((attr.uid == 0 && reverse_uid_for(attr.uid) == -1) || (attr.gid == 0 && reverse_gid_for(attr.gid) == -1))
+        {
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: cannot resize \'{}\' without reverse mapping for root: permission denied",
+                                 __FUNCTION__,
+                                 filename));
+            return reply_perm_denied(msg);
+        }
+
         if (!MP_FILEOPS.resize(file, msg->attr->size))
         {
             mpl::log(mpl::Level::trace, category, fmt::format("{}: cannot resize \'{}\'", __FUNCTION__, filename));
@@ -971,6 +971,17 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
     {
+        if ((attr.uid == 0 && reverse_uid_for(attr.uid) == -1) || (attr.gid == 0 && reverse_gid_for(attr.gid) == -1))
+        {
+            mpl::log(
+                mpl::Level::trace,
+                category,
+                fmt::format("{}: cannot set permissions for \'{}\' without reverse mapping for root: permission denied",
+                            __FUNCTION__,
+                            filename));
+            return reply_perm_denied(msg);
+        }
+
         if (!MP_FILEOPS.setPermissions(file, to_qt_permissions(msg->attr->permissions)))
         {
             mpl::log(mpl::Level::trace, category,
@@ -981,6 +992,18 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
     {
+        if ((attr.uid == 0 && reverse_uid_for(attr.uid) == -1) || (attr.gid == 0 && reverse_gid_for(attr.gid) == -1))
+        {
+            mpl::log(
+                mpl::Level::trace,
+                category,
+                fmt::format(
+                    "{}: cannot set modification date for \'{}\' without reverse mapping for root: permission denied",
+                    __FUNCTION__,
+                    filename));
+            return reply_perm_denied(msg);
+        }
+
         if (MP_PLATFORM.utime(filename.toStdString().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
         {
             mpl::log(mpl::Level::trace, category,
@@ -989,13 +1012,29 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    if ((msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID) &&
-        (MP_PLATFORM.chown(filename.toStdString().c_str(), reverse_uid_for(msg->attr->uid, msg->attr->uid),
-                           reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0))
+    if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        mpl::log(mpl::Level::trace, category,
-                 fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
-        return reply_failure(msg);
+        if ((msg->attr->uid == 0 && reverse_uid_for(attr.uid) == -1) ||
+            (msg->attr->gid == 0 && reverse_gid_for(attr.gid) == -1))
+        {
+            mpl::log(
+                mpl::Level::trace,
+                category,
+                fmt::format("{}: permission denied: cannot set ownership for \'{}\' without reverse mapping for root",
+                            __FUNCTION__,
+                            filename));
+            return reply_perm_denied(msg);
+        }
+
+        if (MP_PLATFORM.chown(filename.toStdString().c_str(),
+                              reverse_uid_for(msg->attr->uid, msg->attr->uid),
+                              reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
+        {
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: cannot set ownership for \'{}\'", __FUNCTION__, filename));
+            return reply_failure(msg);
+        }
     }
 
     return reply_ok(msg);
