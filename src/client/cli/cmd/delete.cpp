@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/prompters.h>
 #include <multipass/platform.h>
 
 namespace mp = multipass;
@@ -26,6 +27,8 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
+// TODO@ricab unduplicate
+constexpr auto snapshot_purge_notice_msg = "Snapshots can only be purged (after deletion, they cannot be recovered)";
 constexpr auto no_purge_base_error_msg = "Unable to query client for confirmation. Snapshots can only be purged (after "
                                          "deletion, they cannot be recovered). Please use the `--purge` flag if that "
                                          "is what you want";
@@ -81,7 +84,7 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
             DeleteRequest client_response;
 
             if (term->is_live())
-                client_response.set_purge_snapshots(true); // TODO@ricab
+                client_response.set_purge_snapshots(confirm_snapshot_purge()); // TODO@ricab
             else
                 throw std::runtime_error{generate_snapshot_purge_msg()};
 
@@ -149,6 +152,20 @@ mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
     }
 
     return mp::ParseCode::Ok;
+}
+
+// TODO@ricab refactor with restore and networks
+bool multipass::cmd::Delete::confirm_snapshot_purge() const
+{
+    static constexpr auto prompt_text = "{}. Are you sure you want to continue? (Yes/no)";
+    static constexpr auto invalid_input = "Please answer Yes/no";
+    mp::PlainPrompter prompter{term};
+
+    auto answer = prompter.prompt(fmt::format(prompt_text, snapshot_purge_notice_msg));
+    while (!answer.empty() && !std::regex_match(answer, yes_answer) && !std::regex_match(answer, no_answer))
+        answer = prompter.prompt(invalid_input);
+
+    return std::regex_match(answer, yes_answer);
 }
 
 std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const

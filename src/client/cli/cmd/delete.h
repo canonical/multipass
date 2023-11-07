@@ -49,6 +49,7 @@ private:
     ParseCode parse_args(ArgParser* parser);
     ParseCode parse_instances_snapshots(ArgParser* parser);
     std::string generate_snapshot_purge_msg() const;
+    bool confirm_snapshot_purge() const;
 };
 } // namespace cmd
 } // namespace multipass
