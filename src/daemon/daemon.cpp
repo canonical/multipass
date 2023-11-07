@@ -1841,7 +1841,7 @@ try // clang-format on
     auto cmd = request->snapshots() ? std::function(fetch_snapshot) : std::function(fetch_instance);
 
     auto status = cmd_vms(select_all(operative_instances), cmd);
-    if (status.ok() && !request->snapshots())
+    if (status.ok())
     {
         deleted = true;
         status = cmd_vms(select_all(deleted_instances), cmd);
