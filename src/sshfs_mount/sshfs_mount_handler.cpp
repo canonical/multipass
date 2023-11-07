@@ -135,9 +135,12 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
 bool SSHFSMountHandler::is_active()
 try
 {
+    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+
+    const auto resolved_target = mp::utils::get_resolved_target(session, target);
+
     return active && process && process->running() &&
-           !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
-                .exec(fmt::format("findmnt --type fuse.sshfs | grep '{} :{}'", target, source))
+           !session.exec(fmt::format("findmnt --type fuse.sshfs | grep -E '^{} +:{}'", resolved_target, source))
                 .exit_code();
 }
 catch (const std::exception& e)
