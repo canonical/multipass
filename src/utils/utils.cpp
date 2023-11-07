@@ -638,8 +638,7 @@ std::string mp::utils::emit_cloud_config(const YAML::Node& node)
     return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
 }
 
-// Split a path into existing and to-be-created parts.
-std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& session, const std::string& target)
+std::string mp::utils::get_resolved_target(mp::SSHSession& session, const std::string& target)
 {
     std::string absolute;
 
@@ -657,6 +656,14 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
             mp::utils::run_in_ssh_session(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
         break;
     }
+
+    return absolute;
+}
+
+// Split a path into existing and to-be-created parts.
+std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& session, const std::string& target)
+{
+    std::string absolute{get_resolved_target(session, target)};
 
     std::string existing = mp::utils::run_in_ssh_session(
         session, fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
