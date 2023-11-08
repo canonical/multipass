@@ -24,6 +24,7 @@
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 #include <QFile>
 
@@ -117,6 +118,21 @@ std::string cn_name_from(const std::string& server_name)
     return server_name;
 }
 
+void set_san_name(X509* c, const std::string& server_name)
+{
+    std::string san_dns = server_name;
+    GENERAL_NAMES* gens = sk_GENERAL_NAME_new_null();
+    GENERAL_NAME* gen = GENERAL_NAME_new();
+    ASN1_IA5STRING* ia5 = ASN1_IA5STRING_new();
+    ASN1_STRING_set(ia5, san_dns.data(), san_dns.length());
+    GENERAL_NAME_set0_value(gen, GEN_DNS, ia5);
+    sk_GENERAL_NAME_push(gens, gen);
+
+    X509_add1_ext_i2d(c, NID_subject_alt_name, gens, 0, X509V3_ADD_DEFAULT);
+
+    GENERAL_NAMES_free(gens);
+}
+
 class X509Cert
 {
 public:
@@ -129,6 +145,8 @@ public:
         auto rand_bytes = MP_UTILS.random_bytes(4);
         for (unsigned int i = 0; i < 4u; i++)
             big_num |= rand_bytes[i] << i * 8u;
+
+        X509_set_version(x509.get(), 2);
 
         ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), big_num);
         X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
@@ -146,6 +164,7 @@ public:
         X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, org.data(), org.size(), APPEND_ENTRY, ADD_RDN);
         X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
         X509_set_issuer_name(x509.get(), name);
+        set_san_name(x509.get(), server_name);
 
         if (!X509_set_pubkey(x509.get(), key.get()))
             throw std::runtime_error("Failed to set certificate public key");
