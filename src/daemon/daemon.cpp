@@ -1131,8 +1131,8 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
 void verify_snapshot_picks(const InstanceSelectionReport& report,
                            const std::unordered_map<std::string, SnapshotPick>& snapshot_picks)
 {
-    for (const auto& selection : {report.deleted_selection, report.operative_selection})
-        for (const auto& vm_it : selection)
+    for (const auto* selection : {&report.deleted_selection, &report.operative_selection})
+        for (const auto& vm_it : *selection)
             if (auto pick_it = snapshot_picks.find(vm_it->first); pick_it != snapshot_picks.end())
                 for (const auto& snapshot_name : pick_it->second.pick)
                     vm_it->second->get_snapshot(snapshot_name); // throws if it doesn't exist
@@ -2234,9 +2234,9 @@ try // clang-format on
         verify_snapshot_picks(instance_selection, instance_snapshots_map); // avoid deleting if any snapshot is missing
 
         // start with deleted instances, to avoid iterator invalidation when moving instances there
-        for (const auto& selection : {instance_selection.deleted_selection, instance_selection.operative_selection})
+        for (const auto* selection : {&instance_selection.deleted_selection, &instance_selection.operative_selection})
         {
-            for (const auto& vm_it : selection)
+            for (const auto& vm_it : *selection)
             {
                 const auto& instance_name = vm_it->first;
 

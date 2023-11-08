@@ -96,7 +96,7 @@ std::set<QString> mp::SnapshotSettingsHandler::keys() const
     for (const auto* instance_map : {&const_operative_instances, &deleted_instances})
         for (const auto& [vm_name, vm] : *instance_map)
             for (const auto& snapshot : vm->view_snapshots())
-                for (const auto& suffix : {name_suffix, comment_suffix})
+                for (const auto* suffix : {name_suffix, comment_suffix})
                     ret.insert(key_template.arg(vm_name.c_str(), snapshot->get_name().c_str(), suffix));
 
     return ret;
