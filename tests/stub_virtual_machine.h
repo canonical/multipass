@@ -119,6 +119,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
+    void add_network_interface(int, const NetworkInterface&) override
+    {
+    }
+
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider*,
                                                             const std::string&,
                                                             const VMMount&) override
