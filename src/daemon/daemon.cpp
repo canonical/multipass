@@ -1133,6 +1133,7 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
                            bool purge)
 {
     auto any_snapshot = false;
+    std::vector<std::string> snapshots_of_deleted_instances{};
     for (const auto* selection : {&report.deleted_selection, &report.operative_selection})
     {
         for (const auto& vm_it : *selection)
@@ -1142,15 +1143,18 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
                 for (const auto& snapshot_name : pick_it->second.pick)
                 {
                     if (selection == &report.deleted_selection && (!pick_it->second.all_or_none || !purge))
-                        throw std::runtime_error{fmt::format("Cannot delete snapshot {}.{}: instance is deleted",
-                                                             vm_it->first,
-                                                             snapshot_name)};
+                        snapshots_of_deleted_instances.push_back(fmt::format("{}.{}", vm_it->first, snapshot_name));
 
                     vm_it->second->get_snapshot(snapshot_name); // throws if missing
                     any_snapshot = true;
                 }
             }
         }
+
+        if (snapshots_of_deleted_instances.size())
+            throw std::runtime_error{fmt::format(
+                "Cannot delete snapshots of deleted instances: {}",
+                fmt::join(snapshots_of_deleted_instances.begin(), snapshots_of_deleted_instances.end(), ", "))};
     }
 
     return any_snapshot;
