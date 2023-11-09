@@ -415,6 +415,19 @@ auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
     }
 }
 
+std::string get_bridged_interface_name()
+{
+    const auto bridged_id = MP_SETTINGS.get(mp::bridged_interface_key);
+
+    if (bridged_id == "")
+    {
+        throw std::runtime_error(fmt::format("You have to `multipass set {}=<name>` to use the \"bridged\" shortcut.",
+                                             mp::bridged_interface_key));
+    }
+
+    return bridged_id.toStdString();
+}
+
 std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
                                                             const mp::VirtualMachineFactory& factory,
                                                             std::vector<std::string>& nets_need_bridging,
@@ -1197,13 +1210,15 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            InstanceTable& operative_instances,
                                            const InstanceTable& deleted_instances,
                                            const std::unordered_set<std::string>& preparing_instances,
-                                           std::function<void()> instance_persister)
+                                           std::function<void()> instance_persister,
+                                           std::function<std::string()> bridged_interface)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
                                                                                       operative_instances,
                                                                                       deleted_instances,
                                                                                       preparing_instances,
-                                                                                      std::move(instance_persister)));
+                                                                                      std::move(instance_persister),
+                                                                                      std::move(bridged_interface)));
 }
 
 mp::SettingsHandler* register_snapshot_mod(
@@ -1340,7 +1355,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                                  operative_instances,
                                                  deleted_instances,
                                                  preparing_instances,
-                                                 [this] { persist_instances(); })},
+                                                 [this] { persist_instances(); },
+                                                 get_bridged_interface_name)},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
