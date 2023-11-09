@@ -397,11 +397,10 @@ TEST_F(HyperVNetworksPS, joinsSwitchesAndAdapters)
 {
     ps_helper.mock_ps_exec("switch,External, a switch,\n");
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(network_map_from_vector({{"wlan", "wifi", "wireless"}, {"eth", "ethernet", "wired"}})));
+        .WillOnce(Return(network_map_from_vector({{"eth", "ethernet", "wired"}})));
 
     auto got_nets = backend.networks();
-    EXPECT_THAT(got_nets, SizeIs(3));
-    EXPECT_THAT(got_nets, Contains(Field(&mp::NetworkInterfaceInfo::type, Eq("wifi"))));
+    EXPECT_THAT(got_nets, SizeIs(2));
     EXPECT_THAT(got_nets, Contains(Field(&mp::NetworkInterfaceInfo::type, Eq("switch"))));
     EXPECT_THAT(got_nets, Contains(Field(&mp::NetworkInterfaceInfo::type, Eq("ethernet"))));
 }
@@ -525,19 +524,17 @@ TEST_F(HyperVNetworksPS, handlesUnknownSwitchTypes)
 TEST_F(HyperVNetworksPS, includesSwitchLinksToKnownAdapters)
 {
     mp::NetworkInterfaceInfo net_a{"a", "ethernet", "an a a aaa"};
-    mp::NetworkInterfaceInfo net_b{"b", "wifi", "a bbb b b"};
     mp::NetworkInterfaceInfo net_c{"c", "ethernet", "a c cc cc"};
 
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(network_map_from_vector({net_a, net_b, net_c})));
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(
-        "switch_{},external,{},\nswitch_{},external,{},", net_b.id, net_b.description, net_c.id, net_c.description)));
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net_a, net_c})));
+    ps_helper.mock_ps_exec(
+        QByteArray::fromStdString(fmt::format("switch_{},external,{},", net_c.id, net_c.description)));
 
     auto match = [](const auto& expect_link) {
         return AllOf(Field(&mp::NetworkInterfaceInfo::id, EndsWith(expect_link)),
                      Field(&mp::NetworkInterfaceInfo::links, ElementsAre(expect_link)));
     };
-    EXPECT_THAT(backend.networks(), IsSupersetOf({match(net_b.id), match(net_c.id)}));
+    EXPECT_THAT(backend.networks(), IsSupersetOf({match(net_c.id)}));
 }
 
 struct TestSwitchUnsupportedLinks : public HyperVNetworksPS,
@@ -575,20 +572,17 @@ INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestSwitchUnsupportedLinks,
 
 TEST_F(HyperVNetworksPS, includesSupportedAdapterInExternalSwitchDescription)
 {
-    mp::NetworkInterfaceInfo wifi{"wlan", "wifi", "A Wifi NIC"};
     mp::NetworkInterfaceInfo eth{"Ethernet", "ethernet", "An Ethernet NIC"};
     mp::NetworkInterfaceInfo other{"Quantumwire", "quantum wire", "Future tech"};
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(network_map_from_vector({wifi, eth, other})));
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({eth, other})));
 
     auto match = [](const auto& expect_link) {
         return Field(&mp::NetworkInterfaceInfo::description,
                      AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(expect_link)));
     };
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(
-        fmt::format("some switch,external,{},\nanother,external,{},", eth.description, wifi.description)));
-    EXPECT_THAT(backend.networks(), IsSupersetOf({match(wifi.id), match(eth.id)}));
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,external,{},\n", eth.description)));
+    EXPECT_THAT(backend.networks(), IsSupersetOf({match(eth.id)}));
 }
 
 TEST_F(HyperVNetworksPS, includesExistingNotesInSwitchDescription)
@@ -648,11 +642,10 @@ TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForSwitches)
                                      Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
 }
 
-INSTANTIATE_TEST_SUITE_P(HyperVNetworkPS, TestAdapterAuthorization,
+INSTANTIATE_TEST_SUITE_P(HyperVNetworkPS,
+                         TestAdapterAuthorization,
                          Values(mp::NetworkInterfaceInfo{"abc", "ethernet", "An adapter", {}, false},
-                                mp::NetworkInterfaceInfo{"def", "wifi", "Another adapter", {}, true},
-                                mp::NetworkInterfaceInfo{"ghi", "ethernet", "Yet another", {"x", "y", "z"}, false},
-                                mp::NetworkInterfaceInfo{"jkl", "wifi", "And a final one", {"w"}, true}));
+                                mp::NetworkInterfaceInfo{"ghi", "ethernet", "Yet another", {"x", "y", "z"}, false}));
 
 TEST_F(HyperVNetworksPS, getSwitchesReturnsEmptyWhenNoSwitchesFound)
 {
@@ -687,7 +680,7 @@ TEST_F(HyperVNetworksPS, getSwitchesReturnsOnlySwitches)
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({}), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 
-TEST_F(HyperVNetworks, getAdaptersReturnsEthernetAndWifi)
+TEST_F(HyperVNetworks, getAdaptersReturnsEthernetAndNoWifi)
 {
     mp::NetworkInterfaceInfo strange{"strange", "strangewire", "waka waka"};
     mp::NetworkInterfaceInfo weird{"weird", "future tech", "wika wika"};
@@ -695,22 +688,24 @@ TEST_F(HyperVNetworks, getAdaptersReturnsEthernetAndWifi)
     mp::NetworkInterfaceInfo eth1{"eth1", "ethernet", "ethththth"};
     mp::NetworkInterfaceInfo eth2{"eth2", "ethernet", "ethththth"};
     mp::NetworkInterfaceInfo wifi1{"wireless1", "wifi", "wiiiiiii"};
-    mp::NetworkInterfaceInfo wifi2{"wireless2", "wifi", "wiiiiiii"};
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(network_map_from_vector({strange, eth1, unknown, wifi1, eth2, weird, wifi2})));
+        .WillOnce(Return(network_map_from_vector({strange, eth1, unknown, eth2, weird})));
 
     auto got_nets = mpt::HyperVNetworkAccessor::get_adapters();
-    EXPECT_EQ(got_nets.size(), 4);
+    EXPECT_EQ(got_nets.size(), 2);
 
     auto same_net = [](const mp::NetworkInterfaceInfo& a, const mp::NetworkInterfaceInfo& b) {
         return make_tuple(a.id, a.type, a.description) == make_tuple(b.id, b.type, b.description);
     };
 
-    for (const auto& expected_net : {eth1, eth2, wifi1, wifi2})
+    for (const auto& expected_net : {eth1, eth2})
         EXPECT_TRUE(std::any_of(got_nets.begin(), got_nets.end(), [&expected_net, &same_net](const auto& got_net) {
             return same_net(got_net, expected_net);
         }));
+
+    for (const auto& got_net : got_nets)
+        EXPECT_FALSE(same_net(got_net, wifi1));
 }
 
 } // namespace
