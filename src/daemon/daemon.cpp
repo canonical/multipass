@@ -3448,7 +3448,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                         mpu::run_in_ssh_session(session, command);
                     }
                 }
-                catch (const std::runtime_error&) // In case there is an error executing the command, report it.
+                catch (const mp::SSHExecFailure&) // In case there is an error executing the command, report it.
                 {
                     // Currently, the only use of running commands at boot is to configure networks. For this reason,
                     // the warning shown here refers to that use. In the future, in case of using the feature for other
@@ -3457,11 +3457,19 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                     if (!warned_exec_failure)
                     {
                         add_fmt_to(warnings,
-                                   "failure configuring network interfaces in {}, you can still do it manually.\n",
+                                   "Failure configuring network interfaces in {}: is Netplan installed?\n"
+                                   "You can still configure them manually.\n",
                                    name);
                     }
 
                     warned_exec_failure = true;
+                }
+                catch (const SSHException&) // The SSH session could not be created.
+                {
+                    add_fmt_to(warnings,
+                               "Cannot create a SSH shell to execute commands on {}, you can configure new\n"
+                               "interfaces manually via Netplan once logged to the instance.\n",
+                               name);
                 }
 
                 run_at_boot.erase(name);
