@@ -171,7 +171,7 @@ private:
                                VirtualMachine* vm);
 
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
-    void configure_new_interfaces(VirtualMachine& vm, VMSpecs& specs);
+    void configure_new_interfaces(const std::string& name, VirtualMachine& vm, VMSpecs& specs);
 
     struct AsyncOperationStatus
     {
@@ -218,6 +218,7 @@ private:
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
+    std::unordered_map<std::string, std::vector<std::string>> run_at_boot;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H
