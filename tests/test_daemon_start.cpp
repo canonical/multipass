@@ -81,6 +81,35 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     EXPECT_TRUE(status.ok());
 }
 
+TEST_F(TestDaemonStart, startConfiguresInterfaces)
+{
+    std::vector<mp::NetworkInterface> unconfigured{{"eth7", "", true}};
+    auto mock_factory = use_a_mock_vm_factory();
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, unconfigured));
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, wait_until_ssh_up(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*instance_ptr, start()).Times(1);
+    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(1);
+
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::StartRequest request;
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
+
+    EXPECT_TRUE(status.ok());
+}
+
 TEST_F(TestDaemonStart, unknownStateDoesNotStart)
 {
     auto mock_factory = use_a_mock_vm_factory();
