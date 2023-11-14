@@ -2867,6 +2867,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                  fmt::format("dest_instance_data_directory value is : {}", dest_instance_data_directory.string()));
 
         CloneReply rpc_response;
+        rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
         server->Write(rpc_response);
         status_promise->set_value(grpc::Status::OK);
     }
