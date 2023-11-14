@@ -64,7 +64,7 @@ mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 {
     parser->addPositionalArgument("source_name", "The name of the source virtual machine instance", "<source_name>");
     parser->addPositionalArgument("target_name",
-                                  "An optional value for specifying the The name of cloned virtual machine ",
+                                  "An optional value for specifying the name of the cloned virtual machine ",
                                   "[<target_name>]");
 
     const auto status = parser->commandParse(this);
