@@ -197,4 +197,20 @@ TEST_P(TestSnapshotInvalidCores, rejects_invalid_number_of_cores)
 
 INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotInvalidCores, Values(0, -1, -12345, -3e9));
 
+TEST_F(TestBaseSnapshot, rejects_null_memory_size)
+{
+    specs.mem_size = mp::MemorySize{"0B"};
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Invalid memory size")));
+}
+
+TEST_F(TestBaseSnapshot, rejects_null_disk_size)
+{
+    specs.disk_space = mp::MemorySize{"0B"};
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Invalid disk size")));
+}
+
 } // namespace
