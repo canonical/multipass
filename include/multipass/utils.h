@@ -79,6 +79,7 @@ void remove_directories(const std::vector<QString>& dirs);
 void make_target_dir(SSHSession& session, const std::string& root, const std::string& relative_target);
 void set_owner_for(SSHSession& session, const std::string& root, const std::string& relative_target, int vm_user,
                    int vm_group);
+std::string get_resolved_target(SSHSession& session, const std::string& target);
 std::pair<std::string, std::string> get_path_split(SSHSession& session, const std::string& target);
 
 // special-file helpers
