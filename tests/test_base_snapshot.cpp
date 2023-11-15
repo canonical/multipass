@@ -161,4 +161,26 @@ TEST_F(TestBaseSnapshot, adopts_current_timestamp)
     EXPECT_LE(snapshot.get_creation_timestamp(), after);
 }
 
+class TestSnapshotRejectedStates : public TestBaseSnapshot, public WithParamInterface<mp::VirtualMachine::State>
+{
+};
+
+TEST_P(TestSnapshotRejectedStates, rejects_active_state)
+{
+    specs.state = GetParam();
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Unsupported VM state")));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
+                         TestSnapshotRejectedStates,
+                         Values(mp::VirtualMachine::State::starting,
+                                mp::VirtualMachine::State::restarting,
+                                mp::VirtualMachine::State::running,
+                                mp::VirtualMachine::State::delayed_shutdown,
+                                mp::VirtualMachine::State::suspending,
+                                mp::VirtualMachine::State::suspended,
+                                mp::VirtualMachine::State::unknown));
+
 } // namespace
