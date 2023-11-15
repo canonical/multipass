@@ -24,6 +24,9 @@
 #include <multipass/vm_specs.h>
 #include <shared/base_snapshot.h>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -53,6 +56,39 @@ struct TestBaseSnapshot : public Test
         ret.default_mac_address = "12:12:12:12:12:12";
 
         return ret;
+    }
+
+    static QJsonObject test_snapshot_json()
+    {
+        static auto json_doc = [] {
+            QJsonParseError parse_error{};
+            const auto ret = QJsonDocument::fromJson(mpt::load_test_file(test_json_filename), &parse_error);
+            if (parse_error.error)
+                throw std::runtime_error{
+                    fmt::format("Bad JSON test data in {}; error: {}", test_json_filename, parse_error.errorString())};
+            return ret;
+        }();
+
+        return json_doc.object();
+    }
+
+    static void mod_snapshot_json(QJsonObject& json, const QString& key, QJsonValue new_value)
+    {
+        const auto snapshot_key = QStringLiteral("snapshot");
+        auto snapshot_json_ref = json[snapshot_key];
+        auto snapshot_json_copy = snapshot_json_ref.toObject();
+        snapshot_json_copy[key] = std::move(new_value);
+        snapshot_json_ref = std::move(snapshot_json_copy);
+    }
+
+    QString plant_snapshot_json(const QJsonObject& object, const QString& filename = "snapshot.json") const
+    {
+        const auto file_path = vm.tmp_dir->filePath(filename);
+
+        QJsonDocument doc{object};
+        mpt::make_file_with_content(file_path, doc.toJson().toStdString());
+
+        return file_path;
     }
 
     static constexpr auto* test_json_filename = "test_snapshot.json";
@@ -218,6 +254,16 @@ TEST_F(TestBaseSnapshot, rejects_null_disk_size)
 TEST_F(TestBaseSnapshot, reconstructs_from_json)
 {
     MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
+}
+
+TEST_F(TestBaseSnapshot, adopts_name_from_json)
+{
+    constexpr auto* snapshot_name = "cheeseball";
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "name", snapshot_name);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_name(), snapshot_name);
 }
 
 } // namespace
