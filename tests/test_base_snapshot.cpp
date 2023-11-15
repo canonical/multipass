@@ -266,4 +266,14 @@ TEST_F(TestBaseSnapshot, adopts_name_from_json)
     EXPECT_EQ(snapshot.get_name(), snapshot_name);
 }
 
+TEST_F(TestBaseSnapshot, adopts_comment_from_json)
+{
+    constexpr auto* snapshot_comment = "Look behind you, a three-headed monkey!";
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "comment", snapshot_comment);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_comment(), snapshot_comment);
+}
+
 } // namespace
