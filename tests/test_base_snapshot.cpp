@@ -16,7 +16,9 @@
  */
 
 #include "common.h"
+#include "file_operations.h"
 #include "mock_virtual_machine.h"
+#include "path.h"
 
 #include <multipass/memory_size.h>
 #include <multipass/vm_specs.h>
@@ -53,6 +55,7 @@ struct TestBaseSnapshot : public Test
         return ret;
     }
 
+    static constexpr auto* test_json_filename = "test_snapshot.json";
     mp::VMSpecs specs = stub_specs();
     mpt::MockVirtualMachine vm{"a-vm"}; // TODO@no-merge nice?
 };
@@ -210,6 +213,11 @@ TEST_F(TestBaseSnapshot, rejects_null_disk_size)
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Invalid disk size")));
+}
+
+TEST_F(TestBaseSnapshot, reconstructs_from_json)
+{
+    MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
 }
 
 } // namespace

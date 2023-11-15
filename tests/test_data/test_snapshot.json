@@ -1,0 +1,48 @@
+{
+  "snapshot": {
+    "comment": "A comment",
+    "creation_timestamp": "2023-11-15T12:35:13.585Z",
+    "disk_space": "5368709120",
+    "index": 3,
+    "mem_size": "1073741824",
+    "metadata": {
+      "arguments": [
+        "-bios",
+        "OVMF.fd",
+        "--enable-kvm",
+        "-cpu",
+        "host",
+        "-nic",
+        "tap,ifname=tap-a3a4a846832,script=no,downscript=no,model=virtio-net-pci,mac=52:54:00:2a:84:b9",
+        "-device",
+        "virtio-scsi-pci,id=scsi0",
+        "-drive",
+        "file=/var/snap/multipass/common/data/multipassd/vault/instances/phlegmatic-orca/ubuntu-22.04-server-cloudimg-amd64.img,if=none,format=qcow2,discard=unmap,id=hda",
+        "-device",
+        "scsi-hd,drive=hda,bus=scsi0.0",
+        "-smp",
+        "1",
+        "-m",
+        "1024M",
+        "-qmp",
+        "stdio",
+        "-chardev",
+        "null,id=char0",
+        "-serial",
+        "chardev:char0",
+        "-nographic",
+        "-cdrom",
+        "/var/snap/multipass/common/data/multipassd/vault/instances/phlegmatic-orca/cloud-init-config.iso"
+      ],
+      "machine_type": "pc-i440fx-8.0",
+      "mount_data": {
+      }
+    },
+    "mounts": [
+    ],
+    "name": "snapshot3",
+    "num_cores": 1,
+    "parent": 2,
+    "state": 0
+  }
+}
