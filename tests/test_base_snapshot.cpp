@@ -16,8 +16,12 @@
  */
 
 #include "common.h"
+#include "mock_virtual_machine.h"
 
+#include "multipass/vm_specs.h"
 #include "shared/base_snapshot.h"
+
+#include <multipass/memory_size.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -25,11 +29,37 @@ using namespace testing;
 
 namespace
 {
-class TestBaseSnapshot : public Test
+class MockBaseSnapshot : public mp::BaseSnapshot
 {
+public:
+    using mp::BaseSnapshot::BaseSnapshot;
+
+    MOCK_METHOD(void, capture_impl, (), (override));
+    MOCK_METHOD(void, erase_impl, (), (override));
+    MOCK_METHOD(void, apply_impl, (), (override));
 };
 
-TEST_F(TestBaseSnapshot, test_placeholder)
+struct TestBaseSnapshot : public Test
 {
+    static mp::VMSpecs stub_specs()
+    {
+        mp::VMSpecs ret{};
+        ret.num_cores = 3;
+        ret.mem_size = mp::MemorySize{"1.5G"};
+        ret.disk_space = mp::MemorySize{"10G"};
+        ret.default_mac_address = "12:12:12:12:12:12";
+
+        return ret;
+    }
+
+    mp::VMSpecs specs = stub_specs();
+    mpt::MockVirtualMachine vm{"a-vm"};
+};
+
+TEST_F(TestBaseSnapshot, adopts_given_valid_name)
+{
+    auto name = "a-name";
+    auto snapshot = MockBaseSnapshot{name, "", nullptr, specs, vm};
+    EXPECT_EQ(snapshot.get_name(), name);
 }
 } // namespace
