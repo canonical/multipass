@@ -18,10 +18,9 @@
 #include "common.h"
 #include "mock_virtual_machine.h"
 
-#include "multipass/vm_specs.h"
-#include "shared/base_snapshot.h"
-
 #include <multipass/memory_size.h>
+#include <multipass/vm_specs.h>
+#include <shared/base_snapshot.h>
 
 #include <stdexcept>
 
