@@ -183,4 +183,18 @@ INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
                                 mp::VirtualMachine::State::suspended,
                                 mp::VirtualMachine::State::unknown));
 
+class TestSnapshotInvalidCores : public TestBaseSnapshot, public WithParamInterface<int>
+{
+};
+
+TEST_P(TestSnapshotInvalidCores, rejects_invalid_number_of_cores)
+{
+    specs.num_cores = GetParam();
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Invalid number of cores")));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotInvalidCores, Values(0, -1, -12345, -3e9));
+
 } // namespace
