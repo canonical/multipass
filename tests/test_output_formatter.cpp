@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_format_utils.h"
 #include "mock_settings.h"
 
 #include <multipass/cli/csv_formatter.h>
@@ -748,6 +749,11 @@ public:
         // The tests expected output are for the default C locale
         std::locale::global(std::locale("C"));
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet"));
+
+        // Timestamps in tests need to be in a consistent locale
+        EXPECT_CALL(mock_format_utils, convert_to_user_locale(_)).WillRepeatedly([](const auto timestamp) {
+            return google::protobuf::util::TimeUtil::ToString(timestamp);
+        });
     }
 
     ~BaseFormatterSuite()
@@ -758,6 +764,9 @@ public:
 protected:
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    mpt::MockFormatUtils::GuardedMock mock_format_utils_injection = mpt::MockFormatUtils::inject<NiceMock>();
+    mpt::MockFormatUtils& mock_format_utils = *mock_format_utils_injection.first;
 
 private:
     std::locale saved_locale;
