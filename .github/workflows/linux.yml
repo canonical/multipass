@@ -20,7 +20,7 @@ jobs:
   Lint:
     runs-on: ubuntu-latest
 
-    if: ${{ contains(['pull_request', 'merge_group'], github.event_name) }}
+    if: ${{ contains('pull_request merge_group', github.event_name) }}
 
     steps:
     - name: Check out code
