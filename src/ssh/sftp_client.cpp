@@ -188,7 +188,8 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
             {
                 if (sftp_mkdir(sftp.get(), remote_file_path.u8string().c_str(), 0777) != SSH_OK &&
                     sftp_get_error(sftp.get()) != SSH_FX_FILE_ALREADY_EXISTS)
-                    throw SFTPError{"cannot create remote directory {}: {}", remote_file_path,
+                    throw SFTPError{"cannot create remote directory {:?}: {}",
+                                    remote_file_path,
                                     ssh_get_error(sftp->session)};
 
                 subdirectory_perms.emplace_back(remote_file_path, status.permissions());
@@ -202,13 +203,14 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
 
                 auto remote_file_info = mp_sftp_lstat(sftp.get(), remote_file_path.u8string().c_str());
                 if (remote_file_info && remote_file_info->type == SSH_FILEXFER_TYPE_DIRECTORY)
-                    throw SFTPError{"cannot overwrite remote directory {} with non-directory", remote_file_path};
+                    throw SFTPError{"cannot overwrite remote directory {:?} with non-directory", remote_file_path};
 
                 if ((sftp_unlink(sftp.get(), remote_file_path.u8string().c_str()) != SSH_FX_OK &&
                      sftp_get_error(sftp.get()) != SSH_FX_NO_SUCH_FILE) ||
                     sftp_symlink(sftp.get(), link_target.u8string().c_str(), remote_file_path.u8string().c_str()) !=
                         SSH_FX_OK)
-                    throw SFTPError{"cannot create remote symlink {}: {}", remote_file_path,
+                    throw SFTPError{"cannot create remote symlink {:?}: {}",
+                                    remote_file_path,
                                     ssh_get_error(sftp->session)};
                 break;
             }

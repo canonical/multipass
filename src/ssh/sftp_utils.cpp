@@ -79,7 +79,7 @@ fs::path SFTPUtils::get_remote_file_target(sftp_session sftp, const fs::path& so
     target_full_path += source_path.filename().u8string().insert(0, "/");
     target_attr = mp_sftp_stat(sftp, target_full_path.u8string().c_str());
     if (target_attr && target_attr->type == SSH_FILEXFER_TYPE_DIRECTORY)
-        throw SFTPError{"cannot overwrite remote directory {} with non-directory", target_full_path};
+        throw SFTPError{"cannot overwrite remote directory {:?} with non-directory", target_full_path};
 
     return target_full_path;
 }
@@ -136,10 +136,10 @@ fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp, const fs::path& sou
     auto child_path_string = child_path.u8string();
     auto child_info = mp_sftp_stat(sftp, child_path_string.c_str());
     if (child_info && child_info->type != SSH_FILEXFER_TYPE_DIRECTORY)
-        throw SFTPError{"cannot overwrite remote non-directory {} with directory", child_path};
+        throw SFTPError{"cannot overwrite remote non-directory {:?} with directory", child_path};
 
     if (!child_info && sftp_mkdir(sftp, child_path_string.c_str(), 0777) != SSH_FX_OK)
-        throw SFTPError{"cannot create remote directory {}: {}", child_path, ssh_get_error(sftp->session)};
+        throw SFTPError{"cannot create remote directory {:?}: {}", child_path, ssh_get_error(sftp->session)};
 
     return child_path;
 }
@@ -154,9 +154,9 @@ void SFTPUtils::mkdir_recursive(sftp_session sftp, const fs::path& path)
     for (const auto& partial_path : partial_paths)
         if (auto attr = mp_sftp_lstat(sftp, partial_path.u8string().c_str());
             attr && attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
-            throw SFTPError{"cannot overwrite remote non-directory {} with directory", partial_path};
+            throw SFTPError{"cannot overwrite remote non-directory {:?} with directory", partial_path};
         else if (!attr && sftp_mkdir(sftp, partial_path.u8string().c_str(), 0777) != SSH_FX_OK)
-            throw SFTPError{"cannot create remote directory {}: {}", partial_path, ssh_get_error(sftp->session)};
+            throw SFTPError{"cannot create remote directory {:?}: {}", partial_path, ssh_get_error(sftp->session)};
 }
 
 std::unique_ptr<SFTPClient> SFTPUtils::make_SFTPClient(const std::string& host, int port, const std::string& username,

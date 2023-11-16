@@ -59,9 +59,9 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
                     auto& [sources, target] = *args;
                     std::error_code err;
                     if (sources.size() > 1 && !MP_FILEOPS.is_directory(target, err) && !err)
-                        throw std::runtime_error{fmt::format("Target {} is not a directory", target)};
+                        throw std::runtime_error{fmt::format("Target {:?} is not a directory", target)};
                     else if (err)
-                        throw std::runtime_error{fmt::format("Cannot access {}: {}", target, err.message())};
+                        throw std::runtime_error{fmt::format("Cannot access {:?}: {}", target, err.message())};
                     for (auto [s, s_end] = sources.equal_range(instance_name); s != s_end; ++s)
                         success &= sftp_client->pull(s->second, target, flags);
                 }
@@ -70,7 +70,7 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
                 {
                     auto& [sources, target] = *args;
                     if (sources.size() > 1 && !sftp_client->is_remote_dir(target))
-                        throw std::runtime_error{fmt::format("Target {} is not a directory", target)};
+                        throw std::runtime_error{fmt::format("Target {:?} is not a directory", target)};
                     for (const auto& source : sources)
                         success &= sftp_client->push(source, target, flags);
                 }
