@@ -78,7 +78,7 @@ YAML::Node generate_snapshot_details(const mp::DetailedInfoItem& item)
     }
     snapshot_node["mounts"] = mounts;
 
-    snapshot_node["created"] = google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp());
+    snapshot_node["created"] = MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp());
     snapshot_node["parent"] = fundamentals.parent().empty() ? YAML::Node() : YAML::Node(fundamentals.parent());
 
     snapshot_node["children"] = YAML::Node(YAML::NodeType::Sequence);

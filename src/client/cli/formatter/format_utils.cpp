@@ -15,13 +15,15 @@
  *
  */
 
+#include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/cli/formatter.h>
-
-#include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/json_formatter.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
+
+#include <locale>
+#include <sstream>
 
 namespace mp = multipass;
 
@@ -109,4 +111,20 @@ void mp::format::filter_aliases(google::protobuf::RepeatedPtrField<multipass::Fi
         else if (unwanted_aliases.find(aliases[i].alias()) != unwanted_aliases.end())
             aliases.DeleteSubrange(i, 1);
     }
+}
+
+mp::FormatUtils::FormatUtils(const Singleton<FormatUtils>::PrivatePass& pass) noexcept
+    : Singleton<FormatUtils>::Singleton{pass}
+{
+}
+
+std::string mp::FormatUtils::convert_to_user_locale(const google::protobuf::Timestamp& timestamp) const
+{
+    std::ostringstream oss;
+    oss.imbue(std::locale(""));
+
+    std::time_t t = google::protobuf::util::TimeUtil::TimestampToTimeT(timestamp);
+    oss << std::put_time(std::localtime(&t), "%c %Z");
+
+    return oss.str();
 }

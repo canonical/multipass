@@ -85,7 +85,7 @@ std::string generate_snapshot_details(const mp::InfoReply reply)
 
         fmt::format_to(std::back_inserter(buf),
                        ",{},{},{},\"{}\"\n",
-                       google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp()),
+                       MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp()),
                        fundamentals.parent(),
                        fmt::join(info.snapshot_info().children(), ";"),
                        fundamentals.comment());

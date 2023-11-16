@@ -88,7 +88,7 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
     fmt::format_to(std::back_inserter(buf),
                    "{:<16}{}\n",
                    "Created:",
-                   google::protobuf::util::TimeUtil::ToString(fundamentals.creation_timestamp()));
+                   MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp()));
     fmt::format_to(std::back_inserter(buf),
                    "{:<16}{}\n",
                    "Parent:",
