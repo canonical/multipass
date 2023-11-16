@@ -12,11 +12,12 @@ runs:
       # On pull requests, HEAD^1 will always be the merge base, so diff against that. Look for forbidden strings,
       # but exclude legitimate cases.
       forbidden_regex='(?i)\bno[_-]?merge\b'
+      added_regex="^\+.*${forbidden_regex}" # we care only about additions
       git diff -U0 --no-color HEAD^1 -- . ':(exclude)bors.toml' |
-        (grep -P $forbidden_regex || true) |
+        (grep -P "${added_regex}" || true) |
         tee ${HOME}/forbidden_occurrences
       if [ "$( stat --printf='%s' ${HOME}/forbidden_occurrences )" -ne 0 ]; then
-        echo "##[error] Forbidden string(s) found in the diff ^ (matched \"$forbidden_regex\")"
+        echo "##[error] Forbidden string(s) found in the diff ^ (matched \"$added_regex\")"
         exit 1
       fi
 
