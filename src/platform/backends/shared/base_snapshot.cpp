@@ -166,6 +166,23 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
     assert(index > 0 && "snapshot indices need to start at 1");
 }
 
+mp::BaseSnapshot::BaseSnapshot(std::shared_ptr<Snapshot> src, VirtualMachine& vm)
+    : BaseSnapshot{src->get_name(),
+                   src->get_comment(),
+                   src->get_parent(), // need to be replaced by find_parent call, now it is only a place holder.
+                   src->get_index(),
+                   src->get_creation_timestamp(),
+                   src->get_num_cores(),
+                   src->get_mem_size(),
+                   src->get_disk_space(),
+                   src->get_state(),
+                   src->get_mounts(),
+                   src->get_metadata(), // need string replacement, now it is only a place holder
+                   vm.instance_directory(),
+                   true}
+{
+}
+
 mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm)
     : BaseSnapshot{read_snapshot_json(filename), vm}
 {

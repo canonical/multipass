@@ -41,6 +41,7 @@ public:
                  const VMSpecs& specs,
                  const VirtualMachine& vm);
     BaseSnapshot(const QString& filename, VirtualMachine& vm);
+    BaseSnapshot(std::shared_ptr<Snapshot> src, VirtualMachine& vm);
 
     int get_index() const noexcept override;
     std::string get_name() const override;
