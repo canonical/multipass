@@ -4,8 +4,6 @@ on:
   push:
     branches:
     - main
-    - staging
-    - trying
     - release/[0-9]+.[0-9]+
     tags:
     - v[0-9]+.[0-9]+.[0-9]+
@@ -22,7 +20,7 @@ jobs:
   Lint:
     runs-on: ubuntu-latest
 
-    if: ${{ github.event_name == 'pull_request' || contains('refs/heads/staging refs/heads/trying', github.ref) }}
+    if: ${{ contains(['pull_request', 'merge_group'], github.event_name) }}
 
     steps:
     - name: Check out code
@@ -239,19 +237,6 @@ jobs:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       run: |
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
-
-  # Report result to Bors on `staging` and `trying` branches.
-  Linux:
-    if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
-    needs:
-    - BuildAndTest
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Report failure
-      if: ${{ needs.BuildAndTest.result != 'success' }}
-      run: exit 1
 
   # Dispatch to the private side
   Dispatch:
