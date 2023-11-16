@@ -11,6 +11,12 @@ on:
     - v[0-9]+.[0-9]+.[0-9]+
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
+  cancel-in-progress: true
 
 env:
   BORS_RUN: ${{ github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
