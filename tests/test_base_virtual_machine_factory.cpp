@@ -127,13 +127,13 @@ TEST_F(BaseFactory, networks_throws)
 // at this time.  Instead, just make sure an ISO image is created and has the expected path.
 TEST_F(BaseFactory, creates_cloud_init_iso_image)
 {
-    mpt::TempDir iso_dir;
+    MockBaseFactory factory;
     const std::string name{"foo"};
     const YAML::Node metadata{YAML::Load({fmt::format("name: {}", name)})}, vendor_data{metadata}, user_data{metadata},
         network_data{metadata};
 
     mp::VMImage image;
-    image.image_path = QString("%1/%2").arg(iso_dir.path()).arg(QString::fromStdString(name));
+    image.image_path = QString("%1/%2").arg(factory.tmp_dir->path()).arg(QString::fromStdString(name));
 
     mp::VirtualMachineDescription vm_desc{2,
                                           mp::MemorySize{"3M"},
@@ -149,10 +149,9 @@ TEST_F(BaseFactory, creates_cloud_init_iso_image)
                                           vendor_data,
                                           network_data};
 
-    MockBaseFactory factory;
     factory.configure(vm_desc);
 
-    EXPECT_EQ(vm_desc.cloud_init_iso, QString("%1/cloud-init-config.iso").arg(iso_dir.path()));
+    EXPECT_EQ(vm_desc.cloud_init_iso, QString("%1/cloud-init-config.iso").arg(factory.tmp_dir->path()));
     EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
 }
 
