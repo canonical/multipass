@@ -80,18 +80,18 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mount
     return mounts;
 }
 
-std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMachine& vm)
+std::shared_ptr<mp::Snapshot> find_parent(const int parent_idx,
+                                          const std::string& snapshot_name,
+                                          mp::VirtualMachine& vm)
 {
-    auto parent_idx = json["parent"].toInt();
     try
     {
         return parent_idx ? vm.get_snapshot(parent_idx) : nullptr;
     }
     catch (std::out_of_range&)
     {
-        throw std::runtime_error{fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}",
-                                             json["name"].toString(),
-                                             parent_idx)};
+        throw std::runtime_error{
+            fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}", snapshot_name, parent_idx)};
     }
 }
 } // namespace
@@ -169,7 +169,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
 mp::BaseSnapshot::BaseSnapshot(std::shared_ptr<Snapshot> src, VirtualMachine& vm)
     : BaseSnapshot{src->get_name(),
                    src->get_comment(),
-                   src->get_parent(), // need to be replaced by find_parent call, now it is only a place holder.
+                   find_parent(src->get_parents_index(), src->get_name(), vm),
                    src->get_index(),
                    src->get_creation_timestamp(),
                    src->get_num_cores(),
@@ -192,7 +192,7 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
     : BaseSnapshot{
           json["name"].toString().toStdString(),                                           // name
           json["comment"].toString().toStdString(),                                        // comment
-          find_parent(json, vm),                                                           // parent
+          find_parent(json["parent"].toInt(), json["name"].toString().toStdString(), vm),  // parent
           json["index"].toInt(),                                                           // index
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
           json["num_cores"].toInt(),                                                       // num_cores
