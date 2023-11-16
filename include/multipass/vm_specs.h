@@ -38,7 +38,7 @@ struct VMSpecs
     multipass::MemorySize mem_size;
     multipass::MemorySize disk_space;
     std::string default_mac_address;
-    std::vector<multipass::NetworkInterface> extra_interfaces; // We want interfaces to be ordered.
+    std::vector<NetworkInterface> extra_interfaces; // We want interfaces to be ordered.
     std::string ssh_username;
     multipass::VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;

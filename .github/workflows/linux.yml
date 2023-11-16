@@ -3,6 +3,10 @@ name: Linux
 on:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
+  cancel-in-progress: true
+
 env:
   BORS_RUN: ${{ github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
 
