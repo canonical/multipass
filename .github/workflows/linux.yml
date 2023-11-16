@@ -18,9 +18,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
   cancel-in-progress: true
 
-env:
-  BORS_RUN: ${{ github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
-
 jobs:
   Lint:
     runs-on: ubuntu-latest
@@ -52,7 +49,7 @@ jobs:
                 {"build-type": "Clang"}
                 {"build-type": "Release"}'
 
-        if ! ${{ env.BORS_RUN }}; then
+        if ! ${{ github.event_name != 'merge_group' }}; then
             MATRIX+='{"build-type": "Coverage" }'
         fi
 
@@ -286,7 +283,7 @@ jobs:
         fi
 
     - name: Dispatch Linux integration tests
-      if: ${{ env.BORS_RUN == 'true' }}
+      if: false
       uses: Saviq/workflow-dispatch@dist
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
@@ -315,5 +312,5 @@ jobs:
             "sha": "${{ github.sha }}",
             "draft": "${{ github.event.pull_request.draft }}",
             "label": "${{ needs.BuildAndTest.outputs.label }}",
-            "dispatch_ci": "${{ env.BORS_RUN == 'true' }}"
+            "dispatch_ci": "false"
           }
