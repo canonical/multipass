@@ -268,7 +268,7 @@ jobs:
         fi
 
     - name: Dispatch Linux integration tests
-      if: false
+      if: ${{ github.event_name == 'push' }}
       uses: Saviq/workflow-dispatch@dist
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
@@ -297,5 +297,5 @@ jobs:
             "sha": "${{ github.sha }}",
             "draft": "${{ github.event.pull_request.draft }}",
             "label": "${{ needs.BuildAndTest.outputs.label }}",
-            "dispatch_ci": "false"
+            "dispatch_ci": "${{ github.event_name == 'push' }}"
           }
