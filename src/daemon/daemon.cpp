@@ -1353,7 +1353,7 @@ std::string generate_netplan_script(int index, const std::string& mac_address)
                        "                macaddress: {1}\n"
                        "            optional: true\n"
                        "    version: 2"
-                       "\" | sudo dd of=/etc/netplan/51-extra{0}.yaml oflag=append conv=notrunc",
+                       "\" | sudo dd of=/etc/netplan/51-multipass-extra{0}.yaml oflag=append conv=notrunc",
                        index,
                        mac_address);
 }

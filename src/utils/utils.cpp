@@ -371,10 +371,9 @@ std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::st
 
     if (proc.exit_code() != 0)
     {
-        auto error_msg = proc.read_std_error();
-        mpl::log(mpl::Level::warning, category,
-                 fmt::format("failed to run '{}', error message: '{}'", cmd, mp::utils::trim_end(error_msg)));
-        throw mp::SSHExecFailure(mp::utils::trim_end(error_msg));
+        auto error_msg = mp::utils::trim_end(proc.read_std_error());
+        mpl::log(mpl::Level::warning, category, fmt::format("failed to run '{}', error message: '{}'", cmd, error_msg));
+        throw mp::SSHExecFailure(error_msg);
     }
 
     auto output = proc.read_std_output();

@@ -18,7 +18,6 @@
 #include <multipass/disabled_copy_move.h>
 #include <multipass/terminal.h>
 
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -98,15 +97,12 @@ public:
 
     ~BridgePrompter() = default;
 
-    bool bridge_prompt(std::vector<std::string>& nets_need_bridging) const;
+    bool bridge_prompt(const std::vector<std::string>& nets_need_bridging) const;
 
 private:
     BridgePrompter() = default;
 
     Terminal* term;
-
-    const std::regex yes{"y|yes", std::regex::icase | std::regex::optimize};
-    const std::regex no{"n|no", std::regex::icase | std::regex::optimize};
 };
 } // namespace multipass
 

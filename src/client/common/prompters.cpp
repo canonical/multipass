@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/cli/client_common.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/exceptions/cli_exceptions.h>
 #include <multipass/format.h>
@@ -79,7 +80,7 @@ std::string mp::NewPassphrasePrompter::prompt(const std::string& text) const
     return passphrase;
 }
 
-bool mp::BridgePrompter::bridge_prompt(std::vector<std::string>& nets_need_bridging) const
+bool mp::BridgePrompter::bridge_prompt(const std::vector<std::string>& nets_need_bridging) const
 {
     assert(nets_need_bridging.size()); // precondition
 
@@ -101,9 +102,9 @@ bool mp::BridgePrompter::bridge_prompt(std::vector<std::string>& nets_need_bridg
         {
             std::string answer;
             std::getline(term->cin(), answer);
-            if (std::regex_match(answer, yes))
+            if (std::regex_match(answer, mp::client::yes_answer))
                 return true;
-            else if (std::regex_match(answer, no))
+            else if (std::regex_match(answer, mp::client::no_answer))
                 return false;
             else
                 term->cout() << "Please answer yes/no: ";

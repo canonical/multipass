@@ -611,8 +611,7 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
     std::vector<std::string> nets;
 
-    for (auto i = 0; i < reply.nets_need_bridging_size(); ++i)
-        nets.push_back(reply.nets_need_bridging(i));
+    std::copy(reply.nets_need_bridging().cbegin(), reply.nets_need_bridging().cend(), std::back_inserter(nets));
 
     mp::BridgePrompter prompter(term);
     return prompter.bridge_prompt(nets);
