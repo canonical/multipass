@@ -160,7 +160,7 @@ parts:
   qemu:
     source: https://github.com/canonical/qemu.git
     source-type: git
-    source-branch: multipass-8.0.0+9p-uid-gid-map
+    source-branch: multipass-8.1.2+9p-uid-gid-map
     source-depth: 1
     source-submodules: []
     plugin: autotools
