@@ -87,7 +87,7 @@ protected:
                                                      const std::string& comment,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
-    std::shared_ptr<Snapshot> clone(std::shared_ptr<Snapshot> src_snapshot) override;
+    std::shared_ptr<Snapshot> clone_one_snapshot(std::shared_ptr<Snapshot> src_snapshot) override;
 
 private:
     void on_started();
