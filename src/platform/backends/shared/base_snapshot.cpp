@@ -98,7 +98,7 @@ std::shared_ptr<mp::Snapshot> find_parent(const int parent_idx,
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-pass-by-value)
                                const std::string& comment, // NOLINT(modernize-pass-by-value)
-                               std::shared_ptr<Snapshot> parent,
+                               std::shared_ptr<const Snapshot> parent,
                                int index,
                                QDateTime&& creation_timestamp,
                                int num_cores,
@@ -166,7 +166,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
     assert(index > 0 && "snapshot indices need to start at 1");
 }
 
-mp::BaseSnapshot::BaseSnapshot(std::shared_ptr<Snapshot> src_snapshot, VirtualMachine& vm)
+mp::BaseSnapshot::BaseSnapshot(std::shared_ptr<const Snapshot> src_snapshot, VirtualMachine& vm)
     : BaseSnapshot{src_snapshot->get_name(),
                    src_snapshot->get_comment(),
                    find_parent(src_snapshot->get_parents_index(), src_snapshot->get_name(), vm),
