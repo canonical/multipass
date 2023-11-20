@@ -84,6 +84,7 @@ protected:
                                                              const std::string& comment,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
+    virtual std::shared_ptr<Snapshot> clone(std::shared_ptr<Snapshot> src_snapshot);
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;

@@ -577,4 +577,9 @@ std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const QStri
     throw NotImplementedOnThisBackendException{"snapshots"};
 }
 
+std::shared_ptr<Snapshot> BaseVirtualMachine::clone(std::shared_ptr<Snapshot> src_snapshot)
+{
+    throw NotImplementedOnThisBackendException{"Snapshots"};
+}
+
 } // namespace multipass
