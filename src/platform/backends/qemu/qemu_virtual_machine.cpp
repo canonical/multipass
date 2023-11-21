@@ -709,3 +709,11 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename) -> 
 {
     return std::make_shared<QemuSnapshot>(filename, *this, desc);
 }
+
+std::shared_ptr<mp::Snapshot> mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename,
+                                                                             const VMSpecs& src_specs,
+                                                                             const VMSpecs& dest_specs,
+                                                                             const std::string& src_vm_name)
+{
+    return std::make_shared<QemuSnapshot>(filename, src_specs, dest_specs, src_vm_name, *this, desc);
+}
