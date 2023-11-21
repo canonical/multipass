@@ -34,15 +34,10 @@ runs:
         echo "label=pr${{ github.event.number }}" >> $GITHUB_OUTPUT
         echo "channel=edge/pr${{ github.event.number }}" >> $GITHUB_OUTPUT
 
-      # If it's the `staging` branch, annotate with `ci#` and publish to `edge/ci#`.
-      elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/staging" ]]; then
+      # If it's a merge group, annotate with `ci#` and publish to `edge/ci#`.
+      elif [ ${{ github.event_name }} == "merge_group" ]; then
         echo "label=ci${{ github.run_number }}" >> $GITHUB_OUTPUT
         echo "channel=edge/ci${{ github.run_number}}" >> $GITHUB_OUTPUT
-
-      # If it's the `trying` branch, get the PR number from HEAD's Subject
-      elif [[ ${{ github.event_name }} == "push" && ${{ github.ref }} == "refs/heads/trying" && "$( git log -1 --pretty=%s )" =~ ^Try\ #([0-9]+): ]]; then
-        echo "label=pr${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
-        echo "channel=edge/pr${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
 
       # If it's a release tag or branch, publish to the `beta` channel.
       elif [[ ${{ github.ref }} =~ ${{ inputs.release-branch-re }} \

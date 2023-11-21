@@ -18,7 +18,6 @@ jobs:
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-      bors-matrix: ${{ steps.set-matrix.outputs.bors-matrix }}
 
     steps:
     - name: Determine job matrix
