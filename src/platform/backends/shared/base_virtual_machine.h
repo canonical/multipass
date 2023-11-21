@@ -84,6 +84,10 @@ protected:
                                                              const std::string& comment,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
+    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename,
+                                                             const VMSpecs& src_specs,
+                                                             const VMSpecs& dest_specs,
+                                                             const std::string& src_vm_name);
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
