@@ -53,7 +53,7 @@ public:
     }
 
 private:
-    std::unique_ptr<FILE, decltype(fclose)*> fp;
+    std::unique_ptr<FILE, std::function<int(FILE*)>> fp;
 };
 
 class EVPKey
