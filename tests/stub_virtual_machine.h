@@ -28,7 +28,7 @@ namespace multipass
 {
 namespace test
 {
-struct StubVirtualMachine final : public VirtualMachine
+struct StubVirtualMachine final : public multipass::VirtualMachine
 {
     StubVirtualMachine() : StubVirtualMachine{"stub"}
     {
@@ -181,10 +181,6 @@ struct StubVirtualMachine final : public VirtualMachine
     }
 
     void load_snapshots() override
-    {
-    }
-
-    void clone_snapshots(const VirtualMachine& src_vm) override
     {
     }
 

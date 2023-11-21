@@ -82,18 +82,18 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mount
     return mounts;
 }
 
-std::shared_ptr<mp::Snapshot> find_parent(const int parent_idx,
-                                          const std::string& snapshot_name,
-                                          mp::VirtualMachine& vm)
+std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMachine& vm)
 {
+    auto parent_idx = json["parent"].toInt();
     try
     {
         return parent_idx ? vm.get_snapshot(parent_idx) : nullptr;
     }
     catch (std::out_of_range&)
     {
-        throw std::runtime_error{
-            fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}", snapshot_name, parent_idx)};
+        throw std::runtime_error{fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}",
+                                             json["name"].toString(),
+                                             parent_idx)};
     }
 }
 

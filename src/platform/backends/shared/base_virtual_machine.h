@@ -82,7 +82,6 @@ public:
     void delete_snapshot(const std::string& name) override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
     void load_snapshots() override;
-    void clone_snapshots(const VirtualMachine& src_vm) override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
@@ -96,7 +95,6 @@ protected:
                                                              std::shared_ptr<Snapshot> parent);
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
-    virtual std::shared_ptr<Snapshot> clone_one_snapshot(std::shared_ptr<const Snapshot> src_snapshot);
 
     virtual void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
                                                             const NetworkInterface& extra_interface) const;
