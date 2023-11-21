@@ -96,14 +96,14 @@ struct TestBaseSnapshot : public Test
     mpt::MockVirtualMachine vm{"a-vm"}; // TODO@no-merge nice?
 };
 
-TEST_F(TestBaseSnapshot, adopts_given_valid_name)
+TEST_F(TestBaseSnapshot, adoptsGivenValidName)
 {
     auto name = "a-name";
     auto snapshot = MockBaseSnapshot{name, "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_name(), name);
 }
 
-TEST_F(TestBaseSnapshot, rejects_empty_name)
+TEST_F(TestBaseSnapshot, rejectsEmptyName)
 {
     std::string empty{};
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{empty, "asdf", nullptr, specs, vm}),
@@ -111,27 +111,27 @@ TEST_F(TestBaseSnapshot, rejects_empty_name)
                          mpt::match_what(HasSubstr("empty")));
 }
 
-TEST_F(TestBaseSnapshot, adopts_given_comment)
+TEST_F(TestBaseSnapshot, adoptsGivenComment)
 {
     auto comment = "some comment";
     auto snapshot = MockBaseSnapshot{"whatever", comment, nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_comment(), comment);
 }
 
-TEST_F(TestBaseSnapshot, adopts_given_parent)
+TEST_F(TestBaseSnapshot, adoptsGivenParent)
 {
     auto parent = std::make_shared<MockBaseSnapshot>("root", "asdf", nullptr, specs, vm);
     auto snapshot = MockBaseSnapshot{"descendant", "descends", parent, specs, vm};
     EXPECT_EQ(snapshot.get_parent(), parent);
 }
 
-TEST_F(TestBaseSnapshot, adopts_null_parent)
+TEST_F(TestBaseSnapshot, adoptsNullParent)
 {
     auto snapshot = MockBaseSnapshot{"descendant", "descends", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_parent(), nullptr);
 }
 
-TEST_F(TestBaseSnapshot, adopts_given_specs)
+TEST_F(TestBaseSnapshot, adoptsGivenSpecs)
 {
     auto snapshot = MockBaseSnapshot{"snapshot", "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_num_cores(), specs.num_cores);
@@ -142,7 +142,7 @@ TEST_F(TestBaseSnapshot, adopts_given_specs)
     EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
 }
 
-TEST_F(TestBaseSnapshot, adopts_custom_mounts)
+TEST_F(TestBaseSnapshot, adoptsCustomMounts)
 {
     specs.mounts["toto"] =
         mp::VMMount{"src", {{123, 234}, {567, 678}}, {{19, 91}}, multipass::VMMount::MountType::Classic};
@@ -153,7 +153,7 @@ TEST_F(TestBaseSnapshot, adopts_custom_mounts)
     EXPECT_EQ(snapshot.get_mounts(), specs.mounts);
 }
 
-TEST_F(TestBaseSnapshot, adopts_custom_metadata)
+TEST_F(TestBaseSnapshot, adoptsCustomMetadata)
 {
     QJsonObject json;
     QJsonObject data;
@@ -166,7 +166,7 @@ TEST_F(TestBaseSnapshot, adopts_custom_metadata)
     EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
 }
 
-TEST_F(TestBaseSnapshot, adopts_next_index)
+TEST_F(TestBaseSnapshot, adoptsNextIndex)
 {
     int count = 123;
     EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(count));
@@ -175,7 +175,7 @@ TEST_F(TestBaseSnapshot, adopts_next_index)
     EXPECT_EQ(snapshot.get_index(), count + 1);
 }
 
-TEST_F(TestBaseSnapshot, retrieves_parents_properties)
+TEST_F(TestBaseSnapshot, retrievesParentsProperties)
 {
     int parent_index = 11;
     std::string parent_name = "parent";
@@ -189,7 +189,7 @@ TEST_F(TestBaseSnapshot, retrieves_parents_properties)
     EXPECT_EQ(child.get_parents_name(), parent_name);
 }
 
-TEST_F(TestBaseSnapshot, adopts_current_timestamp)
+TEST_F(TestBaseSnapshot, adoptsCurrentTimestamp)
 {
     auto before = QDateTime::currentDateTimeUtc();
     auto snapshot = MockBaseSnapshot{"foo", "", nullptr, specs, vm};
@@ -203,7 +203,7 @@ class TestSnapshotRejectedStates : public TestBaseSnapshot, public WithParamInte
 {
 };
 
-TEST_P(TestSnapshotRejectedStates, rejects_active_state)
+TEST_P(TestSnapshotRejectedStates, rejectsActiveState)
 {
     specs.state = GetParam();
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
@@ -225,7 +225,7 @@ class TestSnapshotInvalidCores : public TestBaseSnapshot, public WithParamInterf
 {
 };
 
-TEST_P(TestSnapshotInvalidCores, rejects_invalid_number_of_cores)
+TEST_P(TestSnapshotInvalidCores, rejectsInvalidNumberOfCores)
 {
     specs.num_cores = GetParam();
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
@@ -235,7 +235,7 @@ TEST_P(TestSnapshotInvalidCores, rejects_invalid_number_of_cores)
 
 INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotInvalidCores, Values(0, -1, -12345, -3e9));
 
-TEST_F(TestBaseSnapshot, rejects_null_memory_size)
+TEST_F(TestBaseSnapshot, rejectsNullMemorySize)
 {
     specs.mem_size = mp::MemorySize{"0B"};
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
@@ -243,7 +243,7 @@ TEST_F(TestBaseSnapshot, rejects_null_memory_size)
                          mpt::match_what(HasSubstr("Invalid memory size")));
 }
 
-TEST_F(TestBaseSnapshot, rejects_null_disk_size)
+TEST_F(TestBaseSnapshot, rejectsNullDiskSize)
 {
     specs.disk_space = mp::MemorySize{"0B"};
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", nullptr, specs, vm}),
@@ -251,12 +251,12 @@ TEST_F(TestBaseSnapshot, rejects_null_disk_size)
                          mpt::match_what(HasSubstr("Invalid disk size")));
 }
 
-TEST_F(TestBaseSnapshot, reconstructs_from_json)
+TEST_F(TestBaseSnapshot, reconstructsFromJson)
 {
     MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
 }
 
-TEST_F(TestBaseSnapshot, adopts_name_from_json)
+TEST_F(TestBaseSnapshot, adoptsNameFromJson)
 {
     constexpr auto* snapshot_name = "cheeseball";
     auto json = test_snapshot_json();
@@ -266,7 +266,7 @@ TEST_F(TestBaseSnapshot, adopts_name_from_json)
     EXPECT_EQ(snapshot.get_name(), snapshot_name);
 }
 
-TEST_F(TestBaseSnapshot, adopts_comment_from_json)
+TEST_F(TestBaseSnapshot, adoptsCommentFromJson)
 {
     constexpr auto* snapshot_comment = "Look behind you, a three-headed monkey!";
     auto json = test_snapshot_json();
