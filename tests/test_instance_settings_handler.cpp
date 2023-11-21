@@ -204,7 +204,7 @@ TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState
 
     const auto handler = make_handler();
 
-    for (const auto& instance : {preparing_instance, deleted_instance})
+    for (const auto* instance : {preparing_instance, deleted_instance})
     {
         for (const auto& property : properties)
         {
@@ -249,7 +249,7 @@ there) */
     spec.ssh_username = "hugo";
     spec.default_mac_address = "+++++";
 
-    for (const auto& name : {"toto", "tata", "fuzz"})
+    for (const auto* name : {"toto", "tata", "fuzz"})
     {
         vms[name];
         specs.emplace(name, spec);

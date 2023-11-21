@@ -157,9 +157,9 @@ auto make_bridge_rollback_guard(const mpl::CString& log_category, const mpdbus::
                                 const QDBusObjectPath& parent_path, const QDBusObjectPath& child_path)
 {
     auto rollback = [&system_bus, &parent_path, &child_path] {
-        for (auto& obj_path : {child_path, parent_path})
+        for (const auto* obj_path : {&child_path, &parent_path})
         {
-            if (auto path = obj_path.path(); !path.isNull())
+            if (auto path = obj_path->path(); !path.isNull())
             {
                 auto connection = system_bus.get_interface(nm_bus_name, path, nm_connection_ifc);
                 checked_dbus_call<void, /* RollingBack = */ true>(*connection, "Delete");
