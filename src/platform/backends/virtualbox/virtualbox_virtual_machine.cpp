@@ -277,7 +277,7 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
         if (!socket.listen(QHostAddress("127.0.0.1")))
         {
             throw std::runtime_error(
-                fmt::format("Could not find a port available to listen on: {}", socket.serverError()));
+                fmt::format("Could not find a port available to listen on: {}", socket.errorString()));
         }
 
         mpu::process_log_on_error("VBoxManage", {"controlvm", name, "natpf1", "delete", "ssh"},
