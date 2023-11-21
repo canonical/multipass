@@ -391,7 +391,13 @@ void BaseVirtualMachine::load_snapshots()
 
 void BaseVirtualMachine::clone_snapshots(const VirtualMachine& src_vm)
 {
-    //    auto snapshots = src_vm.view_snapshots();
+    // head_snapshot = src_vm.get_head?? figure out later
+    snapshot_count = src_vm.get_snapshot_count();
+    const auto src_snapshots = src_vm.view_snapshots();
+    for (const auto& src_snapshot : src_snapshots)
+    {
+        snapshots.emplace(src_snapshot->get_name(), clone_one_snapshot(src_snapshot));
+    }
 }
 
 std::vector<std::string> BaseVirtualMachine::get_childrens_names(const Snapshot* parent) const
