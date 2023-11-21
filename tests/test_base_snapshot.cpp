@@ -85,7 +85,7 @@ struct TestBaseSnapshot : public Test
     {
         const auto file_path = vm.tmp_dir->filePath(filename);
 
-        QJsonDocument doc{object};
+        const QJsonDocument doc{object};
         mpt::make_file_with_content(file_path, doc.toJson().toStdString());
 
         return file_path;
@@ -98,14 +98,14 @@ struct TestBaseSnapshot : public Test
 
 TEST_F(TestBaseSnapshot, adoptsGivenValidName)
 {
-    auto name = "a-name";
+    constexpr auto name = "a-name";
     auto snapshot = MockBaseSnapshot{name, "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_name(), name);
 }
 
 TEST_F(TestBaseSnapshot, rejectsEmptyName)
 {
-    std::string empty{};
+    const std::string empty{};
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{empty, "asdf", nullptr, specs, vm}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("empty")));
@@ -113,14 +113,14 @@ TEST_F(TestBaseSnapshot, rejectsEmptyName)
 
 TEST_F(TestBaseSnapshot, adoptsGivenComment)
 {
-    auto comment = "some comment";
+    constexpr auto comment = "some comment";
     auto snapshot = MockBaseSnapshot{"whatever", comment, nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_comment(), comment);
 }
 
 TEST_F(TestBaseSnapshot, adoptsGivenParent)
 {
-    auto parent = std::make_shared<MockBaseSnapshot>("root", "asdf", nullptr, specs, vm);
+    const auto parent = std::make_shared<MockBaseSnapshot>("root", "asdf", nullptr, specs, vm);
     auto snapshot = MockBaseSnapshot{"descendant", "descends", parent, specs, vm};
     EXPECT_EQ(snapshot.get_parent(), parent);
 }
@@ -168,7 +168,7 @@ TEST_F(TestBaseSnapshot, adoptsCustomMetadata)
 
 TEST_F(TestBaseSnapshot, adoptsNextIndex)
 {
-    int count = 123;
+    const int count = 123;
     EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(count));
 
     auto snapshot = MockBaseSnapshot{"tau", "ceti", nullptr, specs, vm};
@@ -177,8 +177,8 @@ TEST_F(TestBaseSnapshot, adoptsNextIndex)
 
 TEST_F(TestBaseSnapshot, retrievesParentsProperties)
 {
-    int parent_index = 11;
-    std::string parent_name = "parent";
+    constexpr auto parent_name = "parent";
+    const int parent_index = 11;
 
     EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(parent_index - 1)).WillOnce(Return(31));
 
