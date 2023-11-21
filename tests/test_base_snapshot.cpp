@@ -72,13 +72,13 @@ struct TestBaseSnapshot : public Test
         return json_doc.object();
     }
 
-    static void mod_snapshot_json(QJsonObject& json, const QString& key, QJsonValue new_value)
+    static void mod_snapshot_json(QJsonObject& json, const QString& key, const QJsonValue& new_value)
     {
         const auto snapshot_key = QStringLiteral("snapshot");
         auto snapshot_json_ref = json[snapshot_key];
         auto snapshot_json_copy = snapshot_json_ref.toObject();
-        snapshot_json_copy[key] = std::move(new_value);
-        snapshot_json_ref = std::move(snapshot_json_copy);
+        snapshot_json_copy[key] = new_value;
+        snapshot_json_ref = snapshot_json_copy;
     }
 
     QString plant_snapshot_json(const QJsonObject& object, const QString& filename = "snapshot.json") const
