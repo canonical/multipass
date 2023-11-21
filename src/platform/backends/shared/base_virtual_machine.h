@@ -95,6 +95,10 @@ protected:
                                                              std::shared_ptr<Snapshot> parent);
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
+    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename,
+                                                             const VMSpecs& src_specs,
+                                                             const VMSpecs& dest_specs,
+                                                             const std::string& src_vm_name);
 
     virtual void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
                                                             const NetworkInterface& extra_interface) const;
