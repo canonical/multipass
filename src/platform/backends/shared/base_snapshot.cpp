@@ -80,25 +80,25 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mount
     return mounts;
 }
 
-std::shared_ptr<mp::Snapshot> find_parent(const int parent_idx,
-                                          const std::string& snapshot_name,
-                                          mp::VirtualMachine& vm)
+std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMachine& vm)
 {
+    auto parent_idx = json["parent"].toInt();
     try
     {
         return parent_idx ? vm.get_snapshot(parent_idx) : nullptr;
     }
     catch (std::out_of_range&)
     {
-        throw std::runtime_error{
-            fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}", snapshot_name, parent_idx)};
+        throw std::runtime_error{fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}",
+                                             json["name"].toString(),
+                                             parent_idx)};
     }
 }
 } // namespace
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-pass-by-value)
                                const std::string& comment, // NOLINT(modernize-pass-by-value)
-                               std::shared_ptr<const Snapshot> parent,
+                               std::shared_ptr<Snapshot> parent,
                                int index,
                                QDateTime&& creation_timestamp,
                                int num_cores,
@@ -166,23 +166,6 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
     assert(index > 0 && "snapshot indices need to start at 1");
 }
 
-mp::BaseSnapshot::BaseSnapshot(std::shared_ptr<const Snapshot> src_snapshot, VirtualMachine& vm)
-    : BaseSnapshot{src_snapshot->get_name(),
-                   src_snapshot->get_comment(),
-                   find_parent(src_snapshot->get_parents_index(), src_snapshot->get_name(), vm),
-                   src_snapshot->get_index(),
-                   src_snapshot->get_creation_timestamp(),
-                   src_snapshot->get_num_cores(),
-                   src_snapshot->get_mem_size(),
-                   src_snapshot->get_disk_space(),
-                   src_snapshot->get_state(),
-                   src_snapshot->get_mounts(),
-                   src_snapshot->get_metadata(), // need string replacement, now it is only a place holder
-                   vm.instance_directory(),
-                   true}
-{
-}
-
 mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm)
     : BaseSnapshot{read_snapshot_json(filename), vm}
 {
@@ -192,7 +175,7 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
     : BaseSnapshot{
           json["name"].toString().toStdString(),                                           // name
           json["comment"].toString().toStdString(),                                        // comment
-          find_parent(json["parent"].toInt(), json["name"].toString().toStdString(), vm),  // parent
+          find_parent(json, vm),                                                           // parent
           json["index"].toInt(),                                                           // index
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
           json["num_cores"].toInt(),                                                       // num_cores

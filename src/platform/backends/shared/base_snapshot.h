@@ -41,7 +41,6 @@ public:
                  const VMSpecs& specs,
                  const VirtualMachine& vm);
     BaseSnapshot(const QString& filename, VirtualMachine& vm);
-    BaseSnapshot(std::shared_ptr<const Snapshot> src_snapshot, VirtualMachine& vm);
 
     int get_index() const noexcept override;
     std::string get_name() const override;
@@ -81,7 +80,7 @@ private:
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
-                 std::shared_ptr<const Snapshot> parent,
+                 std::shared_ptr<Snapshot> parent,
                  int index,
                  QDateTime&& creation_timestamp,
                  int num_cores,
@@ -102,7 +101,7 @@ private:
 private:
     std::string name;
     std::string comment;
-    std::shared_ptr<const Snapshot> parent;
+    std::shared_ptr<Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
     const int index;                                       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)

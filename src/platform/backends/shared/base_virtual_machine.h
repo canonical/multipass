@@ -74,7 +74,6 @@ public:
     void delete_snapshot(const std::string& name) override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
     void load_snapshots() override;
-    void clone_snapshots(const VirtualMachine& src_vm) override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
@@ -85,7 +84,6 @@ protected:
                                                              const std::string& comment,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
-    virtual std::shared_ptr<Snapshot> clone_one_snapshot(std::shared_ptr<const Snapshot> src_snapshot);
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;

@@ -389,17 +389,6 @@ void BaseVirtualMachine::load_snapshots()
     load_generic_snapshot_info();
 }
 
-void BaseVirtualMachine::clone_snapshots(const VirtualMachine& src_vm)
-{
-    // head_snapshot = src_vm.get_head?? figure out later
-    snapshot_count = src_vm.get_snapshot_count();
-    const auto src_snapshots = src_vm.view_snapshots();
-    for (const auto& src_snapshot : src_snapshots)
-    {
-        snapshots.emplace(src_snapshot->get_name(), clone_one_snapshot(src_snapshot));
-    }
-}
-
 std::vector<std::string> BaseVirtualMachine::get_childrens_names(const Snapshot* parent) const
 {
     require_snapshots_support();
@@ -586,11 +575,6 @@ std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const std::
 std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const QString& /*filename*/)
 {
     throw NotImplementedOnThisBackendException{"snapshots"};
-}
-
-std::shared_ptr<Snapshot> BaseVirtualMachine::clone_one_snapshot(std::shared_ptr<const Snapshot> src_snapshot)
-{
-    throw NotImplementedOnThisBackendException{"Snapshots"};
 }
 
 } // namespace multipass
