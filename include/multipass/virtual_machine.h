@@ -122,6 +122,7 @@ public:
     virtual int get_snapshot_count() const = 0;
 
     QDir instance_directory() const;
+    std::string get_vm_name() const;
 
     VirtualMachine::State state;
     const std::string vm_name;
@@ -143,6 +144,11 @@ protected:
 inline QDir multipass::VirtualMachine::instance_directory() const
 {
     return instance_dir; // TODO this should probably only be known at the level of the base VM
+}
+
+inline std::string multipass::VirtualMachine::get_vm_name() const
+{
+    return vm_name;
 }
 
 #endif // MULTIPASS_VIRTUAL_MACHINE_H

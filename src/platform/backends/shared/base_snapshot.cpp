@@ -70,6 +70,30 @@ QJsonObject read_snapshot_json(const QString& filename)
         return json["snapshot"].toObject();
 }
 
+QJsonObject read_snapshot_json_and_update_unique_identifier(const QString& filename,
+                                                            const multipass::VMSpecs& src_specs,
+                                                            const multipass::VMSpecs& dest_specs,
+                                                            const std::string& src_vm_name,
+                                                            const std::string& dest_vm_name)
+{
+    QJsonObject snapshot_json = read_snapshot_json(filename);
+
+    auto metadata = snapshot_json["metadata"].toObject();
+    QJsonValueRef arguments = metadata["arguments"];
+    QJsonArray jsonArray = arguments.toArray();
+    for (QJsonValueRef item : jsonArray)
+    {
+        QString str = item.toString();
+
+        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
+        // add extra interface string replacement later
+        str.replace(src_vm_name.c_str(), dest_vm_name.c_str());
+        item = str;
+    }
+    arguments = jsonArray;
+    return snapshot_json;
+}
+
 std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mounts_json)
 {
     std::unordered_map<std::string, mp::VMMount> mounts;
@@ -180,6 +204,20 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                    /*captured=*/false}
 {
     assert(index > 0 && "snapshot indices need to start at 1");
+}
+
+mp::BaseSnapshot::BaseSnapshot(const QString& filename,
+                               const VMSpecs& src_specs,
+                               const VMSpecs& dest_specs,
+                               const std::string& src_vm_name,
+                               VirtualMachine& dest_vm)
+    : BaseSnapshot{read_snapshot_json_and_update_unique_identifier(filename,
+                                                                   src_specs,
+                                                                   dest_specs,
+                                                                   src_vm_name,
+                                                                   dest_vm.get_vm_name()),
+                   dest_vm}
+{
 }
 
 mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, const VirtualMachineDescription& desc)
