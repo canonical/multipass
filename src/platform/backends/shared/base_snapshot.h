@@ -106,7 +106,7 @@ private:
 private:
     std::string name;
     std::string comment;
-    std::shared_ptr<const Snapshot> parent;
+    std::shared_ptr<Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
     const std::string cloud_init_instance_id;              // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
