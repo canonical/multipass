@@ -276,4 +276,18 @@ TEST_F(TestBaseSnapshot, adoptsCommentFromJson)
     EXPECT_EQ(snapshot.get_comment(), snapshot_comment);
 }
 
+TEST_F(TestBaseSnapshot, linksToParentFromJson)
+{
+    constexpr auto parent_idx = 42;
+    constexpr auto parent_name = "s42";
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "parent", parent_idx);
+
+    EXPECT_CALL(vm, get_snapshot(TypedEq<int>(parent_idx)))
+        .WillOnce(Return(std::make_shared<MockBaseSnapshot>(parent_name, "mock parent snapshot", nullptr, specs, vm)));
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_parents_name(), parent_name);
+}
+
 } // namespace
