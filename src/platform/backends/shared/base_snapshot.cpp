@@ -70,11 +70,11 @@ QJsonObject read_snapshot_json(const QString& filename)
         return json["snapshot"].toObject();
 }
 
-QJsonObject read_snapshot_json_and_update_unique_identifier(const QString& filename,
-                                                            const multipass::VMSpecs& src_specs,
-                                                            const multipass::VMSpecs& dest_specs,
-                                                            const std::string& src_vm_name,
-                                                            const std::string& dest_vm_name)
+QJsonObject read_snapshot_json_and_update_unique_identifiers(const QString& filename,
+                                                             const multipass::VMSpecs& src_specs,
+                                                             const multipass::VMSpecs& dest_specs,
+                                                             const std::string& src_vm_name,
+                                                             const std::string& dest_vm_name)
 {
     QJsonObject snapshot_json = read_snapshot_json(filename);
 
@@ -211,11 +211,11 @@ mp::BaseSnapshot::BaseSnapshot(const QString& filename,
                                const VMSpecs& dest_specs,
                                const std::string& src_vm_name,
                                VirtualMachine& dest_vm)
-    : BaseSnapshot{read_snapshot_json_and_update_unique_identifier(filename,
-                                                                   src_specs,
-                                                                   dest_specs,
-                                                                   src_vm_name,
-                                                                   dest_vm.get_vm_name()),
+    : BaseSnapshot{read_snapshot_json_and_update_unique_identifiers(filename,
+                                                                    src_specs,
+                                                                    dest_specs,
+                                                                    src_vm_name,
+                                                                    dest_vm.get_vm_name()),
                    dest_vm}
 {
 }

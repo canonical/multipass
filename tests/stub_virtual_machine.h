@@ -184,6 +184,12 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
+    void load_snapshots_and_update_unique_identifiers(const VMSpecs& src_specs,
+                                                      const VMSpecs& dest_specs,
+                                                      const std::string& src_vm_name) override
+    {
+    }
+
     std::vector<std::string> get_childrens_names(const Snapshot*) const override
     {
         return {};
