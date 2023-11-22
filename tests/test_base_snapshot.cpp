@@ -24,6 +24,7 @@
 #include <multipass/vm_specs.h>
 #include <shared/base_snapshot.h>
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -371,4 +372,61 @@ TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
     EXPECT_EQ(snapshot.get_metadata(), metadata);
 }
+
+TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
+{
+    constexpr auto src_path = "You fight like a dairy farmer.";
+    constexpr auto dst_path = "How appropriate. You fight like a cow.";
+    constexpr auto host_uid = 1, instance_uid = 2, host_gid = 3, instance_gid = 4;
+    constexpr auto mount_type = mp::VMMount::MountType::Native;
+
+    QJsonArray mounts{};
+    QJsonObject mount{};
+    QJsonArray uid_mappings{};
+    QJsonObject uid_mapping{};
+    QJsonArray gid_mappings{};
+    QJsonObject gid_mapping{};
+
+    uid_mapping["host_uid"] = host_uid;
+    uid_mapping["instance_uid"] = instance_uid;
+    uid_mappings.append(uid_mapping);
+
+    gid_mapping["host_gid"] = host_gid;
+    gid_mapping["instance_gid"] = instance_gid;
+    gid_mappings.append(gid_mapping);
+
+    mount["source_path"] = src_path;
+    mount["target_path"] = dst_path;
+    mount["uid_mappings"] = uid_mappings;
+    mount["gid_mappings"] = gid_mappings;
+    mount["mount_type"] = static_cast<int>(mount_type);
+
+    mounts.append(mount);
+
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "mounts", mounts);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot_mounts = snapshot.get_mounts();
+
+    ASSERT_THAT(snapshot_mounts, SizeIs(mounts.size()));
+    const auto [snapshot_mnt_dst, snapshot_mount] = *snapshot_mounts.begin();
+
+    EXPECT_EQ(snapshot_mnt_dst, dst_path);
+    EXPECT_EQ(snapshot_mount.source_path, src_path);
+    EXPECT_EQ(snapshot_mount.mount_type, mount_type);
+
+    ASSERT_THAT(snapshot_mount.uid_mappings, SizeIs(uid_mappings.size()));
+    const auto [snapshot_host_uid, snapshot_instance_uid] = snapshot_mount.uid_mappings.front();
+
+    EXPECT_EQ(snapshot_host_uid, host_uid);
+    EXPECT_EQ(snapshot_instance_uid, instance_uid);
+
+    ASSERT_THAT(snapshot_mount.gid_mappings, SizeIs(gid_mappings.size()));
+    const auto [snapshot_host_gid, snapshot_instance_gid] = snapshot_mount.gid_mappings.front();
+
+    EXPECT_EQ(snapshot_host_gid, host_gid);
+    EXPECT_EQ(snapshot_instance_gid, instance_gid);
+}
+
 } // namespace
