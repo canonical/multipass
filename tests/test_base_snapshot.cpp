@@ -319,4 +319,15 @@ TEST_F(TestBaseSnapshot, adoptsNumCoresFromJson)
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
     EXPECT_EQ(snapshot.get_num_cores(), num_cores);
 }
+
+TEST_F(TestBaseSnapshot, adoptsMemSizeFromJson)
+{
+    constexpr auto mem = "1073741824";
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "mem_size", mem);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_mem_size().in_bytes(), QString{mem}.toInt());
+}
+
 } // namespace
