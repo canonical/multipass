@@ -393,7 +393,16 @@ void BaseVirtualMachine::load_snapshots_and_update_unique_identifiers(const VMSp
                                                                       const VMSpecs& dest_specs,
                                                                       const std::string& src_vm_name)
 {
-    // fill in later
+    const std::unique_lock lock{snapshot_mutex};
+
+    auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
+                                                   {QString{"*.%1"}.arg(snapshot_extension)},
+                                                   QDir::Filter::Files | QDir::Filter::Readable,
+                                                   QDir::SortFlag::Name);
+    for (const auto& finfo : snapshot_files)
+        load_snapshot_and_update_unique_identifiers(finfo.filePath(), src_specs, dest_specs, src_vm_name);
+
+    load_generic_snapshot_info();
 }
 
 std::vector<std::string> BaseVirtualMachine::get_childrens_names(const Snapshot* parent) const

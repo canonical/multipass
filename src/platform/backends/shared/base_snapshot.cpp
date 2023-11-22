@@ -75,8 +75,8 @@ QJsonObject read_snapshot_json_and_update_unique_identifiers(const QString& file
                                                              const std::string& dest_vm_name)
 {
     QJsonObject snapshot_json = read_snapshot_json(filename);
-
-    auto metadata = snapshot_json["metadata"].toObject();
+    // metadata object is a copy, so the modified data needs to be assign back
+    QJsonObject metadata = snapshot_json["metadata"].toObject();
     QJsonValueRef arguments = metadata["arguments"];
     QJsonArray jsonArray = arguments.toArray();
     for (QJsonValueRef item : jsonArray)
@@ -89,6 +89,9 @@ QJsonObject read_snapshot_json_and_update_unique_identifiers(const QString& file
         item = str;
     }
     arguments = jsonArray;
+
+    // Assign the modified metadata object back to snapshot_json
+    snapshot_json["metadata"] = metadata;
     return snapshot_json;
 }
 
@@ -202,6 +205,7 @@ mp::BaseSnapshot::BaseSnapshot(const QString& filename,
                                                                     dest_vm.get_vm_name()),
                    dest_vm}
 {
+    persist();
 }
 
 mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm)
@@ -266,7 +270,10 @@ void mp::BaseSnapshot::persist() const
     const std::unique_lock lock{mutex};
 
     auto snapshot_filepath = storage_dir.filePath(derive_snapshot_filename());
+    mpl::log(mpl::Level::info, "snapshot", fmt::format("snapshot_filepath value is : {}", snapshot_filepath));
+
     MP_JSONUTILS.write_json(serialize(), snapshot_filepath);
+    //    mpl::log(mpl::Level::info, "snapshot", fmt::format("snapshot_filepath value is : {}", snapshot_filepath));
 }
 
 auto mp::BaseSnapshot::erase_helper()
