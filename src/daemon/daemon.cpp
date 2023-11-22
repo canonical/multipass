@@ -2856,7 +2856,11 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                    {},
                                                    {}};
 
-        operative_instances[destination_name] = config->factory->create_virtual_machine(dest_vm_desc, *this);
+        auto cloned_instance = operative_instances[destination_name] =
+            config->factory->create_virtual_machine(dest_vm_desc, *this);
+        cloned_instance->load_snapshots_and_update_unique_identifiers(vm_instance_specs[source_name],
+                                                                      dest_vm_spec,
+                                                                      source_name);
         init_mounts(destination_name);
 
         mpl::log(mpl::Level::info,
