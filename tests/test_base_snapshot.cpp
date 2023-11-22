@@ -310,4 +310,13 @@ TEST_F(TestBaseSnapshot, adoptsTimestampFromJson)
     EXPECT_EQ(snapshot.get_creation_timestamp().toString(Qt::ISODateWithMs), timestamp);
 }
 
+TEST_F(TestBaseSnapshot, adoptsNumCoresFromJson)
+{
+    constexpr auto num_cores = 9;
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "num_cores", num_cores);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_num_cores(), num_cores);
+}
 } // namespace
