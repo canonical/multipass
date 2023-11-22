@@ -110,6 +110,9 @@ public:
     virtual void delete_snapshot(const std::string& name) = 0;
     virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
     virtual void load_snapshots() = 0;
+    virtual void load_snapshots_and_update_unique_identifiers(const VMSpecs& src_specs,
+                                                              const VMSpecs& dest_specs,
+                                                              const std::string& src_vm_name) = 0;
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
 

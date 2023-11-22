@@ -82,6 +82,9 @@ public:
     void delete_snapshot(const std::string& name) override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
     void load_snapshots() override;
+    void load_snapshots_and_update_unique_identifiers(const VMSpecs& src_specs,
+                                                      const VMSpecs& dest_specs,
+                                                      const std::string& src_vm_name) override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
