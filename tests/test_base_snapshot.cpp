@@ -330,4 +330,14 @@ TEST_F(TestBaseSnapshot, adoptsMemSizeFromJson)
     EXPECT_EQ(snapshot.get_mem_size().in_bytes(), QString{mem}.toInt());
 }
 
+TEST_F(TestBaseSnapshot, adoptsDiskSpaceFromJson)
+{
+    constexpr auto disk = "1073741824";
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "disk_space", disk);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_disk_space().in_bytes(), QString{disk}.toInt());
+}
+
 } // namespace
