@@ -349,4 +349,26 @@ TEST_F(TestBaseSnapshot, adoptsStateFromJson)
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
     EXPECT_EQ(snapshot.get_state(), state);
 }
+
+TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
+{
+    auto metadata = QJsonObject{};
+    metadata["arguments"] = "Meathook:\n"
+                            "You've got a real attitude problem!\n"
+                            "\n"
+                            "Guybrush Threepwood:\n"
+                            "Well... you've got a real hair problem!\n"
+                            "\n"
+                            "Meathook:\n"
+                            "You just don't know when to quit, do you?\n"
+                            "\n"
+                            "Guybrush Threepwood:\n"
+                            "Neither did your barber.";
+
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "metadata", metadata);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_metadata(), metadata);
+}
 } // namespace
