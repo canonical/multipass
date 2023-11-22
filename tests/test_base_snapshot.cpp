@@ -446,4 +446,15 @@ TEST_P(TestSnapshotRejectedNonPositiveIndices, refusesNonPositiveIndexFromJson)
 
 INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotRejectedNonPositiveIndices, Values(0, -1, -31));
 
+TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
+{
+    constexpr auto index = 25623956;
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "index", index);
+
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{plant_snapshot_json(json), vm}),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Maximum"), HasSubstr(std::to_string(index)))));
+}
+
 } // namespace
