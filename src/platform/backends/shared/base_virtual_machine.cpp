@@ -459,6 +459,22 @@ void BaseVirtualMachine::load_snapshot(const QString& filename)
     }
 }
 
+void BaseVirtualMachine::load_snapshot_and_update_unique_identifiers(const QString& filename,
+                                                                     const VMSpecs& src_specs,
+                                                                     const VMSpecs& dest_specs,
+                                                                     const std::string& src_vm_name)
+{
+    auto snapshot = make_specific_snapshot(filename, src_specs, dest_specs, src_vm_name);
+    const auto& name = snapshot->get_name();
+    auto [it, success] = snapshots.try_emplace(name, snapshot);
+
+    if (!success)
+    {
+        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
+        throw SnapshotNameTakenException{vm_name, name};
+    }
+}
+
 auto BaseVirtualMachine::make_common_file_rollback(const Path& file_path,
                                                    QFile& file,
                                                    const std::string& old_contents) const
