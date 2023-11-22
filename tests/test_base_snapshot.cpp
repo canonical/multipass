@@ -29,6 +29,7 @@
 #include <QJsonObject>
 
 #include <stdexcept>
+#include <tuple>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -44,7 +45,36 @@ public:
     MOCK_METHOD(void, capture_impl, (), (override));
     MOCK_METHOD(void, erase_impl, (), (override));
     MOCK_METHOD(void, apply_impl, (), (override));
+
+    friend bool operator==(const MockBaseSnapshot& a, const MockBaseSnapshot& b);
 };
+
+bool operator==(const MockBaseSnapshot& a, const MockBaseSnapshot& b)
+{
+    return std::tuple(a.get_index(),
+                      a.get_name(),
+                      a.get_comment(),
+                      a.get_creation_timestamp(),
+                      a.get_num_cores(),
+                      a.get_mem_size(),
+                      a.get_disk_space(),
+                      a.get_state(),
+                      a.get_mounts(),
+                      a.get_metadata(),
+                      a.get_parent(),
+                      a.get_id()) == std::tuple(b.get_index(),
+                                                b.get_name(),
+                                                b.get_comment(),
+                                                b.get_creation_timestamp(),
+                                                b.get_num_cores(),
+                                                b.get_mem_size(),
+                                                b.get_disk_space(),
+                                                b.get_state(),
+                                                b.get_mounts(),
+                                                b.get_metadata(),
+                                                b.get_parent(),
+                                                b.get_id());
+}
 
 struct TestBaseSnapshot : public Test
 {
@@ -90,6 +120,11 @@ struct TestBaseSnapshot : public Test
         mpt::make_file_with_content(file_path, doc.toJson().toStdString());
 
         return file_path;
+    }
+
+    QString derive_persisted_snapshot_filename(int index)
+    {
+        return vm.tmp_dir->filePath(QString{"%1"}.arg(index, 4, 10, QLatin1Char('0')) + ".snapshot.json");
     }
 
     static constexpr auto* test_json_filename = "test_snapshot.json";
@@ -456,5 +491,32 @@ TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("Maximum"), HasSubstr(std::to_string(index)))));
 }
+
+class TestSnapshotPersistence : public TestBaseSnapshot,
+                                public WithParamInterface<std::function<void(MockBaseSnapshot&)>>
+{
+};
+
+TEST_P(TestSnapshotPersistence, persistsOnEdition)
+{
+    constexpr auto index = 55;
+    auto setter = GetParam();
+
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "index", index);
+
+    MockBaseSnapshot snapshot_orig{plant_snapshot_json(json), vm};
+    setter(snapshot_orig);
+
+    const auto filename = derive_persisted_snapshot_filename(index);
+    const MockBaseSnapshot snapshot_edited{filename, vm};
+    EXPECT_EQ(snapshot_edited, snapshot_orig);
+}
+
+INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
+                         TestSnapshotPersistence,
+                         Values([](MockBaseSnapshot& s) { s.set_name("asdf"); },
+                                [](MockBaseSnapshot& s) { s.set_comment("fdsa"); },
+                                [](MockBaseSnapshot& s) { s.set_parent(nullptr); }));
 
 } // namespace
