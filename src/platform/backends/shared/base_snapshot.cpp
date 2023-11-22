@@ -124,7 +124,6 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
       storage_dir{storage_dir},
       captured{captured}
 {
-    assert(index > 0 && "snapshot indices need to start at 1");
     using St = VirtualMachine::State;
     if (state != St::off && state != St::stopped)
         throw std::runtime_error{fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(state))};
@@ -161,6 +160,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                    vm.instance_directory(),
                    /*captured=*/false}
 {
+    assert(index > 0 && "snapshot indices need to start at 1");
 }
 
 mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm)
