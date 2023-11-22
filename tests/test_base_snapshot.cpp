@@ -299,4 +299,15 @@ TEST_F(TestBaseSnapshot, adoptsIndexFromJson)
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
     EXPECT_EQ(snapshot.get_index(), index);
 }
+
+TEST_F(TestBaseSnapshot, adoptsTimestampFromJson)
+{
+    constexpr auto timestamp = "1990-10-01T01:02:03.999Z";
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "creation_timestamp", timestamp);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_creation_timestamp().toString(Qt::ISODateWithMs), timestamp);
+}
+
 } // namespace
