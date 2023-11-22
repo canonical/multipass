@@ -290,4 +290,13 @@ TEST_F(TestBaseSnapshot, linksToParentFromJson)
     EXPECT_EQ(snapshot.get_parents_name(), parent_name);
 }
 
+TEST_F(TestBaseSnapshot, adoptsIndexFromJson)
+{
+    constexpr auto index = 31;
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "index", index);
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_index(), index);
+}
 } // namespace
