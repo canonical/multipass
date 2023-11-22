@@ -340,4 +340,13 @@ TEST_F(TestBaseSnapshot, adoptsDiskSpaceFromJson)
     EXPECT_EQ(snapshot.get_disk_space().in_bytes(), QString{disk}.toInt());
 }
 
+TEST_F(TestBaseSnapshot, adoptsStateFromJson)
+{
+    constexpr auto state = mp::VirtualMachine::State::stopped;
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "state", static_cast<int>(state));
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_state(), state);
+}
 } // namespace
