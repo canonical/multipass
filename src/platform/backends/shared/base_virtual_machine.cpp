@@ -389,6 +389,13 @@ void BaseVirtualMachine::load_snapshots()
     load_generic_snapshot_info();
 }
 
+void BaseVirtualMachine::load_snapshots_and_update_unique_identifiers(const VMSpecs& src_specs,
+                                                                      const VMSpecs& dest_specs,
+                                                                      const std::string& src_vm_name)
+{
+    // fill in later
+}
+
 std::vector<std::string> BaseVirtualMachine::get_childrens_names(const Snapshot* parent) const
 {
     require_snapshots_support();
