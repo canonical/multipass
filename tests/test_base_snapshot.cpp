@@ -492,6 +492,34 @@ TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
                          mpt::match_what(AllOf(HasSubstr("Maximum"), HasSubstr(std::to_string(index)))));
 }
 
+TEST_F(TestBaseSnapshot, setsName)
+{
+    constexpr auto new_name = "Murray";
+    auto snapshot = MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
+
+    snapshot.set_name(new_name);
+    EXPECT_EQ(snapshot.get_name(), new_name);
+}
+
+TEST_F(TestBaseSnapshot, setsComment)
+{
+    constexpr auto new_comment = "I once owned a dog that was smarter than you.\n"
+                                 "He must have taught you everything you know.";
+    auto snapshot = MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
+
+    snapshot.set_comment(new_comment);
+    EXPECT_EQ(snapshot.get_comment(), new_comment);
+}
+
+TEST_F(TestBaseSnapshot, setsParent)
+{
+    auto child = MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
+    auto parent = std::make_shared<MockBaseSnapshot>("parent", "", nullptr, specs, vm);
+
+    child.set_parent(parent);
+    EXPECT_EQ(child.get_parent(), parent);
+}
+
 class TestSnapshotPersistence : public TestBaseSnapshot,
                                 public WithParamInterface<std::function<void(MockBaseSnapshot&)>>
 {
