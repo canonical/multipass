@@ -429,4 +429,21 @@ TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
     EXPECT_EQ(snapshot_instance_gid, instance_gid);
 }
 
+class TestSnapshotRejectedNonPositiveIndices : public TestBaseSnapshot, public WithParamInterface<int>
+{
+};
+
+TEST_P(TestSnapshotRejectedNonPositiveIndices, refusesNonPositiveIndexFromJson)
+{
+    const auto index = GetParam();
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "index", index);
+
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{plant_snapshot_json(json), vm}),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("not positive"), HasSubstr(std::to_string(index)))));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotRejectedNonPositiveIndices, Values(0, -1, -31));
+
 } // namespace
