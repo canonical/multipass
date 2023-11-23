@@ -131,6 +131,7 @@ struct TestBaseSnapshot : public Test
     static constexpr auto* test_json_filename = "test_snapshot.json";
     mp::VMSpecs specs = stub_specs();
     mpt::MockVirtualMachine vm{"a-vm"}; // TODO@no-merge nice?
+    QString test_json_filepath = mpt::test_data_path_for(test_json_filename);
 };
 
 TEST_F(TestBaseSnapshot, adoptsGivenValidName)
@@ -290,7 +291,7 @@ TEST_F(TestBaseSnapshot, rejectsNullDiskSize)
 
 TEST_F(TestBaseSnapshot, reconstructsFromJson)
 {
-    MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
+    MockBaseSnapshot{test_json_filepath, vm};
 }
 
 TEST_F(TestBaseSnapshot, adoptsNameFromJson)
@@ -496,7 +497,7 @@ TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
 TEST_F(TestBaseSnapshot, setsName)
 {
     constexpr auto new_name = "Murray";
-    auto snapshot = MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
+    auto snapshot = MockBaseSnapshot{test_json_filepath, vm};
 
     snapshot.set_name(new_name);
     EXPECT_EQ(snapshot.get_name(), new_name);
@@ -506,7 +507,7 @@ TEST_F(TestBaseSnapshot, setsComment)
 {
     constexpr auto new_comment = "I once owned a dog that was smarter than you.\n"
                                  "He must have taught you everything you know.";
-    auto snapshot = MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
+    auto snapshot = MockBaseSnapshot{test_json_filepath, vm};
 
     snapshot.set_comment(new_comment);
     EXPECT_EQ(snapshot.get_comment(), new_comment);
@@ -514,7 +515,7 @@ TEST_F(TestBaseSnapshot, setsComment)
 
 TEST_F(TestBaseSnapshot, setsParent)
 {
-    auto child = MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm};
+    auto child = MockBaseSnapshot{test_json_filepath, vm};
     auto parent = std::make_shared<MockBaseSnapshot>("parent", "", nullptr, specs, vm);
 
     child.set_parent(parent);
@@ -641,7 +642,7 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    const auto snapshot_filename = multipass::test::test_data_path_for(test_json_filename);
+    const auto snapshot_filename = test_json_filepath;
     EXPECT_CALL(*mock_file_ops, open(Property(&QFileDevice::fileName, Eq(snapshot_filename)), _))
         .WillOnce(Return(false));
 
@@ -682,9 +683,9 @@ TEST_F(TestBaseSnapshot, throwsOnBadFormat)
 TEST_F(TestBaseSnapshot, throwsOnMissingParent)
 {
     EXPECT_CALL(vm, get_snapshot(An<int>())).WillOnce(Throw(std::out_of_range{"Incognito"}));
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_filepath, vm}),
                          std::runtime_error,
-                         mpt::match_what(HasSubstr("Missing snapshot parent"))); // TODO@ricab extract file path
+                         mpt::match_what(HasSubstr("Missing snapshot parent")));
 }
 
 } // namespace
