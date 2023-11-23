@@ -39,6 +39,40 @@
       }
     },
     "mounts": [
+      {
+        "gid_mappings": [
+          {
+            "host_gid": 1000,
+            "instance_gid": -1
+          }
+        ],
+        "mount_type": 1,
+        "source_path": "/home/talking/skull",
+        "target_path": "murray",
+        "uid_mappings": [
+          {
+            "host_uid": 1000,
+            "instance_uid": -1
+          }
+        ]
+      },
+      {
+        "gid_mappings": [
+          {
+            "host_gid": 1000,
+            "instance_gid": -1
+          }
+        ],
+        "mount_type": 0,
+        "source_path": "/home/mighty/pirate",
+        "target_path": "guybrush",
+        "uid_mappings": [
+          {
+            "host_uid": 1000,
+            "instance_uid": -1
+          }
+        ]
+      }
     ],
     "name": "snapshot3",
     "num_cores": 1,
