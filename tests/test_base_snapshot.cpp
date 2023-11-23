@@ -651,4 +651,32 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
         mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(snapshot_filename.toStdString()))));
 }
 
+TEST_F(TestBaseSnapshot, throwsOnEmptyJson)
+{
+    const auto snapshot_filename = plant_snapshot_json(QJsonObject{});
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_filename, vm}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Empty")));
+}
+
+TEST_F(TestBaseSnapshot, throwsOnBadFormat)
+{
+    const auto snapshot_filename = vm.tmp_dir->filePath("wrong");
+    mpt::make_file_with_content(
+        snapshot_filename,
+        "(Guybrush): Can I call you Bob?\n"
+        "\n"
+        "(Murray): You may call me Murray! I am a powerful demonic force! I'm the harbinger of your doom, and the "
+        "forces of darkness will applaude me as I stride through the gates of hell, carrying your head on a pike!\n"
+        "\n"
+        "(Guybrush): \"Stride\"?\n"
+        "\n"
+        "(Murray): Alright, then. ROLL! I shall ROLL through the gates of hell! Must you take the fun out of "
+        "everything?");
+
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_filename, vm}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Could not parse snapshot JSON")));
+}
+
 } // namespace
