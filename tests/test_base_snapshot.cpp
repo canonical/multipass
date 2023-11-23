@@ -679,4 +679,12 @@ TEST_F(TestBaseSnapshot, throwsOnBadFormat)
                          mpt::match_what(HasSubstr("Could not parse snapshot JSON")));
 }
 
+TEST_F(TestBaseSnapshot, throwsOnMissingParent)
+{
+    EXPECT_CALL(vm, get_snapshot(An<int>())).WillOnce(Throw(std::out_of_range{"Incognito"}));
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{multipass::test::test_data_path_for(test_json_filename), vm}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Missing snapshot parent"))); // TODO@ricab extract file path
+}
+
 } // namespace
