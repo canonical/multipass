@@ -130,7 +130,7 @@ struct TestBaseSnapshot : public Test
 
     static constexpr auto* test_json_filename = "test_snapshot.json";
     mp::VMSpecs specs = stub_specs();
-    mpt::MockVirtualMachine vm{"a-vm"}; // TODO@no-merge nice?
+    NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
     QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
 };
 
@@ -551,7 +551,7 @@ INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
 
 TEST_F(TestBaseSnapshot, capturePersists)
 {
-    MockBaseSnapshot snapshot{"Big Whoop", "treasure", nullptr, specs, vm};
+    NiceMock<MockBaseSnapshot> snapshot{"Big Whoop", "treasure", nullptr, specs, vm};
     snapshot.capture();
 
     const auto expected_file = QFileInfo{derive_persisted_snapshot_file_path(snapshot.get_index())};
@@ -577,7 +577,7 @@ TEST_F(TestBaseSnapshot, applyCallsImpl)
 
 TEST_F(TestBaseSnapshot, eraseCallsImpl)
 {
-    MockBaseSnapshot snapshot{"House of Mojo", "voodoo", nullptr, specs, vm};
+    NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", nullptr, specs, vm};
     snapshot.capture();
 
     EXPECT_CALL(snapshot, erase_impl).Times(1);
@@ -586,7 +586,7 @@ TEST_F(TestBaseSnapshot, eraseCallsImpl)
 
 TEST_F(TestBaseSnapshot, eraseRemovesFile)
 {
-    MockBaseSnapshot snapshot{"House of Mojo", "voodoo", nullptr, specs, vm};
+    NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", nullptr, specs, vm};
     snapshot.capture();
 
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
@@ -598,7 +598,7 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
 
 TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
 {
-    MockBaseSnapshot snapshot{"voodoo-sword", "Cursed Cutlass of Kaflu", nullptr, specs, vm};
+    NiceMock<MockBaseSnapshot> snapshot{"voodoo-sword", "Cursed Cutlass of Kaflu", nullptr, specs, vm};
     snapshot.capture();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
@@ -612,11 +612,11 @@ TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
 
 TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
 {
-    MockBaseSnapshot snapshot{"ultimate-insult",
-                              "A powerful weapon capable of crippling even the toughest pirate's ego.",
-                              nullptr,
-                              specs,
-                              vm};
+    NiceMock<MockBaseSnapshot> snapshot{"ultimate-insult",
+                                        "A powerful weapon capable of crippling even the toughest pirate's ego.",
+                                        nullptr,
+                                        specs,
+                                        vm};
     snapshot.capture();
 
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
