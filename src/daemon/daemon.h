@@ -218,7 +218,6 @@ private:
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
-    std::unordered_map<std::string, std::vector<std::string>> run_at_boot;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H

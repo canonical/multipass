@@ -267,6 +267,22 @@ std::vector<mp::NetworkInterface> read_extra_interfaces(const QJsonObject& recor
     return extra_interfaces;
 }
 
+std::vector<std::string> read_string_vector(const std::string& key, const QJsonObject& record)
+{
+    std::vector<std::string> ret;
+    QString qkey = QString::fromStdString(key);
+
+    if (record.contains(qkey))
+    {
+        for (const auto& entry : record[qkey].toArray())
+        {
+            ret.push_back(entry.toString().toStdString());
+        }
+    }
+
+    return ret;
+}
+
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, const mp::Path& cache_path)
 {
     QDir data_dir{data_path};
@@ -339,7 +355,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       static_cast<mp::VirtualMachine::State>(state),
                                       mounts,
                                       deleted,
-                                      metadata};
+                                      metadata,
+                                      read_string_vector("run_at_boot", record)};
     }
     return reconstructed_records;
 }
@@ -358,6 +375,18 @@ QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfac
     }
 
     return json;
+}
+
+QJsonArray string_vector_to_json_array(const std::vector<std::string>& vec)
+{
+    QJsonArray string_array;
+
+    for (const auto& element : vec)
+    {
+        string_array.push_back(QString::fromStdString(element));
+    }
+
+    return string_array;
 }
 
 QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
@@ -385,6 +414,8 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     }
 
     json.insert("mounts", json_mounts);
+    json.insert("run_at_boot", string_vector_to_json_array(specs.run_at_boot));
+
     return json;
 }
 
@@ -2837,7 +2868,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                            VirtualMachine::State::off,
                                            {},
                                            false,
-                                           QJsonObject()};
+                                           QJsonObject(),
+                                           std::vector<std::string>{}};
                 operative_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
                 preparing_instances.erase(name);
 
@@ -3291,7 +3323,7 @@ void mp::Daemon::configure_new_interfaces(const std::string& name, mp::VirtualMa
     {
         config->factory->prepare_networking(specs.extra_interfaces);
 
-        auto& commands = run_at_boot[name];
+        auto& commands = specs.run_at_boot;
 
         for (const auto i : new_interfaces)
         {
@@ -3430,14 +3462,14 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         {
             async_running_futures.erase(name);
 
-            const auto commands = run_at_boot.find(name);
+            auto vm_specs = vm_instance_specs[name];
+            auto& commands = vm_specs.run_at_boot;
 
-            if (commands != run_at_boot.end())
+            if (!commands.empty())
             {
                 bool warned_exec_failure{false};
 
                 const auto vm = operative_instances[name];
-                const auto vm_specs = vm_instance_specs[name];
 
                 try
                 {
@@ -3446,7 +3478,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                                            vm_specs.ssh_username,
                                            *config->ssh_key_provider};
 
-                    for (const auto& command : commands->second)
+                    for (const auto& command : commands)
                     {
                         mpu::run_in_ssh_session(session, command);
                     }
@@ -3475,7 +3507,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                                name);
                 }
 
-                run_at_boot.erase(name);
+                commands.clear();
             }
         }
     }
