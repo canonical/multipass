@@ -556,4 +556,30 @@ TEST_F(TestBaseSnapshot, capturePersists)
     EXPECT_TRUE(expected_file.exists());
     EXPECT_TRUE(expected_file.isFile());
 }
+
+TEST_F(TestBaseSnapshot, captureCallsImpl)
+{
+    MockBaseSnapshot snapshot{"LeChuck", "'s Revenge", nullptr, specs, vm};
+    EXPECT_CALL(snapshot, capture_impl).Times(1);
+
+    snapshot.capture();
+}
+
+TEST_F(TestBaseSnapshot, applyCallsImpl)
+{
+    MockBaseSnapshot snapshot{"Guybrush", "fears porcelain", nullptr, specs, vm};
+    EXPECT_CALL(snapshot, apply_impl).Times(1);
+
+    snapshot.apply();
+}
+
+TEST_F(TestBaseSnapshot, eraseCallsImpl)
+{
+    MockBaseSnapshot snapshot{"House of Mojo", "voodoo", nullptr, specs, vm};
+    snapshot.capture();
+
+    EXPECT_CALL(snapshot, erase_impl).Times(1);
+    snapshot.erase();
+}
+
 } // namespace
