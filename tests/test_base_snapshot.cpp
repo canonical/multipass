@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "file_operations.h"
+#include "mock_file_ops.h"
 #include "mock_virtual_machine.h"
 #include "path.h"
 
@@ -592,6 +593,20 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
 
     snapshot.erase();
     EXPECT_FALSE(QFileInfo{expected_filename}.exists());
+}
+
+TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
+{
+    MockBaseSnapshot snapshot{"voodoo-sword", "Cursed Cutlass of Kaflu", nullptr, specs, vm};
+    snapshot.capture();
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    const auto expected_filename = derive_persisted_snapshot_filename(snapshot.get_index());
+    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_filename)), _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(snapshot.erase(),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Failed to move snapshot file")));
 }
 
 } // namespace
