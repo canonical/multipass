@@ -60,8 +60,8 @@ QJsonObject read_snapshot_json(const QString& filename)
 
     if (const auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
         throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
-                                             file.fileName(),
-                                             parse_error.errorString())};
+                                             parse_error.errorString(),
+                                             file.fileName())};
     else if (json.isEmpty())
         throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
     else
