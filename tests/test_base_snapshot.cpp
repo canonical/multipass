@@ -582,4 +582,16 @@ TEST_F(TestBaseSnapshot, eraseCallsImpl)
     snapshot.erase();
 }
 
+TEST_F(TestBaseSnapshot, eraseRemovesFile)
+{
+    MockBaseSnapshot snapshot{"House of Mojo", "voodoo", nullptr, specs, vm};
+    snapshot.capture();
+
+    const auto expected_filename = derive_persisted_snapshot_filename(snapshot.get_index());
+    ASSERT_TRUE(QFileInfo{expected_filename}.exists());
+
+    snapshot.erase();
+    EXPECT_FALSE(QFileInfo{expected_filename}.exists());
+}
+
 } // namespace
