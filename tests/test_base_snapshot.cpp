@@ -637,4 +637,18 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
     }
 }
 
+TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+
+    const auto snapshot_filename = multipass::test::test_data_path_for(test_json_filename);
+    EXPECT_CALL(*mock_file_ops, open(Property(&QFileDevice::fileName, Eq(snapshot_filename)), _))
+        .WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(
+        (MockBaseSnapshot{snapshot_filename, vm}),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(snapshot_filename.toStdString()))));
+}
+
 } // namespace
