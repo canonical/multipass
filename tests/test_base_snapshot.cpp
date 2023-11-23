@@ -609,4 +609,32 @@ TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
                          mpt::match_what(HasSubstr("Failed to move snapshot file")));
 }
 
+TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
+{
+    MockBaseSnapshot snapshot{"ultimate-insult",
+                              "A powerful weapon capable of crippling even the toughest pirate's ego.",
+                              nullptr,
+                              specs,
+                              vm};
+    snapshot.capture();
+
+    const auto expected_filename = derive_persisted_snapshot_filename(snapshot.get_index());
+    ASSERT_TRUE(QFileInfo{expected_filename}.exists());
+
+    EXPECT_CALL(snapshot, erase_impl).WillOnce([&expected_filename] {
+        ASSERT_FALSE(QFileInfo{expected_filename}.exists());
+        throw std::runtime_error{"test"};
+    });
+
+    try
+    {
+        snapshot.erase();
+        FAIL() << "shouldn't be here";
+    }
+    catch (const std::runtime_error&)
+    {
+        EXPECT_TRUE(QFileInfo{expected_filename}.exists());
+    }
+}
+
 } // namespace
