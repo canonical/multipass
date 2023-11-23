@@ -37,6 +37,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
 
     MOCK_METHOD(FetchType, fetch_type, (), (override));
     MOCK_METHOD(void, prepare_networking, (std::vector<NetworkInterface>&), (override));
+    MOCK_METHOD(bool, can_add_bridges, (), (override));
     MOCK_METHOD(VMImage, prepare_source_image, (const VMImage&), (override));
     MOCK_METHOD(void, prepare_instance_image, (const VMImage&, const VirtualMachineDescription&), (override));
     MOCK_METHOD(void, hypervisor_health_check, (), (override));

@@ -58,6 +58,11 @@ public:
         // only certain backends need to do anything to prepare networking
     }
 
+    bool can_add_bridges() override
+    {
+        return false;
+    }
+
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                           const Path& cache_dir_path, const Path& data_dir_path,
                                           const days& days_to_expire) override
