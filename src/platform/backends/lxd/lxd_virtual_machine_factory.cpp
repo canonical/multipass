@@ -257,6 +257,11 @@ void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterfa
     prepare_networking_guts(extra_interfaces, "bridge");
 }
 
+bool mp::LXDVirtualMachineFactory::can_add_bridges()
+{
+    return true;
+}
+
 std::string mp::LXDVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
 {
     assert(interface.type == "ethernet");
