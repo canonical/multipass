@@ -1207,14 +1207,16 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            const InstanceTable& deleted_instances,
                                            const std::unordered_set<std::string>& preparing_instances,
                                            std::function<void()> instance_persister,
-                                           std::function<std::string()> bridged_interface)
+                                           std::function<std::string()> bridged_interface,
+                                           bool can_bridge)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
                                                                                       operative_instances,
                                                                                       deleted_instances,
                                                                                       preparing_instances,
                                                                                       std::move(instance_persister),
-                                                                                      std::move(bridged_interface)));
+                                                                                      std::move(bridged_interface),
+                                                                                      can_bridge));
 }
 
 mp::SettingsHandler* register_snapshot_mod(
@@ -1371,7 +1373,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           deleted_instances,
           preparing_instances,
           [this] { persist_instances(); },
-          get_bridged_interface_name)},
+          get_bridged_interface_name,
+          config->factory->can_add_bridges())},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
@@ -3290,21 +3293,14 @@ void mp::Daemon::configure_new_interfaces(const std::string& name, mp::VirtualMa
 
         auto& commands = run_at_boot[name];
 
-        try
+        for (const auto i : new_interfaces)
         {
-            for (const auto i : new_interfaces)
-            {
-                vm.add_network_interface(i, specs.extra_interfaces[i]);
+            vm.add_network_interface(i, specs.extra_interfaces[i]);
 
-                commands.push_back(generate_netplan_script(i, specs.extra_interfaces[i].mac_address));
-            }
+            commands.push_back(generate_netplan_script(i, specs.extra_interfaces[i].mac_address));
+        }
 
-            commands.push_back("sudo netplan apply");
-        }
-        catch (const mp::NotImplementedOnThisBackendException&)
-        {
-            run_at_boot.erase(name);
-        }
+        commands.push_back("sudo netplan apply");
     }
 }
 

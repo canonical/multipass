@@ -54,7 +54,8 @@ struct TestInstanceSettingsHandler : public Test
                                            deleted_vms,
                                            preparing_vms,
                                            make_fake_persister(),
-                                           make_fake_bridged_interface()};
+                                           make_fake_bridged_interface(),
+                                           true};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)

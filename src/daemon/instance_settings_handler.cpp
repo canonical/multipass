@@ -19,6 +19,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
@@ -177,9 +178,8 @@ void update_bridged(const QString& key,
 
     if (bridged)
     {
-        // TODO: in this first approach, we add an interface with manual configuration.
         // The empty string in the MAC indicates the daemon that the interface must be configured.
-        spec.extra_interfaces.push_back({br_interface, "", false});
+        spec.extra_interfaces.push_back({br_interface, "", true});
     }
 }
 
@@ -197,13 +197,15 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
     const std::unordered_set<std::string>& preparing_instances,
     std::function<void()> instance_persister,
-    std::function<std::string()> bridged_interface)
+    std::function<std::string()> bridged_interface,
+    bool can_bridge)
     : vm_instance_specs{vm_instance_specs},
       operative_instances{operative_instances},
       deleted_instances{deleted_instances},
       preparing_instances{preparing_instances},
       instance_persister{std::move(instance_persister)},
-      bridged_interface{std::move(bridged_interface)}
+      bridged_interface{std::move(bridged_interface)},
+      can_bridge{can_bridge}
 {
 }
 
@@ -251,7 +253,14 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
         update_cpus(key, val, instance, spec);
     else if (property == bridged_suffix)
     {
-        update_bridged(key, val, instance, spec, bridged_interface());
+        if (can_bridge)
+        {
+            update_bridged(key, val, instance, spec, bridged_interface());
+        }
+        else
+        {
+            throw mp::NotImplementedOnThisBackendException("adding bridged interfaces");
+        }
     }
     else
     {

@@ -42,7 +42,8 @@ public:
                             const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
                             const std::unordered_set<std::string>& preparing_instances,
                             std::function<void()> instance_persister,
-                            std::function<std::string()> bridged_interface);
+                            std::function<std::string()> bridged_interface,
+                            bool can_bridge);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -61,6 +62,7 @@ private:
     const std::unordered_set<std::string>& preparing_instances;
     std::function<void()> instance_persister;
     std::function<std::string()> bridged_interface;
+    bool can_bridge;
 };
 
 class InstanceSettingsException : public SettingsException
