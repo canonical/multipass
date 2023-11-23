@@ -123,7 +123,7 @@ struct TestBaseSnapshot : public Test
         return file_path;
     }
 
-    QString derive_persisted_snapshot_filename(int index)
+    QString derive_persisted_snapshot_file_path(int index)
     {
         return vm.tmp_dir->filePath(QString{"%1"}.arg(index, 4, 10, QLatin1Char('0')) + ".snapshot.json");
     }
@@ -131,7 +131,7 @@ struct TestBaseSnapshot : public Test
     static constexpr auto* test_json_filename = "test_snapshot.json";
     mp::VMSpecs specs = stub_specs();
     mpt::MockVirtualMachine vm{"a-vm"}; // TODO@no-merge nice?
-    QString test_json_filepath = mpt::test_data_path_for(test_json_filename);
+    QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
 };
 
 TEST_F(TestBaseSnapshot, adoptsGivenValidName)
@@ -291,7 +291,7 @@ TEST_F(TestBaseSnapshot, rejectsNullDiskSize)
 
 TEST_F(TestBaseSnapshot, reconstructsFromJson)
 {
-    MockBaseSnapshot{test_json_filepath, vm};
+    MockBaseSnapshot{test_json_file_path, vm};
 }
 
 TEST_F(TestBaseSnapshot, adoptsNameFromJson)
@@ -497,7 +497,7 @@ TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
 TEST_F(TestBaseSnapshot, setsName)
 {
     constexpr auto new_name = "Murray";
-    auto snapshot = MockBaseSnapshot{test_json_filepath, vm};
+    auto snapshot = MockBaseSnapshot{test_json_file_path, vm};
 
     snapshot.set_name(new_name);
     EXPECT_EQ(snapshot.get_name(), new_name);
@@ -507,7 +507,7 @@ TEST_F(TestBaseSnapshot, setsComment)
 {
     constexpr auto new_comment = "I once owned a dog that was smarter than you.\n"
                                  "He must have taught you everything you know.";
-    auto snapshot = MockBaseSnapshot{test_json_filepath, vm};
+    auto snapshot = MockBaseSnapshot{test_json_file_path, vm};
 
     snapshot.set_comment(new_comment);
     EXPECT_EQ(snapshot.get_comment(), new_comment);
@@ -515,7 +515,7 @@ TEST_F(TestBaseSnapshot, setsComment)
 
 TEST_F(TestBaseSnapshot, setsParent)
 {
-    auto child = MockBaseSnapshot{test_json_filepath, vm};
+    auto child = MockBaseSnapshot{test_json_file_path, vm};
     auto parent = std::make_shared<MockBaseSnapshot>("parent", "", nullptr, specs, vm);
 
     child.set_parent(parent);
@@ -538,8 +538,8 @@ TEST_P(TestSnapshotPersistence, persistsOnEdition)
     MockBaseSnapshot snapshot_orig{plant_snapshot_json(json), vm};
     setter(snapshot_orig);
 
-    const auto filename = derive_persisted_snapshot_filename(index);
-    const MockBaseSnapshot snapshot_edited{filename, vm};
+    const auto file_path = derive_persisted_snapshot_file_path(index);
+    const MockBaseSnapshot snapshot_edited{file_path, vm};
     EXPECT_EQ(snapshot_edited, snapshot_orig);
 }
 
@@ -554,7 +554,7 @@ TEST_F(TestBaseSnapshot, capturePersists)
     MockBaseSnapshot snapshot{"Big Whoop", "treasure", nullptr, specs, vm};
     snapshot.capture();
 
-    const auto expected_file = QFileInfo{derive_persisted_snapshot_filename(snapshot.get_index())};
+    const auto expected_file = QFileInfo{derive_persisted_snapshot_file_path(snapshot.get_index())};
     EXPECT_TRUE(expected_file.exists());
     EXPECT_TRUE(expected_file.isFile());
 }
@@ -589,11 +589,11 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
     MockBaseSnapshot snapshot{"House of Mojo", "voodoo", nullptr, specs, vm};
     snapshot.capture();
 
-    const auto expected_filename = derive_persisted_snapshot_filename(snapshot.get_index());
-    ASSERT_TRUE(QFileInfo{expected_filename}.exists());
+    const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
+    ASSERT_TRUE(QFileInfo{expected_file_path}.exists());
 
     snapshot.erase();
-    EXPECT_FALSE(QFileInfo{expected_filename}.exists());
+    EXPECT_FALSE(QFileInfo{expected_file_path}.exists());
 }
 
 TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
@@ -602,8 +602,8 @@ TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
     snapshot.capture();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    const auto expected_filename = derive_persisted_snapshot_filename(snapshot.get_index());
-    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_filename)), _)).WillOnce(Return(false));
+    const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
+    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(snapshot.erase(),
                          std::runtime_error,
@@ -619,11 +619,11 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
                               vm};
     snapshot.capture();
 
-    const auto expected_filename = derive_persisted_snapshot_filename(snapshot.get_index());
-    ASSERT_TRUE(QFileInfo{expected_filename}.exists());
+    const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
+    ASSERT_TRUE(QFileInfo{expected_file_path}.exists());
 
-    EXPECT_CALL(snapshot, erase_impl).WillOnce([&expected_filename] {
-        ASSERT_FALSE(QFileInfo{expected_filename}.exists());
+    EXPECT_CALL(snapshot, erase_impl).WillOnce([&expected_file_path] {
+        ASSERT_FALSE(QFileInfo{expected_file_path}.exists());
         throw std::runtime_error{"test"};
     });
 
@@ -634,7 +634,7 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
     }
     catch (const std::runtime_error&)
     {
-        EXPECT_TRUE(QFileInfo{expected_filename}.exists());
+        EXPECT_TRUE(QFileInfo{expected_file_path}.exists());
     }
 }
 
@@ -642,29 +642,28 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    const auto snapshot_filename = test_json_filepath;
-    EXPECT_CALL(*mock_file_ops, open(Property(&QFileDevice::fileName, Eq(snapshot_filename)), _))
+    EXPECT_CALL(*mock_file_ops, open(Property(&QFileDevice::fileName, Eq(test_json_file_path)), _))
         .WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
-        (MockBaseSnapshot{snapshot_filename, vm}),
+        (MockBaseSnapshot{test_json_file_path, vm}),
         std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(snapshot_filename.toStdString()))));
+        mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(test_json_file_path.toStdString()))));
 }
 
 TEST_F(TestBaseSnapshot, throwsOnEmptyJson)
 {
-    const auto snapshot_filename = plant_snapshot_json(QJsonObject{});
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_filename, vm}),
+    const auto snapshot_file_path = plant_snapshot_json(QJsonObject{});
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Empty")));
 }
 
 TEST_F(TestBaseSnapshot, throwsOnBadFormat)
 {
-    const auto snapshot_filename = vm.tmp_dir->filePath("wrong");
+    const auto snapshot_file_path = vm.tmp_dir->filePath("wrong");
     mpt::make_file_with_content(
-        snapshot_filename,
+        snapshot_file_path,
         "(Guybrush): Can I call you Bob?\n"
         "\n"
         "(Murray): You may call me Murray! I am a powerful demonic force! I'm the harbinger of your doom, and the "
@@ -675,7 +674,7 @@ TEST_F(TestBaseSnapshot, throwsOnBadFormat)
         "(Murray): Alright, then. ROLL! I shall ROLL through the gates of hell! Must you take the fun out of "
         "everything?");
 
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_filename, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Could not parse snapshot JSON")));
 }
@@ -683,7 +682,7 @@ TEST_F(TestBaseSnapshot, throwsOnBadFormat)
 TEST_F(TestBaseSnapshot, throwsOnMissingParent)
 {
     EXPECT_CALL(vm, get_snapshot(An<int>())).WillOnce(Throw(std::out_of_range{"Incognito"}));
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_filepath, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_file_path, vm}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Missing snapshot parent")));
 }
