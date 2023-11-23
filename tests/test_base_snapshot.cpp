@@ -547,4 +547,13 @@ INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
                                 [](MockBaseSnapshot& s) { s.set_comment("fdsa"); },
                                 [](MockBaseSnapshot& s) { s.set_parent(nullptr); }));
 
+TEST_F(TestBaseSnapshot, capturePersists)
+{
+    MockBaseSnapshot snapshot{"Big Whoop", "treasure", nullptr, specs, vm};
+    snapshot.capture();
+
+    const auto expected_file = QFileInfo{derive_persisted_snapshot_filename(snapshot.get_index())};
+    EXPECT_TRUE(expected_file.exists());
+    EXPECT_TRUE(expected_file.isFile());
+}
 } // namespace
