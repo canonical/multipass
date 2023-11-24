@@ -356,4 +356,36 @@ TEST(BaseVMSnapshots, countsCurrentSnapshots)
     vm.take_snapshot(specs, "s4", "");
     EXPECT_EQ(vm.get_num_snapshots(), 1);
 }
+
+TEST(BaseVMSnapshots, countsTotalSnapshots)
+{
+    const mp::VMSpecs specs{};
+    MockBaseVirtualMachine vm{"mock-vm"};
+    EXPECT_EQ(vm.get_num_snapshots(), 0);
+
+    auto snapshot = std::make_shared<MockSnapshot>();
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+    EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
+    EXPECT_CALL(*snapshot, erase).Times(AnyNumber());
+
+    vm.take_snapshot(specs, "s1", "");
+    vm.take_snapshot(specs, "s2", "");
+    vm.take_snapshot(specs, "s3", "");
+    EXPECT_EQ(vm.get_snapshot_count(), 3);
+
+    vm.take_snapshot(specs, "s4", "");
+    vm.take_snapshot(specs, "s5", "");
+    EXPECT_EQ(vm.get_snapshot_count(), 5);
+
+    vm.delete_snapshot("s1");
+    vm.delete_snapshot("s2");
+    EXPECT_EQ(vm.get_snapshot_count(), 5);
+
+    vm.delete_snapshot("s4");
+    EXPECT_EQ(vm.get_snapshot_count(), 5);
+
+    vm.take_snapshot(specs, "s6", "");
+    EXPECT_EQ(vm.get_snapshot_count(), 6);
+}
+
 } // namespace
