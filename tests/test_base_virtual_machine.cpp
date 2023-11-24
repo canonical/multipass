@@ -24,6 +24,7 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
 
 namespace mp = multipass;
@@ -67,6 +68,31 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
 };
+
+struct MockSnapshot : public mp::Snapshot
+{
+    MOCK_METHOD(int, get_index, (), (const, noexcept, override));
+    MOCK_METHOD(std::string, get_name, (), (const, override));
+    MOCK_METHOD(std::string, get_comment, (), (const, override));
+    MOCK_METHOD(QDateTime, get_creation_timestamp, (), (const, noexcept, override));
+    MOCK_METHOD(int, get_num_cores, (), (const, noexcept, override));
+    MOCK_METHOD(mp::MemorySize, get_mem_size, (), (const, noexcept, override));
+    MOCK_METHOD(mp::MemorySize, get_disk_space, (), (const, noexcept, override));
+    MOCK_METHOD(mp::VirtualMachine::State, get_state, (), (const, noexcept, override));
+    MOCK_METHOD((const std::unordered_map<std::string, mp::VMMount>&), get_mounts, (), (const, noexcept, override));
+    MOCK_METHOD(const QJsonObject&, get_metadata, (), (const, noexcept, override));
+    MOCK_METHOD(std::shared_ptr<const Snapshot>, get_parent, (), (const, override));
+    MOCK_METHOD(std::shared_ptr<Snapshot>, get_parent, (), (override));
+    MOCK_METHOD(std::string, get_parents_name, (), (const, override));
+    MOCK_METHOD(int, get_parents_index, (), (const, override));
+    MOCK_METHOD(void, set_name, (const std::string&), (override));
+    MOCK_METHOD(void, set_comment, (const std::string&), (override));
+    MOCK_METHOD(void, set_parent, (std::shared_ptr<Snapshot>), (override));
+    MOCK_METHOD(void, capture, (), (override));
+    MOCK_METHOD(void, erase, (), (override));
+    MOCK_METHOD(void, apply, (), (override));
+};
+
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
     StubBaseVirtualMachine(mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
