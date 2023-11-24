@@ -327,4 +327,33 @@ TEST(BaseVMSnapshots, deletesSnapshots)
     vm.delete_snapshot("s1");
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 }
+
+TEST(BaseVMSnapshots, countsCurrentSnapshots)
+{
+    const mp::VMSpecs specs{};
+    MockBaseVirtualMachine vm{"mock-vm"};
+    EXPECT_EQ(vm.get_num_snapshots(), 0);
+
+    auto snapshot = std::make_shared<MockSnapshot>();
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+    EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
+    EXPECT_CALL(*snapshot, erase).Times(AnyNumber());
+
+    vm.take_snapshot(specs, "s1", "");
+    EXPECT_EQ(vm.get_num_snapshots(), 1);
+
+    vm.take_snapshot(specs, "s2", "");
+    vm.take_snapshot(specs, "s3", "");
+    EXPECT_EQ(vm.get_num_snapshots(), 3);
+
+    vm.delete_snapshot("s1");
+    EXPECT_EQ(vm.get_num_snapshots(), 2);
+
+    vm.delete_snapshot("s2");
+    vm.delete_snapshot("s3");
+    EXPECT_EQ(vm.get_num_snapshots(), 0);
+
+    vm.take_snapshot(specs, "s4", "");
+    EXPECT_EQ(vm.get_num_snapshots(), 1);
+}
 } // namespace
