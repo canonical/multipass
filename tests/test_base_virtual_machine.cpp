@@ -26,6 +26,7 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/vm_specs.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -295,4 +296,35 @@ INSTANTIATE_TEST_SUITE_P(
                         {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
            IpTestParams{0, "", {}}));
 
+TEST(BaseVMSnapshots, startsWithNoSnapshots)
+{
+    MockBaseVirtualMachine vm{"mock-vm"};
+    EXPECT_EQ(vm.get_num_snapshots(), 0);
+}
+
+TEST(BaseVMSnapshots, takesSnapshots)
+{
+    auto snapshot = std::make_shared<MockSnapshot>();
+    EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
+
+    MockBaseVirtualMachine vm{"mock-vm"};
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+
+    vm.take_snapshot(mp::VMSpecs{}, "s1", "");
+    EXPECT_EQ(vm.get_num_snapshots(), 1);
+}
+
+TEST(BaseVMSnapshots, deletesSnapshots)
+{
+    auto snapshot = std::make_shared<MockSnapshot>();
+    EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
+    EXPECT_CALL(*snapshot, erase).Times(AnyNumber());
+
+    MockBaseVirtualMachine vm{"mock-vm"};
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+
+    vm.take_snapshot(mp::VMSpecs{}, "s1", "");
+    vm.delete_snapshot("s1");
+    EXPECT_EQ(vm.get_num_snapshots(), 0);
+}
 } // namespace
