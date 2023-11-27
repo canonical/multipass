@@ -121,11 +121,9 @@ private:
     void log_latest_snapshot(LockT lock) const;
 
     void load_generic_snapshot_info();
-    void load_snapshot(const QString& filename);
-    void load_snapshot_and_update_unique_identifiers(const QString& filename,
-                                                     const VMSpecs& src_specs,
-                                                     const VMSpecs& dest_specs,
-                                                     const std::string& src_vm_name);
+
+    template <typename... Args>
+    void load_snapshot_and_optionally_update_unique_identifiers(const QString& file_path, Args&&... args);
     auto make_take_snapshot_rollback(SnapshotMap::iterator it);
     void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, int old_count);
 
