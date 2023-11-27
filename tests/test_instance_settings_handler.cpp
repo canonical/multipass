@@ -55,7 +55,8 @@ struct TestInstanceSettingsHandler : public Test
                                            preparing_vms,
                                            make_fake_persister(),
                                            make_fake_bridged_interface(),
-                                           true};
+                                           true,
+                                           make_fake_host_networks()};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)
@@ -74,6 +75,15 @@ struct TestInstanceSettingsHandler : public Test
     std::function<std::string()> make_fake_bridged_interface()
     {
         return [] { return "eth8"; };
+    }
+
+    std::function<std::vector<mp::NetworkInterfaceInfo>()> make_fake_host_networks()
+    {
+        std::vector<mp::NetworkInterfaceInfo> ret;
+        ret.push_back(mp::NetworkInterfaceInfo{"eth8", "ethernet", "Ethernet device", {}, true});
+        ret.push_back(mp::NetworkInterfaceInfo{"virbr0", "bridge", "Network bridge", {}, false});
+
+        return [ret] { return ret; };
     }
 
     template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NiceMock>

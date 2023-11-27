@@ -17,6 +17,7 @@
 
 #include "instance_settings_handler.h"
 
+#include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
@@ -198,14 +199,16 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     const std::unordered_set<std::string>& preparing_instances,
     std::function<void()> instance_persister,
     std::function<std::string()> bridged_interface,
-    bool can_bridge)
+    bool can_bridge,
+    std::function<std::vector<NetworkInterfaceInfo>()> host_networks)
     : vm_instance_specs{vm_instance_specs},
       operative_instances{operative_instances},
       deleted_instances{deleted_instances},
       preparing_instances{preparing_instances},
       instance_persister{std::move(instance_persister)},
       bridged_interface{std::move(bridged_interface)},
-      can_bridge{can_bridge}
+      can_bridge{can_bridge},
+      host_networks{host_networks}
 {
 }
 
@@ -255,7 +258,21 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     {
         if (can_bridge)
         {
-            update_bridged(key, val, instance, spec, bridged_interface());
+            const auto& br = bridged_interface();
+            const auto& host_nets = host_networks();
+            const auto& info =
+                std::find_if(host_nets.cbegin(), host_nets.cend(), [br](const auto& i) { return i.id == br; });
+
+            if (info == host_nets.cend())
+            {
+                throw std::runtime_error(
+                    fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
+                                "correct. See `multipass networks` for valid names.",
+                                br,
+                                mp::bridged_interface_key));
+            }
+
+            update_bridged(key, val, instance, spec, br);
         }
         else
         {
