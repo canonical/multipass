@@ -116,6 +116,7 @@ protected:
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
+    void load_snapshots_common(const std::function<void(const QString&)>& load_function);
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;
 
