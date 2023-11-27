@@ -33,6 +33,7 @@
 
 namespace multipass
 {
+struct VMSpecs;
 class JsonUtils : public Singleton<JsonUtils>
 {
 public:
@@ -40,6 +41,11 @@ public:
 
     virtual void write_json(const QJsonObject& root, QString file_name) const; // transactional; creates parent dirs
     virtual std::string json_to_string(const QJsonObject& root) const;
+    virtual QJsonObject update_unique_identifiers_of_metadata(const QJsonObject& metadataObject,
+                                                              const multipass::VMSpecs& src_specs,
+                                                              const multipass::VMSpecs& dest_specs,
+                                                              const std::string& src_vm_name,
+                                                              const std::string& dest_vm_name) const;
     virtual QJsonArray extra_interfaces_to_json_array(const std::vector<NetworkInterface>& extra_interfaces) const;
     virtual std::vector<NetworkInterface> read_extra_interfaces(const QJsonObject& record) const;
 };

@@ -20,8 +20,10 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
+#include <multipass/vm_specs.h>
 #include <multipass/utils.h>
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
 
@@ -57,6 +59,29 @@ std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
 {
     // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a QByteArray.
     return QJsonDocument(root).toJson().toStdString();
+}
+
+QJsonObject mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonObject& metadataObject,
+                                                                 const multipass::VMSpecs& src_specs,
+                                                                 const multipass::VMSpecs& dest_specs,
+                                                                 const std::string& src_vm_name,
+                                                                 const std::string& dest_vm_name) const
+{
+    QJsonObject result_metadata = metadataObject;
+    QJsonValueRef arguments = result_metadata["arguments"];
+    QJsonArray json_array = arguments.toArray();
+    for (QJsonValueRef item : json_array)
+    {
+        QString str = item.toString();
+
+        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
+        // add extra interface string replacement later
+        str.replace(src_vm_name.c_str(), dest_vm_name.c_str());
+        item = str;
+    }
+    arguments = json_array;
+
+    return result_metadata;
 }
 
 QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
