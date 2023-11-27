@@ -646,9 +646,9 @@ void mp::BaseVirtualMachine::log_latest_snapshot(LockT lock) const
 
 void mp::BaseVirtualMachine::load_snapshot(const QString& filename)
 {
-    auto snapshot = make_specific_snapshot(filename);
+    const auto snapshot = make_specific_snapshot(file_path, std::forward<Args>(args)...);
     const auto& name = snapshot->get_name();
-    auto [it, success] = snapshots.try_emplace(name, snapshot);
+    const auto [it, success] = snapshots.try_emplace(name, snapshot);
 
     if (!success)
     {
