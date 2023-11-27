@@ -77,23 +77,11 @@ QJsonObject read_snapshot_json_and_update_unique_identifiers(const QString& file
                                                              const std::string& dest_vm_name)
 {
     QJsonObject snapshot_json = read_snapshot_json(filename);
-    // metadata object is a copy, so the modified data needs to be assign back
-    QJsonObject metadata = snapshot_json["metadata"].toObject();
-    QJsonValueRef arguments = metadata["arguments"];
-    QJsonArray jsonArray = arguments.toArray();
-    for (QJsonValueRef item : jsonArray)
-    {
-        QString str = item.toString();
-
-        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
-        // add extra interface string replacement later
-        str.replace(src_vm_name.c_str(), dest_vm_name.c_str());
-        item = str;
-    }
-    arguments = jsonArray;
-
-    // Assign the modified metadata object back to snapshot_json
-    snapshot_json["metadata"] = metadata;
+    snapshot_json["metadata"] = MP_JSONUTILS.update_unique_identifiers_of_metadata(snapshot_json["metadata"].toObject(),
+                                                                                   src_specs,
+                                                                                   dest_specs,
+                                                                                   src_vm_name,
+                                                                                   dest_vm_name);
     return snapshot_json;
 }
 

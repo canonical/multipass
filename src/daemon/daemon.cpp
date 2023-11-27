@@ -2743,7 +2743,8 @@ void mp::Daemon::clone(const CloneRequest* request,
 
         auto clone_spec_item_and_write_to_instance_db = [this](const std::string& source_name,
                                                                const std::string& destination_name) -> void {
-            auto& dest_vm_spec = vm_instance_specs[destination_name] = vm_instance_specs[source_name];
+            const auto& src_vm_specs = vm_instance_specs[source_name];
+            auto& dest_vm_spec = vm_instance_specs[destination_name] = src_vm_specs;
             // update default mac addr and extra_interface mac addr
             dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
             for (auto& extra_interface : dest_vm_spec.extra_interfaces)
@@ -2751,19 +2752,11 @@ void mp::Daemon::clone(const CloneRequest* request,
                 extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
             }
 
-            QJsonValueRef arguments = dest_vm_spec.metadata["arguments"];
-            QJsonArray jsonArray = arguments.toArray();
-            for (QJsonValueRef item : jsonArray)
-            {
-                QString str = item.toString();
-
-                str.replace(vm_instance_specs[source_name].default_mac_address.c_str(),
-                            dest_vm_spec.default_mac_address.c_str());
-                str.replace(source_name.c_str(), destination_name.c_str());
-                mpl::log(mpl::Level::info, "general", fmt::format("str value is : {}", str));
-                item = str;
-            }
-            arguments = jsonArray;
+            dest_vm_spec.metadata = MP_JSONUTILS.update_unique_identifiers_of_metadata(dest_vm_spec.metadata,
+                                                                                       src_vm_specs,
+                                                                                       dest_vm_spec,
+                                                                                       source_name,
+                                                                                       destination_name);
             persist_instances();
         };
 
