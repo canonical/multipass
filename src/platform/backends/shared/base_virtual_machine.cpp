@@ -391,7 +391,9 @@ void BaseVirtualMachine::load_snapshots_common(const std::function<void(const QS
 
 void BaseVirtualMachine::load_snapshots()
 {
-    load_snapshots_common([this](const QString& file_path) -> void { load_snapshot(file_path); });
+    load_snapshots_common([this](const QString& file_path) -> void {
+        load_snapshot_and_optionally_update_unique_identifiers(file_path);
+    });
 }
 
 void BaseVirtualMachine::load_snapshots_and_update_unique_identifiers(const VMSpecs& src_specs,
@@ -400,7 +402,7 @@ void BaseVirtualMachine::load_snapshots_and_update_unique_identifiers(const VMSp
 {
 
     load_snapshots_common([this, &src_specs, &dest_specs, &src_vm_name](const QString& file_path) -> void {
-        load_snapshot_and_update_unique_identifiers(file_path, src_specs, dest_specs, src_vm_name);
+        load_snapshot_and_optionally_update_unique_identifiers(file_path, src_specs, dest_specs, src_vm_name);
     });
 }
 
@@ -454,27 +456,13 @@ void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
     }
 }
 
-void BaseVirtualMachine::load_snapshot(const QString& filename)
+template <typename... Args>
+void BaseVirtualMachine::load_snapshot_and_optionally_update_unique_identifiers(const QString& file_path,
+                                                                                Args&&... args)
 {
-    auto snapshot = make_specific_snapshot(filename);
+    const auto snapshot = make_specific_snapshot(file_path, std::forward<Args>(args)...);
     const auto& name = snapshot->get_name();
-    auto [it, success] = snapshots.try_emplace(name, snapshot);
-
-    if (!success)
-    {
-        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
-        throw SnapshotNameTakenException{vm_name, name};
-    }
-}
-
-void BaseVirtualMachine::load_snapshot_and_update_unique_identifiers(const QString& filename,
-                                                                     const VMSpecs& src_specs,
-                                                                     const VMSpecs& dest_specs,
-                                                                     const std::string& src_vm_name)
-{
-    auto snapshot = make_specific_snapshot(filename, src_specs, dest_specs, src_vm_name);
-    const auto& name = snapshot->get_name();
-    auto [it, success] = snapshots.try_emplace(name, snapshot);
+    const auto [it, success] = snapshots.try_emplace(name, snapshot);
 
     if (!success)
     {
