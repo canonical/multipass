@@ -17,64 +17,6 @@ class CatalogueScreen extends ConsumerWidget {
 
   const CatalogueScreen({super.key});
 
-  Widget Function(ImageInfo image) _cardBuilder(double width) {
-    return (image) => AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          height: 275,
-          width: width,
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xffdddddd)),
-            borderRadius: BorderRadius.circular(2),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: DefaultTextStyle(
-            style: const TextStyle(fontSize: 16, color: Colors.black),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SvgPicture.asset('assets/ubuntu.svg'),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4, top: 18),
-                  child: Text(
-                    '${image.os} ${image.release}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Canonical ',
-                      style: TextStyle(color: Color(0xff666666)),
-                    ),
-                    SvgPicture.asset('assets/verified.svg')
-                  ],
-                ),
-                Expanded(
-                  child: Align(
-                    alignment: const Alignment(-1, 0.2),
-                    child: Text(image.codename),
-                  ),
-                ),
-                OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    fixedSize: const Size(83, 36),
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                    side: const BorderSide(color: Color(0xff757575)),
-                  ),
-                  child: const Text('Launch'),
-                ),
-              ],
-            ),
-          ),
-        );
-  }
-
   // sorts the images in a more user-friendly way
   // the current LTS > other releases sorted by most recent > current devel > core images > appliances
   List<ImageInfo> _sortImages(List<ImageInfo> images) {
@@ -140,7 +82,9 @@ class CatalogueScreen extends ConsumerWidget {
             return Wrap(
               runSpacing: spacing,
               spacing: spacing,
-              children: sortedImages.map(_cardBuilder(cardWidth)).toList(),
+              children: sortedImages
+                  .map((image) => ImageCard(image, cardWidth))
+                  .toList(),
             );
           }),
           const SizedBox(height: 32),
@@ -168,45 +112,101 @@ class CatalogueScreen extends ConsumerWidget {
       ),
     );
 
-    final defaultImage = images.firstWhereOrNull(
-      (i) => i.aliasesInfo.map((a) => a.alias).contains('default'),
-    );
-
-    final launchDefault = Column(children: [
-      TextButton(
-        onPressed: () {},
-        style: TextButton.styleFrom(
-          backgroundColor: const Color(0xff0E8620),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.all(16),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w300,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        child: const Text('Launch default'),
-      ),
-      Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Text('${defaultImage?.os} ${defaultImage?.release}'),
-      ),
-    ]);
-
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 140).copyWith(top: 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Flexible(child: welcomeText),
-              if (defaultImage != null) launchDefault,
-            ]),
+            welcomeText,
             const Divider(),
             Expanded(child: imageList),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ImageCard extends StatelessWidget {
+  final ImageInfo image;
+  final double width;
+
+  const ImageCard(this.image, this.width, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 100),
+      height: 275,
+      width: width,
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xffdddddd)),
+        borderRadius: BorderRadius.circular(2),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: DefaultTextStyle(
+        style: const TextStyle(fontSize: 16, color: Colors.black),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SvgPicture.asset('assets/ubuntu.svg'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4, top: 18),
+              child: Text(
+                '${image.os} ${image.release}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Canonical ',
+                  style: TextStyle(color: Color(0xff666666)),
+                ),
+                SvgPicture.asset('assets/verified.svg')
+              ],
+            ),
+            Expanded(
+              child: Align(
+                alignment: const Alignment(-1, 0.2),
+                child: Text(image.codename),
+              ),
+            ),
+            Row(
+              children: [
+                OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    fixedSize: const Size(83, 36),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    side: const BorderSide(color: Color(0xff757575)),
+                  ),
+                  child: const Text('Launch'),
+                ),
+                const SizedBox(width: 16),
+                OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    fixedSize: const Size(48, 36),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    side: const BorderSide(color: Color(0xff757575)),
+                  ),
+                  child: SvgPicture.asset('assets/settings.svg',
+                      colorFilter: const ColorFilter.mode(
+                        Colors.black,
+                        BlendMode.srcIn,
+                      )),
+                ),
+              ],
+            ),
           ],
         ),
       ),
