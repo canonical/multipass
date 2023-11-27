@@ -584,12 +584,12 @@ void mp::BaseVirtualMachine::load_snapshots()
 {
     const std::unique_lock lock{snapshot_mutex};
 
-    auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
-                                                   {QString{"*.%1"}.arg(snapshot_extension)},
-                                                   QDir::Filter::Files | QDir::Filter::Readable,
-                                                   QDir::SortFlag::Name);
+    const auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
+                                                         {QString{"*.%1"}.arg(snapshot_extension)},
+                                                         QDir::Filter::Files | QDir::Filter::Readable,
+                                                         QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
-        load_snapshot(finfo.filePath());
+        load_one_snapshot_function(finfo.filePath());
 
     load_generic_snapshot_info();
 }
