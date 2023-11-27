@@ -375,34 +375,33 @@ void BaseVirtualMachine::delete_snapshot(const std::string& name)
     mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
 }
 
-void BaseVirtualMachine::load_snapshots()
+void BaseVirtualMachine::load_snapshots_common(const std::function<void(const QString&)>& load_one_snapshot_function)
 {
     const std::unique_lock lock{snapshot_mutex};
 
-    auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
-                                                   {QString{"*.%1"}.arg(snapshot_extension)},
-                                                   QDir::Filter::Files | QDir::Filter::Readable,
-                                                   QDir::SortFlag::Name);
+    const auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
+                                                         {QString{"*.%1"}.arg(snapshot_extension)},
+                                                         QDir::Filter::Files | QDir::Filter::Readable,
+                                                         QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
-        load_snapshot(finfo.filePath());
+        load_one_snapshot_function(finfo.filePath());
 
     load_generic_snapshot_info();
+}
+
+void BaseVirtualMachine::load_snapshots()
+{
+    load_snapshots_common([this](const QString& file_path) -> void { load_snapshot(file_path); });
 }
 
 void BaseVirtualMachine::load_snapshots_and_update_unique_identifiers(const VMSpecs& src_specs,
                                                                       const VMSpecs& dest_specs,
                                                                       const std::string& src_vm_name)
 {
-    const std::unique_lock lock{snapshot_mutex};
 
-    auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
-                                                   {QString{"*.%1"}.arg(snapshot_extension)},
-                                                   QDir::Filter::Files | QDir::Filter::Readable,
-                                                   QDir::SortFlag::Name);
-    for (const auto& finfo : snapshot_files)
-        load_snapshot_and_update_unique_identifiers(finfo.filePath(), src_specs, dest_specs, src_vm_name);
-
-    load_generic_snapshot_info();
+    load_snapshots_common([this, &src_specs, &dest_specs, &src_vm_name](const QString& file_path) -> void {
+        load_snapshot_and_update_unique_identifiers(file_path, src_specs, dest_specs, src_vm_name);
+    });
 }
 
 std::vector<std::string> BaseVirtualMachine::get_childrens_names(const Snapshot* parent) const
