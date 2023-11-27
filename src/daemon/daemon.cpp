@@ -3510,7 +3510,8 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                                name);
                 }
 
-                commands.clear();
+                vm_instance_specs[name].run_at_boot.clear();
+                persist_instances();
             }
         }
     }
