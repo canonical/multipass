@@ -589,7 +589,7 @@ void mp::BaseVirtualMachine::load_snapshots()
                                                          QDir::Filter::Files | QDir::Filter::Readable,
                                                          QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
-        load_one_snapshot_function(finfo.filePath());
+        load_snapshot_and_optionally_update_unique_identifiers(finfo.filePath(), std::forward<Args>(args)...);
 
     load_generic_snapshot_info();
 }
