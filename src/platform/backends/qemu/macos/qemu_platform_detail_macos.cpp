@@ -105,7 +105,11 @@ std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
 
     for (const auto& ifs_info : platform_ifs_info)
     {
-        networks.push_back(ifs_info.second);
+        const auto& info = ifs_info.second;
+        const auto& type = info.type;
+
+        if (type == "ethernet" || type == "wifi" || type == "usb")
+            networks.push_back(info);
     }
 
     return networks;
