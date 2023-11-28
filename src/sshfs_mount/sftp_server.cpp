@@ -550,6 +550,17 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
+    QFileInfo current_dir(filename);
+    if (current_dir.exists() &&
+        (!has_uid_mapping_for(current_dir.ownerId()) || !has_gid_mapping_for(current_dir.groupId())))
+    {
+        mpl::log(
+            mpl::Level::trace,
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied", __FUNCTION__, filename));
+        return reply_perm_denied(msg);
+    }
+
     std::error_code err;
     if (!MP_FILEOPS.remove(filename, err) && !err)
         err = std::make_error_code(std::errc::no_such_file_or_directory);
