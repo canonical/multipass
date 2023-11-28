@@ -691,6 +691,31 @@ TEST_F(SftpServer, rmdir_unable_to_remove_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
+TEST_F(SftpServer, rmdirFailsToRemoveDirThatsMissingMappedIds)
+{
+    mpt::TempDir temp_dir;
+    auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
+    auto new_dir_name = name_as_char_array(new_dir);
+
+    QDir dir(new_dir_name.data());
+    ASSERT_TRUE(dir.mkdir(new_dir_name.data()));
+    ASSERT_TRUE(dir.exists());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto msg = make_msg(SFTP_RMDIR);
+    msg->filename = new_dir_name.data();
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    sftp.run();
+
+    EXPECT_TRUE(dir.exists());
+    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+}
+
 TEST_F(SftpServer, handles_readlink)
 {
     mpt::TempDir temp_dir;
