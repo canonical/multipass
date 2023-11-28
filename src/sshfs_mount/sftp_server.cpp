@@ -587,6 +587,25 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
+    std::error_code err;
+    const auto status = MP_FILEOPS.symlink_status(filename, err);
+    if (err && status.type() != fs::file_type::not_found)
+    {
+        mpl::log(mpl::Level::trace, category, fmt::format("Cannot get status of '{}': {}", filename, err.message()));
+        return reply_perm_denied(msg);
+    }
+    const auto exists = fs::is_symlink(status) || fs::is_regular_file(status);
+
+    QFileInfo file_info(filename);
+    if (exists && (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId())))
+    {
+        mpl::log(
+            mpl::Level::trace,
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied", __FUNCTION__, filename));
+        return reply_perm_denied(msg);
+    }
+
     int mode = 0;
     const auto flags = sftp_client_message_get_flags(msg);
 
@@ -615,15 +634,6 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     if (flags & SSH_FXF_EXCL)
         mode |= O_EXCL;
 
-    std::error_code err;
-    const auto status = MP_FILEOPS.symlink_status(filename, err);
-    if (err && status.type() != fs::file_type::not_found)
-    {
-        mpl::log(mpl::Level::trace, category, fmt::format("Cannot get status of '{}': {}", filename, err.message()));
-        return reply_perm_denied(msg);
-    }
-    const auto exists = fs::is_symlink(status) || fs::is_regular_file(status);
-
     auto named_fd = MP_FILEOPS.open_fd(filename, mode, msg->attr ? msg->attr->permissions : 0);
     if (named_fd->fd == -1)
     {
@@ -636,8 +646,8 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         QFileInfo current_file(filename);
         QFileInfo current_dir(current_file.path());
 
-        auto new_uid = reverse_uid_for(msg->attr->uid, current_dir.ownerId());
-        auto new_gid = reverse_gid_for(msg->attr->gid, current_dir.groupId());
+        auto new_uid = reverse_uid_for(current_dir.ownerId(), current_dir.ownerId());
+        auto new_gid = reverse_gid_for(current_dir.groupId(), current_dir.groupId());
 
         if (MP_PLATFORM.chown(filename, new_uid, new_gid) < 0)
         {
