@@ -832,6 +832,90 @@ INSTANTIATE_TEST_SUITE_P(VMBlueprintFileLaunch, VMBlueprintFileLaunchFromFile,
                          Values(std::pair{"v1/test-blueprint1.yaml", "test-blueprint1"},
                                 std::pair{"v2/test-blueprint1.yaml", "test-blueprint1"}));
 
+TEST_F(VMBlueprintFileLaunch, mergesBlueprintVendorData)
+{
+    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url,
+                                                      &url_downloader,
+                                                      cache_dir.path(),
+                                                      default_ttl};
+
+    YAML::Node vendor_data;
+    vendor_data["runcmd"].push_back("echo 123");
+    vendor_data["system_info"]["default_user"]["name"] = "ubuntu";
+    vendor_data["growpart"]["devices"].push_back("/dev/vdb1");
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+
+    mp::ClientLaunchData dummy_data;
+
+    const auto blueprint_path = mpt::test_data_path() + "blueprints/v1/complex-cloud-init.yaml";
+
+    blueprint_provider.blueprint_from_file(blueprint_path.toStdString(), "complex-cloud-init", vm_desc, dummy_data);
+
+    const auto runcmd = vm_desc.vendor_data_config["runcmd"];
+    EXPECT_EQ(runcmd[0].Scalar(), "echo 123");
+    EXPECT_EQ(runcmd[1].Scalar(), "echo abc");
+    EXPECT_EQ(runcmd[2].Scalar(), "echo def");
+
+    const auto default_user = vm_desc.vendor_data_config["system_info"]["default_user"];
+    EXPECT_EQ(default_user["name"].Scalar(), "ubuntu");
+    EXPECT_EQ(default_user["shell"].Scalar(), "/bin/zsh");
+
+    const auto devices = vm_desc.vendor_data_config["growpart"]["devices"];
+    EXPECT_EQ(devices[0].Scalar(), "/dev/vdb1");
+    EXPECT_EQ(devices[1].Scalar(), "/");
+}
+
+TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataDifferentTypes)
+{
+    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url,
+                                                      &url_downloader,
+                                                      cache_dir.path(),
+                                                      default_ttl};
+
+    YAML::Node vendor_data;
+    vendor_data["runcmd"] = "echo 123";
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+
+    mp::ClientLaunchData dummy_data;
+
+    const auto blueprint_path = mpt::test_data_path() + "blueprints/v1/complex-cloud-init.yaml";
+
+    MP_EXPECT_THROW_THAT(
+        blueprint_provider.blueprint_from_file(blueprint_path.toStdString(), "complex-cloud-init", vm_desc, dummy_data),
+        mp::InvalidBlueprintException,
+        mpt::match_what(HasSubstr("Cannot merge values of runcmd")));
+}
+
+TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataScalarValues)
+{
+    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
+
+    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url,
+                                                      &url_downloader,
+                                                      cache_dir.path(),
+                                                      default_ttl};
+
+    YAML::Node vendor_data;
+    vendor_data["system_info"]["default_user"]["shell"] = "/bin/fish";
+
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+
+    mp::ClientLaunchData dummy_data;
+
+    const auto blueprint_path = mpt::test_data_path() + "blueprints/v1/complex-cloud-init.yaml";
+
+    MP_EXPECT_THROW_THAT(
+        blueprint_provider.blueprint_from_file(blueprint_path.toStdString(), "complex-cloud-init", vm_desc, dummy_data),
+        mp::InvalidBlueprintException,
+        mpt::match_what(HasSubstr("Cannot merge values of shell")));
+}
+
 TEST_F(VMBlueprintFileLaunch, failsWithNonexistentFile)
 {
     ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));

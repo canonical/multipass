@@ -168,6 +168,41 @@ std::string get_blueprint_version(const YAML::Node& blueprint_instance)
     return "v1";
 }
 
+void merge_yaml_entries(YAML::Node& ours, const YAML::Node& theirs, const std::string& key, bool override_null = false)
+{
+    if (!ours.IsDefined() || (override_null && ours.IsNull()))
+    {
+        ours = YAML::Clone(theirs);
+        return;
+    }
+
+    if (ours.IsSequence() && theirs.IsSequence())
+    {
+        for (const auto& value : theirs)
+            ours.push_back(value);
+
+        return;
+    }
+
+    if (ours.IsMap() && theirs.IsMap())
+    {
+        for (const auto& value : theirs)
+            if (value.first.IsScalar())
+            {
+                const auto subkey = value.first.Scalar();
+                auto subnode = ours[subkey];
+                merge_yaml_entries(subnode, value.second, subkey);
+            }
+
+        return;
+    }
+
+    throw mp::InvalidBlueprintException{fmt::format("Cannot merge values of {}:\n{}\n\n{}",
+                                                    key,
+                                                    mp::utils::emit_yaml(ours),
+                                                    mp::utils::emit_yaml(theirs))};
+}
+
 mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::string& blueprint_name,
                                    mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& client_launch_data,
                                    const QString& arch, mp::URLDownloader* url_downloader, bool& needs_update)
@@ -339,14 +374,7 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config, const std::stri
         try
         {
             auto cloud_init_config = YAML::Load(blueprint_instance["cloud-init"]["vendor-data"].as<std::string>());
-
-            for (const auto& config : cloud_init_config)
-            {
-                if (config.first.IsScalar())
-                {
-                    vm_desc.vendor_data_config[config.first.Scalar()] = config.second;
-                }
-            }
+            merge_yaml_entries(vm_desc.vendor_data_config, cloud_init_config, "vendor-data", true);
         }
         catch (const YAML::BadConversion&)
         {
