@@ -31,6 +31,7 @@
 
 #include <src/sshfs_mount/sftp_server.h>
 
+#include <multipass/cli/client_platform.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
@@ -55,8 +56,9 @@ struct SftpServer : public mp::test::SftpServerTest
         return make_sftpserver("");
     }
 
-    mp::SftpServer make_sftpserver(const std::string& path, const mp::id_mappings& gid_mappings = {},
-                                   const mp::id_mappings& uid_mappings = {})
+    mp::SftpServer make_sftpserver(const std::string& path,
+                                   const mp::id_mappings& gid_mappings = {{default_id, mp::default_id}},
+                                   const mp::id_mappings& uid_mappings = {{default_id, mp::default_id}})
     {
         mp::SSHSession session{"a", 42, "ubuntu", key_provider};
         return {std::move(session), path, path, gid_mappings, uid_mappings, default_id, default_id, "sshfs"};
@@ -94,10 +96,10 @@ struct SftpServer : public mp::test::SftpServerTest
         return reply_status;
     }
 
+    static const int default_id{1000};
     const mpt::StubSSHKeyProvider key_provider;
     mpt::ExitStatusMock exit_status_mock;
     std::queue<sftp_client_message> messages;
-    int default_id{1000};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
