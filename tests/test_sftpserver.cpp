@@ -587,6 +587,29 @@ TEST_F(SftpServer, mkdir_chown_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
+TEST_F(SftpServer, mkdirFailsInDirThatsMissingMappedIds)
+{
+    mpt::TempDir temp_dir;
+    auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
+    auto new_dir_name = name_as_char_array(new_dir);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    const auto msg = make_msg(SFTP_MKDIR);
+    msg->filename = new_dir_name.data();
+    msg->attr = &attr;
+
+    int perm_denied_num_calls{0};
+    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls));
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    sftp.run();
+
+    EXPECT_FALSE(QDir{new_dir_name.data()}.exists());
+    EXPECT_EQ(perm_denied_num_calls, 1);
+}
+
 TEST_F(SftpServer, handles_rmdir)
 {
     mpt::TempDir temp_dir;
