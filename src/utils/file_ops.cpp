@@ -72,6 +72,16 @@ bool mp::FileOps::isReadable(const QFileInfo& file) const
     return file.isReadable();
 }
 
+uint mp::FileOps::ownerId(const QFileInfo& file) const
+{
+    return file.ownerId();
+}
+
+uint mp::FileOps::groupId(const QFileInfo& file) const
+{
+    return file.groupId();
+}
+
 bool mp::FileOps::is_open(const QFile& file) const
 {
     return file.isOpen();

@@ -52,7 +52,6 @@ public:
 
 private:
     void process_message(sftp_client_message msg);
-    sftp_attributes_struct get_uid_gid_from(const QFileInfo& file_info);
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
     int mapped_uid_for(const int uid);
     int mapped_gid_for(const int gid);
@@ -60,6 +59,8 @@ private:
     int reverse_gid_for(const int gid, const int rev_gid_if_not_found);
     bool has_uid_mapping_for(const int uid);
     bool has_gid_mapping_for(const int gid);
+    bool has_reverse_uid_mapping_for(const int uid);
+    bool has_reverse_gid_mapping_for(const int gid);
     bool validate_permissions(const QString& filename);
     bool validate_path(const std::string& source_path, const std::string& current_path);
 

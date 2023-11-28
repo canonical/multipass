@@ -193,7 +193,7 @@ struct SshfsMount : public mp::test::SftpServerTest
         {"id -u", "1000\n"},
         {"id -g", "1000\n"},
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o allow_other -o "
-         "Compression=no -o dcache_timeout=3 :\"source\" "
+         "Compression=no -o dcache_timeout=3 -o dir_cache=no:\"source\" "
          "\"target\"",
          "don't care\n"}};
 };
