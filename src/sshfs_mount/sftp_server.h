@@ -59,6 +59,8 @@ private:
     int mapped_gid_for(const int gid);
     int reverse_uid_for(const int uid, const int default_id);
     int reverse_gid_for(const int gid, const int default_id);
+    bool has_uid_mapping_for(const int uid);
+    bool has_gid_mapping_for(const int gid);
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);

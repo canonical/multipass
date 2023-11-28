@@ -312,6 +312,20 @@ inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id)
     return reverse_id_for(gid_mappings, gid, default_id);
 }
 
+inline bool mp::SftpServer::has_uid_mapping_for(const int uid)
+{
+    return std::find_if(uid_mappings.begin(), uid_mappings.end(), [uid](std::pair<int, int> p) {
+               return uid == p.first;
+           }) != uid_mappings.end();
+}
+
+inline bool mp::SftpServer::has_gid_mapping_for(const int gid)
+{
+    return std::find_if(gid_mappings.begin(), gid_mappings.end(), [gid](std::pair<int, int> p) {
+               return gid == p.first;
+           }) != gid_mappings.end();
+}
+
 void mp::SftpServer::process_message(sftp_client_message msg)
 {
     int ret = 0;
@@ -481,6 +495,21 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     }
 
     QDir dir(filename);
+    QFileInfo current_dir(filename);
+    QFileInfo parent_dir(current_dir.path());
+
+    if (!has_uid_mapping_for(parent_dir.ownerId()) || !has_gid_mapping_for(parent_dir.groupId()))
+    {
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot create path \'{}\' with permissions \'{}:{}\': permission denied",
+                             __FUNCTION__,
+                             parent_dir.ownerId(),
+                             parent_dir.groupId(),
+                             filename));
+        return reply_perm_denied(msg);
+    }
+
     if (!dir.mkdir(filename))
     {
         mpl::log(mpl::Level::trace, category, fmt::format("{}: mkdir failed for '{}'", __FUNCTION__, filename));
@@ -497,10 +526,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    QFileInfo current_dir(filename);
-    QFileInfo parent_dir(current_dir.path());
-    int rev_uid = reverse_uid_for(msg->attr->uid, parent_dir.ownerId());
-    int rev_gid = reverse_gid_for(msg->attr->gid, parent_dir.groupId());
+    int rev_uid = reverse_uid_for(parent_dir.ownerId(), parent_dir.ownerId());
+    int rev_gid = reverse_gid_for(parent_dir.groupId(), parent_dir.groupId());
 
     if (MP_PLATFORM.chown(filename, rev_uid, rev_gid) < 0)
     {
@@ -508,6 +535,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
                  fmt::format("failed to chown '{}' to owner:{} and group:{}", filename, rev_uid, rev_gid));
         return reply_failure(msg);
     }
+
     return reply_ok(msg);
 }
 
