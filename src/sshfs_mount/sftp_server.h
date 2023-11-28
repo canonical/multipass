@@ -57,8 +57,8 @@ private:
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
     int mapped_uid_for(const int uid);
     int mapped_gid_for(const int gid);
-    int reverse_uid_for(const int uid, const int rev_uid_if_not_found);
-    int reverse_gid_for(const int gid, const int rev_gid_if_not_found);
+    int reverse_uid_for(const int uid, const int default_id);
+    int reverse_gid_for(const int gid, const int default_id);
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
