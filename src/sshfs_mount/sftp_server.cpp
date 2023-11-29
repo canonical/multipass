@@ -1184,13 +1184,24 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     if (method == "hardlink@openssh.com")
     {
         const auto old_name = sftp_client_message_get_filename(msg);
-
         const auto new_name = sftp_client_message_get_data(msg);
+
         if (!validate_path(source_path, new_name))
         {
             mpl::log(mpl::Level::trace, category,
                      fmt::format("{}: cannot validate path \'{}\' against source \'{}\'", __FUNCTION__, new_name,
                                  source_path));
+            return reply_perm_denied(msg);
+        }
+
+        QFileInfo file_info{old_name};
+        if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+        {
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                                 __FUNCTION__,
+                                 old_name));
             return reply_perm_denied(msg);
         }
 

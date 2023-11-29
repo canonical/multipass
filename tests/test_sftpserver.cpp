@@ -2327,6 +2327,37 @@ TEST_F(SftpServer, extended_link_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
+TEST_F(SftpServer, extendedLinkFailureFailsWhenSourceFileIdsAreNotMapped)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto msg = make_msg(SFTP_EXTENDED);
+    auto submessage = name_as_char_array("hardlink@openssh.com");
+    msg->submessage = submessage.data();
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    sftp.run();
+
+    EXPECT_EQ(perm_denied_num_calls, 1);
+
+    QFileInfo info(link_name);
+    EXPECT_FALSE(QFile::exists(link_name));
+}
+
 TEST_F(SftpServer, handle_extended_rename)
 {
     mpt::TempDir temp_dir;
@@ -2354,6 +2385,35 @@ TEST_F(SftpServer, handle_extended_rename)
     ASSERT_THAT(num_calls, Eq(1));
     EXPECT_TRUE(QFile::exists(new_name));
     EXPECT_FALSE(QFile::exists(old_name));
+}
+
+TEST_F(SftpServer, extendedRenameFailsWhenMissingMappedIds)
+{
+    mpt::TempDir temp_dir;
+    auto old_name = temp_dir.path() + "/test-file";
+    auto new_name = temp_dir.path() + "/test-renamed";
+    mpt::make_file_with_content(old_name);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto msg = make_msg(SFTP_EXTENDED);
+    auto submessage = name_as_char_array("posix-rename@openssh.com");
+    msg->submessage = submessage.data();
+    auto name = name_as_char_array(old_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(new_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    sftp.run();
+
+    ASSERT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_FALSE(QFile::exists(new_name));
+    EXPECT_TRUE(QFile::exists(old_name));
 }
 
 TEST_F(SftpServer, extended_rename_in_invalid_dir_fails)
