@@ -105,7 +105,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         }
         else
         {
-            sshfs_exec += " -o dcache_timeout=3";
+            sshfs_exec += " -o dcache_timeout=3 -o dir_cache=no";
         }
     }
     else

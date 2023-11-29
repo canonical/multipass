@@ -293,10 +293,11 @@ CommandVector old_fuse_cmds = {
      "don't care\n"}};
 
 // Commands to check that a version of FUSE at least 3.0.0 gives a correct answer.
-CommandVector new_fuse_cmds = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0\n"},
-                               {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
-                                "allow_other -o Compression=no -o dcache_timeout=3 :\"source\" \"/home/ubuntu/target\"",
-                                "don't care\n"}};
+CommandVector new_fuse_cmds = {
+    {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0\n"},
+    {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
+     "allow_other -o Compression=no -o dcache_timeout=3 -o dir_cache=no :\"source\" \"/home/ubuntu/target\"",
+     "don't care\n"}};
 
 // Commands to check that an unknown version of FUSE gives a correct answer.
 CommandVector unk_fuse_cmds = {{"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "weird fuse version\n"},
