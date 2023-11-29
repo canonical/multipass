@@ -461,6 +461,26 @@ TEST_F(SftpServer, opendir_no_handle_allocated_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
+TEST_F(SftpServer, opendirFailsWhenIdsAreNotMapped)
+{
+    mpt::TempDir temp_dir;
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto open_dir_msg = make_msg(SFTP_OPENDIR);
+    auto dir_name = name_as_char_array(temp_dir.path().toStdString());
+    open_dir_msg->filename = dir_name.data();
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(open_dir_msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    sftp.run();
+
+    EXPECT_EQ(perm_denied_num_calls, 1);
+}
+
 TEST_F(SftpServer, handles_mkdir)
 {
     mpt::TempDir temp_dir;
