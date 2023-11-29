@@ -326,6 +326,20 @@ inline bool mp::SftpServer::has_gid_mapping_for(const int gid)
            }) != gid_mappings.end();
 }
 
+inline bool mp::SftpServer::has_reverse_uid_mapping_for(const int uid)
+{
+    return std::find_if(uid_mappings.cbegin(), uid_mappings.cend(), [uid](std::pair<int, int> p) {
+               return uid == p.second;
+           }) != uid_mappings.end();
+}
+
+inline bool mp::SftpServer::has_reverse_gid_mapping_for(const int gid)
+{
+    return std::find_if(gid_mappings.cbegin(), gid_mappings.cend(), [gid](std::pair<int, int> p) {
+               return gid == p.second;
+           }) != gid_mappings.end();
+}
+
 void mp::SftpServer::process_message(sftp_client_message msg)
 {
     int ret = 0;
@@ -989,6 +1003,15 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     }
 
     QFile file{filename};
+    QFileInfo file_info{filename};
+    if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+    {
+        mpl::log(
+            mpl::Level::trace,
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied", __FUNCTION__, filename));
+        return reply_perm_denied(msg);
+    }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
@@ -1023,12 +1046,25 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    if ((msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID) &&
-        (MP_PLATFORM.chown(filename.toStdString().c_str(), reverse_uid_for(msg->attr->uid, msg->attr->uid),
-                           reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0))
+    if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        mpl::log(mpl::Level::trace, category, fmt::format("{}: cannot set ownership for '{}'", __FUNCTION__, filename));
-        return reply_failure(msg);
+        if (!has_reverse_uid_mapping_for(msg->attr->uid) && !has_reverse_gid_mapping_for(msg->attr->gid))
+        {
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: cannot set ownership for \'{}\' without id mapping", __FUNCTION__, filename));
+            return reply_perm_denied(msg);
+        }
+
+        if (MP_PLATFORM.chown(filename.toStdString().c_str(),
+                              reverse_uid_for(msg->attr->uid, msg->attr->uid),
+                              reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
+        {
+            mpl::log(mpl::Level::trace,
+                     category,
+                     fmt::format("{}: cannot set ownership for '{}'", __FUNCTION__, filename));
+            return reply_failure(msg);
+        }
     }
 
     return reply_ok(msg);

@@ -1852,7 +1852,7 @@ TEST_F(SftpServer, setstat_chown_failure_fails)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {{1000, -1}, {1001, 1001}}, {{1000, -1}, {1001, 1001}});
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -1860,6 +1860,8 @@ TEST_F(SftpServer, setstat_chown_failure_fails)
     attr.size = expected_size;
     attr.flags = SSH_FILEXFER_ATTR_UIDGID;
     attr.permissions = 0777;
+    attr.uid = 1001;
+    attr.gid = 1001;
 
     msg->filename = name.data();
     msg->attr = &attr;
@@ -1924,6 +1926,70 @@ TEST_F(SftpServer, setstat_utime_failure_fails)
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
+}
+
+TEST_F(SftpServer, setstatFailsWhenMissingMappedIds)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+    QFile file(file_name);
+    auto file_size = file.size();
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto msg = make_msg(SFTP_SETSTAT);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    attr.size = 777;
+    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_PERMISSIONS;
+    attr.permissions = 0777;
+
+    msg->filename = name.data();
+    msg->attr = &attr;
+    msg->flags = SSH_FXF_WRITE;
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    sftp.run();
+
+    EXPECT_EQ(perm_denied_num_calls, 1);
+    EXPECT_THAT(file.size(), Eq(file_size));
+}
+
+TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto msg = make_msg(SFTP_SETSTAT);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+    attr.uid = 1001;
+    attr.gid = 1001;
+
+    msg->filename = name.data();
+    msg->attr = &attr;
+    msg->flags = SSH_FXF_WRITE;
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, chown(_, _, _)).Times(0);
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    sftp.run();
+
+    EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
 TEST_F(SftpServer, handles_writes)
@@ -2565,40 +2631,6 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_honors_maps_in_the_host))
 
     EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
     EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
-
-    sftp.run();
-}
-
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_works_when_ids_are_not_mapped))
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    mpt::make_file_with_content(file_name);
-
-    int sftp_uid = 1026;
-    int sftp_gid = 1027;
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-
-    auto msg = make_msg(SFTP_SETSTAT);
-    auto name = name_as_char_array(file_name.toStdString());
-    sftp_attributes_struct attr{};
-    const int expected_size = 7777;
-    attr.size = expected_size;
-    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
-    attr.permissions = 0777;
-
-    msg->filename = name.data();
-    msg->attr = &attr;
-    msg->flags = SSH_FXF_WRITE;
-    msg->attr->uid = sftp_uid;
-    msg->attr->gid = sftp_gid;
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-
-    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
-
-    EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(1);
 
     sftp.run();
 }
