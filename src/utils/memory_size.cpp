@@ -107,32 +107,32 @@ long long mp::MemorySize::in_gigabytes() const noexcept
     return bytes / gibi; // integer division to floor
 }
 
-bool mp::operator==(const MemorySize& a, const MemorySize& b)
+bool mp::operator==(const MemorySize& a, const MemorySize& b) noexcept
 {
     return a.bytes == b.bytes;
 }
 
-bool mp::operator!=(const MemorySize& a, const MemorySize& b)
+bool mp::operator!=(const MemorySize& a, const MemorySize& b) noexcept
 {
     return a.bytes != b.bytes;
 }
 
-bool mp::operator<(const MemorySize& a, const MemorySize& b)
+bool mp::operator<(const MemorySize& a, const MemorySize& b) noexcept
 {
     return a.bytes < b.bytes;
 }
 
-bool mp::operator>(const MemorySize& a, const MemorySize& b)
+bool mp::operator>(const MemorySize& a, const MemorySize& b) noexcept
 {
     return a.bytes > b.bytes;
 }
 
-bool mp::operator<=(const MemorySize& a, const MemorySize& b)
+bool mp::operator<=(const MemorySize& a, const MemorySize& b) noexcept
 {
     return a.bytes <= b.bytes;
 }
 
-bool mp::operator>=(const MemorySize& a, const MemorySize& b)
+bool mp::operator>=(const MemorySize& a, const MemorySize& b) noexcept
 {
     return a.bytes >= b.bytes;
 }

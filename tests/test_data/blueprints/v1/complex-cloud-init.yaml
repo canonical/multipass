@@ -1,0 +1,23 @@
+description: The first test blueprint
+version: 0.1
+
+instances:
+  complex-cloud-init:
+    image: "default"
+    workspace: true
+    limits:
+      min-cpu: 2
+      min-mem: 2G
+      min-disk: 25G
+    timeout: 600
+    cloud-init:
+      vendor-data: |
+        #cloud-config
+        runcmd:
+          - echo abc
+          - echo def
+        system_info:
+          default_user:
+            shell: /bin/zsh
+        growpart:
+          devices: [/]

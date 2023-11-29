@@ -1836,8 +1836,8 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
 
     mp::Daemon daemon{config_builder.build()};
 
-    for (const auto& mac : {mac1, mac2})
-        send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac)});
+    for (const auto* mac : {&mac1, &mac2})
+        send_command({"launch", "--network", fmt::format("name=eth0,mac={}", *mac)});
 }
 
 TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)

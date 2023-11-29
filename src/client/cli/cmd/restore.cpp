@@ -46,7 +46,7 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
     };
 
     using Client = grpc::ClientReaderWriterInterface<RestoreRequest, RestoreReply>;
-    auto streaming_callback = [this, &spinner](mp::RestoreReply& reply, Client* client) {
+    auto streaming_callback = [this, &spinner](const mp::RestoreReply& reply, Client* client) {
         if (!reply.log_line().empty())
             spinner.print(cerr, reply.log_line());
 
