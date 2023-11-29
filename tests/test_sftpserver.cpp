@@ -1125,6 +1125,31 @@ TEST_F(SftpServer, remove_non_existing_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
+TEST_F(SftpServer, removeFailsWhenIdsAreNotMapped)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+
+    ASSERT_TRUE(QFile::exists(file_name));
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto msg = make_msg(SFTP_REMOVE);
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    sftp.run();
+
+    EXPECT_EQ(perm_denied_num_calls, 1);
+    EXPECT_TRUE(QFile::exists(file_name));
+}
+
 TEST_F(SftpServer, open_in_write_mode_creates_file)
 {
     mpt::TempDir temp_dir;
