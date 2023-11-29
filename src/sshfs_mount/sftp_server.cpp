@@ -805,6 +805,16 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
     }
 
+    QFileInfo file_info{filename};
+    if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+    {
+        mpl::log(
+            mpl::Level::trace,
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied", __FUNCTION__, filename));
+        return reply_perm_denied(msg);
+    }
+
     sftp_attributes_struct attr{};
     sftp_reply_names_add(msg, link.toStdString().c_str(), link.toStdString().c_str(), &attr);
     return sftp_reply_names(msg);
