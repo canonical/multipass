@@ -695,6 +695,16 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
+    QFileInfo file_info{filename};
+    if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+    {
+        mpl::log(
+            mpl::Level::trace,
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied", __FUNCTION__, filename));
+        return reply_perm_denied(msg);
+    }
+
     SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), dir_iterator.get()), ssh_string_free};
     if (!sftp_handle)
     {
