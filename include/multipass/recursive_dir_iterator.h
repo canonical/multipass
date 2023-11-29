@@ -32,7 +32,7 @@ public:
     DirectoryEntry() = default;
     DirectoryEntry(const DirectoryEntry&) = default;
     DirectoryEntry(DirectoryEntry&&) = default;
-    DirectoryEntry(const fs::directory_entry& _entry) : entry{_entry}
+    explicit DirectoryEntry(const fs::directory_entry& _entry) : entry{_entry}
     {
     }
 
@@ -241,7 +241,7 @@ public:
 
     virtual const DirectoryEntry& next()
     {
-        return current = *iter++;
+        return current = DirectoryEntry{*iter++};
     }
 
     virtual ~RecursiveDirIterator() = default;
@@ -271,17 +271,17 @@ public:
         {
             const fs::directory_entry entry{*self};
             self.reset();
-            return current = entry;
+            return current = DirectoryEntry{entry};
         }
 
         if (parent)
         {
             const fs::directory_entry entry{*parent};
             parent.reset();
-            return current = entry;
+            return current = DirectoryEntry{entry};
         }
 
-        return current = *iter++;
+        return current = DirectoryEntry{*iter++};
     }
 
     virtual ~DirIterator() = default;
