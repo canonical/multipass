@@ -831,6 +831,16 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
+    QFileInfo file_info{filename};
+    if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+    {
+        mpl::log(
+            mpl::Level::trace,
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied", __FUNCTION__, filename));
+        return reply_perm_denied(msg);
+    }
+
     auto realpath = QFileInfo(filename).absoluteFilePath();
     return sftp_reply_name(msg, realpath.toStdString().c_str(), nullptr);
 }

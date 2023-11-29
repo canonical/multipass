@@ -364,6 +364,25 @@ TEST_F(SftpServer, handles_realpath)
     EXPECT_TRUE(invoked);
 }
 
+TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
+{
+    mpt::TempFile file;
+    auto file_name = name_as_char_array(file.name().toStdString());
+
+    auto sftp = make_sftpserver(file.name().toStdString(), {}, {});
+    auto msg = make_msg(SFTP_REALPATH);
+    msg->filename = file_name.data();
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    sftp.run();
+
+    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+}
+
 TEST_F(SftpServer, handles_opendir)
 {
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
