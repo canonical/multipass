@@ -992,6 +992,8 @@ TEST_F(SftpServer, rename_cannot_remove_target_fails)
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     EXPECT_CALL(*mock_file_ops, remove(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
+    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1028,6 +1030,8 @@ TEST_F(SftpServer, rename_failure_fails)
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
+    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1070,6 +1074,79 @@ TEST_F(SftpServer, rename_invalid_target_fails)
     sftp.run();
 
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
+}
+
+TEST_F(SftpServer, renameFailsWhenSourceFileIdsAreNotMapped)
+{
+    mpt::TempDir temp_dir;
+    auto old_name = temp_dir.path() + "/test-file";
+    auto new_name = temp_dir.path() + "/test-renamed";
+    mpt::make_file_with_content(old_name);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto msg = make_msg(SFTP_RENAME);
+    auto name = name_as_char_array(old_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(new_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::trace),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
+                    mpt::MockLogger::make_cstring_matcher(HasSubstr(old_name.toStdString()))));
+
+    sftp.run();
+
+    EXPECT_EQ(perm_denied_num_calls, 1);
+    EXPECT_TRUE(QFile::exists(old_name));
+    EXPECT_FALSE(QFile::exists(new_name));
+}
+
+TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
+{
+    mpt::TempDir temp_dir;
+    auto old_name = temp_dir.path() + "/test-file";
+    auto new_name = temp_dir.path() + "/test-renamed";
+    mpt::make_file_with_content(old_name);
+    mpt::make_file_with_content(new_name);
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, ownerId(_))
+        .WillOnce([](const QFileInfo& file) { return file.ownerId(); })
+        .WillOnce([](const QFileInfo& file) { return file.ownerId() + 1; });
+    EXPECT_CALL(*mock_file_ops, groupId(_)).WillOnce([](const QFileInfo& file) { return file.groupId(); });
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto msg = make_msg(SFTP_RENAME);
+    auto name = name_as_char_array(old_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(new_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::trace),
+                    mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
+                    mpt::MockLogger::make_cstring_matcher(HasSubstr(new_name.toStdString()))));
+
+    sftp.run();
+
+    EXPECT_EQ(perm_denied_num_calls, 1);
+    EXPECT_TRUE(QFile::exists(old_name));
+    EXPECT_TRUE(QFile::exists(new_name));
 }
 
 TEST_F(SftpServer, handles_remove)

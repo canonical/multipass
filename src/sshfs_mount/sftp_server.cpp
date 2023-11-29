@@ -899,12 +899,33 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
+    QFileInfo source_info{source};
+    if (!has_uid_mapping_for(MP_FILEOPS.ownerId(source_info)) || !has_gid_mapping_for(MP_FILEOPS.groupId(source_info)))
+    {
+        mpl::log(
+            mpl::Level::trace,
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied", __FUNCTION__, source));
+        return reply_perm_denied(msg);
+    }
+
     const auto target = sftp_client_message_get_data(msg);
     if (!validate_path(source_path, target))
     {
         mpl::log(mpl::Level::trace, category,
                  fmt::format("{}: cannot validate target path \'{}\' against source \'{}\'", __FUNCTION__, target,
                              source_path));
+        return reply_perm_denied(msg);
+    }
+
+    QFileInfo target_info{target};
+    if (target_info.exists() && (!has_uid_mapping_for(MP_FILEOPS.ownerId(target_info)) ||
+                                 !has_gid_mapping_for(MP_FILEOPS.groupId(target_info))))
+    {
+        mpl::log(
+            mpl::Level::trace,
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied", __FUNCTION__, target));
         return reply_perm_denied(msg);
     }
 
