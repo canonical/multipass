@@ -49,6 +49,7 @@ using StringUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
 namespace
 {
 constexpr uint8_t SFTP_BAD_MESSAGE{255u};
+constexpr int default_id{1000};
 struct SftpServer : public mp::test::SftpServerTest
 {
     mp::SftpServer make_sftpserver()
@@ -96,7 +97,6 @@ struct SftpServer : public mp::test::SftpServerTest
         return reply_status;
     }
 
-    static const int default_id{1000};
     const mpt::StubSSHKeyProvider key_provider;
     mpt::ExitStatusMock exit_status_mock;
     std::queue<sftp_client_message> messages;
