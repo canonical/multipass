@@ -275,11 +275,12 @@ jobs:
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         workflow: Integration
-        ref: ${{ steps.dispatch-params.outputs.ref }}
-        sha: ${{ steps.dispatch-params.outputs.sha }}
+        ref: ${{ steps.dispatch-params.outputs.head_ref }}
+        sha: ${{ steps.dispatch-params.outputs.head_sha }}
         inputs: |
           {
             "snap-channel": "${{ needs.BuildAndTest.outputs.channel }}"
+            "head-sha": "${{ steps.dispatch-params.outputs.head_sha }}"
           }
       # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
       continue-on-error: true

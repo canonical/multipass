@@ -48,6 +48,7 @@ runs:
       # This includes `main`, as `edge` will get published from automatic builds on snapcraft.io.
       elif [[ ${{ github.event_name }} == "push" || ${{ github.event_name }} == "workflow_dispatch" ]]; then
         echo "label=ci${{ github.run_number }}" >> $GITHUB_OUTPUT
+        echo "channel=edge" >> $GITHUB_OUTPUT
 
       # This shouldn't happen.
       else
