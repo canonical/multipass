@@ -56,7 +56,6 @@ public:
 
     virtual FetchType fetch_type() = 0;
     virtual void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) = 0; // note the arg may be updated
-    virtual bool can_add_bridges() = 0;
     virtual VMImage prepare_source_image(const VMImage& source_image) = 0;
     virtual void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) = 0;
     virtual void hypervisor_health_check() = 0;

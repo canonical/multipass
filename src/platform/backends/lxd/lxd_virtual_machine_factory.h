@@ -35,7 +35,6 @@ public:
                                       const QUrl& base_url = lxd_socket_url);
 
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
-    bool can_add_bridges() override;
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
     VMImage prepare_source_image(const VMImage& source_image) override;

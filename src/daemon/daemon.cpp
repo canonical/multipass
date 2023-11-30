@@ -31,7 +31,6 @@
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
-#include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
@@ -509,7 +508,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
             }
             catch (const mp::NotImplementedOnThisBackendException&)
             {
-                throw mp::NotImplementedOnThisBackendException("bridging");
+                throw mp::NotImplementedOnThisBackendException("networks");
             }
         }
 
@@ -1239,7 +1238,6 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            const std::unordered_set<std::string>& preparing_instances,
                                            std::function<void()> instance_persister,
                                            std::function<std::string()> bridged_interface,
-                                           bool can_bridge,
                                            std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
@@ -1248,7 +1246,6 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                                                                       preparing_instances,
                                                                                       std::move(instance_persister),
                                                                                       std::move(bridged_interface),
-                                                                                      can_bridge,
                                                                                       host_networks));
 }
 
@@ -1407,7 +1404,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           preparing_instances,
           [this] { persist_instances(); },
           get_bridged_interface_name,
-          config->factory->can_add_bridges(),
           [this]() { return config->factory->networks(); })},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
@@ -3465,54 +3461,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         {
             async_running_futures.erase(name);
 
-            auto vm_specs = vm_instance_specs[name];
-            auto& commands = vm_specs.run_at_boot;
-
-            if (!commands.empty())
-            {
-                bool warned_exec_failure{false};
-
-                const auto vm = operative_instances[name];
-
-                try
-                {
-                    mp::SSHSession session{vm->ssh_hostname(),
-                                           vm->ssh_port(),
-                                           vm_specs.ssh_username,
-                                           *config->ssh_key_provider};
-
-                    for (const auto& command : commands)
-                    {
-                        mpu::run_in_ssh_session(session, command);
-                    }
-                }
-                catch (const mp::SSHExecFailure&) // In case there is an error executing the command, report it.
-                {
-                    // Currently, the only use of running commands at boot is to configure networks. For this reason,
-                    // the warning shown here refers to that use. In the future, in case of using the feature for other
-                    // purposes, it would be necessary to add a description or a failure message to show if the
-                    // execution fails.
-                    if (!warned_exec_failure)
-                    {
-                        add_fmt_to(warnings,
-                                   "Failure configuring network interfaces in {}: is Netplan installed?\n"
-                                   "You can still configure them manually.\n",
-                                   name);
-                    }
-
-                    warned_exec_failure = true;
-                }
-                catch (const SSHException&) // The SSH session could not be created.
-                {
-                    add_fmt_to(warnings,
-                               "Cannot create a SSH shell to execute commands on {}, you can configure new\n"
-                               "interfaces manually via Netplan once logged to the instance.\n",
-                               name);
-                }
-
-                vm_instance_specs[name].run_at_boot.clear();
-                persist_instances();
-            }
+            run_commands_at_boot_on_instance(name, warnings);
         }
     }
 
@@ -3676,5 +3625,57 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         auto current_release =
             mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
         instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
+    }
+}
+
+void mp::Daemon::run_commands_at_boot_on_instance(const std::string& name, fmt::memory_buffer& warnings)
+{
+    auto vm_specs = vm_instance_specs[name];
+    auto& commands = vm_specs.run_at_boot;
+
+    if (!commands.empty())
+    {
+        bool warned_exec_failure{false};
+
+        const auto vm = operative_instances[name];
+
+        try
+        {
+            mp::SSHSession session{vm->ssh_hostname(),
+                                   vm->ssh_port(),
+                                   vm_specs.ssh_username,
+                                   *config->ssh_key_provider};
+
+            for (const auto& command : commands)
+            {
+                mpu::run_in_ssh_session(session, command);
+            }
+        }
+        catch (const mp::SSHExecFailure&) // In case there is an error executing the command, report it.
+        {
+            // Currently, the only use of running commands at boot is to configure networks. For this reason,
+            // the warning shown here refers to that use. In the future, in case of using the feature for other
+            // purposes, it would be necessary to add a description or a failure message to show if the
+            // execution fails.
+            if (!warned_exec_failure)
+            {
+                add_fmt_to(warnings,
+                           "Failure configuring network interfaces in {}: is Netplan installed?\n"
+                           "You can still configure them manually.\n",
+                           name);
+            }
+
+            warned_exec_failure = true;
+        }
+        catch (const SSHException&) // The SSH session could not be created.
+        {
+            add_fmt_to(warnings,
+                       "Cannot create a SSH shell to execute commands on {}, you can configure new\n"
+                       "interfaces manually via Netplan once logged in to the instance.\n",
+                       name);
+        }
+
+        vm_instance_specs[name].run_at_boot.clear();
+        persist_instances();
     }
 }

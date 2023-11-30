@@ -55,7 +55,6 @@ struct TestInstanceSettingsHandler : public Test
                                            preparing_vms,
                                            make_fake_persister(),
                                            make_fake_bridged_interface(),
-                                           true,
                                            make_fake_host_networks()};
     }
 

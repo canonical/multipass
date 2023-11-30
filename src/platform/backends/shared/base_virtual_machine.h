@@ -45,7 +45,7 @@ public:
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
     void add_network_interface(int index, const NetworkInterface& net) override
     {
-        throw NotImplementedOnThisBackendException("bridging");
+        throw NotImplementedOnThisBackendException("networks");
     }
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target,

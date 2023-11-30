@@ -164,11 +164,11 @@ bool is_bridged(const mp::VMSpecs& spec, const std::string& br_interface)
                        [&br_interface](const auto& network) -> bool { return network.id == br_interface; });
 }
 
-void update_bridged(const QString& key,
-                    const QString& val,
-                    mp::VirtualMachine& instance,
-                    mp::VMSpecs& spec,
-                    const std::string& br_interface)
+void checked_update_bridged(const QString& key,
+                            const QString& val,
+                            mp::VirtualMachine& instance,
+                            mp::VMSpecs& spec,
+                            const std::string& br_interface)
 {
     auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
 
@@ -182,6 +182,29 @@ void update_bridged(const QString& key,
         // The empty string in the MAC indicates the daemon that the interface must be configured.
         spec.extra_interfaces.push_back({br_interface, "", true});
     }
+}
+
+void update_bridged(const QString& key,
+                    const QString& val,
+                    mp::VirtualMachine& instance,
+                    mp::VMSpecs& spec,
+                    std::function<std::string()> bridged_interface,
+                    std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks)
+{
+    const auto& host_nets = host_networks(); // This will throw if not implemented on this backend.
+    const auto& br = bridged_interface();
+    const auto& info = std::find_if(host_nets.cbegin(), host_nets.cend(), [br](const auto& i) { return i.id == br; });
+
+    if (info == host_nets.cend())
+    {
+        throw std::runtime_error(
+            fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
+                        "correct. See `multipass networks` for valid names.",
+                        br,
+                        mp::bridged_interface_key));
+    }
+
+    checked_update_bridged(key, val, instance, spec, br);
 }
 
 } // namespace
@@ -199,7 +222,6 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     const std::unordered_set<std::string>& preparing_instances,
     std::function<void()> instance_persister,
     std::function<std::string()> bridged_interface,
-    bool can_bridge,
     std::function<std::vector<NetworkInterfaceInfo>()> host_networks)
     : vm_instance_specs{vm_instance_specs},
       operative_instances{operative_instances},
@@ -207,8 +229,7 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
       preparing_instances{preparing_instances},
       instance_persister{std::move(instance_persister)},
       bridged_interface{std::move(bridged_interface)},
-      can_bridge{can_bridge},
-      host_networks{host_networks}
+      host_networks{std::move(host_networks)}
 {
 }
 
@@ -256,28 +277,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
         update_cpus(key, val, instance, spec);
     else if (property == bridged_suffix)
     {
-        if (can_bridge)
-        {
-            const auto& br = bridged_interface();
-            const auto& host_nets = host_networks();
-            const auto& info =
-                std::find_if(host_nets.cbegin(), host_nets.cend(), [br](const auto& i) { return i.id == br; });
-
-            if (info == host_nets.cend())
-            {
-                throw std::runtime_error(
-                    fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
-                                "correct. See `multipass networks` for valid names.",
-                                br,
-                                mp::bridged_interface_key));
-            }
-
-            update_bridged(key, val, instance, spec, br);
-        }
-        else
-        {
-            throw mp::NotImplementedOnThisBackendException("adding bridged interfaces");
-        }
+        update_bridged(key, val, instance, spec, bridged_interface, host_networks);
     }
     else
     {

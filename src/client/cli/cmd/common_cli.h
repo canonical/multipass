@@ -26,8 +26,6 @@
 
 #include <QString>
 
-#include <regex>
-
 using RpcMethod = multipass::Rpc::StubInterface;
 
 namespace multipass

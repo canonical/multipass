@@ -178,6 +178,9 @@ TEST_F(CLIPrompters, failsIfNoNetworks)
 
     mp::BridgePrompter prompter{&mock_terminal};
 
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mock_terminal, cout_is_live()).WillRepeatedly(Return(false));
+
     ASSERT_DEBUG_DEATH(prompter.bridge_prompt(nets), "[Aa]ssert");
 }
 

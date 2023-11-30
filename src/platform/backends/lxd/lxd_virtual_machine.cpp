@@ -126,29 +126,30 @@ QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& 
     return config;
 }
 
+QJsonObject create_bridged_interface_json(const QString& name, const QString& parent, const QString& mac)
+{
+    return QJsonObject{{"name", name}, {"nictype", "bridged"}, {"parent", parent}, {"type", "nic"}, {"hwaddr", mac}};
+}
+
 QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& desc, const QString& default_mac_addr,
                                     const QString& storage_pool)
 {
     QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
-                        {"root", QJsonObject{{"path", "/"},
-                                             {"pool", storage_pool},
-                                             {"size", QString::number(desc.disk_space.in_bytes())},
-                                             {"type", "disk"}}},
-                        {"eth0", QJsonObject{{"name", "eth0"},
-                                             {"nictype", "bridged"},
-                                             {"parent", "mpbr0"},
-                                             {"type", "nic"},
-                                             {"hwaddr", default_mac_addr}}}};
+                        {"root",
+                         QJsonObject{{"path", "/"},
+                                     {"pool", storage_pool},
+                                     {"size", QString::number(desc.disk_space.in_bytes())},
+                                     {"type", "disk"}}},
+                        {"eth0", create_bridged_interface_json("eth0", "mpbr0", default_mac_addr)}};
 
     for (auto i = 0u; i < desc.extra_interfaces.size();)
     {
         const auto& net = desc.extra_interfaces[i];
         auto net_name = QStringLiteral("eth%1").arg(++i);
-        devices.insert(net_name, QJsonObject{{"name", net_name},
-                                             {"nictype", "bridged"},
-                                             {"parent", QString::fromStdString(net.id)},
-                                             {"type", "nic"},
-                                             {"hwaddr", QString::fromStdString(net.mac_address)}});
+        devices.insert(net_name,
+                       create_bridged_interface_json(net_name,
+                                                     QString::fromStdString(net.id),
+                                                     QString::fromStdString(net.mac_address)));
     }
 
     return devices;
@@ -480,11 +481,9 @@ void mp::LXDVirtualMachine::add_network_interface(int index, const mp::NetworkIn
     assert(manager);
 
     auto net_name = QStringLiteral("eth%1").arg(index + 1);
-    QJsonObject net_config{{"name", net_name},
-                           {"nictype", "bridged"},
-                           {"parent", QString::fromStdString(net.id)},
-                           {"type", "nic"},
-                           {"hwaddr", QString::fromStdString(net.mac_address)}};
+    auto net_config = create_bridged_interface_json(net_name,
+                                                    QString::fromStdString(net.id),
+                                                    QString::fromStdString(net.mac_address));
 
     QJsonObject patch_json{{"devices", QJsonObject{{net_name, net_config}}}};
 
