@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/prompters.h>
 #include <multipass/platform.h>
 
 namespace mp = multipass;
@@ -26,9 +27,7 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
-constexpr auto no_purge_base_error_msg =
-    "Snapshots can only be purged (after deletion, they cannot be recovered). Please use the `--purge` "
-    "flag if that is what you want";
+constexpr auto snapshot_purge_notice_msg = "Snapshots can only be purged (after deletion, they cannot be recovered)";
 }
 
 mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
@@ -71,7 +70,26 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
 
-    return dispatch(&RpcMethod::delet, request, on_success, on_failure);
+    using Client = grpc::ClientReaderWriterInterface<DeleteRequest, DeleteReply>;
+    auto streaming_callback = [this](const mp::DeleteReply& reply, Client* client) {
+        if (!reply.log_line().empty())
+            cerr << reply.log_line();
+
+        // TODO refactor with bridging and restore prompts
+        if (reply.confirm_snapshot_purging())
+        {
+            DeleteRequest client_response;
+
+            if (term->is_live())
+                client_response.set_purge_snapshots(confirm_snapshot_purge());
+            else
+                throw std::runtime_error{generate_snapshot_purge_msg()};
+
+            client->Write(client_response);
+        }
+    };
+
+    return dispatch(&RpcMethod::delet, request, on_success, on_failure, streaming_callback);
 }
 
 std::string cmd::Delete::name() const
@@ -120,45 +138,45 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 
 mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
 {
-    bool instance_found = false, snapshot_found = false;
-    std::string instances, snapshots;
     for (const auto& item : cmd::add_instance_and_snapshot_names(parser))
     {
         if (!item.has_snapshot_name())
-        {
-            instances.append(fmt::format("{} ", item.instance_name()));
-            instance_found = true;
-        }
+            instance_args.append(fmt::format("{} ", item.instance_name()));
         else
-        {
-            snapshots.append(fmt::format("{}.{} ", item.instance_name(), item.snapshot_name()));
-            snapshot_found = true;
-        }
+            snapshot_args.append(fmt::format("{}.{} ", item.instance_name(), item.snapshot_name()));
 
         request.add_instance_snapshot_pairs()->CopyFrom(item);
     }
 
-    return enforce_purged_snapshots(instances, snapshots, instance_found, snapshot_found);
+    return mp::ParseCode::Ok;
 }
 
-mp::ParseCode cmd::Delete::enforce_purged_snapshots(std::string& instances,
-                                                    std::string& snapshots,
-                                                    bool instance_found,
-                                                    bool snapshot_found)
+// TODO refactor with bridging and restore prompts
+bool multipass::cmd::Delete::confirm_snapshot_purge() const
 {
-    if (snapshot_found && !request.purge())
-    {
-        if (instance_found)
-            cerr << fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
-                                "instances without purging them:\n\n\tmultipass delete {}\n",
-                                no_purge_base_error_msg,
-                                snapshots,
-                                instances);
-        else
-            cerr << fmt::format("{}.\n", no_purge_base_error_msg);
+    static constexpr auto prompt_text = "{}. Are you sure you want to continue? (Yes/no)";
+    static constexpr auto invalid_input = "Please answer Yes/no";
+    mp::PlainPrompter prompter{term};
 
-        return mp::ParseCode::CommandLineError;
-    }
+    auto answer = prompter.prompt(fmt::format(prompt_text, snapshot_purge_notice_msg));
+    while (!answer.empty() && !std::regex_match(answer, yes_answer) && !std::regex_match(answer, no_answer))
+        answer = prompter.prompt(invalid_input);
 
-    return mp::ParseCode::Ok;
+    return std::regex_match(answer, yes_answer);
+}
+
+std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
+{
+    const auto no_purge_base_error_msg = fmt::format("{}. Unable to query client for confirmation. Please use the "
+                                                     "`--purge` flag if that is what you want",
+                                                     snapshot_purge_notice_msg);
+
+    if (!instance_args.empty())
+        return fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
+                           "instances without purging them:\n\n\tmultipass delete {}\n",
+                           no_purge_base_error_msg,
+                           snapshot_args,
+                           instance_args);
+    else
+        return fmt::format("{}.\n", no_purge_base_error_msg);
 }

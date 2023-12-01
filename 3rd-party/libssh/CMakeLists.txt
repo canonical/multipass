@@ -65,6 +65,8 @@ set(libssh_VERSION_MAJOR "${CMAKE_MATCH_1}")
 set(libssh_VERSION_MINOR "${CMAKE_MATCH_2}")
 set(libssh_VERSION_PATCH "${CMAKE_MATCH_3}")
 
+add_compile_options(-DCHUNKSIZE=65536)
+
 string(REGEX REPLACE "^set\\(LIBRARY_VERSION \"(.*)\"\\)$" "\\1"
        LIBRARY_VERSION "${LIBRARY_VERSION}")
 if (NOT LIBRARY_VERSION)
