@@ -41,6 +41,7 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
+namespace mcp = multipass::cli::platform;
 
 using namespace testing;
 
@@ -49,7 +50,6 @@ using StringUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
 namespace
 {
 constexpr uint8_t SFTP_BAD_MESSAGE{255u};
-constexpr int default_id{1000};
 struct SftpServer : public mp::test::SftpServerTest
 {
     mp::SftpServer make_sftpserver()
@@ -58,11 +58,11 @@ struct SftpServer : public mp::test::SftpServerTest
     }
 
     mp::SftpServer make_sftpserver(const std::string& path,
-                                   const mp::id_mappings& gid_mappings = {{default_id, mp::default_id}},
-                                   const mp::id_mappings& uid_mappings = {{default_id, mp::default_id}})
+                                   const mp::id_mappings& uid_mappings = {{default_uid(), mp::default_id}},
+                                   const mp::id_mappings& gid_mappings = {{default_gid(), mp::default_id}})
     {
         mp::SSHSession session{"a", 42, "ubuntu", key_provider};
-        return {std::move(session), path, path, gid_mappings, uid_mappings, default_id, default_id, "sshfs"};
+        return {std::move(session), path, path, gid_mappings, uid_mappings, default_uid(), default_gid(), "sshfs"};
     }
 
     auto make_msg(uint8_t type = SFTP_BAD_MESSAGE)
@@ -95,6 +95,18 @@ struct SftpServer : public mp::test::SftpServerTest
             return SSH_OK;
         };
         return reply_status;
+    }
+
+    static int default_uid()
+    {
+        static const int uid = mcp::getuid();
+        return uid;
+    }
+
+    static int default_gid()
+    {
+        static const int gid = mcp::getgid();
+        return gid;
     }
 
     const mpt::StubSSHKeyProvider key_provider;
@@ -1886,7 +1898,9 @@ TEST_F(SftpServer, setstat_chown_failure_fails)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {{1000, -1}, {1001, 1001}}, {{1000, -1}, {1001, 1001}});
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(),
+                                {{default_uid(), -1}, {1001, 1001}},
+                                {{default_gid(), -1}, {1001, 1001}});
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -2615,7 +2629,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdir_chown_honors_maps_in_the_host))
 
     mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
     mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_mappings, uid_mappings);
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
 
     auto msg = make_msg(SFTP_MKDIR);
     msg->filename = new_dir_name.data();
@@ -2672,7 +2686,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(open_chown_honors_maps_in_the_host))
 
     mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
     mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_mappings, uid_mappings);
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
     sftp_attributes_struct attr{};
@@ -2704,7 +2718,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstat_chown_honors_maps_in_the_host))
 
     mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
     mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), gid_mappings, uid_mappings);
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
