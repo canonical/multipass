@@ -159,10 +159,11 @@ bool multipass::cmd::Delete::confirm_snapshot_purge() const
     mp::PlainPrompter prompter{term};
 
     auto answer = prompter.prompt(fmt::format(prompt_text, snapshot_purge_notice_msg));
-    while (!answer.empty() && !std::regex_match(answer, yes_answer) && !std::regex_match(answer, no_answer))
+    while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
+           !std::regex_match(answer, mp::client::no_answer))
         answer = prompter.prompt(invalid_input);
 
-    return std::regex_match(answer, yes_answer);
+    return std::regex_match(answer, mp::client::yes_answer);
 }
 
 std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
