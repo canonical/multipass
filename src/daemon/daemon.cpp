@@ -1151,7 +1151,7 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
             }
         }
 
-        if (snapshots_of_deleted_instances.size())
+        if (!snapshots_of_deleted_instances.empty())
             throw std::runtime_error{fmt::format(
                 "Cannot delete snapshots of deleted instances: {}",
                 fmt::join(snapshots_of_deleted_instances.begin(), snapshots_of_deleted_instances.end(), ", "))};
