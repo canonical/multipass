@@ -611,7 +611,9 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     const auto exists = fs::is_symlink(status) || fs::is_regular_file(status);
 
     QFileInfo file_info(filename);
-    if (exists && (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId())))
+    QFileInfo current_dir(file_info.path());
+    if ((exists && (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))) ||
+        (!exists && (!has_uid_mapping_for(current_dir.ownerId()) || !has_gid_mapping_for(current_dir.groupId()))))
     {
         mpl::log(
             mpl::Level::trace,
@@ -657,9 +659,6 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     if (!exists)
     {
-        QFileInfo current_file(filename);
-        QFileInfo current_dir(current_file.path());
-
         auto new_uid = reverse_uid_for(current_dir.ownerId(), current_dir.ownerId());
         auto new_gid = reverse_gid_for(current_dir.groupId(), current_dir.groupId());
 
