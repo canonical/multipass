@@ -1142,7 +1142,7 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
             {
                 for (const auto& snapshot_name : pick_it->second.pick)
                 {
-                    if (selection == &report.deleted_selection && (!pick_it->second.all_or_none || !purge))
+                    if (selection == &report.deleted_selection && !(pick_it->second.all_or_none && purge))
                         snapshots_of_deleted_instances.push_back(fmt::format("{}.{}", vm_it->first, snapshot_name));
 
                     vm_it->second->get_snapshot(snapshot_name); // throws if missing
