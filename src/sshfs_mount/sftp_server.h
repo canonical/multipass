@@ -18,7 +18,9 @@
 #ifndef MULTIPASS_SFTP_SERVER_H
 #define MULTIPASS_SFTP_SERVER_H
 
+#include <multipass/file_ops.h>
 #include <multipass/id_mappings.h>
+#include <multipass/recursive_dir_iterator.h>
 #include <multipass/ssh/ssh_session.h>
 
 #include <libssh/sftp.h>
@@ -76,13 +78,16 @@ private:
     int handle_write(sftp_client_message msg);
     int handle_extended(sftp_client_message msg);
 
+    template <typename T>
+    T* get_handle(sftp_client_message msg);
+
     SSHSession ssh_session;
     SSHFSProcUptr sshfs_process;
     SftpSessionUptr sftp_server_session;
     const std::string source_path;
     const std::string target_path;
-    std::unordered_map<void*, std::unique_ptr<QFileInfoList>> open_dir_handles;
-    std::unordered_map<void*, std::unique_ptr<QFile>> open_file_handles;
+    std::unordered_map<void*, std::unique_ptr<NamedFd>> open_file_handles;
+    std::unordered_map<void*, std::unique_ptr<DirIterator>> open_dir_handles;
     const id_mappings gid_mappings;
     const id_mappings uid_mappings;
     const int default_uid;

@@ -16,9 +16,22 @@
  */
 
 #include <multipass/file_ops.h>
+#include <multipass/posix.h>
+
+#include <fcntl.h>
 
 namespace mp = multipass;
 namespace fs = mp::fs;
+
+mp::NamedFd::NamedFd(const fs::path& path, int fd) : path{path}, fd{fd}
+{
+}
+
+mp::NamedFd::~NamedFd()
+{
+    if (fd != -1)
+        ::close(fd);
+}
 
 mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Singleton<FileOps>::Singleton{pass}
 {
@@ -147,6 +160,27 @@ bool mp::FileOps::commit(QSaveFile& file) const
     return file.commit();
 }
 
+std::unique_ptr<mp::NamedFd> mp::FileOps::open_fd(const fs::path& path, int flags, int perms) const
+{
+    const auto fd = ::open(path.string().c_str(), flags | O_BINARY, perms);
+    return std::make_unique<mp::NamedFd>(path, fd);
+}
+
+int mp::FileOps::read(int fd, void* buf, size_t nbytes) const
+{
+    return ::read(fd, buf, nbytes);
+}
+
+int mp::FileOps::write(int fd, const void* buf, size_t nbytes) const
+{
+    return ::write(fd, buf, nbytes);
+}
+
+off_t mp::FileOps::lseek(int fd, off_t offset, int whence) const
+{
+    return ::lseek(fd, offset, whence);
+}
+
 void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const
 {
     stream.open(filename, mode);
@@ -207,8 +241,18 @@ fs::file_status mp::FileOps::status(const fs::path& path, std::error_code& err) 
     return fs::status(path, err);
 }
 
+fs::file_status mp::FileOps::symlink_status(const fs::path& path, std::error_code& err) const
+{
+    return fs::symlink_status(path, err);
+}
+
 std::unique_ptr<mp::RecursiveDirIterator> mp::FileOps::recursive_dir_iterator(const fs::path& path,
                                                                               std::error_code& err) const
 {
     return std::make_unique<mp::RecursiveDirIterator>(path, err);
+}
+
+std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path, std::error_code& err) const
+{
+    return std::make_unique<mp::DirIterator>(path, err);
 }

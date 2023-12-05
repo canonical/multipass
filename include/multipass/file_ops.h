@@ -38,6 +38,15 @@ namespace multipass
 {
 namespace fs = std::filesystem;
 
+struct NamedFd
+{
+    NamedFd(const fs::path& path, int fd);
+    ~NamedFd();
+
+    fs::path path;
+    int fd;
+};
+
 class FileOps : public Singleton<FileOps>
 {
 public:
@@ -78,6 +87,12 @@ public:
     // QSaveFile operations
     virtual bool commit(QSaveFile& file) const;
 
+    // posix operations
+    virtual std::unique_ptr<NamedFd> open_fd(const fs::path& path, int flags, int perms) const;
+    virtual int read(int fd, void* buf, size_t nbytes) const;
+    virtual int write(int fd, const void* buf, size_t nbytes) const;
+    virtual off_t lseek(int fd, off_t offset, int whence) const;
+
     // std operations
     virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;
     virtual std::unique_ptr<std::ostream> open_write(const fs::path& path,
@@ -93,8 +108,10 @@ public:
     virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
     virtual void permissions(const fs::path& path, fs::perms perms, std::error_code& err) const;
     virtual fs::file_status status(const fs::path& path, std::error_code& err) const;
+    virtual fs::file_status symlink_status(const fs::path& path, std::error_code& err) const;
     virtual std::unique_ptr<RecursiveDirIterator> recursive_dir_iterator(const fs::path& path,
                                                                          std::error_code& err) const;
+    virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path, std::error_code& err) const;
 };
 } // namespace multipass
 
