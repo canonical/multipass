@@ -3630,7 +3630,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
 void mp::Daemon::run_commands_at_boot_on_instance(const std::string& name, fmt::memory_buffer& warnings)
 {
-    auto vm_specs = vm_instance_specs[name];
+    auto& vm_specs = vm_instance_specs[name];
     auto& commands = vm_specs.run_at_boot;
 
     if (!commands.empty())
@@ -3675,7 +3675,7 @@ void mp::Daemon::run_commands_at_boot_on_instance(const std::string& name, fmt::
                        name);
         }
 
-        vm_instance_specs[name].run_at_boot.clear();
+        commands.clear();
         persist_instances();
     }
 }
