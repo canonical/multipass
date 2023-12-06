@@ -143,12 +143,12 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 }
 
 auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name,
-                                                const std::string& snapshot_name) const
-    -> std::shared_ptr<const Snapshot>
+                                                const std::string& snapshot_name,
+                                                bool deleted_ok) const -> std::shared_ptr<const Snapshot>
 {
     try
     {
-        return find_instance(instance_name)->get_snapshot(snapshot_name);
+        return find_instance(instance_name, deleted_ok)->get_snapshot(snapshot_name);
     }
     catch (const NoSuchSnapshotException& e)
     {
@@ -188,11 +188,11 @@ auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name
 
 auto mp::SnapshotSettingsHandler::modify_instance(const std::string& instance_name) -> std::shared_ptr<VirtualMachine>
 {
-    return std::const_pointer_cast<VirtualMachine>(find_instance(instance_name, false));
+    return std::const_pointer_cast<VirtualMachine>(find_instance(instance_name, /*deleted_ok=*/false));
 }
 
 auto mp::SnapshotSettingsHandler::modify_snapshot(const std::string& instance_name, const std::string& snapshot_name)
     -> std::shared_ptr<Snapshot>
 {
-    return std::const_pointer_cast<Snapshot>(find_snapshot(instance_name, snapshot_name));
+    return std::const_pointer_cast<Snapshot>(find_snapshot(instance_name, snapshot_name, /*deleted_ok=*/false));
 }

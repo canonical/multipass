@@ -1129,14 +1129,33 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
 }
 
 bool verify_snapshot_picks(const InstanceSelectionReport& report,
-                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks)
+                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks,
+                           bool purge)
 {
     auto any_snapshot = false;
+    std::vector<std::string> snapshots_of_deleted_instances{};
     for (const auto* selection : {&report.deleted_selection, &report.operative_selection})
+    {
         for (const auto& vm_it : *selection)
+        {
             if (auto pick_it = snapshot_picks.find(vm_it->first); pick_it != snapshot_picks.end())
+            {
                 for (const auto& snapshot_name : pick_it->second.pick)
-                    any_snapshot = true, vm_it->second->get_snapshot(snapshot_name); // throws if missing
+                {
+                    if (selection == &report.deleted_selection && !(pick_it->second.all_or_none && purge))
+                        snapshots_of_deleted_instances.push_back(fmt::format("{}.{}", vm_it->first, snapshot_name));
+
+                    vm_it->second->get_snapshot(snapshot_name); // throws if missing
+                    any_snapshot = true;
+                }
+            }
+        }
+
+        if (!snapshots_of_deleted_instances.empty())
+            throw std::runtime_error{fmt::format(
+                "Cannot delete snapshots of deleted instances: {}",
+                fmt::join(snapshots_of_deleted_instances.begin(), snapshots_of_deleted_instances.end(), ", "))};
+    }
 
     return any_snapshot;
 }
@@ -1841,7 +1860,7 @@ try // clang-format on
     auto cmd = request->snapshots() ? std::function(fetch_snapshot) : std::function(fetch_instance);
 
     auto status = cmd_vms(select_all(operative_instances), cmd);
-    if (status.ok() && !request->snapshots())
+    if (status.ok())
     {
         deleted = true;
         status = cmd_vms(select_all(deleted_instances), cmd);
@@ -2237,7 +2256,7 @@ try // clang-format on
         auto instance_snapshots_map = map_snapshots_to_instances(request->instance_snapshot_pairs());
 
         // avoid deleting if any snapshot is missing or if we don't get confirmation
-        auto any_snapshot_args = verify_snapshot_picks(instance_selection, instance_snapshots_map);
+        auto any_snapshot_args = verify_snapshot_picks(instance_selection, instance_snapshots_map, purge);
         if (any_snapshot_args && !purge && !purge_snapshots)
         {
             DeleteReply confirm_action{};
