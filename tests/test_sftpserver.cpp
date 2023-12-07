@@ -50,6 +50,9 @@ using StringUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
 namespace
 {
 constexpr uint8_t SFTP_BAD_MESSAGE{255u};
+static const int default_uid = mcp::getuid();
+static const int default_gid = mcp::getgid();
+
 struct SftpServer : public mp::test::SftpServerTest
 {
     mp::SftpServer make_sftpserver()
@@ -58,11 +61,11 @@ struct SftpServer : public mp::test::SftpServerTest
     }
 
     mp::SftpServer make_sftpserver(const std::string& path,
-                                   const mp::id_mappings& uid_mappings = {{default_uid(), mp::default_id}},
-                                   const mp::id_mappings& gid_mappings = {{default_gid(), mp::default_id}})
+                                   const mp::id_mappings& uid_mappings = {{default_uid, mp::default_id}},
+                                   const mp::id_mappings& gid_mappings = {{default_gid, mp::default_id}})
     {
         mp::SSHSession session{"a", 42, "ubuntu", key_provider};
-        return {std::move(session), path, path, gid_mappings, uid_mappings, default_uid(), default_gid(), "sshfs"};
+        return {std::move(session), path, path, gid_mappings, uid_mappings, default_uid, default_gid, "sshfs"};
     }
 
     auto make_msg(uint8_t type = SFTP_BAD_MESSAGE)
@@ -95,18 +98,6 @@ struct SftpServer : public mp::test::SftpServerTest
             return SSH_OK;
         };
         return reply_status;
-    }
-
-    static int default_uid()
-    {
-        static const int uid = mcp::getuid();
-        return uid;
-    }
-
-    static int default_gid()
-    {
-        static const int gid = mcp::getgid();
-        return gid;
     }
 
     const mpt::StubSSHKeyProvider key_provider;
@@ -1922,8 +1913,8 @@ TEST_F(SftpServer, setstat_chown_failure_fails)
     mpt::make_file_with_content(file_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(),
-                                {{default_uid(), -1}, {1001, 1001}},
-                                {{default_gid(), -1}, {1001, 1001}});
+                                {{default_uid, -1}, {1001, 1001}},
+                                {{default_gid, -1}, {1001, 1001}});
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
