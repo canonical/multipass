@@ -383,7 +383,7 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
 
     sftp.run();
 
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
 TEST_F(SftpServer, handles_opendir)
@@ -755,7 +755,7 @@ TEST_F(SftpServer, rmdirFailsToRemoveDirThatsMissingMappedIds)
     sftp.run();
 
     EXPECT_TRUE(dir.exists());
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
 TEST_F(SftpServer, handles_readlink)
@@ -817,7 +817,7 @@ TEST_F(SftpServer, readlinkFailsWhenIdsAreNotMapped)
 
     sftp.run();
 
-    EXPECT_THAT(perm_denied_num_calls, Eq(1));
+    EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
 TEST_F(SftpServer, handles_symlink)
@@ -2019,7 +2019,7 @@ TEST_F(SftpServer, setstatFailsWhenMissingMappedIds)
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
-    EXPECT_THAT(file.size(), Eq(file_size));
+    EXPECT_EQ(file.size(), file_size);
 }
 
 TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
