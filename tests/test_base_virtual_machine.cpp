@@ -42,6 +42,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
         : mpt::MockVirtualMachineT<mp::BaseVirtualMachine>{std::forward<Args>(args)...}
     {
         auto& self = *this;
+        const auto& const_self = self;
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, view_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_num_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, take_snapshot, mp::BaseVirtualMachine);
@@ -52,7 +53,12 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_childrens_names, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_snapshot_count, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(self, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(const_self, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
         MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(self,
+                                                     get_snapshot,
+                                                     mp::BaseVirtualMachine,
+                                                     (A<const std::string&>()));
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(const_self,
                                                      get_snapshot,
                                                      mp::BaseVirtualMachine,
                                                      (A<const std::string&>()));
