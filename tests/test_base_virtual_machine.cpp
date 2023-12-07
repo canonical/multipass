@@ -201,6 +201,7 @@ struct BaseVM : public Test
 {
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
+    MockBaseVirtualMachine vm{"mock-vm"};
 };
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
@@ -296,42 +297,38 @@ INSTANTIATE_TEST_SUITE_P(
                         {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
            IpTestParams{0, "", {}}));
 
-TEST(BaseVMSnapshots, startsWithNoSnapshots)
+TEST_F(BaseVM, startsWithNoSnapshots)
 {
-    MockBaseVirtualMachine vm{"mock-vm"};
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 }
 
-TEST(BaseVMSnapshots, takesSnapshots)
+TEST_F(BaseVM, takesSnapshots)
 {
     auto snapshot = std::make_shared<MockSnapshot>();
     EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
 
-    MockBaseVirtualMachine vm{"mock-vm"};
     EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
-
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
+
     EXPECT_EQ(vm.get_num_snapshots(), 1);
 }
 
-TEST(BaseVMSnapshots, deletesSnapshots)
+TEST_F(BaseVM, deletesSnapshots)
 {
     auto snapshot = std::make_shared<MockSnapshot>();
     EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
     EXPECT_CALL(*snapshot, erase).Times(AnyNumber());
 
-    MockBaseVirtualMachine vm{"mock-vm"};
     EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
-
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
     vm.delete_snapshot("s1");
+
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 }
 
-TEST(BaseVMSnapshots, countsCurrentSnapshots)
+TEST_F(BaseVM, countsCurrentSnapshots)
 {
     const mp::VMSpecs specs{};
-    MockBaseVirtualMachine vm{"mock-vm"};
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 
     auto snapshot = std::make_shared<MockSnapshot>();
@@ -357,10 +354,9 @@ TEST(BaseVMSnapshots, countsCurrentSnapshots)
     EXPECT_EQ(vm.get_num_snapshots(), 1);
 }
 
-TEST(BaseVMSnapshots, countsTotalSnapshots)
+TEST_F(BaseVM, countsTotalSnapshots)
 {
     const mp::VMSpecs specs{};
-    MockBaseVirtualMachine vm{"mock-vm"};
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 
     auto snapshot = std::make_shared<MockSnapshot>();
