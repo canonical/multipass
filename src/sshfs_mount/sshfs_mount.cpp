@@ -101,11 +101,11 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         // The option was made the default in libfuse 3.0
         else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))
         {
-            sshfs_exec += " -o nonempty -o cache_timeout=3";
+            sshfs_exec += " -o nonempty -o cache=no";
         }
         else
         {
-            sshfs_exec += " -o dcache_timeout=3 -o dir_cache=no";
+            sshfs_exec += " -o dir_cache=no";
         }
     }
     else
