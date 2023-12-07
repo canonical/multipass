@@ -314,30 +314,30 @@ inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id)
 
 inline bool mp::SftpServer::has_uid_mapping_for(const int uid)
 {
-    return std::find_if(uid_mappings.begin(), uid_mappings.end(), [uid](std::pair<int, int> p) {
-               return uid == p.first;
-           }) != uid_mappings.end();
+    return std::any_of(uid_mappings.begin(), uid_mappings.end(), [uid](std::pair<int, int> p) {
+        return uid == p.first;
+    });
 }
 
 inline bool mp::SftpServer::has_gid_mapping_for(const int gid)
 {
-    return std::find_if(gid_mappings.begin(), gid_mappings.end(), [gid](std::pair<int, int> p) {
-               return gid == p.first;
-           }) != gid_mappings.end();
+    return std::any_of(gid_mappings.begin(), gid_mappings.end(), [gid](std::pair<int, int> p) {
+        return gid == p.first;
+    });
 }
 
 inline bool mp::SftpServer::has_reverse_uid_mapping_for(const int uid)
 {
-    return std::find_if(uid_mappings.cbegin(), uid_mappings.cend(), [uid](std::pair<int, int> p) {
-               return uid == p.second;
-           }) != uid_mappings.end();
+    return std::any_of(uid_mappings.cbegin(), uid_mappings.cend(), [uid](std::pair<int, int> p) {
+        return uid == p.second;
+    });
 }
 
 inline bool mp::SftpServer::has_reverse_gid_mapping_for(const int gid)
 {
-    return std::find_if(gid_mappings.cbegin(), gid_mappings.cend(), [gid](std::pair<int, int> p) {
-               return gid == p.second;
-           }) != gid_mappings.end();
+    return std::any_of(gid_mappings.cbegin(), gid_mappings.cend(), [gid](std::pair<int, int> p) {
+        return gid == p.second;
+    });
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
