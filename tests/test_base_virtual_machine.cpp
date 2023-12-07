@@ -206,7 +206,7 @@ struct BaseVM : public Test
 {
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
-    MockBaseVirtualMachine vm{"mock-vm"};
+    NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
 };
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
@@ -309,10 +309,10 @@ TEST_F(BaseVM, startsWithNoSnapshots)
 
 TEST_F(BaseVM, takesSnapshots)
 {
-    auto snapshot = std::make_shared<MockSnapshot>();
-    EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
+    auto snapshot = std::make_shared<NiceMock<MockSnapshot>>();
+    EXPECT_CALL(*snapshot, capture).Times(1);
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
 
     EXPECT_EQ(vm.get_num_snapshots(), 1);
@@ -320,11 +320,10 @@ TEST_F(BaseVM, takesSnapshots)
 
 TEST_F(BaseVM, deletesSnapshots)
 {
-    auto snapshot = std::make_shared<MockSnapshot>();
-    EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
-    EXPECT_CALL(*snapshot, erase).Times(AnyNumber());
+    auto snapshot = std::make_shared<NiceMock<MockSnapshot>>();
+    EXPECT_CALL(*snapshot, erase).Times(1);
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
     vm.delete_snapshot("s1");
 
@@ -336,10 +335,8 @@ TEST_F(BaseVM, countsCurrentSnapshots)
     const mp::VMSpecs specs{};
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 
-    auto snapshot = std::make_shared<MockSnapshot>();
+    auto snapshot = std::make_shared<NiceMock<MockSnapshot>>();
     EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
-    EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
-    EXPECT_CALL(*snapshot, erase).Times(AnyNumber());
 
     vm.take_snapshot(specs, "s1", "");
     EXPECT_EQ(vm.get_num_snapshots(), 1);
@@ -364,10 +361,8 @@ TEST_F(BaseVM, countsTotalSnapshots)
     const mp::VMSpecs specs{};
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 
-    auto snapshot = std::make_shared<MockSnapshot>();
+    auto snapshot = std::make_shared<NiceMock<MockSnapshot>>();
     EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
-    EXPECT_CALL(*snapshot, capture).Times(AnyNumber());
-    EXPECT_CALL(*snapshot, erase).Times(AnyNumber());
 
     vm.take_snapshot(specs, "s1", "");
     vm.take_snapshot(specs, "s2", "");
@@ -393,9 +388,7 @@ TEST_F(BaseVM, providesSnapshotsView)
 {
     const mp::VMSpecs specs{};
     EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
-        auto ret = std::make_shared<MockSnapshot>();
-        EXPECT_CALL(*ret, capture).Times(AnyNumber());
-        EXPECT_CALL(*ret, erase).Times(AnyNumber());
+        auto ret = std::make_shared<NiceMock<MockSnapshot>>();
         EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
 
         return ret;
@@ -427,10 +420,8 @@ TEST_F(BaseVM, providesSnapshotsView)
 TEST_F(BaseVM, providesSnapshotsByName)
 {
     EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([](const std::string& name) {
-        auto ret = std::make_shared<MockSnapshot>();
+        auto ret = std::make_shared<NiceMock<MockSnapshot>>();
         EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
-        EXPECT_CALL(*ret, capture).Times(1);
-
         return ret;
     }));
 
