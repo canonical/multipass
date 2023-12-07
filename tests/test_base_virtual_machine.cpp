@@ -417,6 +417,27 @@ TEST_F(BaseVM, providesSnapshotsView)
     EXPECT_THAT(snapshot_indices, UnorderedElementsAre(2, 5, 6, 8));
 }
 
+TEST_F(BaseVM, providesSnapshotsByIndex)
+{
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
+        auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+        EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
+
+        return ret;
+    });
+
+    const mp::VMSpecs specs{};
+    vm.take_snapshot(specs, "foo", "");
+    vm.take_snapshot(specs, "bar", "this and that");
+    vm.delete_snapshot("foo");
+    vm.take_snapshot(specs, "baz", "this and that");
+
+    for (const auto i : {2, 3})
+    {
+        EXPECT_THAT(vm.get_snapshot(i), Pointee(Property(&mp::Snapshot::get_index, Eq(i))));
+    }
+}
+
 TEST_F(BaseVM, providesSnapshotsByName)
 {
     EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([](const std::string& name) {
