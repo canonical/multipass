@@ -42,7 +42,6 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
         : mpt::MockVirtualMachineT<mp::BaseVirtualMachine>{std::forward<Args>(args)...}
     {
         auto& self = *this;
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, take_snapshot, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, view_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_num_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, take_snapshot, mp::BaseVirtualMachine);
