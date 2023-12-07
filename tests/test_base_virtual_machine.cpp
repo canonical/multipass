@@ -384,4 +384,39 @@ TEST_F(BaseVM, countsTotalSnapshots)
     EXPECT_EQ(vm.get_snapshot_count(), 6);
 }
 
+TEST_F(BaseVM, providesSnapshotsView)
+{
+    const mp::VMSpecs specs{};
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
+        auto ret = std::make_shared<MockSnapshot>();
+        EXPECT_CALL(*ret, capture).Times(AnyNumber());
+        EXPECT_CALL(*ret, erase).Times(AnyNumber());
+        EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
+
+        return ret;
+    });
+
+    auto sname = [](int i) { return fmt::format("s{}", i); };
+    for (int i = 1; i < 6; ++i) // +5
+        vm.take_snapshot(specs, sname(i), "");
+    for (int i = 3; i < 5; ++i) // -2
+        vm.delete_snapshot(sname(i));
+    for (int i = 6; i < 9; ++i) // +3
+        vm.take_snapshot(specs, sname(i), "");
+    for (int i : {1, 7}) // -2
+        vm.delete_snapshot(sname(i));
+
+    ASSERT_EQ(vm.get_num_snapshots(), 4);
+    auto snapshots = vm.view_snapshots();
+
+    EXPECT_THAT(snapshots, SizeIs(4));
+
+    std::vector<int> snapshot_indices{};
+    std::transform(snapshots.begin(), snapshots.end(), std::back_inserter(snapshot_indices), [](const auto& snapshot) {
+        return snapshot->get_index();
+    });
+
+    EXPECT_THAT(snapshot_indices, UnorderedElementsAre(2, 5, 6, 8));
+}
+
 } // namespace
