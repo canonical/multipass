@@ -467,6 +467,8 @@ TEST_F(SftpServer, opendir_no_handle_allocated_fails)
         err.clear();
         return std::make_unique<mpt::MockDirIterator>();
     });
+    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
+    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
 
     REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
@@ -520,6 +522,8 @@ TEST_F(SftpServer, handles_mkdir)
     EXPECT_CALL(*file_ops, permissions(A<const mp::fs::path&>(), _, _)).WillOnce([](auto, auto, std::error_code& err) {
         err.clear();
     });
+    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
+    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
 
     int num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_OK, num_calls));
@@ -573,6 +577,8 @@ TEST_F(SftpServer, mkdir_set_permissions_fails)
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, permissions(_, _, _))
         .WillOnce(SetArgReferee<2>(std::make_error_code(std::errc::operation_not_permitted)));
+    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
+    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp_attributes_struct attr{};
@@ -1031,6 +1037,9 @@ TEST_F(SftpServer, rename_cannot_remove_target_fails)
     EXPECT_CALL(*mock_file_ops, remove(_)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
     EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
+        return file.exists();
+    });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1069,6 +1078,9 @@ TEST_F(SftpServer, rename_failure_fails)
     EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
     EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
+        return file.exists();
+    });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1159,6 +1171,9 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
         .WillOnce([](const QFileInfo& file) { return file.ownerId(); })
         .WillOnce([](const QFileInfo& file) { return file.ownerId() + 1; });
     EXPECT_CALL(*mock_file_ops, groupId(_)).WillOnce([](const QFileInfo& file) { return file.groupId(); });
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
+        return file.exists();
+    });
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_RENAME);
@@ -1347,7 +1362,6 @@ TEST_F(SftpServer, open_unable_to_open_fails)
     msg->filename = name.data();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-
     EXPECT_CALL(*file_ops, symlink_status).WillOnce([](auto, std::error_code& err) {
         err.clear();
         return mp::fs::file_status{mp::fs::file_type::regular};
@@ -1356,6 +1370,8 @@ TEST_F(SftpServer, open_unable_to_open_fails)
         errno = EACCES;
         return std::make_unique<mp::NamedFd>(path, -1);
     });
+    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
+    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     int failure_num_calls{0};
@@ -1847,8 +1863,12 @@ TEST_F(SftpServer, setstat_resize_failure_fails)
     msg->flags = SSH_FXF_WRITE;
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
     EXPECT_CALL(*mock_file_ops, resize(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
+    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
+        return file.exists();
+    });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1886,10 +1906,14 @@ TEST_F(SftpServer, setstat_set_permissions_failure_fails)
     msg->flags = SSH_FXF_WRITE;
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-
     EXPECT_CALL(*file_ops, resize).WillOnce(Return(true));
     EXPECT_CALL(*file_ops, permissions(_, _, _))
         .WillOnce(SetArgReferee<2>(std::make_error_code(std::errc::permission_denied)));
+    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
+    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
+    EXPECT_CALL(*file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
+        return file.exists();
+    });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     int failure_num_calls{0};

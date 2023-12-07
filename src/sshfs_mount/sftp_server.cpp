@@ -340,6 +340,11 @@ inline bool mp::SftpServer::has_reverse_gid_mapping_for(const int gid)
     });
 }
 
+bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)
+{
+    return has_uid_mapping_for(MP_FILEOPS.ownerId(file_info)) && has_gid_mapping_for(MP_FILEOPS.groupId(file_info));
+}
+
 void mp::SftpServer::process_message(sftp_client_message msg)
 {
     int ret = 0;
@@ -512,7 +517,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     QFileInfo current_dir(filename);
     QFileInfo parent_dir(current_dir.path());
 
-    if (!has_uid_mapping_for(parent_dir.ownerId()) || !has_gid_mapping_for(parent_dir.groupId()))
+    if (!has_id_mappings_for(parent_dir))
     {
         mpl::log(mpl::Level::trace,
                  category,
@@ -565,8 +570,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     }
 
     QFileInfo current_dir(filename);
-    if (current_dir.exists() &&
-        (!has_uid_mapping_for(current_dir.ownerId()) || !has_gid_mapping_for(current_dir.groupId())))
+    if (MP_FILEOPS.exists(current_dir) && !has_id_mappings_for(current_dir))
     {
         mpl::log(
             mpl::Level::trace,
@@ -612,8 +616,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     QFileInfo file_info(filename);
     QFileInfo current_dir(file_info.path());
-    if ((exists && (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))) ||
-        (!exists && (!has_uid_mapping_for(current_dir.ownerId()) || !has_gid_mapping_for(current_dir.groupId()))))
+    if ((exists && !has_id_mappings_for(file_info)) || (!exists && !has_id_mappings_for(current_dir)))
     {
         mpl::log(
             mpl::Level::trace,
@@ -709,7 +712,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
     }
 
     QFileInfo file_info{filename};
-    if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+    if (!has_id_mappings_for(file_info))
     {
         mpl::log(
             mpl::Level::trace,
@@ -819,7 +822,7 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     }
 
     QFileInfo file_info{filename};
-    if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+    if (!has_id_mappings_for(file_info))
     {
         mpl::log(
             mpl::Level::trace,
@@ -845,7 +848,7 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
     }
 
     QFileInfo file_info{filename};
-    if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+    if (!has_id_mappings_for(file_info))
     {
         mpl::log(
             mpl::Level::trace,
@@ -870,7 +873,7 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
     }
 
     QFileInfo file_info{filename};
-    if (file_info.exists() && (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId())))
+    if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
     {
         mpl::log(
             mpl::Level::trace,
@@ -905,15 +908,15 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    if (!QFileInfo(source).isSymLink() && !QFile::exists(source))
+    QFileInfo source_info{source};
+    if (!source_info.isSymLink() && !MP_FILEOPS.exists(source_info))
     {
         mpl::log(mpl::Level::trace, category,
                  fmt::format("{}: cannot rename \'{}\': no such file", __FUNCTION__, source));
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
-    QFileInfo source_info{source};
-    if (!has_uid_mapping_for(MP_FILEOPS.ownerId(source_info)) || !has_gid_mapping_for(MP_FILEOPS.groupId(source_info)))
+    if (!has_id_mappings_for(source_info))
     {
         mpl::log(
             mpl::Level::trace,
@@ -932,8 +935,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     }
 
     QFileInfo target_info{target};
-    if (target_info.exists() && (!has_uid_mapping_for(MP_FILEOPS.ownerId(target_info)) ||
-                                 !has_gid_mapping_for(MP_FILEOPS.groupId(target_info))))
+    if (MP_FILEOPS.exists(target_info) && !has_id_mappings_for(target_info))
     {
         mpl::log(
             mpl::Level::trace,
@@ -943,7 +945,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     }
 
     QFile target_file{target};
-    if (target_file.exists())
+    if (MP_FILEOPS.exists(target_info))
     {
         if (!MP_FILEOPS.remove(target_file))
         {
@@ -992,7 +994,8 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        if (!QFileInfo(filename).isSymLink() && !QFile::exists(filename))
+        QFileInfo file_info{filename};
+        if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
         {
             mpl::log(mpl::Level::trace,
                      category,
@@ -1003,7 +1006,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     QFile file{filename};
     QFileInfo file_info{filename};
-    if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+    if (!has_id_mappings_for(file_info))
     {
         mpl::log(
             mpl::Level::trace,
@@ -1081,10 +1084,11 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
     }
 
     QFileInfo file_info(filename);
-    if (!file_info.isSymLink() && !file_info.exists())
+    if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
     {
-        mpl::log(mpl::Level::trace, category,
-                 fmt::format("{}: cannot stat  \'{}\': no such file", __FUNCTION__, filename));
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("{}: cannot stat \'{}\': no such file", __FUNCTION__, filename));
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
@@ -1121,7 +1125,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
     }
 
     QFileInfo file_info{old_name};
-    if (file_info.exists() && (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId())))
+    if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
     {
         mpl::log(
             mpl::Level::trace,
@@ -1204,7 +1208,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
         }
 
         QFileInfo file_info{old_name};
-        if (!has_uid_mapping_for(file_info.ownerId()) || !has_gid_mapping_for(file_info.groupId()))
+        if (!has_id_mappings_for(file_info))
         {
             mpl::log(mpl::Level::trace,
                      category,

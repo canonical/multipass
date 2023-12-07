@@ -63,6 +63,7 @@ private:
     bool has_gid_mapping_for(const int gid);
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
+    bool has_id_mappings_for(const QFileInfo& file_info);
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
