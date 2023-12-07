@@ -123,6 +123,39 @@ QString get_ifconfig_output()
     return ifconfig_process->read_all_standard_output();
 }
 
+QStringList get_bridged_interfaces(const QString& if_name, const QString& ifconfig_output)
+{
+    // Search the substring of the full ifconfig output containing only the interface if_name.
+    int start = ifconfig_output.indexOf(
+        QRegularExpression{QStringLiteral("^%1:").arg(if_name), QRegularExpression::MultilineOption});
+    int end = ifconfig_output.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption), start + 1);
+    auto ifconfig_entry = ifconfig_output.mid(start, end - start);
+
+    // Search for the bridged interfaces in the resulting string ref.
+    const auto pattern = QStringLiteral("^[ \\t]+member: (?<member>\\w+) flags.*$");
+    const auto regexp = QRegularExpression{pattern, QRegularExpression::MultilineOption};
+    QRegularExpressionMatchIterator match_it = regexp.globalMatch(ifconfig_entry);
+
+    QStringList bridged_ifs;
+
+    while (match_it.hasNext())
+    {
+        auto match = match_it.next();
+        if (match.hasMatch())
+        {
+            bridged_ifs.push_back(match.captured("member"));
+        }
+    }
+
+    return bridged_ifs;
+}
+
+std::string describe_bridge(const QString& name, const QString& ifconfig_output)
+{
+    auto members = get_bridged_interfaces(name, ifconfig_output);
+    return members.isEmpty() ? "Empty network bridge" : fmt::format("Network bridge with {}", members.join(", "));
+}
+
 std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry, const QString& ifconfig_output)
 {
     const auto name_pattern = QStringLiteral("^Device: ([\\w -]+)$");
@@ -139,17 +172,12 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
         auto id = name.toStdString();
 
         // bridges first, so we match on things like "thunderbolt bridge" here
-        if (name.contains("bridge") || desc.contains("bridge", Qt::CaseInsensitive) ||
-            desc.contains("thunderbolt", Qt::CaseInsensitive))
-        {
-            mpl::log(mpl::Level::warning, category, fmt::format("Skipping \"{}\"", id));
+        if (name.contains("bridge") || desc.contains("bridge", Qt::CaseInsensitive))
+            return mp::NetworkInterfaceInfo{id, "bridge", describe_bridge(name, ifconfig_output)};
 
-            return std::nullopt;
-        }
-
+        // simple cases next
         auto description = desc.toStdString();
-
-        for (const auto& type : {"ethernet", "usb"})
+        for (const auto& type : {"thunderbolt", "ethernet", "usb"})
             if (desc.contains(type, Qt::CaseInsensitive))
                 return mp::NetworkInterfaceInfo{id, type, description};
 

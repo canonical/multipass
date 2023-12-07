@@ -154,8 +154,12 @@ QByteArray networksetup_output =
 std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
     {"en0", {"en0", "ethernet", "Ethernet"}},
     {"en1", {"en1", "wifi", "Wi-Fi"}},
+    {"en2", {"en2", "thunderbolt", "Thunderbolt 1"}},
+    {"en3", {"en3", "thunderbolt", "Thunderbolt 2"}},
     {"en11", {"en11", "usb", "USB 10/100/1000 LAN"}},
-    {"en12", {"en12", "usb", "iPhone USB"}}};
+    {"en12", {"en12", "usb", "iPhone USB"}},
+    {"bridge0", {"bridge0", "bridge", "Network bridge with en2, en3"}},
+    {"bridge2", {"bridge2", "bridge", "Empty network bridge"}}};
 
 void simulate_ifconfig(const mpt::MockProcess* process, const mp::ProcessState& exit_status)
 {
