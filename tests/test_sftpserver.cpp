@@ -1652,13 +1652,8 @@ TEST_F(SftpServer, handles_readdir_attributes_preserved)
 
     QFileInfo test_file_info(test_file);
     EXPECT_EQ(test_file_attrs.size, (uint64_t)test_file_info.size());
-#ifndef WIN32
     EXPECT_EQ(test_file_attrs.gid, test_file_info.groupId());
     EXPECT_EQ(test_file_attrs.uid, test_file_info.ownerId());
-#else
-    EXPECT_EQ(test_file_attrs.gid, 1000);
-    EXPECT_EQ(test_file_attrs.uid, 1000);
-#endif
     EXPECT_EQ(test_file_attrs.atime,
               (uint32_t)test_file_info.lastModified().toSecsSinceEpoch()); // atime64 is zero, expected?
 
