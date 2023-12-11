@@ -63,31 +63,37 @@ QString cmd::Clone::description() const
 mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 {
     parser->addPositionalArgument("source_name", "The name of the source virtual machine instance", "<source_name>");
-    parser->addPositionalArgument("target_name",
-                                  "An optional value for specifying the name of the cloned virtual machine ",
-                                  "[<target_name>]");
+
+    const QCommandLineOption destination_name_option{
+        {"n", "name"},
+        "An optional name for the destination instance name, it obeys the same validity rules as instance  names (see "
+        "help launch`). Default: \"<source_name>-cloneN\", where N is the Nth cloned instance of the original instance",
+        "destination name"};
+
+    parser->addOption(destination_name_option);
 
     const auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    // either 2 or 1 arguments are permmitted
     const auto number_of_positional_arguments = parser->positionalArguments().count();
-    if (number_of_positional_arguments < 1 || number_of_positional_arguments > 2)
+    if (number_of_positional_arguments < 1)
     {
-        cerr << "Please provide one or two name arguments\n";
+        cerr << "Please provide the name of the source instance.\n";
         return ParseCode::CommandLineError;
     }
 
-    // fill in the rpc_request
-    // TODO, put it in function
+    if (number_of_positional_arguments > 1)
+    {
+        cerr << "Too many arguments.\n";
+        return ParseCode::CommandLineError;
+    }
+
     const auto& source_name = parser->positionalArguments()[0];
     rpc_request.set_source_name(source_name.toStdString());
-
-    if (number_of_positional_arguments == 2)
+    if (parser->isSet(destination_name_option))
     {
-        const auto& destination_name = parser->positionalArguments()[1];
-        rpc_request.set_destination_name(destination_name.toStdString());
+        rpc_request.set_destination_name(parser->value(destination_name_option).toStdString());
     }
 
     return ParseCode::Ok;
