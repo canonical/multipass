@@ -1649,7 +1649,8 @@ try // clang-format on
                 std::unordered_set<std::string> images_found;
                 auto action = [&images_found, &default_remote, request, &response](const std::string& remote,
                                                                                    const mp::VMImageInfo& info) {
-                    if ((info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                    if (!(remote == mp::snapcraft_remote) && (info.supported || request->allow_unsupported()) &&
+                        !info.aliases.empty() &&
                         images_found.find(info.release_title.toStdString()) == images_found.end())
                     {
                         add_aliases(response.mutable_images_info(), remote, info, default_remote);
