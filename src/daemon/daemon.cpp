@@ -2562,6 +2562,9 @@ try
         auto* vm_ptr = std::get<0>(instance_trail)->second.get();
         assert(vm_ptr);
 
+        // Only need to check if snapshots are supported and if the snapshot exists, so the result is discarded
+        vm_ptr->get_snapshot(request->snapshot());
+
         using St = VirtualMachine::State;
         if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
             return status_promise->set_value(
@@ -2570,9 +2573,6 @@ try
         auto spec_it = vm_instance_specs.find(instance_name);
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
         auto& vm_specs = spec_it->second;
-
-        // Only need to check if the snapshot exists so the result is discarded
-        vm_ptr->get_snapshot(request->snapshot());
 
         if (!request->destructive())
         {
