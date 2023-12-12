@@ -89,14 +89,16 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
 
     EXPECT_THAT(stream.str(), AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info),
                                     HasSubstr(mpt::another_alias), HasSubstr(mpt::another_release_info),
-                                    HasSubstr(fmt::format("{}:{}", mpt::snapcraft_remote, mpt::snapcraft_alias)),
-                                    HasSubstr(mpt::snapcraft_release_info),
                                     HasSubstr(fmt::format("{}:{}", mpt::custom_remote, mpt::custom_alias)),
                                     HasSubstr(mpt::custom_release_info), HasSubstr(blueprint1_name),
                                     HasSubstr(blueprint_description_for(blueprint1_name)), HasSubstr(blueprint2_name),
                                     HasSubstr(blueprint_description_for(blueprint2_name))));
 
-    EXPECT_EQ(total_lines_of_output(stream), 10);
+    EXPECT_THAT(stream.str(),
+                Not(AllOf(HasSubstr(fmt::format("{}:{}", mpt::snapcraft_remote, mpt::snapcraft_alias)),
+                          HasSubstr(mpt::snapcraft_release_info))));
+
+    EXPECT_EQ(total_lines_of_output(stream), 9);
 }
 
 TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
