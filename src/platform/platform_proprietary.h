@@ -34,11 +34,9 @@ constexpr auto unlock_code{"impeccable-carp"};
 // clang-format off
 const std::unordered_set<std::string> supported_release_aliases{"core",   "core16", "core18", "core20", "core22",
                                                                 "default", "ubuntu", "lts",
-                                                                "16.04", "x", "xenial",
-                                                                "18.04", "b", "bionic",
                                                                 "20.04", "f", "focal",
                                                                 "22.04", "j", "jammy",
-                                                                "23.04", "l", "lunar"};
+                                                                "23.10", "m", "mantic"};
 // clang-format on
 const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18", "core20", "core22"};
 
