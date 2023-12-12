@@ -30,7 +30,7 @@ namespace multipass
 {
 namespace platform
 {
-constexpr auto unlock_code{"impeccable-carp"};
+constexpr auto unlock_code{"ardent-dory"};
 // clang-format off
 const std::unordered_set<std::string> supported_release_aliases{"core",   "core16", "core18", "core20", "core22",
                                                                 "default", "ubuntu", "lts",
