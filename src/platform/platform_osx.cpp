@@ -271,7 +271,7 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
     return (backend == "qemu" && QEMU_ENABLED &&
-            QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSCatalina) ||
+            QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSBigSur) ||
            (backend == "virtualbox" && VIRTUALBOX_ENABLED);
 }
 
