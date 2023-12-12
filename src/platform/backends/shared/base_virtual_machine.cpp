@@ -116,6 +116,7 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& 
 
 auto BaseVirtualMachine::view_snapshots() const -> SnapshotVista
 {
+    check_snapshots_supported();
     SnapshotVista ret;
 
     const std::unique_lock lock{snapshot_mutex};
@@ -129,6 +130,7 @@ auto BaseVirtualMachine::view_snapshots() const -> SnapshotVista
 
 std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::string& name) const
 {
+    check_snapshots_supported();
     const std::unique_lock lock{snapshot_mutex};
     try
     {
@@ -142,6 +144,7 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(const std::stri
 
 std::shared_ptr<const Snapshot> BaseVirtualMachine::get_snapshot(int index) const
 {
+    check_snapshots_supported();
     const std::unique_lock lock{snapshot_mutex};
 
     auto index_matcher = [index](const auto& elem) { return elem.second->get_index() == index; };
@@ -195,6 +198,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
                                                                   const std::string& snapshot_name,
                                                                   const std::string& comment)
 {
+    check_snapshots_supported();
+
     std::unique_lock lock{snapshot_mutex};
     assert_vm_stopped(state); // precondition
 
@@ -366,6 +371,7 @@ void BaseVirtualMachine::load_snapshots()
 
 std::vector<std::string> BaseVirtualMachine::get_childrens_names(const Snapshot* parent) const
 {
+    check_snapshots_supported();
     std::vector<std::string> children;
 
     for (const auto& snapshot : view_snapshots())
