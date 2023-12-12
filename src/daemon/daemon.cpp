@@ -3440,7 +3440,13 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         }
     }
 
-    instance_info->set_num_snapshots(vm.get_num_snapshots());
+    try
+    {
+        instance_info->set_num_snapshots(vm.get_num_snapshots());
+    }
+    catch (const NotImplementedOnThisBackendException&)
+    {
+    }
     instance_info->set_image_release(original_release);
     instance_info->set_id(vm_image.id);
 

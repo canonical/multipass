@@ -216,7 +216,7 @@ message InstanceDetails {
     string disk_usage = 6;
     repeated string ipv4 = 7;
     repeated string ipv6 = 8;
-    int32 num_snapshots = 9;
+    optional int32 num_snapshots = 9;
 }
 
 message SnapshotFundamentals {
