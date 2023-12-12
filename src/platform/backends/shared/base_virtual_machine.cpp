@@ -518,10 +518,11 @@ void BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
 void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
 {
     const std::unique_lock lock{snapshot_mutex};
-    assert_vm_stopped(state); // precondition
 
     auto snapshot = get_snapshot(name);
-    assert(snapshot->get_state() == St::off || snapshot->get_state() == St::stopped);
+
+    assert_vm_stopped(state);                 // precondition
+    assert_vm_stopped(snapshot->get_state()); // precondition
 
     snapshot->apply();
 
