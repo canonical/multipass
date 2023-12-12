@@ -125,7 +125,9 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
+
+    if (instance_details.has_num_snapshots())
+        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
 
     int ipv4_size = instance_details.ipv4_size();
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv4:", ipv4_size ? instance_details.ipv4(0) : "--");

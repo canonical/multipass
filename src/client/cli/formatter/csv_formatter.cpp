@@ -96,17 +96,21 @@ std::string generate_snapshot_details(const mp::InfoReply reply)
 
 std::string generate_instance_details(const mp::InfoReply reply)
 {
-    fmt::memory_buffer buf;
+    assert(reply.details_size() && "shouldn't call this if there are not entries");
+    assert(reply.details(0).has_instance_info() &&
+           "outputting instance and snapshot details together is not supported in csv format");
 
+    auto have_num_snapshots = reply.details(0).instance_info().has_num_snapshots();
+
+    fmt::memory_buffer buf;
     fmt::format_to(
         std::back_inserter(buf),
         "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory "
-        "total,Mounts,AllIPv4,CPU(s),Snapshots\n");
+        "total,Mounts,AllIPv4,CPU(s){}\n",
+        have_num_snapshots ? ",Snapshots" : "");
 
     for (const auto& info : mp::format::sorted(reply.details()))
     {
-        assert(info.has_instance_info() &&
-               "outputting instance and snapshot details together is not supported in csv format");
         const auto& instance_details = info.instance_info();
 
         fmt::format_to(std::back_inserter(buf),
@@ -126,11 +130,11 @@ std::string generate_instance_details(const mp::InfoReply reply)
 
         fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
 
+        fmt::format_to(std::back_inserter(buf), ",{},{}", fmt::join(instance_details.ipv4(), ";"), info.cpu_count());
+
         fmt::format_to(std::back_inserter(buf),
-                       ",{},{},{}\n",
-                       fmt::join(instance_details.ipv4(), ";"),
-                       info.cpu_count(),
-                       instance_details.num_snapshots());
+                       "{}\n",
+                       have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots()) : "");
     }
 
     return fmt::to_string(buf);
