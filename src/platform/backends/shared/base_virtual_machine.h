@@ -143,7 +143,7 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
     return snapshot_count;
 }
 
-inline void multipass::BaseVirtualMachine::require_snapshots_support() const // TODO@nomerge implement on supporting
+inline void multipass::BaseVirtualMachine::require_snapshots_support() const
 {
     throw NotImplementedOnThisBackendException{"Snapshots"};
 }

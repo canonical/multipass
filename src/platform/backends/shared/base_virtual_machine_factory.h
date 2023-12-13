@@ -104,8 +104,7 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
     instance_dir.removeRecursively();
 }
 
-inline void
-multipass::BaseVirtualMachineFactory::require_snapshots_support() const // TODO@nomerge override where supported
+inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() const
 {
     throw NotImplementedOnThisBackendException{"Snapshots"};
 }
