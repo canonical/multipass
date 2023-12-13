@@ -244,6 +244,18 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
             vm_process->write(QJsonDocument(qmp).toJson());
         },
         Qt::QueuedConnection);
+
+    QObject::connect(
+        this,
+        &QemuVirtualMachine::on_synchronize_clock,
+        this,
+        [this](const SSHKeyProvider* key_provider) {
+            mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
+
+            mp::SSHSession session{VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), *key_provider};
+            mp::utils::run_in_ssh_session(session, "sudo hwclock --hctosys");
+        },
+        Qt::QueuedConnection);
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
@@ -489,6 +501,7 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     if (is_starting_from_suspend)
     {
         emit on_delete_memory_snapshot();
+        emit on_synchronize_clock(&key_provider);
     }
 }
 
