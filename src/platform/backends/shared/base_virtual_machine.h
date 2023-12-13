@@ -71,7 +71,7 @@ public:
     int get_snapshot_count() const override;
 
 protected:
-    virtual void check_snapshots_supported() const;
+    virtual void require_snapshots_support() const;
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                              const std::string& comment,
@@ -132,18 +132,18 @@ private:
 
 inline int multipass::BaseVirtualMachine::get_num_snapshots() const
 {
-    check_snapshots_supported();
+    require_snapshots_support();
     return static_cast<int>(snapshots.size());
 }
 
 inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 {
-    check_snapshots_supported();
+    require_snapshots_support();
     const std::unique_lock lock{snapshot_mutex};
     return snapshot_count;
 }
 
-inline void multipass::BaseVirtualMachine::check_snapshots_supported() const // TODO@nomerge implement on supporting
+inline void multipass::BaseVirtualMachine::require_snapshots_support() const // TODO@nomerge implement on supporting
 {
     throw NotImplementedOnThisBackendException{"Snapshots"};
 }

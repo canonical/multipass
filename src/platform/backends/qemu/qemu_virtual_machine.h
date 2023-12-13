@@ -77,7 +77,7 @@ protected:
     {
     }
 
-    void check_snapshots_supported() const override;
+    void require_snapshots_support() const override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
@@ -106,7 +106,7 @@ private:
 };
 } // namespace multipass
 
-inline void multipass::QemuVirtualMachine::check_snapshots_supported() const
+inline void multipass::QemuVirtualMachine::require_snapshots_support() const
 {
 }
 
