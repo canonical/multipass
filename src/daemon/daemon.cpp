@@ -2508,6 +2508,7 @@ try
                                                              *config->logger,
                                                              server};
 
+    config->factory->require_snapshots_support();
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
