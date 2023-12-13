@@ -1701,6 +1701,9 @@ try // clang-format on
     bool snapshots_only = request->snapshots();
     response.set_snapshots(snapshots_only);
 
+    if (snapshots_only)
+        config->factory->require_snapshots_support();
+
     auto process_snapshot_pick = [&response, &have_mounts, snapshots_only](VirtualMachine& vm,
                                                                            const SnapshotPick& snapshot_pick) {
         for (const auto& snapshot_name : snapshot_pick.pick)
@@ -1784,7 +1787,14 @@ try // clang-format on
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
     // Need to 'touch' a report in the response so formatters know what to do with an otherwise empty response
-    request->snapshots() ? (void)response.mutable_snapshot_list() : (void)response.mutable_instance_list();
+    if (request->snapshots())
+    {
+        config->factory->require_snapshots_support();
+        response.mutable_snapshot_list();
+    }
+    else
+        response.mutable_instance_list();
+
     bool deleted = false;
 
     auto fetch_instance = [this, request, &response, &deleted](VirtualMachine& vm) {
