@@ -145,7 +145,7 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 
 inline void multipass::BaseVirtualMachine::require_snapshots_support() const
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"};
+    throw NotImplementedOnThisBackendException{"snapshots"};
 }
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_H

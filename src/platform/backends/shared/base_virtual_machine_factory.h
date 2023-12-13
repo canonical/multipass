@@ -106,7 +106,7 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
 
 inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() const
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"};
+    throw NotImplementedOnThisBackendException{"snapshots"};
 }
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
