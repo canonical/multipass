@@ -96,7 +96,10 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     YAML::Node instance_node;
 
     instance_node["state"] = mp::format::status_string_for(item.instance_status());
-    instance_node["snapshot_count"] = instance_details.num_snapshots();
+
+    if (instance_details.has_num_snapshots())
+        instance_node["snapshot_count"] = instance_details.num_snapshots();
+
     instance_node["image_hash"] = instance_details.id();
     instance_node["image_release"] = instance_details.image_release();
     instance_node["release"] =

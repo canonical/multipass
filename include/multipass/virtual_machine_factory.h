@@ -69,6 +69,7 @@ public:
 
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
+    virtual void require_snapshots_support() const = 0;
 
 protected:
     VirtualMachineFactory() = default;
