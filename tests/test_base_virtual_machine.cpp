@@ -19,6 +19,7 @@
 #include "dummy_ssh_key_provider.h"
 #include "mock_ssh_test_fixture.h"
 #include "mock_virtual_machine.h"
+#include "multipass/exceptions/snapshot_exceptions.h"
 #include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
@@ -212,6 +213,16 @@ struct BaseVM : public Test
 
             return ret;
         });
+    }
+
+    void mock_named_snapshotting()
+    {
+        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([](const std::string& name) {
+            auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+            EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
+
+            return ret;
+        }));
     }
 
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
@@ -445,11 +456,7 @@ TEST_F(BaseVM, providesSnapshotsByIndex)
 
 TEST_F(BaseVM, providesSnapshotsByName)
 {
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([](const std::string& name) {
-        auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-        EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
-        return ret;
-    }));
+    mock_named_snapshotting();
 
     const mp::VMSpecs specs{};
     const std::string target_name = "pick";
@@ -481,7 +488,32 @@ TEST_F(BaseVM, handlesMissingSnapshotByIndex)
     vm.take_snapshot(specs, "bar", "blue pill");
     vm.take_snapshot(specs, "baz", "red pill");
 
-    for (int i : {-2, -1, 0, 4, 5})
+    for (int i : {-2, -1, 0, 4, 5, 100})
         expect_throw(i);
 }
+
+TEST_F(BaseVM, handlesMissingSnapshotByName)
+{
+    mock_named_snapshotting();
+
+    auto expect_throws = [this]() {
+        std::array<std::string, 3> missing_names = {"neo", "morpheus", "trinity"};
+        for (const auto& name : missing_names)
+        {
+            MP_EXPECT_THROW_THAT(vm.get_snapshot(name),
+                                 mp::NoSuchSnapshotException,
+                                 mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(name))));
+        }
+    };
+
+    expect_throws();
+
+    const mp::VMSpecs specs{};
+    vm.take_snapshot(specs, "smith", "");
+    vm.take_snapshot(specs, "johnson", "");
+    vm.take_snapshot(specs, "jones", "");
+
+    expect_throws();
+}
+
 } // namespace
