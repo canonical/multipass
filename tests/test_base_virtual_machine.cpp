@@ -204,6 +204,16 @@ protected:
 
 struct BaseVM : public Test
 {
+    void mock_indexed_snapshotting()
+    {
+        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
+            auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+            EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
+
+            return ret;
+        });
+    }
+
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
@@ -419,12 +429,7 @@ TEST_F(BaseVM, providesSnapshotsView)
 
 TEST_F(BaseVM, providesSnapshotsByIndex)
 {
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
-        auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-        EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
-
-        return ret;
-    });
+    mock_indexed_snapshotting();
 
     const mp::VMSpecs specs{};
     vm.take_snapshot(specs, "foo", "");
@@ -460,12 +465,7 @@ TEST_F(BaseVM, providesSnapshotsByName)
 
 TEST_F(BaseVM, handlesMissingSnapshotByIndex)
 {
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
-        auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-        EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
-
-        return ret;
-    });
+    mock_indexed_snapshotting();
 
     auto expect_throw = [this](int i) {
         MP_EXPECT_THROW_THAT(vm.get_snapshot(i),
