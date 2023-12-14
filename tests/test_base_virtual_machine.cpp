@@ -470,7 +470,7 @@ TEST_F(BaseVM, providesSnapshotsByName)
     EXPECT_THAT(vm.get_snapshot(target_name), Pointee(Property(&mp::Snapshot::get_name, Eq(target_name))));
 }
 
-TEST_F(BaseVM, handlesMissingSnapshotByIndex)
+TEST_F(BaseVM, throwsOnMissingSnapshotByIndex)
 {
     mock_indexed_snapshotting();
 
@@ -492,7 +492,7 @@ TEST_F(BaseVM, handlesMissingSnapshotByIndex)
         expect_throw(i);
 }
 
-TEST_F(BaseVM, handlesMissingSnapshotByName)
+TEST_F(BaseVM, throwsOnMissingSnapshotByName)
 {
     mock_named_snapshotting();
 
