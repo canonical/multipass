@@ -516,4 +516,22 @@ TEST_F(BaseVM, throwsOnMissingSnapshotByName)
     expect_throws();
 }
 
+TEST_F(BaseVM, throwsOnRepeatedSnapshotName)
+{
+    mock_named_snapshotting();
+
+    const mp::VMSpecs specs{};
+    auto repeated_given_name = "asdf";
+    auto repeated_derived_name = "snapshot3";
+    vm.take_snapshot(specs, repeated_given_name, "");
+    vm.take_snapshot(specs, repeated_derived_name, "");
+
+    MP_ASSERT_THROW_THAT(vm.take_snapshot(specs, repeated_given_name, ""),
+                         mp::SnapshotNameTakenException,
+                         mpt::match_what(HasSubstr(repeated_given_name)));
+    MP_EXPECT_THROW_THAT(vm.take_snapshot(specs, "", ""), // this would be the third snapshot
+                         mp::SnapshotNameTakenException,
+                         mpt::match_what(HasSubstr(repeated_derived_name)));
+}
+
 } // namespace
