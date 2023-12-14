@@ -61,6 +61,7 @@ public:
                                                             const std::string& target, const VMMount& mount) override;
 
 protected:
+    void require_snapshots_support() const override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
@@ -80,4 +81,9 @@ private:
     bool update_suspend_status{true};
 };
 } // namespace multipass
+
+inline void multipass::HyperVVirtualMachine::require_snapshots_support() const
+{
+}
+
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H

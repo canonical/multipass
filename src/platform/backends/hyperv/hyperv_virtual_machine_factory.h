@@ -43,6 +43,7 @@ public:
     };
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
     std::vector<NetworkInterfaceInfo> networks() const override;
+    void require_snapshots_support() const override;
 
 protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
@@ -54,5 +55,9 @@ private:
     static std::vector<NetworkInterfaceInfo> get_adapters();
 };
 } // namespace multipass
+
+inline void multipass::HyperVVirtualMachineFactory::require_snapshots_support() const
+{
+}
 
 #endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H
