@@ -1209,10 +1209,21 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
 mp::SettingsHandler* register_snapshot_mod(
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-    const std::unordered_set<std::string>& preparing_instances)
+    const std::unordered_set<std::string>& preparing_instances,
+    const mp::VirtualMachineFactory& vm_factory)
 {
-    return MP_SETTINGS.register_handler(
-        std::make_unique<mp::SnapshotSettingsHandler>(operative_instances, deleted_instances, preparing_instances));
+    try
+    {
+        vm_factory.require_snapshots_support();
+        return MP_SETTINGS.register_handler(
+            std::make_unique<mp::SnapshotSettingsHandler>(operative_instances, deleted_instances, preparing_instances));
+    }
+    catch (const mp::NotImplementedOnThisBackendException& e)
+    {
+        assert(std::string{e.what()}.find("snapshots") != std::string::npos);
+    }
+
+    return nullptr;
 }
 
 // Erase any outdated mount handlers for a given VM
@@ -1330,7 +1341,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                                  deleted_instances,
                                                  preparing_instances,
                                                  [this] { persist_instances(); })},
-      snapshot_mod_handler{register_snapshot_mod(operative_instances, deleted_instances, preparing_instances)}
+      snapshot_mod_handler{
+          register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
