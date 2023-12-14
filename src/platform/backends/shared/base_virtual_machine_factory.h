@@ -73,6 +73,8 @@ public:
         throw NotImplementedOnThisBackendException("networks");
     };
 
+    void require_snapshots_support() const override;
+
 protected:
     static const Path instances_subdir;
 
@@ -100,6 +102,11 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
     remove_resources_for_impl(name);
     QDir instance_dir{get_instance_directory(name)};
     instance_dir.removeRecursively();
+}
+
+inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() const
+{
+    throw NotImplementedOnThisBackendException{"snapshots"};
 }
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H

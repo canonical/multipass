@@ -41,6 +41,7 @@ public:
     QString get_backend_version_string() const override;
     QString get_backend_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
+    void require_snapshots_support() const override;
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
@@ -51,5 +52,9 @@ private:
     QemuPlatform::UPtr qemu_platform;
 };
 } // namespace multipass
+
+inline void multipass::QemuVirtualMachineFactory::require_snapshots_support() const
+{
+}
 
 #endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H

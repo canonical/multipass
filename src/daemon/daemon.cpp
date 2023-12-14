@@ -1209,10 +1209,21 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
 mp::SettingsHandler* register_snapshot_mod(
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-    const std::unordered_set<std::string>& preparing_instances)
+    const std::unordered_set<std::string>& preparing_instances,
+    const mp::VirtualMachineFactory& vm_factory)
 {
-    return MP_SETTINGS.register_handler(
-        std::make_unique<mp::SnapshotSettingsHandler>(operative_instances, deleted_instances, preparing_instances));
+    try
+    {
+        vm_factory.require_snapshots_support();
+        return MP_SETTINGS.register_handler(
+            std::make_unique<mp::SnapshotSettingsHandler>(operative_instances, deleted_instances, preparing_instances));
+    }
+    catch (const mp::NotImplementedOnThisBackendException& e)
+    {
+        assert(std::string{e.what()}.find("snapshots") != std::string::npos);
+    }
+
+    return nullptr;
 }
 
 // Erase any outdated mount handlers for a given VM
@@ -1330,7 +1341,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                                  deleted_instances,
                                                  preparing_instances,
                                                  [this] { persist_instances(); })},
-      snapshot_mod_handler{register_snapshot_mod(operative_instances, deleted_instances, preparing_instances)}
+      snapshot_mod_handler{
+          register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
@@ -1702,6 +1714,9 @@ try // clang-format on
     bool snapshots_only = request->snapshots();
     response.set_snapshots(snapshots_only);
 
+    if (snapshots_only)
+        config->factory->require_snapshots_support();
+
     auto process_snapshot_pick = [&response, &have_mounts, snapshots_only](VirtualMachine& vm,
                                                                            const SnapshotPick& snapshot_pick) {
         for (const auto& snapshot_name : snapshot_pick.pick)
@@ -1785,7 +1800,14 @@ try // clang-format on
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
     // Need to 'touch' a report in the response so formatters know what to do with an otherwise empty response
-    request->snapshots() ? (void)response.mutable_snapshot_list() : (void)response.mutable_instance_list();
+    if (request->snapshots())
+    {
+        config->factory->require_snapshots_support();
+        response.mutable_snapshot_list();
+    }
+    else
+        response.mutable_instance_list();
+
     bool deleted = false;
 
     auto fetch_instance = [this, request, &response, &deleted](VirtualMachine& vm) {
@@ -2499,6 +2521,7 @@ try
                                                              *config->logger,
                                                              server};
 
+    config->factory->require_snapshots_support();
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -2563,6 +2586,9 @@ try
         auto* vm_ptr = std::get<0>(instance_trail)->second.get();
         assert(vm_ptr);
 
+        // Only need to check if snapshots are supported and if the snapshot exists, so the result is discarded
+        vm_ptr->get_snapshot(request->snapshot());
+
         using St = VirtualMachine::State;
         if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
             return status_promise->set_value(
@@ -2571,9 +2597,6 @@ try
         auto spec_it = vm_instance_specs.find(instance_name);
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
         auto& vm_specs = spec_it->second;
-
-        // Only need to check if the snapshot exists so the result is discarded
-        vm_ptr->get_snapshot(request->snapshot());
 
         if (!request->destructive())
         {
@@ -3441,7 +3464,14 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         }
     }
 
-    instance_info->set_num_snapshots(vm.get_num_snapshots());
+    try
+    {
+        instance_info->set_num_snapshots(vm.get_num_snapshots());
+    }
+    catch (const NotImplementedOnThisBackendException& e)
+    {
+        assert(std::string{e.what()}.find("snapshots") != std::string::npos); // TODO per-feature exception type instead
+    }
     instance_info->set_image_release(original_release);
     instance_info->set_id(vm_image.id);
 

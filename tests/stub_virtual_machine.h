@@ -131,7 +131,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    int get_num_snapshots() const noexcept override
+    int get_num_snapshots() const override
     {
         return 0;
     }
