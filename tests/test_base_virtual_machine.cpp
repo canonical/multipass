@@ -225,6 +225,18 @@ struct BaseVM : public Test
         }));
     }
 
+    void mock_parented_named_snapshot()
+    {
+        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
+            .WillRepeatedly(WithArgs<0, 3>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
+                auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+                EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
+                EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
+
+                return ret;
+            }));
+    }
+
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
@@ -532,6 +544,20 @@ TEST_F(BaseVM, throwsOnRepeatedSnapshotName)
     MP_EXPECT_THROW_THAT(vm.take_snapshot(specs, "", ""), // this would be the third snapshot
                          mp::SnapshotNameTakenException,
                          mpt::match_what(HasSubstr(repeated_derived_name)));
+}
+
+TEST_F(BaseVM, snapshotDeletionUpdatesParents)
+{
+    mock_parented_named_snapshot();
+
+    const mp::VMSpecs specs{};
+    auto snapshot1 = vm.take_snapshot(specs, "", "");
+    auto snapshot2 = vm.take_snapshot(specs, "", "");
+    auto snapshot3 = vm.take_snapshot(specs, "", "");
+    auto& snapshot3_mock = dynamic_cast<NiceMock<MockSnapshot>&>(*std::const_pointer_cast<mp::Snapshot>(snapshot3));
+
+    EXPECT_CALL(snapshot3_mock, set_parent(Eq(snapshot1))).Times(1);
+    vm.delete_snapshot(snapshot2->get_name());
 }
 
 } // namespace
