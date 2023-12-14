@@ -458,4 +458,30 @@ TEST_F(BaseVM, providesSnapshotsByName)
     EXPECT_THAT(vm.get_snapshot(target_name), Pointee(Property(&mp::Snapshot::get_name, Eq(target_name))));
 }
 
+TEST_F(BaseVM, handlesMissingSnapshotByIndex)
+{
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
+        auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+        EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
+
+        return ret;
+    });
+
+    auto expect_throw = [this](int i) {
+        MP_EXPECT_THROW_THAT(vm.get_snapshot(i),
+                             std::runtime_error,
+                             mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(std::to_string(i)))));
+    };
+
+    for (int i = -2; i < 4; ++i)
+        expect_throw(i);
+
+    const mp::VMSpecs specs{};
+    vm.take_snapshot(specs, "foo", "I know kung fu");
+    vm.take_snapshot(specs, "bar", "blue pill");
+    vm.take_snapshot(specs, "baz", "red pill");
+
+    for (int i : {-2, -1, 0, 4, 5})
+        expect_throw(i);
+}
 } // namespace
