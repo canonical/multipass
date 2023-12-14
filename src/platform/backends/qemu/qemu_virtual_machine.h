@@ -77,6 +77,7 @@ protected:
     {
     }
 
+    void require_snapshots_support() const override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
@@ -104,5 +105,9 @@ private:
     std::chrono::steady_clock::time_point network_deadline;
 };
 } // namespace multipass
+
+inline void multipass::QemuVirtualMachine::require_snapshots_support() const
+{
+}
 
 #endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_H

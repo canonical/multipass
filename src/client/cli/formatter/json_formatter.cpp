@@ -101,7 +101,9 @@ QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
     instance_info.insert("image_release", QString::fromStdString(instance_details.image_release()));
     instance_info.insert("release", QString::fromStdString(instance_details.current_release()));
     instance_info.insert("cpu_count", QString::fromStdString(item.cpu_count()));
-    instance_info.insert("snapshot_count", QString::number(instance_details.num_snapshots()));
+
+    if (instance_details.has_num_snapshots())
+        instance_info.insert("snapshot_count", QString::number(instance_details.num_snapshots()));
 
     QJsonArray load;
     if (!instance_details.load().empty())
