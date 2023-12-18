@@ -225,16 +225,19 @@ struct BaseVM : public Test
         }));
     }
 
-    void mock_parented_named_snapshot()
+    void mock_parented_named_snapshots(std::vector<std::shared_ptr<MockSnapshot>>& snapshot_album)
     {
         EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
-            .WillRepeatedly(WithArgs<0, 3>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
-                auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-                EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
-                EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
+            .WillRepeatedly(
+                WithArgs<0, 3>([this, &snapshot_album](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
+                    auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+                    EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
+                    EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
 
-                return ret;
-            }));
+                    snapshot_album.push_back(ret);
+
+                    return ret;
+                }));
     }
 
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
@@ -548,16 +551,18 @@ TEST_F(BaseVM, throwsOnRepeatedSnapshotName)
 
 TEST_F(BaseVM, snapshotDeletionUpdatesParents)
 {
-    mock_parented_named_snapshot();
+    std::vector<std::shared_ptr<MockSnapshot>> snapshot_album{};
+    mock_parented_named_snapshots(snapshot_album);
 
     const mp::VMSpecs specs{};
-    auto snapshot1 = vm.take_snapshot(specs, "", "");
-    auto snapshot2 = vm.take_snapshot(specs, "", "");
-    auto snapshot3 = vm.take_snapshot(specs, "", "");
-    auto& snapshot3_mock = dynamic_cast<NiceMock<MockSnapshot>&>(*std::const_pointer_cast<mp::Snapshot>(snapshot3));
+    vm.take_snapshot(specs, "", "");
+    vm.take_snapshot(specs, "", "");
+    vm.take_snapshot(specs, "", "");
 
-    EXPECT_CALL(snapshot3_mock, set_parent(Eq(snapshot1))).Times(1);
-    vm.delete_snapshot(snapshot2->get_name());
+    ASSERT_EQ(snapshot_album.size(), 3);
+
+    EXPECT_CALL(*snapshot_album[2], set_parent(Eq(snapshot_album[0]))).Times(1);
+    vm.delete_snapshot(snapshot_album[1]->get_name());
 }
 
 } // namespace
