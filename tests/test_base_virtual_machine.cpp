@@ -554,12 +554,12 @@ TEST_F(BaseVM, snapshotDeletionUpdatesParents)
     std::vector<std::shared_ptr<MockSnapshot>> snapshot_album{};
     mock_parented_named_snapshots(snapshot_album);
 
+    const auto num_snapshots = 3;
     const mp::VMSpecs specs{};
-    vm.take_snapshot(specs, "", "");
-    vm.take_snapshot(specs, "", "");
-    vm.take_snapshot(specs, "", "");
+    for (int i = 0; i < num_snapshots; ++i)
+        vm.take_snapshot(specs, "", "");
 
-    ASSERT_EQ(snapshot_album.size(), 3);
+    ASSERT_EQ(snapshot_album.size(), num_snapshots);
 
     EXPECT_CALL(*snapshot_album[2], set_parent(Eq(snapshot_album[0]))).Times(1);
     vm.delete_snapshot(snapshot_album[1]->get_name());
