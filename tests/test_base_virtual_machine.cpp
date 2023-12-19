@@ -215,39 +215,36 @@ struct BaseVM : public Test
         });
     }
 
-    void mock_named_snapshotting(std::vector<std::shared_ptr<MockSnapshot>>* snapshot_album = nullptr)
+    void mock_named_snapshotting()
+    {
+        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([this](const std::string& name) {
+            auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+            EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
+
+            snapshot_album.push_back(ret);
+
+            return ret;
+        }));
+    }
+
+    void mock_parented_named_snapshotting()
     {
         EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
-            .WillRepeatedly(WithArg<0>([snapshot_album](const std::string& name) {
+            .WillRepeatedly(WithArgs<0, 3>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
                 auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+                EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
                 EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
 
-                if (snapshot_album)
-                    snapshot_album->push_back(ret);
+                snapshot_album.push_back(ret);
 
                 return ret;
             }));
     }
 
-    void mock_parented_named_snapshotting(std::vector<std::shared_ptr<MockSnapshot>>* snapshot_album = nullptr)
-    {
-        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
-            .WillRepeatedly(
-                WithArgs<0, 3>([this, snapshot_album](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
-                    auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-                    EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
-                    EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
-
-                    if (snapshot_album)
-                        snapshot_album->push_back(ret);
-
-                    return ret;
-                }));
-    }
-
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
+    std::vector<std::shared_ptr<MockSnapshot>> snapshot_album;
 };
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
@@ -556,8 +553,7 @@ TEST_F(BaseVM, throwsOnRepeatedSnapshotName)
 
 TEST_F(BaseVM, snapshotDeletionUpdatesParents)
 {
-    std::vector<std::shared_ptr<MockSnapshot>> snapshot_album{};
-    mock_parented_named_snapshotting(&snapshot_album);
+    mock_parented_named_snapshotting();
 
     const auto num_snapshots = 3;
     const mp::VMSpecs specs{};
@@ -572,8 +568,7 @@ TEST_F(BaseVM, snapshotDeletionUpdatesParents)
 
 TEST_F(BaseVM, providesChildrenNames)
 {
-    std::vector<std::shared_ptr<MockSnapshot>> snapshot_album{};
-    mock_named_snapshotting(&snapshot_album);
+    mock_named_snapshotting();
 
     const auto name_template = "s{}";
     const auto num_snapshots = 5;
