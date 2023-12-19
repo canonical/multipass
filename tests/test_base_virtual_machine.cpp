@@ -215,26 +215,31 @@ struct BaseVM : public Test
         });
     }
 
-    void mock_named_snapshotting()
+    void mock_named_snapshotting(std::vector<std::shared_ptr<MockSnapshot>>* snapshot_album = nullptr)
     {
-        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([](const std::string& name) {
-            auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-            EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
+        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
+            .WillRepeatedly(WithArg<0>([snapshot_album](const std::string& name) {
+                auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+                EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
 
-            return ret;
-        }));
+                if (snapshot_album)
+                    snapshot_album->push_back(ret);
+
+                return ret;
+            }));
     }
 
-    void mock_parented_named_snapshots(std::vector<std::shared_ptr<MockSnapshot>>& snapshot_album)
+    void mock_parented_named_snapshotting(std::vector<std::shared_ptr<MockSnapshot>>* snapshot_album = nullptr)
     {
         EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
             .WillRepeatedly(
-                WithArgs<0, 3>([this, &snapshot_album](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
+                WithArgs<0, 3>([this, snapshot_album](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
                     auto ret = std::make_shared<NiceMock<MockSnapshot>>();
                     EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
                     EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
 
-                    snapshot_album.push_back(ret);
+                    if (snapshot_album)
+                        snapshot_album->push_back(ret);
 
                     return ret;
                 }));
@@ -552,7 +557,7 @@ TEST_F(BaseVM, throwsOnRepeatedSnapshotName)
 TEST_F(BaseVM, snapshotDeletionUpdatesParents)
 {
     std::vector<std::shared_ptr<MockSnapshot>> snapshot_album{};
-    mock_parented_named_snapshots(snapshot_album);
+    mock_parented_named_snapshotting(&snapshot_album);
 
     const auto num_snapshots = 3;
     const mp::VMSpecs specs{};
@@ -565,4 +570,31 @@ TEST_F(BaseVM, snapshotDeletionUpdatesParents)
     vm.delete_snapshot(snapshot_album[1]->get_name());
 }
 
+TEST_F(BaseVM, providesChildrenNames)
+{
+    std::vector<std::shared_ptr<MockSnapshot>> snapshot_album{};
+    mock_named_snapshotting(&snapshot_album);
+
+    const auto name_template = "s{}";
+    const auto num_snapshots = 5;
+    const mp::VMSpecs specs{};
+    for (int i = 0; i < num_snapshots; ++i)
+        vm.take_snapshot(specs, fmt::format(name_template, i), "");
+
+    ASSERT_EQ(snapshot_album.size(), num_snapshots);
+
+    std::vector<std::string> expected_children_names{};
+    for (int i = 1; i < num_snapshots; ++i)
+    {
+        EXPECT_CALL(Const(*snapshot_album[i]), get_parent()).WillRepeatedly(Return(snapshot_album[0]));
+        expected_children_names.push_back(fmt::format(name_template, i));
+    }
+
+    EXPECT_THAT(vm.get_childrens_names(snapshot_album[0].get()), UnorderedElementsAreArray(expected_children_names));
+
+    for (int i = 1; i < num_snapshots; ++i)
+    {
+        EXPECT_THAT(vm.get_childrens_names(snapshot_album[i].get()), IsEmpty());
+    }
+}
 } // namespace
