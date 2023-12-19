@@ -18,6 +18,7 @@
 #include "common.h"
 #include "dummy_ssh_key_provider.h"
 #include "mock_ssh_test_fixture.h"
+#include "mock_virtual_machine.h"
 #include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
@@ -32,6 +33,40 @@ using namespace testing;
 
 namespace
 {
+struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualMachine>
+{
+    template <typename... Args>
+    MockBaseVirtualMachine(Args&&... args)
+        : mpt::MockVirtualMachineT<mp::BaseVirtualMachine>{std::forward<Args>(args)...}
+    {
+        auto& self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, take_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, view_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_num_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, take_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, rename_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, delete_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, restore_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, load_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_childrens_names, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_snapshot_count, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(self, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(self,
+                                                     get_snapshot,
+                                                     mp::BaseVirtualMachine,
+                                                     (A<const std::string&>()));
+    }
+
+    MOCK_METHOD(void, require_snapshots_support, (), (const, override));
+    MOCK_METHOD(std::shared_ptr<mp::Snapshot>, make_specific_snapshot, (const QString& filename), (override));
+    MOCK_METHOD(std::shared_ptr<mp::Snapshot>,
+                make_specific_snapshot,
+                (const std::string& snapshot_name,
+                 const std::string& comment,
+                 const mp::VMSpecs& specs,
+                 std::shared_ptr<mp::Snapshot> parent),
+                (override));
+};
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
     StubBaseVirtualMachine(mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
