@@ -17,9 +17,11 @@
 
 #include "common.h"
 #include "dummy_ssh_key_provider.h"
+#include "mock_logger.h"
 #include "mock_ssh_test_fixture.h"
 #include "mock_virtual_machine.h"
 #include "multipass/exceptions/snapshot_exceptions.h"
+#include "multipass/logging/level.h"
 #include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
@@ -485,6 +487,17 @@ TEST_F(BaseVM, providesSnapshotsByName)
     vm.take_snapshot(specs, "asdf", "");
 
     EXPECT_THAT(vm.get_snapshot(target_name), Pointee(Property(&mp::Snapshot::get_name, Eq(target_name))));
+}
+
+TEST_F(BaseVM, logsSnapshotHead)
+{
+    mock_named_snapshotting();
+    const auto name = "asdf";
+
+    auto logger_scope = mpt::MockLogger::inject(mpl::Level::debug);
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, name);
+
+    vm.take_snapshot({}, name, "");
 }
 
 TEST_F(BaseVM, throwsOnMissingSnapshotByIndex)
