@@ -202,7 +202,7 @@ protected:
         return nullptr;
     }
 
-    std::unique_ptr<mpt::TempDir>&& tmp_dir;
+    std::unique_ptr<mpt::TempDir> tmp_dir;
 };
 
 struct BaseVM : public Test
