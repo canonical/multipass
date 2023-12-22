@@ -235,6 +235,7 @@ struct BaseVM : public Test
             .WillRepeatedly(WithArgs<0, 3>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
                 auto ret = std::make_shared<NiceMock<MockSnapshot>>();
                 EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
+                EXPECT_CALL(Const(*ret), get_parent()).WillRepeatedly(Return(parent));
                 EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
 
                 snapshot_album.push_back(ret);
@@ -735,5 +736,29 @@ TEST_F(BaseVM, restoresSnapshots)
     vm.restore_snapshot(snapshot_name, changed_specs);
 
     EXPECT_EQ(original_specs, changed_specs);
+}
+
+TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
+{
+    mock_parented_named_snapshotting();
+
+    mp::VMSpecs specs{};
+    const std::string root_name{"first"};
+    vm.take_snapshot(specs, root_name, "");
+    auto root_snapshot = snapshot_album[0];
+
+    ASSERT_EQ(snapshot_album.size(), 1);
+    EXPECT_EQ(vm.take_snapshot(specs, "second", "")->get_parent().get(), root_snapshot.get());
+    ASSERT_EQ(snapshot_album.size(), 2);
+    EXPECT_EQ(vm.take_snapshot(specs, "third", "")->get_parent().get(), snapshot_album[1].get());
+
+    std::unordered_map<std::string, mp::VMMount> mounts;
+    EXPECT_CALL(*root_snapshot, get_mounts).WillRepeatedly(ReturnRef(mounts));
+
+    QJsonObject metadata{};
+    EXPECT_CALL(*root_snapshot, get_metadata).WillRepeatedly(ReturnRef(metadata));
+
+    vm.restore_snapshot(root_name, specs);
+    EXPECT_EQ(vm.take_snapshot(specs, "fourth", "")->get_parent().get(), root_snapshot.get());
 }
 } // namespace
