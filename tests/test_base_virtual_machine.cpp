@@ -566,6 +566,14 @@ TEST_F(BaseVM, snapshotDeletionUpdatesParents)
     vm.delete_snapshot(snapshot_album[1]->get_name());
 }
 
+TEST_F(BaseVM, snapshotDeletionThrowsOnMissingSnapshot)
+{
+    const auto name = "missing";
+    MP_EXPECT_THROW_THAT(vm.delete_snapshot(name),
+                         mp::NoSuchSnapshotException,
+                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(name))));
+}
+
 TEST_F(BaseVM, providesChildrenNames)
 {
     mock_named_snapshotting();
