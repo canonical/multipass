@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "dummy_ssh_key_provider.h"
+#include "file_operations.h"
 #include "mock_logger.h"
 #include "mock_ssh_test_fixture.h"
 #include "mock_virtual_machine.h"
@@ -188,18 +189,8 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-protected:
-    std::shared_ptr<mp::Snapshot> make_specific_snapshot(const std::string& /*snapshot_name*/,
-                                                         const std::string& /*comment*/,
-                                                         const mp::VMSpecs& /*specs*/,
-                                                         std::shared_ptr<mp::Snapshot> /*parent*/) override
+    void require_snapshots_support() const override // pretend we support it here
     {
-        return nullptr;
-    }
-
-    virtual std::shared_ptr<mp::Snapshot> make_specific_snapshot(const QString& /*json*/) override
-    {
-        return nullptr;
     }
 
     std::unique_ptr<mpt::TempDir> tmp_dir;
@@ -357,6 +348,14 @@ TEST_F(BaseVM, takesSnapshots)
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
 
     EXPECT_EQ(vm.get_num_snapshots(), 1);
+}
+
+TEST_F(BaseVM, takeSnasphotthrowsIfSpecificSnapshotNotOverridden)
+{
+    StubBaseVirtualMachine stub{};
+    MP_EXPECT_THROW_THAT(stub.take_snapshot({}, "stub-snap", ""),
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("snapshots")));
 }
 
 TEST_F(BaseVM, deletesSnapshots)
@@ -761,4 +760,14 @@ TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
     vm.restore_snapshot(root_name, specs);
     EXPECT_EQ(vm.take_snapshot(specs, "fourth", "")->get_parent().get(), root_snapshot.get());
 }
+
+TEST_F(BaseVM, loadSnasphotthrowsIfSpecificSnapshotNotOverridden)
+{
+    StubBaseVirtualMachine stub{};
+    mpt::make_file_with_content(stub.tmp_dir->filePath("0001.snapshot.json"), "whatever-content");
+    MP_EXPECT_THROW_THAT(stub.load_snapshots(),
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("snapshots")));
+}
+
 } // namespace
