@@ -109,7 +109,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    StubBaseVirtualMachine(mp::VirtualMachine::State s, std::unique_ptr<mpt::TempDir>&& tmp_dir)
+    StubBaseVirtualMachine(mp::VirtualMachine::State s, std::unique_ptr<mpt::TempDir> tmp_dir)
         : mp::BaseVirtualMachine{s, "stub", tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
     }
