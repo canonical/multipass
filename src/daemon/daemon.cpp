@@ -2277,6 +2277,7 @@ try // clang-format on
 
     if (status.ok())
     {
+        config->factory->require_suspend_support();
         status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
             stop_mounts(vm.vm_name);
 
