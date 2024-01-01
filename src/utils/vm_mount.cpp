@@ -41,8 +41,8 @@ mp::VMMount parse_json(const QJsonObject& json)
             {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
     }
 
-    uid_mappings = mp::unique_id_mappings(uid_mappings);
-    gid_mappings = mp::unique_id_mappings(gid_mappings);
+    uid_mappings = std::get<0>(mp::unique_id_mappings(uid_mappings));
+    gid_mappings = std::get<0>(mp::unique_id_mappings(gid_mappings));
     auto mount_type = mp::VMMount::MountType(json["mount_type"].toInt());
 
     return mp::VMMount{std::move(source_path), std::move(gid_mappings), std::move(uid_mappings), mount_type};

@@ -1521,6 +1521,7 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     mp::id_mappings uid_mappings{{1002, 0}, {1000, 0}, {1001, 1}};
+    mp::id_mappings expected_uid_mappings{{1002, 0}, {1001, 1}};
     mp::id_mappings gid_mappings{{1002, 0}, {1000, 2}};
     std::unordered_map<std::string, mp::VMMount> mounts;
     mpt::TempDir dir;
@@ -1545,7 +1546,7 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
 
     send_command({"purge"});
 
-    check_maps_in_json(filename, uid_mappings, gid_mappings);
+    check_maps_in_json(filename, expected_uid_mappings, gid_mappings);
 }
 
 TEST_F(Daemon, launches_with_valid_network_interface)
