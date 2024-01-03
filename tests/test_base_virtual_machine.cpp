@@ -220,6 +220,19 @@ struct BaseVM : public Test
         }));
     }
 
+    void mock_indexed_named_snapshotting() // TODO@ricab should I have only one of these?
+    {
+        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([this](const std::string& name) {
+            auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+            EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
+            EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
+
+            snapshot_album.push_back(ret);
+
+            return ret;
+        }));
+    }
+
     void mock_parented_named_snapshotting()
     {
         EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
@@ -498,6 +511,18 @@ TEST_F(BaseVM, logsSnapshotHead)
     logger_scope.mock_logger->expect_log(mpl::Level::debug, name);
 
     vm.take_snapshot({}, name, "");
+}
+
+TEST_F(BaseVM, generatesSnapshotNameFromTotalCount)
+{
+    mock_indexed_named_snapshotting();
+
+    mp::VMSpecs specs{};
+    for (int i = 1; i <= 5; ++i)
+    {
+        vm.take_snapshot(specs, "", "");
+        EXPECT_EQ(vm.get_snapshot(i)->get_name(), fmt::format("snapshot{}", i));
+    }
 }
 
 TEST_F(BaseVM, throwsOnMissingSnapshotByIndex)
