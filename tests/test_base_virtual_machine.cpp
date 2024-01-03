@@ -198,49 +198,15 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
 struct BaseVM : public Test
 {
-    void mock_indexed_snapshotting()
-    {
-        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
-            auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-            EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
-
-            return ret;
-        });
-    }
-
-    void mock_named_snapshotting()
-    {
-        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([this](const std::string& name) {
-            auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-            EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
-
-            snapshot_album.push_back(ret);
-
-            return ret;
-        }));
-    }
-
-    void mock_indexed_named_snapshotting() // TODO@ricab should I have only one of these?
-    {
-        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(WithArg<0>([this](const std::string& name) {
-            auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-            EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
-            EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
-
-            snapshot_album.push_back(ret);
-
-            return ret;
-        }));
-    }
-
-    void mock_parented_named_snapshotting()
+    void mock_snapshotting()
     {
         EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
             .WillRepeatedly(WithArgs<0, 3>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
                 auto ret = std::make_shared<NiceMock<MockSnapshot>>();
+                EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
+                EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
                 EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
                 EXPECT_CALL(Const(*ret), get_parent()).WillRepeatedly(Return(parent));
-                EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
 
                 snapshot_album.push_back(ret);
 
@@ -439,13 +405,8 @@ TEST_F(BaseVM, countsTotalSnapshots)
 
 TEST_F(BaseVM, providesSnapshotsView)
 {
+    mock_snapshotting();
     const mp::VMSpecs specs{};
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly([this](auto&&...) {
-        auto ret = std::make_shared<NiceMock<MockSnapshot>>();
-        EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
-
-        return ret;
-    });
 
     auto sname = [](int i) { return fmt::format("s{}", i); };
     for (int i = 1; i < 6; ++i) // +5
@@ -472,9 +433,9 @@ TEST_F(BaseVM, providesSnapshotsView)
 
 TEST_F(BaseVM, providesSnapshotsByIndex)
 {
-    mock_indexed_snapshotting();
-
+    mock_snapshotting();
     const mp::VMSpecs specs{};
+
     vm.take_snapshot(specs, "foo", "");
     vm.take_snapshot(specs, "bar", "this and that");
     vm.delete_snapshot("foo");
@@ -488,7 +449,7 @@ TEST_F(BaseVM, providesSnapshotsByIndex)
 
 TEST_F(BaseVM, providesSnapshotsByName)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
 
     const mp::VMSpecs specs{};
     const std::string target_name = "pick";
@@ -504,7 +465,7 @@ TEST_F(BaseVM, providesSnapshotsByName)
 
 TEST_F(BaseVM, logsSnapshotHead)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
     const auto name = "asdf";
 
     auto logger_scope = mpt::MockLogger::inject(mpl::Level::debug);
@@ -515,7 +476,7 @@ TEST_F(BaseVM, logsSnapshotHead)
 
 TEST_F(BaseVM, generatesSnapshotNameFromTotalCount)
 {
-    mock_indexed_named_snapshotting();
+    mock_snapshotting();
 
     mp::VMSpecs specs{};
     for (int i = 1; i <= 5; ++i)
@@ -527,7 +488,7 @@ TEST_F(BaseVM, generatesSnapshotNameFromTotalCount)
 
 TEST_F(BaseVM, throwsOnMissingSnapshotByIndex)
 {
-    mock_indexed_snapshotting();
+    mock_snapshotting();
 
     auto expect_throw = [this](int i) {
         MP_EXPECT_THROW_THAT(vm.get_snapshot(i),
@@ -549,7 +510,7 @@ TEST_F(BaseVM, throwsOnMissingSnapshotByIndex)
 
 TEST_F(BaseVM, throwsOnMissingSnapshotByName)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
 
     auto expect_throws = [this]() {
         std::array<std::string, 3> missing_names = {"neo", "morpheus", "trinity"};
@@ -573,7 +534,7 @@ TEST_F(BaseVM, throwsOnMissingSnapshotByName)
 
 TEST_F(BaseVM, throwsOnRepeatedSnapshotName)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
 
     const mp::VMSpecs specs{};
     auto repeated_given_name = "asdf";
@@ -591,7 +552,7 @@ TEST_F(BaseVM, throwsOnRepeatedSnapshotName)
 
 TEST_F(BaseVM, snapshotDeletionUpdatesParents)
 {
-    mock_parented_named_snapshotting();
+    mock_snapshotting();
 
     const auto num_snapshots = 3;
     const mp::VMSpecs specs{};
@@ -614,7 +575,7 @@ TEST_F(BaseVM, snapshotDeletionThrowsOnMissingSnapshot)
 
 TEST_F(BaseVM, providesChildrenNames)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
 
     const auto name_template = "s{}";
     const auto num_snapshots = 5;
@@ -659,7 +620,7 @@ TEST_F(BaseVM, renamesSnapshot)
 
 TEST_F(BaseVM, skipsSnapshotRenamingWithIdenticalName)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
 
     const auto* name = "fixed";
     vm.take_snapshot({}, name, "not changing");
@@ -673,7 +634,7 @@ TEST_F(BaseVM, skipsSnapshotRenamingWithIdenticalName)
 
 TEST_F(BaseVM, throwsOnRequestToRenameMissingSnapshot)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
 
     const auto* good_name = "Mafalda";
     const auto* missing_name = "Gui";
@@ -691,7 +652,7 @@ TEST_F(BaseVM, throwsOnRequestToRenameMissingSnapshot)
 
 TEST_F(BaseVM, throwsOnRequestToRenameSnapshotWithRepeatedName)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
 
     const auto names = std::array{"Mafalda", "Gui"};
 
@@ -715,7 +676,7 @@ TEST_F(BaseVM, throwsOnRequestToRenameSnapshotWithRepeatedName)
 
 TEST_F(BaseVM, restoresSnapshots)
 {
-    mock_named_snapshotting();
+    mock_snapshotting();
 
     mp::VMMount mount{"src", {}, {}, mp::VMMount::MountType::Classic};
 
@@ -764,7 +725,7 @@ TEST_F(BaseVM, restoresSnapshots)
 
 TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
 {
-    mock_parented_named_snapshotting();
+    mock_snapshotting();
 
     mp::VMSpecs specs{};
     const std::string root_name{"first"};
@@ -802,7 +763,7 @@ struct TestLoadingOfPaddedGenericSnapshotInfo : public BaseVM, WithParamInterfac
 
 TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesTotalSnapshotCount)
 {
-    mock_indexed_named_snapshotting();
+    mock_snapshotting();
 
     int initial_count = 42;
     const auto& [padding_left, padding_right] = GetParam();
