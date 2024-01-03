@@ -2714,16 +2714,21 @@ void mp::Daemon::clone(const CloneRequest* request,
                                           generate_appended_clone_name](const CloneRequest& request) -> std::string {
             if (request.has_destination_name())
             {
+                // TODO: can this check be moved to CLI?
+                if (!mp::utils::valid_hostname(request.destination_name()))
+                {
+                    throw std::runtime_error("Invalid destination virtual machine instance name: " +
+                                             request.destination_name());
+                }
+
                 if (is_name_already_used(request.destination_name()))
                 {
                     throw std::runtime_error(
                         request.destination_name() +
                         " already exists, pick a new name or just run multipass clone <source_name>");
                 }
-                else
-                {
-                    return request.destination_name();
-                }
+
+                return request.destination_name();
             }
             else
             {
