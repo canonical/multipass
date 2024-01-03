@@ -759,6 +759,15 @@ TEST_F(BaseVM, loadSnasphotThrowsIfSnapshotsNotImplemented)
 using SpacePadding = std::tuple<std::string, std::string>;
 struct TestLoadingOfPaddedGenericSnapshotInfo : public BaseVM, WithParamInterface<SpacePadding>
 {
+    void SetUp() override
+    {
+        static const auto space_matcher = MatchesRegex("\\s*");
+        ASSERT_THAT(padding_left, space_matcher);
+        ASSERT_THAT(padding_right, space_matcher);
+    }
+
+    const std::string& padding_left = std::get<0>(GetParam());
+    const std::string& padding_right = std::get<1>(GetParam());
 };
 
 TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesTotalSnapshotCount)
@@ -766,13 +775,6 @@ TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesTotalSnapshotCount)
     mock_snapshotting();
 
     int initial_count = 42;
-    const auto& [padding_left, padding_right] = GetParam();
-
-    for (const auto* item : {&padding_left, &padding_right})
-    {
-        ASSERT_THAT(*item, MatchesRegex("\\s*"));
-    }
-
     auto count_text = fmt::format("{}{}{}", padding_left, initial_count, padding_right);
     mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), count_text);
 
