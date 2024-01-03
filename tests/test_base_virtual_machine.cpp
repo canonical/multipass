@@ -795,12 +795,25 @@ TEST_F(BaseVM, loadSnasphotThrowsIfSnapshotsNotImplemented)
                          mpt::match_what(HasSubstr("snapshots")));
 }
 
-TEST_F(BaseVM, loadsAndUsesTotalSnapshotCount)
+using SpacePadding = std::tuple<std::string, std::string>;
+struct TestLoadingOfPaddedGenericSnapshotInfo : public BaseVM, WithParamInterface<SpacePadding>
+{
+};
+
+TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesTotalSnapshotCount)
 {
     mock_indexed_named_snapshotting();
 
     int initial_count = 42;
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), std::to_string(initial_count));
+    const auto& [padding_left, padding_right] = GetParam();
+
+    for (const auto* item : {&padding_left, &padding_right})
+    {
+        ASSERT_THAT(*item, MatchesRegex("\\s*"));
+    }
+
+    auto count_text = fmt::format("{}{}{}", padding_left, initial_count, padding_right);
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), count_text);
 
     EXPECT_NO_THROW(vm.load_snapshots());
 
@@ -811,7 +824,11 @@ TEST_F(BaseVM, loadsAndUsesTotalSnapshotCount)
         vm.take_snapshot(specs, "", "");
         EXPECT_EQ(vm.get_snapshot(expected_idx)->get_name(), fmt::format("snapshot{}", expected_idx));
     }
+}
 
-} // TODO@ricab test surrounding spaces
+std::vector<std::string> space_paddings = {"", " ", "    ", "\n", " \n", "\n\n\n", "\t", "\t\t\t", "\t \n  \t   "};
+INSTANTIATE_TEST_SUITE_P(BaseVM,
+                         TestLoadingOfPaddedGenericSnapshotInfo,
+                         Combine(ValuesIn(space_paddings), ValuesIn(space_paddings)));
 
 } // namespace
