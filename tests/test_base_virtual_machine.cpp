@@ -795,4 +795,23 @@ TEST_F(BaseVM, loadSnasphotThrowsIfSnapshotsNotImplemented)
                          mpt::match_what(HasSubstr("snapshots")));
 }
 
+TEST_F(BaseVM, loadsAndUsesTotalSnapshotCount)
+{
+    mock_indexed_named_snapshotting();
+
+    int initial_count = 42;
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), std::to_string(initial_count));
+
+    EXPECT_NO_THROW(vm.load_snapshots());
+
+    mp::VMSpecs specs{};
+    for (int i = 1; i <= 5; ++i)
+    {
+        int expected_idx = initial_count + i;
+        vm.take_snapshot(specs, "", "");
+        EXPECT_EQ(vm.get_snapshot(expected_idx)->get_name(), fmt::format("snapshot{}", expected_idx));
+    }
+
+} // TODO@ricab test surrounding spaces
+
 } // namespace
