@@ -350,7 +350,7 @@ TEST_F(BaseVM, takesSnapshots)
     EXPECT_EQ(vm.get_num_snapshots(), 1);
 }
 
-TEST_F(BaseVM, takeSnasphotthrowsIfSpecificSnapshotNotOverridden)
+TEST_F(BaseVM, takeSnasphotThrowsIfSpecificSnapshotNotOverridden)
 {
     StubBaseVirtualMachine stub{};
     MP_EXPECT_THROW_THAT(stub.take_snapshot({}, "stub-snap", ""),
@@ -761,7 +761,7 @@ TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
     EXPECT_EQ(vm.take_snapshot(specs, "fourth", "")->get_parent().get(), root_snapshot.get());
 }
 
-TEST_F(BaseVM, loadSnasphotthrowsIfSpecificSnapshotNotOverridden)
+TEST_F(BaseVM, loadSnasphotThrowsIfSnapshotsNotImplemented)
 {
     StubBaseVirtualMachine stub{};
     mpt::make_file_with_content(stub.tmp_dir->filePath("0001.snapshot.json"), "whatever-content");
