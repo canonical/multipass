@@ -67,7 +67,7 @@ mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
     const QCommandLineOption destination_name_option{
         {"n", "name"},
         "An optional name for the destination instance name, it obeys the same validity rules as instance  names (see "
-        "help launch`). Default: \"<source_name>-cloneN\", where N is the Nth cloned instance of the original instance",
+        "help launch). Default: \"<source_name>-cloneN\", where N is the Nth cloned instance of the original instance",
         "destination name"};
 
     parser->addOption(destination_name_option);
@@ -89,7 +89,7 @@ mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    const auto& source_name = parser->positionalArguments()[0];
+    const auto source_name = parser->positionalArguments()[0];
     rpc_request.set_source_name(source_name.toStdString());
     if (parser->isSet(destination_name_option))
     {
