@@ -789,6 +789,25 @@ TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesTotalSnapshotCount)
     }
 }
 
+TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesSnapshotHeadIndex)
+{
+    mock_snapshotting();
+
+    int head_index = 13;
+    auto snapshot = std::make_shared<NiceMock<MockSnapshot>>();
+    EXPECT_CALL(vm, get_snapshot(head_index)).WillOnce(Return(snapshot));
+
+    auto head_text = fmt::format("{}{}{}", padding_left, head_index, padding_right);
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), head_text);
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), "31");
+
+    EXPECT_NO_THROW(vm.load_snapshots());
+
+    auto name = "julius";
+    vm.take_snapshot({}, name, "");
+    EXPECT_EQ(vm.get_snapshot(name)->get_parent().get(), snapshot.get());
+}
+
 std::vector<std::string> space_paddings = {"", " ", "    ", "\n", " \n", "\n\n\n", "\t", "\t\t\t", "\t \n  \t   "};
 INSTANTIATE_TEST_SUITE_P(BaseVM,
                          TestLoadingOfPaddedGenericSnapshotInfo,
