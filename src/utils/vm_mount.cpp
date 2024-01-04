@@ -41,8 +41,8 @@ mp::VMMount parse_json(const QJsonObject& json)
             {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
     }
 
-    uid_mappings = std::get<0>(mp::unique_id_mappings(uid_mappings));
-    gid_mappings = std::get<0>(mp::unique_id_mappings(gid_mappings));
+    uid_mappings.erase(mp::unique_id_mappings(uid_mappings), uid_mappings.end());
+    gid_mappings.erase(mp::unique_id_mappings(gid_mappings), gid_mappings.end());
     auto mount_type = mp::VMMount::MountType(json["mount_type"].toInt());
 
     return mp::VMMount{std::move(source_path), std::move(gid_mappings), std::move(uid_mappings), mount_type};
@@ -58,6 +58,22 @@ mp::VMMount::VMMount(const std::string& sourcePath,
       uid_mappings(std::move(uidMappings)),
       mount_type(mountType)
 {
+    auto print_mappings = [](auto& iter_begin, const auto& iter_end) {
+        std::string retval;
+        while (iter_begin != iter_end)
+        {
+            retval += fmt::format("{}:{}; ", (*iter_begin).first, (*iter_begin).second);
+            ++iter_begin;
+        }
+        return retval.substr(0, retval.size() - 2);
+    };
+
+    if (auto unique_iter_end = mp::unique_id_mappings(gid_mappings); unique_iter_end != gid_mappings.end())
+        throw std::runtime_error(fmt::format("Mount cannot apply mapping with duplicate gids: {}",
+                                             print_mappings(unique_iter_end, gid_mappings.end())));
+    if (auto unique_iter_end = mp::unique_id_mappings(uid_mappings); unique_iter_end != uid_mappings.end())
+        throw std::runtime_error(fmt::format("Mount cannot apply mapping with duplicate uids: {}",
+                                             print_mappings(unique_iter_end, uid_mappings.end())));
 }
 
 mp::VMMount::VMMount(const QJsonObject& json) : VMMount{parse_json(json)} // delegate on copy ctor
