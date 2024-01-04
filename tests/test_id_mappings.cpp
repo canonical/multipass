@@ -23,25 +23,21 @@ namespace mp = multipass;
 
 using namespace testing;
 
-struct UniqueIdMappingsTestSuite
-    : public Test,
-      public WithParamInterface<std::tuple<mp::id_mappings, mp::id_mappings, mp::id_mappings>>
+struct UniqueIdMappingsTestSuite : public Test, public WithParamInterface<std::tuple<mp::id_mappings, mp::id_mappings>>
 {
 };
 
 TEST_P(UniqueIdMappingsTestSuite, UniqueIdMappingsWorks)
 {
-    auto [input_mappings, expected_mappings, expected_dup_mappings] = GetParam();
+    auto [input_mappings, expected_mappings] = GetParam();
 
-    auto [unique_mappings, dup_mappings] = mp::unique_id_mappings(input_mappings);
-    ASSERT_EQ(unique_mappings, expected_mappings);
-    ASSERT_EQ(dup_mappings, expected_dup_mappings);
+    input_mappings.erase(mp::unique_id_mappings(input_mappings), input_mappings.end());
+    ASSERT_EQ(input_mappings, expected_mappings);
 }
 
 INSTANTIATE_TEST_SUITE_P(IdMappings,
                          UniqueIdMappingsTestSuite,
                          Values(std::make_tuple(mp::id_mappings{{1, 1}, {2, 1}, {1, 1}, {1, 2}},
-                                                mp::id_mappings{{1, 1}},
-                                                mp::id_mappings{{2, 1}, {1, 1}, {1, 2}}),
-                                std::make_tuple(mp::id_mappings{{3, 4}}, mp::id_mappings{{3, 4}}, mp::id_mappings{}),
-                                std::make_tuple(mp::id_mappings{}, mp::id_mappings{}, mp::id_mappings{})));
+                                                mp::id_mappings{{1, 1}}),
+                                std::make_tuple(mp::id_mappings{{3, 4}}, mp::id_mappings{{3, 4}}),
+                                std::make_tuple(mp::id_mappings{}, mp::id_mappings{})));
