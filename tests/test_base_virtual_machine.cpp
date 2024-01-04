@@ -32,6 +32,8 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/vm_specs.h>
 
+#include <algorithm>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -813,4 +815,46 @@ INSTANTIATE_TEST_SUITE_P(BaseVM,
                          TestLoadingOfPaddedGenericSnapshotInfo,
                          Combine(ValuesIn(space_paddings), ValuesIn(space_paddings)));
 
+TEST_F(BaseVM, loadsSnasphots)
+{
+    static constexpr auto num_snapshots = 5;
+    static constexpr auto name_prefix = "blankpage";
+    static constexpr auto generate_snapshot_name = [](int count) { return fmt::format("{}{}", name_prefix, count); };
+    static constexpr auto index_digits_regex =
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+        R"(\d\d\d\d)";
+#else
+        "[[:digit:]]{4}";
+#endif
+    static const auto file_regex = fmt::format(R"(.*{}\.snapshot\.json)", index_digits_regex);
+
+    auto& expectation = EXPECT_CALL(vm, make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
+
+    using NiceMockSnapshot = NiceMock<MockSnapshot>;
+    std::array<std::shared_ptr<NiceMockSnapshot>, num_snapshots> snapshot_bag{};
+    generate(snapshot_bag.begin(), snapshot_bag.end(), [this, &expectation] {
+        static int idx = 1;
+
+        const auto path = vm.tmp_dir->filePath(QString::fromStdString(fmt::format("{:04}.snapshot.json", idx)));
+        mpt::make_file_with_content(path, "stub");
+
+        auto ret = std::make_shared<NiceMockSnapshot>();
+        EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(idx));
+        EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(generate_snapshot_name(idx++)));
+        expectation.WillOnce(Return(ret));
+
+        return ret;
+    });
+
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), fmt::format("{}", num_snapshots));
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), fmt::format("{}", num_snapshots));
+
+    EXPECT_NO_THROW(vm.load_snapshots());
+
+    for (int i = 0; i < num_snapshots; ++i)
+    {
+        const auto idx = i + 1;
+        EXPECT_EQ(vm.get_snapshot(idx)->get_name(), generate_snapshot_name(idx));
+    }
+}
 } // namespace
