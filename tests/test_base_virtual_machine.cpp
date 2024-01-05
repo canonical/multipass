@@ -953,4 +953,38 @@ TEST_F(BaseVM, takeSnapshotRevertsToNullHeadOnFirstFailure)
     EXPECT_EQ(vm.take_snapshot(specs, "", "")->get_parent().get(), nullptr);
 }
 
+TEST_F(BaseVM, takeSnapshotRevertsHeadAndCount)
+{
+    auto early_snapshot = std::make_shared<NiceMock<MockSnapshot>>();
+    EXPECT_CALL(*early_snapshot, get_name).WillRepeatedly(Return("asdf"));
+    EXPECT_CALL(*early_snapshot, get_index).WillRepeatedly(Return(1));
+
+    EXPECT_CALL(vm, make_specific_snapshot(_)).WillOnce(Return(early_snapshot));
+
+    mpt::make_file_with_content(vm.tmp_dir->filePath("0001.snapshot.json"), "stub");
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), "1");
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), "1");
+
+    vm.load_snapshots();
+
+    constexpr auto attempted_name = "fdsa";
+    auto failing_snapshot = std::make_shared<NiceMock<MockSnapshot>>();
+
+    EXPECT_CALL(*failing_snapshot, get_name).WillRepeatedly(Return(attempted_name));
+    EXPECT_CALL(*failing_snapshot, get_index).WillRepeatedly(Return(2));
+    EXPECT_CALL(*failing_snapshot, get_parents_index)
+        .WillOnce(Throw(std::runtime_error{"intentional"})) // causes persisting to break, after successful capture
+        .RetiresOnSaturation();
+
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(failing_snapshot)).RetiresOnSaturation();
+
+    mp::VMSpecs specs{};
+    EXPECT_ANY_THROW(vm.take_snapshot(specs, attempted_name, ""));
+
+    mock_snapshotting();
+    auto new_snapshot = vm.take_snapshot(specs, attempted_name, "");
+    EXPECT_EQ(new_snapshot->get_parent().get(), early_snapshot.get());
+    EXPECT_EQ(new_snapshot->get_index(), 2); // snapshot count not increased by failed snapshot
+}
+
 } // namespace
