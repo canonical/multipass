@@ -987,4 +987,20 @@ TEST_F(BaseVM, takeSnapshotRevertsHeadAndCount)
     EXPECT_EQ(new_snapshot->get_index(), 2); // snapshot count not increased by failed snapshot
 }
 
+TEST_F(BaseVM, renameFailureIsReverted)
+{
+    std::string current_name = "before";
+    std::string attempted_name = "after";
+    auto snapshot = std::make_shared<NiceMock<MockSnapshot>>();
+    EXPECT_CALL(*snapshot, get_name()).WillRepeatedly(Return(current_name));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+
+    vm.take_snapshot({}, current_name, "");
+
+    EXPECT_CALL(*snapshot, set_name(Eq(attempted_name))).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_ANY_THROW(vm.rename_snapshot(current_name, attempted_name));
+
+    EXPECT_EQ(vm.get_snapshot(current_name).get(), snapshot.get());
+}
+
 } // namespace
