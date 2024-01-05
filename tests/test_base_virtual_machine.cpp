@@ -906,4 +906,22 @@ TEST_F(BaseVM, throwsIfLoadedSnapshotsNameIsTaken)
     MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::SnapshotNameTakenException, mpt::match_what(HasSubstr(common_name)));
 }
 
+TEST_F(BaseVM, snapshotDeletionRestoresParentsOnFailure)
+{
+    mock_snapshotting();
+
+    const auto num_snapshots = 3;
+    const mp::VMSpecs specs{};
+    for (int i = 0; i < num_snapshots; ++i)
+        vm.take_snapshot(specs, "", "");
+
+    ASSERT_EQ(snapshot_album.size(), num_snapshots);
+
+    EXPECT_CALL(*snapshot_album[2], set_parent(Eq(snapshot_album[0]))).Times(1);
+    EXPECT_CALL(*snapshot_album[2], set_parent(Eq(snapshot_album[1]))).Times(1); // rollback
+
+    EXPECT_CALL(*snapshot_album[1], erase).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_ANY_THROW(vm.delete_snapshot(snapshot_album[1]->get_name()));
+}
+
 } // namespace
