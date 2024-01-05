@@ -940,4 +940,17 @@ TEST_F(BaseVM, snapshotDeletionKeepsHeadOnFailure)
     EXPECT_EQ(vm.take_snapshot(specs, "", "")->get_parent().get(), snapshot_album[1].get());
 }
 
+TEST_F(BaseVM, takeSnapshotRevertsToNullHeadOnFirstFailure)
+{
+    auto snapshot = std::make_shared<NiceMock<MockSnapshot>>();
+    EXPECT_CALL(*snapshot, capture).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot)).RetiresOnSaturation();
+
+    mp::VMSpecs specs{};
+    EXPECT_ANY_THROW(vm.take_snapshot(specs, "", ""));
+
+    mock_snapshotting();
+    EXPECT_EQ(vm.take_snapshot(specs, "", "")->get_parent().get(), nullptr);
+}
+
 } // namespace
