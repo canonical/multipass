@@ -924,4 +924,20 @@ TEST_F(BaseVM, snapshotDeletionRestoresParentsOnFailure)
     EXPECT_ANY_THROW(vm.delete_snapshot(snapshot_album[1]->get_name()));
 }
 
+TEST_F(BaseVM, snapshotDeletionKeepsHeadOnFailure)
+{
+    mock_snapshotting();
+
+    mp::VMSpecs specs{};
+    vm.take_snapshot(specs, "", "");
+    vm.take_snapshot(specs, "", "");
+
+    ASSERT_EQ(snapshot_album.size(), 2);
+
+    EXPECT_CALL(*snapshot_album[1], erase).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_ANY_THROW(vm.delete_snapshot(snapshot_album[1]->get_name()));
+
+    EXPECT_EQ(vm.take_snapshot(specs, "", "")->get_parent().get(), snapshot_album[1].get());
+}
+
 } // namespace
