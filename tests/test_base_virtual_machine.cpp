@@ -687,4 +687,53 @@ TEST_F(BaseVM, throwsOnRequestToRenameSnapshotWithRepeatedName)
     EXPECT_EQ(vm.get_snapshot(names[0]), snapshot_album[0]);
     EXPECT_EQ(vm.get_snapshot(names[1]), snapshot_album[1]);
 }
+
+TEST_F(BaseVM, restoresSnapshots)
+{
+    mock_named_snapshotting();
+
+    mp::VMMount mount{"src", {}, {}, mp::VMMount::MountType::Classic};
+
+    QJsonObject metadata{};
+    metadata["meta"] = "data";
+
+    const mp::VMSpecs original_specs{2,
+                                     mp::MemorySize{"3.5G"},
+                                     mp::MemorySize{"15G"},
+                                     "12:12:12:12:12:12",
+                                     {},
+                                     "user",
+                                     mp::VirtualMachine::State::off,
+                                     {{"dst", mount}},
+                                     false,
+                                     metadata,
+                                     {}};
+
+    const auto* snapshot_name = "shoot";
+    vm.take_snapshot(original_specs, snapshot_name, "");
+
+    ASSERT_EQ(snapshot_album.size(), 1);
+    auto& snapshot = *snapshot_album[0];
+
+    mp::VMSpecs changed_specs = original_specs;
+    changed_specs.num_cores = 3;
+    changed_specs.mem_size = mp::MemorySize{"5G"};
+    changed_specs.disk_space = mp::MemorySize{"35G"};
+    changed_specs.state = mp::VirtualMachine::State::stopped;
+    changed_specs.mounts.clear();
+    changed_specs.metadata["data"] = "meta";
+    changed_specs.metadata["meta"] = "toto";
+
+    EXPECT_CALL(snapshot, apply);
+    EXPECT_CALL(snapshot, get_state).WillRepeatedly(Return(original_specs.state));
+    EXPECT_CALL(snapshot, get_num_cores).WillRepeatedly(Return(original_specs.num_cores));
+    EXPECT_CALL(snapshot, get_mem_size).WillRepeatedly(Return(original_specs.mem_size));
+    EXPECT_CALL(snapshot, get_disk_space).WillRepeatedly(Return(original_specs.disk_space));
+    EXPECT_CALL(snapshot, get_mounts).WillRepeatedly(ReturnRef(original_specs.mounts));
+    EXPECT_CALL(snapshot, get_metadata).WillRepeatedly(ReturnRef(original_specs.metadata));
+
+    vm.restore_snapshot(snapshot_name, changed_specs);
+
+    EXPECT_EQ(original_specs, changed_specs);
+}
 } // namespace
