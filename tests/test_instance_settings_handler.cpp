@@ -55,6 +55,7 @@ struct TestInstanceSettingsHandler : public Test
                                            preparing_vms,
                                            make_fake_persister(),
                                            make_fake_bridged_interface(),
+                                           make_fake_bridge_name(),
                                            make_fake_host_networks()};
     }
 
@@ -74,6 +75,11 @@ struct TestInstanceSettingsHandler : public Test
     std::function<std::string()> make_fake_bridged_interface()
     {
         return [] { return "eth8"; };
+    }
+
+    std::function<std::string()> make_fake_bridge_name()
+    {
+        return [] { return "br-eth8"; };
     }
 
     std::function<std::vector<mp::NetworkInterfaceInfo>()> make_fake_host_networks()
@@ -235,7 +241,10 @@ TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
 
 INSTANTIATE_TEST_SUITE_P(getFetchesBridged,
                          TestBridgedInstanceSettings,
-                         Values(std::make_pair("eth8", true), std::make_pair("eth9", false)));
+                         Values(std::make_pair("eth8", true),
+                                std::make_pair("br-eth8", true),
+                                std::make_pair("eth9", false),
+                                std::make_pair("br-eth9", false)));
 
 TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState)
 {
