@@ -71,7 +71,7 @@ public:
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();
-    void on_synchronize_clock(const OpenSSHKeyProvider* key_provider);
+    void on_synchronize_clock(const SSHKeyProvider* key_provider);
 
 protected:
     // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs

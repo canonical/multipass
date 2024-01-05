@@ -249,7 +249,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         this,
         &QemuVirtualMachine::on_synchronize_clock,
         this,
-        [this](const OpenSSHKeyProvider* key_provider) {
+        [this](const SSHKeyProvider* key_provider) {
             mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
 
             mp::SSHSession session{VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), *key_provider};
@@ -501,7 +501,7 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     if (is_starting_from_suspend)
     {
         emit on_delete_memory_snapshot();
-        emit on_synchronize_clock(&dynamic_cast<const OpenSSHKeyProvider&>(key_provider));
+        emit on_synchronize_clock(&key_provider);
     }
 }
 
