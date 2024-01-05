@@ -19,6 +19,7 @@
 #include <multipass/terminal.h>
 
 #include <string>
+#include <vector>
 
 #ifndef MULTIPASS_CLI_PROMPTERS_H
 #define MULTIPASS_CLI_PROMPTERS_H
@@ -87,6 +88,21 @@ public:
     using PassphrasePrompter::PassphrasePrompter;
 
     std::string prompt(const std::string& text = "Please re-enter passphrase") const override;
+};
+
+class BridgePrompter : private DisabledCopyMove
+{
+public:
+    explicit BridgePrompter(Terminal* term) : term(term){};
+
+    ~BridgePrompter() = default;
+
+    bool bridge_prompt(const std::vector<std::string>& nets_need_bridging) const;
+
+private:
+    BridgePrompter() = default;
+
+    Terminal* term;
 };
 } // namespace multipass
 

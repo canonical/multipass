@@ -22,6 +22,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
+#include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/snap_environment_exception.h>
@@ -52,16 +53,6 @@ namespace fs = std::filesystem;
 
 namespace
 {
-constexpr bool on_windows()
-{ // TODO when we have remote client-daemon communication, we need to get the daemon's platform
-    return
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-        true;
-#else
-        false;
-#endif
-}
-
 auto checked_mode(const std::string& mode)
 {
     if (mode == "auto")
@@ -618,33 +609,10 @@ auto cmd::Launch::mount(const mp::ArgParser* parser, const QString& mount_source
 
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
-    static constexpr auto plural = "Multipass needs to create {} to connect to {}.\nThis will temporarily disrupt "
-                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)? ";
-    static constexpr auto singular = "Multipass needs to create a {} to connect to {}.\nThis will temporarily disrupt "
-                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)? ";
-    static constexpr auto nodes = on_windows() ? "switches" : "bridges";
-    static constexpr auto node = on_windows() ? "switch" : "bridge";
+    std::vector<std::string> nets;
 
-    if (term->is_live())
-    {
-        assert(reply.nets_need_bridging_size()); // precondition
-        if (reply.nets_need_bridging_size() != 1)
-            fmt::print(cout, plural, nodes, fmt::join(reply.nets_need_bridging(), ", "));
-        else
-            fmt::print(cout, singular, node, reply.nets_need_bridging(0));
+    std::copy(reply.nets_need_bridging().cbegin(), reply.nets_need_bridging().cend(), std::back_inserter(nets));
 
-        while (true)
-        {
-            std::string answer;
-            std::getline(term->cin(), answer);
-            if (std::regex_match(answer, yes_answer))
-                return true;
-            else if (std::regex_match(answer, no_answer))
-                return false;
-            else
-                cout << "Please answer yes/no: ";
-        }
-    }
-
-    return false;
+    mp::BridgePrompter prompter(term);
+    return prompter.bridge_prompt(nets);
 }

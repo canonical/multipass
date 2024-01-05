@@ -17,8 +17,11 @@
 
 #include "instance_settings_handler.h"
 
+#include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
 #include <QStringList>
@@ -30,6 +33,7 @@ namespace
 constexpr auto cpus_suffix = "cpus";
 constexpr auto mem_suffix = "memory";
 constexpr auto disk_suffix = "disk";
+constexpr auto bridged_suffix = "bridged";
 
 enum class Operation
 {
@@ -46,7 +50,7 @@ QRegularExpression make_key_regex()
 {
     const auto instance_pattern = QStringLiteral("(?<instance>.+)");
     const auto prop_template = QStringLiteral("(?<property>%1)");
-    const auto either_prop = QStringList{cpus_suffix, mem_suffix, disk_suffix}.join("|");
+    const auto either_prop = QStringList{cpus_suffix, mem_suffix, disk_suffix, bridged_suffix}.join("|");
     const auto prop_pattern = prop_template.arg(either_prop);
 
     const auto key_template = QStringLiteral(R"(%1\.%2\.%3)");
@@ -153,6 +157,56 @@ void update_disk(const QString& key, const QString& val, mp::VirtualMachine& ins
     }
 }
 
+bool is_bridged(const mp::VMSpecs& spec, const std::string& br_interface)
+{
+    return std::any_of(spec.extra_interfaces.cbegin(),
+                       spec.extra_interfaces.cend(),
+                       [&br_interface](const auto& network) -> bool { return network.id == br_interface; });
+}
+
+void checked_update_bridged(const QString& key,
+                            const QString& val,
+                            mp::VirtualMachine& instance,
+                            mp::VMSpecs& spec,
+                            const std::string& br_interface)
+{
+    auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
+
+    if (!bridged && is_bridged(spec, br_interface))
+    {
+        throw mp::InvalidSettingException{key, val, "Bridged interface cannot be removed"};
+    }
+
+    if (bridged)
+    {
+        // The empty string in the MAC indicates the daemon that the interface must be configured.
+        spec.extra_interfaces.push_back({br_interface, "", true});
+    }
+}
+
+void update_bridged(const QString& key,
+                    const QString& val,
+                    mp::VirtualMachine& instance,
+                    mp::VMSpecs& spec,
+                    std::function<std::string()> bridged_interface,
+                    std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks)
+{
+    const auto& host_nets = host_networks(); // This will throw if not implemented on this backend.
+    const auto& br = bridged_interface();
+    const auto& info = std::find_if(host_nets.cbegin(), host_nets.cend(), [br](const auto& i) { return i.id == br; });
+
+    if (info == host_nets.cend())
+    {
+        throw std::runtime_error(
+            fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
+                        "correct. See `multipass networks` for valid names.",
+                        br,
+                        mp::bridged_interface_key));
+    }
+
+    checked_update_bridged(key, val, instance, spec, br);
+}
+
 } // namespace
 
 mp::InstanceSettingsException::InstanceSettingsException(const std::string& reason, const std::string& instance,
@@ -166,12 +220,16 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
     const std::unordered_set<std::string>& preparing_instances,
-    std::function<void()> instance_persister)
+    std::function<void()> instance_persister,
+    std::function<std::string()> bridged_interface,
+    std::function<std::vector<NetworkInterfaceInfo>()> host_networks)
     : vm_instance_specs{vm_instance_specs},
       operative_instances{operative_instances},
       deleted_instances{deleted_instances},
       preparing_instances{preparing_instances},
-      instance_persister{std::move(instance_persister)}
+      instance_persister{std::move(instance_persister)},
+      bridged_interface{std::move(bridged_interface)},
+      host_networks{std::move(host_networks)}
 {
 }
 
@@ -181,8 +239,8 @@ std::set<QString> mp::InstanceSettingsHandler::keys() const
 
     std::set<QString> ret;
     for (const auto& item : vm_instance_specs)
-        for (const auto* suffix : {cpus_suffix, mem_suffix, disk_suffix})
-            ret.insert(key_template.arg(item.first.c_str(), suffix));
+        for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix, bridged_suffix})
+            ret.insert(key_template.arg(item.first.c_str()).arg(suffix));
 
     return ret;
 }
@@ -192,6 +250,8 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
     auto [instance_name, property] = parse_key(key);
     const auto& spec = find_spec(instance_name);
 
+    if (property == bridged_suffix)
+        return is_bridged(spec, bridged_interface()) ? "true" : "false";
     if (property == cpus_suffix)
         return QString::number(spec.num_cores);
     if (property == mem_suffix)
@@ -215,6 +275,10 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 
     if (property == cpus_suffix)
         update_cpus(key, val, instance, spec);
+    else if (property == bridged_suffix)
+    {
+        update_bridged(key, val, instance, spec, bridged_interface, host_networks);
+    }
     else
     {
         auto size = get_memory_size(key, val);

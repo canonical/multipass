@@ -19,6 +19,7 @@
 #define MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
 
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/settings/settings_handler.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
@@ -41,7 +42,9 @@ public:
                             std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
                             const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
                             const std::unordered_set<std::string>& preparing_instances,
-                            std::function<void()> instance_persister);
+                            std::function<void()> instance_persister,
+                            std::function<std::string()> bridged_interface,
+                            std::function<std::vector<NetworkInterfaceInfo>()> host_networks);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -59,6 +62,8 @@ private:
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
     const std::unordered_set<std::string>& preparing_instances;
     std::function<void()> instance_persister;
+    std::function<std::string()> bridged_interface;
+    std::function<std::vector<NetworkInterfaceInfo>()> host_networks;
 };
 
 class InstanceSettingsException : public SettingsException
