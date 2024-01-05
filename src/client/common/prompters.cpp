@@ -15,8 +15,10 @@
  *
  */
 
+#include <multipass/cli/client_common.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/exceptions/cli_exceptions.h>
+#include <multipass/format.h>
 
 #include <iostream>
 
@@ -33,6 +35,17 @@ auto get_input(std::istream& cin)
         throw mp::PromptException("Failed to read value");
 
     return value;
+}
+
+// TODO when we have remote client-daemon communication, we need to get the daemon's platform
+constexpr bool on_windows()
+{
+    return
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+        true;
+#else
+        false;
+#endif
 }
 } // namespace
 
@@ -65,4 +78,38 @@ std::string mp::NewPassphrasePrompter::prompt(const std::string& text) const
     }
 
     return passphrase;
+}
+
+bool mp::BridgePrompter::bridge_prompt(const std::vector<std::string>& nets_need_bridging) const
+{
+    assert(nets_need_bridging.size()); // precondition
+
+    static constexpr auto plural = "Multipass needs to create {} to connect to {}.\nThis will temporarily disrupt "
+                                   "connectivity on those interfaces.\n\nDo you want to continue (yes/no)? ";
+    static constexpr auto singular = "Multipass needs to create a {} to connect to {}.\nThis will temporarily disrupt "
+                                     "connectivity on that interface.\n\nDo you want to continue (yes/no)? ";
+    static constexpr auto nodes = on_windows() ? "switches" : "bridges";
+    static constexpr auto node = on_windows() ? "switch" : "bridge";
+
+    if (term->is_live())
+    {
+        if (nets_need_bridging.size() != 1)
+            fmt::print(term->cout(), plural, nodes, fmt::join(nets_need_bridging, ", "));
+        else
+            fmt::print(term->cout(), singular, node, nets_need_bridging[0]);
+
+        while (true)
+        {
+            std::string answer;
+            std::getline(term->cin(), answer);
+            if (std::regex_match(answer, mp::client::yes_answer))
+                return true;
+            else if (std::regex_match(answer, mp::client::no_answer))
+                return false;
+            else
+                term->cout() << "Please answer yes/no: ";
+        }
+    }
+
+    return false;
 }

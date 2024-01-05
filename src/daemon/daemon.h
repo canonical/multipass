@@ -23,6 +23,7 @@
 
 #include <multipass/async_periodic_task.h>
 #include <multipass/delayed_shutdown_timer.h>
+#include <multipass/format.h>
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
@@ -171,6 +172,7 @@ private:
                                VirtualMachine* vm);
 
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
+    void configure_new_interfaces(const std::string& name, VirtualMachine& vm, VMSpecs& specs);
 
     struct AsyncOperationStatus
     {
@@ -198,6 +200,8 @@ private:
 
     void
     populate_instance_info(VirtualMachine& vm, InfoReply& response, bool runtime_info, bool deleted, bool& have_mounts);
+
+    void run_commands_at_boot_on_instance(const std::string& name, fmt::memory_buffer& warnings);
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;

@@ -1571,7 +1571,7 @@ TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
 
     std::stringstream err_stream;
     send_command({"launch", "--network", "eth0"}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("The bridging feature is not implemented on this backend"));
+    EXPECT_THAT(err_stream.str(), HasSubstr("The networks feature is not implemented on this backend"));
 }
 
 TEST_P(RefuseBridging, old_image)
@@ -1963,7 +1963,7 @@ TEST_F(Daemon, refuses_launch_bridged_without_setting)
     std::stringstream err_stream;
     send_command({"launch", "--network", "bridged"}, trash_stream, err_stream);
     EXPECT_THAT(err_stream.str(),
-                HasSubstr("You have to `multipass set local.bridged-network=<name>` to use the `--bridged` shortcut."));
+                HasSubstr("You have to `multipass set local.bridged-network=<name>` to use the \"bridged\" shortcut."));
 }
 
 TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)

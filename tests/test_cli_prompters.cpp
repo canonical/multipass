@@ -164,3 +164,75 @@ TEST_P(CLIPromptersBadCinState, PlainThrows)
 
 INSTANTIATE_TEST_SUITE_P(CLIPrompters, CLIPromptersBadCinState,
                          Values(std::ios::eofbit, std::ios::failbit, std::ios::badbit));
+
+class BridgePrompterTests : public CLIPrompters,
+                            public WithParamInterface<std::tuple<std::vector<std::string>, std::string, bool>>
+{
+};
+
+TEST_F(CLIPrompters, failsIfNoNetworks)
+{
+    std::vector<std::string> nets{};
+
+    mpt::MockTerminal mock_terminal;
+
+    mp::BridgePrompter prompter{&mock_terminal};
+
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillRepeatedly(Return(false));
+    EXPECT_CALL(mock_terminal, cout_is_live()).WillRepeatedly(Return(false));
+
+    ASSERT_DEBUG_DEATH(prompter.bridge_prompt(nets), "[Aa]ssert");
+}
+
+TEST_P(BridgePrompterTests, correctlyReturns)
+{
+    auto [nets, answer, ret] = GetParam();
+
+    mpt::MockTerminal mock_terminal;
+    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
+    EXPECT_CALL(mock_terminal, cout_is_live()).WillOnce(Return(true));
+    EXPECT_CALL(mock_terminal, cin()).WillOnce(ReturnRef(cin));
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(true));
+
+    cin.str(answer + "\n");
+
+    mp::BridgePrompter prompter{&mock_terminal};
+
+    EXPECT_EQ(prompter.bridge_prompt(nets), ret);
+}
+
+INSTANTIATE_TEST_SUITE_P(CLIPrompters,
+                         BridgePrompterTests,
+                         Values(std::make_tuple(std::vector<std::string>{"eth1"}, "yes", true),
+                                std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "y", true),
+                                std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "no", false),
+                                std::make_tuple(std::vector<std::string>{"eth1"}, "n", false)));
+
+TEST_F(CLIPrompters, handlesWrongAnswer)
+{
+    mpt::MockTerminal mock_terminal;
+    EXPECT_CALL(mock_terminal, cout()).WillRepeatedly(ReturnRef(cout));
+    EXPECT_CALL(mock_terminal, cout_is_live()).WillOnce(Return(true));
+    EXPECT_CALL(mock_terminal, cin()).WillRepeatedly(ReturnRef(cin));
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(true));
+
+    cin.str("qqq\nyes\n");
+
+    mp::BridgePrompter prompter{&mock_terminal};
+
+    std::vector<std::string> nets{"eth2"};
+
+    EXPECT_EQ(prompter.bridge_prompt(nets), true);
+}
+
+TEST_F(CLIPrompters, falseOnNonLiveTerminal)
+{
+    mpt::MockTerminal mock_terminal;
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(false));
+
+    mp::BridgePrompter prompter{&mock_terminal};
+
+    std::vector<std::string> nets{"eth2"};
+
+    EXPECT_EQ(prompter.bridge_prompt(nets), false);
+}

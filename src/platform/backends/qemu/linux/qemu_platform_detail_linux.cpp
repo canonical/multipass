@@ -195,6 +195,17 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     return opts;
 }
 
+void mp::QemuPlatformDetail::add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& net)
+{
+    // TODO: Do not uncomment the following line when implementing bridging in Linux QEMU. Since implementing it would
+    // yield the same exact implementation than in macOS, we need to move the code out of here, and put it only once
+    // in src/platform/backends/qemu/qemu_virtual_machine.[h|cpp].
+    // desc.extra_interfaces.push_back(net);
+
+    // For the time being, just complain:
+    throw NotImplementedOnThisBackendException("add interfaces");
+}
+
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
