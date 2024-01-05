@@ -884,4 +884,26 @@ TEST_F(BaseVM, throwsIfThereAreSnapshotsToLoadButNoGenericInfo)
     MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::FileOpenFailedException, mpt::match_what(HasSubstr("snapshot-head")));
 }
 
+TEST_F(BaseVM, throwsIfLoadedSnapshotsNameIsTaken)
+{
+    const auto common_name = "common";
+    auto snapshot1 = std::make_shared<NiceMock<MockSnapshot>>();
+    auto snapshot2 = std::make_shared<NiceMock<MockSnapshot>>();
+
+    EXPECT_CALL(*snapshot1, get_name).WillRepeatedly(Return(common_name));
+    EXPECT_CALL(*snapshot1, get_index).WillRepeatedly(Return(1));
+
+    EXPECT_CALL(*snapshot2, get_name).WillRepeatedly(Return(common_name));
+    EXPECT_CALL(*snapshot2, get_index).WillRepeatedly(Return(2));
+
+    EXPECT_CALL(vm, make_specific_snapshot(_)).WillOnce(Return(snapshot1)).WillOnce(Return(snapshot2));
+
+    mpt::make_file_with_content(vm.tmp_dir->filePath("0001.snapshot.json"), "stub");
+    mpt::make_file_with_content(vm.tmp_dir->filePath("0002.snapshot.json"), "stub");
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), "1");
+    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), "2");
+
+    MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::SnapshotNameTakenException, mpt::match_what(HasSubstr(common_name)));
+}
+
 } // namespace
