@@ -592,4 +592,78 @@ TEST_F(BaseVM, providesChildrenNames)
         EXPECT_THAT(vm.get_childrens_names(snapshot_album[i].get()), IsEmpty());
     }
 }
+
+TEST_F(BaseVM, renamesSnapshot)
+{
+    const std::string old_name = "initial";
+    const std::string new_name = "renamed";
+    std::string current_name = old_name;
+
+    auto snapshot = std::make_shared<NiceMock<MockSnapshot>>();
+    EXPECT_CALL(*snapshot, get_name()).WillRepeatedly(ReturnPointee(&current_name));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+
+    vm.take_snapshot({}, old_name, "as ;lklkh afa");
+
+    EXPECT_CALL(*snapshot, set_name(Eq(new_name))).WillOnce(Assign(&current_name, new_name));
+    vm.rename_snapshot(old_name, new_name);
+
+    EXPECT_EQ(vm.get_snapshot(new_name), snapshot);
+}
+
+TEST_F(BaseVM, skipsSnapshotRenamingWithIdenticalName)
+{
+    mock_named_snapshotting();
+
+    const auto* name = "fixed";
+    vm.take_snapshot({}, name, "not changing");
+
+    ASSERT_EQ(snapshot_album.size(), 1);
+    EXPECT_CALL(*snapshot_album[0], set_name).Times(0);
+
+    EXPECT_NO_THROW(vm.rename_snapshot(name, name));
+    EXPECT_EQ(vm.get_snapshot(name), snapshot_album[0]);
+}
+
+TEST_F(BaseVM, throwsOnRequestToRenameMissingSnapshot)
+{
+    mock_named_snapshotting();
+
+    const auto* good_name = "Mafalda";
+    const auto* missing_name = "Gui";
+    vm.take_snapshot({}, good_name, "");
+
+    ASSERT_EQ(snapshot_album.size(), 1);
+    EXPECT_CALL(*snapshot_album[0], set_name).Times(0);
+
+    MP_EXPECT_THROW_THAT(vm.rename_snapshot(missing_name, "Filipe"),
+                         mp::NoSuchSnapshotException,
+                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(missing_name))));
+
+    EXPECT_EQ(vm.get_snapshot(good_name), snapshot_album[0]);
+}
+
+TEST_F(BaseVM, throwsOnRequestToRenameSnapshotWithRepeatedName)
+{
+    mock_named_snapshotting();
+
+    const auto names = std::array{"Mafalda", "Gui"};
+
+    mp::VMSpecs specs{};
+    vm.take_snapshot(specs, names[0], "");
+    vm.take_snapshot(specs, names[1], "");
+
+    ASSERT_EQ(snapshot_album.size(), 2);
+    EXPECT_CALL(*snapshot_album[0], set_name).Times(0);
+
+    MP_EXPECT_THROW_THAT(vm.rename_snapshot(names[0], names[1]),
+                         mp::SnapshotNameTakenException,
+                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(names[1]))));
+    MP_EXPECT_THROW_THAT(vm.rename_snapshot(names[1], names[0]),
+                         mp::SnapshotNameTakenException,
+                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(names[0]))));
+
+    EXPECT_EQ(vm.get_snapshot(names[0]), snapshot_album[0]);
+    EXPECT_EQ(vm.get_snapshot(names[1]), snapshot_album[1]);
+}
 } // namespace
