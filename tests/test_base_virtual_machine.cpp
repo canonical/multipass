@@ -764,7 +764,13 @@ struct TestLoadingOfPaddedGenericSnapshotInfo : public BaseVM, WithParamInterfac
 {
     void SetUp() override
     {
-        static const auto space_matcher = MatchesRegex("\\s*");
+        static constexpr auto space_char_class =
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+            "\\s";
+#else
+            "[[:space:]]";
+#endif
+        static const auto space_matcher = MatchesRegex(fmt::format("{}*", space_char_class));
         ASSERT_THAT(padding_left, space_matcher);
         ASSERT_THAT(padding_right, space_matcher);
     }
