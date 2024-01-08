@@ -1104,4 +1104,29 @@ TEST_F(BaseVM, restoresGenericSnapshotInfoFileContents)
     EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
     EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
 }
+
+TEST_F(BaseVM, persistsHeadIndexOnRestore)
+{
+    mock_snapshotting();
+
+    mp::VMSpecs specs{};
+    const auto intended_snapshot = "this-one";
+    vm.take_snapshot(specs, "foo", "");
+    vm.take_snapshot(specs, intended_snapshot, "");
+    vm.take_snapshot(specs, "bar", "");
+
+    std::unordered_map<std::string, mp::VMMount> mounts;
+    EXPECT_CALL(*snapshot_album[1], get_mounts).WillRepeatedly(ReturnRef(mounts));
+
+    QJsonObject metadata{};
+    EXPECT_CALL(*snapshot_album[1], get_metadata).WillRepeatedly(ReturnRef(metadata));
+
+    vm.restore_snapshot(intended_snapshot, specs);
+    EXPECT_TRUE(QFileInfo{head_path}.exists());
+
+    // TODO@ricab refactor
+    auto make_regex_matcher = [](int n) { return MatchesRegex(fmt::format("{0}*{1}{0}*", space_char_class, n)); };
+    auto regex_matcher = make_regex_matcher(snapshot_album[1]->get_index());
+    EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
+}
 } // namespace
