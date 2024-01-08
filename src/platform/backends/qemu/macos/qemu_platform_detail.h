@@ -37,6 +37,7 @@ public:
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
     QString get_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
+    void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& net) override;
 
 private:
     const QString host_arch{HOST_ARCH};
