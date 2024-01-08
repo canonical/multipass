@@ -104,18 +104,16 @@ void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name
 void add_extra_net(mp::PowerShell& ps, const QString& name, const mp::NetworkInterface& net)
 {
     const auto switch_ = '"' + QString::fromStdString(net.id) + '"';
-    checked_ps_run(ps,
-                   {"Get-VMSwitch", "-Name", switch_},
-                   fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
-    checked_ps_run(ps,
-                   {"Add-VMNetworkAdapter",
-                    "-VMName",
-                    name,
-                    "-SwitchName",
-                    switch_,
-                    "-StaticMacAddress",
-                    QString::fromStdString('"' + net.mac_address + '"')},
-                   fmt::format("Could not setup adapter for {}", net.id));
+    ps.easy_run({"Get-VMSwitch", "-Name", switch_},
+                fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
+    ps.easy_run({"Add-VMNetworkAdapter",
+                 "-VMName",
+                 name,
+                 "-SwitchName",
+                 switch_,
+                 "-StaticMacAddress",
+                 QString::fromStdString('"' + net.mac_address + '"')},
+                fmt::format("Could not setup adapter for {}", net.id));
 }
 } // namespace
 
