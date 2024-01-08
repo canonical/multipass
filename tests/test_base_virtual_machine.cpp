@@ -223,6 +223,8 @@ struct BaseVM : public Test
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
     std::vector<std::shared_ptr<MockSnapshot>> snapshot_album;
 
+    static constexpr auto* head_filename = "snapshot-head";
+    static constexpr auto* count_filename = "snapshot-count";
     static constexpr auto space_char_class =
 #ifdef MULTIPASS_PLATFORM_WINDOWS
         "\\s";
@@ -825,8 +827,8 @@ TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesSnapshotHeadIndex)
     EXPECT_CALL(vm, get_snapshot(head_index)).WillOnce(Return(snapshot));
 
     auto head_text = fmt::format("{}{}{}", padding_left, head_index, padding_right);
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), head_text);
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), "31");
+    mpt::make_file_with_content(vm.tmp_dir->filePath(head_filename), head_text);
+    mpt::make_file_with_content(vm.tmp_dir->filePath(count_filename), "31");
 
     EXPECT_NO_THROW(vm.load_snapshots());
 
@@ -866,8 +868,8 @@ TEST_F(BaseVM, loadsSnasphots)
         return ret;
     });
 
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), fmt::format("{}", num_snapshots));
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), fmt::format("{}", num_snapshots));
+    mpt::make_file_with_content(vm.tmp_dir->filePath(head_filename), fmt::format("{}", num_snapshots));
+    mpt::make_file_with_content(vm.tmp_dir->filePath(count_filename), fmt::format("{}", num_snapshots));
 
     EXPECT_NO_THROW(vm.load_snapshots());
 
@@ -888,13 +890,11 @@ TEST_F(BaseVM, throwsIfThereAreSnapshotsToLoadButNoGenericInfo)
     EXPECT_CALL(vm, make_specific_snapshot(_)).Times(2).WillRepeatedly(Return(snapshot));
 
     mpt::make_file_with_content(vm.tmp_dir->filePath("0001.snapshot.json"), "stub");
-    MP_EXPECT_THROW_THAT(vm.load_snapshots(),
-                         mp::FileOpenFailedException,
-                         mpt::match_what(HasSubstr("snapshot-count")));
+    MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::FileOpenFailedException, mpt::match_what(HasSubstr(count_filename)));
 
     vm.delete_snapshot(name);
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), "1");
-    MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::FileOpenFailedException, mpt::match_what(HasSubstr("snapshot-head")));
+    mpt::make_file_with_content(vm.tmp_dir->filePath(count_filename), "1");
+    MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::FileOpenFailedException, mpt::match_what(HasSubstr(head_filename)));
 }
 
 TEST_F(BaseVM, throwsIfLoadedSnapshotsNameIsTaken)
@@ -913,8 +913,8 @@ TEST_F(BaseVM, throwsIfLoadedSnapshotsNameIsTaken)
 
     mpt::make_file_with_content(vm.tmp_dir->filePath("0001.snapshot.json"), "stub");
     mpt::make_file_with_content(vm.tmp_dir->filePath("0002.snapshot.json"), "stub");
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), "1");
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), "2");
+    mpt::make_file_with_content(vm.tmp_dir->filePath(head_filename), "1");
+    mpt::make_file_with_content(vm.tmp_dir->filePath(count_filename), "2");
 
     MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::SnapshotNameTakenException, mpt::match_what(HasSubstr(common_name)));
 }
@@ -975,8 +975,8 @@ TEST_F(BaseVM, takeSnapshotRevertsHeadAndCount)
     EXPECT_CALL(vm, make_specific_snapshot(_)).WillOnce(Return(early_snapshot));
 
     mpt::make_file_with_content(vm.tmp_dir->filePath("0001.snapshot.json"), "stub");
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), "1");
-    mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-count"), "1");
+    mpt::make_file_with_content(vm.tmp_dir->filePath(head_filename), "1");
+    mpt::make_file_with_content(vm.tmp_dir->filePath(count_filename), "1");
 
     vm.load_snapshots();
 
@@ -1022,8 +1022,8 @@ TEST_F(BaseVM, persistsGenericSnapshotInfoWhenTakingSnapshot)
 
     ASSERT_EQ(vm.get_snapshot_count(), 0);
 
-    const QString& head_path = vm.tmp_dir->filePath("snapshot-head");
-    const QString& count_path = vm.tmp_dir->filePath("snapshot-count");
+    const QString& head_path = vm.tmp_dir->filePath(head_filename);
+    const QString& count_path = vm.tmp_dir->filePath(count_filename);
     ASSERT_FALSE(QFileInfo{head_path}.exists());
     ASSERT_FALSE(QFileInfo{count_path}.exists());
 
@@ -1048,8 +1048,6 @@ TEST_F(BaseVM, removesGenericSnapshotInfoFilesOnFirstFailure)
     auto& mock_utils = *mock_utils_ptr;
     mock_snapshotting();
 
-    const char* head_filename = "snapshot-head";
-    const char* count_filename = "snapshot-count";
     const QString& head_path = vm.tmp_dir->filePath(head_filename);
     const QString& count_path = vm.tmp_dir->filePath(count_filename);
 
