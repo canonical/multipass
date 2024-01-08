@@ -237,6 +237,13 @@ struct BaseVM : public Test
 #endif
     }
 
+    static auto make_index_file_contents_matcher(int idx)
+    {
+        assert(idx > 0 && "need positive index");
+
+        return MatchesRegex(fmt::format("{0}*{1}{0}*", space_char_class, idx));
+    }
+
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
@@ -1034,8 +1041,6 @@ TEST_F(BaseVM, persistsGenericSnapshotInfoWhenTakingSnapshot)
     ASSERT_FALSE(QFileInfo{head_path}.exists());
     ASSERT_FALSE(QFileInfo{count_path}.exists());
 
-    auto make_regex_matcher = [](int n) { return MatchesRegex(fmt::format("{0}*{1}{0}*", space_char_class, n)); };
-
     mp::VMSpecs specs{};
     for (int i = 1; i < 5; ++i)
     {
@@ -1043,7 +1048,7 @@ TEST_F(BaseVM, persistsGenericSnapshotInfoWhenTakingSnapshot)
         ASSERT_TRUE(QFileInfo{head_path}.exists());
         ASSERT_TRUE(QFileInfo{count_path}.exists());
 
-        auto regex_matcher = make_regex_matcher(i);
+        auto regex_matcher = make_index_file_contents_matcher(i);
         EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
         EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
     }
@@ -1082,9 +1087,7 @@ TEST_F(BaseVM, restoresGenericSnapshotInfoFileContents)
     ASSERT_TRUE(QFileInfo{head_path}.exists());
     ASSERT_TRUE(QFileInfo{count_path}.exists());
 
-    // TODO@ricab refactor
-    auto make_regex_matcher = [](int n) { return MatchesRegex(fmt::format("{0}*{1}{0}*", space_char_class, n)); };
-    auto regex_matcher = make_regex_matcher(1);
+    auto regex_matcher = make_index_file_contents_matcher(1);
     EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
     EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
 
@@ -1124,9 +1127,7 @@ TEST_F(BaseVM, persistsHeadIndexOnRestore)
     vm.restore_snapshot(intended_snapshot, specs);
     EXPECT_TRUE(QFileInfo{head_path}.exists());
 
-    // TODO@ricab refactor
-    auto make_regex_matcher = [](int n) { return MatchesRegex(fmt::format("{0}*{1}{0}*", space_char_class, n)); };
-    auto regex_matcher = make_regex_matcher(snapshot_album[1]->get_index());
+    auto regex_matcher = make_index_file_contents_matcher(snapshot_album[1]->get_index());
     EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
 }
 } // namespace
