@@ -95,6 +95,20 @@ auto instance_state_for(const QString& name)
     return mp::VirtualMachine::State::unknown;
 }
 
+QStringList extra_net_args(int index, const mp::NetworkInterface& net)
+{
+    QString iface_index_str = QString::number(index);
+
+    return QStringList{"--nic" + iface_index_str,
+                       "bridged",
+                       "--nictype" + iface_index_str,
+                       "virtio",
+                       "--macaddress" + iface_index_str,
+                       QString::fromStdString(net.mac_address).remove(':'),
+                       "--bridgeadapter" + iface_index_str,
+                       QString::fromStdString(mp::platform::reinterpret_interface_id(net.id))};
+}
+
 QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
 {
     QStringList arguments{"--nic1", "nat",           "--nictype1",
@@ -102,16 +116,7 @@ QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
 
     for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {
-        QString iface_index_str = QString::number(i + 2);
-
-        arguments += {"--nic" + iface_index_str,
-                      "bridged",
-                      "--nictype" + iface_index_str,
-                      "virtio",
-                      "--macaddress" + iface_index_str,
-                      QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':'),
-                      "--bridgeadapter" + iface_index_str,
-                      QString::fromStdString(mp::platform::reinterpret_interface_id(desc.extra_interfaces[i].id))};
+        arguments += extra_net_args(i + 2, desc.extra_interfaces[i]);
     }
 
     return arguments;
@@ -367,4 +372,11 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
     mpu::process_throw_on_error("VBoxManage",
                                 {"modifyhd", image_path, "--resizebyte", QString::number(new_size.in_bytes())},
                                 "Could not resize image: {}", name);
+}
+
+void mp::VirtualBoxVirtualMachine::add_network_interface(int index, const NetworkInterface& net)
+{
+    auto arguments = QStringList{"modifyvm", name} + extra_net_args(index + 2, net);
+
+    mpu::process_throw_on_error("VBoxManage", arguments, "Could not add network interface to: {}", name);
 }
