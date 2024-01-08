@@ -1015,4 +1015,29 @@ TEST_F(BaseVM, renameFailureIsReverted)
     EXPECT_EQ(vm.get_snapshot(current_name).get(), snapshot.get());
 }
 
+TEST_F(BaseVM, persistsGenericSnapshotInfoWhenTakingSnapshot)
+{
+    mock_snapshotting();
+
+    ASSERT_EQ(vm.get_snapshot_count(), 0);
+
+    const QString& head_path = vm.tmp_dir->filePath("snapshot-head");
+    const QString& count_path = vm.tmp_dir->filePath("snapshot-count");
+    ASSERT_FALSE(QFileInfo{head_path}.exists());
+    ASSERT_FALSE(QFileInfo{count_path}.exists());
+
+    auto make_regex_matcher = [](int n) { return MatchesRegex(fmt::format("{0}*{1}{0}*", space_char_class, n)); };
+
+    mp::VMSpecs specs{};
+    for (int i = 1; i < 5; ++i)
+    {
+        vm.take_snapshot(specs, "", "");
+        ASSERT_TRUE(QFileInfo{head_path}.exists());
+        ASSERT_TRUE(QFileInfo{count_path}.exists());
+
+        auto regex_matcher = make_regex_matcher(i);
+        EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
+        EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
+    }
+}
 } // namespace
