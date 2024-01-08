@@ -20,6 +20,7 @@
 #include "file_operations.h"
 #include "mock_logger.h"
 #include "mock_ssh_test_fixture.h"
+#include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "temp_dir.h"
 
@@ -1039,5 +1040,33 @@ TEST_F(BaseVM, persistsGenericSnapshotInfoWhenTakingSnapshot)
         EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
         EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
     }
+}
+
+TEST_F(BaseVM, removesGenericSnapshotInfoFilesOnFirstFailure)
+{
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    auto& mock_utils = *mock_utils_ptr;
+    mock_snapshotting();
+
+    const char* head_filename = "snapshot-head";
+    const char* count_filename = "snapshot-count";
+    const QString& head_path = vm.tmp_dir->filePath(head_filename);
+    const QString& count_path = vm.tmp_dir->filePath(count_filename);
+
+    ASSERT_FALSE(QFileInfo{head_path}.exists());
+    ASSERT_FALSE(QFileInfo{count_path}.exists());
+
+    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_utils,
+                                                 make_file_with_content,
+                                                 mp::Utils,
+                                                 (EndsWith(head_filename), _, Eq(true)));
+    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(head_filename), _, Eq(true)));
+    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(count_filename), _, Eq(true)))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_ANY_THROW(vm.take_snapshot({}, "", ""));
+
+    EXPECT_FALSE(QFileInfo{head_path}.exists());
+    EXPECT_FALSE(QFileInfo{count_path}.exists());
 }
 } // namespace
