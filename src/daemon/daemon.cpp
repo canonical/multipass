@@ -3671,6 +3671,12 @@ void mp::Daemon::run_commands_at_boot_on_instance(const std::string& name, fmt::
 
             warned_exec_failure = true;
         }
+        catch (const ExitlessSSHProcessException& e) // Timeout does not mean there is a configuration error.
+        {
+            mpl::log(mpl::Level::warning,
+                     category,
+                     fmt::format("Exception when executing command at boot in {}: {}", name, e.what()));
+        }
         catch (const SSHException&) // The SSH session could not be created.
         {
             add_fmt_to(warnings,
