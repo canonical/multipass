@@ -218,6 +218,13 @@ struct BaseVM : public Test
             }));
     }
 
+    QString get_snapshot_file_path(int idx) const
+    {
+        assert(idx > 0 && "need positive index");
+
+        return vm.tmp_dir->filePath(QString::fromStdString(fmt::format("{:04}.snapshot.json", idx)));
+    }
+
     static std::string n_occurrences(const std::string& regex, int n)
     {
         assert(n > 0 && "need positive n");
@@ -859,8 +866,7 @@ TEST_F(BaseVM, loadsSnasphots)
     generate(snapshot_bag.begin(), snapshot_bag.end(), [this, &expectation] {
         static int idx = 1;
 
-        const auto path = vm.tmp_dir->filePath(QString::fromStdString(fmt::format("{:04}.snapshot.json", idx)));
-        mpt::make_file_with_content(path, "stub");
+        mpt::make_file_with_content(get_snapshot_file_path(idx), "stub");
 
         auto ret = std::make_shared<NiceMockSnapshot>();
         EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(idx));
@@ -891,7 +897,7 @@ TEST_F(BaseVM, throwsIfThereAreSnapshotsToLoadButNoGenericInfo)
     EXPECT_CALL(*snapshot, get_index).WillRepeatedly(Return(1));
     EXPECT_CALL(vm, make_specific_snapshot(_)).Times(2).WillRepeatedly(Return(snapshot));
 
-    mpt::make_file_with_content(vm.tmp_dir->filePath("0001.snapshot.json"), "stub");
+    mpt::make_file_with_content(get_snapshot_file_path(1), "stub");
     MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::FileOpenFailedException, mpt::match_what(HasSubstr(count_filename)));
 
     vm.delete_snapshot(name);
@@ -913,8 +919,8 @@ TEST_F(BaseVM, throwsIfLoadedSnapshotsNameIsTaken)
 
     EXPECT_CALL(vm, make_specific_snapshot(_)).WillOnce(Return(snapshot1)).WillOnce(Return(snapshot2));
 
-    mpt::make_file_with_content(vm.tmp_dir->filePath("0001.snapshot.json"), "stub");
-    mpt::make_file_with_content(vm.tmp_dir->filePath("0002.snapshot.json"), "stub");
+    mpt::make_file_with_content(get_snapshot_file_path(1), "stub");
+    mpt::make_file_with_content(get_snapshot_file_path(2), "stub");
     mpt::make_file_with_content(head_path, "1");
     mpt::make_file_with_content(count_path, "2");
 
@@ -976,7 +982,7 @@ TEST_F(BaseVM, takeSnapshotRevertsHeadAndCount)
 
     EXPECT_CALL(vm, make_specific_snapshot(_)).WillOnce(Return(early_snapshot));
 
-    mpt::make_file_with_content(vm.tmp_dir->filePath("0001.snapshot.json"), "stub");
+    mpt::make_file_with_content(get_snapshot_file_path(1), "stub");
     mpt::make_file_with_content(head_path, "1");
     mpt::make_file_with_content(count_path, "1");
 
