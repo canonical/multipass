@@ -221,6 +221,29 @@ struct BaseVM : public Test
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
     std::vector<std::shared_ptr<MockSnapshot>> snapshot_album;
+
+    static constexpr auto space_char_class =
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+        "\\s";
+#else
+        "[[:space:]]";
+#endif
+    static constexpr auto digit_char_class =
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+        "\\d";
+#else
+        "[[:digit:]]";
+#endif
+    static std::string n_occurrences(const std::string& regex, int n)
+    {
+        assert(n > 0 && "need positive n");
+        return
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+            fmt::to_string(fmt::join(std::vector(n, regex), ""));
+#else
+            fmt::format("{}{{{}}}", regex, n);
+#endif
+    }
 };
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
@@ -764,12 +787,6 @@ struct TestLoadingOfPaddedGenericSnapshotInfo : public BaseVM, WithParamInterfac
 {
     void SetUp() override
     {
-        static constexpr auto space_char_class =
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-            "\\s";
-#else
-            "[[:space:]]";
-#endif
         static const auto space_matcher = MatchesRegex(fmt::format("{}*", space_char_class));
         ASSERT_THAT(padding_left, space_matcher);
         ASSERT_THAT(padding_right, space_matcher);
@@ -827,12 +844,7 @@ TEST_F(BaseVM, loadsSnasphots)
     static constexpr auto num_snapshots = 5;
     static constexpr auto name_prefix = "blankpage";
     static constexpr auto generate_snapshot_name = [](int count) { return fmt::format("{}{}", name_prefix, count); };
-    static constexpr auto index_digits_regex =
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-        R"(\d\d\d\d)";
-#else
-        "[[:digit:]]{4}";
-#endif
+    static const auto index_digits_regex = n_occurrences(digit_char_class, 4);
     static const auto file_regex = fmt::format(R"(.*{}\.snapshot\.json)", index_digits_regex);
 
     auto& expectation = EXPECT_CALL(vm, make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
