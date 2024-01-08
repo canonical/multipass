@@ -23,7 +23,7 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/process/process.h>
-#include <multipass/ssh/openssh_key_provider.h>
+#include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QObject>
