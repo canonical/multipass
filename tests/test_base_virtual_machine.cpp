@@ -211,6 +211,7 @@ struct BaseVM : public Test
                 EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
                 EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
                 EXPECT_CALL(Const(*ret), get_parent()).WillRepeatedly(Return(parent));
+                EXPECT_CALL(*ret, get_parents_index).WillRepeatedly(Return(parent ? parent->get_index() : 0));
 
                 snapshot_album.push_back(ret);
 
@@ -1069,5 +1070,38 @@ TEST_F(BaseVM, removesGenericSnapshotInfoFilesOnFirstFailure)
 
     EXPECT_FALSE(QFileInfo{head_path}.exists());
     EXPECT_FALSE(QFileInfo{count_path}.exists());
+}
+
+TEST_F(BaseVM, restoresGenericSnapshotInfoFileContents)
+{
+    mock_snapshotting();
+
+    mp::VMSpecs specs{};
+    vm.take_snapshot(specs, "", "");
+
+    ASSERT_TRUE(QFileInfo{head_path}.exists());
+    ASSERT_TRUE(QFileInfo{count_path}.exists());
+
+    // TODO@ricab refactor
+    auto make_regex_matcher = [](int n) { return MatchesRegex(fmt::format("{0}*{1}{0}*", space_char_class, n)); };
+    auto regex_matcher = make_regex_matcher(1);
+    EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
+    EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject<NiceMock>();
+    auto& mock_utils = *mock_utils_ptr;
+
+    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_utils, make_file_with_content, mp::Utils, (_, _, Eq(true)));
+    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(head_filename), _, Eq(true))).Times(2);
+    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(count_filename), _, Eq(true)))
+        .Times(2)
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_ANY_THROW(vm.take_snapshot({}, "", ""));
+
+    EXPECT_TRUE(QFileInfo{head_path}.exists());
+    EXPECT_TRUE(QFileInfo{count_path}.exists());
+    EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
+    EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
 }
 } // namespace
