@@ -250,20 +250,17 @@ struct BaseVM : public Test
     std::vector<std::shared_ptr<MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
+
+    static constexpr bool on_windows =
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+        true;
+#else
+        false;
+#endif
     static constexpr auto* head_filename = "snapshot-head";
     static constexpr auto* count_filename = "snapshot-count";
-    static constexpr auto space_char_class =
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-        "\\s";
-#else
-        "[[:space:]]";
-#endif
-    static constexpr auto digit_char_class =
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-        "\\d";
-#else
-        "[[:digit:]]";
-#endif
+    static constexpr auto space_char_class = on_windows ? "\\s" : "[[:space:]]";
+    static constexpr auto digit_char_class = on_windows ? "\\d" : "[[:digit:]]";
 };
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
