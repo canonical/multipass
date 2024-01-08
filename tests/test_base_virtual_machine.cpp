@@ -218,11 +218,21 @@ struct BaseVM : public Test
             }));
     }
 
+    static std::string n_occurrences(const std::string& regex, int n)
+    {
+        assert(n > 0 && "need positive n");
+        return
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+            fmt::to_string(fmt::join(std::vector(n, regex), ""));
+#else
+            fmt::format("{}{{{}}}", regex, n);
+#endif
+    }
+
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
     std::vector<std::shared_ptr<MockSnapshot>> snapshot_album;
-
     static constexpr auto* head_filename = "snapshot-head";
     static constexpr auto* count_filename = "snapshot-count";
     static constexpr auto space_char_class =
@@ -237,16 +247,6 @@ struct BaseVM : public Test
 #else
         "[[:digit:]]";
 #endif
-    static std::string n_occurrences(const std::string& regex, int n)
-    {
-        assert(n > 0 && "need positive n");
-        return
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-            fmt::to_string(fmt::join(std::vector(n, regex), ""));
-#else
-            fmt::format("{}{{{}}}", regex, n);
-#endif
-    }
 };
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
