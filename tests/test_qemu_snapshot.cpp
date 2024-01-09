@@ -17,12 +17,26 @@
 
 #include "common.h"
 
+#include <src/platform/backends/qemu/qemu_snapshot.h>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
 {
+
+struct PublicQemuSnapshot : public mp::QemuSnapshot
+{
+    // clang-format off
+    // (keeping original declaration order)
+    using mp::QemuSnapshot::QemuSnapshot;
+    using mp::QemuSnapshot::capture_impl;
+    using mp::QemuSnapshot::erase_impl;
+    using mp::QemuSnapshot::apply_impl;
+    // clang-format on
+};
+
 struct TestQemuSnapshot : public Test
 {
 };
