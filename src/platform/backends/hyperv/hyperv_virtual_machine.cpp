@@ -100,6 +100,21 @@ void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name
                            "| Where-Object { $_.IsAutomaticCheckpoint } | Remove-VMCheckpoint -Confirm:$false"},
                           "Could not delete existing automatic checkpoints");
 }
+
+void add_extra_net(mp::PowerShell& ps, const QString& name, const mp::NetworkInterface& net)
+{
+    const auto switch_ = '"' + QString::fromStdString(net.id) + '"';
+    ps.easy_run({"Get-VMSwitch", "-Name", switch_},
+                fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
+    ps.easy_run({"Add-VMNetworkAdapter",
+                 "-VMName",
+                 name,
+                 "-SwitchName",
+                 switch_,
+                 "-StaticMacAddress",
+                 QString::fromStdString('"' + net.mac_address + '"')},
+                fmt::format("Could not setup adapter for {}", net.id));
+}
 } // namespace
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
@@ -168,17 +183,7 @@ void mp::HyperVVirtualMachine::setup_network_interfaces(const std::string& defau
 
     for (const auto& net : extra_interfaces)
     {
-        const auto switch_ = '"' + QString::fromStdString(net.id) + '"';
-        power_shell->easy_run({"Get-VMSwitch", "-Name", switch_},
-                              fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
-        power_shell->easy_run({"Add-VMNetworkAdapter",
-                               "-VMName",
-                               name,
-                               "-SwitchName",
-                               switch_,
-                               "-StaticMacAddress",
-                               QString::fromStdString('"' + net.mac_address + '"')},
-                              fmt::format("Could not setup adapter for {}", net.id));
+        add_extra_net(*power_shell, name, net);
     }
 }
 
@@ -341,6 +346,11 @@ void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
     QStringList resize_cmd = {"Get-VM", "-VMName", name, "|", "Select-Object", "VMId", "|", "Get-VHD", "|",
                               "Resize-VHD", "-SizeBytes", QString::number(new_size.in_bytes())}; // clang-format on
     power_shell->easy_run(resize_cmd, "Could not resize disk");
+}
+
+void mp::HyperVVirtualMachine::add_network_interface(int /* not used on this backend */, const NetworkInterface& net)
+{
+    return add_extra_net(*power_shell, name, net);
 }
 
 mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const mp::SSHKeyProvider* ssh_key_provider,
