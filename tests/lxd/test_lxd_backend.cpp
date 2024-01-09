@@ -2355,3 +2355,10 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     EXPECT_EQ(times_called, 1u);
 }
+
+TEST_F(LXDBackend, backendReturnsCorrectBridgeName)
+{
+    CustomLXDFactory factory{std::move(mock_network_access_manager), data_dir.path(), base_url};
+
+    EXPECT_EQ(factory.bridge_name_for("eth7"), "br-eth7");
+}
