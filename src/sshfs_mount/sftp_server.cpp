@@ -215,22 +215,14 @@ auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec
     return std::make_unique<mp::SSHProcess>(std::move(sshfs_process));
 }
 
-int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int id_if_not_found)
+int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
 {
     if (id == mp::no_id_info_available)
-        return id_if_not_found;
+        return default_id;
 
-    auto map = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.first; });
+    auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) { return id == p.first; });
 
-    if (map != id_maps.end())
-    {
-        if (map->second == mp::default_id)
-            return id_if_not_found;
-        else
-            return map->second;
-    }
-
-    return id;
+    return found == id_maps.cend() ? -1 : (found->second == mp::default_id ? default_id : found->second);
 }
 
 int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
