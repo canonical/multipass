@@ -1127,4 +1127,60 @@ TEST_F(BaseVM, persistsHeadIndexOnRestore)
     auto regex_matcher = make_index_file_contents_matcher(snapshot_album[1]->get_index());
     EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
 }
+
+TEST_F(BaseVM, rollsbackFailedRestore)
+{
+    mock_snapshotting();
+
+    const mp::VMSpecs original_specs{1,
+                                     mp::MemorySize{"1.5G"},
+                                     mp::MemorySize{"4G"},
+                                     "ab:ab:ab:ab:ab:ab",
+                                     {},
+                                     "me",
+                                     mp::VirtualMachine::State::off,
+                                     {},
+                                     false,
+                                     {},
+                                     {}};
+
+    vm.take_snapshot(original_specs, "", "");
+
+    auto target_snapshot_name = "this one";
+    vm.take_snapshot(original_specs, target_snapshot_name, "");
+    vm.take_snapshot(original_specs, "", "");
+
+    ASSERT_EQ(snapshot_album.size(), 3);
+    auto& target_snapshot = *snapshot_album[1];
+    auto& last_snapshot = *snapshot_album[2];
+
+    auto changed_specs = original_specs;
+    changed_specs.num_cores = 4;
+    changed_specs.mem_size = mp::MemorySize{"2G"};
+    changed_specs.state = multipass::VirtualMachine::State::running;
+    changed_specs.mounts["dst"].source_path = "src";
+    changed_specs.metadata["blah"] = "this and that";
+
+    EXPECT_CALL(target_snapshot, get_state).WillRepeatedly(Return(original_specs.state));
+    EXPECT_CALL(target_snapshot, get_num_cores).WillRepeatedly(Return(original_specs.num_cores));
+    EXPECT_CALL(target_snapshot, get_mem_size).WillRepeatedly(Return(original_specs.mem_size));
+    EXPECT_CALL(target_snapshot, get_disk_space).WillRepeatedly(Return(original_specs.disk_space));
+    EXPECT_CALL(target_snapshot, get_mounts).WillRepeatedly(ReturnRef(original_specs.mounts));
+    EXPECT_CALL(target_snapshot, get_metadata).WillRepeatedly(ReturnRef(original_specs.metadata));
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, make_file_with_content(_, _, _))
+        .WillOnce(Throw(std::runtime_error{"intentional"}))
+        .WillRepeatedly(DoDefault());
+
+    auto current_specs = changed_specs;
+    EXPECT_ANY_THROW(vm.restore_snapshot(target_snapshot_name, current_specs));
+    EXPECT_EQ(changed_specs, current_specs);
+
+    auto regex_matcher = make_index_file_contents_matcher(last_snapshot.get_index());
+    EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
+
+    EXPECT_EQ(vm.take_snapshot(current_specs, "", "")->get_parent().get(), &last_snapshot);
+}
+
 } // namespace
