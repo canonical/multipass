@@ -1094,8 +1094,8 @@ TEST_F(BaseVM, restoresGenericSnapshotInfoFileContents)
     MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_utils, make_file_with_content, mp::Utils, (_, _, Eq(true)));
     EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(head_filename), _, Eq(true))).Times(2);
     EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(count_filename), _, Eq(true)))
-        .Times(2)
-        .WillOnce(Throw(std::runtime_error{"intentional"}));
+        .WillOnce(Throw(std::runtime_error{"intentional"}))
+        .WillOnce(DoDefault());
 
     EXPECT_ANY_THROW(vm.take_snapshot({}, "", ""));
 
