@@ -52,13 +52,20 @@ struct PublicQemuSnapshot : public mp::QemuSnapshot
 
 struct TestQemuSnapshot : public Test
 {
-    TestQemuSnapshot()
+    using ArgsMatcher = Matcher<QStringList>;
+
+    mp::QemuSnapshot quick_snapshot(const std::string& name = "asdf")
     {
-        desc.image.image_path = "raniunotuiroleh";
+        return mp::QemuSnapshot{name, "", nullptr, specs, vm, desc};
     }
 
-    mp::VirtualMachineDescription desc{};
+    mp::VirtualMachineDescription desc = [] {
+        mp::VirtualMachineDescription ret{};
+        ret.image.image_path = "raniunotuiroleh";
+        return ret;
+    }();
     NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm"};
+    ArgsMatcher list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
     inline static const auto success = mp::ProcessState{0, std::nullopt};
     inline static const auto specs = [] {
         const auto cpus = 3;
@@ -128,9 +135,9 @@ TEST_F(TestQemuSnapshot, capturesSnapshot)
     EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(snapshot_index - 1));
 
     auto proc_count = 0;
-    auto list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
-    auto capture_args_matcher =
-        ElementsAre("snapshot", "-c", QString::fromStdString(snapshot_tag), desc.image.image_path);
+
+    ArgsMatcher capture_args_matcher{
+        ElementsAre("snapshot", "-c", QString::fromStdString(snapshot_tag), desc.image.image_path)};
 
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
@@ -138,16 +145,13 @@ TEST_F(TestQemuSnapshot, capturesSnapshot)
 
         EXPECT_EQ(process->program(), "qemu-img");
 
-        using ArgsMatcher = Matcher<QStringList>;
-        const auto args_matcher = proc_count == 1 ? ArgsMatcher{list_args_matcher} : ArgsMatcher{capture_args_matcher};
+        const auto& args_matcher = proc_count == 1 ? list_args_matcher : capture_args_matcher;
         EXPECT_THAT(process->arguments(), args_matcher);
 
         EXPECT_CALL(*process, execute).WillOnce(Return(success));
     });
 
-    mp::QemuSnapshot snapshot{"asdf", "", nullptr, specs, vm, desc};
-    snapshot.capture();
-
+    quick_snapshot().capture();
     EXPECT_EQ(proc_count, 2);
 }
 
