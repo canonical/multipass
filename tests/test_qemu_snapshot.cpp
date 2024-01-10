@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_snapshot.h"
 #include "mock_virtual_machine.h"
@@ -227,6 +228,27 @@ TEST_F(TestQemuSnapshot, erasesSnapshot)
 
     snapshot.erase();
     EXPECT_EQ(proc_count, 2);
+}
+
+TEST_F(TestQemuSnapshot, eraseLogsOnMissingTag)
+{
+    auto snapshot = loaded_snapshot();
+    auto proc_count = 0;
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_EQ(++proc_count, 1);
+
+        set_common_expectations_on(process);
+        EXPECT_THAT(process->arguments(), list_args_matcher);
+        set_tag_output(process, "some-tag-other-than-the-one-we-are-looking-for");
+    });
+
+    auto expected_log_level = mpl::Level::warning;
+    auto logger_scope = mpt::MockLogger::inject(expected_log_level);
+    logger_scope.mock_logger->expect_log(expected_log_level, "Could not find");
+
+    snapshot.erase();
 }
 
 } // namespace
