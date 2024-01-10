@@ -63,16 +63,11 @@ class Vms extends ConsumerWidget {
     final runningOnly = ref.watch(runningOnlyProvider);
     final vmFilters = Row(children: [
       Switch(
+        label: 'Show running instances only',
         value: runningOnly,
         onChanged: (v) => ref.read(runningOnlyProvider.notifier).state = v,
       ),
-      const SizedBox(width: 8),
-      const Expanded(
-        child: Text(
-          'Show running instances only',
-          style: TextStyle(fontSize: 16),
-        ),
-      ),
+      const Spacer(),
       const SearchBox(),
       const SizedBox(width: 8),
       const HeaderSelection(),
