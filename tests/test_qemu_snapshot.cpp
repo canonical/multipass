@@ -155,4 +155,29 @@ TEST_F(TestQemuSnapshot, capturesSnapshot)
     EXPECT_EQ(proc_count, 2);
 }
 
+TEST_F(TestQemuSnapshot, captureThrowsOnRepeatedTag)
+{
+    auto snapshot_index = 22;
+    auto snapshot_tag = fmt::format("@s{}", snapshot_index);
+    EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(snapshot_index - 1));
+
+    auto proc_count = 0;
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_EQ(++proc_count, 1);
+
+        EXPECT_EQ(process->program(), "qemu-img");
+        EXPECT_THAT(process->arguments(), list_args_matcher);
+
+        EXPECT_CALL(*process, execute).WillOnce(Return(success));
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(snapshot_tag + ' ')));
+    });
+
+    MP_EXPECT_THROW_THAT(quick_snapshot("whatever").capture(),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("already exists"),
+                                               HasSubstr(snapshot_tag),
+                                               HasSubstr(desc.image.image_path.toStdString()))));
+}
+
 } // namespace
