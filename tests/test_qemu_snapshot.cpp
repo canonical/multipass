@@ -59,6 +59,11 @@ struct TestQemuSnapshot : public Test
         return mp::QemuSnapshot{name, "", nullptr, specs, vm, desc};
     }
 
+    mp::QemuSnapshot loaded_snapshot()
+    {
+        return mp::QemuSnapshot{mpt::test_data_path_for("test_snapshot.json"), vm, desc};
+    }
+
     template <typename T>
     static std::string derive_tag(T&& index)
     {
@@ -194,6 +199,34 @@ TEST_F(TestQemuSnapshot, captureThrowsOnRepeatedTag)
                          mpt::match_what(AllOf(HasSubstr("already exists"),
                                                HasSubstr(snapshot_tag),
                                                HasSubstr(desc.image.image_path.toStdString()))));
+}
+
+TEST_F(TestQemuSnapshot, erasesSnapshot)
+{
+    auto snapshot = loaded_snapshot();
+    auto proc_count = 0;
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_LE(++proc_count, 2);
+
+        set_common_expectations_on(process);
+
+        auto tag = derive_tag(snapshot.get_index());
+        if (proc_count == 1)
+        {
+            EXPECT_THAT(process->arguments(), list_args_matcher);
+            set_tag_output(process, tag);
+        }
+        else
+        {
+            EXPECT_THAT(process->arguments(),
+                        ElementsAre("snapshot", "-d", QString::fromStdString(tag), desc.image.image_path));
+        }
+    });
+
+    snapshot.erase();
+    EXPECT_EQ(proc_count, 2);
 }
 
 } // namespace
