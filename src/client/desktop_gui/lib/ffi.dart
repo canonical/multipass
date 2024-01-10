@@ -86,8 +86,11 @@ final _getCertPair = _lib.lookupFunction<_NativeKeyCertificatePair Function(),
 
 String get multipassVersion => _multipassVersion().toDartString();
 
-String generatePetname() {
-  return _generatePetname().string;
+String generatePetname([Iterable<String> existing = const []]) {
+  while (true) {
+    final name = _generatePetname().string;
+    if (!existing.contains(name)) return name;
+  }
 }
 
 Uri getServerAddress() {
