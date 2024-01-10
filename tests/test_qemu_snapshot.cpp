@@ -251,4 +251,31 @@ TEST_F(TestQemuSnapshot, eraseLogsOnMissingTag)
     snapshot.erase();
 }
 
+TEST_F(TestQemuSnapshot, appliesSnapshot)
+{
+    auto snapshot = loaded_snapshot();
+    auto proc_count = 0;
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_EQ(++proc_count, 1);
+
+        set_common_expectations_on(process);
+        EXPECT_THAT(process->arguments(),
+                    ElementsAre("snapshot",
+                                "-a",
+                                QString::fromStdString(derive_tag(snapshot.get_index())),
+                                desc.image.image_path));
+    });
+
+    desc.num_cores = 8598;
+    desc.mem_size = mp::MemorySize{"49"};
+    desc.disk_space = mp::MemorySize{"328"};
+
+    snapshot.apply();
+
+    EXPECT_EQ(desc.num_cores, snapshot.get_num_cores());
+    EXPECT_EQ(desc.mem_size, snapshot.get_mem_size());
+    EXPECT_EQ(desc.disk_space, snapshot.get_disk_space());
+}
 } // namespace
