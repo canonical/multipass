@@ -198,8 +198,6 @@ jobs:
         # Use gnu-tar instead of the system tar
         echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
 
-        echo "hyperkit-sha=$( git -C 3rd-party/hyperkit rev-parse HEAD )" >> $GITHUB_OUTPUT
-
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
       run: |
