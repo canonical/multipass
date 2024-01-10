@@ -52,6 +52,22 @@ struct TestQemuSnapshot : public Test
 {
     mp::VirtualMachineDescription desc{};
     NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm"};
+    inline static const auto success = mp::ProcessState{0, std::nullopt};
+    inline static const auto specs = [] {
+        const auto cpus = 3;
+        const auto mem_size = mp::MemorySize{"1.23G"};
+        const auto disk_space = mp::MemorySize{"3.21M"};
+        const auto state = mp::VirtualMachine::State::off;
+        const auto mounts =
+            std::unordered_map<std::string, mp::VMMount>{{"asdf", {"fdsa", {}, {}, mp::VMMount::MountType::Classic}}};
+        const auto metadata = [] {
+            auto metadata = QJsonObject{};
+            metadata["meta"] = "data";
+            return metadata;
+        }();
+
+        return mp::VMSpecs{cpus, mem_size, disk_space, "mac", {}, "", state, mounts, false, metadata, {}};
+    }();
 };
 
 TEST_F(TestQemuSnapshot, initializesBaseProperties)
@@ -60,19 +76,6 @@ TEST_F(TestQemuSnapshot, initializesBaseProperties)
     const auto comment = "comment";
     const auto parent = std::make_shared<mpt::MockSnapshot>();
 
-    const auto cpus = 3;
-    const auto mem_size = mp::MemorySize{"1.23G"};
-    const auto disk_space = mp::MemorySize{"3.21M"};
-    const auto state = mp::VirtualMachine::State::off;
-    const auto mounts =
-        std::unordered_map<std::string, mp::VMMount>{{"asdf", {"fdsa", {}, {}, mp::VMMount::MountType::Classic}}};
-    const auto metadata = [] {
-        auto metadata = QJsonObject{};
-        metadata["meta"] = "data";
-        return metadata;
-    }();
-    const auto specs = mp::VMSpecs{cpus, mem_size, disk_space, "mac", {}, "", state, mounts, false, metadata, {}};
-
     auto desc = mp::VirtualMachineDescription{};
     auto vm = NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm"};
 
@@ -80,12 +83,12 @@ TEST_F(TestQemuSnapshot, initializesBaseProperties)
     EXPECT_EQ(snapshot.get_name(), name);
     EXPECT_EQ(snapshot.get_comment(), comment);
     EXPECT_EQ(snapshot.get_parent(), parent);
-    EXPECT_EQ(snapshot.get_num_cores(), cpus);
-    EXPECT_EQ(snapshot.get_mem_size(), mem_size);
-    EXPECT_EQ(snapshot.get_disk_space(), disk_space);
-    EXPECT_EQ(snapshot.get_state(), state);
-    EXPECT_EQ(snapshot.get_mounts(), mounts);
-    EXPECT_EQ(snapshot.get_metadata(), metadata);
+    EXPECT_EQ(snapshot.get_num_cores(), specs.num_cores);
+    EXPECT_EQ(snapshot.get_mem_size(), specs.mem_size);
+    EXPECT_EQ(snapshot.get_disk_space(), specs.disk_space);
+    EXPECT_EQ(snapshot.get_state(), specs.state);
+    EXPECT_EQ(snapshot.get_mounts(), specs.mounts);
+    EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
 }
 
 TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
