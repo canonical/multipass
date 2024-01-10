@@ -105,6 +105,8 @@ struct MockVirtualMachineT : public T
                 (override));
     MOCK_METHOD(std::vector<std::string>, get_childrens_names, (const Snapshot*), (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
+    MOCK_METHOD(std::string, generate_new_clone_name, (), (const, override));
+    MOCK_METHOD(void, update_clone_name_counter, (), (override));
 
     std::unique_ptr<TempDir> tmp_dir;
 };

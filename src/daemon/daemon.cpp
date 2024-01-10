@@ -2694,27 +2694,9 @@ void mp::Daemon::clone(const CloneRequest* request,
                    delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
         };
 
-        auto generate_appended_clone_name = [is_name_already_used](const std::string& source_name) -> std::string {
-            std::string clone_name = source_name;
-            // try to generate clone name by appending "-clone"
-            const int number_of_appended_clone_substring = 5;
-            for (int i = 0; i < number_of_appended_clone_substring; ++i)
-            {
-                clone_name += "-clone";
-                if (!is_name_already_used(clone_name))
-                {
-                    return clone_name;
-                }
-            }
-
-            throw std::runtime_error("Can not generate clone name, try to specify an non-existing clone name. ");
-        };
-
-        auto generate_destination_name = [is_name_already_used,
-                                          generate_appended_clone_name](const CloneRequest& request) -> std::string {
+        auto generate_destination_name = [is_name_already_used, this](const CloneRequest& request) -> std::string {
             if (request.has_destination_name())
             {
-                // TODO: can this check be moved to CLI?
                 if (!mp::utils::valid_hostname(request.destination_name()))
                 {
                     throw std::runtime_error("Invalid destination virtual machine instance name: " +
@@ -2723,16 +2705,24 @@ void mp::Daemon::clone(const CloneRequest* request,
 
                 if (is_name_already_used(request.destination_name()))
                 {
-                    throw std::runtime_error(
-                        request.destination_name() +
-                        " already exists, pick a new name or just run multipass clone <source_name>");
+                    throw std::runtime_error(request.destination_name() +
+                                             " already exists, please choose a new name. ");
                 }
 
                 return request.destination_name();
             }
             else
             {
-                return generate_appended_clone_name(request.source_name());
+                const std::string destination_name =
+                    operative_instances[request.source_name()]->generate_new_clone_name();
+
+                if (is_name_already_used(destination_name))
+                {
+                    throw std::runtime_error("auto-generated name " + destination_name +
+                                             " already exists, please specify a new name manually. ");
+                }
+
+                return destination_name;
             }
         };
 
@@ -2860,6 +2850,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                                       dest_vm_spec,
                                                                       source_name);
         init_mounts(destination_name);
+        operative_instances[source_name]->update_clone_name_counter();
 
         mpl::log(mpl::Level::info,
                  "general",
