@@ -16,10 +16,12 @@
  */
 
 #include "common.h"
+#include "mock_process_factory.h"
 #include "mock_snapshot.h"
 #include "mock_virtual_machine.h"
 #include "path.h"
 
+#include <multipass/process/process.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <src/platform/backends/qemu/qemu_snapshot.h>
@@ -50,6 +52,11 @@ struct PublicQemuSnapshot : public mp::QemuSnapshot
 
 struct TestQemuSnapshot : public Test
 {
+    TestQemuSnapshot()
+    {
+        desc.image.image_path = "raniunotuiroleh";
+    }
+
     mp::VirtualMachineDescription desc{};
     NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm"};
     inline static const auto success = mp::ProcessState{0, std::nullopt};
@@ -112,6 +119,36 @@ TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
     EXPECT_THAT(
         snapshot.get_metadata(),
         ResultOf([](const QJsonObject& metadata) { return metadata["arguments"].toArray(); }, Contains("-qmp")));
+}
+
+TEST_F(TestQemuSnapshot, capturesSnapshot)
+{
+    auto snapshot_index = 3;
+    auto snapshot_tag = fmt::format("@s{}", snapshot_index);
+    EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(snapshot_index - 1));
+
+    auto proc_count = 0;
+    auto list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
+    auto capture_args_matcher =
+        ElementsAre("snapshot", "-c", QString::fromStdString(snapshot_tag), desc.image.image_path);
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_LE(++proc_count, 2);
+
+        EXPECT_EQ(process->program(), "qemu-img");
+
+        using ArgsMatcher = Matcher<QStringList>;
+        const auto args_matcher = proc_count == 1 ? ArgsMatcher{list_args_matcher} : ArgsMatcher{capture_args_matcher};
+        EXPECT_THAT(process->arguments(), args_matcher);
+
+        EXPECT_CALL(*process, execute).WillOnce(Return(success));
+    });
+
+    mp::QemuSnapshot snapshot{"asdf", "", nullptr, specs, vm, desc};
+    snapshot.capture();
+
+    EXPECT_EQ(proc_count, 2);
 }
 
 } // namespace
