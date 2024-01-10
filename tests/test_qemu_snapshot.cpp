@@ -59,13 +59,32 @@ struct TestQemuSnapshot : public Test
         return mp::QemuSnapshot{name, "", nullptr, specs, vm, desc};
     }
 
+    template <typename T>
+    static std::string derive_tag(T&& index)
+    {
+        return fmt::format("@s{}", std::forward<T>(index));
+    }
+
+    static void set_common_expectations_on(mpt::MockProcess* process)
+    {
+        EXPECT_EQ(process->program(), "qemu-img");
+        EXPECT_CALL(*process, execute).WillOnce(Return(success));
+    }
+
+    static void set_tag_output(mpt::MockProcess* process, std::string tag)
+    {
+        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(tag + ' ')));
+    }
+
     mp::VirtualMachineDescription desc = [] {
         mp::VirtualMachineDescription ret{};
         ret.image.image_path = "raniunotuiroleh";
         return ret;
     }();
+
     NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm"};
     ArgsMatcher list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
+
     inline static const auto success = mp::ProcessState{0, std::nullopt};
     inline static const auto specs = [] {
         const auto cpus = 3;
@@ -131,7 +150,7 @@ TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
 TEST_F(TestQemuSnapshot, capturesSnapshot)
 {
     auto snapshot_index = 3;
-    auto snapshot_tag = fmt::format("@s{}", snapshot_index);
+    auto snapshot_tag = derive_tag(snapshot_index);
     EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(snapshot_index - 1));
 
     auto proc_count = 0;
@@ -143,12 +162,10 @@ TEST_F(TestQemuSnapshot, capturesSnapshot)
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
         ASSERT_LE(++proc_count, 2);
 
-        EXPECT_EQ(process->program(), "qemu-img");
+        set_common_expectations_on(process);
 
         const auto& args_matcher = proc_count == 1 ? list_args_matcher : capture_args_matcher;
         EXPECT_THAT(process->arguments(), args_matcher);
-
-        EXPECT_CALL(*process, execute).WillOnce(Return(success));
     });
 
     quick_snapshot().capture();
@@ -158,7 +175,7 @@ TEST_F(TestQemuSnapshot, capturesSnapshot)
 TEST_F(TestQemuSnapshot, captureThrowsOnRepeatedTag)
 {
     auto snapshot_index = 22;
-    auto snapshot_tag = fmt::format("@s{}", snapshot_index);
+    auto snapshot_tag = derive_tag(snapshot_index);
     EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(snapshot_index - 1));
 
     auto proc_count = 0;
@@ -166,11 +183,10 @@ TEST_F(TestQemuSnapshot, captureThrowsOnRepeatedTag)
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
         ASSERT_EQ(++proc_count, 1);
 
-        EXPECT_EQ(process->program(), "qemu-img");
-        EXPECT_THAT(process->arguments(), list_args_matcher);
+        set_common_expectations_on(process);
 
-        EXPECT_CALL(*process, execute).WillOnce(Return(success));
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(snapshot_tag + ' ')));
+        EXPECT_THAT(process->arguments(), list_args_matcher);
+        set_tag_output(process, snapshot_tag);
     });
 
     MP_EXPECT_THROW_THAT(quick_snapshot("whatever").capture(),
