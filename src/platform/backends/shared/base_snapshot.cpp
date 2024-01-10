@@ -238,7 +238,7 @@ auto mp::BaseSnapshot::erase_helper()
     auto deleting_filepath = tmp_dir->filePath(snapshot_filename);
 
     QFile snapshot_file{snapshot_filepath};
-    if (!MP_FILEOPS.rename(snapshot_file, deleting_filepath))
+    if (!MP_FILEOPS.rename(snapshot_file, deleting_filepath) && snapshot_file.exists())
         throw std::runtime_error{
             fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
 
