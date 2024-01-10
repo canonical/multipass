@@ -17,9 +17,11 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.3.6
+  flutter_svg: ^2.0.7
+  fpdart: ^1.1.0
   grpc: ^3.1.0
   path_provider: ^2.1.0
-  flutter_svg: ^2.0.7
+  rxdart: ^0.27.7
   tray_menu:
     git: https://github.com/andrei-toterman/tray_menu.git
   two_dimensional_scrollables: ^0.0.2
