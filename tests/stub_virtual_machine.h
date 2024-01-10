@@ -200,6 +200,15 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return 0;
     }
 
+    std::string generate_new_clone_name() const override
+    {
+        return {};
+    }
+
+    void update_clone_name_counter() override
+    {
+    }
+
     StubSnapshot snapshot;
     std::unique_ptr<TempDir> tmp_dir;
 };
