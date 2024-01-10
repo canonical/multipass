@@ -522,6 +522,16 @@ std::string BaseVirtualMachine::generate_snapshot_name() const
     return fmt::format("snapshot{}", snapshot_count + 1);
 }
 
+std::string BaseVirtualMachine::generate_new_clone_name() const
+{
+    return fmt::format("{}-clone{}", vm_name, cloned_instance_count);
+}
+
+void BaseVirtualMachine::update_clone_name_counter()
+{
+    ++cloned_instance_count;
+}
+
 auto BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpecs& specs)
 {
     return sg::make_scope_guard([this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
