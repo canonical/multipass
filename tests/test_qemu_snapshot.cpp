@@ -92,6 +92,7 @@ struct TestQemuSnapshot : public Test
     ArgsMatcher list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
 
     inline static const auto success = mp::ProcessState{0, std::nullopt};
+    inline static const auto failure = mp::ProcessState{1, std::nullopt};
     inline static const auto specs = [] {
         const auto cpus = 3;
         const auto mem_size = mp::MemorySize{"1.23G"};
@@ -278,4 +279,28 @@ TEST_F(TestQemuSnapshot, appliesSnapshot)
     EXPECT_EQ(desc.mem_size, snapshot.get_mem_size());
     EXPECT_EQ(desc.disk_space, snapshot.get_disk_space());
 }
+
+TEST_F(TestQemuSnapshot, keepsDescOnFailure)
+{
+    auto snapshot = loaded_snapshot();
+    auto proc_count = 0;
+
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_EQ(++proc_count, 1);
+        EXPECT_CALL(*process, execute).WillOnce(Return(failure));
+    });
+
+    desc.num_cores = 123;
+    desc.mem_size = mp::MemorySize{"321"};
+    desc.disk_space = mp::MemorySize{"56K"};
+
+    const auto orig_desc = desc;
+    MP_EXPECT_THROW_THAT(snapshot.apply(), std::runtime_error, mpt::match_what(HasSubstr("qemu-img failed")));
+
+    EXPECT_EQ(orig_desc.num_cores, desc.num_cores);
+    EXPECT_EQ(orig_desc.mem_size, desc.mem_size);
+    EXPECT_EQ(orig_desc.disk_space, desc.disk_space);
+}
+
 } // namespace
