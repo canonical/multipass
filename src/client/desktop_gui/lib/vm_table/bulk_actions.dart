@@ -19,35 +19,34 @@ class BulkActionsBar extends ConsumerWidget {
   }
 
   Widget buildButton(VmAction action, Set<Status> statuses) {
-    final active = action.allowedStatuses.intersection(statuses).isNotEmpty;
-    final isDelete = action.name == 'Delete';
-    final textColor = isDelete ? Colors.white : Colors.black;
+    final child = Text(action.name);
+    final onPressed = action.allowedStatuses.intersection(statuses).isNotEmpty
+        ? () => action.function(action.vmNames)
+        : null;
 
-    final style = TextButton.styleFrom(
-      backgroundColor: isDelete ? const Color(0xffC7162B) : Colors.white,
-      foregroundColor: textColor,
-      disabledForegroundColor: textColor.withOpacity(0.5),
-      padding: const EdgeInsets.all(16),
-      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w300),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-    ).copyWith(side: MaterialStateBorderSide.resolveWith((states) {
-      final disabled = states.contains(MaterialState.disabled);
-      return isDelete
-          ? BorderSide.none
-          : BorderSide(
-              color: const Color(0xff333333).withOpacity(disabled ? 0.5 : 1),
-              width: 1.2,
-            );
-    }));
+    final button = action.name == 'Delete'
+        ? TextButton(
+            onPressed: onPressed,
+            style: const ButtonStyle(
+              backgroundColor: MaterialStatePropertyAll(Color(0xffC7162B)),
+            ),
+            child: child,
+          )
+        : OutlinedButton(
+            onPressed: onPressed,
+            style: ButtonStyle(
+              side: MaterialStateBorderSide.resolveWith(
+                (states) => BorderSide(
+                  color: const Color(0xff333333).withOpacity(
+                    states.contains(MaterialState.disabled) ? 0.5 : 1,
+                  ),
+                ),
+              ),
+            ),
+            child: child,
+          );
 
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: TextButton(
-        onPressed: active ? () => action.function(action.vmNames) : null,
-        style: style,
-        child: Text(action.name),
-      ),
-    );
+    return Container(margin: const EdgeInsets.only(right: 8), child: button);
   }
 
   @override
