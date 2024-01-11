@@ -75,6 +75,16 @@ class SideBar extends ConsumerWidget {
       ),
     ]);
 
+    final instanceEntries = vmNames.map((name) {
+      final key = 'instance-$name';
+      return SidebarEntry(
+        icon: const SizedBox(width: 30),
+        selected: isSelected(key),
+        child: Text(name),
+        onPressed: () {},
+      );
+    });
+
     return Container(
       color: const Color(0xff262626),
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -86,6 +96,7 @@ class SideBar extends ConsumerWidget {
           const SizedBox(height: 15),
           catalogue,
           instances,
+          ...instanceEntries,
           const Spacer(),
           Divider(color: Colors.white.withOpacity(0.3)),
           exit,
