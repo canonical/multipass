@@ -163,50 +163,6 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     return config;
 }
 
-auto make_cloud_init_meta_config(const std::string& name)
-{
-    YAML::Node meta_data;
-
-    meta_data["instance-id"] = name;
-    meta_data["local-hostname"] = name;
-    meta_data["cloud-name"] = "multipass";
-
-    return meta_data;
-}
-
-auto make_cloud_init_network_config(const std::string default_mac_addr,
-                                    const std::vector<mp::NetworkInterface>& extra_interfaces)
-{
-    YAML::Node network_data;
-
-    // Generate the cloud-init file only if there is at least one extra interface needing auto configuration.
-    if (std::find_if(extra_interfaces.begin(), extra_interfaces.end(),
-                     [](const auto& iface) { return iface.auto_mode; }) != extra_interfaces.end())
-    {
-        network_data["version"] = "2";
-
-        std::string name = "default";
-        network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
-        network_data["ethernets"][name]["dhcp4"] = true;
-
-        for (size_t i = 0; i < extra_interfaces.size(); ++i)
-        {
-            if (extra_interfaces[i].auto_mode)
-            {
-                name = "extra" + std::to_string(i);
-                network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
-                network_data["ethernets"][name]["dhcp4"] = true;
-                // We make the default gateway associated with the first interface.
-                network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = 200;
-                // Make the interface optional, which means that networkd will not wait for the device to be configured.
-                network_data["ethernets"][name]["optional"] = true;
-            }
-        }
-    }
-
-    return network_data;
-}
-
 void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 {
     auto users = user_data_config["users"];
@@ -2842,13 +2798,13 @@ void mp::Daemon::clone(const CloneRequest* request,
         // move into base_virtual_machine_factory.cpp eventually
         const auto& dest_vm_spec = vm_instance_specs.at(destination_name);
         const YAML::Node network_data =
-            make_cloud_init_network_config(dest_vm_spec.default_mac_address, dest_vm_spec.extra_interfaces);
+            mpu::make_cloud_init_network_config(dest_vm_spec.default_mac_address, dest_vm_spec.extra_interfaces);
         mp::CloudInitIso qemu_iso;
         if (!network_data.IsNull())
         {
             qemu_iso.add_file("network-config", mpu::emit_cloud_config(network_data));
         }
-        const YAML::Node meta_data = make_cloud_init_meta_config(destination_name);
+        const YAML::Node meta_data = mpu::make_cloud_init_meta_config(destination_name);
         qemu_iso.add_file("meta-data", mpu::emit_cloud_config(meta_data));
 
         // create the mount folder
@@ -3306,7 +3262,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-            vm_desc.meta_data_config = make_cloud_init_meta_config(name);
+            vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
 
@@ -3314,7 +3270,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
             vm_desc.network_data_config =
-                make_cloud_init_network_config(vm_desc.default_mac_address, checked_args.extra_interfaces);
+                mpu::make_cloud_init_network_config(vm_desc.default_mac_address, checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
             config->factory->configure(vm_desc);

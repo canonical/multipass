@@ -48,6 +48,7 @@ namespace multipass
 // Fwd decl
 class SSHKeyProvider;
 class VirtualMachine;
+struct NetworkInterface;
 
 namespace utils
 {
