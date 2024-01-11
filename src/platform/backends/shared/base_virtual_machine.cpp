@@ -524,7 +524,7 @@ std::string BaseVirtualMachine::generate_snapshot_name() const
 
 std::string BaseVirtualMachine::generate_new_clone_name() const
 {
-    return fmt::format("{}-clone{}", vm_name, cloned_instance_count);
+    return fmt::format("{}-clone{}", vm_name, cloned_instance_count + 1);
 }
 
 void BaseVirtualMachine::update_clone_name_counter()
