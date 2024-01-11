@@ -24,6 +24,32 @@ final enabledHeadersProvider = StateProvider(
   (_) => {for (final h in headers) h.name: true}.build(),
 );
 
+class HeaderSelectionTile extends ConsumerWidget {
+  final String name;
+
+  const HeaderSelectionTile(this.name, {super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabledHeaders = ref.watch(enabledHeadersProvider);
+
+    return CheckboxListTile(
+      controlAffinity: ListTileControlAffinity.leading,
+      title: Text(name),
+      value: enabledHeaders[name],
+      onChanged: (isSelected) {
+        ref.read(enabledHeadersProvider.notifier).update(
+          (state) {
+            final builder = state.toBuilder();
+            builder[name] = isSelected!;
+            return builder.build();
+          },
+        );
+      },
+    );
+  }
+}
+
 class HeaderSelection extends StatelessWidget {
   const HeaderSelection({super.key});
 
@@ -31,29 +57,10 @@ class HeaderSelection extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton(
       position: PopupMenuPosition.under,
-      itemBuilder: (_) => [
-        for (final header in headers.skip(2))
-          LastingPopupMenuItem(
-            child: Consumer(builder: (_, ref, __) {
-              final enabledHeaders = ref.watch(enabledHeadersProvider);
-
-              return CheckboxListTile(
-                controlAffinity: ListTileControlAffinity.leading,
-                title: Text(header.name),
-                value: enabledHeaders[header.name],
-                onChanged: (isSelected) {
-                  ref.read(enabledHeadersProvider.notifier).update(
-                    (state) {
-                      final builder = state.toBuilder();
-                      builder[header.name] = isSelected!;
-                      return builder.build();
-                    },
-                  );
-                },
-              );
-            }),
-          )
-      ],
+      itemBuilder: (_) => headers
+          .skip(2)
+          .map((h) => LastingPopupMenuItem(child: HeaderSelectionTile(h.name)))
+          .toList(),
       child: Container(
         width: 120,
         height: 42,
