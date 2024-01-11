@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 import 'catalogue/catalogue.dart';
 import 'help.dart';
 import 'providers.dart';
+import 'settings.dart';
 import 'vm_table/vm_table_screen.dart';
 
 final sidebarKeyProvider = StateProvider((_) => CatalogueScreen.sidebarKey);
@@ -14,6 +15,7 @@ final sidebarWidgetProvider =
 const sidebarWidgets = {
   CatalogueScreen.sidebarKey: CatalogueScreen(),
   VmTableScreen.sidebarKey: VmTableScreen(),
+  SettingsScreen.sidebarKey: SettingsScreen(),
   HelpScreen.sidebarKey: HelpScreen(),
 };
 
@@ -52,6 +54,14 @@ class SideBar extends ConsumerWidget {
       child: const Text('Help'),
       onPressed: () =>
           ref.read(sidebarKeyProvider.notifier).state = HelpScreen.sidebarKey,
+    );
+
+    final settings = SidebarEntry(
+      icon: SvgPicture.asset('assets/settings.svg'),
+      selected: isSelected(SettingsScreen.sidebarKey),
+      child: const Text('Settings'),
+      onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
+          SettingsScreen.sidebarKey,
     );
 
     final exit = SidebarEntry(
@@ -110,6 +120,7 @@ class SideBar extends ConsumerWidget {
           const Spacer(),
           Divider(color: Colors.white.withOpacity(0.3)),
           help,
+          settings,
           exit,
         ],
       ),
