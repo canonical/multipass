@@ -48,13 +48,6 @@ class Vms extends ConsumerWidget {
       ),
       TextButton(
         onPressed: goToCatalogue,
-        style: TextButton.styleFrom(
-          backgroundColor: const Color(0xff0E8620),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.all(16),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w300),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
-        ),
         child: const Text('Launch image'),
       )
     ]);
