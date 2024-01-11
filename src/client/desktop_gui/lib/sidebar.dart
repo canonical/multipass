@@ -21,69 +21,33 @@ class SideBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedSidebarKey = ref.watch(sidebarKeyProvider);
+    final vmNames = ref.watch(vmNamesProvider);
 
-    Widget buildButton({
-      required Widget icon,
-      required Widget child,
-      String? sidebarKey,
-      required void Function() onPressed,
-    }) {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        decoration: BoxDecoration(
-          border: Border(
-            left: sidebarKey == selectedSidebarKey
-                ? const BorderSide(color: Colors.white, width: 2)
-                : BorderSide.none,
-          ),
-        ),
-        child: TextButton.icon(
-          icon: icon,
-          label: child,
-          onPressed: onPressed,
-          style: TextButton.styleFrom(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-            shape: const LinearBorder(),
-            foregroundColor: Colors.white,
-            backgroundColor: sidebarKey == selectedSidebarKey
-                ? const Color(0xff444444)
-                : Colors.transparent,
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w300,
-            ),
-          ),
-        ),
-      );
-    }
+    bool isSelected(String key) => key == selectedSidebarKey;
 
-    final catalogue = buildButton(
+    final catalogue = SidebarEntry(
       icon: SvgPicture.asset('assets/catalogue.svg'),
-      sidebarKey: CatalogueScreen.sidebarKey,
+      selected: isSelected(CatalogueScreen.sidebarKey),
       child: const Text('Catalogue'),
       onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
           CatalogueScreen.sidebarKey,
     );
 
-    final instances = buildButton(
+    final instances = SidebarEntry(
       icon: SvgPicture.asset('assets/instances.svg'),
-      sidebarKey: VmTableScreen.sidebarKey,
+      selected: isSelected(VmTableScreen.sidebarKey),
       child: Row(children: [
         const Expanded(child: Text('Instances')),
-        Consumer(builder: (_, ref, __) {
-          final nVms = ref.watch(vmInfosProvider.select((vms) => vms.length));
-          return Text('$nVms');
-        }),
+        Text('${vmNames.length}'),
       ]),
       onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
           VmTableScreen.sidebarKey,
     );
 
-    final exit = buildButton(
+    final exit = SidebarEntry(
       icon: SvgPicture.asset('assets/exit.svg'),
-      child: const Text('Close Application'),
       onPressed: windowManager.destroy,
+      child: const Text('Close Application'),
     );
 
     final header = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -126,6 +90,49 @@ class SideBar extends ConsumerWidget {
           Divider(color: Colors.white.withOpacity(0.3)),
           exit,
         ],
+      ),
+    );
+  }
+}
+
+class SidebarEntry extends StatelessWidget {
+  final Widget child;
+  final Widget icon;
+  final VoidCallback onPressed;
+  final bool selected;
+
+  const SidebarEntry({
+    super.key,
+    required this.child,
+    required this.icon,
+    required this.onPressed,
+    this.selected = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        border: Border(
+          left: selected
+              ? const BorderSide(color: Colors.white, width: 2)
+              : BorderSide.none,
+        ),
+      ),
+      child: TextButton.icon(
+        icon: icon,
+        label: child,
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+          shape: const LinearBorder(),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w300),
+          backgroundColor:
+              selected ? const Color(0xff444444) : Colors.transparent,
+        ),
       ),
     );
   }
