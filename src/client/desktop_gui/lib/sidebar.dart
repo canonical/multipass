@@ -8,6 +8,8 @@ import 'providers.dart';
 import 'vm_table/vm_table_screen.dart';
 
 final sidebarKeyProvider = StateProvider((_) => CatalogueScreen.sidebarKey);
+final sidebarWidgetProvider =
+    Provider<Widget>((ref) => sidebarWidgets[ref.watch(sidebarKeyProvider)]!);
 const sidebarWidgets = {
   CatalogueScreen.sidebarKey: CatalogueScreen(),
   VmTableScreen.sidebarKey: VmTableScreen(),

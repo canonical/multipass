@@ -25,22 +25,19 @@ void main() async {
   );
 }
 
-class App extends StatelessWidget {
+class App extends ConsumerWidget {
   const App({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final content = ref.watch(sidebarWidgetProvider);
+
     return MaterialApp(
       theme: theme,
-      home: Consumer(
-        builder: (_, ref, __) {
-          final sidebarKey = ref.watch(sidebarKeyProvider);
-          return Row(children: [
-            const SideBar(),
-            Expanded(child: sidebarWidgets[sidebarKey]!),
-          ]);
-        },
-      ),
+      home: Row(children: [
+        const SideBar(),
+        Expanded(child: content),
+      ]),
     );
   }
 }
