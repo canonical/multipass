@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'catalogue.dart';
+import 'catalogue/catalogue.dart';
 import 'providers.dart';
 import 'vm_table/vm_table_screen.dart';
 
