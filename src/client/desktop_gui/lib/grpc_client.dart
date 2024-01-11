@@ -121,6 +121,19 @@ class GrpcClient {
         .single
         .then((reply) => reply.updateInfo);
   }
+
+  Future<String> get(String key) {
+    final request = GetRequest(key: key);
+    return _client
+        .get(Stream.value(request))
+        .single
+        .then((reply) => reply.value);
+  }
+
+  Future<void> set(String key, String value) {
+    final request = SetRequest(key: key, val: value);
+    return _client.set(Stream.value(request)).single;
+  }
 }
 
 class CustomChannelCredentials extends ChannelCredentials {
