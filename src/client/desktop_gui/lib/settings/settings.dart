@@ -1,4 +1,8 @@
+import 'package:desktop_gui/settings/usage_settings.dart';
+import 'package:desktop_gui/settings/virtualization_settings.dart';
 import 'package:flutter/material.dart';
+
+import 'general_settings.dart';
 
 class SettingsScreen extends StatelessWidget {
   static const sidebarKey = 'settings';
@@ -46,39 +50,6 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class GeneralSettings extends StatelessWidget {
-  const GeneralSettings({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: List.generate(50, (index) => Text('$index')),
-    );
-  }
-}
-
-class UsageSettings extends StatelessWidget {
-  const UsageSettings({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: List.generate(50, (index) => Text('$index')),
-    );
-  }
-}
-
-class VirtualizationSettings extends StatelessWidget {
-  const VirtualizationSettings({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: List.generate(50, (index) => Text('$index')),
     );
   }
 }

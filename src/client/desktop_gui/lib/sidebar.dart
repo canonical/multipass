@@ -6,7 +6,7 @@ import 'package:window_manager/window_manager.dart';
 import 'catalogue/catalogue.dart';
 import 'help.dart';
 import 'providers.dart';
-import 'settings.dart';
+import 'settings/settings.dart';
 import 'vm_table/vm_table_screen.dart';
 
 final sidebarKeyProvider = StateProvider((_) => CatalogueScreen.sidebarKey);
