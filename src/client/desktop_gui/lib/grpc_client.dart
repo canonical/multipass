@@ -1,9 +1,13 @@
 import 'dart:io';
 
 import 'package:async/async.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
+import 'package:rxdart/rxdart.dart';
 
 import 'generated/multipass.pbgrpc.dart';
+
+export 'generated/multipass.pbgrpc.dart';
 
 typedef Status = InstanceStatus_Status;
 typedef VmInfo = DetailedInfoItem;
@@ -14,8 +18,18 @@ class GrpcClient {
 
   GrpcClient(this._client);
 
-  ResponseStream<LaunchReply> launch(LaunchRequest request) {
-    return _client.launch(Stream.value(request), options: CallOptions());
+  Stream<Either<LaunchReply, MountReply>> launch(
+    LaunchRequest request, [
+    List<MountRequest> mountRequests = const [],
+  ]) {
+    Stream<Either<LaunchReply, MountReply>> launchImpl() async* {
+      yield* _client.launch(Stream.value(request)).map(Either.left);
+      for (final mountRequest in mountRequests) {
+        yield* _client.mount(Stream.value(mountRequest)).map(Either.right);
+      }
+    }
+
+    return BehaviorSubject()..addStream(launchImpl(), cancelOnError: true);
   }
 
   Future<StartReply?> start(Iterable<String> names) {
@@ -78,7 +92,10 @@ class GrpcClient {
         (name) => InstanceSnapshotPair(instanceName: name),
       ),
     );
-    return _client.info(Stream.value(request)).single.then((r) => r.details.toList());
+    return _client
+        .info(Stream.value(request))
+        .single
+        .then((r) => r.details.toList());
   }
 
   Future<FindReply> find({bool images = true, bool blueprints = true}) {
