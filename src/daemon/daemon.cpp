@@ -2687,14 +2687,13 @@ void mp::Daemon::clone(const CloneRequest* request,
             throw std::runtime_error(source_name + " is not an existing instance.");
         }
 
-        // TODO: wrap the whole handling destination name thing into a function
-        auto is_name_already_used = [this](const std::string& destination_name) -> bool {
-            return operative_instances.find(destination_name) != operative_instances.end() ||
-                   deleted_instances.find(destination_name) != deleted_instances.end() ||
-                   delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
-        };
+        auto generate_destination_name = [this](const CloneRequest& request) -> std::string {
+            auto is_name_already_used = [this](const std::string& destination_name) -> bool {
+                return operative_instances.find(destination_name) != operative_instances.end() ||
+                       deleted_instances.find(destination_name) != deleted_instances.end() ||
+                       delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
+            };
 
-        auto generate_destination_name = [is_name_already_used, this](const CloneRequest& request) -> std::string {
             if (request.has_destination_name())
             {
                 if (!mp::utils::valid_hostname(request.destination_name()))
