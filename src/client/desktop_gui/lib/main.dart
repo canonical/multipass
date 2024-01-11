@@ -31,6 +31,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: theme,
       home: Consumer(
         builder: (_, ref, __) {
           final sidebarKey = ref.watch(sidebarKeyProvider);
@@ -40,10 +41,54 @@ class App extends StatelessWidget {
           ]);
         },
       ),
-      theme: ThemeData(
-        fontFamily: 'Ubuntu',
-        scaffoldBackgroundColor: Colors.white,
-      ),
     );
   }
 }
+
+final theme = ThemeData(
+  fontFamily: 'Ubuntu',
+  inputDecorationTheme: const InputDecorationTheme(
+    border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+    isDense: true,
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.zero,
+      borderSide: BorderSide(),
+    ),
+    suffixIconColor: Colors.black,
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      disabledForegroundColor: Colors.black.withOpacity(0.5),
+      foregroundColor: Colors.black,
+      padding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(2),
+      ),
+      side: const BorderSide(color: Color(0xff333333)),
+      textStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w300,
+      ),
+    ),
+  ),
+  scaffoldBackgroundColor: Colors.white,
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(
+      backgroundColor: const Color(0xff0E8620),
+      disabledForegroundColor: Colors.white.withOpacity(0.5),
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(2),
+      ),
+      textStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w300,
+      ),
+    ),
+  ),
+  textSelectionTheme: const TextSelectionThemeData(
+    cursorColor: Colors.black,
+    selectionColor: Colors.grey,
+  ),
+);
