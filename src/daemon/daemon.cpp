@@ -2774,13 +2774,13 @@ void mp::Daemon::clone(const CloneRequest* request,
         // move into base_virtual_machine_factory.cpp eventually
         const auto& dest_vm_spec = vm_instance_specs.at(destination_name);
         const YAML::Node network_data =
-            make_cloud_init_network_config(dest_vm_spec.default_mac_address, dest_vm_spec.extra_interfaces);
+            mpu::make_cloud_init_network_config(dest_vm_spec.default_mac_address, dest_vm_spec.extra_interfaces);
         mp::CloudInitIso qemu_iso;
         if (!network_data.IsNull())
         {
             qemu_iso.add_file("network-config", mpu::emit_cloud_config(network_data));
         }
-        const YAML::Node meta_data = make_cloud_init_meta_config(destination_name);
+        const YAML::Node meta_data = mpu::make_cloud_init_meta_config(destination_name);
         qemu_iso.add_file("meta-data", mpu::emit_cloud_config(meta_data));
 
         // create the mount folder
