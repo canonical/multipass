@@ -113,6 +113,14 @@ class GrpcClient {
         .single
         .then((reply) => reply.version);
   }
+
+  Future<UpdateInfo> updateInfo() {
+    final request = VersionRequest();
+    return _client
+        .version(Stream.value(request))
+        .single
+        .then((reply) => reply.updateInfo);
+  }
 }
 
 class CustomChannelCredentials extends ChannelCredentials {
