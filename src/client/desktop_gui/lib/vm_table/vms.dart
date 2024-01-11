@@ -2,7 +2,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart' hide Table, Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../catalogue.dart';
+import '../catalogue/catalogue.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';

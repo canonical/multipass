@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../catalogue.dart';
+import '../catalogue/catalogue.dart';
 import '../sidebar.dart';
 import '../text_span_ext.dart';
 
