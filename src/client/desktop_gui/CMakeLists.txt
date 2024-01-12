@@ -17,6 +17,7 @@ add_library(dart_ffi SHARED ffi/dart_ffi.cpp)
 target_link_libraries(dart_ffi
   petname
   client_common
+  client_platform
 )
 
 install(TARGETS dart_ffi LIBRARY COMPONENT multipass)

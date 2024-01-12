@@ -66,6 +66,11 @@ final _setSetting = _lib.lookupFunction<
       ffi.Pointer<ffi.Pointer<Utf8>>,
     )>('set_setting');
 
+final uid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('uid');
+final gid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('gid');
+final default_id =
+    _lib.lookupFunction<ffi.Int32 Function(), int Function()>('default_id');
+
 final class _NativeKeyCertificatePair extends ffi.Struct {
   // ignore: non_constant_identifier_names
   external ffi.Pointer<Utf8> pem_cert;
