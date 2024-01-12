@@ -3177,8 +3177,9 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
         }
         catch (const std::exception& e)
         {
-            mpl::log(mpl::Level::info, category,
-                     fmt::format("Cannot open ssh session on \"{}\" shutdown: {}", name, e.what()));
+            mpl::log(mpl::Level::info,
+                     category,
+                     fmt::format("Cannot open ssh session on \"{}\" for shutdown: {}", name, e.what()));
         }
 
         auto stop_all_mounts = [this](const std::string& name) { stop_mounts(name); };
