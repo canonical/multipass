@@ -1,6 +1,7 @@
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 
+import '../ffi.dart';
 import '../providers.dart';
 
 class MountPoint extends StatelessWidget {
@@ -55,7 +56,13 @@ class _MountPointListState extends State<MountPointList> {
         child: MountPoint(
           onDelete: () => setState(() => keys.remove(key)),
           onSourceSaved: (value) {
-            widget.mountRequests.add(MountRequest(sourcePath: value));
+            widget.mountRequests.add(MountRequest(
+              sourcePath: value,
+              mountMaps: MountMaps(
+                uidMappings: [IdMap(hostId: uid(), instanceId: default_id())],
+                gidMappings: [IdMap(hostId: gid(), instanceId: default_id())],
+              ),
+            ));
           },
           onTargetSaved: (value) {
             final request = widget.mountRequests.last;

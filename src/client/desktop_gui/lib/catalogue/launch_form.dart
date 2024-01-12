@@ -115,6 +115,11 @@ class LaunchForm extends ConsumerWidget {
           launchRequest.remoteName = aliasInfo.remoteName;
         }
 
+        for (final mountRequest in mountRequests) {
+          mountRequest.targetPaths.first.instanceName =
+              launchRequest.instanceName;
+        }
+
         final grpcClient = ref.read(grpcClientProvider);
         final stream = grpcClient.launch(launchRequest, mountRequests);
         ref.read(launchOperationProvider.notifier).state =
