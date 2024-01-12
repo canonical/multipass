@@ -2,7 +2,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final _hoveredLinkProvider = StateProvider<TextSpan?>((_) => null);
+import 'sidebar.dart';
+
+final _hoveredLinkProvider = StateProvider.autoDispose<TextSpan?>((ref) {
+  ref.watch(sidebarKeyProvider);
+  return null;
+});
 
 extension TextSpanFromStringExt on String {
   TextSpan get span => TextSpan(
@@ -50,6 +55,8 @@ extension TextSpanExt on TextSpan {
         ),
         recognizer: TapGestureRecognizer()..onTap = callback,
         onEnter: (_) => ref.read(_hoveredLinkProvider.notifier).state = this,
-        onExit: (_) => ref.invalidate(_hoveredLinkProvider),
+        onExit: (_) {
+          if (ref.context.mounted) ref.invalidate(_hoveredLinkProvider);
+        },
       );
 }
