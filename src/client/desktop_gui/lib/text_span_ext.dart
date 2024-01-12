@@ -33,6 +33,12 @@ extension TextSpanExt on TextSpan {
         style: (style ?? noStyle).copyWith(fontSize: size),
       );
 
+  TextSpan color(Color color) => TextSpan(
+        text: text,
+        children: children,
+        style: (style ?? noStyle).copyWith(color: color),
+      );
+
   TextSpan link(WidgetRef ref, VoidCallback callback) => TextSpan(
         text: text,
         children: children,
