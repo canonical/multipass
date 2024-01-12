@@ -390,12 +390,13 @@ TEST(Utils, to_cmd_arguments_with_double_quotes_are_escaped)
     EXPECT_THAT(output, ::testing::StrEq("they said \\\"please\\\""));
 }
 
-TEST(Utils, trim_end_actually_trims_end)
+TEST(Utils, trimEndActuallyTrimsEnd)
 {
-    std::string s{"I'm a great\n\t string \n \f \n \r \t   \v"};
+    std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
     mp::utils::trim_end(s);
 
-    EXPECT_THAT(s, ::testing::StrEq("I'm a great\n\t string"));
+    EXPECT_THAT(s, ::testing::StrEq("\n \f \n \r \t   \vI'm a great\n\t string"));
+}
 }
 
 TEST(Utils, trim_newline_works)
