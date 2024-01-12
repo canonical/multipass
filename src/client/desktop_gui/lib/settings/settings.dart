@@ -1,4 +1,3 @@
-import 'package:desktop_gui/settings/usage_settings.dart';
 import 'package:desktop_gui/settings/virtualization_settings.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +11,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 2,
       child: Scaffold(
         body: Padding(
           padding:
@@ -34,7 +33,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 tabs: [
                   Tab(text: 'General'),
-                  Tab(text: 'Usage'),
+                  // Tab(text: 'Usage'),
                   Tab(text: 'Virtualization'),
                 ],
               ),
@@ -42,7 +41,7 @@ class SettingsScreen extends StatelessWidget {
               Expanded(
                 child: TabBarView(children: [
                   SingleChildScrollView(child: GeneralSettings()),
-                  SingleChildScrollView(child: UsageSettings()),
+                  // SingleChildScrollView(child: UsageSettings()),
                   SingleChildScrollView(child: VirtualizationSettings()),
                 ]),
               ),
