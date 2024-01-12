@@ -34,10 +34,7 @@ class App extends ConsumerWidget {
 
     return MaterialApp(
       theme: theme,
-      home: Row(children: [
-        const SideBar(),
-        Expanded(child: content),
-      ]),
+      home: SideBar(child: content),
     );
   }
 }
