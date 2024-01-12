@@ -27,4 +27,10 @@ extern "C" enum SettingResult get_setting(const char* key, const char** output);
 
 extern "C" enum SettingResult set_setting(const char* key, const char* value, const char** output);
 
+extern "C" int uid();
+
+extern "C" int gid();
+
+extern "C" int default_id();
+
 #endif // MULTIPASS_DART_FFI_H

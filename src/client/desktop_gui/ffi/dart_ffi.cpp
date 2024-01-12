@@ -9,6 +9,7 @@
 namespace mp = multipass;
 namespace mpc = multipass::client;
 namespace mpl = multipass::logging;
+namespace mcp = multipass::cli::platform;
 
 constexpr auto category = "dart-ffi";
 
@@ -158,4 +159,19 @@ extern "C" enum SettingResult set_setting(const char* key, const char* value, co
         *output = strdup("unknown error");
         return SettingResult::UnexpectedError;
     }
+}
+
+extern "C" int uid()
+{
+    return mcp::getuid();
+}
+
+extern "C" int gid()
+{
+    return mcp::getgid();
+}
+
+extern "C" int default_id()
+{
+    return mp::default_id;
 }
