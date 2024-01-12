@@ -21,15 +21,23 @@ const sidebarWidgets = {
 };
 
 final sidebarExpandedProvider = StateProvider((_) => false);
+final sidebarPushContentProvider = StateProvider((_) => true);
 
 class SideBar extends ConsumerWidget {
   static const animationDuration = Duration(milliseconds: 200);
 
+  final collapsedWidth = 60.0;
+  final expandedWidth = 240.0;
+  final Widget child;
+
+  const SideBar({super.key, required this.child});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedSidebarKey = ref.watch(sidebarKeyProvider);
     final vmNames = ref.watch(vmNamesProvider);
+    final expanded = ref.watch(sidebarExpandedProvider);
+    final pushContent = ref.watch(sidebarPushContentProvider);
 
     bool isSelected(String key) => key == selectedSidebarKey;
 
@@ -107,6 +115,54 @@ class SideBar extends ConsumerWidget {
       );
     });
 
+    final sidebar = MouseRegion(
+      onEnter: (_) => ref.read(sidebarExpandedProvider.notifier).state = true,
+      onExit: (_) => ref.read(sidebarExpandedProvider.notifier).state = false,
+      child: AnimatedContainer(
+        duration: SideBar.animationDuration,
+        color: const Color(0xff262626),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        width: expanded ? expandedWidth : collapsedWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            header,
+            const SizedBox(height: 15),
+            catalogue,
+            instances,
+            ...instanceEntries,
+            const Spacer(),
+            Divider(color: Colors.white.withOpacity(0.3)),
+            help,
+            settings,
+            exit,
+          ],
+        ),
+      ),
+    );
+
+    return Stack(children: [
+      AnimatedPositioned(
+        duration: SideBar.animationDuration,
+        left: pushContent && expanded ? expandedWidth : collapsedWidth,
+        bottom: 0,
+        right: 0,
+        top: 0,
+        child: child,
+      ),
+      DefaultTextStyle(
+        softWrap: false,
+        style: const TextStyle(
+          height: 1,
+          overflow: TextOverflow.clip,
+          color: Colors.white,
+          fontWeight: FontWeight.w300,
+        ),
+        child: sidebar,
+      ),
+    ]);
+  }
+}
 
 class SidebarEntry extends ConsumerWidget {
   final String label;
