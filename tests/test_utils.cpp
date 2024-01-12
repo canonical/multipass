@@ -390,33 +390,34 @@ TEST(Utils, to_cmd_arguments_with_double_quotes_are_escaped)
     EXPECT_THAT(output, ::testing::StrEq("they said \\\"please\\\""));
 }
 
-TEST(Utils, trimEndActuallyTrimsEnd)
+struct TestTrimUtilities : public Test
 {
     std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
+};
+
+TEST_F(TestTrimUtilities, trimEndActuallyTrimsEnd)
+{
     mp::utils::trim_end(s);
 
     EXPECT_THAT(s, ::testing::StrEq("\n \f \n \r \t   \vI'm a great\n\t string"));
 }
 
-TEST(Utils, trimBeginActuallyTrimsTheBeginning)
+TEST_F(TestTrimUtilities, trimBeginActuallyTrimsTheBeginning)
 {
-    std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
     mp::utils::trim_begin(s);
 
     EXPECT_EQ(s, "I'm a great\n\t string \n \f \n \r \t   \v");
 }
 
-TEST(Utils, trimActuallyTrims)
+TEST_F(TestTrimUtilities, trimActuallyTrims)
 {
-    std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
     mp::utils::trim(s);
 
     EXPECT_EQ(s, "I'm a great\n\t string");
 }
 
-TEST(Utils, trimAcceptsCustomFilter)
+TEST_F(TestTrimUtilities, trimAcceptsCustomFilter)
 {
-    std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
     mp::utils::trim(s, [](unsigned char c) { return c == '\n' || c == '\v'; });
 
     EXPECT_EQ(s, " \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   ");
