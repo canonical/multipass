@@ -406,6 +406,22 @@ TEST(Utils, trimBeginActuallyTrimsTheBeginning)
     EXPECT_EQ(s, "I'm a great\n\t string \n \f \n \r \t   \v");
 }
 
+TEST(Utils, trimActuallyTrims)
+{
+    std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
+    mp::utils::trim(s);
+
+    EXPECT_EQ(s, "I'm a great\n\t string");
+}
+
+TEST(Utils, trimAcceptsCustomFilter)
+{
+    std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
+    mp::utils::trim(s, [](unsigned char c) { return c == '\n' || c == '\v'; });
+
+    EXPECT_EQ(s, " \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   ");
+}
+
 TEST(Utils, trim_newline_works)
 {
     std::string s{"correct\n"};
