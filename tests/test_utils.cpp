@@ -397,6 +397,13 @@ TEST(Utils, trimEndActuallyTrimsEnd)
 
     EXPECT_THAT(s, ::testing::StrEq("\n \f \n \r \t   \vI'm a great\n\t string"));
 }
+
+TEST(Utils, trimBeginActuallyTrimsTheBeginning)
+{
+    std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
+    mp::utils::trim_begin(s);
+
+    EXPECT_EQ(s, "I'm a great\n\t string \n \f \n \r \t   \v");
 }
 
 TEST(Utils, trim_newline_works)
