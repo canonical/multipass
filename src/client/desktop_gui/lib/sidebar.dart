@@ -19,8 +19,11 @@ const sidebarWidgets = {
   HelpScreen.sidebarKey: HelpScreen(),
 };
 
+final sidebarExpandedProvider = StateProvider((_) => false);
+
 class SideBar extends ConsumerWidget {
-  const SideBar({super.key});
+  static const animationDuration = Duration(milliseconds: 200);
+
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +35,7 @@ class SideBar extends ConsumerWidget {
     final catalogue = SidebarEntry(
       icon: SvgPicture.asset('assets/catalogue.svg'),
       selected: isSelected(CatalogueScreen.sidebarKey),
-      child: const Text('Catalogue'),
+      label: 'Catalogue',
       onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
           CatalogueScreen.sidebarKey,
     );
@@ -40,10 +43,8 @@ class SideBar extends ConsumerWidget {
     final instances = SidebarEntry(
       icon: SvgPicture.asset('assets/instances.svg'),
       selected: isSelected(VmTableScreen.sidebarKey),
-      child: Row(children: [
-        const Expanded(child: Text('Instances')),
-        Text('${vmNames.length}'),
-      ]),
+      label: 'Instances',
+      badge: vmNames.length.toString(),
       onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
           VmTableScreen.sidebarKey,
     );
@@ -51,7 +52,7 @@ class SideBar extends ConsumerWidget {
     final help = SidebarEntry(
       icon: SvgPicture.asset('assets/help.svg'),
       selected: isSelected(HelpScreen.sidebarKey),
-      child: const Text('Help'),
+      label: 'Help',
       onPressed: () =>
           ref.read(sidebarKeyProvider.notifier).state = HelpScreen.sidebarKey,
     );
@@ -59,7 +60,7 @@ class SideBar extends ConsumerWidget {
     final settings = SidebarEntry(
       icon: SvgPicture.asset('assets/settings.svg'),
       selected: isSelected(SettingsScreen.sidebarKey),
-      child: const Text('Settings'),
+      label: 'Settings',
       onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
           SettingsScreen.sidebarKey,
     );
@@ -67,7 +68,7 @@ class SideBar extends ConsumerWidget {
     final exit = SidebarEntry(
       icon: SvgPicture.asset('assets/exit.svg'),
       onPressed: windowManager.destroy,
-      child: const Text('Close Application'),
+      label: 'Close Application',
     );
 
     final header = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -98,52 +99,38 @@ class SideBar extends ConsumerWidget {
     final instanceEntries = vmNames.map((name) {
       final key = 'instance-$name';
       return SidebarEntry(
-        icon: const SizedBox(width: 30),
+        icon: Flexible(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 30),
+          ),
+        ),
         selected: isSelected(key),
-        child: Text(name),
+        label: name,
         onPressed: () {},
       );
     });
 
-    return Container(
-      color: const Color(0xff262626),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      width: 240,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          header,
-          const SizedBox(height: 15),
-          catalogue,
-          instances,
-          ...instanceEntries,
-          const Spacer(),
-          Divider(color: Colors.white.withOpacity(0.3)),
-          help,
-          settings,
-          exit,
-        ],
-      ),
-    );
-  }
-}
 
-class SidebarEntry extends StatelessWidget {
-  final Widget child;
+class SidebarEntry extends ConsumerWidget {
+  final String label;
   final Widget icon;
+  final String? badge;
   final VoidCallback onPressed;
   final bool selected;
 
   const SidebarEntry({
     super.key,
-    required this.child,
+    required this.label,
     required this.icon,
+    this.badge,
     required this.onPressed,
     this.selected = false,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final expanded = ref.watch(sidebarExpandedProvider);
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
@@ -153,19 +140,43 @@ class SidebarEntry extends StatelessWidget {
               : BorderSide.none,
         ),
       ),
-      child: TextButton.icon(
-        icon: icon,
-        label: child,
+      child: TextButton(
         onPressed: onPressed,
         style: TextButton.styleFrom(
-          alignment: Alignment.centerLeft,
-          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-          shape: const LinearBorder(),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w300),
           backgroundColor:
               selected ? const Color(0xff444444) : Colors.transparent,
         ),
+        child: Row(children: [
+          badge == null
+              ? icon
+              : Badge(
+                  backgroundColor: const Color(0xff333333),
+                  isLabelVisible: !expanded,
+                  label: Text(badge!),
+                  offset: const Offset(10, -6),
+                  child: icon,
+                ),
+          Expanded(
+            flex: 5,
+            child: AnimatedOpacity(
+              duration: SideBar.animationDuration,
+              opacity: expanded ? 1 : 0,
+              child: Text('    $label', softWrap: false),
+            ),
+          ),
+          if (badge != null && expanded)
+            Flexible(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xff333333),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(badge!, softWrap: false),
+              ),
+            ),
+        ]),
       ),
     );
   }
