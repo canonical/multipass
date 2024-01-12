@@ -506,7 +506,6 @@ void BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
                                                  VMSpecs& specs)
 {
     // best effort only
-    old_head->apply();
     specs = old_specs;
     if (old_head != head_snapshot)
     {
@@ -524,8 +523,6 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     assert_vm_stopped(state);                 // precondition
     assert_vm_stopped(snapshot->get_state()); // precondition
 
-    snapshot->apply();
-
     const auto head_path = derive_head_path(instance_dir);
     auto rollback = make_restore_rollback(head_path, specs);
 
@@ -542,6 +539,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
         persist_head_snapshot_index(head_path);
     }
 
+    snapshot->apply();
     rollback.dismiss();
 }
 
