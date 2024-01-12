@@ -7,6 +7,7 @@ import 'catalogue/catalogue.dart';
 import 'help.dart';
 import 'providers.dart';
 import 'settings/settings.dart';
+import 'text_span_ext.dart';
 import 'vm_table/vm_table_screen.dart';
 
 final sidebarKeyProvider = StateProvider((_) => CatalogueScreen.sidebarKey);
@@ -80,18 +81,14 @@ class SideBar extends ConsumerWidget {
         padding: const EdgeInsets.all(4),
         child: SvgPicture.asset('assets/multipass.svg', width: 20),
       ),
-      const DefaultTextStyle(
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w300,
-          height: 1,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Canonical', style: TextStyle(fontSize: 12)),
-            Text('Multipass', style: TextStyle(fontSize: 24)),
-          ],
+      Expanded(
+        child: AnimatedOpacity(
+          opacity: expanded ? 1 : 0,
+          duration: SideBar.animationDuration,
+          child: Text.rich([
+            'Canonical\n'.span.size(12).color(Colors.white),
+            'Multipass'.span.size(24).color(Colors.white),
+          ].spans),
         ),
       ),
     ]);
