@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:window_manager/window_manager.dart';
 
 import 'catalogue/catalogue.dart';
 import 'help.dart';
@@ -74,12 +73,6 @@ class SideBar extends ConsumerWidget {
           SettingsScreen.sidebarKey,
     );
 
-    final exit = SidebarEntry(
-      icon: SvgPicture.asset('assets/exit.svg'),
-      onPressed: windowManager.destroy,
-      label: 'Close Application',
-    );
-
     final header = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
       Container(
         alignment: Alignment.bottomCenter,
@@ -135,7 +128,6 @@ class SideBar extends ConsumerWidget {
             Divider(color: Colors.white.withOpacity(0.3)),
             help,
             settings,
-            exit,
           ],
         ),
       ),
