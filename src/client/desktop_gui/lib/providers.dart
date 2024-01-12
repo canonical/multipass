@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 
 import 'ffi.dart';
-import 'generated/multipass.pbgrpc.dart';
 import 'grpc_client.dart';
 
 export 'grpc_client.dart';
