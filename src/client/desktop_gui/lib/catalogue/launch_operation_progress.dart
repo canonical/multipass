@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:grpc/grpc.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../providers.dart';
@@ -29,12 +32,35 @@ class LaunchOperationProgress extends ConsumerWidget {
         stream: stream.doOnData((r) {
           if (r == null) {
             Scaffold.of(context).closeEndDrawer();
-            ref.invalidate(launchOperationProvider);
+            Timer(
+              const Duration(milliseconds: 200),
+              () => ref.invalidate(launchOperationProvider),
+            );
           }
         }),
         builder: (_, snapshot) {
           if (snapshot.hasError) {
-            return Text(snapshot.error.toString());
+            final error = snapshot.error;
+            final errorMessage =
+                error is GrpcError ? error.message : error.toString();
+
+            return Row(children: [
+              Expanded(child: Text(errorMessage ?? error.toString())),
+              Container(
+                height: 150,
+                alignment: Alignment.topCenter,
+                child: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    Scaffold.of(context).closeEndDrawer();
+                    Timer(
+                      const Duration(milliseconds: 200),
+                      () => ref.invalidate(launchOperationProvider),
+                    );
+                  },
+                ),
+              ),
+            ]);
           }
 
           if (!snapshot.hasData) return const SizedBox.expand();
