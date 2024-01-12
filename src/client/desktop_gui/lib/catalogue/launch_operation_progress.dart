@@ -1,3 +1,4 @@
+import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
@@ -7,7 +8,7 @@ import '../providers.dart';
 import 'launch_panel.dart';
 
 class LaunchOperationProgress extends ConsumerWidget {
-  final Stream<Either<LaunchReply, MountReply>> stream;
+  final Stream<Either<LaunchReply, MountReply>?> stream;
   final String name;
   final String image;
 
@@ -26,8 +27,7 @@ class LaunchOperationProgress extends ConsumerWidget {
       alignment: Alignment.topLeft,
       child: StreamBuilder(
         stream: stream.doOnData((r) {
-          if (r.getLeft().toNullable()?.whichCreateOneof() ==
-              LaunchReply_CreateOneof.vmInstanceName) {
+          if (r == null) {
             Scaffold.of(context).closeEndDrawer();
             ref.invalidate(launchOperationProvider);
           }
@@ -54,7 +54,12 @@ class LaunchOperationProgress extends ConsumerWidget {
                 case LaunchReply_CreateOneof.createMessage:
                   return (l.createMessage, null);
                 default:
-                  return ('Launching $name...', null);
+                  return (
+                    l.replyMessage.isBlank
+                        ? 'Launching $name...'
+                        : l.replyMessage,
+                    null
+                  );
               }
             },
             (m) => (m.replyMessage, null),
