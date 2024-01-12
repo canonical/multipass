@@ -2828,6 +2828,8 @@ void mp::Daemon::clone(const CloneRequest* request,
                             destination_name)};
         }
 
+        const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
+
         // start to construct VirtualMachineDescription
         mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
                                                    dest_vm_spec.mem_size,
@@ -2836,7 +2838,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                    dest_vm_spec.default_mac_address,
                                                    dest_vm_spec.extra_interfaces,
                                                    dest_vm_spec.ssh_username,
-                                                   fetch_image_for(destination_name, *config->factory, *config->vault),
+                                                   dest_vm_image,
                                                    cloud_init_config_iso_file_path.string().c_str(),
                                                    {},
                                                    {},
