@@ -35,8 +35,10 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
+#include <multipass/snapshot.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/vm_specs.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -673,6 +675,43 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 
     EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
+}
+
+struct PublicSnapshotMakingQemuVM : public mp::QemuVirtualMachine
+{
+    using mp::QemuVirtualMachine::make_specific_snapshot;
+    using mp::QemuVirtualMachine::QemuVirtualMachine;
+};
+
+TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+    PublicSnapshotMakingQemuVM machine{default_description,
+                                       mock_qemu_platform.get(),
+                                       stub_monitor,
+                                       instance_dir.path()};
+
+    auto snapshot_name = "elvis";
+    auto snapshot_comment = "has left the building";
+    const mp::VMSpecs specs{2,
+                            mp::MemorySize{"3.21G"},
+                            mp::MemorySize{"4.32M"},
+                            "00:00:00:00:00:00",
+                            {},
+                            "asdf",
+                            mp::VirtualMachine::State::stopped,
+                            {},
+                            false,
+                            {},
+                            {}};
+    auto snapshot = machine.make_specific_snapshot(snapshot_name, snapshot_comment, specs, nullptr);
+    EXPECT_EQ(snapshot->get_name(), snapshot_name);
+    EXPECT_EQ(snapshot->get_comment(), snapshot_comment);
+    EXPECT_EQ(snapshot->get_num_cores(), specs.num_cores);
+    EXPECT_EQ(snapshot->get_mem_size(), specs.mem_size);
+    EXPECT_EQ(snapshot->get_disk_space(), specs.disk_space);
+    EXPECT_EQ(snapshot->get_state(), specs.state);
+    EXPECT_EQ(snapshot->get_parent(), nullptr);
 }
 
 TEST_F(QemuBackend, lists_no_networks)
