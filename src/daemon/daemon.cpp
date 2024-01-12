@@ -2757,108 +2757,19 @@ void mp::Daemon::clone(const CloneRequest* request,
         clone_spec_item_and_write_to_instance_db(source_name, destination_name);
 
         config->vault->clone(source_name, destination_name);
-
-        // create the directory and copy the image file and cloud-init-config.iso file
-        const QString backend_data_direcotry =
-            mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name());
-        const auto instances_data_directory =
-            std::filesystem::path(backend_data_direcotry.toStdString()) / "vault" / "instances";
-        const std::filesystem::path source_instance_data_directory = instances_data_directory / source_name;
-        const std::filesystem::path dest_instance_data_directory = instances_data_directory / destination_name;
-
-        MP_FILEOPS.copy(source_instance_data_directory,
-                        dest_instance_data_directory,
-                        std::filesystem::copy_options::recursive);
-
-        // move into base_virtual_machine_factory.cpp eventually
-        const auto& dest_vm_spec = vm_instance_specs.at(destination_name);
-        const YAML::Node network_data =
-            mpu::make_cloud_init_network_config(dest_vm_spec.default_mac_address, dest_vm_spec.extra_interfaces);
-        mp::CloudInitIso qemu_iso;
-        if (!network_data.IsNull())
-        {
-            qemu_iso.add_file("network-config", mpu::emit_cloud_config(network_data));
-        }
-        const YAML::Node meta_data = mpu::make_cloud_init_meta_config(destination_name);
-        qemu_iso.add_file("meta-data", mpu::emit_cloud_config(meta_data));
-
-        // create the mount folder
-        const fs::path cloud_init_mount_point = dest_instance_data_directory / "cidata";
-        if (std::error_code err; !MP_FILEOPS.create_directory(cloud_init_mount_point, err))
-        {
-            throw std::runtime_error{
-                fmt::format("Could not create mount point for cloud-init-config.iso file of the instance: {} ",
-                            destination_name)};
-        }
-
-        // sudo mount -o loop cloud-init-config.iso
-        // /root/.local/share/multipassd/vault/instances/adaptive-cat-clone/cidata
-        const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
-        const std::string mount_command = fmt::format("mount -o loop {} {}",
-                                                      cloud_init_config_iso_file_path.string(),
-                                                      cloud_init_mount_point.string());
-        if (int return_code = std::system(mount_command.c_str()); return_code != 0)
-        {
-            throw std::runtime_error{fmt::format("Error executing command : {} ", mount_command)};
-        }
-
-        // load files and add to qemu_iso and write to the .iso file
-        for (const auto filename_str : {"user-data", "vendor-data"})
-        {
-            const auto stream = MP_FILEOPS.open_read(cloud_init_mount_point / fs::path(filename_str));
-            std::stringstream buffer;
-            buffer << stream->rdbuf();
-            const std::string file_contents = buffer.str();
-            qemu_iso.add_file(filename_str, file_contents);
-        }
-        qemu_iso.write_to(QString::fromStdString(cloud_init_config_iso_file_path.string()));
-
-        // sudo umount /root/.local/share/multipassd/vault/instances/adaptive-cat-clone/cidata
-        const std::string unmount_command = fmt::format("umount {}", cloud_init_mount_point.string());
-        if (int return_code = std::system(unmount_command.c_str()); return_code != 0)
-        {
-            throw std::runtime_error{fmt::format("Error executing command : {} ", unmount_command)};
-        }
-
-        // delete the created mount folder
-        if (std::error_code err; !MP_FILEOPS.remove(cloud_init_mount_point, err))
-        {
-            throw std::runtime_error{
-                fmt::format("Could not remove mount point for cloud-init-config.iso file of the instance: {} ",
-                            destination_name)};
-        }
-
         const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
 
-        // start to construct VirtualMachineDescription
-        mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
-                                                   dest_vm_spec.mem_size,
-                                                   dest_vm_spec.disk_space,
-                                                   destination_name,
-                                                   dest_vm_spec.default_mac_address,
-                                                   dest_vm_spec.extra_interfaces,
-                                                   dest_vm_spec.ssh_username,
-                                                   dest_vm_image,
-                                                   cloud_init_config_iso_file_path.string().c_str(),
-                                                   {},
-                                                   {},
-                                                   {},
-                                                   {}};
+        operative_instances[destination_name] =
+            config->factory->create_vm_and_instance_disk_data(config->data_directory,
+                                                              vm_instance_specs[source_name],
+                                                              vm_instance_specs[destination_name],
+                                                              source_name,
+                                                              destination_name,
+                                                              dest_vm_image,
+                                                              *this);
 
-        auto cloned_instance = operative_instances[destination_name] =
-            config->factory->create_virtual_machine(dest_vm_desc, *this);
-        cloned_instance->load_snapshots_and_update_unique_identifiers(vm_instance_specs[source_name],
-                                                                      dest_vm_spec,
-                                                                      source_name);
-        init_mounts(destination_name);
         operative_instances[source_name]->update_clone_name_counter();
-
-        mpl::log(mpl::Level::info,
-                 "general",
-                 fmt::format("source_instance_data_directory value is : {}", source_instance_data_directory.string()));
-        mpl::log(mpl::Level::info,
-                 "general",
-                 fmt::format("dest_instance_data_directory value is : {}", dest_instance_data_directory.string()));
+        init_mounts(destination_name);
 
         CloneReply rpc_response;
         rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));

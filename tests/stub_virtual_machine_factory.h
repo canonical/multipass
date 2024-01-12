@@ -46,6 +46,17 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return std::make_unique<StubVirtualMachine>();
     }
 
+    multipass::VirtualMachine::UPtr create_vm_and_instance_disk_data(const QString& data_directory,
+                                                                     const VMSpecs& src_vm_spec,
+                                                                     const VMSpecs& dest_vm_spec,
+                                                                     const std::string& source_name,
+                                                                     const std::string& destination_name,
+                                                                     const VMImage& dest_vm_image,
+                                                                     VMStatusMonitor& monitor) override
+    {
+        return std::make_unique<StubVirtualMachine>();
+    }
+
     void remove_resources_for_impl(const std::string& name) override
     {
     }

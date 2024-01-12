@@ -154,6 +154,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_d
 
     mp::VirtualMachine::UPtr cloned_instance = create_virtual_machine(dest_vm_desc, monitor);
     cloned_instance->load_snapshots_and_update_unique_identifiers(src_vm_spec, dest_vm_spec, source_name);
+
     return cloned_instance;
 }
 
