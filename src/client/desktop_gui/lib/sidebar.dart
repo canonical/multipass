@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -20,7 +22,8 @@ const sidebarWidgets = {
 };
 
 final sidebarExpandedProvider = StateProvider((_) => false);
-final sidebarPushContentProvider = StateProvider((_) => true);
+final sidebarPushContentProvider = StateProvider((_) => false);
+Timer? sidebarExpandTimer;
 
 class SideBar extends ConsumerWidget {
   static const animationDuration = Duration(milliseconds: 200);
@@ -109,8 +112,16 @@ class SideBar extends ConsumerWidget {
     });
 
     final sidebar = MouseRegion(
-      onEnter: (_) => ref.read(sidebarExpandedProvider.notifier).state = true,
-      onExit: (_) => ref.read(sidebarExpandedProvider.notifier).state = false,
+      onEnter: (_) {
+        sidebarExpandTimer?.cancel();
+        sidebarExpandTimer = Timer(const Duration(milliseconds: 300), () {
+          ref.read(sidebarExpandedProvider.notifier).state = true;
+        });
+      },
+      onExit: (_) {
+        sidebarExpandTimer?.cancel();
+        ref.read(sidebarExpandedProvider.notifier).state = false;
+      },
       child: AnimatedContainer(
         duration: SideBar.animationDuration,
         color: const Color(0xff262626),
