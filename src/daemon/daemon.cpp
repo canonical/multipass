@@ -2212,7 +2212,15 @@ try // clang-format on
                 mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
             }
 
-            configure_new_interfaces(name, vm, vm_instance_specs[name]);
+            auto failed_interfaces = configure_new_interfaces(name, vm, vm_instance_specs[name]);
+
+            if (!failed_interfaces.empty())
+            {
+                fmt::format_to(std::back_inserter(start_errors),
+                               "Cannot bridge {} for instance {}",
+                               fmt::join(failed_interfaces, ", "),
+                               name);
+            }
 
             vm.start();
         }
@@ -3316,37 +3324,60 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
                : vm->make_native_mount_handler(config->ssh_key_provider.get(), target, mount);
 }
 
-void mp::Daemon::configure_new_interfaces(const std::string& name, mp::VirtualMachine& vm, mp::VMSpecs& specs)
+// This function configures the network interfaces whose MAC address is empty. They will stay in specs.extra_interfaces
+// only if the backend is able to add them to the virtual machine. If not, they will be removed.
+std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::string& name,
+                                                                     mp::VirtualMachine& vm,
+                                                                     mp::VMSpecs& specs)
 {
-    std::vector<size_t> new_interfaces;
+    bool added_good_interfaces{false};
+    size_t j = 0; /* The final index of the interface. This is needed because we will filter out the bad interfaces
+                     from specs.extra_interfaces. */
+    std::vector<mp::NetworkInterface> filtered_interfaces;
+    std::unordered_set<std::string> bad_bridges;
+    auto& commands = specs.run_at_boot;
 
-    for (auto i = 0u; i < specs.extra_interfaces.size(); ++i)
+    config->factory->prepare_networking(specs.extra_interfaces); // TODO: call this only if needed.
+
+    for (auto& iface : specs.extra_interfaces)
     {
-        auto& interface = specs.extra_interfaces[i];
-
-        if (interface.mac_address.empty()) // An empty MAC address means the interface needs to be configured.
+        if (iface.mac_address.empty()) // An empty MAC address means the interface needs to be configured.
         {
-            new_interfaces.push_back(i);
+            iface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
 
-            interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+            try
+            {
+                vm.add_network_interface(j, iface); // This will throw if the interface wasn't added to the VM.
+
+                added_good_interfaces = true;
+
+                commands.push_back(generate_netplan_script(j, iface.mac_address));
+            }
+            catch (const std::exception&)
+            {
+                // The generated MAC will not be used, so we remove it from the list of used addresses.
+                // TODO: avoid adding the new MAC to allocated_mac_addrs if the interface is bad.
+                allocated_mac_addrs.erase(iface.mac_address);
+
+                bad_bridges.insert(iface.id);
+
+                continue;
+            }
         }
+
+        filtered_interfaces.push_back(iface);
+
+        ++j;
     }
 
-    if (!new_interfaces.empty())
+    if (added_good_interfaces)
     {
-        config->factory->prepare_networking(specs.extra_interfaces);
-
-        auto& commands = specs.run_at_boot;
-
-        for (const auto i : new_interfaces)
-        {
-            vm.add_network_interface(i, specs.extra_interfaces[i]);
-
-            commands.push_back(generate_netplan_script(i, specs.extra_interfaces[i].mac_address));
-        }
-
         commands.push_back("sudo netplan apply");
     }
+
+    specs.extra_interfaces = filtered_interfaces;
+
+    return bad_bridges;
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
