@@ -35,6 +35,14 @@ public:
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 VMStatusMonitor& monitor) override;
+    VirtualMachine::UPtr create_vm_and_instance_disk_data(const QString& data_directory,
+                                                          const VMSpecs& src_vm_spec,
+                                                          const VMSpecs& dest_vm_spec,
+                                                          const std::string& source_name,
+                                                          const std::string& destination_name,
+                                                          const VMImage& dest_vm_image,
+                                                          VMStatusMonitor& monitor);
+
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
