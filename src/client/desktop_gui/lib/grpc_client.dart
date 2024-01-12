@@ -18,15 +18,16 @@ class GrpcClient {
 
   GrpcClient(this._client);
 
-  Stream<Either<LaunchReply, MountReply>> launch(
+  Stream<Either<LaunchReply, MountReply>?> launch(
     LaunchRequest request, [
     List<MountRequest> mountRequests = const [],
   ]) {
-    Stream<Either<LaunchReply, MountReply>> launchImpl() async* {
+    Stream<Either<LaunchReply, MountReply>?> launchImpl() async* {
       yield* _client.launch(Stream.value(request)).map(Either.left);
       for (final mountRequest in mountRequests) {
         yield* _client.mount(Stream.value(mountRequest)).map(Either.right);
       }
+      yield null;
     }
 
     return BehaviorSubject()..addStream(launchImpl(), cancelOnError: true);

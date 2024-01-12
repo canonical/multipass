@@ -7,7 +7,7 @@ import 'launch_form.dart';
 import 'launch_operation_progress.dart';
 
 final launchOperationProvider =
-    StateProvider<(Stream<Either<LaunchReply, MountReply>>, String, String)?>(
+    StateProvider<(Stream<Either<LaunchReply, MountReply>?>, String, String)?>(
         (_) => null);
 
 class LaunchPanel extends ConsumerWidget {
