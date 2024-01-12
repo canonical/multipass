@@ -82,6 +82,12 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  const mp::VMSpecs& specs,
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
+
+    void simulate_no_snapshots_support() const // doing this here to access protected method on the base
+    {
+        auto& self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, require_snapshots_support, mp::BaseVirtualMachine);
+    }
 };
 
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
@@ -336,6 +342,14 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_F(BaseVM, startsWithNoSnapshots)
 {
     EXPECT_EQ(vm.get_num_snapshots(), 0);
+}
+
+TEST_F(BaseVM, throwsOnSnapshotsRequestIfNotSupported)
+{
+    vm.simulate_no_snapshots_support();
+    MP_EXPECT_THROW_THAT(vm.get_num_snapshots(),
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("snapshots")));
 }
 
 TEST_F(BaseVM, takesSnapshots)
