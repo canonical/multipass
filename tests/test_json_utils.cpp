@@ -22,6 +22,7 @@
 
 #include <QDir>
 #include <QFileDevice>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QString>
 
@@ -38,19 +39,27 @@ struct TestJsonUtils : public Test
     inline static const QString dir = QStringLiteral("a%1b%1c").arg(separator);
     inline static const QString file_name = QStringLiteral("asd.blag");
     inline static const QString file_path = QStringLiteral("%1%2%3").arg(dir, separator, file_name);
-    inline static const QJsonObject json{};
+    inline static const char* json_text = R"({"a": [1,2,3]})";
+    inline static const QJsonObject json = QJsonDocument::fromJson(json_text).object();
+    template <typename T>
+    inline static Matcher<T&> file_matcher = Property(&T::fileName, Eq(file_path));
 };
 
-TEST_F(TestJsonUtils, writeJsonCreatesDirectory)
+TEST_F(TestJsonUtils, writesJsonTransactionally)
 {
+    auto json_matcher =
+        ResultOf([](auto&& text) { return QJsonDocument::fromJson(std::forward<decltype(text)>(text), nullptr); },
+                 Property(&QJsonDocument::object, Eq(json)));
     EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(A<QFileDevice&>(), _)).WillOnce(Throw(std::runtime_error{"intentional"}));
-    EXPECT_ANY_THROW(MP_JSONUTILS.write_json(json, file_path));
+    EXPECT_CALL(mock_file_ops, open(file_matcher<QFileDevice>, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, write(file_matcher<QFileDevice>, json_matcher)).WillOnce(Return(14));
+    EXPECT_CALL(mock_file_ops, commit(file_matcher<QSaveFile>)).WillOnce(Return(true));
+    EXPECT_NO_THROW(MP_JSONUTILS.write_json(json, file_path));
 }
 
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCreateDirectory)
 {
-    EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(false));
     MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("Could not create"), HasSubstr(dir.toStdString()))));
