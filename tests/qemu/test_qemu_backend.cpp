@@ -20,8 +20,10 @@
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
+#include "tests/mock_snapshot.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/mock_virtual_machine.h"
+#include "tests/path.h"
 #include "tests/stub_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
@@ -709,6 +711,23 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
     EXPECT_EQ(snapshot->get_disk_space(), specs.disk_space);
     EXPECT_EQ(snapshot->get_state(), specs.state);
     EXPECT_EQ(snapshot->get_parent(), nullptr);
+}
+
+TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
+{
+    PublicSnapshotMakingQemuVM machine{"mock-qemu-vm"};
+
+    const auto parent = std::make_shared<mpt::MockSnapshot>();
+    EXPECT_CALL(machine, get_snapshot(2)).WillOnce(Return(parent));
+
+    auto snapshot = machine.make_specific_snapshot(mpt::test_data_path_for("test_snapshot.json"));
+    EXPECT_EQ(snapshot->get_name(), "snapshot3");
+    EXPECT_EQ(snapshot->get_comment(), "A comment");
+    EXPECT_EQ(snapshot->get_num_cores(), 1);
+    EXPECT_EQ(snapshot->get_mem_size(), mp::MemorySize{"1G"});
+    EXPECT_EQ(snapshot->get_disk_space(), mp::MemorySize{"5G"});
+    EXPECT_EQ(snapshot->get_state(), mp::VirtualMachine::State::off);
+    EXPECT_EQ(snapshot->get_parent(), parent);
 }
 
 TEST_F(QemuBackend, lists_no_networks)
