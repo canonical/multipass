@@ -34,19 +34,26 @@ struct TestJsonUtils : public Test
 {
     mpt::MockFileOps::GuardedMock guarded_mock_file_ops = mpt::MockFileOps::inject();
     mpt::MockFileOps& mock_file_ops = *guarded_mock_file_ops.first;
+    inline static const QChar separator = QDir::separator();
+    inline static const QString dir = QStringLiteral("a%1b%1c").arg(separator);
+    inline static const QString file_name = QStringLiteral("asd.blag");
+    inline static const QString file_path = QStringLiteral("%1%2%3").arg(dir, separator, file_name);
+    inline static const QJsonObject json{};
 };
 
 TEST_F(TestJsonUtils, writeJsonCreatesDirectory)
 {
-    const auto separator = QDir::separator();
-    auto dir = QString{"a%1b%1c"}.arg(separator);
-    auto file_name = "asd.blag";
-    auto file_path = QString{"%1%2%3"}.arg(dir, separator, file_name);
-    QJsonObject json{};
-
     EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(A<QFileDevice&>(), _)).WillOnce(Throw(std::runtime_error{"intentional"}));
     EXPECT_ANY_THROW(MP_JSONUTILS.write_json(json, file_path));
+}
+
+TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCreateDirectory)
+{
+    EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(false));
+    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Could not create"), HasSubstr(dir.toStdString()))));
 }
 
 } // namespace
