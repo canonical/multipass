@@ -684,7 +684,14 @@ struct PublicSnapshotMakingQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirt
 {
     using mpt::MockVirtualMachineT<mp::QemuVirtualMachine>::MockVirtualMachineT;
     using mp::QemuVirtualMachine::make_specific_snapshot;
+    using mp::QemuVirtualMachine::require_snapshots_support;
 };
+
+TEST_F(QemuBackend, supportsSnapshots)
+{
+    PublicSnapshotMakingQemuVM vm{"asdf"};
+    EXPECT_NO_THROW(vm.require_snapshots_support());
+}
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 {
