@@ -26,6 +26,8 @@
 #include <QJsonObject>
 #include <QString>
 
+#include <stdexcept>
+
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -63,6 +65,36 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCreateDirectory)
     MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("Could not create"), HasSubstr(dir.toStdString()))));
+}
+
+TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToOpenFile)
+{
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(false));
+    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(file_path.toStdString()))));
+}
+
+TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToWriteFile)
+{
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, write(_, _)).WillOnce(Return(-1));
+    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Could not write"), HasSubstr(file_path.toStdString()))));
+}
+
+TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
+{
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, write(_, _)).WillOnce(Return(1234));
+    EXPECT_CALL(mock_file_ops, commit).WillOnce(Return(false));
+    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
 }
 
 } // namespace
