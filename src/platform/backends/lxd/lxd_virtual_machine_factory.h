@@ -52,10 +52,7 @@ public:
 
     std::vector<NetworkInterfaceInfo> networks() const override;
 
-    std::string bridge_name_for(const std::string& iface_name) const override
-    {
-        return "br-" + iface_name;
-    };
+    std::string bridge_name_for(const std::string& iface_name) const override;
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
