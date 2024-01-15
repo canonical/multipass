@@ -21,6 +21,7 @@
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_status_monitor.h"
+#include "tests/mock_virtual_machine.h"
 #include "tests/stub_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
@@ -677,19 +678,15 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
 }
 
-struct PublicSnapshotMakingQemuVM : public mp::QemuVirtualMachine
+struct PublicSnapshotMakingQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
+    using mpt::MockVirtualMachineT<mp::QemuVirtualMachine>::MockVirtualMachineT;
     using mp::QemuVirtualMachine::make_specific_snapshot;
-    using mp::QemuVirtualMachine::QemuVirtualMachine;
 };
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 {
-    mpt::StubVMStatusMonitor stub_monitor;
-    PublicSnapshotMakingQemuVM machine{default_description,
-                                       mock_qemu_platform.get(),
-                                       stub_monitor,
-                                       instance_dir.path()};
+    PublicSnapshotMakingQemuVM machine{"mock-qemu-vm"};
 
     auto snapshot_name = "elvis";
     auto snapshot_comment = "has left the building";
