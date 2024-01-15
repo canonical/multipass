@@ -767,7 +767,7 @@ TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
     auto root_snapshot = snapshot_album[0];
 
     ASSERT_EQ(snapshot_album.size(), 1);
-    EXPECT_EQ(vm.take_snapshot(specs, "second", "")->get_parent().get(), root_snapshot.get());
+    EXPECT_EQ(vm.take_snapshot(specs, "second", "")->get_parent(), root_snapshot);
     ASSERT_EQ(snapshot_album.size(), 2);
     EXPECT_EQ(vm.take_snapshot(specs, "third", "")->get_parent().get(), snapshot_album[1].get());
 
@@ -778,7 +778,7 @@ TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
     EXPECT_CALL(*root_snapshot, get_metadata).WillRepeatedly(ReturnRef(metadata));
 
     vm.restore_snapshot(root_name, specs);
-    EXPECT_EQ(vm.take_snapshot(specs, "fourth", "")->get_parent().get(), root_snapshot.get());
+    EXPECT_EQ(vm.take_snapshot(specs, "fourth", "")->get_parent(), root_snapshot);
 }
 
 TEST_F(BaseVM, loadSnasphotThrowsIfSnapshotsNotImplemented)
@@ -839,7 +839,7 @@ TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesSnapshotHeadIndex)
 
     auto name = "julius";
     vm.take_snapshot({}, name, "");
-    EXPECT_EQ(vm.get_snapshot(name)->get_parent().get(), snapshot.get());
+    EXPECT_EQ(vm.get_snapshot(name)->get_parent(), snapshot);
 }
 
 std::vector<std::string> space_paddings = {"", " ", "    ", "\n", " \n", "\n\n\n", "\t", "\t\t\t", "\t \n  \t   "};
@@ -1000,7 +1000,7 @@ TEST_F(BaseVM, takeSnapshotRevertsHeadAndCount)
 
     mock_snapshotting();
     auto new_snapshot = vm.take_snapshot(specs, attempted_name, "");
-    EXPECT_EQ(new_snapshot->get_parent().get(), early_snapshot.get());
+    EXPECT_EQ(new_snapshot->get_parent(), early_snapshot);
     EXPECT_EQ(new_snapshot->get_index(), 2); // snapshot count not increased by failed snapshot
 }
 
@@ -1017,7 +1017,7 @@ TEST_F(BaseVM, renameFailureIsReverted)
     EXPECT_CALL(*snapshot, set_name(Eq(attempted_name))).WillOnce(Throw(std::runtime_error{"intentional"}));
     EXPECT_ANY_THROW(vm.rename_snapshot(current_name, attempted_name));
 
-    EXPECT_EQ(vm.get_snapshot(current_name).get(), snapshot.get());
+    EXPECT_EQ(vm.get_snapshot(current_name), snapshot);
 }
 
 TEST_F(BaseVM, persistsGenericSnapshotInfoWhenTakingSnapshot)
