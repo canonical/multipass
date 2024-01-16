@@ -1012,6 +1012,14 @@ TEST_F(LXDBackend, unimplemented_functions_logs_trace_message)
     backend.prepare_instance_image(image, default_description);
 }
 
+TEST_F(LXDBackend, factoryDoesNotSupportSuspend)
+{
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    MP_EXPECT_THROW_THAT(backend.require_suspend_support(),
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("suspend")));
+}
+
 TEST_F(LXDBackend, image_fetch_type_returns_expected_type)
 {
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};

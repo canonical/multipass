@@ -303,4 +303,10 @@ TEST_F(BaseFactory, prepareNetworkingGutsPreparesEachRequestedNetwork)
     EXPECT_EQ(extra_nets.size(), num_nets);
     EXPECT_THAT(extra_nets, Each(Eq(tag)));
 }
+
+TEST_F(BaseFactory, factoryHasDefaultSuspendSupport)
+{
+    MockBaseFactory factory;
+    EXPECT_NO_THROW(factory.mp::BaseVirtualMachineFactory::require_suspend_support());
+}
 } // namespace
