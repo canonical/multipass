@@ -142,7 +142,6 @@ function entitlements {
 function codesign_binaries {
     DIR="$1"
     # sign every file in the directory
-    find "${DIR}" -name '*.plist' -exec chmod u+w {} +
     find "${DIR}" -type f -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
             $( entitlements ) \
@@ -225,16 +224,16 @@ BUNDLE_ID="${TITLE}.${VERSION//+/-}.$(date +%s)"
 echo -n "Sending ${PKGFILENAME} for notarization..."
 _tmpout=$(mktemp)
 
-# optional notarization provider
+# optional notarization provider (now "team ID" in notarytool)
 if [ -n "${NOTARIZE_PROVIDER}" ]; then
-    NOTARIZE_OPTS=( --asc-provider "${NOTARIZE_PROVIDER}" )
+    NOTARIZE_OPTS=( --team-id "${NOTARIZE_PROVIDER}" )
 fi
 
-xcrun altool --notarize-app -f "${PKGFILENAME}" \
-             --primary-bundle-id "${BUNDLE_ID}" \
-             --username "${NOTARIZE_ID}" \
+xcrun notarytool submit \
+             --wait \
+             --apple-id "${NOTARIZE_ID}" \
              --password "${NOTARIZE_PASSWORD}" \
-             "${NOTARIZE_OPTS[@]}" 2>&1 | tee "${_tmpout}"
+             "${NOTARIZE_OPTS[@]}" "${PKGFILENAME}" 2>&1 | tee "${_tmpout}"
 
 # check the request uuid
 _requuid=$(cat "${_tmpout}" | grep "RequestUUID" | awk '{ print $3 }')
@@ -265,9 +264,10 @@ trap print_tasks SIGINT
 
 for c in {80..0}; do
     sleep 60
-    xcrun altool --notarization-info "${_requuid}" \
+    xcrun notarytool info \
                  --username "${NOTARIZE_ID}" \
-                 --password "${NOTARIZE_PASSWORD}" 2>&1 | tee ${_tmpout}
+                 --password "${NOTARIZE_PASSWORD}" \
+                 "${_requuid}" 2>&1 | tee ${_tmpout}
     _status=$(cat "${_tmpout}" | grep "Status:" | awk '{ print $2 }')
     if [ "${_status}" == "invalid" ]; then
         echo "Error: Got invalid notarization!"
