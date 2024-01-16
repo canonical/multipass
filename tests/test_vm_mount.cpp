@@ -29,6 +29,17 @@ struct TestVMMount : public Test
     mp::VMMount a_mount{"asdf", {{1, 2}, {2, 4}}, {{8, 4}, {6, 3}}, multipass::VMMount::MountType::Classic};
 };
 
+TEST_F(TestVMMount, comparesEqual)
+{
+    auto b = a_mount;
+    EXPECT_EQ(a_mount, b);
+    EXPECT_EQ(b, a_mount);
+
+    b.mount_type = multipass::VMMount::MountType::Native;
+    EXPECT_FALSE(a_mount == b);
+    EXPECT_FALSE(a_mount == mp::VMMount{});
+}
+
 TEST_F(TestVMMount, comparesUnequal)
 {
     mp::VMMount b{a_mount};
