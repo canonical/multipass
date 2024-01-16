@@ -85,6 +85,7 @@ add_executable(multipass_tests
   test_json_utils.cpp
   test_memory_size.cpp
   test_mock_standard_paths.cpp
+  test_mount_handler.cpp
   test_new_release_monitor.cpp
   test_output_formatter.cpp
   test_persistent_settings_handler.cpp
