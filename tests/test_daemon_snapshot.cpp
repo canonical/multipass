@@ -20,6 +20,7 @@
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
+#include "mock_virtual_machine.h"
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
@@ -43,11 +44,12 @@ struct TestDaemonSnapshot : public mpt::DaemonTestFixture
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    mpt::MockVirtualMachineFactory& mock_factory = *use_a_mock_vm_factory();
 };
 
 TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
 {
-    auto& mock_factory = *use_a_mock_vm_factory();
     EXPECT_CALL(mock_factory, require_snapshots_support)
         .WillRepeatedly(Throw(mp::NotImplementedOnThisBackendException{"snapshots"}));
 
@@ -59,5 +61,21 @@ TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
+}
+
+TEST_F(TestDaemonSnapshot, failsOnMissingInstance)
+{
+    static constexpr auto missing_instance = "foo";
+    mp::SnapshotRequest request{};
+    request.set_instance(missing_instance);
+
+    mp::Daemon daemon{config_builder.build()};
+    auto status = call_daemon_slot(daemon,
+                                   &mp::Daemon::snapshot,
+                                   request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
+    EXPECT_EQ(status.error_message(), fmt::format("instance \"{}\" does not exist", missing_instance));
 }
 } // namespace
