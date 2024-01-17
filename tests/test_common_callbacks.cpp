@@ -103,30 +103,52 @@ INSTANTIATE_TEST_SUITE_P(TestLoggingSpinnerCallbacks,
                          TestLoggingSpinnerCallbacks,
                          Values(CommonCallbackType::Logging, CommonCallbackType::Reply, CommonCallbackType::Iterative));
 
-TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackUpdatesSpinnerMessage)
+struct TestReplySpinnerCallbacks : public TestSpinnerCallbacks, public WithParamInterface<CommonCallbackType>
+{
+    std::function<void(const mp::MountReply&, grpc::ClientReaderWriterInterface<mp::MountRequest, mp::MountReply>*)>
+    make_callback()
+    {
+        switch (GetParam())
+        {
+        case CommonCallbackType::Reply:
+            return mp::make_reply_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, err);
+            break;
+        case CommonCallbackType::Iterative:
+            return mp::make_iterative_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, term);
+            break;
+        default:
+            assert(false && "shouldn't be here");
+            throw std::runtime_error{"bad test instantiation"};
+        }
+    }
+};
+
+TEST_P(TestReplySpinnerCallbacks, replySpinnerCallbackUpdatesSpinnerMessage)
 {
     constexpr auto msg = "answer";
 
     mp::MountReply reply;
     reply.set_reply_message(msg);
 
-    auto cb = mp::make_iterative_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, term);
-    cb(reply, nullptr);
+    make_callback()(reply, nullptr);
 
     EXPECT_THAT(err.str(), IsEmpty());
     EXPECT_THAT(out.str(), HasSubstr(msg));
 }
 
-TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackIgnoresEmptyMessage)
+TEST_P(TestReplySpinnerCallbacks, replySpinnerCallbackIgnoresEmptyMessage)
 {
-    mp::StartReply reply;
+    mp::MountReply reply;
 
-    auto cb = mp::make_iterative_spinner_callback<mp::StartRequest, mp::StartReply>(spinner, term);
-    cb(reply, nullptr);
+    make_callback()(reply, nullptr);
 
     EXPECT_THAT(err.str(), IsEmpty());
     EXPECT_THAT(out.str(), IsEmpty());
 }
+
+INSTANTIATE_TEST_SUITE_P(TestReplySpinnerCallbacks,
+                         TestReplySpinnerCallbacks,
+                         Values(CommonCallbackType::Reply, CommonCallbackType::Iterative));
 
 TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesPasswordRequest)
 {
