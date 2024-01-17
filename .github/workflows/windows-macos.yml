@@ -260,7 +260,7 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: crazy-max/ghaction-chocolatey@v2
       with:
-        args: install --yes openssl
+        args: install --yes openssl --version=3.1.1
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
