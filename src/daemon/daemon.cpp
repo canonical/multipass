@@ -1480,11 +1480,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
         // FIXME: somehow we're writing contradictory state to disk.
-        if (spec.deleted && spec.state != VirtualMachine::State::stopped)
+        if (spec.deleted && spec.state != VirtualMachine::State::stopped && spec.state != VirtualMachine::State::off)
         {
-            mpl::log(mpl::Level::warning, category,
-                     fmt::format("{} is deleted but has incompatible state {}, resetting state to 0 (stopped)", name,
-                                 static_cast<int>(spec.state)));
+            mpl::log(mpl::Level::warning,
+                     category,
+                     fmt::format("{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
+                                 name,
+                                 static_cast<int>(spec.state),
+                                 static_cast<int>(VirtualMachine::State::stopped)));
             spec.state = VirtualMachine::State::stopped;
         }
 
@@ -3177,8 +3180,9 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
         }
         catch (const std::exception& e)
         {
-            mpl::log(mpl::Level::info, category,
-                     fmt::format("Cannot open ssh session on \"{}\" shutdown: {}", name, e.what()));
+            mpl::log(mpl::Level::info,
+                     category,
+                     fmt::format("Cannot open ssh session on \"{}\" for shutdown: {}", name, e.what()));
         }
 
         auto stop_all_mounts = [this](const std::string& name) { stop_mounts(name); };

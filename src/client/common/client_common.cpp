@@ -97,7 +97,7 @@ std::shared_ptr<grpc::Channel> create_channel_and_validate(const std::string& se
     mp::Rpc::Stub stub{rpc_channel};
 
     grpc::ClientContext context;
-    auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(100); // should be enough...
+    auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(500); // should be enough...
     context.set_deadline(deadline);
 
     mp::PingRequest request;
