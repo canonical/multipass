@@ -159,4 +159,25 @@ TEST_F(TestDaemonSnapshot, usesProvidedSnapshotName)
 
     EXPECT_EQ(status.error_code(), grpc::OK);
 }
+
+TEST_F(TestDaemonSnapshot, acceptsEmptySnapshotName)
+{
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+
+    static constexpr auto* generated_name = "asdrubal";
+    auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
+    EXPECT_CALL(*snapshot, get_name).WillOnce(Return(generated_name));
+    EXPECT_CALL(*instance, take_snapshot(_, IsEmpty(), IsEmpty())).WillOnce(Return(snapshot));
+
+    auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(generated_name)), _)).WillOnce(Return(true));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::OK);
+}
 } // namespace
