@@ -2,6 +2,7 @@ import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers.dart';
 import '../switch.dart';
@@ -53,6 +54,8 @@ class UpdateAvailable extends StatelessWidget {
 
   const UpdateAvailable(this.updateInfo, {super.key});
 
+  static final installUrl = Uri.parse('https://multipass.run/install');
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -81,7 +84,7 @@ class UpdateAvailable extends StatelessWidget {
               const SizedBox(width: 12),
               const Spacer(),
               TextButton(
-                onPressed: () {},
+                onPressed: () => launchUrl(installUrl),
                 child: const Text('Upgrade now'),
               ),
             ],
