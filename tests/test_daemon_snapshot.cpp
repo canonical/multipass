@@ -41,9 +41,21 @@ struct TestDaemonSnapshot : public mpt::DaemonTestFixture
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     }
 
-    const std::string mock_instance_name{"real-zebraphant"};
-    const std::string mac_addr{"52:54:00:73:76:28"};
-    std::vector<mp::NetworkInterface> extra_interfaces;
+    auto build_daemon_with_mock_instance()
+    {
+        const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+
+        auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+        auto* ret_instance = instance_ptr.get();
+
+        EXPECT_CALL(*instance_ptr, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
+        EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
+
+        config_builder.data_directory = temp_dir->path();
+        auto daemon = std::make_unique<mp::Daemon>(config_builder.build());
+
+        return std::pair{std::move(daemon), ret_instance};
+    }
 
     mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
@@ -52,6 +64,10 @@ struct TestDaemonSnapshot : public mpt::DaemonTestFixture
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
     mpt::MockVirtualMachineFactory& mock_factory = *use_a_mock_vm_factory();
+
+    std::vector<mp::NetworkInterface> extra_interfaces;
+    const std::string mac_addr{"52:54:00:73:76:28"};
+    const std::string mock_instance_name{"real-zebraphant"};
 };
 
 TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
@@ -87,23 +103,17 @@ TEST_F(TestDaemonSnapshot, failsOnMissingInstance)
 
 TEST_F(TestDaemonSnapshot, failsOnActiveInstance)
 {
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
-
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
-    EXPECT_CALL(*instance_ptr, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
-
-    EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
-
-    config_builder.data_directory = temp_dir->path();
-
     mp::SnapshotRequest request{};
     request.set_instance(mock_instance_name);
 
-    mp::Daemon daemon{config_builder.build()};
-    auto status = call_daemon_slot(daemon,
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
+
+    auto status = call_daemon_slot(*daemon,
                                    &mp::Daemon::snapshot,
                                    request,
                                    StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
     EXPECT_EQ(status.error_message(), "Multipass can only take snapshots of stopped instances.");
 }
