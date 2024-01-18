@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'daemon_unavailable.dart';
+import 'providers.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
 
@@ -30,11 +32,22 @@ class App extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final daemonAvailable = ref.watch(daemonAvailableProvider);
+
     final content = ref.watch(sidebarWidgetProvider);
 
     return MaterialApp(
       theme: theme,
-      home: SideBar(child: content),
+      home: Stack(fit: StackFit.expand, children: [
+        ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            Colors.grey,
+            daemonAvailable ? BlendMode.dst : BlendMode.saturation,
+          ),
+          child: SideBar(child: content),
+        ),
+        DaemonUnavailable(daemonAvailable),
+      ]),
     );
   }
 }
