@@ -20,6 +20,7 @@
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
+#include "mock_snapshot.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 
@@ -134,5 +135,28 @@ TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
 
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr("Invalid snapshot name"));
+}
+
+TEST_F(TestDaemonSnapshot, usesProvidedSnapshotName)
+{
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
+
+    static constexpr auto* snapshot_name = "orangutan";
+    request.set_snapshot(snapshot_name);
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+
+    auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
+    EXPECT_CALL(*snapshot, get_name).WillOnce(Return(snapshot_name));
+    EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), IsEmpty())).WillOnce(Return(snapshot));
+
+    auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(snapshot_name)), _)).WillOnce(Return(true));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::OK);
 }
 } // namespace
