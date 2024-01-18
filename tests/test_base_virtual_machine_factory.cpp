@@ -54,12 +54,18 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD(QString, get_backend_version_string, (), (const, override));
     MOCK_METHOD(void, prepare_networking, (std::vector<mp::NetworkInterface>&), (override));
     MOCK_METHOD(std::vector<mp::NetworkInterfaceInfo>, networks, (), (const, override));
+    MOCK_METHOD(std::string, bridge_name_for, (const std::string&), (const, override));
     MOCK_METHOD(std::string, create_bridge_with, (const mp::NetworkInterfaceInfo&), (override));
     MOCK_METHOD(void, prepare_interface,
                 (mp::NetworkInterface & net, std::vector<mp::NetworkInterfaceInfo>& host_nets,
                  const std::string& bridge_type),
                 (override));
     MOCK_METHOD(void, remove_resources_for_impl, (const std::string&), (override));
+
+    std::string base_bridge_name_for(const std::string& iface_name) const
+    {
+        return mp::BaseVirtualMachineFactory::bridge_name_for(iface_name);
+    }
 
     std::string base_create_bridge_with(const mp::NetworkInterfaceInfo& interface)
     {
@@ -155,7 +161,14 @@ TEST_F(BaseFactory, creates_cloud_init_iso_image)
     EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
 }
 
-TEST_F(BaseFactory, createBridgeNotImplemented)
+TEST_F(BaseFactory, baseBridgeNameForReturnsEmpty)
+{
+    StrictMock<MockBaseFactory> factory;
+
+    ASSERT_EQ(factory.base_bridge_name_for("any_interface"), "");
+}
+
+TEST_F(BaseFactory, create_bridge_not_implemented)
 {
     StrictMock<MockBaseFactory> factory;
 
