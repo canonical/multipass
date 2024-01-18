@@ -14,8 +14,7 @@ class ImageCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 100),
+    return Container(
       height: 275,
       width: width,
       decoration: BoxDecoration(
