@@ -6,12 +6,13 @@ import '../providers.dart';
 import 'image_card.dart';
 import 'launch_panel.dart';
 
-final imagesProvider = FutureProvider(
-  (ref) => ref
+final imagesProvider = FutureProvider((ref) {
+  ref.watch(daemonAvailableProvider);
+  return ref
       .watch(grpcClientProvider)
       .find(blueprints: false)
-      .then((r) => r.imagesInfo),
-);
+      .then((r) => r.imagesInfo);
+});
 
 class CatalogueScreen extends ConsumerWidget {
   static const sidebarKey = 'catalogue';
@@ -61,7 +62,8 @@ class CatalogueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final images = ref.watch(imagesProvider).valueOrNull ?? const [];
+    final images =
+        ref.watch(imagesProvider).unwrapPrevious().valueOrNull ?? const [];
     final sortedImages = _sortImages([...images]);
     final imageList = SingleChildScrollView(
       child: Column(
