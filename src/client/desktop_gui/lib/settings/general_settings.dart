@@ -11,12 +11,24 @@ final updateProvider = FutureProvider.autoDispose<UpdateInfo>((ref) {
   return ref.watch(grpcClientProvider).updateInfo();
 });
 
+const privilegedMountsKey = 'local.privileged-mounts';
+
+final privilegedMountsProvider = FutureProvider((ref) {
+  ref.watch(daemonAvailableProvider);
+  return ref
+      .watch(grpcClientProvider)
+      .get(privilegedMountsKey)
+      .then((value) => bool.tryParse(value) ?? false);
+});
+
 class GeneralSettings extends ConsumerWidget {
   const GeneralSettings({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final update = ref.watch(updateProvider).valueOrNull ?? UpdateInfo();
+    final privilegedMounts =
+        ref.watch(privilegedMountsProvider).valueOrNull ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,16 +45,11 @@ class GeneralSettings extends ConsumerWidget {
         const SizedBox(height: 28),
         Switch(
           label: 'Allow privileged mounts',
-          value: false,
-          onChanged: (_) {},
-        ),
-        const SizedBox(height: 37),
-        const Text('Data privacy', style: TextStyle(fontSize: 16)),
-        const SizedBox(height: 28),
-        Switch(
-          label: 'Check for updates automatically',
-          value: false,
-          onChanged: (value) {},
+          value: privilegedMounts,
+          onChanged: (value) => ref
+              .read(grpcClientProvider)
+              .set(privilegedMountsKey, value.toString())
+              .onError((_, __) {}),
         ),
       ],
     );
