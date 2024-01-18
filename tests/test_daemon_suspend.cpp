@@ -41,11 +41,7 @@ struct TestDaemonSuspend : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
 
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-
-        mock_factory = use_a_mock_vm_factory();
     }
-
-    mpt::MockVirtualMachineFactory* mock_factory;
 
     const std::string mock_instance_name{"real-zebraphant"};
     const std::string mac_addr{"52:54:00:73:76:28"};
@@ -63,6 +59,7 @@ struct TestDaemonSuspend : public mpt::DaemonTestFixture
 
 TEST_F(TestDaemonSuspend, suspendNotSupportedDoesNotStopMounts)
 {
+    auto mock_factory = use_a_mock_vm_factory();
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
@@ -96,6 +93,7 @@ TEST_F(TestDaemonSuspend, suspendNotSupportedDoesNotStopMounts)
 
 TEST_F(TestDaemonSuspend, suspendStopsMounts)
 {
+    auto mock_factory = use_a_mock_vm_factory();
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
@@ -123,4 +121,23 @@ TEST_F(TestDaemonSuspend, suspendStopsMounts)
                                    StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
 
     EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonSuspend, suspendNotSupportedReturnsErrorStatus)
+{
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = temp_dir->path();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::SuspendRequest request;
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+
+    auto status = call_daemon_slot(daemon,
+                                   &mp::Daemon::suspend,
+                                   request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr(("The suspend feature is not implemented on this backend.")));
 }
