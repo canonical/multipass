@@ -21,6 +21,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
+#include "mock_vm_image_vault.h"
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
@@ -37,7 +38,12 @@ struct TestDaemonSnapshot : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     }
+
+    const std::string mock_instance_name{"real-zebraphant"};
+    const std::string mac_addr{"52:54:00:73:76:28"};
+    std::vector<mp::NetworkInterface> extra_interfaces;
 
     mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
@@ -77,5 +83,28 @@ TEST_F(TestDaemonSnapshot, failsOnMissingInstance)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
     EXPECT_EQ(status.error_message(), fmt::format("instance \"{}\" does not exist", missing_instance));
+}
+
+TEST_F(TestDaemonSnapshot, failsOnActiveInstance)
+{
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*instance_ptr, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
+
+    EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
+
+    config_builder.data_directory = temp_dir->path();
+
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
+
+    mp::Daemon daemon{config_builder.build()};
+    auto status = call_daemon_slot(daemon,
+                                   &mp::Daemon::snapshot,
+                                   request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+    EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
+    EXPECT_EQ(status.error_message(), "Multipass can only take snapshots of stopped instances.");
 }
 } // namespace
