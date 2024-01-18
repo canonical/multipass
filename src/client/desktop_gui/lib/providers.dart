@@ -48,6 +48,10 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>(
   },
 );
 
+final daemonAvailableProvider = Provider(
+  (ref) => !ref.watch(vmInfosStreamProvider).hasError,
+);
+
 final vmInfosProvider = Provider(
   (ref) => ref.watch(vmInfosStreamProvider).valueOrNull ?? const [],
 );
