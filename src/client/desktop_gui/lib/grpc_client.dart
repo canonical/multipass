@@ -107,6 +107,14 @@ class GrpcClient {
     return _client.find(Stream.value(request)).single;
   }
 
+  Future<List<NetInterface>> networks() {
+    final request = NetworksRequest();
+    return _client
+        .networks(Stream.value(request))
+        .single
+        .then((r) => r.interfaces);
+  }
+
   Future<String> version() {
     final request = VersionRequest();
     return _client
