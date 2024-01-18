@@ -137,20 +137,22 @@ TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
     EXPECT_THAT(status.error_message(), HasSubstr("Invalid snapshot name"));
 }
 
-TEST_F(TestDaemonSnapshot, usesProvidedSnapshotName)
+TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
 {
     mp::SnapshotRequest request{};
     request.set_instance(mock_instance_name);
 
     static constexpr auto* snapshot_name = "orangutan";
+    static constexpr auto* snapshot_comment = "not a monkey";
     request.set_snapshot(snapshot_name);
+    request.set_comment(snapshot_comment);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
     EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name).WillOnce(Return(snapshot_name));
-    EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), IsEmpty())).WillOnce(Return(snapshot));
+    EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), Eq(snapshot_comment))).WillOnce(Return(snapshot));
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
     EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(snapshot_name)), _)).WillOnce(Return(true));
