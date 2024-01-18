@@ -1,7 +1,8 @@
-import 'package:desktop_gui/settings/virtualization_settings.dart';
 import 'package:flutter/material.dart';
 
 import 'general_settings.dart';
+import 'usage_settings.dart';
+import 'virtualization_settings.dart';
 
 class SettingsScreen extends StatelessWidget {
   static const sidebarKey = 'settings';
@@ -10,8 +11,20 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const tabTitles = [
+      Tab(text: 'General'),
+      Tab(text: 'Usage'),
+      Tab(text: 'Virtualization'),
+    ];
+
+    const tabContents = [
+      SingleChildScrollView(child: GeneralSettings()),
+      SingleChildScrollView(child: UsageSettings()),
+      SingleChildScrollView(child: VirtualizationSettings()),
+    ];
+
     return DefaultTabController(
-      length: 2,
+      length: tabContents.length,
       child: Scaffold(
         body: Padding(
           padding:
@@ -27,24 +40,15 @@ class SettingsScreen extends StatelessWidget {
                 labelColor: Colors.black,
                 labelStyle: TextStyle(fontWeight: FontWeight.bold),
                 tabAlignment: TabAlignment.start,
+                indicatorSize: TabBarIndicatorSize.tab,
                 indicator: BoxDecoration(
                   color: Colors.black12,
                   border: Border(bottom: BorderSide(width: 3)),
                 ),
-                tabs: [
-                  Tab(text: 'General'),
-                  // Tab(text: 'Usage'),
-                  Tab(text: 'Virtualization'),
-                ],
+                tabs: tabTitles,
               ),
               Divider(height: 0, thickness: 2),
-              Expanded(
-                child: TabBarView(children: [
-                  SingleChildScrollView(child: GeneralSettings()),
-                  // SingleChildScrollView(child: UsageSettings()),
-                  SingleChildScrollView(child: VirtualizationSettings()),
-                ]),
-              ),
+              Expanded(child: TabBarView(children: tabContents)),
             ],
           ),
         ),
