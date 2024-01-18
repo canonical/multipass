@@ -117,4 +117,22 @@ TEST_F(TestDaemonSnapshot, failsOnActiveInstance)
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
     EXPECT_EQ(status.error_message(), "Multipass can only take snapshots of stopped instances.");
 }
+
+TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
+{
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
+    request.set_snapshot("%$@#*& \t\n nope, no.can.do");
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+
+    auto status = call_daemon_slot(*daemon,
+                                   &mp::Daemon::snapshot,
+                                   request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), HasSubstr("Invalid snapshot name"));
+}
 } // namespace
