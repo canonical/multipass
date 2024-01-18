@@ -6,9 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dropdown.dart';
 import '../providers.dart';
 
-final driverProvider = FutureProvider(
-  (ref) => ref.watch(grpcClientProvider).get('local.driver'),
-);
+const driverKey = 'local.driver';
+
+final driverProvider = FutureProvider((ref) {
+  ref.watch(daemonAvailableProvider);
+  return ref.watch(grpcClientProvider).get(driverKey);
+});
+
 
 class VirtualizationSettings extends ConsumerWidget {
   const VirtualizationSettings({super.key});
@@ -25,7 +29,10 @@ class VirtualizationSettings extends ConsumerWidget {
           label: 'Driver',
           value: driver,
           items: drivers,
-          onChanged: (_) {},
+          onChanged: (value) => ref
+              .read(grpcClientProvider)
+              .set(driverKey, value!)
+              .onError((_, __) {}),
         ),
       ],
     );
