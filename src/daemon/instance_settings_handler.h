@@ -44,6 +44,7 @@ public:
                             const std::unordered_set<std::string>& preparing_instances,
                             std::function<void()> instance_persister,
                             std::function<std::string()> bridged_interface,
+                            std::function<std::string()> bridge_name,
                             std::function<std::vector<NetworkInterfaceInfo>()> host_networks);
 
     std::set<QString> keys() const override;
@@ -63,6 +64,7 @@ private:
     const std::unordered_set<std::string>& preparing_instances;
     std::function<void()> instance_persister;
     std::function<std::string()> bridged_interface;
+    std::function<std::string()> bridge_name;
     std::function<std::vector<NetworkInterfaceInfo>()> host_networks;
 };
 

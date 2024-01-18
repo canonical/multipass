@@ -51,6 +51,7 @@ class Backend : public Singleton<Backend>
 public:
     using Singleton<Backend>::Singleton;
 
+    virtual std::string bridge_name(const std::string& interface) const;
     virtual std::string create_bridge_with(const std::string& interface);
     virtual std::string get_subnet(const Path& network_dir, const QString& bridge_name) const;
 

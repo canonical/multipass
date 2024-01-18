@@ -1239,6 +1239,7 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            const std::unordered_set<std::string>& preparing_instances,
                                            std::function<void()> instance_persister,
                                            std::function<std::string()> bridged_interface,
+                                           std::function<std::string()> bridge_name,
                                            std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
@@ -1247,6 +1248,7 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                                                                       preparing_instances,
                                                                                       std::move(instance_persister),
                                                                                       std::move(bridged_interface),
+                                                                                      std::move(bridge_name),
                                                                                       host_networks));
 }
 
@@ -1405,6 +1407,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           preparing_instances,
           [this] { persist_instances(); },
           get_bridged_interface_name,
+          [this]() {
+              return config->factory->bridge_name_for(MP_SETTINGS.get(mp::bridged_interface_key).toStdString());
+          },
           [this]() { return config->factory->networks(); })},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
