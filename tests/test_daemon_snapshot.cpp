@@ -23,6 +23,7 @@
 #include "mock_snapshot.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "multipass/exceptions/snapshot_exceptions.h"
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
@@ -137,13 +138,34 @@ TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
     EXPECT_THAT(status.error_message(), HasSubstr("Invalid snapshot name"));
 }
 
-TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
+TEST_F(TestDaemonSnapshot, failsOnRepeatedSnapshotName)
 {
+    static constexpr auto* snapshot_name = "Obelix";
     mp::SnapshotRequest request{};
     request.set_instance(mock_instance_name);
+    request.set_snapshot(snapshot_name);
 
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), _))
+        .WillOnce(Throw(mp::SnapshotNameTakenException{mock_instance_name, snapshot_name}));
+
+    auto status = call_daemon_slot(*daemon,
+                                   &mp::Daemon::snapshot,
+                                   request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), AllOf(HasSubstr(mock_instance_name), HasSubstr(snapshot_name)));
+}
+
+TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
+{
     static constexpr auto* snapshot_name = "orangutan";
     static constexpr auto* snapshot_comment = "not a monkey";
+
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
     request.set_snapshot(snapshot_name);
     request.set_comment(snapshot_comment);
 
@@ -164,13 +186,14 @@ TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
 
 TEST_F(TestDaemonSnapshot, acceptsEmptySnapshotName)
 {
+    static constexpr auto* generated_name = "asdrubal";
+
     mp::SnapshotRequest request{};
     request.set_instance(mock_instance_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
     EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
 
-    static constexpr auto* generated_name = "asdrubal";
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name).WillOnce(Return(generated_name));
     EXPECT_CALL(*instance, take_snapshot(_, IsEmpty(), IsEmpty())).WillOnce(Return(snapshot));
