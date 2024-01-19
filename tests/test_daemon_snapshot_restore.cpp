@@ -82,6 +82,30 @@ struct TestDaemonRestore : public TestDaemonSnapshotRestoreBase
     using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to use for test names
 };
 
+struct SnapshotRPCTypes
+{
+    using Request = mp::SnapshotRequest;
+    using Reply = mp::SnapshotReply;
+    inline static constexpr auto daemon_slot_ptr = &mp::Daemon::snapshot;
+};
+
+struct RestoreRPCTypes
+{
+    using Request = mp::RestoreRequest;
+    using Reply = mp::RestoreReply;
+    inline static constexpr auto daemon_slot_ptr = &mp::Daemon::restore;
+};
+
+template <typename RPCTypes>
+struct TestDaemonSnapshotRestoreCommon : public TestDaemonSnapshotRestoreBase
+{
+    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to use for test names
+    using MockServer = StrictMock<mpt::MockServerReaderWriter<typename RPCTypes::Reply, typename RPCTypes::Request>>;
+};
+
+using RPCTypes = Types<SnapshotRPCTypes, RestoreRPCTypes>;
+TYPED_TEST_SUITE(TestDaemonSnapshotRestoreCommon, RPCTypes);
+
 TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
 {
     EXPECT_CALL(mock_factory, require_snapshots_support)
@@ -97,37 +121,33 @@ TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
 }
 
-TEST_F(TestDaemonSnapshot, failsOnMissingInstance)
+TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnMissingInstance)
 {
     static constexpr auto missing_instance = "foo";
-    mp::SnapshotRequest request{};
+    typename TypeParam::Request request{};
     request.set_instance(missing_instance);
 
-    mp::Daemon daemon{config_builder.build()};
-    auto status = call_daemon_slot(daemon,
-                                   &mp::Daemon::snapshot,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+    mp::Daemon daemon{this->config_builder.build()};
+    auto status =
+        this->call_daemon_slot(daemon, TypeParam::daemon_slot_ptr, request, typename TestFixture::MockServer{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
     EXPECT_EQ(status.error_message(), fmt::format("instance \"{}\" does not exist", missing_instance));
 }
 
-TEST_F(TestDaemonSnapshot, failsOnActiveInstance)
+TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnActiveInstance)
 {
-    mp::SnapshotRequest request{};
-    request.set_instance(mock_instance_name);
+    typename TypeParam::Request request{};
+    request.set_instance(this->mock_instance_name);
 
-    auto [daemon, instance] = build_daemon_with_mock_instance();
+    auto [daemon, instance] = this->build_daemon_with_mock_instance();
     EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
 
-    auto status = call_daemon_slot(*daemon,
-                                   &mp::Daemon::snapshot,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+    auto status =
+        this->call_daemon_slot(*daemon, TypeParam::daemon_slot_ptr, request, typename TestFixture::MockServer{});
 
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
-    EXPECT_EQ(status.error_message(), "Multipass can only take snapshots of stopped instances.");
+    EXPECT_THAT(status.error_message(), HasSubstr("stopped"));
 }
 
 TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
