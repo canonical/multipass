@@ -106,21 +106,6 @@ struct TestDaemonSnapshotRestoreCommon : public TestDaemonSnapshotRestoreBase
 using RPCTypes = Types<SnapshotRPCTypes, RestoreRPCTypes>;
 TYPED_TEST_SUITE(TestDaemonSnapshotRestoreCommon, RPCTypes);
 
-TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
-{
-    EXPECT_CALL(mock_factory, require_snapshots_support)
-        .WillRepeatedly(Throw(mp::NotImplementedOnThisBackendException{"snapshots"}));
-
-    mp::Daemon daemon{config_builder.build()};
-    auto status = call_daemon_slot(daemon,
-                                   &mp::Daemon::snapshot,
-                                   mp::SnapshotRequest{},
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
-
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
-    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
-}
-
 TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnMissingInstance)
 {
     static constexpr auto missing_instance = "foo";
@@ -148,6 +133,21 @@ TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnActiveInstance)
 
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr("stopped"));
+}
+
+TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
+{
+    EXPECT_CALL(mock_factory, require_snapshots_support)
+        .WillRepeatedly(Throw(mp::NotImplementedOnThisBackendException{"snapshots"}));
+
+    mp::Daemon daemon{config_builder.build()};
+    auto status = call_daemon_slot(daemon,
+                                   &mp::Daemon::snapshot,
+                                   mp::SnapshotRequest{},
+                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
+    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
 }
 
 TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
