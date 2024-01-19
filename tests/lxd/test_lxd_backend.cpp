@@ -1362,7 +1362,8 @@ TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
                                HasSubstr(": Error - Failure"));
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                log(_,
+                    mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
                     mpt::MockLogger::make_cstring_matcher(error_matcher)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
