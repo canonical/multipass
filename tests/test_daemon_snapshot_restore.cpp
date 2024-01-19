@@ -34,7 +34,7 @@ using namespace testing;
 
 namespace
 {
-struct TestDaemonSnapshot : public mpt::DaemonTestFixture
+struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
 {
     void SetUp() override
     {
@@ -70,6 +70,16 @@ struct TestDaemonSnapshot : public mpt::DaemonTestFixture
     std::vector<mp::NetworkInterface> extra_interfaces;
     const std::string mac_addr{"52:54:00:73:76:28"};
     const std::string mock_instance_name{"real-zebraphant"};
+};
+
+struct TestDaemonSnapshot : public TestDaemonSnapshotRestoreBase
+{
+    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to use for test names
+};
+
+struct TestDaemonRestore : public TestDaemonSnapshotRestoreBase
+{
+    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to use for test names
 };
 
 TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
