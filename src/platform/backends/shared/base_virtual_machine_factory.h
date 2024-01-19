@@ -75,6 +75,8 @@ public:
 
     void require_snapshots_support() const override;
 
+    void require_suspend_support() const override;
+
     std::string bridge_name_for(const std::string& iface_name) const override
     {
         return "";
@@ -112,6 +114,10 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
 inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() const
 {
     throw NotImplementedOnThisBackendException{"snapshots"};
+}
+
+inline void multipass::BaseVirtualMachineFactory::require_suspend_support() const
+{
 }
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
