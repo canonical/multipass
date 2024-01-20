@@ -277,4 +277,23 @@ TEST_F(TestDaemonRestore, failsOnMissingSnapshotName)
                 AllOf(HasSubstr("No such snapshot"), HasSubstr(mock_instance_name), HasSubstr(missing_snapshot_name)));
 }
 
+TEST_F(TestDaemonRestore, retoresSnapshotDirectlyIfDestructive)
+{
+    static constexpr auto* snapshot_name = "dodo";
+    mp::RestoreRequest request{};
+    request.set_instance(mock_instance_name);
+    request.set_snapshot(snapshot_name);
+    request.set_destructive(true);
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, restore_snapshot(Eq(snapshot_name), _)).Times(1);
+
+    StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>> server{};
+    EXPECT_CALL(server, Write).Times(2);
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restore, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::OK);
+}
+
 } // namespace
