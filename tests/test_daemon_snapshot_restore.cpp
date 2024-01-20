@@ -254,4 +254,27 @@ TEST_F(TestDaemonRestore, failsIfBackendDoesNotSupportSnapshots)
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
 }
+
+TEST_F(TestDaemonRestore, failsOnMissingSnapshotName)
+{
+    static constexpr auto* missing_snapshot_name = "albatross";
+    mp::RestoreRequest request{};
+    request.set_instance(mock_instance_name);
+    request.set_snapshot(missing_snapshot_name);
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, get_snapshot(TypedEq<const std::string&>(missing_snapshot_name)))
+        .WillOnce(Throw(mp::NoSuchSnapshotException{mock_instance_name, missing_snapshot_name}));
+
+    auto status = call_daemon_slot(*daemon,
+                                   &mp::Daemon::restore,
+                                   request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr("No such snapshot"), HasSubstr(mock_instance_name), HasSubstr(missing_snapshot_name)));
+}
+
 } // namespace
