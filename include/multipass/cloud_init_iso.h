@@ -22,6 +22,7 @@
 
 #include <multipass/path.h>
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,7 @@ class CloudInitIso
 public:
     void add_file(const std::string& name, const std::string& data);
     void write_to(const Path& path);
+    void read_from(const std::filesystem::path& path);
 
 private:
     struct FileEntry
