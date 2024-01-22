@@ -65,5 +65,5 @@ TEST_F(CloudInitIso, reads_iso_file)
 
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
-    //    EXPECT_EQ(orignal_iso, new_iso);
+    EXPECT_EQ(orignal_iso, new_iso);
 }
