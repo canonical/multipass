@@ -20,7 +20,6 @@
 
 #include <multipass/json_utils.h>
 
-#include <QDir>
 #include <QFileDevice>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -37,10 +36,9 @@ struct TestJsonUtils : public Test
 {
     mpt::MockFileOps::GuardedMock guarded_mock_file_ops = mpt::MockFileOps::inject();
     mpt::MockFileOps& mock_file_ops = *guarded_mock_file_ops.first;
-    inline static const QChar separator = QDir::separator();
-    inline static const QString dir = QStringLiteral("a%1b%1c").arg(separator);
+    inline static const QString dir = QStringLiteral("a/b/c");
     inline static const QString file_name = QStringLiteral("asd.blag");
-    inline static const QString file_path = QStringLiteral("%1%2%3").arg(dir, separator, file_name);
+    inline static const QString file_path = QStringLiteral("%1/%2").arg(dir, file_name);
     inline static const char* json_text = R"({"a": [1,2,3]})";
     inline static const QJsonObject json = QJsonDocument::fromJson(json_text).object();
     template <typename T>
