@@ -1596,8 +1596,9 @@ TEST_F(LXDBackend, unsupported_suspend_throws)
                                   default_storage_pool,
                                   instance_dir.path()};
 
-    MP_EXPECT_THROW_THAT(machine.suspend(), std::runtime_error,
-                         mpt::match_what(StrEq("suspend is currently not supported")));
+    MP_EXPECT_THROW_THAT(machine.suspend(),
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("suspend")));
 }
 
 TEST_F(LXDBackend, start_while_frozen_unfreezes)
