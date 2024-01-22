@@ -15,12 +15,12 @@
  *
  */
 
-#include "common.h"
-#include "mock_logger.h"
-#include "mock_process_factory.h"
-#include "mock_snapshot.h"
-#include "mock_virtual_machine.h"
-#include "path.h"
+#include "tests/common.h"
+#include "tests/mock_logger.h"
+#include "tests/mock_process_factory.h"
+#include "tests/mock_snapshot.h"
+#include "tests/mock_virtual_machine.h"
+#include "tests/path.h"
 
 #include <multipass/process/process.h>
 #include <multipass/virtual_machine_description.h>
