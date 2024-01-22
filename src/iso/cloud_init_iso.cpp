@@ -24,6 +24,7 @@
 
 #include <array>
 #include <cctype>
+#include <iostream>
 
 namespace mp = multipass;
 
@@ -340,6 +341,23 @@ auto make_u16_name(const std::string& name)
     return u16_name;
 }
 
+// change to string_view later maybe
+std::string convert_u16_name_back(const std::string& u16_name)
+{
+    if (!is_even(u16_name.size()))
+    {
+        throw std::runtime_error(u16_name + " size is not even, which does not conform to u16 name format.");
+    }
+
+    std::string original_name(u16_name.size() / 2, '\0');
+    for (size_t i = 0; i < original_name.size(); ++i)
+    {
+        original_name[i] = u16_name[i * 2 + 1];
+    }
+
+    return original_name;
+}
+
 struct JolietFileRecord : FileRecord
 {
     JolietFileRecord(const std::string& name, uint32_t content_location, uint32_t size)
@@ -491,5 +509,116 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         throw std::runtime_error{fmt::format(R"("Failed to open file "{}" for reading. ")", fs_path.c_str())};
     }
 
-    // read the iso file data.
+    const uint32_t num_reserved_bytes = 32768u; // 2 data blocks, 4kb
+    const uint32_t Joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
+    std::array<char, 6> read_data{};
+
+    iso_file.seekg(Joliet_des_start_pos);
+    // check if it is joliet descriptor,
+    // check later if the joliet structure is correct.
+    // Todo convert the read into a utility function
+    if (iso_file.read(reinterpret_cast<char*>(read_data.data()), read_data.size()))
+    {
+        std::cout << "Data read into the array from the specified position.\n";
+        for (const int ele : read_data)
+        {
+            std::cout << ele << ' ';
+        }
+        std::cout << '\n';
+    }
+
+    const uint32_t root_dir_record_data_start_pos = Joliet_des_start_pos + 156;
+    iso_file.seekg(root_dir_record_data_start_pos);
+
+    // check if it is indeed root dir record data, how?
+    // from 8bytes to uint32_t later
+
+    std::array<uint8_t, 34> files_location_data{};
+
+    if (iso_file.read(reinterpret_cast<char*>(files_location_data.data()), files_location_data.size()))
+    {
+        std::cout << "Data read into the array from the specified position.\n";
+        for (const int ele : files_location_data)
+        {
+            std::cout << ele << ' ';
+        }
+        std::cout << '\n';
+    }
+
+    const uint32_t files_location_data_by_blocks = static_cast<uint32_t>(files_location_data[2]);
+    std::cout << "files_location_data_by_blocks value is " << files_location_data_by_blocks << std::endl;
+    //    const uint32_t files_start_pos = (files_location_data_by_blocks + 1) * logical_block_size;
+    const uint32_t file_records_start_pos =
+        files_location_data_by_blocks * logical_block_size + 2 * sizeof(RootDirRecord); // root dir + root dir parent
+    std::cout << "file_records_start_pos value is " << file_records_start_pos << std::endl;
+
+    uint32_t current_file_record_start_pos = file_records_start_pos;
+    while (true)
+    {
+        iso_file.seekg(current_file_record_start_pos);
+        uint8_t file_record_data_size{};
+        if (iso_file.read(reinterpret_cast<char*>(&file_record_data_size), 1))
+        {
+            std::cout << "file_record_data_size is " << int(file_record_data_size) << std::endl;
+        }
+        if (int(file_record_data_size) == 0)
+        {
+            break;
+        }
+
+        iso_file.seekg(current_file_record_start_pos + 2);
+        uint8_t file_content_location_by_blocks{};
+        if (iso_file.read(reinterpret_cast<char*>(&file_content_location_by_blocks), 1))
+        {
+            std::cout << "file_content_location_by_blocks is " << int(file_content_location_by_blocks) << std::endl;
+            ;
+        }
+
+        iso_file.seekg(current_file_record_start_pos + 10);
+        uint8_t file_content_size{};
+        if (iso_file.read(reinterpret_cast<char*>(&file_content_size), 1))
+        {
+            std::cout << "file_content_size is " << int(file_content_size) << std::endl;
+            ;
+        }
+
+        iso_file.seekg(file_content_location_by_blocks * logical_block_size);
+        std::vector<uint8_t> file_content(file_content_size);
+        if (iso_file.read(reinterpret_cast<char*>(file_content.data()), file_content_size))
+        {
+            std::cout << "file1 content: \n";
+            for (const auto ele : file_content)
+            {
+                std::cout << ele;
+            }
+            std::cout << '\n';
+        }
+
+        const uint32_t file_name_length_start_pos = current_file_record_start_pos + 32;
+
+        iso_file.seekg(file_name_length_start_pos);
+        uint8_t encoded_file_name_length{};
+        if (iso_file.read(reinterpret_cast<char*>(&encoded_file_name_length), 1))
+        {
+            std::cout << "file_name_length is " << int(encoded_file_name_length) << std::endl;
+            ;
+        }
+
+        std::vector<uint8_t> encoded_file_name(encoded_file_name_length);
+        if (iso_file.read(reinterpret_cast<char*>(encoded_file_name.data()), encoded_file_name_length))
+        {
+            std::cout << "file_record2: \n";
+            for (const auto ele : encoded_file_name)
+            {
+                std::cout << ele << ' ';
+            }
+            std::cout << '\n';
+        }
+
+        const std::string orginal_file_name =
+            convert_u16_name_back(std::string{encoded_file_name.cbegin(), encoded_file_name.cend()});
+        std::cout << "orginal_file_name value is " << orginal_file_name << "\n\n";
+        current_file_record_start_pos += file_record_data_size;
+        files.emplace_back(FileEntry{orginal_file_name, std::string{file_content.cbegin(), file_content.cend()}});
+    }
 }

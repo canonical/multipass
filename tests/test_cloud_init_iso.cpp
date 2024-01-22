@@ -53,3 +53,17 @@ TEST_F(CloudInitIso, reads_non_exist_iso_file_throw)
         std::runtime_error,
         mpt::match_what(StrEq("The cloud-init-config.iso file does not exist or is not a regular file. ")));
 }
+
+TEST_F(CloudInitIso, reads_iso_file)
+{
+    mp::CloudInitIso orignal_iso;
+    orignal_iso.add_file("meta-data", "test_data1\ntest_data2\n");
+    orignal_iso.add_file("test3", "test data3");
+    orignal_iso.add_file("test2", "test data2");
+    orignal_iso.add_file("test4", "test data4");
+    orignal_iso.write_to(iso_path);
+
+    mp::CloudInitIso new_iso;
+    new_iso.read_from(iso_path.toStdString());
+    //    EXPECT_EQ(orignal_iso, new_iso);
+}
