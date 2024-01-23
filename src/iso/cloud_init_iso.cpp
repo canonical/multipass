@@ -104,6 +104,44 @@ void write(const T& t, QFile& f)
     f.write(reinterpret_cast<const char*>(t.data.data()), t.data.size());
 }
 
+// std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, size_t size)
+//{
+//     std::vector<uint8_t> buffer(size);
+//     file.seekg(pos);
+//     if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
+//     {
+//         throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, pos));
+//     }
+
+//    return buffer;
+//}
+
+template <size_t N>
+std::array<uint8_t, N> readBytesToArray(std::ifstream& file, std::streampos pos)
+{
+    std::array<uint8_t, N> buffer{};
+    file.seekg(pos);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), N))
+    {
+        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", N, int(pos)));
+    }
+
+    return buffer;
+}
+
+uint8_t readSingleByte(std::ifstream& file, std::streampos pos)
+{
+    uint8_t data;
+
+    file.seekg(pos);
+    if (!file.read(reinterpret_cast<char*>(&data), 1))
+    {
+        throw std::runtime_error(fmt::format("Can not read the next byte data from file at {}.", int(pos)));
+    }
+
+    return data;
+}
+
 template <size_t size>
 struct PaddedString
 {
@@ -510,46 +548,33 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     }
 
     const uint32_t num_reserved_bytes = 32768u; // 2 data blocks, 4kb
-    const uint32_t Joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
-    std::array<char, 6> read_data{};
+    const uint32_t joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
 
-    iso_file.seekg(Joliet_des_start_pos);
-    // check if it is joliet descriptor,
-    // check later if the joliet structure is correct.
-    // Todo convert the read into a utility function
-    if (iso_file.read(reinterpret_cast<char*>(read_data.data()), read_data.size()))
+    if (readSingleByte(iso_file, joliet_des_start_pos) != 2_u8)
     {
-        std::cout << "Data read into the array from the specified position.\n";
-        for (const int ele : read_data)
-        {
-            std::cout << ele << ' ';
-        }
-        std::cout << '\n';
+        throw std::runtime_error("The Joliet descriptor is not in place. ");
     }
 
-    const uint32_t root_dir_record_data_start_pos = Joliet_des_start_pos + 156;
-    iso_file.seekg(root_dir_record_data_start_pos);
-
-    // check if it is indeed root dir record data, how?
-    // from 8bytes to uint32_t later
-
-    std::array<uint8_t, 34> files_location_data{};
-
-    if (iso_file.read(reinterpret_cast<char*>(files_location_data.data()), files_location_data.size()))
+    const std::array<uint8_t, 5> read_data = readBytesToArray<5>(iso_file, joliet_des_start_pos + 1);
+    if (std::string_view(reinterpret_cast<const char*>(read_data.data()), 5) != "CD001")
     {
-        std::cout << "Data read into the array from the specified position.\n";
-        for (const int ele : files_location_data)
-        {
-            std::cout << ele << ' ';
-        }
-        std::cout << '\n';
+        throw std::runtime_error("The Joliet descriptor is malformed. ");
     }
 
-    const uint32_t files_location_data_by_blocks = static_cast<uint32_t>(files_location_data[2]);
-    std::cout << "files_location_data_by_blocks value is " << files_location_data_by_blocks << std::endl;
-    //    const uint32_t files_start_pos = (files_location_data_by_blocks + 1) * logical_block_size;
+    const uint32_t root_dir_record_data_start_pos = joliet_des_start_pos + 156;
+
+    const std::array<uint8_t, 34> root_dir_record_data = readBytesToArray<34>(iso_file, root_dir_record_data_start_pos);
+    ;
+    if (uint32_t(root_dir_record_data[0]) != 34 || root_dir_record_data[33] != 0_u8)
+    {
+        throw std::runtime_error("The root directory record data is malformed. ");
+    }
+
+    // add endian conversion
+    const uint32_t root_dir_record_data_by_blocks = static_cast<uint32_t>(root_dir_record_data[2]);
+    std::cout << "files_location_data_by_blocks value is " << root_dir_record_data_by_blocks << std::endl;
     const uint32_t file_records_start_pos =
-        files_location_data_by_blocks * logical_block_size + 2 * sizeof(RootDirRecord); // root dir + root dir parent
+        root_dir_record_data_by_blocks * logical_block_size + 2 * sizeof(RootDirRecord); // root dir + root dir parent
     std::cout << "file_records_start_pos value is " << file_records_start_pos << std::endl;
 
     uint32_t current_file_record_start_pos = file_records_start_pos;
