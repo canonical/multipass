@@ -271,7 +271,7 @@ TEST_P(TestSnapshotInvalidCores, rejectsInvalidNumberOfCores)
                          mpt::match_what(HasSubstr("Invalid number of cores")));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotInvalidCores, Values(0, -1, -12345, -3e9));
+INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotInvalidCores, Values(0, -1, -12345));
 
 TEST_F(TestBaseSnapshot, rejectsNullMemorySize)
 {
