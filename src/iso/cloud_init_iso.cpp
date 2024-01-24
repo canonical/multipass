@@ -104,17 +104,17 @@ void write(const T& t, QFile& f)
     f.write(reinterpret_cast<const char*>(t.data.data()), t.data.size());
 }
 
-// std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, size_t size)
-//{
-//      std::vector<uint8_t> buffer(size);
-//      file.seekg(pos);
-//      if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
-//      {
-//          throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, int(pos)));
-//      }
+std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, size_t size)
+{
+    std::vector<uint8_t> buffer(size);
+    file.seekg(pos);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
+    {
+        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, int(pos)));
+    }
 
-//    return buffer;
-//}
+    return buffer;
+}
 
 template <size_t N>
 std::array<uint8_t, N> readBytesToArray(std::ifstream& file, std::streampos pos)
@@ -582,6 +582,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         }
 
         iso_file.seekg(current_file_record_start_pos + 2);
+        // add endian conversion
         uint8_t file_content_location_by_blocks{};
         if (iso_file.read(reinterpret_cast<char*>(&file_content_location_by_blocks), 1))
         {
@@ -589,44 +590,28 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         }
 
         iso_file.seekg(current_file_record_start_pos + 10);
+
+        // add endian conversion
         uint8_t file_content_size{};
         if (iso_file.read(reinterpret_cast<char*>(&file_content_size), 1))
         {
             std::cout << "file_content_size is " << int(file_content_size) << std::endl;
         }
 
-        iso_file.seekg(file_content_location_by_blocks * logical_block_size);
-        std::vector<uint8_t> file_content(file_content_size);
-        if (iso_file.read(reinterpret_cast<char*>(file_content.data()), file_content_size))
-        {
-            std::cout << "file1 content: \n";
-            for (const auto ele : file_content)
-            {
-                std::cout << ele;
-            }
-            std::cout << '\n';
-        }
+        const std::vector<uint8_t> file_content =
+            readBytesToVec(iso_file, file_content_location_by_blocks * logical_block_size, file_content_size);
 
         const uint32_t file_name_length_start_pos = current_file_record_start_pos + 32;
         const uint8_t encoded_file_name_length = readSingleByte(iso_file, file_name_length_start_pos);
         const uint32_t file_name_start_pos = file_name_length_start_pos + 1;
 
-        iso_file.seekg(file_name_start_pos);
-        std::vector<uint8_t> encoded_file_name(encoded_file_name_length);
-        if (iso_file.read(reinterpret_cast<char*>(encoded_file_name.data()), encoded_file_name_length))
-        {
-            std::cout << "file_record2: \n";
-            for (const auto ele : encoded_file_name)
-            {
-                std::cout << ele << ' ';
-            }
-            std::cout << '\n';
-        }
+        const std::vector<uint8_t> encoded_file_name =
+            readBytesToVec(iso_file, file_name_start_pos, encoded_file_name_length);
 
         const std::string orginal_file_name =
             convert_u16_name_back(std::string{encoded_file_name.cbegin(), encoded_file_name.cend()});
-        std::cout << "orginal_file_name value is " << orginal_file_name << "\n\n";
-        current_file_record_start_pos += uint32_t(file_record_data_size);
         files.emplace_back(FileEntry{orginal_file_name, std::string{file_content.cbegin(), file_content.cend()}});
+
+        current_file_record_start_pos += uint32_t(file_record_data_size);
     }
 }
