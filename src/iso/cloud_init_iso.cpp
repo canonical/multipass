@@ -76,10 +76,21 @@ uint8_t to_u8(uint32_t value)
     return static_cast<uint8_t>(value);
 }
 
+uint32_t to_u32(uint8_t value)
+{
+    return static_cast<uint32_t>(value);
+}
+
 std::array<uint8_t, 8> to_lsb_msb(uint32_t value)
 {
-    return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u), to_u8(value >> 24u),
-             to_u8(value >> 16u), to_u8(value >> 8u), to_u8(value)}};
+    return {{to_u8(value),
+             to_u8(value >> 8u),
+             to_u8(value >> 16u),
+             to_u8(value >> 24u),
+             to_u8(value >> 24u),
+             to_u8(value >> 16u),
+             to_u8(value >> 8u),
+             to_u8(value)}};
 }
 
 std::array<uint8_t, 4> to_lsb_msb(uint16_t value)
@@ -90,6 +101,12 @@ std::array<uint8_t, 4> to_lsb_msb(uint16_t value)
 std::array<uint8_t, 4> to_lsb(uint32_t value)
 {
     return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u)}};
+}
+
+// std::array<uint8_t, 4> -> std::span<uint8_t> when c++20 arrives
+uint32_t from_lsb(const std::array<uint8_t, 4>& bytes)
+{
+    return to_u32(bytes[0]) | to_u32(bytes[1]) << 8 | to_u32(bytes[1]) << 16 | to_u32(bytes[1]) << 24;
 }
 
 template <typename T, typename SizeType, typename V>
@@ -548,7 +565,6 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
 
     const uint32_t num_reserved_bytes = 32768u; // 2 data blocks, 4kb
     const uint32_t joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
-
     if (readSingleByte(iso_file, joliet_des_start_pos) != 2_u8)
     {
         throw std::runtime_error("The Joliet descriptor is not in place. ");
@@ -562,13 +578,17 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
 
     const uint32_t root_dir_record_data_start_pos = joliet_des_start_pos + 156u;
     const std::array<uint8_t, 34> root_dir_record_data = readBytesToArray<34>(iso_file, root_dir_record_data_start_pos);
-    if (root_dir_record_data[0] != 34_u8 || root_dir_record_data[33] != 0_u8)
+    // size of the data should 34, record is a dircotry entry and directory is a root directory instead of root parent
+    if (root_dir_record_data[0] != 34_u8 || root_dir_record_data[25] != 2_u8 || root_dir_record_data[33] != 0_u8)
     {
         throw std::runtime_error("The root directory record data is malformed. ");
     }
 
-    // add endian conversion
-    const uint32_t root_dir_record_data_location_by_blocks = static_cast<uint32_t>(root_dir_record_data[2]);
+    // Use std::span when C++20 arrives to avoid the copy of the data
+    std::array<uint8_t, 4> root_dir_record_data_location_lsb_bytes;
+    // location lsb bytes starts from 2
+    std::copy_n(root_dir_record_data.cbegin() + 2, 4, root_dir_record_data_location_lsb_bytes.begin());
+    const uint32_t root_dir_record_data_location_by_blocks = from_lsb(root_dir_record_data_location_lsb_bytes);
     const uint32_t file_records_start_pos = root_dir_record_data_location_by_blocks * logical_block_size +
                                             2 * sizeof(RootDirRecord); // total size of root dir and root dir parent
 
@@ -581,23 +601,9 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
             break;
         }
 
-        iso_file.seekg(current_file_record_start_pos + 2);
-        // add endian conversion
-        uint8_t file_content_location_by_blocks{};
-        if (iso_file.read(reinterpret_cast<char*>(&file_content_location_by_blocks), 1))
-        {
-            std::cout << "file_content_location_by_blocks is " << int(file_content_location_by_blocks) << std::endl;
-        }
-
-        iso_file.seekg(current_file_record_start_pos + 10);
-
-        // add endian conversion
-        uint8_t file_content_size{};
-        if (iso_file.read(reinterpret_cast<char*>(&file_content_size), 1))
-        {
-            std::cout << "file_content_size is " << int(file_content_size) << std::endl;
-        }
-
+        const uint32_t file_content_location_by_blocks =
+            from_lsb(readBytesToArray<4>(iso_file, current_file_record_start_pos + 2));
+        const uint32_t file_content_size = from_lsb(readBytesToArray<4>(iso_file, current_file_record_start_pos + 10));
         const std::vector<uint8_t> file_content =
             readBytesToVec(iso_file, file_content_location_by_blocks * logical_block_size, file_content_size);
 
