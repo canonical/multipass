@@ -491,10 +491,12 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
             aliases.cbegin(),
             aliases.cend(),
             [&, get_width](const auto& ctx) -> int {
-                return get_width(*std::max_element(
-                    ctx.second.cbegin(),
-                    ctx.second.cend(),
-                    [&get_width](const auto& lhs, const auto& rhs) { return get_width(lhs) < get_width(rhs); }));
+                return ctx.second.empty() ? 0
+                                          : get_width(*std::max_element(ctx.second.cbegin(),
+                                                                        ctx.second.cend(),
+                                                                        [&get_width](const auto& lhs, const auto& rhs) {
+                                                                            return get_width(lhs) < get_width(rhs);
+                                                                        }));
             },
             header_width);
     };
@@ -512,8 +514,9 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
         aliases.cbegin(),
         aliases.cend(),
         [&aliases, &active_context](const auto& alias) -> int {
-            return alias.first == aliases.active_context_name() ? alias.first.length() + active_context.length()
-                                                                : alias.first.length();
+            return alias.first == aliases.active_context_name() && !aliases.get_active_context().empty()
+                       ? alias.first.length() + active_context.length()
+                       : alias.first.length();
         },
         context_col_header.length());
 
