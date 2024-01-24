@@ -106,12 +106,12 @@ void write(const T& t, QFile& f)
 
 // std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, size_t size)
 //{
-//     std::vector<uint8_t> buffer(size);
-//     file.seekg(pos);
-//     if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
-//     {
-//         throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, pos));
-//     }
+//      std::vector<uint8_t> buffer(size);
+//      file.seekg(pos);
+//      if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
+//      {
+//          throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, int(pos)));
+//      }
 
 //    return buffer;
 //}
@@ -131,8 +131,7 @@ std::array<uint8_t, N> readBytesToArray(std::ifstream& file, std::streampos pos)
 
 uint8_t readSingleByte(std::ifstream& file, std::streampos pos)
 {
-    uint8_t data;
-
+    uint8_t data{};
     file.seekg(pos);
     if (!file.read(reinterpret_cast<char*>(&data), 1))
     {
@@ -555,38 +554,29 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         throw std::runtime_error("The Joliet descriptor is not in place. ");
     }
 
-    const std::array<uint8_t, 5> read_data = readBytesToArray<5>(iso_file, joliet_des_start_pos + 1);
-    if (std::string_view(reinterpret_cast<const char*>(read_data.data()), 5) != "CD001")
+    const std::array<uint8_t, 5> volume_identifier = readBytesToArray<5>(iso_file, joliet_des_start_pos + 1);
+    if (std::string_view(reinterpret_cast<const char*>(volume_identifier.data()), 5) != "CD001")
     {
         throw std::runtime_error("The Joliet descriptor is malformed. ");
     }
 
-    const uint32_t root_dir_record_data_start_pos = joliet_des_start_pos + 156;
-
+    const uint32_t root_dir_record_data_start_pos = joliet_des_start_pos + 156u;
     const std::array<uint8_t, 34> root_dir_record_data = readBytesToArray<34>(iso_file, root_dir_record_data_start_pos);
-    ;
-    if (uint32_t(root_dir_record_data[0]) != 34 || root_dir_record_data[33] != 0_u8)
+    if (root_dir_record_data[0] != 34_u8 || root_dir_record_data[33] != 0_u8)
     {
         throw std::runtime_error("The root directory record data is malformed. ");
     }
 
     // add endian conversion
-    const uint32_t root_dir_record_data_by_blocks = static_cast<uint32_t>(root_dir_record_data[2]);
-    std::cout << "files_location_data_by_blocks value is " << root_dir_record_data_by_blocks << std::endl;
-    const uint32_t file_records_start_pos =
-        root_dir_record_data_by_blocks * logical_block_size + 2 * sizeof(RootDirRecord); // root dir + root dir parent
-    std::cout << "file_records_start_pos value is " << file_records_start_pos << std::endl;
+    const uint32_t root_dir_record_data_location_by_blocks = static_cast<uint32_t>(root_dir_record_data[2]);
+    const uint32_t file_records_start_pos = root_dir_record_data_location_by_blocks * logical_block_size +
+                                            2 * sizeof(RootDirRecord); // total size of root dir and root dir parent
 
     uint32_t current_file_record_start_pos = file_records_start_pos;
     while (true)
     {
-        iso_file.seekg(current_file_record_start_pos);
-        uint8_t file_record_data_size{};
-        if (iso_file.read(reinterpret_cast<char*>(&file_record_data_size), 1))
-        {
-            std::cout << "file_record_data_size is " << int(file_record_data_size) << std::endl;
-        }
-        if (int(file_record_data_size) == 0)
+        const uint8_t file_record_data_size = readSingleByte(iso_file, current_file_record_start_pos);
+        if (file_record_data_size == 0_u8)
         {
             break;
         }
@@ -596,7 +586,6 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         if (iso_file.read(reinterpret_cast<char*>(&file_content_location_by_blocks), 1))
         {
             std::cout << "file_content_location_by_blocks is " << int(file_content_location_by_blocks) << std::endl;
-            ;
         }
 
         iso_file.seekg(current_file_record_start_pos + 10);
@@ -604,7 +593,6 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         if (iso_file.read(reinterpret_cast<char*>(&file_content_size), 1))
         {
             std::cout << "file_content_size is " << int(file_content_size) << std::endl;
-            ;
         }
 
         iso_file.seekg(file_content_location_by_blocks * logical_block_size);
@@ -620,15 +608,10 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         }
 
         const uint32_t file_name_length_start_pos = current_file_record_start_pos + 32;
+        const uint8_t encoded_file_name_length = readSingleByte(iso_file, file_name_length_start_pos);
+        const uint32_t file_name_start_pos = file_name_length_start_pos + 1;
 
-        iso_file.seekg(file_name_length_start_pos);
-        uint8_t encoded_file_name_length{};
-        if (iso_file.read(reinterpret_cast<char*>(&encoded_file_name_length), 1))
-        {
-            std::cout << "file_name_length is " << int(encoded_file_name_length) << std::endl;
-            ;
-        }
-
+        iso_file.seekg(file_name_start_pos);
         std::vector<uint8_t> encoded_file_name(encoded_file_name_length);
         if (iso_file.read(reinterpret_cast<char*>(encoded_file_name.data()), encoded_file_name_length))
         {
@@ -643,7 +626,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         const std::string orginal_file_name =
             convert_u16_name_back(std::string{encoded_file_name.cbegin(), encoded_file_name.cend()});
         std::cout << "orginal_file_name value is " << orginal_file_name << "\n\n";
-        current_file_record_start_pos += file_record_data_size;
+        current_file_record_start_pos += uint32_t(file_record_data_size);
         files.emplace_back(FileEntry{orginal_file_name, std::string{file_content.cbegin(), file_content.cend()}});
     }
 }
