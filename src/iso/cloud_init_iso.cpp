@@ -378,12 +378,12 @@ auto make_u16_name(const std::string& name)
     return u16_name;
 }
 
-// change to string_view later maybe
-std::string convert_u16_name_back(const std::string& u16_name)
+std::string convert_u16_name_back(const std::string_view u16_name)
 {
     if (!is_even(u16_name.size()))
     {
-        throw std::runtime_error(u16_name + " size is not even, which does not conform to u16 name format.");
+        throw std::runtime_error(
+            fmt::format("The size of {} is not even, which does not conform to u16 name format.", u16_name.data()));
     }
 
     std::string original_name(u16_name.size() / 2, '\0');
@@ -555,7 +555,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     }
 
     const std::array<uint8_t, 5> volume_identifier = readBytesToArray<5>(iso_file, joliet_des_start_pos + 1);
-    if (std::string_view(reinterpret_cast<const char*>(volume_identifier.data()), 5) != "CD001")
+    if (std::string_view(reinterpret_cast<const char*>(volume_identifier.data()), volume_identifier.size()) != "CD001")
     {
         throw std::runtime_error("The Joliet descriptor is malformed. ");
     }
@@ -608,8 +608,8 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         const std::vector<uint8_t> encoded_file_name =
             readBytesToVec(iso_file, file_name_start_pos, encoded_file_name_length);
 
-        const std::string orginal_file_name =
-            convert_u16_name_back(std::string{encoded_file_name.cbegin(), encoded_file_name.cend()});
+        const std::string orginal_file_name = convert_u16_name_back(
+            std::string_view{reinterpret_cast<const char*>(encoded_file_name.data()), encoded_file_name.size()});
         files.emplace_back(FileEntry{orginal_file_name, std::string{file_content.cbegin(), file_content.cend()}});
 
         current_file_record_start_pos += uint32_t(file_record_data_size);
