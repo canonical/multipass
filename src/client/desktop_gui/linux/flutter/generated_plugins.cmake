@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  hotkey_manager
   screen_retriever
   tray_menu
   url_launcher_linux

@@ -5,17 +5,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+// import 'package:hotkey_manager/hotkey_manager.dart';
+
 import '../dropdown.dart';
 import '../providers.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
 final passphraseProvider = daemonSettingProvider(passphraseKey);
+final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
 
 class UsageSettings extends ConsumerWidget {
   const UsageSettings({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final onAppClose = ref.watch(onAppCloseProvider);
     final primaryName = ref.watch(primaryNameProvider);
     final hasPassphrase = ref.watch(passphraseProvider.select((value) {
       return value.isNotNullOrBlank;
@@ -51,6 +55,37 @@ class UsageSettings extends ConsumerWidget {
     ]);
   }
 }
+
+// class HotkeyField extends StatefulWidget {
+//   final HotKey? initialHotkey;
+//   final ValueChanged<HotKey?> onSave;
+//
+//   const HotkeyField({
+//     super.key,
+//     required this.initialHotkey,
+//     required this.onSave,
+//   });
+//
+//   @override
+//   State<HotkeyField> createState() => _HotkeyFieldState();
+// }
+
+// class _HotkeyFieldState extends State<HotkeyField> {
+//   late var hotkey = widget.initialHotkey;
+//   var changed = false;
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return SettingField(
+//       icon: 'assets/primary_instance.svg',
+//       label: 'Primary instance name',
+//       onSave: () => widget.onSave(hotkey),
+//       onDiscard: () => hotkey = widget.initialHotkey,
+//       changed: changed,
+//       child: GestureDetector(),
+//     );
+//   }
+// }
 
 class PrimaryNameField extends StatefulWidget {
   final String value;
