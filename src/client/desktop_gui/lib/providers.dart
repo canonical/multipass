@@ -5,6 +5,7 @@ import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ffi.dart';
 import 'grpc_client.dart';
@@ -124,3 +125,30 @@ const privilegedMountsKey = 'local.privileged-mounts';
 const passphraseKey = 'local.passphrase';
 final daemonSettingProvider = NotifierProvider.autoDispose
     .family<DaemonSettingNotifier, String?, String>(DaemonSettingNotifier.new);
+
+class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
+  final SharedPreferences sharedPreferences;
+
+  GuiSettingNotifier(this.sharedPreferences);
+
+  @override
+  String? build(String arg) {
+    return sharedPreferences.getString(arg);
+  }
+
+  void set(String value) {
+    sharedPreferences.setString(arg, value);
+    state = value;
+  }
+
+  @override
+  bool updateShouldNotify(String? previous, String? next) => previous != next;
+}
+
+const onAppCloseKey = 'onAppClose';
+const hotkeyKey = 'hotkey';
+// this provider is set with a value obtained asynchronously in main.dart
+final guiSettingProvider = NotifierProvider.autoDispose
+    .family<GuiSettingNotifier, String?, String>(() {
+  throw UnimplementedError();
+});
