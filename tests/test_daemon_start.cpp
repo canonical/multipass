@@ -288,11 +288,12 @@ TEST_F(TestDaemonStart, startShowsBridgingErrors)
 
     StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> server;
 
+    std::string log{"Cannot bridge eth47 for instance real-zebraphant. Please see the logs for more details.\n"};
+    EXPECT_CALL(server, Write(Property(&mp::StartReply::log_line, HasSubstr(log)), _)).Times(1);
+
     auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
 
-    EXPECT_THAT(status.error_message(),
-                StrEq("The following errors occurred:\nCannot bridge eth47 for instance real-zebraphant"));
-    EXPECT_FALSE(status.ok());
+    EXPECT_TRUE(status.ok());
 }
 
 TEST_F(TestDaemonStart, unknownStateDoesNotStart)
