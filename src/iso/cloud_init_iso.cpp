@@ -127,7 +127,7 @@ std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, siz
     file.seekg(pos);
     if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
     {
-        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, to_u32(pos)));
+        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, std::streamoff(pos)));
     }
 
     return buffer;
@@ -140,7 +140,7 @@ std::array<uint8_t, N> readBytesToArray(std::ifstream& file, std::streampos pos)
     file.seekg(pos);
     if (!file.read(reinterpret_cast<char*>(buffer.data()), N))
     {
-        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", N, to_u32(pos)));
+        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", N, std::streamoff(pos)));
     }
 
     return buffer;
@@ -152,7 +152,7 @@ uint8_t readSingleByte(std::ifstream& file, std::streampos pos)
     file.seekg(pos);
     if (!file.read(reinterpret_cast<char*>(&data), 1))
     {
-        throw std::runtime_error(fmt::format("Can not read the next byte data from file at {}.", to_u32(pos)));
+        throw std::runtime_error(fmt::format("Can not read the next byte data from file at {}.", std::streamoff(pos)));
     }
 
     return data;
