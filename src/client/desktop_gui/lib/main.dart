@@ -11,7 +11,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
 
-  const windowOptions = WindowOptions(size: Size(1400, 800));
+  const windowOptions = WindowOptions(
+    size: Size(1400, 800),
+    title: 'Multipass',
+  );
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
