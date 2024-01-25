@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'daemon_unavailable.dart';
@@ -20,7 +21,15 @@ void main() async {
     await windowManager.focus();
   });
 
-  final providerContainer = ProviderContainer();
+  final sharedPreferences = await SharedPreferences.getInstance();
+
+  final providerContainer = ProviderContainer(
+    overrides: [
+      guiSettingProvider.overrideWith(() {
+        return GuiSettingNotifier(sharedPreferences);
+      }),
+    ],
+  );
   setupTrayMenu(providerContainer);
   runApp(
     UncontrolledProviderScope(

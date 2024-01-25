@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../dropdown.dart';
 import '../providers.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
@@ -33,6 +34,18 @@ class UsageSettings extends ConsumerWidget {
         hasPassphrase: hasPassphrase,
         onSave: (value) {
           ref.read(passphraseProvider.notifier).set(value);
+        },
+      ),
+      const SizedBox(height: 20),
+      Dropdown(
+        label: 'On close of application',
+        width: 360,
+        value: onAppClose,
+        onChanged: (value) => ref.read(onAppCloseProvider.notifier).set(value!),
+        items: const {
+          'ask': 'Ask about running instances',
+          'stop': 'Stop running instances',
+          'nothing': 'Do nothing with running instances',
         },
       ),
     ]);
