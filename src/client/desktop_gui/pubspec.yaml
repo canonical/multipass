@@ -20,6 +20,7 @@ dependencies:
   flutter_svg: ^2.0.7
   fpdart: ^1.1.0
   grpc: ^3.1.0
+  hotkey_manager: ^0.1.8
   path_provider: ^2.1.0
   rxdart: ^0.27.7
   tray_menu:
