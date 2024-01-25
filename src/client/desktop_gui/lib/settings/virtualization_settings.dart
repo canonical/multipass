@@ -1,41 +1,33 @@
 import 'dart:io';
 
+import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
 import '../providers.dart';
 
-const driverKey = 'local.driver';
-
-final driverProvider = FutureProvider((ref) {
-  ref.watch(daemonAvailableProvider);
-  return ref.watch(grpcClientProvider).get(driverKey);
+final networksProvider = Provider.autoDispose((ref) {
+  ref.watch(daemonSettingProvider(driverKey));
+  if (ref.watch(daemonAvailableProvider)) {
+    ref.watch(grpcClientProvider).networks().then((networks) {
+      return ref.state = networks.map((n) => n.name).toBuiltSet();
+    }).ignore();
+  }
+  return BuiltSet<String>();
 });
 
-const bridgedNetworkKey = 'local.bridged-network';
-
-final bridgedNetworkProvider = FutureProvider((ref) {
-  ref.watch(daemonAvailableProvider);
-  return ref.watch(grpcClientProvider).get(bridgedNetworkKey);
-});
-
-final networksProvider = FutureProvider((ref) {
-  ref.watch(daemonAvailableProvider);
-  return ref
-      .watch(grpcClientProvider)
-      .networks()
-      .then((networks) => networks.map((n) => n.name).toList());
-});
+final driverProvider = daemonSettingProvider(driverKey);
+final bridgedNetworkProvider = daemonSettingProvider(bridgedNetworkKey);
 
 class VirtualizationSettings extends ConsumerWidget {
   const VirtualizationSettings({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final driver = ref.watch(driverProvider).valueOrNull;
-    final networks = ref.watch(networksProvider).valueOrNull ?? const [];
-    final bridgedNetwork = ref.watch(bridgedNetworkProvider).valueOrNull;
+    final driver = ref.watch(driverProvider);
+    final bridgedNetwork = ref.watch(bridgedNetworkProvider);
+    final networks = ref.watch(networksProvider);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 60),
@@ -43,10 +35,9 @@ class VirtualizationSettings extends ConsumerWidget {
         label: 'Driver',
         value: driver,
         items: drivers,
-        onChanged: (value) => ref
-            .read(grpcClientProvider)
-            .set(driverKey, value!)
-            .onError((_, __) {}),
+        onChanged: (value) {
+          ref.read(driverProvider.notifier).set(value!);
+        },
       ),
       const SizedBox(height: 48),
       if (networks.isNotEmpty)
@@ -54,10 +45,9 @@ class VirtualizationSettings extends ConsumerWidget {
           label: 'Virtual interface',
           value: networks.contains(bridgedNetwork) ? bridgedNetwork : null,
           items: Map.fromIterable(networks),
-          onChanged: (value) => ref
-              .read(grpcClientProvider)
-              .set(bridgedNetworkKey, value!)
-              .onError((_, __) {}),
+          onChanged: (value) {
+            ref.read(bridgedNetworkProvider.notifier).set(value!);
+          },
         ),
     ]);
   }
