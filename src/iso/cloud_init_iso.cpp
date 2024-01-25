@@ -103,10 +103,10 @@ std::array<uint8_t, 4> to_lsb(uint32_t value)
     return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u)}};
 }
 
-// std::array<uint8_t, 4> -> std::span<uint8_t> when c++20 arrives
+// std::array<uint8_t, 4> -> std::span<uint8_t, 4> when c++20 arrives
 uint32_t from_lsb(const std::array<uint8_t, 4>& bytes)
 {
-    return to_u32(bytes[0]) | to_u32(bytes[1]) << 8 | to_u32(bytes[1]) << 16 | to_u32(bytes[1]) << 24;
+    return to_u32(bytes[0]) | to_u32(bytes[1]) << 8 | to_u32(bytes[2]) << 16 | to_u32(bytes[3]) << 24;
 }
 
 template <typename T, typename SizeType, typename V>
@@ -127,7 +127,7 @@ std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, siz
     file.seekg(pos);
     if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
     {
-        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, int(pos)));
+        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, to_u32(pos)));
     }
 
     return buffer;
@@ -140,7 +140,7 @@ std::array<uint8_t, N> readBytesToArray(std::ifstream& file, std::streampos pos)
     file.seekg(pos);
     if (!file.read(reinterpret_cast<char*>(buffer.data()), N))
     {
-        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", N, int(pos)));
+        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", N, to_u32(pos)));
     }
 
     return buffer;
@@ -152,7 +152,7 @@ uint8_t readSingleByte(std::ifstream& file, std::streampos pos)
     file.seekg(pos);
     if (!file.read(reinterpret_cast<char*>(&data), 1))
     {
-        throw std::runtime_error(fmt::format("Can not read the next byte data from file at {}.", int(pos)));
+        throw std::runtime_error(fmt::format("Can not read the next byte data from file at {}.", to_u32(pos)));
     }
 
     return data;
@@ -584,7 +584,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         throw std::runtime_error("The root directory record data is malformed. ");
     }
 
-    // Use std::span when C++20 arrives to avoid the copy of the data
+    // Use std::span when C++20 arrives to avoid the copy of the std::array<uint8_t, 4>
     std::array<uint8_t, 4> root_dir_record_data_location_lsb_bytes;
     // location lsb bytes starts from 2
     std::copy_n(root_dir_record_data.cbegin() + 2, 4, root_dir_record_data_location_lsb_bytes.begin());
@@ -601,6 +601,8 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
             break;
         }
 
+        // file record holds the size and the location of the extent. In each loop, we first utilize these info to jump
+        // to file content and read it. Later on, we jump back to file record and extract the file name.
         const uint32_t file_content_location_by_blocks =
             from_lsb(readBytesToArray<4>(iso_file, current_file_record_start_pos + 2));
         const uint32_t file_content_size = from_lsb(readBytesToArray<4>(iso_file, current_file_record_start_pos + 10));
@@ -610,14 +612,13 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         const uint32_t file_name_length_start_pos = current_file_record_start_pos + 32;
         const uint8_t encoded_file_name_length = readSingleByte(iso_file, file_name_length_start_pos);
         const uint32_t file_name_start_pos = file_name_length_start_pos + 1;
-
         const std::vector<uint8_t> encoded_file_name =
-            readBytesToVec(iso_file, file_name_start_pos, encoded_file_name_length);
+            readBytesToVec(iso_file, file_name_start_pos, to_u32(encoded_file_name_length));
 
         const std::string orginal_file_name = convert_u16_name_back(
             std::string_view{reinterpret_cast<const char*>(encoded_file_name.data()), encoded_file_name.size()});
         files.emplace_back(FileEntry{orginal_file_name, std::string{file_content.cbegin(), file_content.cend()}});
 
-        current_file_record_start_pos += uint32_t(file_record_data_size);
+        current_file_record_start_pos += to_u32(file_record_data_size);
     }
 }
