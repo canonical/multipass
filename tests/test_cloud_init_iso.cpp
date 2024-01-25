@@ -54,13 +54,54 @@ TEST_F(CloudInitIso, reads_non_exist_iso_file_throw)
         mpt::match_what(StrEq("The cloud-init-config.iso file does not exist or is not a regular file. ")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file)
+TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
 {
     mp::CloudInitIso orignal_iso;
-    orignal_iso.add_file("meta-data", "test_data1\ntest_data2\n");
-    orignal_iso.add_file("test3", "test data3");
-    orignal_iso.add_file("test2", "test data2");
-    orignal_iso.add_file("test4", "test data4");
+
+    orignal_iso.add_file("test1", "test data1");
+    orignal_iso.add_file("test test 2", "test some data2");
+    orignal_iso.add_file("test_random_name_3", "more \r test \n \n data3");
+    orignal_iso.add_file("test-title_4", "random_test_data: \n - path: /etc/pollinate/add-user-agent");
+    orignal_iso.add_file("t5", "");
+    orignal_iso.write_to(iso_path);
+
+    mp::CloudInitIso new_iso;
+    new_iso.read_from(iso_path.toStdString());
+    EXPECT_EQ(orignal_iso, new_iso);
+}
+
+TEST_F(CloudInitIso, reads_iso_file_with_mocked_real_file_data)
+{
+    constexpr std::string_view meta_data_content = R"(#cloud-config
+instance-id: vm1
+local-hostname: vm1
+cloud-name: multipass)";
+    constexpr std::string_view user_data_content = R"(#cloud-config
+{})";
+    constexpr std::string_view vendor_data_content = R"(#cloud-config
+growpart:
+  mode: auto
+  devices: [/]
+  ignore_growroot_disabled: false
+users:
+  - default
+manage_etc_hosts: true
+ssh_authorized_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQChYxmeUq14WG5KW+PQ9QvlytbZqMC2wIUxHyRzKbieOge2INvi7cG6NhoZ/KUp9RxVMkC1lll38VfHW3xupqxKj1ECDrMNAjuqOB+i8iS+XB3CTzlCs/3I7sW4nbG0fVwXTN6wUpQ9c9PZe09fmB/Va06gtyEb88lBzUq0Q932ZAqOYN+e/0r9TcIrNdzNlGDviiwykC94kzRJ8IapngxJkPzv3ohiOX3rpWCB1I0l2fLc0ZlZulLYxWphDFticoPl6l1mRlhM/1vRJzyjJXmHoFEmabIUe6nkjDy3JAo1btJ5L6CuN0yBsSLshk8XS/ACSNGvS8VvmLGXT0nbTyDH ubuntu@localhost
+timezone: Europe/Amsterdam
+system_info:
+  default_user:
+    name: ubuntu
+write_files:
+  - path: /etc/pollinate/add-user-agent
+    content: "multipass/version/1.14.0-dev.1209+g5b2c7f7d # written by Multipass\nmultipass/driver/qemu-8.0.4 # written by Multipass\nmultipass/host/ubuntu-23.10 # written by Multipass\nmultipass/alias/default # written by Multipass\n"
+)";
+    mp::CloudInitIso orignal_iso;
+
+    orignal_iso.add_file("meta-data", std::string(meta_data_content));
+    orignal_iso.add_file("vendor_data_content", std::string(vendor_data_content));
+    orignal_iso.add_file("user-data", std::string(user_data_content));
+    orignal_iso.add_file("network-data", "some random network-data");
     orignal_iso.write_to(iso_path);
 
     mp::CloudInitIso new_iso;
