@@ -23,6 +23,7 @@ dependencies:
   hotkey_manager: ^0.1.8
   path_provider: ^2.1.0
   rxdart: ^0.27.7
+  shared_preferences: ^2.2.2
   tray_menu:
     git: https://github.com/andrei-toterman/tray_menu.git
   two_dimensional_scrollables: ^0.0.2
