@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:basics/basics.dart';
@@ -10,72 +11,116 @@ import 'grpc_client.dart';
 
 export 'grpc_client.dart';
 
-final grpcClientProvider = Provider(
-  (_) {
-    final address = getServerAddress();
-    final certPair = getCertPair();
+final grpcClientProvider = Provider((_) {
+  final address = getServerAddress();
+  final certPair = getCertPair();
 
-    var channelCredentials = CustomChannelCredentials(
-      authority: 'localhost',
-      certificate: certPair.cert,
-      certificateKey: certPair.key,
-    );
+  var channelCredentials = CustomChannelCredentials(
+    authority: 'localhost',
+    certificate: certPair.cert,
+    certificateKey: certPair.key,
+  );
 
-    return GrpcClient(RpcClient(ClientChannel(
-      address.scheme == InternetAddressType.unix.name.toLowerCase()
-          ? InternetAddress(address.path, type: InternetAddressType.unix)
-          : address.host,
-      port: address.port,
-      options: ChannelOptions(credentials: channelCredentials),
-    )));
-  },
-);
+  return GrpcClient(RpcClient(ClientChannel(
+    address.scheme == InternetAddressType.unix.name.toLowerCase()
+        ? InternetAddress(address.path, type: InternetAddressType.unix)
+        : address.host,
+    port: address.port,
+    options: ChannelOptions(credentials: channelCredentials),
+  )));
+});
 
-final vmInfosStreamProvider = StreamProvider<List<VmInfo>>(
-  (ref) async* {
-    // this is to de-duplicate errors received from the stream
-    final grpcClient = ref.watch(grpcClientProvider);
-    Object? lastError;
-    await for (final _ in Stream.periodic(1.seconds)) {
-      try {
-        yield await grpcClient.info();
-        lastError = null;
-      } catch (error, stackTrace) {
-        if (error != lastError) yield* Stream.error(error, stackTrace);
-        lastError = error;
-      }
+final pollTickProvider = Provider<void>((ref) {
+  Stream.periodic(1.seconds).listen((_) => ref.notifyListeners());
+});
+
+final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) {
+  final grpcClient = ref.watch(grpcClientProvider);
+  final controller = StreamController<List<VmInfo>>();
+  // this is to de-duplicate errors received from the stream
+  Object? lastError;
+  ref.listen(pollTickProvider, (_, __) async {
+    try {
+      controller.add(await grpcClient.info());
+      lastError = null;
+    } catch (error, stackTrace) {
+      if (error != lastError) controller.addError(error, stackTrace);
+      lastError = error;
     }
-  },
-);
+  }, fireImmediately: true);
 
-final daemonAvailableProvider = Provider(
-  (ref) => !ref.watch(vmInfosStreamProvider).hasError,
-);
+  return controller.stream;
+});
 
-final vmInfosProvider = Provider(
-  (ref) => ref.watch(vmInfosStreamProvider).valueOrNull ?? const [],
-);
+final daemonAvailableProvider = Provider((ref) {
+  return !ref.watch(vmInfosStreamProvider).hasError;
+});
+
+final vmInfosProvider = Provider((ref) {
+  return ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
+});
 
 Map<String, Status> infosToStatusMap(Iterable<VmInfo> infos) {
   return {for (final info in infos) info.name: info.instanceStatus.status};
 }
 
-final vmStatusesProvider = Provider(
-  (ref) => infosToStatusMap(ref.watch(vmInfosProvider)).build(),
-);
+final vmStatusesProvider = Provider((ref) {
+  return infosToStatusMap(ref.watch(vmInfosProvider)).build();
+});
 
-final vmNamesProvider = Provider(
-  (ref) => ref.watch(vmStatusesProvider).keys.toBuiltSet(),
-);
-
-const primaryNameKey = 'client.primary-name';
-const _clientSettingsKeys = [primaryNameKey];
+final vmNamesProvider = Provider((ref) {
+  return ref.watch(vmStatusesProvider).keys.toBuiltSet();
+});
 
 final clientSettingsProvider = Provider<BuiltMap<String, String>>((ref) {
-  Stream.periodic(1.seconds).listen(
-    (_) => ref.state = BuiltMap.of({
-      for (final key in _clientSettingsKeys) key: getSetting(key),
-    }),
-  );
-  return {for (final key in _clientSettingsKeys) key: ''}.build();
+  ref.watch(pollTickProvider);
+  const keys = [primaryNameKey];
+  return {for (final key in keys) key: getSetting(key)}.build();
 });
+
+class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
+  @override
+  String build(String arg) {
+    ref.watch(pollTickProvider);
+    return getSetting(arg);
+  }
+
+  void set(String value) {
+    setSetting(arg, value);
+    state = value;
+  }
+
+  @override
+  bool updateShouldNotify(String previous, String next) => previous != next;
+}
+
+const primaryNameKey = 'client.primary-name';
+final clientSettingProvider = NotifierProvider.autoDispose
+    .family<ClientSettingNotifier, String, String>(ClientSettingNotifier.new);
+
+class DaemonSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
+  @override
+  String? build(String arg) {
+    if (ref.watch(daemonAvailableProvider)) {
+      final grpcClient = ref.watch(grpcClientProvider);
+      grpcClient.get(arg).then((value) => state = value).ignore();
+    }
+
+    return stateOrNull;
+  }
+
+  void set(String value) {
+    ref.read(grpcClientProvider).set(arg, value).ignore();
+    state = value;
+  }
+
+  @override
+  bool updateShouldNotify(String? previous, String? next) => previous != next;
+}
+
+const driverKey = 'local.driver';
+const bridgedNetworkKey = 'local.bridged-network';
+const privilegedMountsKey = 'local.privileged-mounts';
+const passphraseKey = 'local.passphrase';
+final daemonSettingProvider = NotifierProvider.autoDispose
+    .family<DaemonSettingNotifier, String?, String>(DaemonSettingNotifier.new);
