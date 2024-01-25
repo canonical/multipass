@@ -2179,7 +2179,7 @@ try // clang-format on
     std::vector<std::string> starting_vms{};
     starting_vms.reserve(instance_selection.operative_selection.size());
 
-    fmt::memory_buffer start_errors;
+    fmt::memory_buffer start_errors, start_warnings;
     for (auto& vm_it : instance_selection.operative_selection)
     {
         std::lock_guard lock{start_mutex};
@@ -2216,8 +2216,8 @@ try // clang-format on
 
             if (!failed_interfaces.empty())
             {
-                fmt::format_to(std::back_inserter(start_errors),
-                               "Cannot bridge {} for instance {}",
+                fmt::format_to(std::back_inserter(start_warnings),
+                               "Cannot bridge {} for instance {}. Please see the logs for more details.\n",
                                fmt::join(failed_interfaces, ", "),
                                name);
             }
@@ -2229,9 +2229,14 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>, this,
-                                                server, starting_vms, timeout, status_promise,
-                                                fmt::to_string(start_errors)));
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+                                                this,
+                                                server,
+                                                starting_vms,
+                                                timeout,
+                                                status_promise,
+                                                fmt::to_string(start_errors),
+                                                fmt::to_string(start_warnings)));
 }
 catch (const std::exception& e)
 {
@@ -2333,8 +2338,13 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>, this,
-                                                server, names_from(instance_targets), timeout, status_promise,
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
+                                                this,
+                                                server,
+                                                names_from(instance_targets),
+                                                timeout,
+                                                status_promise,
+                                                std::string(),
                                                 std::string()));
 }
 catch (const std::exception& e)
@@ -2759,8 +2769,13 @@ void mp::Daemon::on_restart(const std::string& name)
         virtual_machine->state = VirtualMachine::State::running;
         virtual_machine->update_state();
     });
-    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>, this,
-                                                nullptr, std::vector<std::string>{name}, mp::default_timeout, nullptr,
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+                                                this,
+                                                nullptr,
+                                                std::vector<std::string>{name},
+                                                mp::default_timeout,
+                                                nullptr,
+                                                std::string(),
                                                 std::string()));
 }
 
@@ -2931,8 +2946,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                         server->Write(reply);
                     });
                     future_watcher->setFuture(
-                        QtConcurrent::run(&Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>, this, server,
-                                          std::vector<std::string>{name}, timeout, status_promise, std::string()));
+                        QtConcurrent::run(&Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>,
+                                          this,
+                                          server,
+                                          std::vector<std::string>{name},
+                                          timeout,
+                                          status_promise,
+                                          std::string(),
+                                          std::string()));
                 }
                 else
                 {
@@ -3474,8 +3495,11 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
 template <typename Reply, typename Request>
 mp::Daemon::AsyncOperationStatus
 mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                                     const std::vector<std::string>& vms, const std::chrono::seconds& timeout,
-                                     std::promise<grpc::Status>* status_promise, const std::string& start_errors)
+                                     const std::vector<std::string>& vms,
+                                     const std::chrono::seconds& timeout,
+                                     std::promise<grpc::Status>* status_promise,
+                                     const std::string& start_errors,
+                                     const std::string& start_warnings)
 {
     QFutureSynchronizer<std::string> start_synchronizer;
     {
@@ -3499,6 +3523,8 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     start_synchronizer.waitForFinished();
 
     fmt::memory_buffer warnings;
+
+    fmt::format_to(std::back_inserter(warnings), "{}", start_warnings);
 
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
