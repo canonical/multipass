@@ -3347,6 +3347,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
 
 // This function configures the network interfaces whose MAC address is empty. They will stay in specs.extra_interfaces
 // only if the backend is able to add them to the virtual machine. If not, they will be removed.
+// The return value is a set of networks that couldn't be configured and thus were removed from specs.extra_interfaces.
 std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::string& name,
                                                                      mp::VirtualMachine& vm,
                                                                      mp::VMSpecs& specs)
