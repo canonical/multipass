@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:basics/basics.dart';
-import 'package:built_collection/built_collection.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,33 +11,19 @@ import 'package:window_manager/window_manager.dart';
 
 import 'ffi.dart';
 import 'providers.dart';
+import 'vm_action.dart';
 
-const actionAllowedStatuses = {
-  'Start': {Status.STOPPED, Status.SUSPENDED},
-  'Stop': {Status.RUNNING},
-  'Suspend': {Status.RUNNING},
-  'Restart': {Status.RUNNING},
-  'Delete': {Status.STOPPED, Status.SUSPENDED, Status.RUNNING},
-  'Recover': {Status.DELETED},
-  'Purge': {Status.DELETED},
-};
-
-final trayMenuDataProvider = Provider((ref) {
-  final primaryName = ref.watch(clientSettingsProvider.select(
-    (settings) => settings[primaryNameKey]!,
-  ));
-  final vmStatuses = ref.watch(vmInfosStreamProvider.select(
-    (value) => value.whenData((data) => infosToStatusMap(data).build()),
-  ));
-  return (primaryName, vmStatuses);
+final trayMenuDataProvider = Provider.autoDispose((ref) {
+  return (
+    ref.watch(clientSettingProvider(primaryNameKey)),
+    ref.watch(daemonAvailableProvider) ? ref.watch(vmStatusesProvider) : null,
+  );
 });
 
 final daemonVersionProvider = Provider((ref) {
-  final couldGetData =
-      ref.watch(vmInfosStreamProvider.select((value) => value.asData != null));
-  if (couldGetData) {
-    final client = ref.watch(grpcClientProvider);
-    client
+  if (ref.watch(daemonAvailableProvider)) {
+    ref
+        .watch(grpcClientProvider)
         .version()
         .catchError((_) => 'failed to get version')
         .then((version) => ref.state = version);
@@ -78,14 +64,14 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
     label: 'multipass version: $multipassVersion',
     enabled: false,
   );
-  final deamonVersionItem = await aboutSubmenu.addLabel(
+  final daemonVersionItem = await aboutSubmenu.addLabel(
     'multipassd-version',
     label: 'multipassd version: loading...',
     enabled: false,
   );
   providerContainer.listen(
     daemonVersionProvider,
-    (_, version) => deamonVersionItem.setLabel('multipassd version: $version'),
+    (_, version) => daemonVersionItem.setLabel('multipassd version: $version'),
   );
   await aboutSubmenu.addLabel(
     'copyright',
@@ -99,22 +85,24 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
   );
 
   await TrayMenu.instance.show(await _iconFilePath());
-  providerContainer.listen(trayMenuDataProvider, (previous, next) {
+
+  var updating = Completer<void>();
+  updating.complete();
+  providerContainer.listen(trayMenuDataProvider, (previous, next) async {
     final (previousPrimary, previousVmData) = previous!;
-    final (nextPrimary, nextData) = next;
-    nextData.when(
-      data: (nextVms) {
-        _updateTrayMenu(
-          providerContainer.read(grpcClientProvider),
-          previousPrimary,
-          previousVmData.valueOrNull?.toMap() ?? {},
-          nextPrimary,
-          nextVms.toMap(),
-        );
-      },
-      error: (_, __) => _setTrayMenuError(),
-      loading: () {},
-    );
+    final (nextPrimary, nextVmData) = next;
+    if (!updating.isCompleted) await updating.future;
+    updating = Completer<void>();
+    nextVmData == null
+        ? await _setTrayMenuError()
+        : await _updateTrayMenu(
+            providerContainer.read(grpcClientProvider),
+            previousPrimary,
+            previousVmData?.toMap() ?? {},
+            nextPrimary,
+            nextVmData.toMap(),
+          );
+    updating.complete();
   });
 }
 
@@ -145,6 +133,10 @@ Future<void> _setTrayMenuError() async {
   }
 }
 
+extension on InstanceStatus_Status {
+  String get label => toString().toLowerCase().capitalize();
+}
+
 Future<void> _updateTrayMenu(
   final GrpcClient grpcClient,
   final String previousPrimary,
@@ -166,9 +158,8 @@ Future<void> _updateTrayMenu(
     await TrayMenu.instance.remove(_separatorPrimaryKey);
   } else {
     final status = nextVms.remove(nextPrimary);
-    final startLabel = status == null
-        ? 'Start'
-        : 'Start "$nextPrimary" (${status.toString().toLowerCase().capitalize()})';
+    final startLabel =
+        status == null ? 'Start' : 'Start "$nextPrimary" (${status.label})';
     final startEnabled = actionAllowedStatuses['Start']!.contains(status);
     final stopEnabled = actionAllowedStatuses['Stop']!.contains(status);
     final primaryStart = TrayMenu.instance.get<MenuItemLabel>(primaryStartKey);
@@ -220,7 +211,7 @@ Future<void> _updateTrayMenu(
   for (final MapEntry(key: name, value: status) in nextVms.entries) {
     final key = 'instance-$name';
     final previousStatus = previousVms[name];
-    final label = '$name (${status.toString().toLowerCase().capitalize()})';
+    final label = '$name (${status.label})';
     final startEnabled = actionAllowedStatuses['Start']!.contains(status);
     final stopEnabled = actionAllowedStatuses['Stop']!.contains(status);
     if (previousStatus == null || name == previousPrimary) {

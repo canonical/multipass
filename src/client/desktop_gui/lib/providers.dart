@@ -73,12 +73,6 @@ final vmNamesProvider = Provider((ref) {
   return ref.watch(vmStatusesProvider).keys.toBuiltSet();
 });
 
-final clientSettingsProvider = Provider<BuiltMap<String, String>>((ref) {
-  ref.watch(pollTickProvider);
-  const keys = [primaryNameKey];
-  return {for (final key in keys) key: getSetting(key)}.build();
-});
-
 class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
   @override
   String build(String arg) {
