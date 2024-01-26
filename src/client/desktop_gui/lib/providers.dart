@@ -32,7 +32,8 @@ final grpcClientProvider = Provider((_) {
 });
 
 final pollTickProvider = Provider<void>((ref) {
-  Stream.periodic(1.seconds).listen((_) => ref.notifyListeners());
+  final sub = Stream.periodic(1.seconds).listen((_) => ref.notifyListeners());
+  ref.onDispose(sub.cancel);
 });
 
 final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) {
