@@ -52,7 +52,6 @@ ExternalProject_Add(qemu
       --disable-xen
       --disable-dmg
       --disable-replication
-      --disable-hax
       --disable-snappy
       --disable-lzo
       --disable-live-block-migration
