@@ -48,6 +48,14 @@ public:
     }
 };
 
+class LXDNetworkError : public LXDRuntimeError
+{
+public:
+    LXDNetworkError(const std::string& message) : LXDRuntimeError{message}
+    {
+    }
+};
+
 class LXDJsonParseError : public std::runtime_error
 {
 public:

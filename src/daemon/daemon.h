@@ -172,7 +172,9 @@ private:
                                VirtualMachine* vm);
 
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
-    void configure_new_interfaces(const std::string& name, VirtualMachine& vm, VMSpecs& specs);
+    std::unordered_set<std::string> configure_new_interfaces(const std::string& name,
+                                                             VirtualMachine& vm,
+                                                             VMSpecs& specs);
 
     struct AsyncOperationStatus
     {
@@ -185,10 +187,12 @@ private:
     std::string async_wait_for_ssh_and_start_mounts_for(const std::string& name, const std::chrono::seconds& timeout,
                                                         grpc::ServerReaderWriterInterface<Reply, Request>* server);
     template <typename Reply, typename Request>
-    AsyncOperationStatus
-    async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                             const std::vector<std::string>& vms, const std::chrono::seconds& timeout,
-                             std::promise<grpc::Status>* status_promise, const std::string& errors);
+    AsyncOperationStatus async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                                  const std::vector<std::string>& vms,
+                                                  const std::chrono::seconds& timeout,
+                                                  std::promise<grpc::Status>* status_promise,
+                                                  const std::string& errors,
+                                                  const std::string& start_warnings);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(std::function<void()> const& finished_op = []() {});
     void update_manifests_all(const bool is_force_update_from_network = false);
