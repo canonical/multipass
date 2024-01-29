@@ -143,6 +143,7 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
+    config["packages"].push_back("pollinate");
 
     auto pollinate_user_agent_string =
         fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
@@ -214,6 +215,15 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
     auto keys = user_data_config["ssh_authorized_keys"];
     if (keys.IsSequence())
         keys.push_back(vendor_config["ssh_authorized_keys"][0]);
+
+    auto packages = user_data_config["packages"];
+    if (packages.IsSequence())
+    {
+        for (const auto& package : vendor_config["packages"])
+        {
+            packages.push_back(package);
+        }
+    }
 }
 
 template <typename T>
