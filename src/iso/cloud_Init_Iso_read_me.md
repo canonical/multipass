@@ -39,4 +39,11 @@ It contains the information about the root directory itself, such as its size, l
 
 ## Joliet file record
 
+It contains metadata about a specific file, includes the file name and file data location, etc. The below table shows the detailed data layout. The 0th byte is the current file record size, it can be used to locate the next file record start position because file records are contiguous in memory. 2nd-10th bytes are for file data location and 10th-18th bytes are for the size of extent. At the end, we have the file name info which are file name length and file name. With these metadata, we can extract file name and file data effortlessly.
+
+| `Part` | data block size | file data location | size of extent | ... | file name length | file name |
+|:--- |:--- |:---|:---|:---|:---|:---|
+| `location(byte index)` | 0  | 2-10 (lsb_msb)| 10-18 (lsb_msb)| ... | 32 | 33 - (33 + file name length)|
+
+
 # The navigation strategy
