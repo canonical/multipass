@@ -47,3 +47,6 @@ It contains metadata about a specific file, includes the file name and file data
 
 
 # The navigation strategy
+With preliminary knowledge of the relation between the Joliet components and their specific data layout, we can easily figure out the overall navigation strategy.
+
+Start from Joliet Volume descriptor and access root directory data area, then we can directly jump to the current location root directory record. After that, we can jump over the root directory record and root parent directory record part and reach the file records. Once we get there, we can loop over the file records and extract the file name and the file data.
