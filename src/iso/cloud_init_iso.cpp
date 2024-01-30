@@ -111,7 +111,7 @@ bool is_system_little_endian()
 // std::array<uint8_t, 8> -> std::span<uint8_t, 8> when c++20 arrives
 uint32_t from_lsb_msb(const std::array<uint8_t, 8>& bytes)
 {
-    // replace the s_system_little_endian() with std::endian::native == std::endian::little when C++20 arrives
+    // replace the is_system_little_endian() function with std::endian::native == std::endian::little when C++20 arrives
     return is_system_little_endian()
                ? to_u32(bytes[0]) | to_u32(bytes[1]) << 8u | to_u32(bytes[2]) << 16u | to_u32(bytes[3]) << 24u
                : to_u32(bytes[4]) << 24u | to_u32(bytes[5]) << 16u | to_u32(bytes[6]) << 8u | to_u32(bytes[7]);
