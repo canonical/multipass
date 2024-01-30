@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -22,7 +22,7 @@ void main() async {
     await windowManager.focus();
   });
 
-  // await hotKeyManager.unregisterAll();
+  await hotKeyManager.unregisterAll();
   final sharedPreferences = await SharedPreferences.getInstance();
 
   final providerContainer = ProviderContainer(
