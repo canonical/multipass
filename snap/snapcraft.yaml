@@ -226,8 +226,6 @@ parts:
       QEMUARCH="$(uname -m)"
       sed -i "s/^unset target_list$/target_list=\"${QEMUARCH}-softmmu\"/" configure
 
-      patch -p1 < "${CRAFT_PROJECT_DIR}/snap/local/patches/define-ubuntu-machine-types.patch"
-
       set +ex
       craftctl default
     prime:
