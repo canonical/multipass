@@ -14,5 +14,29 @@ The data areas components in the file includes volume Descriptor, path table, di
 
 # cloud-init-config.iso components
 
+## Joliet volume descriptor
+
+Joliet volume descriptor is the header of the data area, it contains information like the location of path table and the Joliet root directory record.
+
+The below table shows the data layout, the 0th byte indicates the volume descriptor type, that holds the value 2 in the case of Joliet volume descriptor.
+The identifier comes after that and it takes the 2nd-6th bytes, it is normally assigned with value "CD001". These first two parts can be used to verify if the found data block is indeed Joliet volume descriptor. At 156-190 bytes, we have the root directory data, accessing that can take us to the location of it.
+
+| `Part` | Type| Identifier| ...| root dir record| 
+|:--- |:---|:---|:---|:---|
+| `location(byte index)` | 0 | 1-6 | ... | 156-190 |
+
+## Path table
+
+Path table is the ISO 9660 standard's way of quickly looking up directories. It is not relevant in the context of cloud-init-config.iso, since the root directory is the only directory and it can be located directly via the Joliet volume descriptor.
+
+## Joliet root directory record
+
+It contains the information about the root directory itself, such as its size, location. The role of it in the cloud-init-config.iso navigation is to help us to locate the file records. Since the file records are placed right after the root directory record and root parent directory record, we can simply stride over the two data blocks.
+
+| `Part` | data block size | current location| ...|
+|:--- |:---|:---|:---|
+| `location(byte index)` | 0 | 2-10 (lsb_msb)| ...|
+
+## Joliet file record
 
 # The navigation strategy
