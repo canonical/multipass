@@ -24,7 +24,6 @@
 
 #include <array>
 #include <cctype>
-#include <iostream>
 
 namespace mp = multipass;
 
@@ -103,10 +102,19 @@ std::array<uint8_t, 4> to_lsb(uint32_t value)
     return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u)}};
 }
 
-// std::array<uint8_t, 4> -> std::span<uint8_t, 4> when c++20 arrives
-uint32_t from_lsb(const std::array<uint8_t, 4>& bytes)
+bool is_system_little_endian()
 {
-    return to_u32(bytes[0]) | to_u32(bytes[1]) << 8u | to_u32(bytes[2]) << 16u | to_u32(bytes[3]) << 24u;
+    uint32_t test_value = 1; // In memory: 01 00 00 00 (little endian) or 00 00 00 01 (big endian)
+    return *(reinterpret_cast<uint8_t*>(&test_value)) == 1; // Check the first byte
+}
+
+// std::array<uint8_t, 8> -> std::span<uint8_t, 8> when c++20 arrives
+uint32_t from_lsb_msb(const std::array<uint8_t, 8>& bytes)
+{
+    // replace the s_system_little_endian() with std::endian::native == std::endian::little when C++20 arrives
+    return is_system_little_endian()
+               ? to_u32(bytes[0]) | to_u32(bytes[1]) << 8u | to_u32(bytes[2]) << 16u | to_u32(bytes[3]) << 24u
+               : to_u32(bytes[4]) << 24u | to_u32(bytes[5]) << 16u | to_u32(bytes[6]) << 8u | to_u32(bytes[7]);
 }
 
 template <typename T, typename SizeType, typename V>
@@ -584,11 +592,11 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         throw std::runtime_error("The root directory record data is malformed. ");
     }
 
-    // Use std::span when C++20 arrives to avoid the copy of the std::array<uint8_t, 4>
-    std::array<uint8_t, 4> root_dir_record_data_location_lsb_bytes;
+    // Use std::span when C++20 arrives to avoid the copy of the std::array<uint8_t, 8>
+    std::array<uint8_t, 8> root_dir_record_data_location_lsb_bytes;
     // location lsb bytes starts from 2
-    std::copy_n(root_dir_record_data.cbegin() + 2u, 4, root_dir_record_data_location_lsb_bytes.begin());
-    const uint32_t root_dir_record_data_location_by_blocks = from_lsb(root_dir_record_data_location_lsb_bytes);
+    std::copy_n(root_dir_record_data.cbegin() + 2u, 8, root_dir_record_data_location_lsb_bytes.begin());
+    const uint32_t root_dir_record_data_location_by_blocks = from_lsb_msb(root_dir_record_data_location_lsb_bytes);
     const uint32_t file_records_start_pos = root_dir_record_data_location_by_blocks * logical_block_size +
                                             2u * sizeof(RootDirRecord); // total size of root dir and root dir parent
 
@@ -604,8 +612,9 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         // file record holds the size and the location of the extent. In each loop, we first utilize these info to jump
         // to file content and read it. Later on, we jump back to file record and extract the file name.
         const uint32_t file_content_location_by_blocks =
-            from_lsb(readBytesToArray<4>(iso_file, current_file_record_start_pos + 2u));
-        const uint32_t file_content_size = from_lsb(readBytesToArray<4>(iso_file, current_file_record_start_pos + 10u));
+            from_lsb_msb(readBytesToArray<8>(iso_file, current_file_record_start_pos + 2u));
+        const uint32_t file_content_size =
+            from_lsb_msb(readBytesToArray<8>(iso_file, current_file_record_start_pos + 10u));
         const std::vector<uint8_t> file_content =
             readBytesToVec(iso_file, file_content_location_by_blocks * logical_block_size, file_content_size);
 
