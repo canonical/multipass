@@ -74,6 +74,15 @@ public:
     InstanceSettingsException(const std::string& reason, const std::string& instance, const std::string& detail);
 };
 
+class NonAuthorizedBridgeSettingsException : public InstanceSettingsException
+{
+public:
+    NonAuthorizedBridgeSettingsException(const std::string& reason, const std::string& instance, const std::string& net)
+        : InstanceSettingsException{reason, instance, fmt::format("Need user authorization to bridge {}", net)}
+    {
+    }
+};
+
 } // namespace multipass
 
 #endif // MULTIPASS_INSTANCE_SETTINGS_HANDLER_H

@@ -168,10 +168,12 @@ bool is_bridged(const mp::VMSpecs& spec, const std::string& br_interface, const 
 
 void checked_update_bridged(const QString& key,
                             const QString& val,
+                            const std::string& instance_name,
                             mp::VirtualMachine& instance,
                             mp::VMSpecs& spec,
                             const std::string& br_interface,
-                            const std::string& br_name)
+                            const std::string& br_name,
+                            bool needs_authorization)
 {
     auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
 
@@ -182,6 +184,13 @@ void checked_update_bridged(const QString& key,
 
     if (bridged)
     {
+        if (needs_authorization)
+        {
+            throw mp::NonAuthorizedBridgeSettingsException(operation_msg(Operation::Modify),
+                                                           instance_name,
+                                                           br_interface);
+        }
+
         // The empty string in the MAC indicates the daemon that the interface must be configured.
         spec.extra_interfaces.push_back({br_interface, "", true});
     }
@@ -189,6 +198,7 @@ void checked_update_bridged(const QString& key,
 
 void update_bridged(const QString& key,
                     const QString& val,
+                    const std::string& instance_name,
                     mp::VirtualMachine& instance,
                     mp::VMSpecs& spec,
                     std::function<std::string()> bridged_interface,
@@ -208,7 +218,7 @@ void update_bridged(const QString& key,
                         mp::bridged_interface_key));
     }
 
-    checked_update_bridged(key, val, instance, spec, br, bridge_name());
+    checked_update_bridged(key, val, instance_name, instance, spec, br, bridge_name(), info->needs_authorization);
 }
 
 } // namespace
@@ -285,7 +295,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
         update_cpus(key, val, instance, spec);
     else if (property == bridged_suffix)
     {
-        update_bridged(key, val, instance, spec, bridged_interface, bridge_name, host_networks);
+        update_bridged(key, val, instance_name, instance, spec, bridged_interface, bridge_name, host_networks);
     }
     else
     {
