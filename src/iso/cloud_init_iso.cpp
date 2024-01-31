@@ -129,6 +129,9 @@ void write(const T& t, QFile& f)
     f.write(reinterpret_cast<const char*>(t.data.data()), t.data.size());
 }
 
+// The below three utility functions should serve as the abstraction layer for binary file reading, the
+// std::vector<uint8_t>, std::array<uint8_t, N> and uint8_t should be the only ones to receive data because they
+// indicate the nature of the data which is raw binary bytes.
 std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, size_t size)
 {
     std::vector<uint8_t> buffer(size);
@@ -560,6 +563,8 @@ void mp::CloudInitIso::write_to(const Path& path)
 
 void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
 {
+    // Please refer to the cloud_Init_Iso_read_me.md file for the preliminaries and the thought process of the
+    // implementation
     if (!std::filesystem::exists(fs_path) || !std::filesystem::is_regular_file(fs_path))
     {
         throw std::runtime_error("The cloud-init-config.iso file does not exist or is not a regular file. ");
@@ -571,7 +576,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         throw std::runtime_error{fmt::format(R"("Failed to open file "{}" for reading. ")", fs_path.c_str())};
     }
 
-    const uint32_t num_reserved_bytes = 32768u; // 2 data blocks, 4kb
+    const uint32_t num_reserved_bytes = 32768u; // 16 data blocks, 32kb
     const uint32_t joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
     if (readSingleByte(iso_file, joliet_des_start_pos) != 2_u8)
     {
@@ -586,7 +591,8 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
 
     const uint32_t root_dir_record_data_start_pos = joliet_des_start_pos + 156u;
     const std::array<uint8_t, 34> root_dir_record_data = readBytesToArray<34>(iso_file, root_dir_record_data_start_pos);
-    // size of the data should 34, record is a dircotry entry and directory is a root directory instead of root parent
+    // size of the data should 34, record is a directory entry and directory is a root directory instead of a root
+    // parent directory
     if (root_dir_record_data[0] != 34_u8 || root_dir_record_data[25] != 2_u8 || root_dir_record_data[33] != 0_u8)
     {
         throw std::runtime_error("The root directory record data is malformed. ");
@@ -609,8 +615,9 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
             break;
         }
 
-        // file record holds the size and the location of the extent. In each loop, we first utilize these info to jump
-        // to file content and read it. Later on, we jump back to file record and extract the file name.
+        // In each iteration, the file record provides the size and location of the extent. Initially, we utilize this
+        // information to navigate to and read the file data. Subsequently, we return to the file record to extract the
+        // file name.
         const uint32_t file_content_location_by_blocks =
             from_lsb_msb(readBytesToArray<8>(iso_file, current_file_record_start_pos + 2u));
         const uint32_t file_content_size =
