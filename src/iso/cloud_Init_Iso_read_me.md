@@ -47,6 +47,8 @@ It contains metadata about a specific file, including the file name and file dat
 |:--- |:--- |:---|:---|:---|:---|:---|
 | `location(byte index)` | 0  | 2-10 (lsb_msb)| 10-18 (lsb_msb)| ... | 32 | 33 - (33 + file name length)|
 
+For detailed information on the order of each component in memory, please consult the top comment in the cloud_init_iso.cpp file. The full data layout of each component is in each struct definition. 
+
 # The navigation strategy
 
 With the preliminary knowledge of the relation between the Joliet components and their specific data layout, we can easily figure out the overall navigation strategy.
