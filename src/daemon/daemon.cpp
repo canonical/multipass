@@ -143,6 +143,7 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
+    config["packages"].push_back("pollinate");
 
     auto pollinate_user_agent_string =
         fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
@@ -214,6 +215,15 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
     auto keys = user_data_config["ssh_authorized_keys"];
     if (keys.IsSequence())
         keys.push_back(vendor_config["ssh_authorized_keys"][0]);
+
+    auto packages = user_data_config["packages"];
+    if (packages.IsSequence())
+    {
+        for (const auto& package : vendor_config["packages"])
+        {
+            packages.push_back(package);
+        }
+    }
 }
 
 template <typename T>
@@ -2179,7 +2189,7 @@ try // clang-format on
     std::vector<std::string> starting_vms{};
     starting_vms.reserve(instance_selection.operative_selection.size());
 
-    fmt::memory_buffer start_errors;
+    fmt::memory_buffer start_errors, start_warnings;
     for (auto& vm_it : instance_selection.operative_selection)
     {
         std::lock_guard lock{start_mutex};
@@ -2212,7 +2222,15 @@ try // clang-format on
                 mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
             }
 
-            configure_new_interfaces(name, vm, vm_instance_specs[name]);
+            auto failed_interfaces = configure_new_interfaces(name, vm, vm_instance_specs[name]);
+
+            if (!failed_interfaces.empty())
+            {
+                fmt::format_to(std::back_inserter(start_warnings),
+                               "Cannot bridge {} for instance {}. Please see the logs for more details.\n",
+                               fmt::join(failed_interfaces, ", "),
+                               name);
+            }
 
             vm.start();
         }
@@ -2221,9 +2239,14 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>, this,
-                                                server, starting_vms, timeout, status_promise,
-                                                fmt::to_string(start_errors)));
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+                                                this,
+                                                server,
+                                                starting_vms,
+                                                timeout,
+                                                status_promise,
+                                                fmt::to_string(start_errors),
+                                                fmt::to_string(start_warnings)));
 }
 catch (const std::exception& e)
 {
@@ -2277,6 +2300,7 @@ try // clang-format on
 
     if (status.ok())
     {
+        config->factory->require_suspend_support();
         status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
             stop_mounts(vm.vm_name);
 
@@ -2324,8 +2348,13 @@ try // clang-format on
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>, this,
-                                                server, names_from(instance_targets), timeout, status_promise,
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
+                                                this,
+                                                server,
+                                                names_from(instance_targets),
+                                                timeout,
+                                                status_promise,
+                                                std::string(),
                                                 std::string()));
 }
 catch (const std::exception& e)
@@ -2750,8 +2779,13 @@ void mp::Daemon::on_restart(const std::string& name)
         virtual_machine->state = VirtualMachine::State::running;
         virtual_machine->update_state();
     });
-    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>, this,
-                                                nullptr, std::vector<std::string>{name}, mp::default_timeout, nullptr,
+    future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+                                                this,
+                                                nullptr,
+                                                std::vector<std::string>{name},
+                                                mp::default_timeout,
+                                                nullptr,
+                                                std::string(),
                                                 std::string()));
 }
 
@@ -2922,8 +2956,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                         server->Write(reply);
                     });
                     future_watcher->setFuture(
-                        QtConcurrent::run(&Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>, this, server,
-                                          std::vector<std::string>{name}, timeout, status_promise, std::string()));
+                        QtConcurrent::run(&Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>,
+                                          this,
+                                          server,
+                                          std::vector<std::string>{name},
+                                          timeout,
+                                          status_promise,
+                                          std::string(),
+                                          std::string()));
                 }
                 else
                 {
@@ -3315,37 +3355,61 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
                : vm->make_native_mount_handler(config->ssh_key_provider.get(), target, mount);
 }
 
-void mp::Daemon::configure_new_interfaces(const std::string& name, mp::VirtualMachine& vm, mp::VMSpecs& specs)
+// This function configures the network interfaces whose MAC address is empty. They will stay in specs.extra_interfaces
+// only if the backend is able to add them to the virtual machine. If not, they will be removed.
+// The return value is a set of networks that couldn't be configured and thus were removed from specs.extra_interfaces.
+std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::string& name,
+                                                                     mp::VirtualMachine& vm,
+                                                                     mp::VMSpecs& specs)
 {
-    std::vector<size_t> new_interfaces;
+    bool added_good_interfaces{false};
+    size_t j = 0; /* The final index of the interface. This is needed because we will filter out the bad interfaces
+                     from specs.extra_interfaces. */
+    std::vector<mp::NetworkInterface> filtered_interfaces;
+    std::unordered_set<std::string> bad_bridges;
+    auto& commands = specs.run_at_boot;
 
-    for (auto i = 0u; i < specs.extra_interfaces.size(); ++i)
+    config->factory->prepare_networking(specs.extra_interfaces); // TODO: call this only if needed.
+
+    for (auto& iface : specs.extra_interfaces)
     {
-        auto& interface = specs.extra_interfaces[i];
-
-        if (interface.mac_address.empty()) // An empty MAC address means the interface needs to be configured.
+        if (iface.mac_address.empty()) // An empty MAC address means the interface needs to be configured.
         {
-            new_interfaces.push_back(i);
+            iface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
 
-            interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+            try
+            {
+                vm.add_network_interface(j, iface); // This will throw if the interface wasn't added to the VM.
+
+                added_good_interfaces = true;
+
+                commands.push_back(generate_netplan_script(j, iface.mac_address));
+            }
+            catch (const std::exception&)
+            {
+                // The generated MAC will not be used, so we remove it from the list of used addresses.
+                // TODO: avoid adding the new MAC to allocated_mac_addrs if the interface is bad.
+                allocated_mac_addrs.erase(iface.mac_address);
+
+                bad_bridges.insert(iface.id);
+
+                continue;
+            }
         }
+
+        filtered_interfaces.push_back(iface);
+
+        ++j;
     }
 
-    if (!new_interfaces.empty())
+    if (added_good_interfaces)
     {
-        config->factory->prepare_networking(specs.extra_interfaces);
-
-        auto& commands = specs.run_at_boot;
-
-        for (const auto i : new_interfaces)
-        {
-            vm.add_network_interface(i, specs.extra_interfaces[i]);
-
-            commands.push_back(generate_netplan_script(i, specs.extra_interfaces[i].mac_address));
-        }
-
         commands.push_back("sudo netplan apply");
     }
+
+    specs.extra_interfaces = filtered_interfaces;
+
+    return bad_bridges;
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
@@ -3442,8 +3506,11 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
 template <typename Reply, typename Request>
 mp::Daemon::AsyncOperationStatus
 mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                                     const std::vector<std::string>& vms, const std::chrono::seconds& timeout,
-                                     std::promise<grpc::Status>* status_promise, const std::string& start_errors)
+                                     const std::vector<std::string>& vms,
+                                     const std::chrono::seconds& timeout,
+                                     std::promise<grpc::Status>* status_promise,
+                                     const std::string& start_errors,
+                                     const std::string& start_warnings)
 {
     QFutureSynchronizer<std::string> start_synchronizer;
     {
@@ -3467,6 +3534,8 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     start_synchronizer.waitForFinished();
 
     fmt::memory_buffer warnings;
+
+    fmt::format_to(std::back_inserter(warnings), "{}", start_warnings);
 
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};

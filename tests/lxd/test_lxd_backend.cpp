@@ -1012,6 +1012,14 @@ TEST_F(LXDBackend, unimplemented_functions_logs_trace_message)
     backend.prepare_instance_image(image, default_description);
 }
 
+TEST_F(LXDBackend, factoryDoesNotSupportSuspend)
+{
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    MP_EXPECT_THROW_THAT(backend.require_suspend_support(),
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("suspend")));
+}
+
 TEST_F(LXDBackend, image_fetch_type_returns_expected_type)
 {
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
@@ -1354,7 +1362,8 @@ TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
                                HasSubstr(": Error - Failure"));
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
+                log(_,
+                    mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
                     mpt::MockLogger::make_cstring_matcher(error_matcher)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
@@ -1588,8 +1597,9 @@ TEST_F(LXDBackend, unsupported_suspend_throws)
                                   default_storage_pool,
                                   instance_dir.path()};
 
-    MP_EXPECT_THROW_THAT(machine.suspend(), std::runtime_error,
-                         mpt::match_what(StrEq("suspend is currently not supported")));
+    MP_EXPECT_THROW_THAT(machine.suspend(),
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(HasSubstr("suspend")));
 }
 
 TEST_F(LXDBackend, start_while_frozen_unfreezes)

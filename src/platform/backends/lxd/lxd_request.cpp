@@ -113,7 +113,9 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
     mpl::log(mpl::Level::trace, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
 
     if (reply->error() != QNetworkReply::NoError)
-        throw mp::LXDRuntimeError(fmt::format("Network error for {}: {} - {}", url.toString(), reply->errorString(),
+        throw mp::LXDNetworkError(fmt::format("Network error for {}: {} - {}",
+                                              url.toString(),
+                                              reply->errorString(),
                                               json_reply.object()["error"].toString()));
 
     return json_reply.object();
@@ -140,6 +142,12 @@ try
     };
 
     return lxd_request_common(method, url, timeout, handle_request);
+}
+catch (const LXDNetworkError& e)
+{
+    mpl::log(mpl::Level::warning, request_category, e.what());
+
+    throw;
 }
 catch (const LXDRuntimeError& e)
 {

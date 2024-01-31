@@ -297,7 +297,7 @@ void mp::LXDVirtualMachine::shutdown()
 
 void mp::LXDVirtualMachine::suspend()
 {
-    throw std::runtime_error("suspend is currently not supported");
+    throw NotImplementedOnThisBackendException{"suspend"};
 }
 
 mp::VirtualMachine::State mp::LXDVirtualMachine::current_state()

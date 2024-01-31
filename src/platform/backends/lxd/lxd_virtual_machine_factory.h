@@ -49,8 +49,8 @@ public:
                                           const Path& cache_dir_path, const Path& data_dir_path,
                                           const days& days_to_expire) override;
     void configure(VirtualMachineDescription& vm_desc) override;
-
     std::vector<NetworkInterfaceInfo> networks() const override;
+    void require_suspend_support() const override;
 
     std::string bridge_name_for(const std::string& iface_name) const override;
 
@@ -64,5 +64,10 @@ private:
     QString storage_pool;
 };
 } // namespace multipass
+
+inline void multipass::LXDVirtualMachineFactory::require_suspend_support() const
+{
+    throw NotImplementedOnThisBackendException{"suspend"};
+}
 
 #endif // MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
