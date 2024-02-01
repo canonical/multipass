@@ -48,10 +48,9 @@ TEST_F(CloudInitIso, creates_iso_file)
 TEST_F(CloudInitIso, reads_non_exist_iso_file_throw)
 {
     mp::CloudInitIso iso;
-    MP_EXPECT_THROW_THAT(
-        iso.read_from(std::filesystem::path{"non_existing_path"}),
-        std::runtime_error,
-        mpt::match_what(StrEq("The cloud-init-config.iso file does not exist or is not a regular file. ")));
+    MP_EXPECT_THROW_THAT(iso.read_from(std::filesystem::path{"non_existing_path"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("does not exist or is not a regular file. ")));
 }
 
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)

@@ -567,13 +567,14 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     // implementation
     if (!std::filesystem::exists(fs_path) || !std::filesystem::is_regular_file(fs_path))
     {
-        throw std::runtime_error("The cloud-init-config.iso file does not exist or is not a regular file. ");
+        throw std::runtime_error(
+            fmt::format(R"("The path "{}" does not exist or is not a regular file. ")", fs_path.string()));
     }
 
     std::ifstream iso_file{fs_path, std::ios_base::in | std::ios::binary};
     if (!iso_file.is_open())
     {
-        throw std::runtime_error{fmt::format(R"("Failed to open file "{}" for reading. ")", fs_path.c_str())};
+        throw std::runtime_error{fmt::format(R"("Failed to open file "{}" for reading. ")", fs_path.string())};
     }
 
     const uint32_t num_reserved_bytes = 32768u; // 16 data blocks, 32kb
