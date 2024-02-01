@@ -203,7 +203,8 @@ void update_bridged(const QString& key,
                     mp::VMSpecs& spec,
                     std::function<std::string()> bridged_interface,
                     std::function<std::string()> bridge_name,
-                    std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks)
+                    std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks,
+                    std::function<bool()> user_authorized)
 {
     const auto& host_nets = host_networks(); // This will throw if not implemented on this backend.
     const auto& br = bridged_interface();
@@ -218,7 +219,8 @@ void update_bridged(const QString& key,
                         mp::bridged_interface_key));
     }
 
-    checked_update_bridged(key, val, instance_name, instance, spec, br, bridge_name(), info->needs_authorization);
+    bool needs_authorization = info->needs_authorization && !user_authorized();
+    checked_update_bridged(key, val, instance_name, instance, spec, br, bridge_name(), needs_authorization);
 }
 
 } // namespace
@@ -237,7 +239,8 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::function<void()> instance_persister,
     std::function<std::string()> bridged_interface,
     std::function<std::string()> bridge_name,
-    std::function<std::vector<NetworkInterfaceInfo>()> host_networks)
+    std::function<std::vector<NetworkInterfaceInfo>()> host_networks,
+    std::function<bool()> user_authorized_bridge)
     : vm_instance_specs{vm_instance_specs},
       operative_instances{operative_instances},
       deleted_instances{deleted_instances},
@@ -245,7 +248,8 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
       instance_persister{std::move(instance_persister)},
       bridged_interface{std::move(bridged_interface)},
       bridge_name{std::move(bridge_name)},
-      host_networks{std::move(host_networks)}
+      host_networks{std::move(host_networks)},
+      user_authorized_bridge{user_authorized_bridge}
 {
 }
 
@@ -295,7 +299,15 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
         update_cpus(key, val, instance, spec);
     else if (property == bridged_suffix)
     {
-        update_bridged(key, val, instance_name, instance, spec, bridged_interface, bridge_name, host_networks);
+        update_bridged(key,
+                       val,
+                       instance_name,
+                       instance,
+                       spec,
+                       bridged_interface,
+                       bridge_name,
+                       host_networks,
+                       user_authorized_bridge);
     }
     else
     {

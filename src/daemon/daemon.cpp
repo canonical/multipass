@@ -1250,7 +1250,8 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            std::function<void()> instance_persister,
                                            std::function<std::string()> bridged_interface,
                                            std::function<std::string()> bridge_name,
-                                           std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks)
+                                           std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks,
+                                           std::function<bool()> user_authorized)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
                                                                                       operative_instances,
@@ -1259,7 +1260,8 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                                                                       std::move(instance_persister),
                                                                                       std::move(bridged_interface),
                                                                                       std::move(bridge_name),
-                                                                                      host_networks));
+                                                                                      host_networks,
+                                                                                      user_authorized));
 }
 
 mp::SettingsHandler* register_snapshot_mod(
@@ -1420,7 +1422,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           [this]() {
               return config->factory->bridge_name_for(MP_SETTINGS.get(mp::bridged_interface_key).toStdString());
           },
-          [this]() { return config->factory->networks(); })},
+          [this]() { return config->factory->networks(); },
+          [this]() { return user_authorized_bridge; })},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
@@ -2545,12 +2548,19 @@ try
 
     auto key = request->key();
     auto val = request->val();
+    user_authorized_bridge = request->permission_to_bridge();
 
     mpl::log(mpl::Level::trace, category, fmt::format("Trying to set {}={}", key, val));
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
 
+    user_authorized_bridge = false;
+
     status_promise->set_value(grpc::Status::OK);
+}
+catch (const mp::NonAuthorizedBridgeSettingsException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 catch (const mp::UnrecognizedSettingException& e)
 {

@@ -225,6 +225,7 @@ private:
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
+    bool user_authorized_bridge = false;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H

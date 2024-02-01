@@ -45,7 +45,8 @@ public:
                             std::function<void()> instance_persister,
                             std::function<std::string()> bridged_interface,
                             std::function<std::string()> bridge_name,
-                            std::function<std::vector<NetworkInterfaceInfo>()> host_networks);
+                            std::function<std::vector<NetworkInterfaceInfo>()> host_networks,
+                            std::function<bool()> user_authorized);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -66,6 +67,7 @@ private:
     std::function<std::string()> bridged_interface;
     std::function<std::string()> bridge_name;
     std::function<std::vector<NetworkInterfaceInfo>()> host_networks;
+    std::function<bool()> user_authorized_bridge;
 };
 
 class InstanceSettingsException : public SettingsException

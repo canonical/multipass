@@ -20,6 +20,7 @@
 #include "common_callbacks.h"
 
 #include <multipass/cli/command.h>
+#include <multipass/cli/prompters.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/logging/log.h>
 
@@ -111,21 +112,44 @@ public:
 class RemoteSet : public RemoteSettingsCmd
 {
 public:
-    RemoteSet(const QString& key, const QString& val, mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity)
+    RemoteSet(const QString& key,
+              const QString& val,
+              mp::Rpc::StubInterface& stub,
+              mp::Terminal* term,
+              int verbosity,
+              bool user_authorized)
         : RemoteSettingsCmd{stub, term} // need to ensure refs outlive this
     {
         mp::SetRequest set_request;
         set_request.set_verbosity_level(verbosity);
         set_request.set_key(key.toStdString());
         set_request.set_val(val.toStdString());
+        set_request.set_permission_to_bridge(user_authorized);
 
         mp::AnimatedSpinner spinner{cout};
+
+        auto custom_on_failure = [&key, &val, &stub, &term, &verbosity](grpc::Status& status) {
+            if (auto code = status.error_code(); code == grpc::FAILED_PRECONDITION)
+            {
+                mp::BridgePrompter prompter(term);
+                std::vector<std::string> nets(1, val.toStdString());
+
+                if (prompter.bridge_prompt(nets))
+                {
+                    RemoteSet(key, val, stub, term, verbosity, true);
+
+                    return mp::ReturnCode::Ok;
+                }
+            }
+
+            return on_failure(status);
+        };
 
         [[maybe_unused]] auto ret =
             dispatch(&RpcMethod::set,
                      set_request,
                      on_success<mp::SetReply>,
-                     on_failure,
+                     custom_on_failure,
                      mp::make_reply_spinner_callback<mp::SetRequest, mp::SetReply>(spinner, cerr));
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
@@ -188,7 +212,7 @@ void mp::RemoteSettingsHandler::set(const QString& key, const QString& val)
     if (key.startsWith(key_prefix))
     {
         assert(term);
-        RemoteSet(key, val, stub, term, verbosity);
+        RemoteSet(key, val, stub, term, verbosity, false);
     }
     else
         throw mp::UnrecognizedSettingException{key};
