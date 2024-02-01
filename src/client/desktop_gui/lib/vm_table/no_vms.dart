@@ -42,7 +42,7 @@ class NoVms extends ConsumerWidget {
             const SizedBox(height: 8),
             Text.rich([
               'Return to the '.span,
-              'Catalogue'.span.link(ref, goToCatalogue),
+              'Catalogue'.span.color(Colors.blue).link(ref, goToCatalogue),
               ' to choose your instance or get started with the primary Ubuntu Image'
                   .span,
             ].spans.size(16)),
