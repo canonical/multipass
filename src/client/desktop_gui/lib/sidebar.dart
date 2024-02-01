@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -11,15 +12,15 @@ import 'settings/settings.dart';
 import 'text_span_ext.dart';
 import 'vm_table/vm_table_screen.dart';
 
-final sidebarKeyProvider = StateProvider((_) => CatalogueScreen.sidebarKey);
-final sidebarWidgetProvider =
-    Provider<Widget>((ref) => sidebarWidgets[ref.watch(sidebarKeyProvider)]!);
-const sidebarWidgets = {
-  CatalogueScreen.sidebarKey: CatalogueScreen(),
-  VmTableScreen.sidebarKey: VmTableScreen(),
-  SettingsScreen.sidebarKey: SettingsScreen(),
-  HelpScreen.sidebarKey: HelpScreen(),
-};
+final sidebarKeyProvider = StateProvider<String>((ref) {
+  ref.listen(vmNamesProvider, (_, vmNames) {
+    final key = ref.controller.state;
+    if (key.startsWith('vm-') && !vmNames.contains(key.withoutPrefix('vm-'))) {
+      ref.invalidateSelf();
+    }
+  });
+  return CatalogueScreen.sidebarKey;
+});
 
 final sidebarExpandedProvider = StateProvider((_) => false);
 final sidebarPushContentProvider = StateProvider((_) => false);
@@ -53,7 +54,8 @@ class SideBar extends ConsumerWidget {
 
     final instances = SidebarEntry(
       icon: SvgPicture.asset('assets/instances.svg'),
-      selected: isSelected(VmTableScreen.sidebarKey),
+      selected: isSelected(VmTableScreen.sidebarKey) ||
+          !expanded && selectedSidebarKey.startsWith('vm-'),
       label: 'Instances',
       badge: vmNames.length.toString(),
       onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
@@ -97,17 +99,17 @@ class SideBar extends ConsumerWidget {
       ),
     ]);
 
-    final instanceEntries = vmNames.map((name) {
-      final key = 'instance-$name';
+    final vmEntries = vmNames.map((name) {
+      final key = 'vm-$name';
       return SidebarEntry(
         icon: Flexible(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 30),
           ),
         ),
-        selected: isSelected(key),
+        selected: isSelected(key) && expanded,
         label: name,
-        onPressed: () {},
+        onPressed: () => ref.read(sidebarKeyProvider.notifier).state = key,
       );
     });
 
@@ -134,7 +136,7 @@ class SideBar extends ConsumerWidget {
             const SizedBox(height: 15),
             catalogue,
             instances,
-            ...instanceEntries,
+            ...vmEntries,
             const Spacer(),
             Divider(color: Colors.white.withOpacity(0.3)),
             help,

@@ -4,10 +4,15 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'catalogue/catalogue.dart';
 import 'daemon_unavailable.dart';
+import 'help.dart';
 import 'providers.dart';
+import 'settings/settings.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
+import 'vm_details.dart';
+import 'vm_table/vm_table_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,13 +30,11 @@ void main() async {
   await hotKeyManager.unregisterAll();
   final sharedPreferences = await SharedPreferences.getInstance();
 
-  final providerContainer = ProviderContainer(
-    overrides: [
-      guiSettingProvider.overrideWith(() {
-        return GuiSettingNotifier(sharedPreferences);
-      }),
-    ],
-  );
+  final providerContainer = ProviderContainer(overrides: [
+    guiSettingProvider.overrideWith(() {
+      return GuiSettingNotifier(sharedPreferences);
+    }),
+  ]);
   setupTrayMenu(providerContainer);
   runApp(
     UncontrolledProviderScope(
@@ -46,9 +49,26 @@ class App extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentKey = ref.watch(sidebarKeyProvider);
     final daemonAvailable = ref.watch(daemonAvailableProvider);
+    final vms = ref.watch(vmNamesProvider);
 
-    final content = ref.watch(sidebarWidgetProvider);
+    final widgets = {
+      CatalogueScreen.sidebarKey: const CatalogueScreen(),
+      VmTableScreen.sidebarKey: const VmTableScreen(),
+      SettingsScreen.sidebarKey: const SettingsScreen(),
+      HelpScreen.sidebarKey: const HelpScreen(),
+      for (final name in vms) 'vm-$name': VmDetailsScreen(name: name),
+    };
+
+    final content = Stack(fit: StackFit.expand, children: [
+      for (final MapEntry(:key, value: widget) in widgets.entries)
+        Visibility(
+          maintainState: true,
+          visible: key == currentKey,
+          child: widget,
+        ),
+    ]);
 
     return MaterialApp(
       theme: theme,
