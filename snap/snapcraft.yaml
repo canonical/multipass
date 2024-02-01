@@ -160,7 +160,7 @@ parts:
   qemu:
     source: https://github.com/canonical/qemu.git
     source-type: git
-    source-branch: multipass-8.0.0+9p-uid-gid-map
+    source-branch: multipass-8.2.1+9p-uid-gid-map
     source-depth: 1
     source-submodules: []
     plugin: autotools
@@ -177,7 +177,6 @@ parts:
     - --disable-xen
     - --disable-dmg
     - --disable-replication
-    - --disable-hax
     - --disable-snappy
     - --disable-lzo
     - --disable-live-block-migration
@@ -205,6 +204,7 @@ parts:
     - libpixman-1-dev
     - libseccomp-dev
     - meson
+    - python3-venv
     stage-packages:
     - libpixman-1-0
     stage:
@@ -225,8 +225,6 @@ parts:
       # Mangle the configure a bit
       QEMUARCH="$(uname -m)"
       sed -i "s/^unset target_list$/target_list=\"${QEMUARCH}-softmmu\"/" configure
-
-      patch -p1 < "${CRAFT_PROJECT_DIR}/snap/local/patches/define-ubuntu-machine-types.patch"
 
       set +ex
       craftctl default
