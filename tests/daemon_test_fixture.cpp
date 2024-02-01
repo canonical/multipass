@@ -535,9 +535,9 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
     auto status_future = status_promise.get_future();
 
     auto thread = QThread::create([&daemon, slot, &request, &server, &status_promise] {
-        QEventLoop loop;
+        QEventLoop inner_loop;
         (daemon.*slot)(&request, &server, &status_promise);
-        loop.exec();
+        inner_loop.exec();
     });
 
     thread->start();
