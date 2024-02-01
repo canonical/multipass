@@ -196,6 +196,12 @@ void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base
     stream.open(filename, mode);
 }
 
+std::ifstream& mp::FileOps::read(std::ifstream& file, char* buffer, std::streamsize size) const
+{
+    file.read(buffer, size);
+    return file;
+}
+
 std::unique_ptr<std::ostream> mp::FileOps::open_write(const fs::path& path, std::ios_base::openmode mode) const
 {
     return std::make_unique<std::ofstream>(path, mode);

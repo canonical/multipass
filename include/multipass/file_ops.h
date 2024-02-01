@@ -97,6 +97,7 @@ public:
 
     // std operations
     virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;
+    virtual std::ifstream& read(std::ifstream& stream, char* buffer, std::streamsize size) const;
     virtual std::unique_ptr<std::ostream> open_write(const fs::path& path,
                                                      std::ios_base::openmode mode = std::ios_base::out) const;
     virtual std::unique_ptr<std::istream> open_read(const fs::path& path,
