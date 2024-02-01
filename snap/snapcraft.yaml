@@ -14,8 +14,8 @@ confinement: strict
 base: core22
 
 layout:
-  /usr/lib/$CRAFT_ARCH_TRIPLET/qemu:
-    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qemu
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu
   /usr/share/X11:
     bind: $SNAP/usr/share/X11
   /etc/fonts:
@@ -27,9 +27,9 @@ layout:
 
 environment:
   # GDK pixbuf
-  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${CRAFT_ARCH_TRIPLET}/gdk-pixbuf-2.0/2.10.0/loaders
+  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/gdk-pixbuf-2.0/2.10.0/loaders
   GDK_PIXBUF_MODULE_FILE: $SNAP_COMMON/loaders.cache
-  ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET}
+  ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET_BUILD_FOR}
 
 plugs:
   all-home:
@@ -41,10 +41,10 @@ apps:
     command: bin/launch-multipassd
     environment:
       LD_LIBRARY_PATH: &library-path
-        $SNAP/lib:$SNAP/lib/$CRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET
+        $SNAP/lib:$SNAP/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$SNAP/usr/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
       PATH: &path
         $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
-      QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt6/plugins
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins
       XDG_DATA_HOME: $SNAP_COMMON/data
       XDG_CACHE_HOME: $SNAP_COMMON/cache
       XDG_CONFIG_HOME: &daemon-config $SNAP_DATA/config
@@ -69,7 +69,7 @@ apps:
       <<: &client-environment
         LD_LIBRARY_PATH: *library-path
         PATH: *path
-        QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt6/plugins
+        QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins
         XDG_DATA_HOME: $SNAP_USER_DATA/data
         XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
         XDG_CACHE_HOME: $SNAP_USER_DATA/cache
@@ -194,7 +194,7 @@ parts:
     - --disable-vduse-blk-export
     - --firmwarepath=/snap/multipass/current/qemu/
     - --prefix=/usr
-    - --libdir=/usr/lib/$CRAFT_ARCH_TRIPLET
+    - --libdir=/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     - --libexecdir=/usr/lib/qemu
     - --enable-strip
     build-packages:
@@ -233,7 +233,7 @@ parts:
     - usr/bin/qemu-img*
     - usr/bin/virtfs-proxy-helper*
     - usr/bin/virtiofsd*
-    - usr/lib/$CRAFT_ARCH_TRIPLET/*
+    - usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/*
     - lib/*/libpixman*so*
     - qemu/keymaps*
     - qemu/efi-virtio.rom*
