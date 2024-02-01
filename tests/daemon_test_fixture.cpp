@@ -525,6 +525,31 @@ bool mpt::DaemonTestFixture::is_ready(std::future<R> const& f)
     return f.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
 }
 
+template <typename DaemonSlotPtr, typename Request, typename Server>
+grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
+                                                      DaemonSlotPtr slot,
+                                                      const Request& request,
+                                                      Server&& server)
+{
+    std::promise<grpc::Status> status_promise;
+    auto status_future = status_promise.get_future();
+
+    auto thread = QThread::create([&daemon, slot, &request, &server, &status_promise] {
+        QEventLoop loop;
+        (daemon.*slot)(&request, &server, &status_promise);
+        loop.exec();
+    });
+
+    thread->start();
+
+    EXPECT_TRUE(is_ready(status_future));
+
+    thread->quit();
+    thread->wait();
+
+    return status_future.get();
+}
+
 template bool mpt::DaemonTestFixture::is_ready(std::future<grpc::Status> const&);
 
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(

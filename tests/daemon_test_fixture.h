@@ -107,30 +107,4 @@ struct DaemonTestFixture : public ::Test
 };
 } // namespace test
 } // namespace multipass
-
-template <typename DaemonSlotPtr, typename Request, typename Server>
-grpc::Status multipass::test::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
-                                                                  DaemonSlotPtr slot,
-                                                                  const Request& request,
-                                                                  Server&& server)
-{
-    std::promise<grpc::Status> status_promise;
-    auto status_future = status_promise.get_future();
-
-    auto thread = QThread::create([&daemon, slot, &request, &server, &status_promise] {
-        QEventLoop local_loop;
-        (daemon.*slot)(&request, &server, &status_promise);
-        local_loop.exec();
-    });
-
-    thread->start();
-
-    EXPECT_TRUE(is_ready(status_future));
-
-    thread->quit();
-    thread->wait();
-
-    return status_future.get();
-}
-
 #endif // MULTIPASS_DAEMON_TEST_FIXTURE_H
