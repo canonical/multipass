@@ -44,19 +44,21 @@ extension TextSpanExt on TextSpan {
         style: (style ?? noStyle).copyWith(color: color),
       );
 
-  TextSpan link(WidgetRef ref, VoidCallback callback) => TextSpan(
-        text: text,
-        children: children,
-        style: (style ?? noStyle).copyWith(
-          color: Colors.blue,
-          decoration: ref.watch(_hoveredLinkProvider) == this
-              ? TextDecoration.underline
-              : null,
-        ),
-        recognizer: TapGestureRecognizer()..onTap = callback,
-        onEnter: (_) => ref.read(_hoveredLinkProvider.notifier).state = this,
-        onExit: (_) {
-          if (ref.context.mounted) ref.invalidate(_hoveredLinkProvider);
-        },
-      );
+  TextSpan link(WidgetRef ref, VoidCallback callback) {
+    final hovered = ref.watch(_hoveredLinkProvider) == this;
+    return TextSpan(
+      text: text,
+      children: children,
+      style: (style ?? noStyle).copyWith(
+        color: hovered ? Colors.blue : null,
+        decoration: hovered ? TextDecoration.underline : null,
+        decorationColor: Colors.blue,
+      ),
+      recognizer: TapGestureRecognizer()..onTap = callback,
+      onEnter: (_) => ref.read(_hoveredLinkProvider.notifier).state = this,
+      onExit: (_) {
+        if (ref.context.mounted) ref.invalidate(_hoveredLinkProvider);
+      },
+    );
+  }
 }
