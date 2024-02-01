@@ -470,6 +470,7 @@ message SetRequest {
     string key = 1;
     string val = 2;
     int32 verbosity_level = 3;
+    bool permission_to_bridge = 4;
 }
 
 message SetReply {
