@@ -473,6 +473,7 @@ void mp::CloudInitIso::add_file(const std::string& name, const std::string& data
     files.push_back(FileEntry{name, data});
 }
 
+        iter == std::end(files))
 bool mp::CloudInitIso::contains(const std::string& name) const
 {
     return std::find_if(files.cbegin(), files.cend(), [name](const FileEntry& file_entry) -> bool {
