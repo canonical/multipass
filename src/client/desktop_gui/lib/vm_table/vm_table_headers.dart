@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
+import '../sidebar.dart';
+import '../text_span_ext.dart';
 import 'cell_builders.dart';
 import 'cpu_sparkline.dart';
 import 'memory_usage.dart';
@@ -59,7 +61,23 @@ final headers = <TableHeader<VmInfo>>[
     width: 115,
     minWidth: 70,
     sortKey: (info) => info.name,
-    cellBuilder: (info) => ellipsizedText(info.name),
+    cellBuilder: (info) => Tooltip(
+      message: info.name,
+      child: Consumer(builder: (_, ref, __) {
+        goToVm() {
+          ref.read(sidebarKeyProvider.notifier).state = 'vm-${info.name}';
+        }
+
+        return Text.rich(
+          info.name
+              .replaceAll('-', '\u2011')
+              .replaceAll(' ', '\u00A0')
+              .span
+              .link(ref, goToVm),
+          overflow: TextOverflow.ellipsis,
+        );
+      }),
+    ),
   ),
   TableHeader(
     name: 'STATE',
