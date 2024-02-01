@@ -651,3 +651,31 @@ template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
                          std::promise<grpc::Status>*),
     const mp::SuspendRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>&&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
+    void (mp::Daemon::*)(const mp::SnapshotRequest*,
+                         grpc::ServerReaderWriterInterface<mp::SnapshotReply, mp::SnapshotRequest>*,
+                         std::promise<grpc::Status>*),
+    const mp::SnapshotRequest&,
+    StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
+    void (mp::Daemon::*)(const mp::SnapshotRequest*,
+                         grpc::ServerReaderWriterInterface<mp::SnapshotReply, mp::SnapshotRequest>*,
+                         std::promise<grpc::Status>*),
+    const mp::SnapshotRequest&,
+    testing::StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>&&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
+    void (mp::Daemon::*)(const mp::RestoreRequest*,
+                         grpc::ServerReaderWriterInterface<mp::RestoreReply, mp::RestoreRequest>*,
+                         std::promise<grpc::Status>*),
+    const mp::RestoreRequest&,
+    testing::StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
+    void (mp::Daemon::*)(const mp::RestoreRequest*,
+                         grpc::ServerReaderWriterInterface<mp::RestoreReply, mp::RestoreRequest>*,
+                         std::promise<grpc::Status>*),
+    const mp::RestoreRequest&,
+    StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>&&);
