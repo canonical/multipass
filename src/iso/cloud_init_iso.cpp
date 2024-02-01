@@ -18,6 +18,7 @@
  */
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 
 #include <QFile>
@@ -136,7 +137,8 @@ std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, siz
 {
     std::vector<uint8_t> buffer(size);
     file.seekg(pos);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
+
+    if (!MP_FILEOPS.read(file, reinterpret_cast<char*>(buffer.data()), size))
     {
         throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, std::streamoff(pos)));
     }
@@ -149,7 +151,7 @@ std::array<uint8_t, N> readBytesToArray(std::ifstream& file, std::streampos pos)
 {
     std::array<uint8_t, N> buffer{};
     file.seekg(pos);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), N))
+    if (!MP_FILEOPS.read(file, reinterpret_cast<char*>(buffer.data()), N))
     {
         throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", N, std::streamoff(pos)));
     }
@@ -161,7 +163,7 @@ uint8_t readSingleByte(std::ifstream& file, std::streampos pos)
 {
     uint8_t data{};
     file.seekg(pos);
-    if (!file.read(reinterpret_cast<char*>(&data), 1))
+    if (!MP_FILEOPS.read(file, reinterpret_cast<char*>(&data), 1))
     {
         throw std::runtime_error(fmt::format("Can not read the next byte data from file at {}.", std::streamoff(pos)));
     }
