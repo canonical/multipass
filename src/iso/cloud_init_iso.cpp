@@ -574,7 +574,6 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     }
 
     std::ifstream iso_file{fs_path, std::ios_base::in | std::ios::binary};
-    //    if (!iso_file.is_open())
     if (!MP_FILEOPS.is_open(iso_file))
     {
         throw std::runtime_error{fmt::format(R"("Failed to open file "{}" for reading. ")", fs_path.string())};
