@@ -116,6 +116,18 @@ struct MockDaemon : public Daemon
                  (grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>*),
                  std::promise<grpc::Status>*),
                 (override));
+    MOCK_METHOD(void,
+                snapshot,
+                (const SnapshotRequest*,
+                 (grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void,
+                restore,
+                (const RestoreRequest*,
+                 (grpc::ServerReaderWriterInterface<RestoreReply, RestoreRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
 
     template <typename Request, typename Reply>
     void set_promise_value(const Request*, grpc::ServerReaderWriterInterface<Reply, Request>*,

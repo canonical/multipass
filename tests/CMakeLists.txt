@@ -54,6 +54,7 @@ add_executable(multipass_tests
   temp_file.cpp
   test_alias_dict.cpp
   test_argparser.cpp
+  test_base_snapshot.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
   test_basic_process.cpp
@@ -70,6 +71,7 @@ add_executable(multipass_tests
   test_daemon_find.cpp
   test_daemon_launch.cpp
   test_daemon_mount.cpp
+  test_daemon_snapshot_restore.cpp
   test_daemon_start.cpp
   test_daemon_suspend.cpp
   test_daemon_umount.cpp
@@ -81,8 +83,10 @@ add_executable(multipass_tests
   test_image_vault.cpp
   test_instance_settings_handler.cpp
   test_ip_address.cpp
+  test_json_utils.cpp
   test_memory_size.cpp
   test_mock_standard_paths.cpp
+  test_mount_handler.cpp
   test_new_release_monitor.cpp
   test_output_formatter.cpp
   test_persistent_settings_handler.cpp
@@ -111,6 +115,7 @@ add_executable(multipass_tests
   test_ubuntu_image_host.cpp
   test_url_downloader.cpp
   test_utils.cpp
+  test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
   test_blueprint_provider.cpp
   test_sftp_dir_iterator.cpp

@@ -548,12 +548,12 @@ std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const std::
                                                                      const VMSpecs& /*specs*/,
                                                                      std::shared_ptr<Snapshot> /*parent*/)
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"};
+    throw NotImplementedOnThisBackendException{"snapshots"};
 }
 
 std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const QString& /*filename*/)
 {
-    throw NotImplementedOnThisBackendException{"Snapshots"};
+    throw NotImplementedOnThisBackendException{"snapshots"};
 }
 
 } // namespace multipass
