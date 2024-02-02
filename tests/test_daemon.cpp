@@ -41,6 +41,7 @@
 #include "tracking_url_downloader.h"
 
 #include <src/daemon/default_vm_image_vault.h>
+#include <src/daemon/instance_settings_handler.h>
 
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
@@ -2126,10 +2127,16 @@ TEST_P(DaemonSetExceptions, setHandlesSettingsException)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    Daemon, DaemonSetExceptions,
-    Values(std::tuple{mp::UnrecognizedSettingException{"foo"}, grpc::StatusCode::INVALID_ARGUMENT,
+    Daemon,
+    DaemonSetExceptions,
+    Values(std::tuple{mp::NonAuthorizedBridgeSettingsException{"reason", "instance", "eth8"},
+                      grpc::StatusCode::INTERNAL,
+                      HasSubstr("Need user authorization to bridge eth8")},
+           std::tuple{mp::UnrecognizedSettingException{"foo"},
+                      grpc::StatusCode::INVALID_ARGUMENT,
                       AllOf(HasSubstr("Unrecognized"), HasSubstr("foo"))},
-           std::tuple{mp::InvalidSettingException{"foo", "bar", "err"}, grpc::StatusCode::INVALID_ARGUMENT,
+           std::tuple{mp::InvalidSettingException{"foo", "bar", "err"},
+                      grpc::StatusCode::INVALID_ARGUMENT,
                       AllOf(HasSubstr("Invalid"), HasSubstr("foo"), HasSubstr("bar"), HasSubstr("err"))},
            std::tuple{std::runtime_error{"Other"}, grpc::StatusCode::INTERNAL, HasSubstr("Other")}));
 
