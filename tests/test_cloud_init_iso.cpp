@@ -74,10 +74,12 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, is_open(testing::An<const std::ifstream&>())).WillOnce(Return(true));
-    std::ifstream file;
-    file.setstate(std::ios::failbit);
+    auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
+        file.setstate(std::ios::failbit);
+        return file;
+    };
     EXPECT_CALL(*mock_file_ops, read(testing::An<std::ifstream&>(), testing::A<char*>(), testing::A<std::streamsize>()))
-        .WillOnce(ReturnRef(file));
+        .WillOnce(read_returns_failed_ifstream);
 
     // failed on the first read_single_byte call
     mp::CloudInitIso new_iso;
