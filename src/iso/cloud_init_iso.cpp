@@ -583,7 +583,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     const uint32_t joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
     if (read_single_byte(iso_file, joliet_des_start_pos) != 2_u8)
     {
-        throw std::runtime_error("The Joliet descriptor is not in place. ");
+        throw std::runtime_error("The Joliet volume descriptor is not in place. ");
     }
 
     const std::array<uint8_t, 5> volume_identifier = read_bytes_to_array<5>(iso_file, joliet_des_start_pos + 1u);

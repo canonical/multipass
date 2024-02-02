@@ -74,6 +74,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, is_open(testing::An<const std::ifstream&>())).WillOnce(Return(true));
+
     auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
         file.setstate(std::ios::failbit);
         return file;
@@ -86,6 +87,52 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
     MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Can not read the next byte data from file at")));
+}
+
+TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descriptor)
+{
+    mp::CloudInitIso orignal_iso;
+    orignal_iso.write_to(iso_path);
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, is_open(testing::An<const std::ifstream&>())).WillOnce(Return(true));
+
+    // value 2_u8 is for Joliet volume descriptor
+    auto read_returns_one_byte_value_one = [](std::ifstream& file, char* one_byte, std::streamsize) -> std::ifstream& {
+        const int non_joliet_volume_des_num{1U};
+        *one_byte = static_cast<std::uint8_t>(non_joliet_volume_des_num);
+        return file;
+    };
+    EXPECT_CALL(*mock_file_ops, read(testing::An<std::ifstream&>(), testing::A<char*>(), testing::A<std::streamsize>()))
+        .WillOnce(read_returns_one_byte_value_one);
+
+    mp::CloudInitIso new_iso;
+    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("The Joliet volume descriptor is not in place. ")));
+}
+
+TEST_F(CloudInitIso, reads_iso_file_failed_to_chcekJoliet_volume_descriptor)
+{
+    mp::CloudInitIso orignal_iso;
+    orignal_iso.write_to(iso_path);
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, is_open(testing::An<const std::ifstream&>())).WillOnce(Return(true));
+
+    // value 2_u8 is for Joliet volume descriptor
+    auto read_returns_one_byte_value_one = [](std::ifstream& file, char* one_byte, std::streamsize) -> std::ifstream& {
+        *one_byte = static_cast<std::uint8_t>(1U);
+        return file;
+    };
+
+    EXPECT_CALL(*mock_file_ops, read(testing::An<std::ifstream&>(), testing::A<char*>(), testing::A<std::streamsize>()))
+        .WillOnce(read_returns_one_byte_value_one);
+
+    mp::CloudInitIso new_iso;
+    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("The Joliet volume descriptor is not in place. ")));
 }
 
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
