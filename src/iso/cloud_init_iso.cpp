@@ -133,7 +133,7 @@ void write(const T& t, QFile& f)
 // The below three utility functions should serve as the abstraction layer for binary file reading, the
 // std::vector<uint8_t>, std::array<uint8_t, N> and uint8_t should be the only ones to receive data because they
 // indicate the nature of the data which is raw binary bytes.
-std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, size_t size)
+std::vector<uint8_t> read_bytes_to_vec(std::ifstream& file, std::streampos pos, size_t size)
 {
     std::vector<uint8_t> buffer(size);
     file.seekg(pos);
@@ -147,7 +147,7 @@ std::vector<uint8_t> readBytesToVec(std::ifstream& file, std::streampos pos, siz
 }
 
 template <size_t N>
-std::array<uint8_t, N> readBytesToArray(std::ifstream& file, std::streampos pos)
+std::array<uint8_t, N> read_bytes_to_array(std::ifstream& file, std::streampos pos)
 {
     std::array<uint8_t, N> buffer{};
     file.seekg(pos);
@@ -159,7 +159,7 @@ std::array<uint8_t, N> readBytesToArray(std::ifstream& file, std::streampos pos)
     return buffer;
 }
 
-uint8_t readSingleByte(std::ifstream& file, std::streampos pos)
+uint8_t read_single_byte(std::ifstream& file, std::streampos pos)
 {
     uint8_t data{};
     file.seekg(pos);
@@ -581,19 +581,20 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
 
     const uint32_t num_reserved_bytes = 32768u; // 16 data blocks, 32kb
     const uint32_t joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
-    if (readSingleByte(iso_file, joliet_des_start_pos) != 2_u8)
+    if (read_single_byte(iso_file, joliet_des_start_pos) != 2_u8)
     {
         throw std::runtime_error("The Joliet descriptor is not in place. ");
     }
 
-    const std::array<uint8_t, 5> volume_identifier = readBytesToArray<5>(iso_file, joliet_des_start_pos + 1u);
+    const std::array<uint8_t, 5> volume_identifier = read_bytes_to_array<5>(iso_file, joliet_des_start_pos + 1u);
     if (std::string_view(reinterpret_cast<const char*>(volume_identifier.data()), volume_identifier.size()) != "CD001")
     {
         throw std::runtime_error("The Joliet descriptor is malformed. ");
     }
 
     const uint32_t root_dir_record_data_start_pos = joliet_des_start_pos + 156u;
-    const std::array<uint8_t, 34> root_dir_record_data = readBytesToArray<34>(iso_file, root_dir_record_data_start_pos);
+    const std::array<uint8_t, 34> root_dir_record_data =
+        read_bytes_to_array<34>(iso_file, root_dir_record_data_start_pos);
     // size of the data should 34, record is a directory entry and directory is a root directory instead of a root
     // parent directory
     if (root_dir_record_data[0] != 34_u8 || root_dir_record_data[25] != 2_u8 || root_dir_record_data[33] != 0_u8)
@@ -612,7 +613,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     uint32_t current_file_record_start_pos = file_records_start_pos;
     while (true)
     {
-        const uint8_t file_record_data_size = readSingleByte(iso_file, current_file_record_start_pos);
+        const uint8_t file_record_data_size = read_single_byte(iso_file, current_file_record_start_pos);
         if (file_record_data_size == 0_u8)
         {
             break;
@@ -622,17 +623,17 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         // information to navigate to and read the file data. Subsequently, we return to the file record to extract the
         // file name.
         const uint32_t file_content_location_by_blocks =
-            from_lsb_msb(readBytesToArray<8>(iso_file, current_file_record_start_pos + 2u));
+            from_lsb_msb(read_bytes_to_array<8>(iso_file, current_file_record_start_pos + 2u));
         const uint32_t file_content_size =
-            from_lsb_msb(readBytesToArray<8>(iso_file, current_file_record_start_pos + 10u));
+            from_lsb_msb(read_bytes_to_array<8>(iso_file, current_file_record_start_pos + 10u));
         const std::vector<uint8_t> file_content =
-            readBytesToVec(iso_file, file_content_location_by_blocks * logical_block_size, file_content_size);
+            read_bytes_to_vec(iso_file, file_content_location_by_blocks * logical_block_size, file_content_size);
 
         const uint32_t file_name_length_start_pos = current_file_record_start_pos + 32u;
-        const uint8_t encoded_file_name_length = readSingleByte(iso_file, file_name_length_start_pos);
+        const uint8_t encoded_file_name_length = read_single_byte(iso_file, file_name_length_start_pos);
         const uint32_t file_name_start_pos = file_name_length_start_pos + 1u;
         const std::vector<uint8_t> encoded_file_name =
-            readBytesToVec(iso_file, file_name_start_pos, to_u32(encoded_file_name_length));
+            read_bytes_to_vec(iso_file, file_name_start_pos, to_u32(encoded_file_name_length));
 
         const std::string orginal_file_name = convert_u16_name_back(
             std::string_view{reinterpret_cast<const char*>(encoded_file_name.data()), encoded_file_name.size()});

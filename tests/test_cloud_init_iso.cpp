@@ -79,7 +79,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
     EXPECT_CALL(*mock_file_ops, read(testing::An<std::ifstream&>(), testing::A<char*>(), testing::A<std::streamsize>()))
         .WillOnce(ReturnRef(file));
 
-    // failed on the first readSingleByte call
+    // failed on the first read_single_byte call
     mp::CloudInitIso new_iso;
     MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
                          std::runtime_error,
