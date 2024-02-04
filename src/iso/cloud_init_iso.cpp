@@ -604,7 +604,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
 
     // Use std::span when C++20 arrives to avoid the copy of the std::array<uint8_t, 8>
     std::array<uint8_t, 8> root_dir_record_data_location_lsb_bytes;
-    // location lsb bytes starts from 2
+    // location lsb_msb bytes starts from 2
     std::copy_n(root_dir_record_data.cbegin() + 2u, 8, root_dir_record_data_location_lsb_bytes.begin());
     const uint32_t root_dir_record_data_location_by_blocks = from_lsb_msb(root_dir_record_data_location_lsb_bytes);
     const uint32_t file_records_start_pos = root_dir_record_data_location_by_blocks * logical_block_size +

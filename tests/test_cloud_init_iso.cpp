@@ -25,7 +25,15 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
-struct CloudInitIso : public testing::Test
+namespace
+{
+auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
+    file.setstate(std::ios::failbit);
+    return file;
+};
+}
+
+struct CloudInitIso : public Test
 {
     CloudInitIso()
     {
@@ -56,11 +64,11 @@ TEST_F(CloudInitIso, reads_non_exist_iso_file_throw)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_open_file)
 {
-    mp::CloudInitIso orignal_iso;
-    orignal_iso.write_to(iso_path);
+    mp::CloudInitIso original_iso;
+    original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(testing::An<const std::ifstream&>())).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(false));
     mp::CloudInitIso new_iso;
     MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
                          std::runtime_error,
@@ -69,17 +77,13 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_open_file)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
 {
-    mp::CloudInitIso orignal_iso;
-    orignal_iso.write_to(iso_path);
+    mp::CloudInitIso original_iso;
+    original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(testing::An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
 
-    auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
-        file.setstate(std::ios::failbit);
-        return file;
-    };
-    EXPECT_CALL(*mock_file_ops, read(testing::An<std::ifstream&>(), testing::A<char*>(), testing::A<std::streamsize>()))
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .WillOnce(read_returns_failed_ifstream);
 
     // failed on the first read_single_byte call
@@ -91,11 +95,11 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descriptor)
 {
-    mp::CloudInitIso orignal_iso;
-    orignal_iso.write_to(iso_path);
+    mp::CloudInitIso original_iso;
+    original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(testing::An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
 
     // value 2_u8 is for Joliet volume descriptor
     auto read_returns_one_byte_value_one = [](std::ifstream& file, char* one_byte, std::streamsize) -> std::ifstream& {
@@ -103,30 +107,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descrip
         *one_byte = static_cast<std::uint8_t>(non_joliet_volume_des_num);
         return file;
     };
-    EXPECT_CALL(*mock_file_ops, read(testing::An<std::ifstream&>(), testing::A<char*>(), testing::A<std::streamsize>()))
-        .WillOnce(read_returns_one_byte_value_one);
-
-    mp::CloudInitIso new_iso;
-    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("The Joliet volume descriptor is not in place. ")));
-}
-
-TEST_F(CloudInitIso, reads_iso_file_failed_to_chcekJoliet_volume_descriptor)
-{
-    mp::CloudInitIso orignal_iso;
-    orignal_iso.write_to(iso_path);
-
-    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(testing::An<const std::ifstream&>())).WillOnce(Return(true));
-
-    // value 2_u8 is for Joliet volume descriptor
-    auto read_returns_one_byte_value_one = [](std::ifstream& file, char* one_byte, std::streamsize) -> std::ifstream& {
-        *one_byte = static_cast<std::uint8_t>(1U);
-        return file;
-    };
-
-    EXPECT_CALL(*mock_file_ops, read(testing::An<std::ifstream&>(), testing::A<char*>(), testing::A<std::streamsize>()))
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .WillOnce(read_returns_one_byte_value_one);
 
     mp::CloudInitIso new_iso;
@@ -137,18 +118,18 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_chcekJoliet_volume_descriptor)
 
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
 {
-    mp::CloudInitIso orignal_iso;
+    mp::CloudInitIso original_iso;
 
-    orignal_iso.add_file("test1", "test data1");
-    orignal_iso.add_file("test test 2", "test some data2");
-    orignal_iso.add_file("test_random_name_3", "more \r test \n \n data3");
-    orignal_iso.add_file("test-title_4", "random_test_data: \n - path: /etc/pollinate/add-user-agent");
-    orignal_iso.add_file("t5", "");
-    orignal_iso.write_to(iso_path);
+    original_iso.add_file("test1", "test data1");
+    original_iso.add_file("test test 2", "test some data2");
+    original_iso.add_file("test_random_name_3", "more \r test \n \n data3");
+    original_iso.add_file("test-title_4", "random_test_data: \n - path: /etc/pollinate/add-user-agent");
+    original_iso.add_file("t5", "");
+    original_iso.write_to(iso_path);
 
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
-    EXPECT_EQ(orignal_iso, new_iso);
+    EXPECT_EQ(original_iso, new_iso);
 }
 
 TEST_F(CloudInitIso, reads_iso_file_with_mocked_real_file_data)
@@ -177,15 +158,15 @@ write_files:
   - path: /etc/pollinate/add-user-agent
     content: "multipass/version/1.14.0-dev.1209+g5b2c7f7d # written by Multipass\nmultipass/driver/qemu-8.0.4 # written by Multipass\nmultipass/host/ubuntu-23.10 # written by Multipass\nmultipass/alias/default # written by Multipass\n"
 )";
-    mp::CloudInitIso orignal_iso;
+    mp::CloudInitIso original_iso;
 
-    orignal_iso.add_file("meta-data", std::string(meta_data_content));
-    orignal_iso.add_file("vendor_data_content", std::string(vendor_data_content));
-    orignal_iso.add_file("user-data", std::string(user_data_content));
-    orignal_iso.add_file("network-data", "some random network-data");
-    orignal_iso.write_to(iso_path);
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("vendor_data_content", std::string(vendor_data_content));
+    original_iso.add_file("user-data", std::string(user_data_content));
+    original_iso.add_file("network-data", "some random network-data");
+    original_iso.write_to(iso_path);
 
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
-    EXPECT_EQ(orignal_iso, new_iso);
+    EXPECT_EQ(original_iso, new_iso);
 }
