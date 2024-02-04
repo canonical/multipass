@@ -31,7 +31,11 @@ auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsi
     file.setstate(std::ios::failbit);
     return file;
 };
-}
+
+auto original_implementation_of_read = [](std::ifstream& file, char* buffer, std::streamsize pos) -> std::ifstream& {
+    return MP_FILEOPS.FileOps::read(file, buffer, pos);
+};
+} // namespace
 
 struct CloudInitIso : public Test
 {
@@ -114,6 +118,31 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descrip
     MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
                          std::runtime_error,
                          mpt::match_what(StrEq("The Joliet volume descriptor is not in place. ")));
+}
+
+TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
+{
+    mp::CloudInitIso orignal_iso;
+    orignal_iso.write_to(iso_path);
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .WillOnce(original_implementation_of_read);
+
+    auto read_returns_five_bytes_string = [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& {
+        std::strcpy(buffer, "NonJo");
+        return file;
+    };
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .WillOnce(read_returns_five_bytes_string);
+
+    mp::CloudInitIso new_iso;
+    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("The Joliet descriptor is malformed. ")));
 }
 
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
