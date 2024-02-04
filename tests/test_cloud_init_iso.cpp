@@ -145,6 +145,27 @@ TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
                          mpt::match_what(StrEq("The Joliet descriptor is malformed. ")));
 }
 
+TEST_F(CloudInitIso, reads_iso_file_failed_to_array)
+{
+    mp::CloudInitIso orignal_iso;
+    orignal_iso.write_to(iso_path);
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .WillOnce(original_implementation_of_read);
+
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .WillOnce(read_returns_failed_ifstream);
+
+    mp::CloudInitIso new_iso;
+    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("bytes data from file at")));
+}
+
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
 {
     mp::CloudInitIso original_iso;
