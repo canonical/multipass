@@ -70,11 +70,8 @@ class Vms extends ConsumerWidget {
     final enabledHeaders =
         headers.where((h) => enabledHeaderNames[h.name]!).toList();
 
-    var infos = ref.watch(vmInfosProvider);
-
-    updateCpuUsages(infos);
-
-    infos = infos
+    final infos = ref
+        .watch(vmInfosProvider)
         .where((i) => !runningOnly || i.instanceStatus.status == Status.RUNNING)
         .where((i) => i.name.contains(searchName))
         .toList();
