@@ -128,7 +128,7 @@ TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
 
-    InSequence seq;
+    const InSequence seq;
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .WillOnce(original_implementation_of_read);
 
@@ -153,7 +153,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_array)
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
 
-    InSequence seq;
+    const InSequence seq;
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .WillOnce(original_implementation_of_read);
 
@@ -174,7 +174,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
 
-    InSequence seq;
+    const InSequence seq;
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .Times(2)
         .WillRepeatedly(original_implementation_of_read);
@@ -204,7 +204,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_vec)
     EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
 
     // The first read_bytes_to_vec call invoke the 7th call of MP_FILEOPS.read
-    InSequence seq;
+    const InSequence seq;
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .Times(6)
         .WillRepeatedly(original_implementation_of_read);
@@ -216,6 +216,41 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_vec)
     MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("bytes data from file at")));
+}
+
+TEST_F(CloudInitIso, reads_iso_file_encoded_file_name_is_not_even_length)
+{
+    mp::CloudInitIso original_iso;
+    // At least one actual file entry is need to reach the convert_u16_name_back call
+    original_iso.add_file("test1", "test data1");
+    original_iso.write_to(iso_path);
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+
+    const InSequence seq;
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .Times(7)
+        .WillRepeatedly(original_implementation_of_read);
+
+    auto read_returns_one_byte_value_three =
+        [](std::ifstream& file, char* one_byte, std::streamsize) -> std::ifstream& {
+        const int encoded_file_name_length{3U}; // any odd number will do it
+        *one_byte = static_cast<std::uint8_t>(encoded_file_name_length);
+        return file;
+    };
+
+    // read_single_byte encoded_file_name_length odd number
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .WillOnce(read_returns_one_byte_value_three);
+
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .WillOnce(original_implementation_of_read);
+
+    mp::CloudInitIso new_iso;
+    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("is not even, which does not conform to u16 name format")));
 }
 
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
