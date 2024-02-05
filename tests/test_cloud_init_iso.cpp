@@ -32,6 +32,9 @@ auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsi
     return file;
 };
 
+// Since we can have a valid file to read from and FileOps::read is a cheap function, falls back to the original
+// implementation would be an easy way to implement EXPECT_CALL multiple times instead of mocking multiple single calls
+// with the correct output
 auto original_implementation_of_read = [](std::ifstream& file, char* buffer, std::streamsize pos) -> std::ifstream& {
     return MP_FILEOPS.FileOps::read(file, buffer, pos);
 };
@@ -179,7 +182,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
         .Times(2)
         .WillRepeatedly(original_implementation_of_read);
 
-    // default buffer makes the buffer[0] non 34_u8 which causes root directory record data checking fail
+    // default buffer values makes the buffer[0] not 34_u8 which causes root directory record data checking fail
     auto read_return_default_buffer = [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& {
         return file;
     };
