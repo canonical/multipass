@@ -166,6 +166,33 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_array)
                          mpt::match_what(HasSubstr("bytes data from file at")));
 }
 
+TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
+{
+    mp::CloudInitIso orignal_iso;
+    orignal_iso.write_to(iso_path);
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .Times(2)
+        .WillRepeatedly(original_implementation_of_read);
+
+    // default buffer makes the buffer[0] non 34_u8 which causes root directory record data checking fail
+    auto read_return_default_buffer = [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& {
+        return file;
+    };
+
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .WillOnce(read_return_default_buffer);
+
+    mp::CloudInitIso new_iso;
+    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("The root directory record data is malformed. ")));
+}
+
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
 {
     mp::CloudInitIso original_iso;
