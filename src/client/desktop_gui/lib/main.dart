@@ -87,6 +87,7 @@ class App extends ConsumerWidget {
 }
 
 final theme = ThemeData(
+  useMaterial3: false,
   fontFamily: 'Ubuntu',
   inputDecorationTheme: const InputDecorationTheme(
     border: OutlineInputBorder(borderRadius: BorderRadius.zero),
