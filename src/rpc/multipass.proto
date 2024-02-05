@@ -219,6 +219,8 @@ message InstanceDetails {
     repeated string ipv6 = 8;
     optional int32 num_snapshots = 9;
     float cpu_usage = 10;
+    string uptime = 11;
+    google.protobuf.Timestamp creation_timestamp = 12;
 }
 
 message SnapshotFundamentals {
