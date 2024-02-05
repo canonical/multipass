@@ -3563,6 +3563,11 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     auto mount_info = info->mutable_mount_info();
     populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
 
+    const auto created_time = QFileInfo{vm.instance_directory().path()}.birthTime();
+    auto timestamp = instance_info->mutable_creation_timestamp();
+    timestamp->set_seconds(created_time.toSecsSinceEpoch());
+    timestamp->set_nanos(created_time.time().msec() * 1'000'000);
+
     if (!no_runtime_info && mp::utils::is_running(present_state))
     {
         mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
@@ -3594,6 +3599,9 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
         auto cpu_usage = mpu::run_in_ssh_session(session, "top -ibn1 | awk '/%Cpu\\(s\\)/ {print 100 - $8}'");
         instance_info->set_cpu_usage(std::stof(cpu_usage));
+
+        const auto uptime = mpu::run_in_ssh_session(session, "uptime -p | tail -c+4");
+        instance_info->set_uptime(uptime);
     }
 }
 
