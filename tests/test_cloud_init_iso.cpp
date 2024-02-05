@@ -122,8 +122,8 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descrip
 
 TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
 {
-    mp::CloudInitIso orignal_iso;
-    orignal_iso.write_to(iso_path);
+    mp::CloudInitIso original_iso;
+    original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
@@ -145,10 +145,10 @@ TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
                          mpt::match_what(StrEq("The Joliet descriptor is malformed. ")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_failed_to_array)
+TEST_F(CloudInitIso, reads_iso_file_failed_to_read_array)
 {
-    mp::CloudInitIso orignal_iso;
-    orignal_iso.write_to(iso_path);
+    mp::CloudInitIso original_iso;
+    original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
@@ -168,8 +168,8 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_array)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
 {
-    mp::CloudInitIso orignal_iso;
-    orignal_iso.write_to(iso_path);
+    mp::CloudInitIso original_iso;
+    original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
@@ -191,6 +191,31 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
     MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
                          std::runtime_error,
                          mpt::match_what(StrEq("The root directory record data is malformed. ")));
+}
+
+TEST_F(CloudInitIso, reads_iso_file_failed_to_read_vec)
+{
+    mp::CloudInitIso original_iso;
+    // At least one actual file entry is need to reach the read_bytes_to_vec call
+    original_iso.add_file("test1", "test data1");
+    original_iso.write_to(iso_path);
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+
+    // The first read_bytes_to_vec call invoke the 7th call of MP_FILEOPS.read
+    InSequence seq;
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .Times(6)
+        .WillRepeatedly(original_implementation_of_read);
+
+    EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
+        .WillOnce(read_returns_failed_ifstream);
+
+    mp::CloudInitIso new_iso;
+    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("bytes data from file at")));
 }
 
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
