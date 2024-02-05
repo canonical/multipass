@@ -92,7 +92,7 @@ final headers = <TableHeader<VmInfo>>[
     childBuilder: headerBuilder,
     width: 130,
     minWidth: 100,
-    cellBuilder: (info) => CpuSparkline(cpuUsages[info.name]!),
+    cellBuilder: (info) => CpuSparkline(info.name),
   ),
   TableHeader(
     name: 'MEMORY USAGE',
