@@ -1,9 +1,5 @@
-import 'dart:collection';
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fpdart/fpdart.dart';
 
 import '../providers.dart';
 import 'memory_usage.dart';
@@ -120,35 +116,3 @@ Widget ipAddresses(Iterable<String> ips) {
       ),
   ]);
 }
-
-class CpuUsagesNotifier
-    extends AutoDisposeNotifier<Map<String, Queue<double>>> {
-  @override
-  Map<String, Queue<double>> build() {
-    final currentUsages = stateOrNull ?? {};
-    final newUsages = ref.watch(vmInfosProvider.select((infos) {
-      return Map.fromIterables(
-        infos.map((i) => i.name),
-        infos.map((i) => i.instanceInfo.cpuUsage),
-      );
-    }));
-
-    final updatedUsages = newUsages.entries.map((e) {
-      final name = e.key;
-      final usage = e.value;
-      final usages = currentUsages
-          .lookup(name)
-          .getOrElse(() => Queue.of(Iterable.generate(100, (_) => 0.0)))
-        ..removeFirst()
-        ..addLast(usage);
-
-      return MapEntry(name, usages);
-    });
-
-    return Map.fromEntries(updatedUsages);
-  }
-}
-
-final cpuUsagesProvider =
-    NotifierProvider.autoDispose<CpuUsagesNotifier, Map<String, Queue<double>>>(
-        CpuUsagesNotifier.new);
