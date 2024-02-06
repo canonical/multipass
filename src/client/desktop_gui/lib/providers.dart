@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -62,12 +63,19 @@ final vmInfosProvider = Provider((ref) {
   return ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
 });
 
-Map<String, Status> infosToStatusMap(Iterable<VmInfo> infos) {
-  return {for (final info in infos) info.name: info.instanceStatus.status};
-}
+final vmInfosMapProvider = Provider((ref) {
+  return {for (final info in ref.watch(vmInfosProvider)) info.name: info};
+});
+
+final vmInfoProvider = Provider.autoDispose.family<DetailedInfoItem, String>(
+  (ref, name) => ref.watch(vmInfosMapProvider)[name] ?? DetailedInfoItem(),
+);
 
 final vmStatusesProvider = Provider((ref) {
-  return infosToStatusMap(ref.watch(vmInfosProvider)).build();
+  return ref
+      .watch(vmInfosMapProvider)
+      .mapValue((info) => info.instanceStatus.status)
+      .build();
 });
 
 final vmNamesProvider = Provider((ref) {
