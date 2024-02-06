@@ -160,8 +160,8 @@ Future<void> _updateTrayMenu(
     final status = nextVms.remove(nextPrimary);
     final startLabel =
         status == null ? 'Start' : 'Start "$nextPrimary" (${status.label})';
-    final startEnabled = actionAllowedStatuses['Start']!.contains(status);
-    final stopEnabled = actionAllowedStatuses['Stop']!.contains(status);
+    final startEnabled = VmAction.start.allowedStatuses.contains(status);
+    final stopEnabled = VmAction.stop.allowedStatuses.contains(status);
     final primaryStart = TrayMenu.instance.get<MenuItemLabel>(primaryStartKey);
     final primaryStop = TrayMenu.instance.get<MenuItemLabel>(primaryStopKey);
     if (primaryStart == null || primaryStop == null) {
@@ -212,8 +212,8 @@ Future<void> _updateTrayMenu(
     final key = 'instance-$name';
     final previousStatus = previousVms[name];
     final label = '$name (${status.label})';
-    final startEnabled = actionAllowedStatuses['Start']!.contains(status);
-    final stopEnabled = actionAllowedStatuses['Stop']!.contains(status);
+    final startEnabled = VmAction.start.allowedStatuses.contains(status);
+    final stopEnabled = VmAction.stop.allowedStatuses.contains(status);
     if (previousStatus == null || name == previousPrimary) {
       final submenu = await TrayMenu.instance.addSubmenu(
         key,
