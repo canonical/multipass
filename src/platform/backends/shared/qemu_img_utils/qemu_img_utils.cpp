@@ -41,10 +41,10 @@ auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> 
     auto process_state = timeout ? process->execute(*timeout) : process->execute();
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("{}: qemu-img failed ({}) with output:\n{}",
-                                             custom_error_prefix,
-                                             process_state.failure_message(),
-                                             process->read_all_standard_error()));
+        throw QemuImgException{fmt::format("{}: qemu-img failed ({}) with output:\n{}",
+                                           custom_error_prefix,
+                                           process_state.failure_message(),
+                                           process->read_all_standard_error())};
     }
 
     return process;
