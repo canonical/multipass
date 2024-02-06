@@ -90,7 +90,8 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
 void mp::backend::amend_to_qcow2_v3(const mp::Path& image_path)
 {
     checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"amend", "-o", "compat=1.1", image_path}, image_path));
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"amend", "-o", "compat=1.1", image_path}, image_path),
+        "Failed to amend image to QCOW2 v3");
 }
 
 bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)

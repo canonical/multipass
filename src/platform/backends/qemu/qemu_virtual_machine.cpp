@@ -211,8 +211,15 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
-    // convert existing VMs to v3 too (doesn't affect images that are already v3)
-    mp::backend::amend_to_qcow2_v3(desc.image.image_path); // TODO drop in a couple of releases (going in on v1.13)
+    try
+    {
+        // convert existing VMs to v3 too (doesn't affect images that are already v3)
+        backend::amend_to_qcow2_v3(desc.image.image_path); // TODO drop in a couple of releases (going in on v1.13)
+    }
+    catch (const backend::QemuImgException& e)
+    {
+        mpl::log(mpl::Level::error, vm_name, e.what());
+    }
 
     QObject::connect(
         this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
