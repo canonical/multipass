@@ -1,8 +1,10 @@
+import 'dart:collection';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'cell_builders.dart';
+import '../providers.dart';
 
 class CpuSparkline extends ConsumerWidget {
   final String name;
@@ -11,9 +13,7 @@ class CpuSparkline extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final values = ref.watch(cpuUsagesProvider.select((usages) {
-      return usages[name] ?? const Iterable<double>.empty();
-    }));
+    final values = ref.watch(cpuUsagesProvider(name));
 
     final sparkline = LineChartBarData(
       barWidth: 1,
@@ -41,3 +41,21 @@ class CpuSparkline extends ConsumerWidget {
     );
   }
 }
+
+class CpuUsagesNotifier
+    extends AutoDisposeFamilyNotifier<Queue<double>, String> {
+  @override
+  Queue<double> build(String arg) {
+    final currentUsage = ref.watch(vmInfoProvider(arg).select((info) {
+      return info.instanceInfo.cpuUsage;
+    }));
+
+    final usages = stateOrNull ?? Queue.of(Iterable.generate(100, (_) => 0.0));
+    return usages
+      ..removeFirst()
+      ..addLast(currentUsage);
+  }
+}
+
+final cpuUsagesProvider = NotifierProvider.autoDispose
+    .family<CpuUsagesNotifier, Queue<double>, String>(CpuUsagesNotifier.new);
