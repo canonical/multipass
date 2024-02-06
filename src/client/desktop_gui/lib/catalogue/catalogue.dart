@@ -6,93 +6,90 @@ import '../providers.dart';
 import 'image_card.dart';
 import 'launch_panel.dart';
 
-final imagesProvider = FutureProvider((ref) {
-  ref.watch(daemonAvailableProvider);
-  return ref
-      .watch(grpcClientProvider)
-      .find(blueprints: false)
-      .then((r) => r.imagesInfo);
+final imagesProvider = Provider<List<ImageInfo>>((ref) {
+  if (ref.watch(daemonAvailableProvider)) {
+    ref
+        .watch(grpcClientProvider)
+        .find(blueprints: false)
+        .then((r) => ref.state = sortImages(r.imagesInfo))
+        .ignore();
+  }
+  return [];
 });
+
+// sorts the images in a more user-friendly way
+// the current LTS > other releases sorted by most recent > current devel > core images > appliances
+List<ImageInfo> sortImages(List<ImageInfo> images) {
+  final ltsIndex = images.indexWhere((image) {
+    return image.aliasesInfo.any((a) => a.alias == 'lts');
+  });
+  final lts = ltsIndex != -1 ? images.removeAt(ltsIndex) : null;
+
+  final develIndex = images.indexWhere((image) {
+    return image.aliasesInfo.any((a) => a.alias == 'devel');
+  });
+  final devel = develIndex != -1 ? images.removeAt(develIndex) : null;
+
+  bool coreFilter(ImageInfo image) {
+    return image.aliasesInfo.any((a) => a.alias.contains('core'));
+  }
+
+  bool applianceFilter(ImageInfo image) {
+    return image.aliasesInfo.any((a) => a.remoteName.contains('appliance'));
+  }
+
+  int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {
+    return b.release.compareTo(a.release);
+  }
+
+  final normalImages = images
+      .whereNot(coreFilter)
+      .whereNot(applianceFilter)
+      .sorted(decreasingReleaseSorter);
+  final coreImages = images.where(coreFilter).sorted(decreasingReleaseSorter);
+  final applianceImages = images.where(applianceFilter);
+
+  return [
+    if (lts != null) lts,
+    ...normalImages,
+    if (devel != null) devel,
+    ...coreImages,
+    ...applianceImages,
+  ];
+}
 
 class CatalogueScreen extends ConsumerWidget {
   static const sidebarKey = 'catalogue';
 
   const CatalogueScreen({super.key});
 
-  // sorts the images in a more user-friendly way
-  // the current LTS > other releases sorted by most recent > current devel > core images > appliances
-  static List<ImageInfo> _sortImages(List<ImageInfo> images) {
-    final ltsIndex = images.indexWhere(
-      (i) => i.aliasesInfo.map((a) => a.alias).contains('lts'),
-    );
-    final lts = ltsIndex != -1 ? images.removeAt(ltsIndex) : null;
-
-    final develIndex = images.indexWhere(
-      (i) => i.aliasesInfo.map((a) => a.alias).contains('devel'),
-    );
-    final devel = develIndex != -1 ? images.removeAt(develIndex) : null;
-
-    bool coreFilter(ImageInfo i) {
-      return i.aliasesInfo.any((a) => a.alias.contains('core'));
-    }
-
-    bool applianceFilter(ImageInfo i) {
-      return i.aliasesInfo.any((a) => a.remoteName.contains('appliance'));
-    }
-
-    int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {
-      return b.release.compareTo(a.release);
-    }
-
-    final normalImages = images
-        .whereNot(coreFilter)
-        .whereNot(applianceFilter)
-        .sorted(decreasingReleaseSorter);
-    final coreImages = images.where(coreFilter).sorted(decreasingReleaseSorter);
-    final applianceImages = images.where(applianceFilter);
-
-    return [
-      if (lts != null) lts,
-      ...normalImages,
-      if (devel != null) devel,
-      ...coreImages,
-      ...applianceImages,
-    ];
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final images =
-        ref.watch(imagesProvider).unwrapPrevious().valueOrNull ?? const [];
-    final sortedImages = _sortImages([...images]);
+    final images = ref.watch(imagesProvider);
     final imageList = SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            child: const Text(
-              'Images',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          child: const Text(
+            'Images',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          LayoutBuilder(builder: (_, constraints) {
-            const minCardWidth = 285;
-            const spacing = 32.0;
-            final nCards = constraints.maxWidth ~/ minCardWidth;
-            final whiteSpace = spacing * (nCards - 1);
-            final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
-            return Wrap(
-              runSpacing: spacing,
-              spacing: spacing,
-              children: sortedImages
-                  .map((image) => ImageCard(image, cardWidth))
-                  .toList(),
-            );
-          }),
-          const SizedBox(height: 32),
-        ],
-      ),
+        ),
+        LayoutBuilder(builder: (_, constraints) {
+          const minCardWidth = 285;
+          const spacing = 32.0;
+          final nCards = constraints.maxWidth ~/ minCardWidth;
+          final whiteSpace = spacing * (nCards - 1);
+          final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
+          return Wrap(
+            runSpacing: spacing,
+            spacing: spacing,
+            children:
+                images.map((image) => ImageCard(image, cardWidth)).toList(),
+          );
+        }),
+        const SizedBox(height: 32),
+      ]),
     );
 
     final welcomeText = Container(
@@ -100,10 +97,7 @@ class CatalogueScreen extends ConsumerWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Welcome to Multipass',
-            style: TextStyle(fontSize: 37),
-          ),
+          Text('Welcome to Multipass', style: TextStyle(fontSize: 37)),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Text(
