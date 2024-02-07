@@ -516,6 +516,26 @@ std::string& mp::CloudInitIso::operator[](const std::string& name)
     }
 }
 
+const std::string& mp::CloudInitIso::at(const std::string& name) const
+{
+    if (auto iter = std::find_if(files.begin(),
+                                 files.end(),
+                                 [name](const FileEntry& file_entry) -> bool { return file_entry.name == name; });
+        iter == std::end(files))
+    {
+        throw std::runtime_error("Did not find the target file in the file list");
+    }
+    else
+    {
+        return iter->data;
+    }
+}
+
+std::string& mp::CloudInitIso::at(const std::string& name)
+{
+    return const_cast<std::string&>(const_cast<const mp::CloudInitIso*>(this)->at(name));
+}
+
 bool mp::CloudInitIso::erase(const std::string& name)
 {
     if (auto iter = std::find_if(files.cbegin(),
