@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../catalogue/catalogue.dart';
+import '../extensions.dart';
 import '../sidebar.dart';
-import '../text_span_ext.dart';
 
 class NoVms extends ConsumerWidget {
   const NoVms({super.key});

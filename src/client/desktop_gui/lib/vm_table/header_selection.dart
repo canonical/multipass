@@ -37,15 +37,9 @@ class HeaderSelectionTile extends ConsumerWidget {
       controlAffinity: ListTileControlAffinity.leading,
       title: Text(name),
       value: enabledHeaders[name],
-      onChanged: (isSelected) {
-        ref.read(enabledHeadersProvider.notifier).update(
-          (state) {
-            final builder = state.toBuilder();
-            builder[name] = isSelected!;
-            return builder.build();
-          },
-        );
-      },
+      onChanged: (isSelected) => ref
+          .read(enabledHeadersProvider.notifier)
+          .update((state) => state.rebuild((set) => set[name] = isSelected!)),
     );
   }
 }
@@ -68,22 +62,19 @@ class HeaderSelection extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            SvgPicture.asset(
-              'assets/settings.svg',
-              colorFilter: const ColorFilter.mode(
-                Color(0xff333333),
-                BlendMode.srcIn,
-              ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+          SvgPicture.asset(
+            'assets/settings.svg',
+            colorFilter: const ColorFilter.mode(
+              Color(0xff333333),
+              BlendMode.srcIn,
             ),
-            const Text(
-              'Columns',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+          ),
+          const Text(
+            'Columns',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ]),
       ),
     );
   }

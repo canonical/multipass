@@ -62,3 +62,21 @@ extension TextSpanExt on TextSpan {
     );
   }
 }
+
+extension WidgetGap on Iterable<Widget> {
+  Iterable<Widget> gap({double? width, double? height}) sync* {
+    final thisIterator = iterator;
+    final gapBox = SizedBox(width: width, height: height);
+    if (thisIterator.moveNext()) {
+      yield thisIterator.current;
+      while (thisIterator.moveNext()) {
+        yield gapBox;
+        yield thisIterator.current;
+      }
+    }
+  }
+}
+
+extension NonBreakingString on String {
+  String get nonBreaking => replaceAll('-', '\u2011').replaceAll(' ', '\u00A0');
+}

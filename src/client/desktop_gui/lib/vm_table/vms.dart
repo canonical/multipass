@@ -1,4 +1,6 @@
+import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide Table, Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,8 +8,8 @@ import '../catalogue/catalogue.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
+import '../vm_details/memory_usage.dart';
 import 'bulk_actions.dart';
-import 'cell_builders.dart';
 import 'header_selection.dart';
 import 'search_box.dart';
 import 'table.dart';
@@ -66,7 +68,7 @@ class Vms extends ConsumerWidget {
       const HeaderSelection(),
     ]);
 
-    final enabledHeaderNames = ref.watch(enabledHeadersProvider);
+    final enabledHeaderNames = ref.watch(enabledHeadersProvider).asMap();
     final enabledHeaders =
         headers.where((h) => enabledHeaderNames[h.name]!).toList();
 
@@ -75,6 +77,42 @@ class Vms extends ConsumerWidget {
         .where((i) => !runningOnly || i.instanceStatus.status == Status.RUNNING)
         .where((i) => i.name.contains(searchName))
         .toList();
+
+    int total(Iterable<String> it) => it.map((e) => int.tryParse(e) ?? 0).sum;
+    final totalUsedMemory = total(infos.map((i) => i.instanceInfo.memoryUsage));
+    final totalTotalMemory = total(infos.map((i) => i.memoryTotal));
+    final totalUsedDisk = total(infos.map((i) => i.instanceInfo.diskUsage));
+    final totalTotalDisk = total(infos.map((i) => i.diskTotal));
+    final totalUsageRow = [
+      const SizedBox.shrink(),
+      Container(
+        margin: const EdgeInsets.all(10),
+        alignment: Alignment.centerLeft,
+        child: const Text(
+          "Total",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      for (final name in enabledHeaderNames.whereValue((e) => e).keys.skip(2))
+        if (name == 'MEMORY USAGE')
+          Container(
+            margin: const EdgeInsets.all(10),
+            child: MemoryUsage(
+              used: '$totalUsedMemory',
+              total: '$totalTotalMemory',
+            ),
+          )
+        else if (name == 'DISK USAGE')
+          Container(
+            margin: const EdgeInsets.all(10),
+            child: MemoryUsage(
+              used: '$totalUsedDisk',
+              total: '$totalTotalDisk',
+            ),
+          )
+        else
+          const SizedBox.shrink(),
+    ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 52),
@@ -89,7 +127,7 @@ class Vms extends ConsumerWidget {
           child: Table<VmInfo>(
             headers: enabledHeaders,
             data: infos.toList(),
-            finalRow: totalUsageRow(infos, enabledHeaderNames.asMap()),
+            finalRow: totalUsageRow,
           ),
         ),
       ]),

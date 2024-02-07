@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
 class TableHeader<T> {
@@ -16,15 +15,26 @@ class TableHeader<T> {
 
   TableHeader({
     this.name = '',
-    required this.childBuilder,
+    this.childBuilder = defaultHeaderBuilder,
     this.sortKey,
     required this.width,
     required this.minWidth,
     required this.cellBuilder,
   }) : _oldWidth = width;
+
+  static Widget defaultHeaderBuilder(String name) {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: const EdgeInsets.only(left: 10),
+      child: Text(name,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          )),
+    );
+  }
 }
 
-class Table<T> extends ConsumerStatefulWidget {
+class Table<T> extends StatefulWidget {
   final List<TableHeader<T>> headers;
   final List<T> data;
   final List<Widget> finalRow;
@@ -37,10 +47,10 @@ class Table<T> extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<Table<T>> createState() => _TableState<T>();
+  State<Table<T>> createState() => _TableState<T>();
 }
 
-class _TableState<T> extends ConsumerState<Table<T>> {
+class _TableState<T> extends State<Table<T>> {
   final horizontal = ScrollController();
   final vertical = ScrollController();
   var isResizingColumn = 0;
@@ -117,11 +127,11 @@ class _TableState<T> extends ConsumerState<Table<T>> {
 
   List<Widget> buildRow(T entry) {
     return [
-      for (final h in widget.headers)
+      for (final header in widget.headers)
         Container(
           alignment: Alignment.centerLeft,
           margin: const EdgeInsets.all(10),
-          child: h.cellBuilder(entry),
+          child: header.cellBuilder(entry),
         ),
     ];
   }

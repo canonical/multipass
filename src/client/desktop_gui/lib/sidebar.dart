@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'catalogue/catalogue.dart';
+import 'extensions.dart';
 import 'help.dart';
 import 'providers.dart';
 import 'settings/settings.dart';
-import 'text_span_ext.dart';
 import 'vm_table/vm_table_screen.dart';
 
 final sidebarKeyProvider = StateProvider<String>((ref) {
