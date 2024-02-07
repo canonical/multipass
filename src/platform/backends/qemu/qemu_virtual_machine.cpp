@@ -194,6 +194,19 @@ auto generate_metadata(const QStringList& platform_args, const QStringList& proc
     metadata[mount_data_key] = mount_args_to_json(mount_args);
     return metadata;
 }
+
+void convert_to_qcow2_v3_if_necessary(const mp::Path& image_path, const std::string& vm_name)
+{
+    try
+    {
+        // convert existing VMs to v3 too (doesn't affect images that are already v3)
+        mp::backend::amend_to_qcow2_v3(image_path);
+    }
+    catch (const mp::backend::QemuImgException& e)
+    {
+        mpl::log(mpl::Level::error, vm_name, e.what());
+    }
+}
 } // namespace
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
@@ -211,8 +224,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
-    // convert existing VMs to v3 too (doesn't affect images that are already v3)
-    mp::backend::amend_to_qcow2_v3(desc.image.image_path); // TODO drop in a couple of releases (going in on v1.13)
+    convert_to_qcow2_v3_if_necessary(desc.image.image_path,
+                                     vm_name); // TODO drop in a couple of releases (went in on v1.13)
 
     QObject::connect(
         this, &QemuVirtualMachine::on_delete_memory_snapshot, this,

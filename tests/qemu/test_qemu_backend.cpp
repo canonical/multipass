@@ -19,6 +19,7 @@
 
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_process_factory.h"
@@ -673,6 +674,29 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 
     EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
+}
+
+TEST_F(QemuBackend, logsErrorOnFailureToConvertToQcow2V3UponConstruction)
+{
+    mpt::StubVMStatusMonitor stub_monitor{};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform{};
+
+    process_factory->register_callback([this](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("compat=1.1"))
+        {
+            mp::ProcessState exit_state{};
+            exit_state.exit_code = 1;
+            ON_CALL(*process, execute).WillByDefault(Return(exit_state));
+        }
+        else
+            return handle_external_process_calls(process);
+    });
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to amend image to QCOW2 v3");
+
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
 }
 
 TEST_F(QemuBackend, lists_no_networks)
