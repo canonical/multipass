@@ -2,101 +2,46 @@ import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../extensions.dart';
 import '../providers.dart';
 import '../sidebar.dart';
-import '../text_span_ext.dart';
-import 'cell_builders.dart';
-import 'cpu_sparkline.dart';
-import 'memory_usage.dart';
+import '../vm_details/cpu_sparkline.dart';
+import '../vm_details/ip_addresses.dart';
+import '../vm_details/memory_usage.dart';
+import '../vm_details/vm_status_icon.dart';
 import 'table.dart';
 import 'vms.dart';
 
 final headers = <TableHeader<VmInfo>>[
   TableHeader(
     name: 'checkbox',
-    childBuilder: (_) {
-      return Consumer(builder: (_, ref, __) {
-        final selected = ref.watch(selectedVmsProvider);
-        final available = ref.watch(vmNamesProvider);
-        final allSelected = selected.containsAll(available);
-
-        return Center(
-          child: Checkbox(
-            tristate: true,
-            value: selected.isEmpty ? false : (allSelected ? true : null),
-            onChanged: (isSelected) {
-              ref.read(selectedVmsProvider.notifier).state =
-                  (isSelected ?? false) ? available.toBuiltSet() : BuiltSet();
-            },
-          ),
-        );
-      });
-    },
+    childBuilder: (_) => const SelectAllCheckbox(),
     width: 50,
     minWidth: 50,
-    cellBuilder: (info) {
-      return Consumer(builder: (_, ref, __) {
-        final selected = ref.watch(selectedVmsProvider);
-
-        return Center(
-          child: Checkbox(
-            value: selected.contains(info.name),
-            onChanged: (isSelected) {
-              ref.read(selectedVmsProvider.notifier).update((state) {
-                final builder = state.toBuilder();
-                isSelected!
-                    ? builder.add(info.name)
-                    : builder.remove(info.name);
-                return builder.build();
-              });
-            },
-          ),
-        );
-      });
-    },
+    cellBuilder: (info) => SelectVmCheckbox(info.name),
   ),
   TableHeader(
     name: 'NAME',
-    childBuilder: headerBuilder,
     width: 115,
     minWidth: 70,
     sortKey: (info) => info.name,
-    cellBuilder: (info) => Tooltip(
-      message: info.name,
-      child: Consumer(builder: (_, ref, __) {
-        goToVm() {
-          ref.read(sidebarKeyProvider.notifier).state = 'vm-${info.name}';
-        }
-
-        return Text.rich(
-          info.name
-              .replaceAll('-', '\u2011')
-              .replaceAll(' ', '\u00A0')
-              .span
-              .link(ref, goToVm),
-          overflow: TextOverflow.ellipsis,
-        );
-      }),
-    ),
+    cellBuilder: (info) => VmNameLink(info.name),
   ),
   TableHeader(
     name: 'STATE',
-    childBuilder: headerBuilder,
     width: 110,
     minWidth: 70,
     sortKey: (info) => info.instanceStatus.status.name,
-    cellBuilder: (info) => vmStatus(info.instanceStatus.status),
+    cellBuilder: (info) => VmStatusIcon(info.instanceStatus.status),
   ),
   TableHeader(
     name: 'CPU USAGE',
-    childBuilder: headerBuilder,
     width: 130,
     minWidth: 100,
     cellBuilder: (info) => CpuSparkline(info.name),
   ),
   TableHeader(
     name: 'MEMORY USAGE',
-    childBuilder: headerBuilder,
     width: 140,
     minWidth: 130,
     cellBuilder: (info) => MemoryUsage(
@@ -106,7 +51,6 @@ final headers = <TableHeader<VmInfo>>[
   ),
   TableHeader(
     name: 'DISK USAGE',
-    childBuilder: headerBuilder,
     width: 130,
     minWidth: 100,
     cellBuilder: (info) => MemoryUsage(
@@ -116,16 +60,85 @@ final headers = <TableHeader<VmInfo>>[
   ),
   TableHeader(
     name: 'PRIVATE IP',
-    childBuilder: headerBuilder,
     width: 140,
     minWidth: 100,
-    cellBuilder: (info) => ipAddresses(info.instanceInfo.ipv4.take(1)),
+    cellBuilder: (info) => IpAddresses(info.instanceInfo.ipv4.take(1)),
   ),
   TableHeader(
     name: 'PUBLIC IP',
-    childBuilder: headerBuilder,
     width: 140,
     minWidth: 100,
-    cellBuilder: (info) => ipAddresses(info.instanceInfo.ipv4.skip(1)),
+    cellBuilder: (info) => IpAddresses(info.instanceInfo.ipv4.skip(1)),
   ),
 ];
+
+class SelectAllCheckbox extends ConsumerWidget {
+  const SelectAllCheckbox({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedVms = ref.watch(selectedVmsProvider);
+    final vmNames = ref.watch(vmNamesProvider);
+    final allSelected = selectedVms.containsAll(vmNames);
+
+    void toggleSelectedAll(bool isSelected) {
+      final newState = isSelected ? vmNames.toBuiltSet() : BuiltSet<String>();
+      ref.read(selectedVmsProvider.notifier).state = newState;
+    }
+
+    return Center(
+      child: Checkbox(
+        tristate: true,
+        value: selectedVms.isEmpty ? false : (allSelected ? true : null),
+        onChanged: (checked) => toggleSelectedAll(checked ?? false),
+      ),
+    );
+  }
+}
+
+class SelectVmCheckbox extends ConsumerWidget {
+  final String name;
+
+  const SelectVmCheckbox(this.name, {super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(selectedVmsProvider.select((selectedVms) {
+      return selectedVms.contains(name);
+    }));
+
+    void toggleSelected(bool isSelected) {
+      ref.read(selectedVmsProvider.notifier).update((state) {
+        return state.rebuild((set) {
+          isSelected ? set.add(name) : set.remove(name);
+        });
+      });
+    }
+
+    return Center(
+      child: Checkbox(
+        value: selected,
+        onChanged: (checked) => toggleSelected(checked!),
+      ),
+    );
+  }
+}
+
+class VmNameLink extends ConsumerWidget {
+  final String name;
+
+  const VmNameLink(this.name, {super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    goToVm() => ref.read(sidebarKeyProvider.notifier).state = 'vm-$name';
+
+    return Tooltip(
+      message: name,
+      child: Text.rich(
+        name.nonBreaking.span.link(ref, goToVm),
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}

@@ -11,7 +11,7 @@ import 'providers.dart';
 import 'settings/settings.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
-import 'vm_details.dart';
+import 'vm_details/vm_details.dart';
 import 'vm_table/vm_table_screen.dart';
 
 void main() async {

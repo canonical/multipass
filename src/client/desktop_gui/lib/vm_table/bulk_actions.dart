@@ -2,23 +2,10 @@ import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../extensions.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 import 'vms.dart';
-
-extension on Iterable<Widget> {
-  Iterable<Widget> gap({double? width, double? height}) sync* {
-    final thisIterator = iterator;
-    final gapBox = SizedBox(width: width, height: height);
-    if (thisIterator.moveNext()) {
-      yield thisIterator.current;
-      while (thisIterator.moveNext()) {
-        yield gapBox;
-        yield thisIterator.current;
-      }
-    }
-  }
-}
 
 class BulkActionsBar extends ConsumerWidget {
   const BulkActionsBar({super.key});

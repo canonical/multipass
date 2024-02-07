@@ -155,9 +155,10 @@ class CustomChannelCredentials extends ChannelCredentials {
     String? authority,
   })  : certificateChain = certificate,
         super.secure(
-            certificates: certificate,
-            authority: authority,
-            onBadCertificate: allowBadCertificates);
+          certificates: certificate,
+          authority: authority,
+          onBadCertificate: allowBadCertificates,
+        );
 
   @override
   SecurityContext get securityContext {
