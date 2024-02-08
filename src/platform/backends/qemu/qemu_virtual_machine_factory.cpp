@@ -85,16 +85,20 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_d
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
     CloudInitIso qemu_iso;
     qemu_iso.read_from(cloud_init_config_iso_file_path);
-    const YAML::Node network_data =
-        mpu::make_cloud_init_network_config(dest_vm_spec.default_mac_address, dest_vm_spec.extra_interfaces);
-    if (!network_data.IsNull())
-    {
-        qemu_iso.replace_file("network-config", mpu::emit_cloud_config(network_data));
-    }
 
     std::string& meta_data_file_content = qemu_iso.at("meta-data");
     meta_data_file_content =
         mpu::emit_cloud_config(mpu::make_cloud_init_meta_config(destination_name, meta_data_file_content));
+
+    if (qemu_iso.contains("network-config"))
+    {
+        std::string& network_config_file_content = qemu_iso.at("network-config");
+        network_config_file_content =
+            mpu::emit_cloud_config(mpu::make_cloud_init_network_config(dest_vm_spec.default_mac_address,
+                                                                       dest_vm_spec.extra_interfaces,
+                                                                       network_config_file_content));
+    }
+
     qemu_iso.write_to(QString::fromStdString(cloud_init_config_iso_file_path.string()));
 
     // start to construct VirtualMachineDescription
