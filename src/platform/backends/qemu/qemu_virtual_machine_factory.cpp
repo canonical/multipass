@@ -92,8 +92,9 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_d
         qemu_iso.replace_file("network-config", mpu::emit_cloud_config(network_data));
     }
 
-    const YAML::Node meta_data = mpu::make_cloud_init_meta_config(destination_name);
-    qemu_iso.replace_file("meta-data", mpu::emit_cloud_config(meta_data));
+    std::string& meta_data_file_content = qemu_iso.at("meta-data");
+    meta_data_file_content =
+        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config(destination_name, meta_data_file_content));
     qemu_iso.write_to(QString::fromStdString(cloud_init_config_iso_file_path.string()));
 
     // start to construct VirtualMachineDescription
