@@ -41,10 +41,10 @@ auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> 
     auto process_state = timeout ? process->execute(*timeout) : process->execute();
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("{}: qemu-img failed ({}) with output:\n{}",
-                                             custom_error_prefix,
-                                             process_state.failure_message(),
-                                             process->read_all_standard_error()));
+        throw QemuImgException{fmt::format("{}: qemu-img failed ({}) with output:\n{}",
+                                           custom_error_prefix,
+                                           process_state.failure_message(),
+                                           process->read_all_standard_error())};
     }
 
     return process;
@@ -90,7 +90,8 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
 void mp::backend::amend_to_qcow2_v3(const mp::Path& image_path)
 {
     checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"amend", "-o", "compat=1.1", image_path}, image_path));
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"amend", "-o", "compat=1.1", image_path}, image_path),
+        "Failed to amend image to QCOW2 v3");
 }
 
 bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)

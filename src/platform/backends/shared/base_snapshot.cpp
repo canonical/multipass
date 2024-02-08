@@ -60,8 +60,8 @@ QJsonObject read_snapshot_json(const QString& filename)
 
     if (const auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
         throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
-                                             file.fileName(),
-                                             parse_error.errorString())};
+                                             parse_error.errorString(),
+                                             file.fileName())};
     else if (json.isEmpty())
         throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
     else
@@ -124,7 +124,6 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
       storage_dir{storage_dir},
       captured{captured}
 {
-    assert(index > 0 && "snapshot indices need to start at 1");
     using St = VirtualMachine::State;
     if (state != St::off && state != St::stopped)
         throw std::runtime_error{fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(state))};
@@ -161,6 +160,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                    vm.instance_directory(),
                    /*captured=*/false}
 {
+    assert(index > 0 && "snapshot indices need to start at 1");
 }
 
 mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm)
@@ -238,7 +238,7 @@ auto mp::BaseSnapshot::erase_helper()
     auto deleting_filepath = tmp_dir->filePath(snapshot_filename);
 
     QFile snapshot_file{snapshot_filepath};
-    if (!MP_FILEOPS.rename(snapshot_file, deleting_filepath))
+    if (!MP_FILEOPS.rename(snapshot_file, deleting_filepath) && snapshot_file.exists())
         throw std::runtime_error{
             fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
 

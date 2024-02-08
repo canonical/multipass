@@ -25,6 +25,8 @@
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 
+#include <memory>
+
 using namespace testing;
 
 namespace multipass
@@ -41,7 +43,7 @@ struct MockVirtualMachineT : public T
 
     template <typename... Args>
     MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
-        : T{std::forward<Args>(args)..., tmp_dir->path()}
+        : T{std::forward<Args>(args)..., tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
         ON_CALL(*this, current_state()).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port()).WillByDefault(Return(42));
@@ -76,7 +78,7 @@ struct MockVirtualMachineT : public T
                 make_native_mount_handler,
                 (const SSHKeyProvider*, const std::string&, const VMMount&),
                 (override));
-    MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override, noexcept));
+    MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override));
     MOCK_METHOD(int, get_num_snapshots, (), (const, override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (const std::string&), (const, override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_snapshot, (int index), (const, override));
@@ -92,6 +94,8 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, load_snapshots, (), (override));
     MOCK_METHOD(std::vector<std::string>, get_childrens_names, (const Snapshot*), (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
+
+    std::unique_ptr<TempDir> tmp_dir;
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;

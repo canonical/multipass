@@ -34,8 +34,8 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     {
     }
 
-    StubVirtualMachineFactory(std::unique_ptr<TempDir>&& tmp_dir)
-        : mp::BaseVirtualMachineFactory{tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    StubVirtualMachineFactory(std::unique_ptr<TempDir> tmp_dir)
+        : multipass::BaseVirtualMachineFactory{tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
     }
 

@@ -189,6 +189,10 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::UmountRequest, mp::UmountReply>));
     EXPECT_CALL(daemon, networks(_, _, _))
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::NetworksRequest, mp::NetworksReply>));
+    EXPECT_CALL(daemon, snapshot)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SnapshotRequest, mp::SnapshotReply>));
+    EXPECT_CALL(daemon, restore)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::RestoreRequest, mp::RestoreReply>));
 
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
@@ -203,10 +207,12 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
                    {"list"},
                    {"purge"},
                    {"recover", "foo"},
+                   {"snapshot", "foo"},
                    {"start", "foo"},
                    {"stop", "foo"},
                    {"suspend", "foo"},
                    {"restart", "foo"},
+                   {"restore", "foo.bar"},
                    {"version"},
                    {"find", "something"},
                    {"mount", ".", "target"},

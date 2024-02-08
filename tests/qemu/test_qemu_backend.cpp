@@ -19,8 +19,12 @@
 
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
+#include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
+#include "tests/mock_snapshot.h"
 #include "tests/mock_status_monitor.h"
+#include "tests/mock_virtual_machine.h"
+#include "tests/path.h"
 #include "tests/stub_process_factory.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
@@ -35,8 +39,10 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
+#include <multipass/snapshot.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/vm_specs.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -673,6 +679,86 @@ TEST_F(QemuBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
 
     EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
+}
+
+TEST_F(QemuBackend, logsErrorOnFailureToConvertToQcow2V3UponConstruction)
+{
+    mpt::StubVMStatusMonitor stub_monitor{};
+    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform{};
+
+    process_factory->register_callback([this](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("compat=1.1"))
+        {
+            mp::ProcessState exit_state{};
+            exit_state.exit_code = 1;
+            ON_CALL(*process, execute).WillByDefault(Return(exit_state));
+        }
+        else
+            return handle_external_process_calls(process);
+    });
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to amend image to QCOW2 v3");
+
+    mp::QemuVirtualMachine machine{default_description, &mock_qemu_platform, stub_monitor, instance_dir.path()};
+}
+
+struct PublicSnapshotMakingQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
+{
+    using mpt::MockVirtualMachineT<mp::QemuVirtualMachine>::MockVirtualMachineT;
+    using mp::QemuVirtualMachine::make_specific_snapshot;
+    using mp::QemuVirtualMachine::require_snapshots_support;
+};
+
+TEST_F(QemuBackend, supportsSnapshots)
+{
+    PublicSnapshotMakingQemuVM vm{"asdf"};
+    EXPECT_NO_THROW(vm.require_snapshots_support());
+}
+
+TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
+{
+    PublicSnapshotMakingQemuVM machine{"mock-qemu-vm"};
+
+    auto snapshot_name = "elvis";
+    auto snapshot_comment = "has left the building";
+    const mp::VMSpecs specs{2,
+                            mp::MemorySize{"3.21G"},
+                            mp::MemorySize{"4.32M"},
+                            "00:00:00:00:00:00",
+                            {},
+                            "asdf",
+                            mp::VirtualMachine::State::stopped,
+                            {},
+                            false,
+                            {},
+                            {}};
+    auto snapshot = machine.make_specific_snapshot(snapshot_name, snapshot_comment, specs, nullptr);
+    EXPECT_EQ(snapshot->get_name(), snapshot_name);
+    EXPECT_EQ(snapshot->get_comment(), snapshot_comment);
+    EXPECT_EQ(snapshot->get_num_cores(), specs.num_cores);
+    EXPECT_EQ(snapshot->get_mem_size(), specs.mem_size);
+    EXPECT_EQ(snapshot->get_disk_space(), specs.disk_space);
+    EXPECT_EQ(snapshot->get_state(), specs.state);
+    EXPECT_EQ(snapshot->get_parent(), nullptr);
+}
+
+TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
+{
+    PublicSnapshotMakingQemuVM machine{"mock-qemu-vm"};
+
+    const auto parent = std::make_shared<mpt::MockSnapshot>();
+    EXPECT_CALL(machine, get_snapshot(2)).WillOnce(Return(parent));
+
+    auto snapshot = machine.make_specific_snapshot(mpt::test_data_path_for("test_snapshot.json"));
+    EXPECT_EQ(snapshot->get_name(), "snapshot3");
+    EXPECT_EQ(snapshot->get_comment(), "A comment");
+    EXPECT_EQ(snapshot->get_num_cores(), 1);
+    EXPECT_EQ(snapshot->get_mem_size(), mp::MemorySize{"1G"});
+    EXPECT_EQ(snapshot->get_disk_space(), mp::MemorySize{"5G"});
+    EXPECT_EQ(snapshot->get_state(), mp::VirtualMachine::State::off);
+    EXPECT_EQ(snapshot->get_parent(), parent);
 }
 
 TEST_F(QemuBackend, lists_no_networks)

@@ -30,6 +30,12 @@ class QemuImgProcessSpec;
 
 namespace backend
 {
+class QemuImgException : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
 Process::UPtr checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec,
                                     const std::string& custom_error_prefix = "Internal error",
                                     std::optional<int> timeout = std::nullopt);

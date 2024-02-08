@@ -48,8 +48,8 @@ struct VMMount
 
 inline bool operator==(const VMMount& a, const VMMount& b)
 {
-    return std::tie(a.source_path, a.gid_mappings, a.uid_mappings) ==
-           std::tie(b.source_path, b.gid_mappings, b.uid_mappings);
+    return std::tie(a.source_path, a.gid_mappings, a.uid_mappings, a.mount_type) ==
+           std::tie(b.source_path, b.gid_mappings, b.uid_mappings, b.mount_type);
 }
 
 inline bool operator!=(const VMMount& a, const VMMount& b) // TODO drop in C++20
