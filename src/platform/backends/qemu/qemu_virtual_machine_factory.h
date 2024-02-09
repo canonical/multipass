@@ -52,6 +52,9 @@ public:
     std::vector<NetworkInterfaceInfo> networks() const override;
     void require_snapshots_support() const override;
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
+    void require_clone_support() const override
+    {
+    }
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;

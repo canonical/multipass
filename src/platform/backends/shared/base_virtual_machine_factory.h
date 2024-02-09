@@ -84,6 +84,11 @@ public:
 
     void require_suspend_support() const override;
 
+    void require_clone_support() const override
+    {
+        throw NotImplementedOnThisBackendException{"clone"};
+    }
+
 protected:
     static const Path instances_subdir;
 

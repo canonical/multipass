@@ -2677,6 +2677,7 @@ void mp::Daemon::clone(const CloneRequest* request,
 {
     try
     {
+        config->factory->require_clone_support();
         mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()),
                                                            *config->logger,
                                                            server};
