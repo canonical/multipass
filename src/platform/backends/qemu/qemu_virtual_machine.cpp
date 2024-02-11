@@ -254,7 +254,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
             {
                 mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
                 mp::SSHSession session{VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), *key_provider};
-                mp::utils::run_in_ssh_session(session, "sudo hwclock --hctosys");
+                mp::utils::run_in_ssh_session(session, "sudo timedatectl set-local-rtc 0 --adjust-system-clock");
             }
             catch (const std::exception& e)
             {
