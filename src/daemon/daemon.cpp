@@ -252,30 +252,6 @@ auto name_from(const std::string& requested_name, const std::string& blueprint_n
     }
 }
 
-std::vector<mp::NetworkInterface> read_extra_interfaces(const QJsonObject& record)
-{
-    // Read the extra networks interfaces, if any.
-    std::vector<mp::NetworkInterface> extra_interfaces;
-
-    if (record.contains("extra_interfaces"))
-    {
-        for (QJsonValueRef entry : record["extra_interfaces"].toArray())
-        {
-            auto id = entry.toObject()["id"].toString().toStdString();
-            auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
-            // Allow empty addresses (for nonconfigured interfaces).
-            if (!mac_address.empty() && !mpu::valid_mac_address(mac_address))
-            {
-                throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
-            }
-            auto auto_mode = entry.toObject()["auto_mode"].toBool();
-            extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
-        }
-    }
-
-    return extra_interfaces;
-}
-
 std::vector<std::string> read_string_vector(const std::string& key, const QJsonObject& record)
 {
     std::vector<std::string> ret;
@@ -359,7 +335,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
                                       mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
                                       default_mac_address,
-                                      read_extra_interfaces(record),
+                                      MP_JSONUTILS.read_extra_interfaces(record),
                                       ssh_username,
                                       static_cast<mp::VirtualMachine::State>(state),
                                       mounts,
@@ -368,22 +344,6 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       read_string_vector("run_at_boot", record)};
     }
     return reconstructed_records;
-}
-
-QJsonArray to_json_array(const std::vector<mp::NetworkInterface>& extra_interfaces)
-{
-    QJsonArray json;
-
-    for (const auto& interface : extra_interfaces)
-    {
-        QJsonObject entry;
-        entry.insert("id", QString::fromStdString(interface.id));
-        entry.insert("mac_address", QString::fromStdString(interface.mac_address));
-        entry.insert("auto_mode", interface.auto_mode);
-        json.append(entry);
-    }
-
-    return json;
 }
 
 QJsonArray string_vector_to_json_array(const std::vector<std::string>& vec)
@@ -412,7 +372,7 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     // Write the networking information. Write first a field "mac_addr" containing the MAC address of the
     // default network interface. Then, write all the information about the rest of the interfaces.
     json.insert("mac_addr", QString::fromStdString(specs.default_mac_address));
-    json.insert("extra_interfaces", to_json_array(specs.extra_interfaces));
+    json.insert("extra_interfaces", MP_JSONUTILS.extra_interfaces_to_json_array(specs.extra_interfaces));
 
     QJsonArray json_mounts;
     for (const auto& mount : specs.mounts)
