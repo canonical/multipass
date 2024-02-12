@@ -115,7 +115,6 @@ parts:
     - PATH: /snap/bin:$PATH
     build-packages:
     - on arm64: [libgles2-mesa-dev]
-    - on armhf: [libgles2-mesa-dev]
     - build-essential
     - git
     - libapparmor-dev
@@ -128,7 +127,6 @@ parts:
     - qt6-base-dev-tools
     stage-packages:
     - apparmor
-    - libc6
     - libpng16-16
     - libqt6core6
     - libqt6gui6
@@ -136,10 +134,40 @@ parts:
     - libqt6widgets6
     - libssl3
     - libxml2
-    - libxrender1
     - dnsmasq-base
     - dnsmasq-utils
     - qt6-qpa-plugins
+    stage:
+    - -**/glvnd
+    - -**/X11
+    - -usr/bin/aa-*
+    - -usr/include
+    - -usr/lib/cmake
+    - -usr/lib/*/libEGL_mesa.so.*
+    - -usr/lib/*/libGLX_mesa.so.*
+    - -usr/lib/*/libGLX_indirect.so.*
+    - -usr/lib/*/libXxf86vm.so.*
+    - -usr/lib/*/libxcb-dri2.so.*
+    - -usr/lib/*/libxcb-present.so.*
+    - -usr/lib/*/libxshmfence.so.*
+    - -usr/lib/*/libicuio.so.*
+    - -usr/lib/*/libicutest.so.*
+    - -usr/lib/*/libicutu.so.*
+    - -usr/lib/*/libLLVM-15.so*
+    - -usr/lib/*/libdrm*
+    - -usr/lib/*/libglapi.so*
+    - -usr/lib/*/libpciaccess.so*
+    - -usr/lib/*/libsensors.so*
+    - -usr/lib/*/libxcb-dri3.so*
+    - -usr/lib/*/dri
+    - -usr/share/apport
+    - -usr/share/bug
+    - -usr/share/doc*
+    - -usr/share/drirc.d
+    - -usr/share/lib*
+    - -usr/share/lintian
+    - -usr/share/man
+    - -usr/share/pkgconfig
     source: .
     cmake-parameters:
     - -DCMAKE_BUILD_TYPE=Release
