@@ -303,6 +303,9 @@ parts:
     override-pull: ""
     stage-packages:
     - on amd64: [msr-tools]
+    stage:
+    - -usr/share/doc
+    - -usr/share/man
 
   terminal:
     plugin: nil
