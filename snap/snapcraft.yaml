@@ -321,7 +321,6 @@ parts:
       - dmz-cursor-theme
       - libgdk-pixbuf2.0-bin # GDK pixbuf
       - fonts-freefont-ttf
-      - libglib2.0-0
     override-build: |
       craftctl default
       update-mime-database $CRAFT_PART_INSTALL/usr/share/mime
@@ -330,7 +329,32 @@ parts:
       echo "[Icon Theme]" > $CRAFT_PART_INSTALL/usr/share/icons/default/index.theme
       echo "Inherits=DMZ-White" >> $CRAFT_PART_INSTALL/usr/share/icons/default/index.theme
     stage:
-      - -usr/share/doc
+      - -**/X11
+      - -**/pixmaps
+      - -usr/include
+      - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libxfce4kbd-private-3.so.*
+      - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libcolordprivate.so.*
+      - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libdconf.so.*
+      - -usr/lib/*/libicuio.so.*
+      - -usr/lib/*/libicutest.so.*
+      - -usr/lib/*/libicutu.so.*
+      - -usr/share/apport
+      - -usr/share/bug
+      - -usr/share/*doc*
+      - -usr/share/gettext
+      - -usr/share/glade
+      - -usr/share/icons/Adwaita
+      - -usr/share/icons/DMZ-Black
+      - -usr/share/icons/Humanity*
+      - -usr/share/icons/LoginIcons
+      - -usr/share/icons/hicolor
+      - -usr/share/icons/ubuntu-*
+      - -usr/share/libthai
+      - -usr/share/lintian
+      - -usr/share/man
+      - -usr/share/mime
+      - -usr/share/pkgconfig
+      - -usr/share/thumbnailers
     organize:
       usr/bin/xfce4-terminal.wrapper: bin/x-terminal-emulator
 
