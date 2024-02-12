@@ -106,6 +106,14 @@ parts:
     - libvirt0
     stage:
     - -usr/lib/*/libssh*  # this avoids extra libssh libs in the snap
+    - -usr/lib/*/libvirt-* # No need to include extra libvirt objects in snap
+    - -usr/lib/**/sasl2
+    - -usr/lib/*/libicuio.so.*
+    - -usr/lib/*/libicutest.so.*
+    - -usr/lib/*/libicutu.so.*
+    - -usr/share/doc*
+    - -usr/share/libvirt
+    - -usr/share/lintian
 
   multipass:
     plugin: cmake
