@@ -307,6 +307,13 @@ parts:
     - -usr/share/doc
     - -usr/share/man
 
+  compile-schemas:
+    plugin: nil
+    stage-packages:
+    - libglib2.0-0
+    prime:
+    - usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/glib-2.0/glib-compile-schemas
+
   terminal:
     plugin: nil
     stage-packages:
