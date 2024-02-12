@@ -128,9 +128,6 @@ parts:
     - qt6-base-dev-tools
     stage-packages:
     - apparmor
-    - on amd64: [libgl1]
-    - on armhf: [libgles2-mesa]
-    - on arm64: [libgles2-mesa]
     - libc6
     - libpng16-16
     - libqt6core6
