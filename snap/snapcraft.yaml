@@ -247,7 +247,9 @@ parts:
     stage-packages:
     - libpixman-1-0
     stage:
+    - -usr/include
     - -usr/lib/*/libssh*
+    - -usr/lib/*/pkgconfig
     - -qemu/efi-*.rom
     - -qemu/pxe-*.rom
     organize:
