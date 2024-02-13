@@ -69,6 +69,7 @@ public:
     virtual MountArgs& modifiable_mount_args();
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                             const std::string& target, const VMMount& mount) override;
+    void restore_snapshot(const std::string& name, VMSpecs& specs) override;
 
 signals:
     void on_delete_memory_snapshot();

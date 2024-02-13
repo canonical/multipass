@@ -658,6 +658,13 @@ mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args
     return mount_args;
 }
 
+void mp::QemuVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
+{
+    BaseVirtualMachine::restore_snapshot(name, specs);
+
+    desc.extra_interfaces = specs.extra_interfaces;
+}
+
 auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                     const std::string& comment,
                                                     const VMSpecs& specs,
