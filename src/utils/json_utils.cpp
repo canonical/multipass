@@ -74,9 +74,11 @@ QJsonObject mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonObje
     {
         QString str = item.toString();
 
-        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
         // add extra interface string replacement later
-        str.replace(src_vm_name.c_str(), dest_vm_name.c_str());
+        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
+        // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
+        // "<src_name>"->"<dest_name>" is because the second one might match other substrings of the metadata.
+        str.replace("instances/" + QString{src_vm_name.c_str()}, "instances/" + QString{dest_vm_name.c_str()});
         item = str;
     }
     arguments = json_array;
