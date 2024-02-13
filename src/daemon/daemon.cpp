@@ -2752,6 +2752,37 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                                                        dest_vm_spec,
                                                                                        source_name,
                                                                                        destination_name);
+            auto update_extra_interfaces_mac_address_of_run_at_boot =
+                [](const std::vector<std::string>& run_at_boot,
+                   const std::vector<NetworkInterface>& src_extra_interfaces,
+                   const std::vector<NetworkInterface>& dest_extra_interfaces) -> std::vector<std::string> {
+                std::vector<std::string> result_run_at_boot{run_at_boot};
+                if (src_extra_interfaces.size() != dest_extra_interfaces.size())
+                {
+                    throw std::runtime_error(
+                        "Source extra interfaces vector size is not the same as the destination one. ");
+                }
+
+                for (auto& str : result_run_at_boot)
+                {
+                    for (size_t i = 0; i < src_extra_interfaces.size(); ++i)
+                    {
+                        const std::string& search_str = src_extra_interfaces[i].mac_address;
+                        const size_t search_str_start_pos = str.find(search_str);
+                        if (search_str_start_pos != std::string::npos)
+                        {
+                            str.replace(search_str_start_pos, search_str.size(), dest_extra_interfaces[i].mac_address);
+                        }
+                    }
+                }
+
+                return result_run_at_boot;
+            };
+
+            dest_vm_spec.run_at_boot =
+                update_extra_interfaces_mac_address_of_run_at_boot(dest_vm_spec.run_at_boot,
+                                                                   src_vm_specs.extra_interfaces,
+                                                                   dest_vm_spec.extra_interfaces);
             persist_instances();
         };
 
