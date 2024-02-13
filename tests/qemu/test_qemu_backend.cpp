@@ -727,7 +727,7 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
                             mp::MemorySize{"3.21G"},
                             mp::MemorySize{"4.32M"},
                             "00:00:00:00:00:00",
-                            {},
+                            {{"eth18", "18:18:18:18:18:18", true}},
                             "asdf",
                             mp::VirtualMachine::State::stopped,
                             {},
@@ -740,6 +740,7 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
     EXPECT_EQ(snapshot->get_num_cores(), specs.num_cores);
     EXPECT_EQ(snapshot->get_mem_size(), specs.mem_size);
     EXPECT_EQ(snapshot->get_disk_space(), specs.disk_space);
+    EXPECT_EQ(snapshot->get_extra_interfaces(), specs.extra_interfaces);
     EXPECT_EQ(snapshot->get_state(), specs.state);
     EXPECT_EQ(snapshot->get_parent(), nullptr);
 }
@@ -757,6 +758,7 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
     EXPECT_EQ(snapshot->get_num_cores(), 1);
     EXPECT_EQ(snapshot->get_mem_size(), mp::MemorySize{"1G"});
     EXPECT_EQ(snapshot->get_disk_space(), mp::MemorySize{"5G"});
+    EXPECT_EQ(snapshot->get_extra_interfaces(), std::vector<mp::NetworkInterface>{});
     EXPECT_EQ(snapshot->get_state(), mp::VirtualMachine::State::off);
     EXPECT_EQ(snapshot->get_parent(), parent);
 }
