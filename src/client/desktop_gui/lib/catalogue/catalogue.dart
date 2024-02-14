@@ -6,15 +6,12 @@ import '../providers.dart';
 import 'image_card.dart';
 import 'launch_panel.dart';
 
-final imagesProvider = Provider<List<ImageInfo>>((ref) {
-  if (ref.watch(daemonAvailableProvider)) {
-    ref
-        .watch(grpcClientProvider)
-        .find(blueprints: false)
-        .then((r) => ref.state = sortImages(r.imagesInfo))
-        .ignore();
-  }
-  return [];
+final imagesProvider = FutureProvider<List<ImageInfo>>((ref) {
+  ref.watch(daemonAvailableProvider);
+  return ref
+      .watch(grpcClientProvider)
+      .find(blueprints: false)
+      .then((r) => sortImages(r.imagesInfo));
 });
 
 // sorts the images in a more user-friendly way
@@ -65,7 +62,7 @@ class CatalogueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final images = ref.watch(imagesProvider);
+    final images = ref.watch(imagesProvider).valueOrNull ?? const [];
     final imageList = SingleChildScrollView(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
