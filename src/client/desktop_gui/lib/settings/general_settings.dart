@@ -9,11 +9,15 @@ import '../providers.dart';
 import '../switch.dart';
 
 final updateProvider = Provider.autoDispose((ref) {
-  ref.watch(grpcClientProvider).updateInfo().then((value) => ref.state = value);
+  ref
+      .watch(grpcClientProvider)
+      .updateInfo()
+      .then((value) => ref.state = value)
+      .ignore();
   return UpdateInfo();
 });
 
-final privilegedMountsProvider = daemonSettingProvider(privilegedMountsKey);
+final privilegedMountsProvider = daemonSettingProvider2(privilegedMountsKey);
 
 class GeneralSettings extends ConsumerWidget {
   const GeneralSettings({super.key});
@@ -22,7 +26,7 @@ class GeneralSettings extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final update = ref.watch(updateProvider);
     final privilegedMounts = ref.watch(privilegedMountsProvider.select((value) {
-      return value?.toBoolOption.toNullable() ?? false;
+      return value.valueOrNull?.toBoolOption.toNullable() ?? false;
     }));
 
     return Column(
