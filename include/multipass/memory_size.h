@@ -45,6 +45,8 @@ private:
     long long bytes;
 };
 
+long long in_bytes(const std::string& mem_value);
+
 bool operator==(const MemorySize& a, const MemorySize& b) noexcept;
 bool operator!=(const MemorySize& a, const MemorySize& b) noexcept;
 bool operator<(const MemorySize& a, const MemorySize& b) noexcept;
