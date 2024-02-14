@@ -67,9 +67,16 @@ final vmInfosMapProvider = Provider((ref) {
   return {for (final info in ref.watch(vmInfosProvider)) info.name: info};
 });
 
-final vmInfoProvider = Provider.autoDispose.family<DetailedInfoItem, String>(
-  (ref, name) => ref.watch(vmInfosMapProvider)[name] ?? DetailedInfoItem(),
-);
+class VmInfoNotifier
+    extends AutoDisposeFamilyNotifier<DetailedInfoItem, String> {
+  @override
+  DetailedInfoItem build(String arg) {
+    return ref.watch(vmInfosMapProvider)[arg] ?? DetailedInfoItem();
+  }
+}
+
+final vmInfoProvider = NotifierProvider.autoDispose
+    .family<VmInfoNotifier, DetailedInfoItem, String>(VmInfoNotifier.new);
 
 final vmStatusesProvider = Provider((ref) {
   return ref
