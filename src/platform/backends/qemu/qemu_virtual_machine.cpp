@@ -263,10 +263,16 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         &QemuVirtualMachine::on_synchronize_clock,
         this,
         [this](const SSHKeyProvider* key_provider) {
-            mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
-
-            mp::SSHSession session{VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), *key_provider};
-            mp::utils::run_in_ssh_session(session, "sudo hwclock --hctosys");
+            try
+            {
+                mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
+                mp::SSHSession session{VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), *key_provider};
+                mp::utils::run_in_ssh_session(session, "sudo timedatectl set-local-rtc 0 --adjust-system-clock");
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::warning, vm_name, fmt::format("Failed to sync clock: {}", e.what()));
+            }
         },
         Qt::QueuedConnection);
 }
