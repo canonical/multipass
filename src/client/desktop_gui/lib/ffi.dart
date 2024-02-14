@@ -71,6 +71,10 @@ final gid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('gid');
 final default_id =
     _lib.lookupFunction<ffi.Int32 Function(), int Function()>('default_id');
 
+final _memoryInBytes = _lib.lookupFunction<
+    ffi.LongLong Function(ffi.Pointer<Utf8>),
+    int Function(ffi.Pointer<Utf8>)>('memory_in_bytes');
+
 final class _NativeKeyCertificatePair extends ffi.Struct {
   // ignore: non_constant_identifier_names
   external ffi.Pointer<Utf8> pem_cert;
@@ -159,4 +163,11 @@ void setSetting(String key, String value) {
       malloc.free(output);
       throw Exception("failed storing client setting '$key'='$value': $result");
   }
+}
+
+int memoryInBytes(String value) {
+  final result = _memoryInBytes(value.toNativeUtf8());
+  return result == -1
+      ? throw Exception('Could not convert $value to bytes')
+      : result;
 }

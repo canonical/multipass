@@ -33,4 +33,6 @@ extern "C" int gid();
 
 extern "C" int default_id();
 
+extern "C" long long memory_in_bytes(const char* value);
+
 #endif // MULTIPASS_DART_FFI_H
