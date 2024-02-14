@@ -11,7 +11,7 @@ import '../dropdown.dart';
 import '../providers.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
-final passphraseProvider = daemonSettingProvider(passphraseKey);
+final passphraseProvider = daemonSettingProvider2(passphraseKey);
 final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
 
 class UsageSettings extends ConsumerWidget {
@@ -22,7 +22,7 @@ class UsageSettings extends ConsumerWidget {
     final onAppClose = ref.watch(onAppCloseProvider);
     final primaryName = ref.watch(primaryNameProvider);
     final hasPassphrase = ref.watch(passphraseProvider.select((value) {
-      return value.isNotNullOrBlank;
+      return value.valueOrNull.isNotNullOrBlank;
     }));
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
