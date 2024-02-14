@@ -99,6 +99,17 @@ class GrpcClient {
         .then((r) => r.details.toList());
   }
 
+  Future<MountReply?> mount(MountRequest request) {
+    return _client.mount(Stream.value(request)).firstOrNull;
+  }
+
+  Future<void> umount(String name) {
+    final request = UmountRequest(
+      targetPaths: [TargetPathInfo(instanceName: name)],
+    );
+    return _client.umount(Stream.value(request)).firstOrNull;
+  }
+
   Future<FindReply> find({bool images = true, bool blueprints = true}) {
     final request = FindRequest(
       showImages: images,
