@@ -13,7 +13,11 @@ class CpuSparkline extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final values = ref.watch(cpuUsagesProvider(name));
+    final rawValues = ref.watch(cpuUsagesProvider(name));
+    final values = rawValues;
+    // .slices(5)
+    // .map((chunk) => List.filled(5, chunk.average))
+    // .flattened;
 
     final sparkline = LineChartBarData(
       barWidth: 1,
@@ -21,7 +25,10 @@ class CpuSparkline extends ConsumerWidget {
       color: const Color(0xff666666),
       dotData: const FlDotData(show: false),
       preventCurveOverShooting: true,
-      spots: values.indexed.map((e) => FlSpot(e.$1.toDouble(), e.$2)).toList(),
+      spots: values.indexed.map((e) {
+        final (index, value) = e;
+        return FlSpot(index.toDouble(), value);
+      }).toList(),
     );
 
     return LineChart(
@@ -46,10 +53,7 @@ class CpuUsagesNotifier
     extends AutoDisposeFamilyNotifier<Queue<double>, String> {
   @override
   Queue<double> build(String arg) {
-    final currentUsage = ref.watch(vmInfoProvider(arg).select((info) {
-      return info.instanceInfo.cpuUsage;
-    }));
-
+    final currentUsage = ref.watch(vmInfoProvider(arg)).instanceInfo.cpuUsage;
     final usages = stateOrNull ?? Queue.of(Iterable.generate(100, (_) => 0.0));
     return usages
       ..removeFirst()
