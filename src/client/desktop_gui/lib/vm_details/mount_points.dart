@@ -9,20 +9,36 @@ class MountPoint extends StatelessWidget {
   final VoidCallback onDelete;
   final FormFieldSetter<String> onSourceSaved;
   final FormFieldSetter<String> onTargetSaved;
+  final String initialSource;
+  final String initialTarget;
 
   const MountPoint({
     super.key,
     required this.onDelete,
     required this.onSourceSaved,
     required this.onTargetSaved,
+    required this.initialSource,
+    required this.initialTarget,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      SizedBox(width: width, child: TextFormField(onSaved: onSourceSaved)),
+      SizedBox(
+        width: width,
+        child: TextFormField(
+          onSaved: onSourceSaved,
+          initialValue: initialSource,
+        ),
+      ),
       const SizedBox(width: 24),
-      SizedBox(width: width, child: TextFormField(onSaved: onTargetSaved)),
+      SizedBox(
+        width: width,
+        child: TextFormField(
+          onSaved: onTargetSaved,
+          initialValue: initialTarget,
+        ),
+      ),
       const SizedBox(width: 24),
       SizedBox(
         height: 42,
@@ -45,16 +61,40 @@ class MountPointList extends StatefulWidget {
 }
 
 class _MountPointListState extends State<MountPointList> {
-  final keys = <UniqueKey>{};
+  final mounts = <UniqueKey, (String, String)>{};
+
+  void setExistingMounts() {
+    for (final mount in widget.mountRequests) {
+      mounts[UniqueKey()] = (
+        mount.sourcePath,
+        mount.targetPaths.first.targetPath,
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    setExistingMounts();
+  }
+
+  @override
+  void didUpdateWidget(MountPointList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    setExistingMounts();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final mountPoints = keys.map((key) {
+    final mountPoints = mounts.entries.map((entry) {
+      final MapEntry(:key, value: (initialSource, initialTarget)) = entry;
       return Container(
         key: key,
         margin: const EdgeInsets.symmetric(vertical: 12),
         child: MountPoint(
-          onDelete: () => setState(() => keys.remove(key)),
+          initialSource: initialSource,
+          initialTarget: initialTarget,
+          onDelete: () => setState(() => mounts.remove(key)),
           onSourceSaved: (value) {
             widget.mountRequests.add(MountRequest(
               sourcePath: value,
@@ -75,7 +115,7 @@ class _MountPointListState extends State<MountPointList> {
     }).toList();
 
     final addMountPoint = OutlinedButton.icon(
-      onPressed: () => setState(() => keys.add(UniqueKey())),
+      onPressed: () => setState(() => mounts[UniqueKey()] = ('', '')),
       label: const Text('Add mount point'),
       icon: const Icon(Icons.add),
     );

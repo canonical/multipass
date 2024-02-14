@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../ffi.dart';
 import '../providers.dart';
 import '../switch.dart';
+import '../vm_details/mount_points.dart';
+import '../vm_details/spec_input.dart';
 import 'launch_panel.dart';
-import 'mount_points.dart';
-import 'spec_input.dart';
 
 final launchingImageProvider = StateProvider<ImageInfo>((_) => ImageInfo());
 
@@ -201,13 +201,4 @@ FormFieldValidator<String> nameValidator(Iterable<String> existingNames) {
     }
     return null;
   };
-}
-
-final memoryRegex = RegExp(
-  r'^\s*\d+(\.\d+)?([KMGT]?B)?\s*$',
-  caseSensitive: false,
-);
-
-String? memorySizeValidator(String? value) {
-  return memoryRegex.hasMatch(value!) ? null : 'Invalid memory size';
 }

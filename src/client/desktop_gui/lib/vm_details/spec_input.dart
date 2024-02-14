@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../ffi.dart';
+
 class SpecInput extends StatelessWidget {
   final bool autofocus;
   final String? helper;
@@ -11,6 +13,7 @@ class SpecInput extends StatelessWidget {
   final FormFieldValidator<String>? validator;
   final List<TextInputFormatter>? inputFormatters;
   final double width;
+  final TextEditingController? controller;
 
   const SpecInput({
     super.key,
@@ -23,6 +26,7 @@ class SpecInput extends StatelessWidget {
     this.validator,
     this.inputFormatters,
     this.width = 170,
+    this.controller,
   });
 
   @override
@@ -36,6 +40,7 @@ class SpecInput extends StatelessWidget {
         ],
         TextFormField(
           autofocus: autofocus,
+          controller: controller,
           decoration: InputDecoration(
             hintText: hint,
             helperText: helper,
@@ -49,5 +54,20 @@ class SpecInput extends StatelessWidget {
         ),
       ]),
     );
+  }
+}
+
+final memoryRegex = RegExp(
+  r'^\s*\d+(\.\d+)?((K|M|G|T|Ki|Mi|Gi|Ti)?B)?\s*$',
+  caseSensitive: false,
+);
+
+String? memorySizeValidator(String? value) {
+  value = double.tryParse(value!) != null ? '${value}GB' : value;
+  try {
+    memoryInBytes(value);
+    return null;
+  } catch (_) {
+    return 'Invalid memory size';
   }
 }
