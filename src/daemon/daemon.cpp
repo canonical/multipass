@@ -320,7 +320,7 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     }
 
     json.insert("mounts", json_mounts);
-    json.insert("deleted", specs.clone_count);
+    json.insert("clone_count", specs.clone_count);
 
     return json;
 }
@@ -2723,7 +2723,7 @@ void mp::Daemon::clone(const CloneRequest* request,
             {
                 const std::string& source_name = request.source_name();
                 const std::string destination_name =
-                    generate_next_clone_name(vm_instance_specs.at(source_name), source_name);
+                    generate_next_clone_name(vm_instance_specs[source_name], source_name);
 
                 if (is_name_already_used(destination_name))
                 {
@@ -2744,8 +2744,7 @@ void mp::Daemon::clone(const CloneRequest* request,
             throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
         }
 
-        auto clone_spec_item_and_write_to_instance_db = [this](const std::string& source_name,
-                                                               const std::string& destination_name) -> void {
+        auto clone_spec_item = [this](const std::string& source_name, const std::string& destination_name) -> void {
             const auto& src_vm_specs = vm_instance_specs[source_name];
             auto& dest_vm_spec = vm_instance_specs[destination_name] = src_vm_specs;
             dest_vm_spec.clone_count = 0;
@@ -2792,10 +2791,9 @@ void mp::Daemon::clone(const CloneRequest* request,
                 update_extra_interfaces_mac_address_of_run_at_boot(dest_vm_spec.run_at_boot,
                                                                    src_vm_specs.extra_interfaces,
                                                                    dest_vm_spec.extra_interfaces);
-            persist_instances();
         };
 
-        clone_spec_item_and_write_to_instance_db(source_name, destination_name);
+        clone_spec_item(source_name, destination_name);
 
         config->vault->clone(source_name, destination_name);
         const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
@@ -2809,7 +2807,9 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                               dest_vm_image,
                                                               *this);
 
-        ++vm_instance_specs.at(source_name).clone_count;
+        ++vm_instance_specs[source_name].clone_count;
+        persist_instances();
+
         init_mounts(destination_name);
 
         CloneReply rpc_response;
