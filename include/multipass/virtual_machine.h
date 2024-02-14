@@ -115,8 +115,6 @@ public:
                                                               const std::string& src_vm_name) = 0;
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
-    virtual std::string generate_new_clone_name() const = 0;
-    virtual void update_clone_name_counter() = 0;
 
     QDir instance_directory() const;
     std::string get_vm_name() const;

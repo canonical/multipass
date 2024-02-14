@@ -87,8 +87,6 @@ public:
                                                       const std::string& src_vm_name) override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
-    std::string generate_new_clone_name() const override;
-    void update_clone_name_counter() override;
 
 protected:
     virtual void require_snapshots_support() const;
@@ -171,7 +169,6 @@ private:
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
-    int cloned_instance_count = 0; // tracks the number of cloned vm from this source vm (regardless or deletes)
     mutable std::recursive_mutex snapshot_mutex;
 };
 

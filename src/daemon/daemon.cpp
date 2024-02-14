@@ -252,6 +252,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto state = record["state"].toInt();
         auto deleted = record["deleted"].toBool();
         auto metadata = record["metadata"].toObject();
+        auto clone_count = record["clone_count"].toInt();
 
         if (!num_cores && !deleted && ssh_username.empty() && metadata.isEmpty() &&
             !mp::MemorySize{mem_size}.in_bytes() && !mp::MemorySize{disk_space}.in_bytes())
@@ -289,6 +290,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             mounts,
             deleted,
             metadata};
+                                      clone_count};
     }
     return reconstructed_records;
 }
@@ -318,8 +320,14 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     }
 
     json.insert("mounts", json_mounts);
+    json.insert("deleted", specs.clone_count);
 
     return json;
+}
+
+std::string generate_next_clone_name(const mp::VMSpecs& source_spec, const std::string& source_name)
+{
+    return fmt::format("{}-clone{}", source_name, source_spec.clone_count + 1);
 }
 
 auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory, mp::VMImageVault& vault)
@@ -2713,8 +2721,9 @@ void mp::Daemon::clone(const CloneRequest* request,
             }
             else
             {
+                const std::string& source_name = request.source_name();
                 const std::string destination_name =
-                    operative_instances[request.source_name()]->generate_new_clone_name();
+                    generate_next_clone_name(vm_instance_specs.at(source_name), source_name);
 
                 if (is_name_already_used(destination_name))
                 {
@@ -2730,7 +2739,6 @@ void mp::Daemon::clone(const CloneRequest* request,
 
         const auto& source_vm_ptr = operative_instances[source_name];
         const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
-        // should we consider more states?
         if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
         {
             throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
@@ -2740,6 +2748,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                                const std::string& destination_name) -> void {
             const auto& src_vm_specs = vm_instance_specs[source_name];
             auto& dest_vm_spec = vm_instance_specs[destination_name] = src_vm_specs;
+            dest_vm_spec.clone_count = 0;
             // update default mac addr and extra_interface mac addr
             dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
             for (auto& extra_interface : dest_vm_spec.extra_interfaces)
@@ -2800,7 +2809,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                               dest_vm_image,
                                                               *this);
 
-        operative_instances[source_name]->update_clone_name_counter();
+        ++vm_instance_specs.at(source_name).clone_count;
         init_mounts(destination_name);
 
         CloneReply rpc_response;
