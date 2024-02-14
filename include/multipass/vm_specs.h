@@ -44,6 +44,7 @@ struct VMSpecs
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
     QJsonObject metadata;
+    int clone_count = 0; // tracks the number of cloned vm from this source vm (regardless or deletes)
 };
 
 inline bool operator==(const VMSpecs& a, const VMSpecs& b)
@@ -57,16 +58,18 @@ inline bool operator==(const VMSpecs& a, const VMSpecs& b)
                     a.state,
                     a.mounts,
                     a.deleted,
-                    a.metadata) == std::tie(b.num_cores,
-                                            b.mem_size,
-                                            b.disk_space,
-                                            b.default_mac_address,
-                                            b.extra_interfaces,
-                                            b.ssh_username,
-                                            b.state,
-                                            b.mounts,
-                                            b.deleted,
-                                            b.metadata);
+                    a.metadata,
+                    a.clone_count) == std::tie(b.num_cores,
+                                               b.mem_size,
+                                               b.disk_space,
+                                               b.default_mac_address,
+                                               b.extra_interfaces,
+                                               b.ssh_username,
+                                               b.state,
+                                               b.mounts,
+                                               b.deleted,
+                                               b.metadata,
+                                               a.clone_count);
 }
 
 inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20

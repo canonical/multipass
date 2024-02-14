@@ -282,10 +282,7 @@ void mp::BaseSnapshot::persist() const
     const std::unique_lock lock{mutex};
 
     auto snapshot_filepath = storage_dir.filePath(derive_snapshot_filename());
-    mpl::log(mpl::Level::info, "snapshot", fmt::format("snapshot_filepath value is : {}", snapshot_filepath));
-
     MP_JSONUTILS.write_json(serialize(), snapshot_filepath);
-    //    mpl::log(mpl::Level::info, "snapshot", fmt::format("snapshot_filepath value is : {}", snapshot_filepath));
 }
 
 auto mp::BaseSnapshot::erase_helper()
