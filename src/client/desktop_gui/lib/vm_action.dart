@@ -10,7 +10,9 @@ enum VmAction {
   restart,
   delete,
   recover,
-  purge;
+  purge,
+  edit,
+  ;
 
   String get name => switch (this) {
         start => 'Start',
@@ -20,6 +22,7 @@ enum VmAction {
         delete => 'Delete',
         recover => 'Recover',
         purge => 'Purge',
+        edit => 'Edit',
       };
 
   String get pastTense => switch (this) {
@@ -30,6 +33,7 @@ enum VmAction {
         delete => 'Deleted',
         recover => 'Recovered',
         purge => 'Purged',
+        edit => 'Edited',
       };
 
   String get continuousTense => switch (this) {
@@ -40,6 +44,7 @@ enum VmAction {
         delete => 'Deleting',
         recover => 'Recovering',
         purge => 'Purging',
+        edit => 'Editing',
       };
 
   Set<Status> get allowedStatuses => switch (this) {
@@ -50,6 +55,7 @@ enum VmAction {
         delete => const {Status.STOPPED, Status.SUSPENDED, Status.RUNNING},
         recover => const {Status.DELETED},
         purge => const {Status.DELETED},
+        edit => const {Status.STOPPED},
       };
 }
 
