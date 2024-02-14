@@ -2,8 +2,8 @@
 #include "multipass/cli/client_common.h"
 #include "multipass/format.h"
 #include "multipass/logging/log.h"
-#include "multipass/name_generator.h"
 #include "multipass/memory_size.h"
+#include "multipass/name_generator.h"
 #include "multipass/settings/settings.h"
 #include "multipass/version.h"
 
@@ -183,7 +183,8 @@ try
     std::string string_value{value};
     free((void*)value);
     return mp::in_bytes(string_value);
-} catch (const std::exception& e)
+}
+catch (const std::exception& e)
 {
     mpl::log(mpl::Level::warning, category, fmt::format("failed converting memory to bytes: {}", e.what()));
     return -1;
