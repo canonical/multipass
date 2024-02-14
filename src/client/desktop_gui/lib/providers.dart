@@ -122,12 +122,40 @@ class DaemonSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
   bool updateShouldNotify(String? previous, String? next) => previous != next;
 }
 
+class DaemonSettingNotifier2
+    extends AutoDisposeFamilyAsyncNotifier<String, String> {
+  @override
+  Future<String> build(String arg) async {
+    return ref.watch(daemonAvailableProvider)
+        ? await ref.watch(grpcClientProvider).get(arg)
+        : state.valueOrNull ?? await Completer<String>().future;
+  }
+
+  void set(String value) async {
+    state = await AsyncValue.guard(() async {
+      await ref.read(grpcClientProvider).set(arg, value);
+      return value;
+    });
+  }
+
+  @override
+  bool updateShouldNotify(
+    AsyncValue<String> previous,
+    AsyncValue<String> next,
+  ) {
+    return previous != next;
+  }
+}
+
 const driverKey = 'local.driver';
 const bridgedNetworkKey = 'local.bridged-network';
 const privilegedMountsKey = 'local.privileged-mounts';
 const passphraseKey = 'local.passphrase';
 final daemonSettingProvider = NotifierProvider.autoDispose
     .family<DaemonSettingNotifier, String?, String>(DaemonSettingNotifier.new);
+
+final daemonSettingProvider2 = AsyncNotifierProvider.autoDispose
+    .family<DaemonSettingNotifier2, String, String>(DaemonSettingNotifier2.new);
 
 class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
   final SharedPreferences sharedPreferences;
