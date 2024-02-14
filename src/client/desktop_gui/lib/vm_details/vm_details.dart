@@ -5,46 +5,54 @@ import 'package:intl/intl.dart';
 
 import '../providers.dart';
 import 'cpu_sparkline.dart';
+import 'edit_vm_form.dart';
 import 'memory_usage.dart';
+import 'vm_action_buttons.dart';
 import 'vm_status_icon.dart';
 
-class VmDetailsScreen extends ConsumerWidget {
+class VmDetailsScreen extends StatelessWidget {
   final String name;
 
-  const VmDetailsScreen({
-    super.key,
-    required this.name,
-  });
+  const VmDetailsScreen({super.key, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      endDrawer: EditVmForm(name),
+      body: VmDetails(name: name),
+    );
+  }
+}
+
+class VmDetails extends ConsumerWidget {
+  final String name;
+
+  const VmDetails({super.key, required this.name});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final info = ref.watch(vmInfosProvider.select((infos) {
-      return infos.firstWhereOrNull((info) => info.name == name) ??
-          DetailedInfoItem();
-    }));
-
-    final vmName = Text(name, style: const TextStyle(fontSize: 37));
+    final info = ref.watch(vmInfoProvider(name));
 
     final image = VmStat(
+      width: 150,
       label: 'IMAGE',
       child: Text(info.instanceInfo.currentRelease),
     );
 
     final status = VmStat(
+      width: 100,
       label: 'STATE',
       child: VmStatusIcon(info.instanceStatus.status),
     );
 
     final cpu = VmStat(
+      width: 150,
       label: 'CPU USAGE',
-      child: SizedBox(
-        height: 40,
-        width: 150,
-        child: CpuSparkline(info.name),
-      ),
+      child: CpuSparkline(info.name),
     );
 
     final memory = VmStat(
+      width: 150,
       label: 'MEMORY USAGE',
       child: MemoryUsage(
         used: info.instanceInfo.memoryUsage,
@@ -53,6 +61,7 @@ class VmDetailsScreen extends ConsumerWidget {
     );
 
     final disk = VmStat(
+      width: 150,
       label: 'DISK USAGE',
       child: MemoryUsage(
         used: info.instanceInfo.diskUsage,
@@ -61,16 +70,19 @@ class VmDetailsScreen extends ConsumerWidget {
     );
 
     final privateIp = VmStat(
+      width: 150,
       label: 'PRIVATE IP',
       child: Text(info.instanceInfo.ipv4.firstOrNull ?? '-'),
     );
 
     final publicIp = VmStat(
+      width: 150,
       label: 'PUBLIC IP',
       child: Text(info.instanceInfo.ipv4.skip(1).firstOrNull ?? '-'),
     );
 
     final mounts = VmStat(
+      width: 150,
       label: 'MOUNTS',
       child: Text(
         info.mountInfo.mountPaths
@@ -80,6 +92,7 @@ class VmDetailsScreen extends ConsumerWidget {
     );
 
     final created = VmStat(
+      width: 100,
       label: 'CREATED',
       child: Text(
         DateFormat('yyyy-MM-dd\nHH:mm:ss')
@@ -88,15 +101,21 @@ class VmDetailsScreen extends ConsumerWidget {
     );
 
     final uptime = VmStat(
+      width: 300,
       label: 'UPTIME',
       child: Text(info.instanceInfo.uptime),
     );
 
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 75),
-        child: Column(children: [
-          vmName,
+    return Padding(
+      padding: const EdgeInsets.all(20).copyWith(top: 75),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Text(name, style: const TextStyle(fontSize: 37)),
+          const Spacer(),
+          VmActionButtons(name: name, status: info.instanceStatus.status),
+        ]),
+        const SizedBox(height: 30),
+        Wrap(spacing: 20, runSpacing: 20, children: [
           image,
           status,
           cpu,
@@ -108,7 +127,17 @@ class VmDetailsScreen extends ConsumerWidget {
           created,
           uptime,
         ]),
-      ),
+        Expanded(
+          child: Container(
+            color: Colors.black,
+            alignment: Alignment.center,
+            child: const Text(
+              'Terminal',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -116,25 +145,27 @@ class VmDetailsScreen extends ConsumerWidget {
 class VmStat extends StatelessWidget {
   final String label;
   final Widget child;
+  final double width;
 
   const VmStat({
     super.key,
     required this.label,
     required this.child,
+    required this.width,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return SizedBox(
+      width: width,
+      height: 75,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
           label,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
         ),
-        child,
-      ],
+        Expanded(child: Align(alignment: Alignment.centerLeft, child: child)),
+      ]),
     );
   }
 }
