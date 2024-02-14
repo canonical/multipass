@@ -21,6 +21,7 @@
 
 #include <multipass/cli/command.h>
 #include <multipass/cli/prompters.h>
+#include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/logging/log.h>
 
@@ -124,33 +125,35 @@ public:
         set_request.set_verbosity_level(verbosity);
         set_request.set_key(key.toStdString());
         set_request.set_val(val.toStdString());
-        set_request.set_permission_to_bridge(user_authorized);
+        set_request.set_authorized(user_authorized);
 
         mp::AnimatedSpinner spinner{cout};
 
-        auto custom_on_failure = [&key, &val, &stub, &term, &verbosity](grpc::Status& status) {
-            if (auto code = status.error_code(); code == grpc::FAILED_PRECONDITION)
-            {
-                mp::BridgePrompter prompter(term);
-                std::vector<std::string> nets(1, val.toStdString());
-
-                if (prompter.bridge_prompt(nets))
+        auto streaming_confirmation_callback =
+            [&term](mp::SetReply& reply, grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
+                if (reply.needs_authorization())
                 {
-                    RemoteSet(key, val, stub, term, verbosity, true);
+                    auto bridged_network = reply.reply_message();
 
-                    return mp::ReturnCode::Ok;
+                    std::vector<std::string> nets(1, bridged_network);
+
+                    mp::BridgePrompter prompter(term);
+
+                    auto request = mp::SetRequest{};
+                    auto answer = prompter.bridge_prompt(nets);
+                    request.set_authorized(answer);
+
+                    client->Write(request);
                 }
-            }
 
-            return on_failure(status);
-        };
+                return mp::ReturnCode::Ok;
+            };
 
-        [[maybe_unused]] auto ret =
-            dispatch(&RpcMethod::set,
-                     set_request,
-                     on_success<mp::SetReply>,
-                     custom_on_failure,
-                     mp::make_reply_spinner_callback<mp::SetRequest, mp::SetReply>(spinner, cerr));
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::set,
+                                             set_request,
+                                             on_success<mp::SetReply>,
+                                             on_failure,
+                                             streaming_confirmation_callback);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };

@@ -1423,7 +1423,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
               return config->factory->bridge_name_for(MP_SETTINGS.get(mp::bridged_interface_key).toStdString());
           },
           [this]() { return config->factory->networks(); },
-          [this]() { return user_authorized_bridge; })},
+          [this]() { return user_authorized; })},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
@@ -2548,19 +2548,48 @@ try
 
     auto key = request->key();
     auto val = request->val();
-    user_authorized_bridge = request->permission_to_bridge();
+    user_authorized = request->authorized();
 
     mpl::log(mpl::Level::trace, category, fmt::format("Trying to set {}={}", key, val));
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
 
-    user_authorized_bridge = false;
+    user_authorized = false;
 
     status_promise->set_value(grpc::Status::OK);
 }
 catch (const mp::NonAuthorizedBridgeSettingsException& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    auto key = request->key();
+    auto val = request->val();
+    mpl::log(mpl::Level::debug, category, fmt::format("Asking for user authorization to set {}={}", key, val));
+
+    auto reply = SetReply{};
+    reply.set_needs_authorization(true);
+    reply.set_reply_message(get_bridged_interface_name());
+    server->Write(reply);
+
+    auto callback_request = SetRequest{};
+    server->Read(&callback_request);
+
+    user_authorized = callback_request.authorized();
+
+    if (user_authorized)
+    {
+        MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+
+        user_authorized = false;
+
+        mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
+
+        status_promise->set_value(grpc::Status::OK);
+    }
+    else
+    {
+        mpl::log(mpl::Level::debug, category, "User did not authorize, cancelling");
+
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    }
 }
 catch (const mp::UnrecognizedSettingException& e)
 {
