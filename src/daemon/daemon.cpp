@@ -2744,10 +2744,12 @@ void mp::Daemon::clone(const CloneRequest* request,
             throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
         }
 
-        auto clone_spec_item = [this](const std::string& source_name, const std::string& destination_name) -> void {
-            const auto& src_vm_specs = vm_instance_specs[source_name];
-            auto& dest_vm_spec = vm_instance_specs[destination_name] = src_vm_specs;
+        auto clone_spec = [this](const mp::VMSpecs& src_vm_spec,
+                                 const std::string& src_name,
+                                 const std::string& dest_name) -> mp::VMSpecs {
+            mp::VMSpecs dest_vm_spec{src_vm_spec};
             dest_vm_spec.clone_count = 0;
+
             // update default mac addr and extra_interface mac addr
             dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
             for (auto& extra_interface : dest_vm_spec.extra_interfaces)
@@ -2756,10 +2758,11 @@ void mp::Daemon::clone(const CloneRequest* request,
             }
 
             dest_vm_spec.metadata = MP_JSONUTILS.update_unique_identifiers_of_metadata(dest_vm_spec.metadata,
-                                                                                       src_vm_specs,
+                                                                                       src_vm_spec,
                                                                                        dest_vm_spec,
-                                                                                       source_name,
-                                                                                       destination_name);
+                                                                                       src_name,
+                                                                                       dest_name);
+
             auto update_extra_interfaces_mac_address_of_run_at_boot =
                 [](const std::vector<std::string>& run_at_boot,
                    const std::vector<NetworkInterface>& src_extra_interfaces,
@@ -2789,27 +2792,31 @@ void mp::Daemon::clone(const CloneRequest* request,
 
             dest_vm_spec.run_at_boot =
                 update_extra_interfaces_mac_address_of_run_at_boot(dest_vm_spec.run_at_boot,
-                                                                   src_vm_specs.extra_interfaces,
+                                                                   src_vm_spec.extra_interfaces,
                                                                    dest_vm_spec.extra_interfaces);
+            return dest_vm_spec;
         };
 
-        clone_spec_item(source_name, destination_name);
+        auto& src_spec = vm_instance_specs[source_name];
+        auto dest_spec = clone_spec(src_spec, source_name, destination_name);
 
         config->vault->clone(source_name, destination_name);
+
         const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
 
+        // QemuVirtualMachine constructor depends on vm_instance_specs[destination_name], so the appending has to be
+        // done before that
+        vm_instance_specs.emplace(destination_name, dest_spec);
         operative_instances[destination_name] =
             config->factory->create_vm_and_instance_disk_data(config->data_directory,
-                                                              vm_instance_specs[source_name],
-                                                              vm_instance_specs[destination_name],
+                                                              src_spec,
+                                                              dest_spec,
                                                               source_name,
                                                               destination_name,
                                                               dest_vm_image,
                                                               *this);
-
-        ++vm_instance_specs[source_name].clone_count;
+        ++src_spec.clone_count;
         persist_instances();
-
         init_mounts(destination_name);
 
         CloneReply rpc_response;
@@ -2819,6 +2826,7 @@ void mp::Daemon::clone(const CloneRequest* request,
     }
     catch (const std::exception& e)
     {
+        // clean up the possible leftover RAM data and disk files
         status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
     }
 }
