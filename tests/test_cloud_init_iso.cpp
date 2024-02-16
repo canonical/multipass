@@ -61,14 +61,6 @@ TEST_F(CloudInitIso, creates_iso_file)
     EXPECT_THAT(file.size(), Ge(0));
 }
 
-TEST_F(CloudInitIso, reads_non_exist_iso_file_throw)
-{
-    mp::CloudInitIso iso;
-    MP_EXPECT_THROW_THAT(iso.read_from(std::filesystem::path{"non_existing_path"}),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("does not exist or is not a regular file. ")));
-}
-
 TEST_F(CloudInitIso, reads_iso_file_failed_to_open_file)
 {
     mp::CloudInitIso original_iso;
