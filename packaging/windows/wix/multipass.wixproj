@@ -1,0 +1,16 @@
+<Project Sdk="WixToolset.Sdk/4.0.4">
+    <PropertyGroup>
+        <BuildVersion>0.0</BuildVersion>
+        <DefineConstants>Version=$(BuildVersion)</DefineConstants>
+        <InstallerPlatform>x64</InstallerPlatform>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <BindPath Include="..\fonts" />
+        <BindPath Include=".." />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="WixToolset.Util.wixext" Version="4.0.4" />
+    </ItemGroup>
+</Project>

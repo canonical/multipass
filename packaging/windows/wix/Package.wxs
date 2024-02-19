@@ -1,9 +1,9 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-    <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="1.0.0" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
+    <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
 
         <MediaTemplate EmbedCab="yes" />
-        <Icon Id="mp.exe" SourceFile="..\icon.ico" />
+        <Icon Id="mp.exe" SourceFile="icon.ico" />
         <Property Id="ARPPRODUCTICON" Value="mp.exe" />
 
         <StandardDirectory Id="ProgramFiles6432Folder">
@@ -25,14 +25,14 @@
 
     <Fragment>
         <Component Id="Fonts" Directory="FontsFolder">
-            <File Source="..\fonts\UbuntuMono-R.ttf" TrueType="true" />
+            <File Source="UbuntuMono-R.ttf" TrueType="true" />
             <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" Name="Ubuntu Mono (TrueType)" Value="UbuntuMono-R.ttf" />
         </Component>
     </Fragment>
 
     <Fragment>
         <Component Id="Licence" Directory="INSTALLFOLDER">
-            <File Source="..\fonts\UBUNTU-LICENCE.txt" />
+            <File Source="UBUNTU-LICENCE.txt" />
         </Component>
     </Fragment>
 </Wix>
