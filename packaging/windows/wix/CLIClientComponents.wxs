@@ -1,0 +1,9 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+    <Fragment>
+        <ComponentGroup Id="CLIClientComponents" Directory="INSTALLFOLDER">
+            <Component Id="MultipassCLIClient" Subdirectory="bin">
+                <File Source="..\..\..\build\_CPack_Packages\win64\NSIS\multipass-1.14.0-dev.1482+g0998c72eb.win-win64\multipass\bin\multipass.exe" />
+            </Component>
+        </ComponentGroup>
+    </Fragment>
+</Wix>
