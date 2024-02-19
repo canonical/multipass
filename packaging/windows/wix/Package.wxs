@@ -3,6 +3,8 @@
         <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
 
         <MediaTemplate EmbedCab="yes" />
+        <Icon Id="mp.exe" SourceFile="..\icon.ico" />
+        <Property Id="ARPPRODUCTICON" Value="mp.exe" />
 
         <StandardDirectory Id="ProgramFiles6432Folder">
             <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)" />
