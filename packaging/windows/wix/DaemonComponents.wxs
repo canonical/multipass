@@ -1,9 +1,11 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
     <Fragment>
         <ComponentGroup Id="DaemonComponents" Directory="INSTALLFOLDER">
             <Component Id="MultipassDaemon" Subdirectory="bin">
                 <File Source="..\..\..\build\_CPack_Packages\win64\NSIS\multipass-1.14.0-dev.1482+g0998c72eb.win-win64\multipassd\bin\multipassd.exe" />
-                <ServiceInstall Name="Multipass" DisplayName="Multipass Service" Description="Provides a service to create and manage virtual machines" Arguments="/svc --verbosity debug" Start="auto" Type="ownProcess" ErrorControl="normal" />
+                <ServiceInstall Name="Multipass" DisplayName="Multipass Service" Description="Provides a service to create and manage virtual machines" Arguments="/svc --verbosity debug" Start="auto" Type="ownProcess" ErrorControl="normal">
+                    <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" ResetPeriodInDays="49710" />
+                </ServiceInstall>
                 <ServiceControl Name="Multipass" Stop="both" Remove="uninstall" Start="install" />
 
                 <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="EventMessageFile" Value="%SystemRoot%\\System32\EventCreate.exe" />
