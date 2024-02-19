@@ -2,6 +2,8 @@
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="1.0.0" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
 
+        <MediaTemplate EmbedCab="yes" />
+
         <StandardDirectory Id="ProgramFiles6432Folder">
             <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)" />
         </StandardDirectory>
