@@ -16,6 +16,7 @@
     <Fragment>
         <Feature Id="Main">
             <ComponentGroupRef Id="CLIClientComponents" />
+            <ComponentGroupRef Id="DaemonComponents" />
         </Feature>
     </Fragment>
 </Wix>
