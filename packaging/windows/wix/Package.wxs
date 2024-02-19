@@ -19,6 +19,7 @@
             <ComponentGroupRef Id="DaemonComponents" />
             <ComponentGroupRef Id="GUIComponents" />
             <ComponentRef Id="Fonts" />
+            <ComponentRef Id="Licence" />
         </Feature>
     </Fragment>
 
@@ -26,6 +27,12 @@
         <Component Id="Fonts" Directory="FontsFolder">
             <File Source="..\fonts\UbuntuMono-R.ttf" TrueType="true" />
             <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" Name="Ubuntu Mono (TrueType)" Value="UbuntuMono-R.ttf" />
+        </Component>
+    </Fragment>
+
+    <Fragment>
+        <Component Id="Licence" Directory="INSTALLFOLDER">
+            <File Source="..\fonts\UBUNTU-LICENCE.txt" />
         </Component>
     </Fragment>
 </Wix>
