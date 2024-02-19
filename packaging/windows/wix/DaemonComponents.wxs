@@ -5,6 +5,9 @@
                 <File Source="..\..\..\build\_CPack_Packages\win64\NSIS\multipass-1.14.0-dev.1482+g0998c72eb.win-win64\multipassd\bin\multipassd.exe" />
                 <ServiceInstall Name="Multipass" DisplayName="Multipass Service" Description="Provides a service to create and manage virtual machines" Arguments="/svc --verbosity debug" Start="auto" Type="ownProcess" ErrorControl="normal" />
                 <ServiceControl Name="Multipass" Stop="both" Remove="uninstall" Start="install" />
+
+                <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="EventMessageFile" Value="%SystemRoot%\\System32\EventCreate.exe" />
+                <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="TypesSupported" Value="7" />
             </Component>
         </ComponentGroup>
     </Fragment>
