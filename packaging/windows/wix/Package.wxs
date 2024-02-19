@@ -1,0 +1,12 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+    <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="1.0.0" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
+        <MajorUpgrade DowngradeErrorMessage="Downgrading is not permitted" />
+
+        <FeatureRef Id="Main" />
+    </Package>
+    
+    <Fragment>
+        <Feature Id="Main">
+        </Feature>
+    </Fragment>
+</Wix>
