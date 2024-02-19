@@ -578,13 +578,13 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     const uint32_t joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
     if (read_single_byte(iso_file, joliet_des_start_pos) != 2_u8)
     {
-        throw std::runtime_error("The Joliet volume descriptor is not in place. ");
+        throw std::runtime_error("The Joliet volume descriptor is not in place.");
     }
 
     const std::array<uint8_t, 5> volume_identifier = read_bytes_to_array<5>(iso_file, joliet_des_start_pos + 1u);
     if (std::string_view(reinterpret_cast<const char*>(volume_identifier.data()), volume_identifier.size()) != "CD001")
     {
-        throw std::runtime_error("The Joliet descriptor is malformed. ");
+        throw std::runtime_error("The Joliet descriptor is malformed.");
     }
 
     const uint32_t root_dir_record_data_start_pos = joliet_des_start_pos + 156u;
@@ -594,7 +594,7 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     // parent directory
     if (root_dir_record_data[0] != 34_u8 || root_dir_record_data[25] != 2_u8 || root_dir_record_data[33] != 0_u8)
     {
-        throw std::runtime_error("The root directory record data is malformed. ");
+        throw std::runtime_error("The root directory record data is malformed.");
     }
 
     // Use std::span when C++20 arrives to avoid the copy of the std::array<uint8_t, 8>
