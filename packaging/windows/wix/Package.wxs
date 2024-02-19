@@ -18,6 +18,14 @@
             <ComponentGroupRef Id="CLIClientComponents" />
             <ComponentGroupRef Id="DaemonComponents" />
             <ComponentGroupRef Id="GUIComponents" />
+            <ComponentRef Id="Fonts" />
         </Feature>
+    </Fragment>
+
+    <Fragment>
+        <Component Id="Fonts" Directory="FontsFolder">
+            <File Source="..\fonts\UbuntuMono-R.ttf" TrueType="true" />
+            <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" Name="Ubuntu Mono (TrueType)" Value="UbuntuMono-R.ttf" />
+        </Component>
     </Fragment>
 </Wix>
