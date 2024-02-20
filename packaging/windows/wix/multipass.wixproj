@@ -12,5 +12,6 @@
 
     <ItemGroup>
         <PackageReference Include="WixToolset.Util.wixext" Version="4.0.4" />
+        <PackageReference Include="WixToolset.UI.wixext" Version="4.0.4" />
     </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
 
@@ -6,11 +6,9 @@
         <Icon Id="mp.exe" SourceFile="icon.ico" />
         <Property Id="ARPPRODUCTICON" Value="mp.exe" />
 
-        <StandardDirectory Id="ProgramFiles6432Folder">
-            <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)" />
-        </StandardDirectory>
-
         <FeatureRef Id="Main" />
+
+        <ui:WixUI Id="WixUI_Minimal" />
     </Package>
 
     <Fragment>
@@ -34,5 +32,11 @@
         <Component Id="Licence" Directory="INSTALLFOLDER">
             <File Source="UBUNTU-LICENCE.txt" />
         </Component>
+    </Fragment>
+
+    <Fragment>
+        <StandardDirectory Id="ProgramFiles6432Folder">
+            <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)" />
+        </StandardDirectory>
     </Fragment>
 </Wix>
