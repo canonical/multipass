@@ -154,6 +154,14 @@ class GrpcClient {
     final request = SetRequest(key: key, val: value);
     return _client.set(Stream.value(request)).single;
   }
+
+  Future<SSHInfo?> sshInfo(String name) {
+    final request = SSHInfoRequest(instanceName: [name]);
+    return _client
+        .ssh_info(Stream.value(request))
+        .first
+        .then((reply) => reply.sshInfo[name]);
+  }
 }
 
 class CustomChannelCredentials extends ChannelCredentials {
