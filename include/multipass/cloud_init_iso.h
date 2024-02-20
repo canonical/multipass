@@ -22,6 +22,7 @@
 
 #include <multipass/path.h>
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -32,10 +33,21 @@ class CloudInitIso
 public:
     void add_file(const std::string& name, const std::string& data);
     void write_to(const Path& path);
+    void read_from(const std::filesystem::path& path);
+
+    friend bool operator==(const CloudInitIso& lhs, const CloudInitIso& rhs)
+    {
+        return lhs.files == rhs.files;
+    }
 
 private:
     struct FileEntry
     {
+        friend bool operator==(const FileEntry& lhs, const FileEntry& rhs)
+        {
+            return std::tie(lhs.name, lhs.data) == std::tie(rhs.name, rhs.data);
+        }
+
         std::string name;
         std::string data;
     };
