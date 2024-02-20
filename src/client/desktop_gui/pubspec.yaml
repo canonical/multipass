@@ -12,6 +12,10 @@ dependencies:
   basics: ^0.10.0
   built_collection: ^5.1.1
   collection: ^1.17.1
+  dartssh2:
+    git:
+      url: https://github.com/andrei-toterman/dartssh2.git
+      ref: parse-rsa-from-octetstring
   ffi: ^2.0.2
   fl_chart: ^0.63.0
   flutter:
@@ -30,6 +34,7 @@ dependencies:
   two_dimensional_scrollables: ^0.0.2
   url_launcher: ^6.2.3
   window_manager: ^0.3.5
+  xterm: ^3.5.0
 
 dev_dependencies:
   flutter_lints: ^2.0.0
