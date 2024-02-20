@@ -204,10 +204,6 @@ parts:
 
       cd ${CRAFT_PART_SRC}/3rd-party
       find . -name 'LICENSE*' -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
-    stage:
-      - -usr/lib/$CRAFT_ARCH_TRIPLET/libGLX_mesa.so*
-      - -usr/lib/$CRAFT_ARCH_TRIPLET/libEGL_mesa.so*
-      - -usr/share/glvnd/egl_vendor.d/50_mesa.json
 
   qemu:
     build-environment:
