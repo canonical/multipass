@@ -18,6 +18,7 @@
             <ComponentGroupRef Id="GUIComponents" />
             <ComponentRef Id="Fonts" />
             <ComponentRef Id="Licence" />
+            <ComponentGroupRef Id="MultipassSupportComponents" />
         </Feature>
     </Fragment>
 
@@ -36,7 +37,9 @@
 
     <Fragment>
         <StandardDirectory Id="ProgramFiles6432Folder">
-            <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)" />
+            <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)">
+                <Directory Id="BinFolder" Name="bin" />
+            </Directory>
         </StandardDirectory>
     </Fragment>
 </Wix>

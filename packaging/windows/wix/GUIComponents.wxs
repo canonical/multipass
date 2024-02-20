@@ -2,7 +2,7 @@
     <Fragment>
         <ComponentGroup Id="GUIComponents" Directory="INSTALLFOLDER">
             <Component Id="MultipassGUI" Subdirectory="bin">
-                <File Source="..\..\..\build\_CPack_Packages\win64\NSIS\multipass-1.14.0-dev.1482+g0998c72eb.win-win64\multipass_gui\bin\multipass.gui.exe" />
+                <File Source="bin\multipass.gui.exe" />
             </Component>
 
             <Component>

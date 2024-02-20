@@ -2,7 +2,7 @@
     <Fragment>
         <ComponentGroup Id="CLIClientComponents" Directory="INSTALLFOLDER">
             <Component Id="MultipassCLIClient" Subdirectory="bin">
-                <File Source="..\..\..\build\_CPack_Packages\win64\NSIS\multipass-1.14.0-dev.1482+g0998c72eb.win-win64\multipass\bin\multipass.exe" />
+                <File Source="bin\multipass.exe" />
                 <Environment Name="PATH" System="no" Value="[INSTALLFOLDER]bin" Action="set" Part="last" />
             </Component>
         </ComponentGroup>
