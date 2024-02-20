@@ -18,6 +18,7 @@
  */
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 
 #include <QFile>
@@ -75,10 +76,21 @@ uint8_t to_u8(uint32_t value)
     return static_cast<uint8_t>(value);
 }
 
+uint32_t to_u32(uint8_t value)
+{
+    return static_cast<uint32_t>(value);
+}
+
 std::array<uint8_t, 8> to_lsb_msb(uint32_t value)
 {
-    return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u), to_u8(value >> 24u),
-             to_u8(value >> 16u), to_u8(value >> 8u), to_u8(value)}};
+    return {{to_u8(value),
+             to_u8(value >> 8u),
+             to_u8(value >> 16u),
+             to_u8(value >> 24u),
+             to_u8(value >> 24u),
+             to_u8(value >> 16u),
+             to_u8(value >> 8u),
+             to_u8(value)}};
 }
 
 std::array<uint8_t, 4> to_lsb_msb(uint16_t value)
@@ -91,6 +103,21 @@ std::array<uint8_t, 4> to_lsb(uint32_t value)
     return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u)}};
 }
 
+bool is_system_little_endian()
+{
+    uint32_t test_value = 1; // In memory: 01 00 00 00 (little endian) or 00 00 00 01 (big endian)
+    return *(reinterpret_cast<uint8_t*>(&test_value)) == 1; // Check the first byte
+}
+
+// std::array<uint8_t, 8> -> std::span<uint8_t, 8> when c++20 arrives
+uint32_t from_lsb_msb(const std::array<uint8_t, 8>& bytes)
+{
+    // replace the is_system_little_endian() function with std::endian::native == std::endian::little when C++20 arrives
+    return is_system_little_endian()
+               ? to_u32(bytes[0]) | to_u32(bytes[1]) << 8u | to_u32(bytes[2]) << 16u | to_u32(bytes[3]) << 24u
+               : to_u32(bytes[4]) << 24u | to_u32(bytes[5]) << 16u | to_u32(bytes[6]) << 8u | to_u32(bytes[7]);
+}
+
 template <typename T, typename SizeType, typename V>
 void set_at(T& t, SizeType offset, const V& value)
 {
@@ -101,6 +128,47 @@ template <typename T>
 void write(const T& t, QFile& f)
 {
     f.write(reinterpret_cast<const char*>(t.data.data()), t.data.size());
+}
+
+// The below three utility functions should serve as the abstraction layer for binary file reading, the
+// std::vector<uint8_t>, std::array<uint8_t, N> and uint8_t should be the only ones to receive data because they
+// indicate the nature of the data which is raw binary bytes.
+std::vector<uint8_t> read_bytes_to_vec(std::ifstream& file, std::streampos pos, size_t size)
+{
+    std::vector<uint8_t> buffer(size);
+    file.seekg(pos);
+
+    if (!MP_FILEOPS.read(file, reinterpret_cast<char*>(buffer.data()), size))
+    {
+        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", size, std::streamoff(pos)));
+    }
+
+    return buffer;
+}
+
+template <size_t N>
+std::array<uint8_t, N> read_bytes_to_array(std::ifstream& file, std::streampos pos)
+{
+    std::array<uint8_t, N> buffer{};
+    file.seekg(pos);
+    if (!MP_FILEOPS.read(file, reinterpret_cast<char*>(buffer.data()), N))
+    {
+        throw std::runtime_error(fmt::format("Can not read {} bytes data from file at {}.", N, std::streamoff(pos)));
+    }
+
+    return buffer;
+}
+
+uint8_t read_single_byte(std::ifstream& file, std::streampos pos)
+{
+    uint8_t data{};
+    file.seekg(pos);
+    if (!MP_FILEOPS.read(file, reinterpret_cast<char*>(&data), 1))
+    {
+        throw std::runtime_error(fmt::format("Can not read the next byte data from file at {}.", std::streamoff(pos)));
+    }
+
+    return data;
 }
 
 template <size_t size>
@@ -340,6 +408,23 @@ auto make_u16_name(const std::string& name)
     return u16_name;
 }
 
+std::string convert_u16_name_back(const std::string_view u16_name)
+{
+    if (!is_even(u16_name.size()))
+    {
+        throw std::runtime_error(
+            fmt::format("The size of {} is not even, which does not conform to u16 name format.", u16_name.data()));
+    }
+
+    std::string original_name(u16_name.size() / 2, '\0');
+    for (size_t i = 0; i < original_name.size(); ++i)
+    {
+        original_name[i] = u16_name[i * 2 + 1];
+    }
+
+    return original_name;
+}
+
 struct JolietFileRecord : FileRecord
 {
     JolietFileRecord(const std::string& name, uint32_t content_location, uint32_t size)
@@ -476,4 +561,79 @@ void mp::CloudInitIso::write_to(const Path& path)
         seek_to_next_block(f);
     }
     pad_to_end(f);
+}
+
+void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
+{
+    // Please refer to the cloud_Init_Iso_read_me.md file for the preliminaries and the thought process of the
+    // implementation
+    std::ifstream iso_file{fs_path, std::ios_base::in | std::ios::binary};
+    if (!MP_FILEOPS.is_open(iso_file))
+    {
+        throw std::runtime_error{
+            fmt::format(R"("Failed to open file "{}" for reading: {}.")", fs_path.string(), strerror(errno))};
+    }
+
+    const uint32_t num_reserved_bytes = 32768u; // 16 data blocks, 32kb
+    const uint32_t joliet_des_start_pos = num_reserved_bytes + sizeof(PrimaryVolumeDescriptor);
+    if (read_single_byte(iso_file, joliet_des_start_pos) != 2_u8)
+    {
+        throw std::runtime_error("The Joliet volume descriptor is not in place.");
+    }
+
+    const std::array<uint8_t, 5> volume_identifier = read_bytes_to_array<5>(iso_file, joliet_des_start_pos + 1u);
+    if (std::string_view(reinterpret_cast<const char*>(volume_identifier.data()), volume_identifier.size()) != "CD001")
+    {
+        throw std::runtime_error("The Joliet descriptor is malformed.");
+    }
+
+    const uint32_t root_dir_record_data_start_pos = joliet_des_start_pos + 156u;
+    const std::array<uint8_t, 34> root_dir_record_data =
+        read_bytes_to_array<34>(iso_file, root_dir_record_data_start_pos);
+    // size of the data should 34, record is a directory entry and directory is a root directory instead of a root
+    // parent directory
+    if (root_dir_record_data[0] != 34_u8 || root_dir_record_data[25] != 2_u8 || root_dir_record_data[33] != 0_u8)
+    {
+        throw std::runtime_error("The root directory record data is malformed.");
+    }
+
+    // Use std::span when C++20 arrives to avoid the copy of the std::array<uint8_t, 8>
+    std::array<uint8_t, 8> root_dir_record_data_location_lsb_bytes;
+    // location lsb_msb bytes starts from 2
+    std::copy_n(root_dir_record_data.cbegin() + 2u, 8, root_dir_record_data_location_lsb_bytes.begin());
+    const uint32_t root_dir_record_data_location_by_blocks = from_lsb_msb(root_dir_record_data_location_lsb_bytes);
+    const uint32_t file_records_start_pos = root_dir_record_data_location_by_blocks * logical_block_size +
+                                            2u * sizeof(RootDirRecord); // total size of root dir and root dir parent
+
+    uint32_t current_file_record_start_pos = file_records_start_pos;
+    while (true)
+    {
+        const uint8_t file_record_data_size = read_single_byte(iso_file, current_file_record_start_pos);
+        if (file_record_data_size == 0_u8)
+        {
+            break;
+        }
+
+        // In each iteration, the file record provides the size and location of the extent. Initially, we utilize this
+        // information to navigate to and read the file data. Subsequently, we return to the file record to extract the
+        // file name.
+        const uint32_t file_content_location_by_blocks =
+            from_lsb_msb(read_bytes_to_array<8>(iso_file, current_file_record_start_pos + 2u));
+        const uint32_t file_content_size =
+            from_lsb_msb(read_bytes_to_array<8>(iso_file, current_file_record_start_pos + 10u));
+        const std::vector<uint8_t> file_content =
+            read_bytes_to_vec(iso_file, file_content_location_by_blocks * logical_block_size, file_content_size);
+
+        const uint32_t file_name_length_start_pos = current_file_record_start_pos + 32u;
+        const uint8_t encoded_file_name_length = read_single_byte(iso_file, file_name_length_start_pos);
+        const uint32_t file_name_start_pos = file_name_length_start_pos + 1u;
+        const std::vector<uint8_t> encoded_file_name =
+            read_bytes_to_vec(iso_file, file_name_start_pos, to_u32(encoded_file_name_length));
+
+        const std::string orginal_file_name = convert_u16_name_back(
+            std::string_view{reinterpret_cast<const char*>(encoded_file_name.data()), encoded_file_name.size()});
+        files.emplace_back(FileEntry{orginal_file_name, std::string{file_content.cbegin(), file_content.cend()}});
+
+        current_file_record_start_pos += to_u32(file_record_data_size);
+    }
 }
