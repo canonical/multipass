@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../extensions.dart';
 import '../providers.dart';
 import 'cpu_sparkline.dart';
 import 'edit_vm_form.dart';
 import 'memory_usage.dart';
+import 'terminal.dart';
 import 'vm_action_buttons.dart';
 import 'vm_status_icon.dart';
 
@@ -19,7 +21,13 @@ class VmDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       endDrawer: EditVmForm(name),
-      body: VmDetails(name: name),
+      body: Padding(
+        padding: const EdgeInsets.all(20).copyWith(top: 75),
+        child: Column(children: [
+          VmDetails(name: name),
+          Expanded(child: VmTerminal(name)),
+        ]),
+      ),
     );
   }
 }
@@ -106,39 +114,32 @@ class VmDetails extends ConsumerWidget {
       child: Text(info.instanceInfo.uptime),
     );
 
-    return Padding(
-      padding: const EdgeInsets.all(20).copyWith(top: 75),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Text(name, style: const TextStyle(fontSize: 37)),
-          const Spacer(),
-          VmActionButtons(name: name, status: info.instanceStatus.status),
-        ]),
-        const SizedBox(height: 30),
-        Wrap(spacing: 20, runSpacing: 20, children: [
-          image,
-          status,
-          cpu,
-          memory,
-          disk,
-          privateIp,
-          publicIp,
-          mounts,
-          created,
-          uptime,
-        ]),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
         Expanded(
-          child: Container(
-            color: Colors.black,
-            alignment: Alignment.center,
-            child: const Text(
-              'Terminal',
-              style: TextStyle(color: Colors.white),
-            ),
+          child: Text(
+            name.nonBreaking,
+            style: const TextStyle(fontSize: 37),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
+        VmActionButtons(name: name, status: info.instanceStatus.status),
       ]),
-    );
+      const SizedBox(height: 30),
+      Wrap(spacing: 20, runSpacing: 20, children: [
+        image,
+        status,
+        cpu,
+        memory,
+        disk,
+        privateIp,
+        publicIp,
+        mounts,
+        created,
+        uptime,
+      ]),
+    ]);
   }
 }
 
