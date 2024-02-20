@@ -2691,143 +2691,147 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                            server};
 
         const auto& source_name = request->source_name();
-        if (operative_instances.find(source_name) == operative_instances.end())
+        const auto [_, status] = find_instance_and_react(operative_instances,
+                                                         deleted_instances,
+                                                         source_name,
+                                                         require_operative_instances_reaction);
+        if (status.ok())
         {
-            throw std::runtime_error(source_name + " is not an existing instance.");
-        }
+            auto generate_destination_name = [this](const CloneRequest& request) -> std::string {
+                auto is_name_already_used = [this](const std::string& destination_name) -> bool {
+                    return operative_instances.find(destination_name) != operative_instances.end() ||
+                           deleted_instances.find(destination_name) != deleted_instances.end() ||
+                           delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
+                };
 
-        auto generate_destination_name = [this](const CloneRequest& request) -> std::string {
-            auto is_name_already_used = [this](const std::string& destination_name) -> bool {
-                return operative_instances.find(destination_name) != operative_instances.end() ||
-                       deleted_instances.find(destination_name) != deleted_instances.end() ||
-                       delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
+                if (request.has_destination_name())
+                {
+                    if (!mp::utils::valid_hostname(request.destination_name()))
+                    {
+                        throw std::runtime_error("Invalid destination virtual machine instance name: " +
+                                                 request.destination_name());
+                    }
+
+                    if (is_name_already_used(request.destination_name()))
+                    {
+                        throw std::runtime_error(request.destination_name() +
+                                                 " already exists, please choose a new name. ");
+                    }
+
+                    return request.destination_name();
+                }
+                else
+                {
+                    const std::string& source_name = request.source_name();
+                    const std::string destination_name =
+                        generate_next_clone_name(vm_instance_specs[source_name], source_name);
+
+                    if (is_name_already_used(destination_name))
+                    {
+                        throw std::runtime_error("auto-generated name " + destination_name +
+                                                 " already exists, please specify a new name manually. ");
+                    }
+
+                    return destination_name;
+                }
             };
 
-            if (request.has_destination_name())
+            const std::string destination_name = generate_destination_name(*request);
+
+            const auto& source_vm_ptr = operative_instances[source_name];
+            const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
+            if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
             {
-                if (!mp::utils::valid_hostname(request.destination_name()))
-                {
-                    throw std::runtime_error("Invalid destination virtual machine instance name: " +
-                                             request.destination_name());
-                }
-
-                if (is_name_already_used(request.destination_name()))
-                {
-                    throw std::runtime_error(request.destination_name() +
-                                             " already exists, please choose a new name. ");
-                }
-
-                return request.destination_name();
-            }
-            else
-            {
-                const std::string& source_name = request.source_name();
-                const std::string destination_name =
-                    generate_next_clone_name(vm_instance_specs[source_name], source_name);
-
-                if (is_name_already_used(destination_name))
-                {
-                    throw std::runtime_error("auto-generated name " + destination_name +
-                                             " already exists, please specify a new name manually. ");
-                }
-
-                return destination_name;
-            }
-        };
-
-        const std::string destination_name = generate_destination_name(*request);
-
-        const auto& source_vm_ptr = operative_instances[source_name];
-        const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
-        if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
-        {
-            throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
-        }
-
-        auto clone_spec = [this](const mp::VMSpecs& src_vm_spec,
-                                 const std::string& src_name,
-                                 const std::string& dest_name) -> mp::VMSpecs {
-            mp::VMSpecs dest_vm_spec{src_vm_spec};
-            dest_vm_spec.clone_count = 0;
-
-            // update default mac addr and extra_interface mac addr
-            dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
-            for (auto& extra_interface : dest_vm_spec.extra_interfaces)
-            {
-                extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+                throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
             }
 
-            dest_vm_spec.metadata = MP_JSONUTILS.update_unique_identifiers_of_metadata(dest_vm_spec.metadata,
-                                                                                       src_vm_spec,
-                                                                                       dest_vm_spec,
-                                                                                       src_name,
-                                                                                       dest_name);
+            auto clone_spec = [this](const mp::VMSpecs& src_vm_spec,
+                                     const std::string& src_name,
+                                     const std::string& dest_name) -> mp::VMSpecs {
+                mp::VMSpecs dest_vm_spec{src_vm_spec};
+                dest_vm_spec.clone_count = 0;
 
-            auto update_extra_interfaces_mac_address_of_run_at_boot =
-                [](const std::vector<std::string>& run_at_boot,
-                   const std::vector<NetworkInterface>& src_extra_interfaces,
-                   const std::vector<NetworkInterface>& dest_extra_interfaces) -> std::vector<std::string> {
-                std::vector<std::string> result_run_at_boot{run_at_boot};
-                if (src_extra_interfaces.size() != dest_extra_interfaces.size())
+                // update default mac addr and extra_interface mac addr
+                dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
+                for (auto& extra_interface : dest_vm_spec.extra_interfaces)
                 {
-                    throw std::runtime_error(
-                        "Source extra interfaces vector size is not the same as the destination one. ");
+                    extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
                 }
 
-                for (auto& str : result_run_at_boot)
-                {
-                    for (size_t i = 0; i < src_extra_interfaces.size(); ++i)
+                dest_vm_spec.metadata = MP_JSONUTILS.update_unique_identifiers_of_metadata(dest_vm_spec.metadata,
+                                                                                           src_vm_spec,
+                                                                                           dest_vm_spec,
+                                                                                           src_name,
+                                                                                           dest_name);
+
+                auto update_extra_interfaces_mac_address_of_run_at_boot =
+                    [](const std::vector<std::string>& run_at_boot,
+                       const std::vector<NetworkInterface>& src_extra_interfaces,
+                       const std::vector<NetworkInterface>& dest_extra_interfaces) -> std::vector<std::string> {
+                    std::vector<std::string> result_run_at_boot{run_at_boot};
+                    if (src_extra_interfaces.size() != dest_extra_interfaces.size())
                     {
-                        const std::string& search_str = src_extra_interfaces[i].mac_address;
-                        const size_t search_str_start_pos = str.find(search_str);
-                        if (search_str_start_pos != std::string::npos)
+                        throw std::runtime_error(
+                            "Source extra interfaces vector size is not the same as the destination one. ");
+                    }
+
+                    for (auto& str : result_run_at_boot)
+                    {
+                        for (size_t i = 0; i < src_extra_interfaces.size(); ++i)
                         {
-                            str.replace(search_str_start_pos, search_str.size(), dest_extra_interfaces[i].mac_address);
+                            const std::string& search_str = src_extra_interfaces[i].mac_address;
+                            const size_t search_str_start_pos = str.find(search_str);
+                            if (search_str_start_pos != std::string::npos)
+                            {
+                                str.replace(search_str_start_pos,
+                                            search_str.size(),
+                                            dest_extra_interfaces[i].mac_address);
+                            }
                         }
                     }
-                }
 
-                return result_run_at_boot;
+                    return result_run_at_boot;
+                };
+
+                dest_vm_spec.run_at_boot =
+                    update_extra_interfaces_mac_address_of_run_at_boot(dest_vm_spec.run_at_boot,
+                                                                       src_vm_spec.extra_interfaces,
+                                                                       dest_vm_spec.extra_interfaces);
+                return dest_vm_spec;
             };
 
-            dest_vm_spec.run_at_boot =
-                update_extra_interfaces_mac_address_of_run_at_boot(dest_vm_spec.run_at_boot,
-                                                                   src_vm_spec.extra_interfaces,
-                                                                   dest_vm_spec.extra_interfaces);
-            return dest_vm_spec;
-        };
+            auto& src_spec = vm_instance_specs[source_name];
+            auto dest_spec = clone_spec(src_spec, source_name, destination_name);
 
-        auto& src_spec = vm_instance_specs[source_name];
-        auto dest_spec = clone_spec(src_spec, source_name, destination_name);
+            config->vault->clone(source_name, destination_name);
 
-        config->vault->clone(source_name, destination_name);
+            const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
 
-        const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
+            // QemuVirtualMachine constructor depends on vm_instance_specs[destination_name], so the appending has to be
+            // done before that
+            vm_instance_specs.emplace(destination_name, dest_spec);
+            operative_instances[destination_name] =
+                config->factory->create_vm_and_instance_disk_data(config->data_directory,
+                                                                  src_spec,
+                                                                  dest_spec,
+                                                                  source_name,
+                                                                  destination_name,
+                                                                  dest_vm_image,
+                                                                  *this);
+            ++src_spec.clone_count;
+            persist_instances();
+            init_mounts(destination_name);
 
-        // QemuVirtualMachine constructor depends on vm_instance_specs[destination_name], so the appending has to be
-        // done before that
-        vm_instance_specs.emplace(destination_name, dest_spec);
-        operative_instances[destination_name] =
-            config->factory->create_vm_and_instance_disk_data(config->data_directory,
-                                                              src_spec,
-                                                              dest_spec,
-                                                              source_name,
-                                                              destination_name,
-                                                              dest_vm_image,
-                                                              *this);
-        ++src_spec.clone_count;
-        persist_instances();
-        init_mounts(destination_name);
-
-        CloneReply rpc_response;
-        rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
-        server->Write(rpc_response);
-        status_promise->set_value(grpc::Status::OK);
+            CloneReply rpc_response;
+            rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
+            server->Write(rpc_response);
+        }
+        status_promise->set_value(status);
     }
     catch (const std::exception& e)
     {
         // clean up the possible leftover RAM data and disk files
-        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what()));
     }
 }
 
