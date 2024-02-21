@@ -2755,7 +2755,10 @@ void mp::Daemon::clone(const CloneRequest* request,
                 dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
                 for (auto& extra_interface : dest_vm_spec.extra_interfaces)
                 {
-                    extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+                    if (!extra_interface.mac_address.empty())
+                    {
+                        extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+                    }
                 }
 
                 dest_vm_spec.metadata = MP_JSONUTILS.update_unique_identifiers_of_metadata(dest_vm_spec.metadata,
@@ -2769,11 +2772,8 @@ void mp::Daemon::clone(const CloneRequest* request,
                        const std::vector<NetworkInterface>& src_extra_interfaces,
                        const std::vector<NetworkInterface>& dest_extra_interfaces) -> std::vector<std::string> {
                     std::vector<std::string> result_run_at_boot{run_at_boot};
-                    if (src_extra_interfaces.size() != dest_extra_interfaces.size())
-                    {
-                        throw std::runtime_error(
-                            "Source extra interfaces vector size is not the same as the destination one. ");
-                    }
+
+                    assert(src_extra_interfaces.size() == dest_extra_interfaces.size());
 
                     for (auto& str : result_run_at_boot)
                     {
