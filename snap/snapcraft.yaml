@@ -349,7 +349,7 @@ parts:
       craftctl default
       export PATH="/root/parts/desktop-gui/build/flutter-distro/bin:$HOME/.pub-cache/bin:$PATH"
       rm -rf /root/parts/desktop-gui/build/flutter-distro
-      git clone --depth 1 -b stable https://github.com/flutter/flutter.git /root/parts/desktop-gui/build/flutter-distro
+      git clone --depth 1 --branch 3.16.9 https://github.com/flutter/flutter.git /root/parts/desktop-gui/build/flutter-distro
       flutter config --suppress-analytics --no-enable-web --enable-linux-desktop --no-enable-macos-desktop --no-enable-windows-desktop --no-enable-android --no-enable-ios --no-enable-fuchsia --no-enable-custom-devices
       flutter precache --linux
 
