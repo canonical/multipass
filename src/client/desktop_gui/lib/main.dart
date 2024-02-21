@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -7,6 +9,7 @@ import 'package:window_manager/window_manager.dart';
 import 'catalogue/catalogue.dart';
 import 'daemon_unavailable.dart';
 import 'help.dart';
+import 'logger.dart';
 import 'providers.dart';
 import 'settings/settings.dart';
 import 'sidebar.dart';
@@ -16,6 +19,22 @@ import 'vm_table/vm_table_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (details) {
+    logger.e(
+      'Flutter error',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logger.e(
+      'Dart error',
+      error: error,
+      stackTrace: stack,
+    );
+    return true;
+  };
+
   await windowManager.ensureInitialized();
 
   const windowOptions = WindowOptions(
