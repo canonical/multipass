@@ -130,8 +130,10 @@ public:
         mp::AnimatedSpinner spinner{cout};
 
         auto streaming_confirmation_callback =
-            [&term](mp::SetReply& reply, grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
-                if (reply.needs_authorization())
+            [&key, &term](mp::SetReply& reply,
+                          grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
+                if (key.startsWith(mp::daemon_settings_root) && key.endsWith(mp::bridged_network_name) &&
+                    reply.needs_authorization())
                 {
                     auto bridged_network = reply.reply_message();
 
