@@ -20,8 +20,6 @@
 #include "common_callbacks.h"
 
 #include <multipass/cli/command.h>
-#include <multipass/cli/prompters.h>
-#include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/logging/log.h>
 
@@ -129,27 +127,7 @@ public:
 
         mp::AnimatedSpinner spinner{cout};
 
-        auto streaming_confirmation_callback =
-            [&key, &term](mp::SetReply& reply,
-                          grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
-                if (key.startsWith(mp::daemon_settings_root) && key.endsWith(mp::bridged_network_name) &&
-                    reply.needs_authorization())
-                {
-                    auto bridged_network = reply.reply_message();
-
-                    std::vector<std::string> nets(1, bridged_network);
-
-                    mp::BridgePrompter prompter(term);
-
-                    auto request = mp::SetRequest{};
-                    auto answer = prompter.bridge_prompt(nets);
-                    request.set_authorized(answer);
-
-                    client->Write(request);
-                }
-
-                return mp::ReturnCode::Ok;
-            };
+        auto streaming_confirmation_callback = mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key);
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::set,
                                              set_request,
