@@ -67,6 +67,8 @@ QJsonObject mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonObje
                                                                  const std::string& src_vm_name,
                                                                  const std::string& dest_vm_name) const
 {
+    assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
+
     QJsonObject result_metadata = metadataObject;
     QJsonValueRef arguments = result_metadata["arguments"];
     QJsonArray json_array = arguments.toArray();
@@ -74,8 +76,16 @@ QJsonObject mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonObje
     {
         QString str = item.toString();
 
-        // add extra interface string replacement later
         str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
+        for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
+        {
+            const std::string& src_extra_interface_mac_addr = src_specs.extra_interfaces[i].mac_address;
+            if (!src_extra_interface_mac_addr.empty())
+            {
+                const std::string& dest_extra_interface_mac_addr = dest_specs.extra_interfaces[i].mac_address;
+                str.replace(src_extra_interface_mac_addr.c_str(), dest_extra_interface_mac_addr.c_str());
+            }
+        }
         // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
         // "<src_name>"->"<dest_name>" is because the second one might match other substrings of the metadata.
         str.replace("instances/" + QString{src_vm_name.c_str()}, "instances/" + QString{dest_vm_name.c_str()});
