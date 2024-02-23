@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:collection/collection.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,11 +14,7 @@ class CpuSparkline extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rawValues = ref.watch(cpuUsagesProvider(name));
-    final values = rawValues;
-    // .slices(5)
-    // .map((chunk) => List.filled(5, chunk.average))
-    // .flattened;
+    final values = ref.watch(cpuUsagesProvider(name));
 
     final sparkline = LineChartBarData(
       barWidth: 1,
@@ -51,13 +48,39 @@ class CpuSparkline extends ConsumerWidget {
 
 class CpuUsagesNotifier
     extends AutoDisposeFamilyNotifier<Queue<double>, String> {
+  var lastTotal = 0;
+  var lastIdle = 0;
+
   @override
   Queue<double> build(String arg) {
-    final currentUsage = ref.watch(vmInfoProvider(arg)).instanceInfo.cpuUsage;
-    final usages = stateOrNull ?? Queue.of(Iterable.generate(100, (_) => 0.0));
+    final usages = stateOrNull ?? Queue.of(Iterable.generate(50, (_) => 0.0));
+    final cpuTimes = ref
+        .watch(vmInfoProvider(arg))
+        .instanceInfo
+        .cpuTimes
+        .split(' ')
+        .skip(2)
+        .take(8)
+        .map(int.parse)
+        .toList();
+
+    if (cpuTimes.isEmpty) {
+      return usages
+        ..removeFirst()
+        ..addLast(0.0);
+    }
+
+    final total = cpuTimes.sum;
+    final idle = cpuTimes[3];
+    final diffTotal = total - lastTotal;
+    final diffIdle = idle - lastIdle;
+    lastTotal = total;
+    lastIdle = idle;
+
+    final usage = (100 * (diffTotal - diffIdle) / diffTotal).roundToDouble();
     return usages
       ..removeFirst()
-      ..addLast(currentUsage);
+      ..addLast(usage);
   }
 }
 
