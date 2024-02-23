@@ -1,0 +1,8 @@
+--- a/Zip/cmake/PocoZipConfig.cmake
++++ b/Zip/cmake/PocoZipConfig.cmake
+@@ -1,5 +1,3 @@
+ include(CMakeFindDependencyMacro)
+ find_dependency(PocoFoundation)
+-find_dependency(PocoUtil)
+-find_dependency(PocoXML)
+ include("${CMAKE_CURRENT_LIST_DIR}/PocoZipTargets.cmake")
