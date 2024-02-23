@@ -64,7 +64,7 @@ jobs:
 
     steps:
     - name: Write the testflinger job
-      uses: DamianReeves/write-file-action@v1.0
+      uses: DamianReeves/write-file-action@v1.3
       with:
         path: ${{ env.TESTFLINGER_FILE }}
         write-mode: overwrite
