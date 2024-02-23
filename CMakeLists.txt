@@ -15,9 +15,14 @@
 cmake_minimum_required(VERSION 3.17)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
-if (APPLE)
+if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+  set(VCPKG_HOST_OS "osx")
+elseif(MSVC)
+  set(VCPKG_HOST_OS "windows-static")
+else()
+  set(VCPKG_HOST_OS "linux")
 endif()
 
 # Use ccache if it's installed
@@ -25,6 +30,18 @@ find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
+if(NOT DEFINED VCPKG_BUILD_DEFAULT)
+  cmake_host_system_information(RESULT VCPKG_HOST_ARCH QUERY OS_PLATFORM)
+  if("${VCPKG_HOST_ARCH}" STREQUAL "x86_64" OR "${VCPKG_HOST_ARCH}" STREQUAL "AMD64")
+    set(VCPKG_HOST_ARCH "x64")
+  elseif("${VCPKG_HOST_ARCH}" STREQUAL "aarch64")
+    set(VCPKG_HOST_ARCH "arm64")
+  endif()
+
+  set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+  set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
