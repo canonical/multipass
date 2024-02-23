@@ -77,7 +77,7 @@ jobs:
       uses: samuelmeuli/action-snapcraft@v2
 
     - name: Install LXD
-      uses: canonical/setup-lxd@90d76101915da56a42a562ba766b1a77019242fd
+      uses: canonical/setup-lxd@4e959f8e0d9c5feb27d44c5e4d9a330a782edee0
 
     - name: Check out code
       uses: actions/checkout@v3
@@ -112,7 +112,7 @@ jobs:
         echo "key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
     - name: CCache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.key }}
         restore-keys: |
@@ -193,7 +193,7 @@ jobs:
         echo "snap-file=$( ls *.snap )" >> $GITHUB_OUTPUT
 
     - name: Upload the snap
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: ${{ matrix.build-type == 'Release' }}
       with:
         name: ${{ steps.build-snap.outputs.snap-file }}
@@ -218,7 +218,7 @@ jobs:
     timeout-minutes: 15
     steps:
     - name: Download the built snap
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ needs.BuildAndTest.outputs.snap-file }}
 
