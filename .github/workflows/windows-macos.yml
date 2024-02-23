@@ -252,13 +252,13 @@ jobs:
 
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v2
+      uses: crazy-max/ghaction-chocolatey@v3
       with:
         args: install --yes qemu --version=2023.4.24
 
     - name: Install OpenSSL from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v2
+      uses: crazy-max/ghaction-chocolatey@v3
       with:
         args: install --yes openssl --version=3.1.1
 
