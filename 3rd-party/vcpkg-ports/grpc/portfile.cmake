@@ -14,6 +14,7 @@ vcpkg_from_github(
         00003-undef-base64-macro.patch
         00004-link-gdi32-on-windows.patch
         00005-fix-uwp-error.patch
+        00006-remove-unused-libraries.patch
         snprintf.patch
         00012-fix-use-cxx17.patch
         00015-disable-download-archive.patch
@@ -57,6 +58,12 @@ vcpkg_cmake_configure(
         -DgRPC_INSTALL_LIBDIR:STRING=lib
         -DgRPC_INSTALL_INCLUDEDIR:STRING=include
         -DgRPC_INSTALL_CMAKEDIR:STRING=share/grpc
+	-DgRPC_BUILD_GRPC_CSHARP_PLUGIN=OFF
+	-DgRPC_BUILD_GRPC_NODE_PLUGIN=OFF
+	-DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN=OFF
+	-DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF
+	-DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF
+	-DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF
         "-D_gRPC_PROTOBUF_PROTOC_EXECUTABLE=${CURRENT_HOST_INSTALLED_DIR}/tools/protobuf/protoc${VCPKG_HOST_EXECUTABLE_SUFFIX}"
         "-DProtobuf_PROTOC_EXECUTABLE=${CURRENT_HOST_INSTALLED_DIR}/tools/protobuf/protoc${VCPKG_HOST_EXECUTABLE_SUFFIX}"
     MAYBE_UNUSED_VARIABLES
@@ -70,13 +77,7 @@ vcpkg_cmake_config_fixup()
 vcpkg_copy_tools(
     AUTO_CLEAN
     TOOL_NAMES
-        grpc_php_plugin
-        grpc_python_plugin
-        grpc_node_plugin
-        grpc_objective_c_plugin
-        grpc_csharp_plugin
         grpc_cpp_plugin
-        grpc_ruby_plugin 
 )
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share" "${CURRENT_PACKAGES_DIR}/debug/include")
