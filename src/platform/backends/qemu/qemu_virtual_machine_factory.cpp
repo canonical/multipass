@@ -29,6 +29,7 @@
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <QRegularExpression>
+#include <scope_guard.hpp>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -78,6 +79,15 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_d
     const std::filesystem::path source_instance_data_directory = instances_data_directory / source_name;
     const std::filesystem::path dest_instance_data_directory = instances_data_directory / destination_name;
 
+    // if any of the below code throw, then roll back and clean up the created instance folder
+    auto rollback = sg::make_scope_guard([instance_directory_path = dest_instance_data_directory]() noexcept -> void {
+        // use err_code to guarantee the two file operations below do not throw
+        if (std::error_code err_code; MP_FILEOPS.exists(instance_directory_path, err_code))
+        {
+            MP_FILEOPS.remove(instance_directory_path, err_code);
+        }
+    });
+
     MP_FILEOPS.copy(source_instance_data_directory,
                     dest_instance_data_directory,
                     std::filesystem::copy_options::recursive);
@@ -119,6 +129,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_d
     mp::VirtualMachine::UPtr cloned_instance = create_virtual_machine(dest_vm_desc, monitor);
     cloned_instance->load_snapshots_and_update_unique_identifiers(src_vm_spec, dest_vm_spec, source_name);
 
+    rollback.dismiss();
     return cloned_instance;
 }
 
