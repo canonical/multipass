@@ -35,8 +35,9 @@ void main() async {
     return true;
   };
 
-  await windowManager.ensureInitialized();
+  await setupLogger();
 
+  await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
     size: Size(1400, 800),
     title: 'Multipass',

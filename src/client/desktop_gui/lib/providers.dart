@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ffi.dart';
 import 'grpc_client.dart';
+import 'logger.dart';
 
 export 'grpc_client.dart';
 
@@ -29,6 +30,7 @@ final grpcClientProvider = Provider((_) {
         : address.host,
     port: address.port,
     options: ChannelOptions(credentials: channelCredentials),
+    channelShutdownHandler: () => logger.w('gRPC channel shut down'),
   )));
 });
 
@@ -47,7 +49,10 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) {
       controller.add(await grpcClient.info());
       lastError = null;
     } catch (error, stackTrace) {
-      if (error != lastError) controller.addError(error, stackTrace);
+      if (error != lastError) {
+        logger.e('Error on polling info', error: error, stackTrace: stackTrace);
+        controller.addError(error, stackTrace);
+      }
       lastError = error;
     }
   }, fireImmediately: true);

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xterm/xterm.dart';
 
+import '../logger.dart';
 import '../providers.dart';
 
 class VmTerminal extends ConsumerStatefulWidget {
@@ -39,30 +40,34 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
         height: thisTerminal.viewHeight,
         sshInfo: sshInfo,
       ),
-      debugName: '${widget.name}-ssh-session',
       onError: errorReceiver.sendPort,
       onExit: exitReceiver.sendPort,
       errorsAreFatal: true,
     );
-    errorReceiver.listen((message) => print('ON-ERROR: $message'));
-    exitReceiver.listen((message) {
-      print('ON-EXIT: $message');
-      isolate.kill(priority: Isolate.immediate);
+
+    errorReceiver.listen((es) {
+      logger.e(
+        'Error from ${widget.name} ssh isolate',
+        error: es[0],
+        stackTrace: es[1] != null ? StackTrace.fromString(es[1]) : null,
+      );
+    });
+    exitReceiver.listen((_) {
+      receiver.close();
+      errorReceiver.close();
+      exitReceiver.close();
       setState(() => terminal = null);
     });
-
-    final receiverStreamQueue = StreamQueue(receiver);
-    final sender = await receiverStreamQueue.next as SendPort;
-
-    thisTerminal.onOutput = sender.send;
-    thisTerminal.onResize = (w, h, pw, ph) => sender.send([w, h, pw, ph]);
-
-    receiverStreamQueue.rest.listen((data) {
-      if (data is String) {
-        thisTerminal.write(data);
-      } else if (data is int?) {
-        isolate.kill(priority: Isolate.immediate);
-        setState(() => terminal = null);
+    receiver.listen((event) {
+      switch (event) {
+        case final SendPort sender:
+          thisTerminal.onOutput = sender.send;
+          thisTerminal.onResize = (w, h, pw, ph) => sender.send([w, h, pw, ph]);
+        case final String data:
+          thisTerminal.write(data);
+        case final int? code:
+          logger.i('Ssh session for ${widget.name} has exited with code $code');
+          isolate.kill(priority: Isolate.immediate);
       }
     });
   }
@@ -145,13 +150,17 @@ Future<void> sshIsolate(SshShellInfo info) async {
     pty: SSHPtyConfig(width: width, height: height),
   );
 
-  session.done.then((_) => sender.send(session.exitCode));
+  session.done.then((_) {
+    sender.send(session.exitCode);
+    receiver.close();
+  });
 
   receiver.listen((event) {
-    if (event is String) {
-      session.write(utf8.encoder.convert(event));
-    } else if (event case [final w, final h, final pw, final ph]) {
-      session.resizeTerminal(w, h, pw, ph);
+    switch (event) {
+      case final String data:
+        session.write(utf8.encoder.convert(data));
+      case [final int w, final int h, final int pw, final int ph]:
+        session.resizeTerminal(w, h, pw, ph);
     }
   });
 
