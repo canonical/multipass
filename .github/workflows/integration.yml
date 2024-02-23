@@ -206,7 +206,7 @@ jobs:
 
     - name: Run the job
       id: run
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@v3
       with:
         timeout_minutes: 60
         max_attempts: 2
