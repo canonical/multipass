@@ -24,7 +24,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 2
 
@@ -88,7 +88,7 @@ jobs:
       uses: canonical/setup-lxd@4e959f8e0d9c5feb27d44c5e4d9a330a782edee0
 
     - name: Check out code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         # Need to fetch it all for submodules to work.
         fetch-depth: 0
