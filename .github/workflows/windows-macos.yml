@@ -61,7 +61,7 @@ jobs:
       run: git config --local http.https://github.com/.extraheader ""
 
     - name: Upload the repository
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.HEAD_REF }}.git
         path: .git/**
@@ -75,7 +75,7 @@ jobs:
 
     steps:
     - name: Retrieve the repository
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ env.HEAD_REF }}.git
         path: .git
@@ -164,7 +164,7 @@ jobs:
       run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
 
     - name: Retrieve the repository
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ env.HEAD_REF }}.git
         path: .git
@@ -316,7 +316,7 @@ jobs:
       run: ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR, runner.os == 'Windows' && 'win64/NSIS/NSISOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
@@ -383,7 +383,7 @@ jobs:
           ${{ github.workspace }}
 
     - name: Retrieve the repository
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ env.HEAD_REF }}.git
         path: .git
@@ -394,14 +394,14 @@ jobs:
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
       if: ${{ needs.BuildAndTest.outputs.mac-x86-package }}
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-x86-package }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
       if: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
 
@@ -431,7 +431,7 @@ jobs:
 
     - name: Upload package
       if: ${{ steps.combine-package.outputs.path }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.combine-package.outputs.name }}
         path: ${{ steps.combine-package.outputs.path }}
