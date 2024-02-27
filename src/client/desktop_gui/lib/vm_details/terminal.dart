@@ -21,6 +21,13 @@ class VmTerminal extends ConsumerStatefulWidget {
 
 class _VmTerminalState extends ConsumerState<VmTerminal> {
   Terminal? terminal;
+  Isolate? isolate;
+
+  @override
+  void dispose() {
+    isolate?.kill(priority: Isolate.immediate);
+    super.dispose();
+  }
 
   Future<void> initTerminal() async {
     final thisTerminal = terminal;
@@ -32,7 +39,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     final receiver = ReceivePort();
     final errorReceiver = ReceivePort();
     final exitReceiver = ReceivePort();
-    final isolate = await Isolate.spawn(
+    isolate = await Isolate.spawn(
       sshIsolate,
       SshShellInfo(
         sender: receiver.sendPort,
@@ -53,10 +60,11 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       );
     });
     exitReceiver.listen((_) {
+      logger.d('Exited ${widget.name} ssh isolate');
       receiver.close();
       errorReceiver.close();
       exitReceiver.close();
-      setState(() => terminal = null);
+      if (mounted) setState(() => terminal = null);
     });
     receiver.listen((event) {
       switch (event) {
@@ -67,7 +75,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           thisTerminal.write(data);
         case final int? code:
           logger.i('Ssh session for ${widget.name} has exited with code $code');
-          isolate.kill(priority: Isolate.immediate);
+          isolate?.kill(priority: Isolate.immediate);
       }
     });
   }
