@@ -8,7 +8,7 @@ import '../providers.dart';
 import 'cpu_sparkline.dart';
 import 'edit_vm_form.dart';
 import 'memory_usage.dart';
-import 'terminal.dart';
+import 'terminal_tabs.dart';
 import 'vm_action_buttons.dart';
 import 'vm_status_icon.dart';
 
@@ -25,7 +25,7 @@ class VmDetailsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20).copyWith(top: 75),
         child: Column(children: [
           VmDetails(name: name),
-          Expanded(child: VmTerminal(name)),
+          Expanded(child: TerminalTabs(name)),
         ]),
       ),
     );
