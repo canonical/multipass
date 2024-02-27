@@ -9,14 +9,12 @@ vcpkg_from_github(
     SHA512 18574197f4a5070de07c39c096ead2175c150a2b790adbb3d9639b0637641015fb91f5cffa916b50863d6ee62203ad2a6964ce87566b6ae7b41716594c445c06
     HEAD_REF master
     PATCHES
-        00001-fix-uwp.patch
         00002-static-linking-in-linux.patch
         00003-undef-base64-macro.patch
         00004-link-gdi32-on-windows.patch
         00005-fix-uwp-error.patch
         00006-remove-unused-libraries.patch
         snprintf.patch
-        00012-fix-use-cxx17.patch
         00015-disable-download-archive.patch
 )
 
