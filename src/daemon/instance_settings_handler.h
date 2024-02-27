@@ -45,7 +45,8 @@ public:
                             std::function<void()> instance_persister,
                             std::function<std::string()> bridged_interface,
                             std::function<std::string()> bridge_name,
-                            std::function<std::vector<NetworkInterfaceInfo>()> host_networks);
+                            std::function<std::vector<NetworkInterfaceInfo>()> host_networks,
+                            std::function<bool()> user_authorized);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -66,12 +67,22 @@ private:
     std::function<std::string()> bridged_interface;
     std::function<std::string()> bridge_name;
     std::function<std::vector<NetworkInterfaceInfo>()> host_networks;
+    std::function<bool()> user_authorized_bridge;
 };
 
 class InstanceSettingsException : public SettingsException
 {
 public:
     InstanceSettingsException(const std::string& reason, const std::string& instance, const std::string& detail);
+};
+
+class NonAuthorizedBridgeSettingsException : public InstanceSettingsException
+{
+public:
+    NonAuthorizedBridgeSettingsException(const std::string& reason, const std::string& instance, const std::string& net)
+        : InstanceSettingsException{reason, instance, fmt::format("Need user authorization to bridge {}", net)}
+    {
+    }
 };
 
 } // namespace multipass

@@ -20,6 +20,8 @@
 #include "animated_spinner.h"
 
 #include <multipass/cli/client_common.h>
+#include <multipass/cli/prompters.h>
+#include <multipass/constants.h>
 #include <multipass/terminal.h>
 
 #include <grpc++/grpc++.h>
@@ -68,6 +70,27 @@ auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
         {
             spinner.stop();
             spinner.start(msg);
+        }
+    };
+}
+
+template <typename Request, typename Reply>
+auto make_confirmation_callback(Terminal& term, const QString& key)
+{
+    return [&key, &term](Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
+        if (key.startsWith(daemon_settings_root) && key.endsWith(bridged_network_name) && reply.needs_authorization())
+        {
+            auto bridged_network = reply.reply_message();
+
+            std::vector<std::string> nets(1, bridged_network);
+
+            BridgePrompter prompter(&term);
+
+            auto request = Request{};
+            auto answer = prompter.bridge_prompt(nets);
+            request.set_authorized(answer);
+
+            client->Write(request);
         }
     };
 }

@@ -56,7 +56,8 @@ struct TestInstanceSettingsHandler : public Test
                                            make_fake_persister(),
                                            make_fake_bridged_interface(),
                                            make_fake_bridge_name(),
-                                           make_fake_host_networks()};
+                                           make_fake_host_networks(),
+                                           make_fake_authorization()};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)
@@ -74,7 +75,7 @@ struct TestInstanceSettingsHandler : public Test
 
     std::function<std::string()> make_fake_bridged_interface()
     {
-        return [] { return "eth8"; };
+        return [this] { return bridged_interface; };
     }
 
     std::function<std::string()> make_fake_bridge_name()
@@ -89,6 +90,11 @@ struct TestInstanceSettingsHandler : public Test
         ret.push_back(mp::NetworkInterfaceInfo{"virbr0", "bridge", "Network bridge", {}, false});
 
         return [ret] { return ret; };
+    }
+
+    std::function<bool()> make_fake_authorization()
+    {
+        return [this]() { return user_authorized; };
     }
 
     template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NiceMock>
@@ -107,7 +113,9 @@ struct TestInstanceSettingsHandler : public Test
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr> vms;
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr> deleted_vms;
     std::unordered_set<std::string> preparing_vms;
+    std::string bridged_interface{"eth8"};
     bool fake_persister_called = false;
+    bool user_authorized = true;
     inline static constexpr std::array numeric_properties{"cpus", "disk", "memory"};
     inline static constexpr std::array boolean_properties{"bridged"};
     inline static constexpr std::array properties{"cpus", "disk", "memory", "bridged"};
@@ -502,6 +510,38 @@ TEST_F(TestInstanceSettingsHandler, setAddsInterface)
 
     EXPECT_EQ(specs[target_instance_name].extra_interfaces.size(), 2u);
     EXPECT_EQ(specs[target_instance_name].extra_interfaces[1].mac_address, "");
+}
+
+TEST_F(TestInstanceSettingsHandler, setThrowsIfBridgingWrongInterface)
+{
+    bridged_interface = "wrong";
+
+    constexpr auto target_instance_name = "pappo";
+    specs.insert({{"blues", {}}, {"local", {}}, {target_instance_name, {}}});
+
+    mock_vm(target_instance_name); // TODO: make this an expectation.
+
+    std::string failure{"Invalid network 'wrong' set as bridged interface"};
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "bridged"), "true"),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr(failure)));
+}
+
+TEST_F(TestInstanceSettingsHandler, setWithoutAuthorizationThrows)
+{
+    user_authorized = false;
+    constexpr auto target_instance_name = "pappo";
+    specs.insert({{"blues", {}}, {"local", {}}, {target_instance_name, {}}});
+
+    mock_vm(target_instance_name); // TODO: make this an expectation.
+
+    std::string failure{
+        "Cannot update instance settings; instance: pappo; reason: Need user authorization to bridge eth8"};
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "bridged"), "true"),
+                         mp::NonAuthorizedBridgeSettingsException,
+                         mpt::match_what(HasSubstr(failure)));
+
+    EXPECT_EQ(specs[target_instance_name].extra_interfaces.size(), 0u);
 }
 
 using VMSt = mp::VirtualMachine::State;

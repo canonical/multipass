@@ -41,6 +41,7 @@
 #include "tracking_url_downloader.h"
 
 #include <src/daemon/default_vm_image_vault.h>
+#include <src/daemon/instance_settings_handler.h>
 
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
@@ -126,6 +127,7 @@ struct Daemon : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true")); /* TODO should probably add
                              a few more tests for `false`, since there are different portions of code depending on it */
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillRepeatedly(Return("eth8"));
     }
 
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
@@ -2126,12 +2128,88 @@ TEST_P(DaemonSetExceptions, setHandlesSettingsException)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    Daemon, DaemonSetExceptions,
-    Values(std::tuple{mp::UnrecognizedSettingException{"foo"}, grpc::StatusCode::INVALID_ARGUMENT,
+    Daemon,
+    DaemonSetExceptions,
+    Values(std::tuple{mp::NonAuthorizedBridgeSettingsException{"reason", "instance", "eth8"},
+                      grpc::StatusCode::INTERNAL,
+                      HasSubstr("Need user authorization to bridge eth8")},
+           std::tuple{mp::UnrecognizedSettingException{"foo"},
+                      grpc::StatusCode::INVALID_ARGUMENT,
                       AllOf(HasSubstr("Unrecognized"), HasSubstr("foo"))},
-           std::tuple{mp::InvalidSettingException{"foo", "bar", "err"}, grpc::StatusCode::INVALID_ARGUMENT,
+           std::tuple{mp::InvalidSettingException{"foo", "bar", "err"},
+                      grpc::StatusCode::INVALID_ARGUMENT,
                       AllOf(HasSubstr("Invalid"), HasSubstr("foo"), HasSubstr("bar"), HasSubstr("err"))},
            std::tuple{std::runtime_error{"Other"}, grpc::StatusCode::INTERNAL, HasSubstr("Other")}));
+
+TEST_F(Daemon, setWorksIfUserAuthorizes)
+{
+    const std::string key{"local.instance.bridged"}, value{"true"};
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::debug);
+    logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                         fmt::format("Asking for user authorization to set {}={}", key, value));
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, fmt::format("Succeeded setting {}={}", key, value));
+
+    mp::SetRequest request;
+    request.set_key(key);
+    request.set_val(value);
+
+    const auto& exception = mp::NonAuthorizedBridgeSettingsException{"reason", "instance", "eth8"};
+
+    EXPECT_CALL(mock_settings, set).WillOnce(Throw(exception)).WillOnce(Return());
+
+    auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
+
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce([](mp::SetReply reply, auto) {
+        EXPECT_TRUE(reply.needs_authorization());
+        return true;
+    });
+
+    EXPECT_CALL(mock_server, Read(_)).WillOnce([](mp::SetRequest* request) {
+        request->set_authorized(true);
+        return true;
+    });
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
+}
+
+TEST_F(Daemon, setDoesNotSetIfUserDeniesAuthorization)
+{
+    const std::string key{"local.instance.bridged"}, value{"true"};
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::debug);
+    logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                         fmt::format("Asking for user authorization to set {}={}", key, value));
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "User did not authorize, cancelling");
+
+    mp::SetRequest request;
+    request.set_key(key);
+    request.set_val(value);
+
+    const auto& exception = mp::NonAuthorizedBridgeSettingsException{"reason", "instance", "eth8"};
+
+    EXPECT_CALL(mock_settings, set).WillOnce(Throw(exception));
+
+    auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
+
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce([](mp::SetReply reply, auto) {
+        EXPECT_TRUE(reply.needs_authorization());
+        return true;
+    });
+
+    EXPECT_CALL(mock_server, Read(_)).WillOnce([](mp::SetRequest* request) {
+        request->set_authorized(false);
+        return true;
+    });
+
+    EXPECT_FALSE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
+}
 
 TEST_F(Daemon, requests_networks)
 {
