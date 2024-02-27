@@ -15,12 +15,14 @@
 cmake_minimum_required(VERSION 3.17)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
-if(APPLE)
+cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
+
+if("${HOST_OS_NAME}" STREQUAL "macOS")
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
   set(VCPKG_HOST_OS "osx")
-elseif(MSVC)
-  set(VCPKG_HOST_OS "windows-static")
+elseif("${HOST_OS_NAME}" STREQUAL "Windows")
+  set(VCPKG_HOST_OS "windows-static-md")
 else()
   set(VCPKG_HOST_OS "linux")
 endif()
