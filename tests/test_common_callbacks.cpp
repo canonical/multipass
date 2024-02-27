@@ -168,3 +168,21 @@ TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesPasswordRequest)
     EXPECT_THAT(err.str(), IsEmpty());
     EXPECT_THAT(out.str(), clearStreamMatcher());
 }
+
+TEST_F(TestSpinnerCallbacks, confirmationCallbackAnswers)
+{
+    constexpr auto key = "local.instance-name.bridged";
+
+    mpt::MockClientReaderWriter<mp::SetRequest, mp::SetReply> mock_client;
+
+    mp::SetReply reply;
+    reply.set_needs_authorization(true);
+
+    EXPECT_CALL(mock_client, Write(_, _)).WillOnce(Return(true));
+
+    auto callback = mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(term, key);
+    callback(reply, &mock_client);
+
+    EXPECT_THAT(err.str(), IsEmpty());
+    EXPECT_THAT(out.str(), clearStreamMatcher());
+}

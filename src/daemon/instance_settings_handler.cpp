@@ -168,10 +168,12 @@ bool is_bridged(const mp::VMSpecs& spec, const std::string& br_interface, const 
 
 void checked_update_bridged(const QString& key,
                             const QString& val,
+                            const std::string& instance_name,
                             mp::VirtualMachine& instance,
                             mp::VMSpecs& spec,
                             const std::string& br_interface,
-                            const std::string& br_name)
+                            const std::string& br_name,
+                            bool needs_authorization)
 {
     auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
 
@@ -182,6 +184,13 @@ void checked_update_bridged(const QString& key,
 
     if (bridged)
     {
+        if (needs_authorization)
+        {
+            throw mp::NonAuthorizedBridgeSettingsException(operation_msg(Operation::Modify),
+                                                           instance_name,
+                                                           br_interface);
+        }
+
         // The empty string in the MAC indicates the daemon that the interface must be configured.
         spec.extra_interfaces.push_back({br_interface, "", true});
     }
@@ -189,11 +198,13 @@ void checked_update_bridged(const QString& key,
 
 void update_bridged(const QString& key,
                     const QString& val,
+                    const std::string& instance_name,
                     mp::VirtualMachine& instance,
                     mp::VMSpecs& spec,
                     std::function<std::string()> bridged_interface,
                     std::function<std::string()> bridge_name,
-                    std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks)
+                    std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks,
+                    std::function<bool()> user_authorized)
 {
     const auto& host_nets = host_networks(); // This will throw if not implemented on this backend.
     const auto& br = bridged_interface();
@@ -208,7 +219,8 @@ void update_bridged(const QString& key,
                         mp::bridged_interface_key));
     }
 
-    checked_update_bridged(key, val, instance, spec, br, bridge_name());
+    bool needs_authorization = info->needs_authorization && !user_authorized();
+    checked_update_bridged(key, val, instance_name, instance, spec, br, bridge_name(), needs_authorization);
 }
 
 } // namespace
@@ -227,7 +239,8 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::function<void()> instance_persister,
     std::function<std::string()> bridged_interface,
     std::function<std::string()> bridge_name,
-    std::function<std::vector<NetworkInterfaceInfo>()> host_networks)
+    std::function<std::vector<NetworkInterfaceInfo>()> host_networks,
+    std::function<bool()> user_authorized_bridge)
     : vm_instance_specs{vm_instance_specs},
       operative_instances{operative_instances},
       deleted_instances{deleted_instances},
@@ -235,7 +248,8 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
       instance_persister{std::move(instance_persister)},
       bridged_interface{std::move(bridged_interface)},
       bridge_name{std::move(bridge_name)},
-      host_networks{std::move(host_networks)}
+      host_networks{std::move(host_networks)},
+      user_authorized_bridge{user_authorized_bridge}
 {
 }
 
@@ -285,7 +299,15 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
         update_cpus(key, val, instance, spec);
     else if (property == bridged_suffix)
     {
-        update_bridged(key, val, instance, spec, bridged_interface, bridge_name, host_networks);
+        update_bridged(key,
+                       val,
+                       instance_name,
+                       instance,
+                       spec,
+                       bridged_interface,
+                       bridge_name,
+                       host_networks,
+                       user_authorized_bridge);
     }
     else
     {

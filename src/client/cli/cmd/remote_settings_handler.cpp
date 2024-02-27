@@ -111,22 +111,29 @@ public:
 class RemoteSet : public RemoteSettingsCmd
 {
 public:
-    RemoteSet(const QString& key, const QString& val, mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity)
+    RemoteSet(const QString& key,
+              const QString& val,
+              mp::Rpc::StubInterface& stub,
+              mp::Terminal* term,
+              int verbosity,
+              bool user_authorized)
         : RemoteSettingsCmd{stub, term} // need to ensure refs outlive this
     {
         mp::SetRequest set_request;
         set_request.set_verbosity_level(verbosity);
         set_request.set_key(key.toStdString());
         set_request.set_val(val.toStdString());
+        set_request.set_authorized(user_authorized);
 
         mp::AnimatedSpinner spinner{cout};
 
-        [[maybe_unused]] auto ret =
-            dispatch(&RpcMethod::set,
-                     set_request,
-                     on_success<mp::SetReply>,
-                     on_failure,
-                     mp::make_reply_spinner_callback<mp::SetRequest, mp::SetReply>(spinner, cerr));
+        auto streaming_confirmation_callback = mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key);
+
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::set,
+                                             set_request,
+                                             on_success<mp::SetReply>,
+                                             on_failure,
+                                             streaming_confirmation_callback);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
@@ -188,7 +195,7 @@ void mp::RemoteSettingsHandler::set(const QString& key, const QString& val)
     if (key.startsWith(key_prefix))
     {
         assert(term);
-        RemoteSet(key, val, stub, term, verbosity);
+        RemoteSet(key, val, stub, term, verbosity, false);
     }
     else
         throw mp::UnrecognizedSettingException{key};
