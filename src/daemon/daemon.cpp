@@ -2700,10 +2700,6 @@ void mp::Daemon::on_resume()
 {
 }
 
-void mp::Daemon::on_stop()
-{
-}
-
 void mp::Daemon::on_suspend()
 {
 }
