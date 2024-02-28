@@ -63,9 +63,8 @@ public:
     using ShPtr = std::shared_ptr<VirtualMachine>;
 
     virtual ~VirtualMachine() = default;
-    virtual void stop() = 0;
     virtual void start() = 0;
-    virtual void shutdown() = 0;
+    virtual void shutdown() = 0; // TODO@no-merge remove stop in private backends
     virtual void suspend() = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;

@@ -342,11 +342,6 @@ void mp::QemuVirtualMachine::start()
     vm_process->write(qmp_execute_json("qmp_capabilities"));
 }
 
-void mp::QemuVirtualMachine::stop()
-{
-    shutdown();
-}
-
 void mp::QemuVirtualMachine::shutdown()
 {
     if (state == State::suspended)

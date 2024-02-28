@@ -225,11 +225,11 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
                 try
                 {
                     if (!QFileInfo::exists(mp::utils::snap_common_dir() + "/snap_refresh"))
-                        stop();
+                        shutdown();
                 }
                 catch (const mp::SnapEnvironmentException&)
                 {
-                    stop();
+                    shutdown();
                 }
             }
             else
@@ -260,7 +260,7 @@ void mp::LXDVirtualMachine::start()
     update_state();
 }
 
-void mp::LXDVirtualMachine::stop()
+void mp::LXDVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
@@ -290,11 +290,6 @@ void mp::LXDVirtualMachine::stop()
 
     if (update_shutdown_status)
         update_state();
-}
-
-void mp::LXDVirtualMachine::shutdown()
-{
-    stop();
 }
 
 void mp::LXDVirtualMachine::suspend()

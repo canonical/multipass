@@ -40,7 +40,6 @@ public:
                       const QString& storage_pool,
                       const Path& instance_dir);
     ~LXDVirtualMachine() override;
-    void stop() override;
     void start() override;
     void shutdown() override;
     void suspend() override;

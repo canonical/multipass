@@ -346,11 +346,6 @@ void mp::LibVirtVirtualMachine::start()
     monitor->on_resume();
 }
 
-void mp::LibVirtVirtualMachine::stop()
-{
-    shutdown();
-}
-
 void mp::LibVirtVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};

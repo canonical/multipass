@@ -102,11 +102,6 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    void stop() override
-    {
-        state = mp::VirtualMachine::State::off;
-    }
-
     void start() override
     {
         state = mp::VirtualMachine::State::running;

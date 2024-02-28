@@ -2359,7 +2359,7 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     auto machine = backend.create_virtual_machine(default_description, stub_monitor);
 
-    machine->stop();
+    machine->shutdown();
 
     machine->add_network_interface(1, {"id", "52:54:00:56:78:90", true});
 

@@ -50,7 +50,6 @@ public:
     ~QemuVirtualMachine();
 
     void start() override;
-    void stop() override;
     void shutdown() override;
     void suspend() override;
     State current_state() override;
