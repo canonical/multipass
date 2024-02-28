@@ -19,11 +19,15 @@
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
+#include <multipass/exceptions/internal_timeout_exception.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
 
@@ -31,9 +35,16 @@
 
 #include <QDir>
 
+#include <chrono>
+#include <functional>
+#include <mutex>
+#include <stdexcept>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
+
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -64,6 +75,66 @@ std::string trimmed_contents_of(const QString& file_path)
 {
     return mpu::trim(mpu::contents_of(file_path));
 }
+
+template <typename ExceptionT>
+mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
+                                       const mp::VirtualMachine* vm,
+                                       mpl::Level log_level = mpl::Level::trace)
+{
+    assert(vm);
+    mpl::log(log_level, vm->vm_name, e.what());
+    return mp::utils::TimeoutAction::retry;
+};
+
+void wait_until_ssh_up_helper(mp::VirtualMachine* virtual_machine,
+                              std::chrono::milliseconds timeout,
+                              const mp::SSHKeyProvider& key_provider,
+                              std::function<void()> const& ensure_vm_is_running)
+{
+    static constexpr auto wait_step = 1s;
+    mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
+
+    auto action = [virtual_machine, &key_provider, &ensure_vm_is_running] {
+        ensure_vm_is_running();
+        try
+        {
+            mp::SSHSession session{virtual_machine->ssh_hostname(wait_step),
+                                   virtual_machine->ssh_port(),
+                                   virtual_machine->ssh_username(),
+                                   key_provider};
+
+            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+            virtual_machine->state = mp::VirtualMachine::State::running;
+            virtual_machine->update_state();
+            return mp::utils::TimeoutAction::done;
+        }
+        catch (const mp::InternalTimeoutException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const mp::SSHException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const mp::IPUnavailableException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const std::runtime_error& e) // transitioning away from catching generic runtime errors
+        {                                   // TODO remove once we're confident this is an anomaly
+            return log_and_retry(e, virtual_machine, mpl::Level::warning);
+        }
+    };
+
+    auto on_timeout = [virtual_machine] {
+        std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+        virtual_machine->state = mp::VirtualMachine::State::unknown;
+        virtual_machine->update_state();
+        throw std::runtime_error(fmt::format("{}: timed out waiting for response", virtual_machine->vm_name));
+    };
+
+    mp::utils::try_action_for(on_timeout, timeout, action);
+}
 } // namespace
 
 namespace multipass
@@ -90,7 +161,7 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
 
 void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
-    mpu::wait_until_ssh_up(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
+    wait_until_ssh_up_helper(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
 }
 
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
