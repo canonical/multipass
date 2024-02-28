@@ -32,6 +32,11 @@ class CloudInitIso
 {
 public:
     void add_file(const std::string& name, const std::string& data);
+    bool contains(const std::string& name) const;
+    const std::string& at(const std::string& name) const;
+    std::string& at(const std::string& name);
+    std::string& operator[](const std::string& name);
+
     void write_to(const Path& path);
     void read_from(const std::filesystem::path& path);
 
