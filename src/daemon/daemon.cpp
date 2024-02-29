@@ -3399,12 +3399,10 @@ std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::
             "cloud-init-config.iso";
         CloudInitIso qemu_iso;
         qemu_iso.read_from(cloud_init_config_iso_file_path);
-
         std::string& meta_data_file_content = qemu_iso.at("meta-data");
-        YAML::Node meta_data = YAML::Load(meta_data_file_content);
-        meta_data["instance-id"] = mpu::emit_yaml(meta_data["instance-id"]) + "_1";
-        meta_data_file_content = mpu::emit_cloud_config(meta_data);
-        // "network-config" can exist or not, we need to either update it or add it
+        meta_data_file_content =
+            mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content));
+        // overwrite the whole network-config file content
         qemu_iso["network-config"] =
             mpu::emit_cloud_config(mpu::make_cloud_init_network_config(specs.default_mac_address, filtered_interfaces));
         qemu_iso.write_to(QString::fromStdString(cloud_init_config_iso_file_path.string()));
