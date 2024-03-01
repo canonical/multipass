@@ -77,6 +77,12 @@ BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
 BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name, const mp::Path& instance_dir)
     : VirtualMachine(vm_name, instance_dir){};
 
+void BaseVirtualMachine::add_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
+                                                            const std::vector<NetworkInterface>& extra_interfaces,
+                                                            const QString& backend_data_direcotry)
+{
+}
+
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {
     std::vector<std::string> all_ipv4;

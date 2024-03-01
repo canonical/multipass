@@ -85,6 +85,9 @@ public:
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size) = 0;
     virtual void add_network_interface(int index, const NetworkInterface& net) = 0;
+    virtual void add_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
+                                                    const std::vector<NetworkInterface>& extra_interfaces,
+                                                    const QString& backend_data_direcotry) = 0;
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
                                                                     const std::string& target,
                                                                     const VMMount& mount) = 0;

@@ -123,6 +123,12 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
+    void add_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
+                                            const std::vector<NetworkInterface>& extra_interfaces,
+                                            const QString& backend_data_direcotry) override
+    {
+    }
+
     std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider*,
                                                             const std::string&,
                                                             const VMMount&) override
