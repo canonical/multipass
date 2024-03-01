@@ -418,22 +418,24 @@ void mp::QemuVirtualMachine::on_error()
 
 void mp::QemuVirtualMachine::on_shutdown()
 {
-    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    auto current_state = state;
-
-    state = State::off;
-    if (current_state == State::starting)
     {
-        if (!saved_error_msg.empty() && saved_error_msg.back() != '\n')
-            saved_error_msg.append("\n");
-        saved_error_msg.append(fmt::format("{}: shutdown called while starting", vm_name));
-        state_wait.wait(lock, [this] { return shutdown_while_starting; });
+        std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+        auto current_state = state;
+
+        state = State::off;
+        if (current_state == State::starting)
+        {
+            if (!saved_error_msg.empty() && saved_error_msg.back() != '\n')
+                saved_error_msg.append("\n");
+            saved_error_msg.append(fmt::format("{}: shutdown called while starting", vm_name));
+            state_wait.wait(lock, [this] { return shutdown_while_starting; });
+        }
+
+        management_ip = std::nullopt;
+        update_state();
+        vm_process.reset(nullptr);
     }
 
-    management_ip = std::nullopt;
-    update_state();
-    vm_process.reset(nullptr);
-    lock.unlock();
     monitor->on_shutdown();
 }
 
