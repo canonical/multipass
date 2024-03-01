@@ -2185,7 +2185,9 @@ try // clang-format on
                 mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
             }
 
+            mpl::log(mpl::Level::trace, category, "Configuring extra interfaces");
             auto failed_interfaces = configure_new_interfaces(name, vm, vm_instance_specs[name]);
+            mpl::log(mpl::Level::trace, category, "Done configuring extra interfaces");
 
             if (!failed_interfaces.empty())
             {
@@ -3372,9 +3374,13 @@ std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::
 
     for (auto& iface : specs.extra_interfaces)
     {
+        mpl::log(mpl::Level::trace, category, fmt::format("Configuring interface with MAC \"{}\"", iface.mac_address));
+
         if (iface.mac_address.empty()) // An empty MAC address means the interface needs to be configured.
         {
             iface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+
+            mpl::log(mpl::Level::trace, category, fmt::format("Generated MAC \"{}\"", iface.mac_address));
 
             try
             {
@@ -3383,6 +3389,8 @@ std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::
                 added_good_interfaces = true;
 
                 commands.push_back(generate_netplan_script(j, iface.mac_address));
+
+                mpl::log(mpl::Level::trace, category, fmt::format("Added boot commands for \"{}\"", iface.mac_address));
             }
             catch (const std::exception&)
             {
@@ -3391,6 +3399,10 @@ std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::
                 allocated_mac_addrs.erase(iface.mac_address);
 
                 bad_bridges.insert(iface.id);
+
+                mpl::log(mpl::Level::trace,
+                         category,
+                         fmt::format("Couldn't add \"{}\" to the VM, rolling back", iface.mac_address));
 
                 continue;
             }
@@ -3404,7 +3416,13 @@ std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::
     if (added_good_interfaces)
     {
         commands.push_back("sudo netplan apply");
+
+        mpl::log(mpl::Level::trace, category, "Added command to run at boot for Netplan configuration");
     }
+
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("Removed {} extra interfaces", specs.extra_interfaces.size() - filtered_interfaces.size()));
 
     specs.extra_interfaces = filtered_interfaces;
 
