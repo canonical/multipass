@@ -72,6 +72,13 @@ TEST_F(CloudInitIso, check_at_operator_throw)
         mpt::match_what(StrEq("Did not find the target file non_exist_file in the CloudInitIso instance.")));
 }
 
+TEST_F(CloudInitIso, check_at_operator_succeed)
+{
+    mp::CloudInitIso iso;
+    iso.add_file("test", "test data");
+    EXPECT_EQ(iso.at("test"), "test data");
+}
+
 TEST_F(CloudInitIso, creates_iso_file)
 {
     mp::CloudInitIso iso;
