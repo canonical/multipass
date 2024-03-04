@@ -61,6 +61,7 @@ bool operator==(const MockBaseSnapshot& a, const MockBaseSnapshot& b)
                       a.get_mem_size(),
                       a.get_disk_space(),
                       a.get_extra_interfaces(),
+                      a.get_run_at_boot(),
                       a.get_state(),
                       a.get_mounts(),
                       a.get_metadata(),
@@ -73,6 +74,7 @@ bool operator==(const MockBaseSnapshot& a, const MockBaseSnapshot& b)
                                                 b.get_mem_size(),
                                                 b.get_disk_space(),
                                                 b.get_extra_interfaces(),
+                                                b.get_run_at_boot(),
                                                 b.get_state(),
                                                 b.get_mounts(),
                                                 b.get_metadata(),
@@ -90,6 +92,7 @@ struct TestBaseSnapshot : public Test
         ret.disk_space = mp::MemorySize{"10G"};
         ret.extra_interfaces = std::vector<mp::NetworkInterface>{{"eth13", "13:13:13:13:13:13", true},
                                                                  {"eth14", "14:14:14:14:14:14", true}};
+        ret.run_at_boot = std::vector<std::string>{"sudo netplan apply"};
         ret.default_mac_address = "12:12:12:12:12:12";
 
         return ret;
@@ -181,6 +184,7 @@ TEST_F(TestBaseSnapshot, adoptsGivenSpecs)
     EXPECT_EQ(snapshot.get_mem_size(), specs.mem_size);
     EXPECT_EQ(snapshot.get_disk_space(), specs.disk_space);
     EXPECT_EQ(snapshot.get_extra_interfaces(), specs.extra_interfaces);
+    EXPECT_EQ(snapshot.get_run_at_boot(), specs.run_at_boot);
     EXPECT_EQ(snapshot.get_state(), specs.state);
     EXPECT_EQ(snapshot.get_mounts(), specs.mounts);
     EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
@@ -392,6 +396,16 @@ TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
     EXPECT_EQ(snapshot.get_extra_interfaces(), extra_interfaces);
+}
+
+TEST_F(TestBaseSnapshot, adoptsRunAtBootFromJson)
+{
+    std::vector<std::string> run_at_boot{"ls"};
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "run_at_boot", MP_JSONUTILS.string_vector_to_json_array(run_at_boot));
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_run_at_boot(), run_at_boot);
 }
 
 TEST_F(TestBaseSnapshot, adoptsStateFromJson)
