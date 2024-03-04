@@ -79,6 +79,12 @@ TEST_F(CloudInitIso, check_at_operator_succeed)
     EXPECT_EQ(iso.at("test"), "test data");
 }
 
+TEST_F(CloudInitIso, check_index_operator_not_exist_default_return)
+{
+    mp::CloudInitIso iso;
+    EXPECT_EQ(iso["test"], std::string());
+}
+
 TEST_F(CloudInitIso, creates_iso_file)
 {
     mp::CloudInitIso iso;
