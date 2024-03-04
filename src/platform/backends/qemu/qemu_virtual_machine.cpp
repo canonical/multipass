@@ -456,6 +456,7 @@ void mp::QemuVirtualMachine::on_suspend()
 
 void mp::QemuVirtualMachine::on_restart()
 {
+    drop_ssh_session();
     state = State::restarting;
     update_state();
 
