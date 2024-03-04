@@ -79,6 +79,8 @@
     "name": "snapshot3",
     "num_cores": 1,
     "parent": 2,
+    "run_at_boot": [
+    ],
     "state": 0
   }
 }

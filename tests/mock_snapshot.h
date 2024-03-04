@@ -38,6 +38,7 @@ struct MockSnapshot : public mp::Snapshot
     MOCK_METHOD(mp::MemorySize, get_mem_size, (), (const, noexcept, override));
     MOCK_METHOD(mp::MemorySize, get_disk_space, (), (const, noexcept, override));
     MOCK_METHOD(std::vector<mp::NetworkInterface>, get_extra_interfaces, (), (const, noexcept, override));
+    MOCK_METHOD(std::vector<std::string>, get_run_at_boot, (), (const, noexcept, override));
     MOCK_METHOD(mp::VirtualMachine::State, get_state, (), (const, noexcept, override));
     MOCK_METHOD((const std::unordered_map<std::string, mp::VMMount>&), get_mounts, (), (const, noexcept, override));
     MOCK_METHOD(const QJsonObject&, get_metadata, (), (const, noexcept, override));

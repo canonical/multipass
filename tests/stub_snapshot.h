@@ -87,6 +87,11 @@ struct StubSnapshot : public Snapshot
         return std::vector<NetworkInterface>{};
     }
 
+    std::vector<std::string> get_run_at_boot() const noexcept override
+    {
+        return std::vector<std::string>{};
+    }
+
     VirtualMachine::State get_state() const noexcept override
     {
         return VirtualMachine::State::off;
