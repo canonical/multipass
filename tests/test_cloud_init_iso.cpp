@@ -63,6 +63,15 @@ TEST_F(CloudInitIso, check_contains_true)
     EXPECT_TRUE(iso.contains("test"));
 }
 
+TEST_F(CloudInitIso, check_at_operator_throw)
+{
+    mp::CloudInitIso iso;
+    MP_EXPECT_THROW_THAT(
+        iso.at("non_exist_file"),
+        std::runtime_error,
+        mpt::match_what(StrEq("Did not find the target file non_exist_file in the CloudInitIso instance.")));
+}
+
 TEST_F(CloudInitIso, creates_iso_file)
 {
     mp::CloudInitIso iso;
