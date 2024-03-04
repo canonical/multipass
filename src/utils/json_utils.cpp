@@ -99,3 +99,31 @@ std::vector<mp::NetworkInterface> mp::JsonUtils::read_extra_interfaces(const QJs
 
     return extra_interfaces;
 }
+
+QJsonArray mp::JsonUtils::string_vector_to_json_array(const std::vector<std::string>& vec) const
+{
+    QJsonArray string_array;
+
+    for (const auto& element : vec)
+    {
+        string_array.push_back(QString::fromStdString(element));
+    }
+
+    return string_array;
+}
+
+std::vector<std::string> mp::JsonUtils::read_string_vector(const std::string& key, const QJsonObject& record) const
+{
+    std::vector<std::string> ret;
+    QString qkey = QString::fromStdString(key);
+
+    if (record.contains(qkey))
+    {
+        for (const auto& entry : record[qkey].toArray())
+        {
+            ret.push_back(entry.toString().toStdString());
+        }
+    }
+
+    return ret;
+}

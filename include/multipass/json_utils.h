@@ -42,6 +42,8 @@ public:
     virtual std::string json_to_string(const QJsonObject& root) const;
     virtual QJsonArray extra_interfaces_to_json_array(const std::vector<NetworkInterface>& extra_interfaces) const;
     virtual std::vector<NetworkInterface> read_extra_interfaces(const QJsonObject& record) const;
+    virtual QJsonArray string_vector_to_json_array(const std::vector<std::string>& vec) const;
+    virtual std::vector<std::string> read_string_vector(const std::string& key, const QJsonObject& record) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_JSON_UTILS_H

@@ -252,22 +252,6 @@ auto name_from(const std::string& requested_name, const std::string& blueprint_n
     }
 }
 
-std::vector<std::string> read_string_vector(const std::string& key, const QJsonObject& record)
-{
-    std::vector<std::string> ret;
-    QString qkey = QString::fromStdString(key);
-
-    if (record.contains(qkey))
-    {
-        for (const auto& entry : record[qkey].toArray())
-        {
-            ret.push_back(entry.toString().toStdString());
-        }
-    }
-
-    return ret;
-}
-
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, const mp::Path& cache_path)
 {
     QDir data_dir{data_path};
@@ -341,21 +325,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       mounts,
                                       deleted,
                                       metadata,
-                                      read_string_vector("run_at_boot", record)};
+                                      MP_JSONUTILS.read_string_vector("run_at_boot", record)};
     }
     return reconstructed_records;
-}
-
-QJsonArray string_vector_to_json_array(const std::vector<std::string>& vec)
-{
-    QJsonArray string_array;
-
-    for (const auto& element : vec)
-    {
-        string_array.push_back(QString::fromStdString(element));
-    }
-
-    return string_array;
 }
 
 QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
@@ -383,7 +355,7 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     }
 
     json.insert("mounts", json_mounts);
-    json.insert("run_at_boot", string_vector_to_json_array(specs.run_at_boot));
+    json.insert("run_at_boot", MP_JSONUTILS.string_vector_to_json_array(specs.run_at_boot));
 
     return json;
 }
