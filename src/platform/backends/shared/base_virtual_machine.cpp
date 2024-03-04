@@ -163,8 +163,7 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
 
 void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
-    if (ssh_session)
-        mpl::log(logging::Level::debug, vm_name, "cached SSH session about to be replaced");
+    drop_ssh_session();
     ssh_session = wait_until_ssh_up_helper(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
 }
 
@@ -658,7 +657,11 @@ std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const QStri
 
 void BaseVirtualMachine::drop_ssh_session()
 {
-    ssh_session.reset();
+    if (ssh_session)
+    {
+        mpl::log(mpl::Level::debug, vm_name, "Dropping cached SSH session");
+        ssh_session.reset();
+    }
 }
 
 } // namespace multipass
