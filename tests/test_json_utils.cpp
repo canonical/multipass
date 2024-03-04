@@ -129,4 +129,20 @@ TEST_F(TestJsonUtils, throws_on_wrong_mac)
                          std::runtime_error,
                          mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
 }
+
+TEST_F(TestJsonUtils, write_and_read_string_vector)
+{
+    std::vector<std::string> v{"a", "beautiful", "day"};
+
+    auto written_vector = MP_JSONUTILS.string_vector_to_json_array(v);
+
+    QJsonObject doc;
+    std::string key{"some_strings"};
+
+    doc.insert(QString::fromStdString(key), written_vector);
+
+    auto read_vector = MP_JSONUTILS.read_string_vector(key, doc);
+
+    ASSERT_EQ(read_vector, v);
+}
 } // namespace
