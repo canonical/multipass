@@ -106,7 +106,14 @@ void mp::QemuSnapshot::apply_impl()
     desc.num_cores = get_num_cores();
     desc.mem_size = get_mem_size();
     desc.disk_space = get_disk_space();
-    desc.extra_interfaces = get_extra_interfaces();
+
+    // The interfaces with empty MAC addess will be copied later, after configuring them.
+    auto all_interfaces = get_extra_interfaces();
+    desc.extra_interfaces.clear();
+    std::copy_if(all_interfaces.begin(),
+                 all_interfaces.end(),
+                 std::back_inserter(desc.extra_interfaces),
+                 [](const auto& iface) { return !iface.mac_address.empty(); });
 
     mp::backend::checked_exec_qemu_img(make_restore_spec(get_id(), image_path));
     rollback.dismiss();
