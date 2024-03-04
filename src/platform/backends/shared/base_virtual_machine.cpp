@@ -531,6 +531,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     specs.mem_size = snapshot->get_mem_size();
     specs.disk_space = snapshot->get_disk_space();
     specs.extra_interfaces = snapshot->get_extra_interfaces();
+    specs.run_at_boot = snapshot->get_run_at_boot();
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();
 

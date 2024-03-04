@@ -105,6 +105,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
                                MemorySize mem_size,
                                MemorySize disk_space,
                                std::vector<NetworkInterface> extra_interfaces,
+                               std::vector<std::string> run_at_boot,
                                VirtualMachine::State state,
                                std::unordered_map<std::string, VMMount> mounts,
                                QJsonObject metadata,
@@ -120,6 +121,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
       mem_size{mem_size},
       disk_space{disk_space},
       extra_interfaces{extra_interfaces},
+      run_at_boot{run_at_boot},
       state{state},
       mounts{std::move(mounts)},
       metadata{std::move(metadata)},
@@ -157,6 +159,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                    specs.mem_size,
                    specs.disk_space,
                    specs.extra_interfaces,
+                   specs.run_at_boot,
                    specs.state,
                    specs.mounts,
                    specs.metadata,
@@ -182,6 +185,7 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
           MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
           MemorySize{json["disk_space"].toString().toStdString()},                         // disk_space
           MP_JSONUTILS.read_extra_interfaces(json),                                        // extra_interfaces
+          MP_JSONUTILS.read_string_vector("run_at_boot", json),                            // run_at_boot
           static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                   // state
           load_mounts(json["mounts"].toArray()),                                           // mounts
           json["metadata"].toObject(),                                                     // metadata
@@ -205,6 +209,7 @@ QJsonObject mp::BaseSnapshot::serialize() const
     snapshot.insert("mem_size", QString::number(mem_size.in_bytes()));
     snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
     snapshot.insert("extra_interfaces", MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
+    snapshot.insert("run_at_boot", MP_JSONUTILS.string_vector_to_json_array(run_at_boot));
     snapshot.insert("state", static_cast<int>(state));
     snapshot.insert("metadata", metadata);
 

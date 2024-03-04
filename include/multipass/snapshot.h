@@ -46,6 +46,7 @@ public:
     virtual MemorySize get_mem_size() const noexcept = 0;
     virtual MemorySize get_disk_space() const noexcept = 0;
     virtual std::vector<NetworkInterface> get_extra_interfaces() const noexcept = 0;
+    virtual std::vector<std::string> get_run_at_boot() const noexcept = 0;
     virtual VirtualMachine::State get_state() const noexcept = 0;
 
     // Note that these return references - careful not to delete the snapshot while they are in use

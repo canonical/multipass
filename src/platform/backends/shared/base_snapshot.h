@@ -50,6 +50,7 @@ public:
     MemorySize get_mem_size() const noexcept override;
     MemorySize get_disk_space() const noexcept override;
     std::vector<NetworkInterface> get_extra_interfaces() const noexcept override;
+    std::vector<std::string> get_run_at_boot() const noexcept override;
     VirtualMachine::State get_state() const noexcept override;
 
     // Note that these return references - careful not to delete the snapshot while they are in use
@@ -87,6 +88,7 @@ private:
                  MemorySize mem_size,
                  MemorySize disk_space,
                  std::vector<NetworkInterface> extra_interfaces,
+                 std::vector<std::string> run_at_boot,
                  VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts,
                  QJsonObject metadata,
@@ -111,6 +113,7 @@ private:
     const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize disk_space;                           // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::vector<NetworkInterface> extra_interfaces;  // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::vector<std::string> run_at_boot;            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const VirtualMachine::State state;                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -187,6 +190,11 @@ inline auto multipass::BaseSnapshot::get_disk_space() const noexcept -> MemorySi
 inline auto multipass::BaseSnapshot::get_extra_interfaces() const noexcept -> std::vector<NetworkInterface>
 {
     return extra_interfaces;
+}
+
+inline auto multipass::BaseSnapshot::get_run_at_boot() const noexcept -> std::vector<std::string>
+{
+    return run_at_boot;
 }
 
 inline auto multipass::BaseSnapshot::get_state() const noexcept -> VirtualMachine::State
