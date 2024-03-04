@@ -652,7 +652,7 @@ YAML::Node mp::utils::make_cloud_init_meta_config_with_id_tweak(const std::strin
 {
     YAML::Node meta_data = YAML::Load(file_content);
 
-    meta_data["instance-id"] = YAML::Node{emit_yaml(meta_data["instance-id"]) + "_extra_interface"};
+    meta_data["instance-id"] = YAML::Node{emit_yaml(meta_data["instance-id"]) + "_e"};
 
     return meta_data;
 }
