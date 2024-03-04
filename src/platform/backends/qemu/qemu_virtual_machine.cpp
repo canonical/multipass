@@ -438,6 +438,7 @@ void mp::QemuVirtualMachine::on_shutdown()
         }
 
         management_ip = std::nullopt;
+        drop_ssh_session();
         update_state();
         vm_process.reset(nullptr);
     }
