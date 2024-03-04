@@ -50,6 +50,12 @@ struct CloudInitIso : public Test
     QString iso_path;
 };
 
+TEST_F(CloudInitIso, check_contains_false)
+{
+    mp::CloudInitIso iso;
+    EXPECT_FALSE(iso.contains("non_exist_file"));
+}
+
 TEST_F(CloudInitIso, creates_iso_file)
 {
     mp::CloudInitIso iso;
