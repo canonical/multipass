@@ -20,8 +20,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
-#include <multipass/vm_specs.h>
 #include <multipass/utils.h>
+#include <multipass/vm_specs.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
