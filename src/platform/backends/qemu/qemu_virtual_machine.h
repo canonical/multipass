@@ -46,6 +46,7 @@ public:
     QemuVirtualMachine(const VirtualMachineDescription& desc,
                        QemuPlatform* qemu_platform,
                        VMStatusMonitor& monitor,
+                       const SSHKeyProvider& key_provider,
                        const Path& instance_dir);
     ~QemuVirtualMachine();
 
@@ -76,7 +77,8 @@ signals:
 
 protected:
     // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
-    QemuVirtualMachine(const std::string& name, const Path& instance_dir) : BaseVirtualMachine{name, instance_dir}
+    QemuVirtualMachine(const std::string& name, const SSHKeyProvider& key_provider, const Path& instance_dir)
+        : BaseVirtualMachine{name, key_provider, instance_dir}
     {
     }
 

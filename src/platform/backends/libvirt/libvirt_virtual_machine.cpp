@@ -273,12 +273,13 @@ std::string management_ipv4_impl(std::optional<mp::IPAddress>& management_ip,
 }
 } // namespace
 
-mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
+mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const VirtualMachineDescription& desc,
                                                  const std::string& bridge_name,
-                                                 mp::VMStatusMonitor& monitor,
-                                                 const mp::LibvirtWrapper::UPtr& libvirt_wrapper,
-                                                 const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, instance_dir},
+                                                 VMStatusMonitor& monitor,
+                                                 const LibvirtWrapper::UPtr& libvirt_wrapper,
+                                                 const SSHKeyProvider& key_provider,
+                                                 const Path& instance_dir)
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       username{desc.ssh_username},
       desc{desc},
       monitor{&monitor},

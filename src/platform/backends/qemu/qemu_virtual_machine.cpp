@@ -212,10 +212,12 @@ void convert_to_qcow2_v3_if_necessary(const mp::Path& image_path, const std::str
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
                                            QemuPlatform* qemu_platform,
                                            VMStatusMonitor& monitor,
-                                           const mp::Path& instance_dir)
+                                           const SSHKeyProvider& key_provider,
+                                           const Path& instance_dir)
     : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag) ? State::suspended
                                                                                                       : State::off,
                          desc.vm_name,
+                         key_provider,
                          instance_dir},
       desc{desc},
       mac_addr{desc.default_mac_address},

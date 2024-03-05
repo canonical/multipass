@@ -38,12 +38,16 @@
 namespace multipass
 {
 class SSHSession;
+class SSHKeyProvider;
 
 class BaseVirtualMachine : public VirtualMachine
 {
 public:
-    BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir);
-    BaseVirtualMachine(const std::string& vm_name, const Path& instance_dir);
+    BaseVirtualMachine(VirtualMachine::State state,
+                       const std::string& vm_name,
+                       const SSHKeyProvider& key_provider,
+                       const Path& instance_dir);
+    BaseVirtualMachine(const std::string& vm_name, const SSHKeyProvider& key_provider, const Path& instance_dir);
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
@@ -133,6 +137,7 @@ private:
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
 private:
+    const SSHKeyProvider& key_provider;
     std::optional<SSHSession> ssh_session = std::nullopt; // TODO@no-merge thread safety
 
     SnapshotMap snapshots;

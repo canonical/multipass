@@ -144,11 +144,18 @@ namespace multipass
 
 BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
                                        const std::string& vm_name,
-                                       const mp::Path& instance_dir)
-    : VirtualMachine(state, vm_name, instance_dir){};
+                                       const SSHKeyProvider& key_provider,
+                                       const Path& instance_dir)
+    : VirtualMachine{state, vm_name, instance_dir}, key_provider{key_provider}
+{
+}
 
-BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name, const mp::Path& instance_dir)
-    : VirtualMachine(vm_name, instance_dir){};
+BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
+                                       const SSHKeyProvider& key_provider,
+                                       const Path& instance_dir)
+    : VirtualMachine{vm_name, instance_dir}, key_provider{key_provider}
+{
+}
 
 void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
                                                               const std::vector<NetworkInterface>& extra_interfaces)

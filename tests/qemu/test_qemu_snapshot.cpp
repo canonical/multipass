@@ -21,6 +21,7 @@
 #include "tests/mock_snapshot.h"
 #include "tests/mock_virtual_machine.h"
 #include "tests/path.h"
+#include "tests/stub_ssh_key_provider.h"
 
 #include <multipass/process/process.h>
 #include <multipass/virtual_machine_description.h>
@@ -88,7 +89,8 @@ struct TestQemuSnapshot : public Test
         return ret;
     }();
 
-    NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm"};
+    mpt::StubSSHKeyProvider key_provider{};
+    NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm", key_provider};
     ArgsMatcher list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
 
     inline static const auto success = mp::ProcessState{0, std::nullopt};
@@ -118,7 +120,7 @@ TEST_F(TestQemuSnapshot, initializesBaseProperties)
     const auto parent = std::make_shared<mpt::MockSnapshot>();
 
     auto desc = mp::VirtualMachineDescription{};
-    auto vm = NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm"};
+    auto vm = NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm", key_provider};
 
     const auto snapshot = mp::QemuSnapshot{name, comment, parent, specs, vm, desc};
     EXPECT_EQ(snapshot.get_name(), name);

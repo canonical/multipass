@@ -39,6 +39,7 @@ public:
                           const std::string& bridge_name,
                           VMStatusMonitor& monitor,
                           const LibvirtWrapper::UPtr& libvirt_wrapper,
+                          const SSHKeyProvider& key_provider,
                           const Path& instance_dir);
     ~LibVirtVirtualMachine();
 
