@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class DaemonUnavailable extends StatelessWidget {
-  final bool available;
+import 'providers.dart';
 
-  const DaemonUnavailable(this.available, {super.key});
+class DaemonUnavailable extends ConsumerWidget {
+  const DaemonUnavailable({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const body = Row(mainAxisSize: MainAxisSize.min, children: [
-      CircularProgressIndicator(color: Colors.orange),
-      SizedBox(width: 20),
-      Text('Waiting for daemon...'),
-    ]);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final available = ref.watch(daemonAvailableProvider);
 
-    const decoration = BoxDecoration(
-      color: Colors.white,
-      boxShadow: [
-        BoxShadow(color: Colors.black54, blurRadius: 10, spreadRadius: 5)
-      ],
+    final content = Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(color: Colors.black54, blurRadius: 10, spreadRadius: 5)
+        ],
+      ),
+      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+        CircularProgressIndicator(color: Colors.orange),
+        SizedBox(width: 20),
+        Text('Waiting for daemon...'),
+      ]),
     );
 
     return IgnorePointer(
@@ -27,12 +32,9 @@ class DaemonUnavailable extends StatelessWidget {
         duration: const Duration(milliseconds: 500),
         child: Scaffold(
           backgroundColor: Colors.black54,
-          body: Center(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: decoration,
-              child: body,
-            ),
+          body: BackdropFilter(
+            filter: const ColorFilter.mode(Colors.grey, BlendMode.saturation),
+            child: Center(child: content),
           ),
         ),
       ),
