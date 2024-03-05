@@ -70,7 +70,6 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentKey = ref.watch(sidebarKeyProvider);
-    final daemonAvailable = ref.watch(daemonAvailableProvider);
     final sidebarExpanded = ref.watch(sidebarExpandedProvider);
     final sidebarPushContent = ref.watch(sidebarPushContentProvider);
     final vms = ref.watch(vmNamesProvider);
@@ -106,7 +105,7 @@ class App extends ConsumerWidget {
           child: content,
         ),
         const SideBar(),
-        DaemonUnavailable(daemonAvailable),
+        const DaemonUnavailable(),
       ]),
     );
   }
