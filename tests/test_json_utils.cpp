@@ -27,6 +27,7 @@
 
 #include <stdexcept>
 
+namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -100,4 +101,32 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
                          mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
 }
 
+TEST_F(TestJsonUtils, write_and_read_extra_interfaces)
+{
+    std::vector<mp::NetworkInterface> extra_ifaces{mp::NetworkInterface{"eth1", "52:54:00:00:00:01", true},
+                                                   mp::NetworkInterface{"eth2", "52:54:00:00:00:02", false}};
+
+    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
+
+    QJsonObject doc;
+    doc.insert("extra_interfaces", written_ifaces);
+
+    auto read_ifaces = MP_JSONUTILS.read_extra_interfaces(doc);
+
+    ASSERT_EQ(read_ifaces, extra_ifaces);
+}
+
+TEST_F(TestJsonUtils, throws_on_wrong_mac)
+{
+    std::vector<mp::NetworkInterface> extra_ifaces{mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
+
+    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
+
+    QJsonObject doc;
+    doc.insert("extra_interfaces", written_ifaces);
+
+    MP_ASSERT_THROW_THAT(MP_JSONUTILS.read_extra_interfaces(doc),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
+}
 } // namespace

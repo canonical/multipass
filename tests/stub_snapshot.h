@@ -82,6 +82,11 @@ struct StubSnapshot : public Snapshot
         return MemorySize{};
     }
 
+    std::vector<NetworkInterface> get_extra_interfaces() const noexcept override
+    {
+        return std::vector<NetworkInterface>{};
+    }
+
     VirtualMachine::State get_state() const noexcept override
     {
         return VirtualMachine::State::off;

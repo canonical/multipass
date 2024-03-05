@@ -20,6 +20,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
+#include <multipass/utils.h>
 
 #include <QJsonDocument>
 #include <QSaveFile>
@@ -27,6 +28,7 @@
 #include <stdexcept>
 
 namespace mp = multipass;
+namespace mpu = multipass::utils;
 
 mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept : Singleton<JsonUtils>{pass}
 {
@@ -55,4 +57,45 @@ std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
 {
     // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a QByteArray.
     return QJsonDocument(root).toJson().toStdString();
+}
+
+QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
+    const std::vector<mp::NetworkInterface>& extra_interfaces) const
+{
+    QJsonArray json;
+
+    for (const auto& interface : extra_interfaces)
+    {
+        QJsonObject entry;
+        entry.insert("id", QString::fromStdString(interface.id));
+        entry.insert("mac_address", QString::fromStdString(interface.mac_address));
+        entry.insert("auto_mode", interface.auto_mode);
+        json.append(entry);
+    }
+
+    return json;
+}
+
+std::vector<mp::NetworkInterface> mp::JsonUtils::read_extra_interfaces(const QJsonObject& record) const
+{
+    // Read the extra networks interfaces, if any.
+    std::vector<mp::NetworkInterface> extra_interfaces;
+
+    if (record.contains("extra_interfaces"))
+    {
+        for (QJsonValueRef entry : record["extra_interfaces"].toArray())
+        {
+            auto id = entry.toObject()["id"].toString().toStdString();
+            auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
+            // Allow empty addresses (for nonconfigured interfaces).
+            if (!mac_address.empty() && !mpu::valid_mac_address(mac_address))
+            {
+                throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
+            }
+            auto auto_mode = entry.toObject()["auto_mode"].toBool();
+            extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
+        }
+    }
+
+    return extra_interfaces;
 }

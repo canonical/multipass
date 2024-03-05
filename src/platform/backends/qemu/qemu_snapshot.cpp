@@ -106,6 +106,7 @@ void mp::QemuSnapshot::apply_impl()
     desc.num_cores = get_num_cores();
     desc.mem_size = get_mem_size();
     desc.disk_space = get_disk_space();
+    desc.extra_interfaces = get_extra_interfaces();
 
     mp::backend::checked_exec_qemu_img(make_restore_spec(get_id(), image_path));
     rollback.dismiss();
