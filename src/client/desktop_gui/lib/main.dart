@@ -10,6 +10,7 @@ import 'catalogue/catalogue.dart';
 import 'daemon_unavailable.dart';
 import 'help.dart';
 import 'logger.dart';
+import 'notificaions/notifications_list.dart';
 import 'providers.dart';
 import 'settings/settings.dart';
 import 'sidebar.dart';
@@ -105,6 +106,10 @@ class App extends ConsumerWidget {
           child: content,
         ),
         const SideBar(),
+        const Align(
+          alignment: Alignment.bottomRight,
+          child: SizedBox(width: 300, child: NotificationList()),
+        ),
         const DaemonUnavailable(),
       ]),
     );
