@@ -77,6 +77,21 @@ class SideBar extends ConsumerWidget {
           SettingsScreen.sidebarKey,
     );
 
+    final pinSidebarButton = Material(
+      color: Colors.transparent,
+      child: IconButton(
+        hoverColor: Colors.white24,
+        splashRadius: 15,
+        icon: Icon(
+          pushContent ? Icons.chevron_left : Icons.chevron_right,
+          color: Colors.white,
+        ),
+        onPressed: () => ref
+            .read(sidebarPushContentProvider.notifier)
+            .update((state) => !state),
+      ),
+    );
+
     final header = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
       Container(
         alignment: Alignment.bottomCenter,
@@ -87,6 +102,7 @@ class SideBar extends ConsumerWidget {
         child: SvgPicture.asset('assets/multipass.svg', width: 20),
       ),
       Expanded(
+        flex: 3,
         child: AnimatedOpacity(
           opacity: expanded ? 1 : 0,
           duration: SideBar.animationDuration,
@@ -96,6 +112,7 @@ class SideBar extends ConsumerWidget {
           ].spans),
         ),
       ),
+      Flexible(child: pinSidebarButton),
     ]);
 
     final vmEntries = vmNames.map((name) {
@@ -114,12 +131,14 @@ class SideBar extends ConsumerWidget {
 
     final sidebar = MouseRegion(
       onEnter: (_) {
+        if (pushContent) return;
         sidebarExpandTimer?.cancel();
-        sidebarExpandTimer = Timer(const Duration(milliseconds: 300), () {
+        sidebarExpandTimer = Timer(const Duration(milliseconds: 200), () {
           ref.read(sidebarExpandedProvider.notifier).state = true;
         });
       },
       onExit: (_) {
+        if (pushContent) return;
         sidebarExpandTimer?.cancel();
         ref.read(sidebarExpandedProvider.notifier).state = false;
       },
