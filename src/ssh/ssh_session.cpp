@@ -23,8 +23,6 @@
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/standard_paths.h>
 
-#include <libssh/callbacks.h>
-
 #include <QDir>
 
 #include <string>
