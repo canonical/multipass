@@ -38,14 +38,15 @@ public:
                const SSHKeyProvider& key_provider,
                const std::chrono::milliseconds timeout = std::chrono::seconds(20));
 
+    operator ssh_session();
     SSHProcess exec(const std::string& cmd);
+    void force_shutdown();
 
     [[nodiscard]] bool is_connected() const;
-    void force_shutdown();
-    operator ssh_session();
 
 private:
     void set_option(ssh_options_e type, const void* value);
+
     std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
 };
 } // namespace multipass
