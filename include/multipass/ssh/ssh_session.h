@@ -36,7 +36,7 @@ public:
                int port,
                const std::string& ssh_username,
                const SSHKeyProvider& key_provider,
-               const std::chrono::milliseconds timeout = std::chrono::seconds(20));
+               std::chrono::milliseconds timeout = std::chrono::seconds(20));
 
     operator ssh_session();
     SSHProcess exec(const std::string& cmd);

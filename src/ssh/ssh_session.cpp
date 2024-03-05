@@ -36,7 +36,7 @@ mp::SSHSession::SSHSession(const std::string& host,
                            int port,
                            const std::string& username,
                            const SSHKeyProvider& key_provider,
-                           const std::chrono::milliseconds timeout)
+                           std::chrono::milliseconds timeout)
     : session{ssh_new(), ssh_free}
 {
     if (session == nullptr)
