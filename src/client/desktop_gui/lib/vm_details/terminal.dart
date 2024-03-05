@@ -22,10 +22,12 @@ class VmTerminal extends ConsumerStatefulWidget {
 class _VmTerminalState extends ConsumerState<VmTerminal> {
   Terminal? terminal;
   Isolate? isolate;
+  final scrollController = ScrollController();
 
   @override
   void dispose() {
     isolate?.kill(priority: Isolate.immediate);
+    scrollController.dispose();
     super.dispose();
   }
 
@@ -116,35 +118,43 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       );
     }
 
-    return TerminalView(
-      thisTerminal,
-      autofocus: true,
-      shortcuts: const {},
-      hardwareKeyboardOnly: true,
-      theme: const TerminalTheme(
-        cursor: Color(0xFFE5E5E5),
-        selection: Color(0x80E5E5E5),
-        foreground: Color(0xffffffff),
-        background: Color(0xff380c2a),
-        black: Color(0xFF000000),
-        white: Color(0xFFE5E5E5),
-        red: Color(0xFFCD3131),
-        green: Color(0xFF0DBC79),
-        yellow: Color(0xFFE5E510),
-        blue: Color(0xFF2472C8),
-        magenta: Color(0xFFBC3FBC),
-        cyan: Color(0xFF11A8CD),
-        brightBlack: Color(0xFF666666),
-        brightRed: Color(0xFFF14C4C),
-        brightGreen: Color(0xFF23D18B),
-        brightYellow: Color(0xFFF5F543),
-        brightBlue: Color(0xFF3B8EEA),
-        brightMagenta: Color(0xFFD670D6),
-        brightCyan: Color(0xFF29B8DB),
-        brightWhite: Color(0xFFFFFFFF),
-        searchHitBackground: Color(0XFFFFFF2B),
-        searchHitBackgroundCurrent: Color(0XFF31FF26),
-        searchHitForeground: Color(0XFF000000),
+    return RawScrollbar(
+      controller: scrollController,
+      thickness: 9,
+      child: ClipRect(
+        child: TerminalView(
+          thisTerminal,
+          scrollController: scrollController,
+          autofocus: true,
+          shortcuts: const {},
+          hardwareKeyboardOnly: true,
+          padding: const EdgeInsets.all(4),
+          theme: const TerminalTheme(
+            cursor: Color(0xFFE5E5E5),
+            selection: Color(0x80E5E5E5),
+            foreground: Color(0xffffffff),
+            background: Color(0xff380c2a),
+            black: Color(0xFF000000),
+            white: Color(0xFFE5E5E5),
+            red: Color(0xFFCD3131),
+            green: Color(0xFF0DBC79),
+            yellow: Color(0xFFE5E510),
+            blue: Color(0xFF2472C8),
+            magenta: Color(0xFFBC3FBC),
+            cyan: Color(0xFF11A8CD),
+            brightBlack: Color(0xFF666666),
+            brightRed: Color(0xFFF14C4C),
+            brightGreen: Color(0xFF23D18B),
+            brightYellow: Color(0xFFF5F543),
+            brightBlue: Color(0xFF3B8EEA),
+            brightMagenta: Color(0xFFD670D6),
+            brightCyan: Color(0xFF29B8DB),
+            brightWhite: Color(0xFFFFFFFF),
+            searchHitBackground: Color(0XFFFFFF2B),
+            searchHitBackgroundCurrent: Color(0XFF31FF26),
+            searchHitForeground: Color(0XFF000000),
+          ),
+        ),
       ),
     );
   }
