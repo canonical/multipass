@@ -46,7 +46,10 @@ public:
                             std::function<std::string()> bridged_interface,
                             std::function<std::string()> bridge_name,
                             std::function<std::vector<NetworkInterfaceInfo>()> host_networks,
-                            std::function<bool()> user_authorized);
+                            std::function<bool()> user_authorized,
+                            std::function<std::string()> mac_generator,
+                            const QString backend_data_directory,
+                            std::function<void(std::vector<NetworkInterface>&)> prepare_networking);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -68,6 +71,9 @@ private:
     std::function<std::string()> bridge_name;
     std::function<std::vector<NetworkInterfaceInfo>()> host_networks;
     std::function<bool()> user_authorized_bridge;
+    std::function<std::string()> mac_generator;
+    const QString backend_data_directory;
+    std::function<void(std::vector<NetworkInterface>&)> prepare_networking;
 };
 
 class InstanceSettingsException : public SettingsException
@@ -81,6 +87,15 @@ class NonAuthorizedBridgeSettingsException : public InstanceSettingsException
 public:
     NonAuthorizedBridgeSettingsException(const std::string& reason, const std::string& instance, const std::string& net)
         : InstanceSettingsException{reason, instance, fmt::format("Need user authorization to bridge {}", net)}
+    {
+    }
+};
+
+class BridgeFailureException : public InstanceSettingsException
+{
+public:
+    BridgeFailureException(const std::string& reason, const std::string& instance, const std::string& net)
+        : InstanceSettingsException{reason, instance, fmt::format("Failure to bridge {}", net)}
     {
     }
 };

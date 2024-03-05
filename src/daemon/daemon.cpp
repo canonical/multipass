@@ -1181,7 +1181,10 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            std::function<std::string()> bridged_interface,
                                            std::function<std::string()> bridge_name,
                                            std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks,
-                                           std::function<bool()> user_authorized)
+                                           std::function<bool()> user_authorized,
+                                           std::function<std::string()> mac_generator,
+                                           const QString backend_data_directory,
+                                           std::function<void(std::vector<mp::NetworkInterface>&)> prepare_networking)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
                                                                                       operative_instances,
@@ -1191,7 +1194,10 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                                                                       std::move(bridged_interface),
                                                                                       std::move(bridge_name),
                                                                                       host_networks,
-                                                                                      user_authorized));
+                                                                                      user_authorized,
+                                                                                      std::move(mac_generator),
+                                                                                      backend_data_directory,
+                                                                                      std::move(prepare_networking)));
 }
 
 mp::SettingsHandler* register_snapshot_mod(
@@ -1334,7 +1340,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
               return config->factory->bridge_name_for(MP_SETTINGS.get(mp::bridged_interface_key).toStdString());
           },
           [this]() { return config->factory->networks(); },
-          [this]() { return user_authorized; })},
+          [this]() { return user_authorized; },
+          [this]() { return generate_unused_mac_address(allocated_mac_addrs); },
+          mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
+          [this](std::vector<mp::NetworkInterface>& v) { return config->factory->prepare_networking(v); })},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
@@ -2136,18 +2145,6 @@ try // clang-format on
                 mpl::log(mpl::Level::error, category, "Mounts have been disabled on this instance of Multipass");
             }
 
-            mpl::log(mpl::Level::trace, category, "Configuring extra interfaces");
-            auto failed_interfaces = configure_new_interfaces(name, vm, vm_instance_specs[name]);
-            mpl::log(mpl::Level::trace, category, "Done configuring extra interfaces");
-
-            if (!failed_interfaces.empty())
-            {
-                fmt::format_to(std::back_inserter(start_warnings),
-                               "Cannot bridge {} for instance {}. Please see the logs for more details.\n",
-                               fmt::join(failed_interfaces, ", "),
-                               name);
-            }
-
             vm.start();
         }
 
@@ -2503,6 +2500,10 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
 
         status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
     }
+}
+catch (const mp::BridgeFailureException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const mp::UnrecognizedSettingException& e)
 {
@@ -3304,72 +3305,6 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
     return mount.mount_type == VMMount::MountType::Classic
                ? std::make_unique<SSHFSMountHandler>(vm, config->ssh_key_provider.get(), target, mount)
                : vm->make_native_mount_handler(config->ssh_key_provider.get(), target, mount);
-}
-
-// This function configures the network interfaces whose MAC address is empty. They will stay in specs.extra_interfaces
-// only if the backend is able to add them to the virtual machine. If not, they will be removed.
-// The return value is a set of networks that couldn't be configured and thus were removed from specs.extra_interfaces.
-std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::string& name,
-                                                                     mp::VirtualMachine& vm,
-                                                                     mp::VMSpecs& specs)
-{
-    bool added_good_interfaces{false};
-    size_t j = 0; /* The final index of the interface. This is needed because we will filter out the bad interfaces
-                     from specs.extra_interfaces. */
-    std::vector<mp::NetworkInterface> filtered_interfaces;
-    std::unordered_set<std::string> bad_bridges;
-
-    config->factory->prepare_networking(specs.extra_interfaces); // TODO: call this only if needed.
-
-    for (auto& iface : specs.extra_interfaces)
-    {
-        mpl::log(mpl::Level::trace, category, fmt::format("Configuring interface with MAC \"{}\"", iface.mac_address));
-
-        if (iface.mac_address.empty()) // An empty MAC address means the interface needs to be configured.
-        {
-            iface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
-
-            mpl::log(mpl::Level::trace, category, fmt::format("Generated MAC \"{}\"", iface.mac_address));
-
-            try
-            {
-                vm.add_network_interface(j, iface); // This will throw if the interface wasn't added to the VM.
-
-                added_good_interfaces = true;
-            }
-            catch (const std::exception&)
-            {
-                // The generated MAC will not be used, so we remove it from the list of used addresses.
-                // TODO: avoid adding the new MAC to allocated_mac_addrs if the interface is bad.
-                allocated_mac_addrs.erase(iface.mac_address);
-
-                bad_bridges.insert(iface.id);
-
-                mpl::log(mpl::Level::trace,
-                         category,
-                         fmt::format("Couldn't add \"{}\" to the VM, rolling back", iface.mac_address));
-
-                continue;
-            }
-        }
-
-        filtered_interfaces.push_back(iface);
-
-        ++j;
-    }
-
-    if (added_good_interfaces)
-    {
-        vm.add_extra_interfaces_to_cloud_init(specs.default_mac_address, filtered_interfaces);
-    }
-
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Removed {} extra interfaces", specs.extra_interfaces.size() - filtered_interfaces.size()));
-
-    specs.extra_interfaces = filtered_interfaces;
-
-    return bad_bridges;
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
