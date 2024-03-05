@@ -252,22 +252,6 @@ auto name_from(const std::string& requested_name, const std::string& blueprint_n
     }
 }
 
-std::vector<std::string> read_string_vector(const std::string& key, const QJsonObject& record)
-{
-    std::vector<std::string> ret;
-    QString qkey = QString::fromStdString(key);
-
-    if (record.contains(qkey))
-    {
-        for (const auto& entry : record[qkey].toArray())
-        {
-            ret.push_back(entry.toString().toStdString());
-        }
-    }
-
-    return ret;
-}
-
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, const mp::Path& cache_path)
 {
     QDir data_dir{data_path};
@@ -340,22 +324,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
                                       static_cast<mp::VirtualMachine::State>(state),
                                       mounts,
                                       deleted,
-                                      metadata,
-                                      read_string_vector("run_at_boot", record)};
+                                      metadata};
     }
     return reconstructed_records;
-}
-
-QJsonArray string_vector_to_json_array(const std::vector<std::string>& vec)
-{
-    QJsonArray string_array;
-
-    for (const auto& element : vec)
-    {
-        string_array.push_back(QString::fromStdString(element));
-    }
-
-    return string_array;
 }
 
 QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
@@ -383,7 +354,6 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     }
 
     json.insert("mounts", json_mounts);
-    json.insert("run_at_boot", string_vector_to_json_array(specs.run_at_boot));
 
     return json;
 }
@@ -2895,8 +2865,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                            VirtualMachine::State::off,
                                            {},
                                            false,
-                                           QJsonObject(),
-                                           std::vector<std::string>{}};
+                                           QJsonObject()};
                 operative_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
                 preparing_instances.erase(name);
 
@@ -3533,8 +3502,6 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         for (const auto& name : vms)
         {
             async_running_futures.erase(name);
-
-            run_commands_at_boot_on_instance(name, warnings);
         }
     }
 
@@ -3698,63 +3665,5 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         auto current_release =
             mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
         instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
-    }
-}
-
-void mp::Daemon::run_commands_at_boot_on_instance(const std::string& name, fmt::memory_buffer& warnings)
-{
-    auto& vm_specs = vm_instance_specs[name];
-    auto& commands = vm_specs.run_at_boot;
-
-    if (!commands.empty())
-    {
-        bool warned_exec_failure{false};
-
-        const auto vm = operative_instances[name];
-
-        try
-        {
-            mp::SSHSession session{vm->ssh_hostname(),
-                                   vm->ssh_port(),
-                                   vm_specs.ssh_username,
-                                   *config->ssh_key_provider};
-
-            for (const auto& command : commands)
-            {
-                mpu::run_in_ssh_session(session, command);
-            }
-        }
-        catch (const mp::SSHExecFailure&) // In case there is an error executing the command, report it.
-        {
-            // Currently, the only use of running commands at boot is to configure networks. For this reason,
-            // the warning shown here refers to that use. In the future, in case of using the feature for other
-            // purposes, it would be necessary to add a description or a failure message to show if the
-            // execution fails.
-            if (!warned_exec_failure)
-            {
-                add_fmt_to(warnings,
-                           "Failure configuring network interfaces in {}: is Netplan installed?\n"
-                           "You can still configure them manually.\n",
-                           name);
-            }
-
-            warned_exec_failure = true;
-        }
-        catch (const ExitlessSSHProcessException& e) // Timeout does not mean there is a configuration error.
-        {
-            mpl::log(mpl::Level::warning,
-                     category,
-                     fmt::format("Exception when executing command at boot in {}: {}", name, e.what()));
-        }
-        catch (const SSHException&) // The SSH session could not be created.
-        {
-            add_fmt_to(warnings,
-                       "Cannot create a SSH shell to execute commands on {}, you can configure new\n"
-                       "interfaces manually via Netplan once logged in to the instance.\n",
-                       name);
-        }
-
-        commands.clear();
-        persist_instances();
     }
 }

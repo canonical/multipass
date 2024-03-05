@@ -726,8 +726,7 @@ TEST_F(BaseVM, restoresSnapshots)
                                      mp::VirtualMachine::State::off,
                                      {{"dst", mount}},
                                      false,
-                                     metadata,
-                                     {}};
+                                     metadata};
 
     const auto* snapshot_name = "shoot";
     vm.take_snapshot(original_specs, snapshot_name, "");
@@ -1132,7 +1131,6 @@ TEST_F(BaseVM, rollsbackFailedRestore)
                                      mp::VirtualMachine::State::off,
                                      {},
                                      false,
-                                     {},
                                      {}};
 
     vm.take_snapshot(original_specs, "", "");
