@@ -59,6 +59,13 @@ class _TableState<T> extends State<Table<T>> {
 
   static const borderSide = BorderSide(color: Colors.grey, width: 0.5);
 
+  @override
+  void dispose() {
+    horizontal.dispose();
+    vertical.dispose();
+    super.dispose();
+  }
+
   Widget addScrollbars(TableView table) {
     return Scrollbar(
       controller: vertical,
