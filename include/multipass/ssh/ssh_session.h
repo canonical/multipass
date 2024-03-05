@@ -42,7 +42,7 @@ public:
 
     [[nodiscard]] bool is_connected() const;
     void force_shutdown();
-    operator ssh_session() const;
+    operator ssh_session();
 
 private:
     void set_option(ssh_options_e type, const void* value);

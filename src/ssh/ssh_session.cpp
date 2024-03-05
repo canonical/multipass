@@ -78,7 +78,7 @@ void mp::SSHSession::force_shutdown()
     shutdown(socket, shutdown_read_and_writes);
 }
 
-mp::SSHSession::operator ssh_session() const
+mp::SSHSession::operator ssh_session()
 {
     return session.get();
 }
