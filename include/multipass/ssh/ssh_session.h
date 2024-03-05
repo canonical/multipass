@@ -40,6 +40,7 @@ public:
 
     SSHProcess exec(const std::string& cmd);
 
+    [[nodiscard]] bool is_connected() const;
     void force_shutdown();
     operator ssh_session() const;
 

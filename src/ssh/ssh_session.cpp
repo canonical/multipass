@@ -143,3 +143,9 @@ void mp::SSHSession::set_option(ssh_options_e type, const void* data)
                                            as_string(type, data), ssh_get_error(session.get())));
     }
 }
+
+bool multipass::SSHSession::is_connected() const
+{
+    assert(session);
+    return static_cast<bool>(ssh_is_connected(session.get()));
+}
