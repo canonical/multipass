@@ -29,11 +29,10 @@ Timer? sidebarExpandTimer;
 class SideBar extends ConsumerWidget {
   static const animationDuration = Duration(milliseconds: 200);
 
-  final collapsedWidth = 60.0;
-  final expandedWidth = 240.0;
-  final Widget child;
+  static const collapsedWidth = 60.0;
+  static const expandedWidth = 240.0;
 
-  const SideBar({super.key, required this.child});
+  const SideBar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -146,26 +145,16 @@ class SideBar extends ConsumerWidget {
       ),
     );
 
-    return Stack(children: [
-      AnimatedPositioned(
-        duration: SideBar.animationDuration,
-        left: pushContent && expanded ? expandedWidth : collapsedWidth,
-        bottom: 0,
-        right: 0,
-        top: 0,
-        child: child,
+    return DefaultTextStyle(
+      softWrap: false,
+      style: const TextStyle(
+        height: 1,
+        overflow: TextOverflow.clip,
+        color: Colors.white,
+        fontWeight: FontWeight.w300,
       ),
-      DefaultTextStyle(
-        softWrap: false,
-        style: const TextStyle(
-          height: 1,
-          overflow: TextOverflow.clip,
-          color: Colors.white,
-          fontWeight: FontWeight.w300,
-        ),
-        child: sidebar,
-      ),
-    ]);
+      child: sidebar,
+    );
   }
 }
 

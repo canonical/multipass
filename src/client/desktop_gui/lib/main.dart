@@ -71,6 +71,8 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentKey = ref.watch(sidebarKeyProvider);
     final daemonAvailable = ref.watch(daemonAvailableProvider);
+    final sidebarExpanded = ref.watch(sidebarExpandedProvider);
+    final sidebarPushContent = ref.watch(sidebarPushContentProvider);
     final vms = ref.watch(vmNamesProvider);
 
     final widgets = {
@@ -92,14 +94,18 @@ class App extends ConsumerWidget {
 
     return MaterialApp(
       theme: theme,
-      home: Stack(fit: StackFit.expand, children: [
-        ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            Colors.grey,
-            daemonAvailable ? BlendMode.dst : BlendMode.saturation,
-          ),
-          child: SideBar(child: content),
+      home: Stack(children: [
+        AnimatedPositioned(
+          duration: SideBar.animationDuration,
+          bottom: 0,
+          right: 0,
+          top: 0,
+          left: sidebarPushContent && sidebarExpanded
+              ? SideBar.expandedWidth
+              : SideBar.collapsedWidth,
+          child: content,
         ),
+        const SideBar(),
         DaemonUnavailable(daemonAvailable),
       ]),
     );
