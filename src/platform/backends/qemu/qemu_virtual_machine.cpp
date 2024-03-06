@@ -383,6 +383,7 @@ void mp::QemuVirtualMachine::suspend()
             update_shutdown_status = false;
         }
 
+        drop_ssh_session();
         vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
         vm_process->wait_for_finished(timeout);
         vm_process.reset(nullptr);
@@ -448,6 +449,7 @@ void mp::QemuVirtualMachine::on_shutdown()
 
 void mp::QemuVirtualMachine::on_suspend()
 {
+    drop_ssh_session();
     state = State::suspended;
     monitor->on_suspend();
 }

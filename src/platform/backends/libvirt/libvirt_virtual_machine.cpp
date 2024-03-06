@@ -390,6 +390,7 @@ void mp::LibVirtVirtualMachine::suspend()
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
     if (state == State::running || state == State::delayed_shutdown)
     {
+        drop_ssh_session();
         if (!domain || libvirt_wrapper->virDomainManagedSave(domain.get(), 0) < 0)
         {
             auto warning_string{
