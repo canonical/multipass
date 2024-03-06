@@ -168,6 +168,52 @@ bool is_bridged(const mp::VMSpecs& spec, const std::string& br_interface, const 
                        });
 }
 
+void insert_interface_on_instance(const std::string& instance_name,
+                                  mp::VirtualMachine& instance,
+                                  mp::VMSpecs& spec,
+                                  const std::string& br_interface,
+                                  std::function<std::string()> mac_generator,
+                                  const QString backend_data_directory,
+                                  std::function<void(std::vector<mp::NetworkInterface>&)> prepare_networking)
+{
+    mp::NetworkInterface new_if{br_interface, mac_generator(), true};
+    mpl::log(mpl::Level::debug,
+             category,
+             fmt::format("New interface {{\"{}\", \"{}\", {}}}", new_if.id, new_if.mac_address, new_if.auto_mode));
+
+    // Add the new interface to the spec.
+    spec.extra_interfaces.push_back(new_if);
+
+    mpl::log(mpl::Level::trace, category, "Prepare networking");
+    prepare_networking(spec.extra_interfaces);
+    new_if = spec.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
+    mpl::log(mpl::Level::trace, category, fmt::format("Done preparation, new interface id is now \"{}\"", new_if.id));
+
+    // Add the new interface to the VM.
+    mpl::log(mpl::Level::trace, category, "Adding new interface to instance");
+    try
+    {
+        instance.add_network_interface(spec.extra_interfaces.size() - 1, new_if);
+        mpl::log(mpl::Level::trace, category, "Done adding");
+
+        // Configure the new interface via cloud-init (this won't throw).
+        std::vector<mp::NetworkInterface> interfaces_to_add{new_if};
+        mpl::log(mpl::Level::trace, category, "Adding new interface to cloud-init");
+        instance.add_extra_interfaces_to_cloud_init(spec.default_mac_address,
+                                                    interfaces_to_add,
+                                                    backend_data_directory);
+        mpl::log(mpl::Level::trace, category, "Done adding");
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::debug, category, "Failure adding interface to instance, rolling back");
+
+        spec.extra_interfaces.pop_back();
+
+        throw mp::BridgeFailureException(operation_msg(Operation::Modify), instance_name, br_interface);
+    }
+}
+
 void checked_update_bridged(const QString& key,
                             const QString& val,
                             const std::string& instance_name,
@@ -196,45 +242,13 @@ void checked_update_bridged(const QString& key,
                                                            br_interface);
         }
 
-        mp::NetworkInterface new_if{br_interface, mac_generator(), true};
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("New interface {{\"{}\", \"{}\", {}}}", new_if.id, new_if.mac_address, new_if.auto_mode));
-
-        // Add the new interface to the spec.
-        // TODO: remove if there was some error below.
-        spec.extra_interfaces.push_back(new_if);
-
-        mpl::log(mpl::Level::trace, category, "Prepare networking");
-        prepare_networking(spec.extra_interfaces);
-        new_if = spec.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("Done preparation, new interface id is now \"{}\"", new_if.id));
-
-        // Add the new interface to the VM.
-        mpl::log(mpl::Level::trace, category, "Adding new interface to instance");
-        try
-        {
-            instance.add_network_interface(spec.extra_interfaces.size() - 1, new_if);
-            mpl::log(mpl::Level::trace, category, "Done adding");
-
-            // Configure the new interface via cloud-init (this won't throw).
-            std::vector<mp::NetworkInterface> interfaces_to_add{new_if};
-            mpl::log(mpl::Level::trace, category, "Adding new interface to cloud-init");
-            instance.add_extra_interfaces_to_cloud_init(spec.default_mac_address,
-                                                        interfaces_to_add,
-                                                        backend_data_directory);
-            mpl::log(mpl::Level::trace, category, "Done adding");
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::debug, category, "Failure adding interface to instance, rolling back");
-
-            spec.extra_interfaces.pop_back();
-
-            throw mp::BridgeFailureException(operation_msg(Operation::Modify), instance_name, br_interface);
-        }
+        insert_interface_on_instance(instance_name,
+                                     instance,
+                                     spec,
+                                     br_interface,
+                                     mac_generator,
+                                     backend_data_directory,
+                                     prepare_networking);
     }
 }
 
@@ -277,7 +291,6 @@ void update_bridged(const QString& key,
                            backend_data_directory,
                            prepare_networking);
 }
-
 } // namespace
 
 mp::InstanceSettingsException::InstanceSettingsException(const std::string& reason, const std::string& instance,
