@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../extensions.dart';
+import '../notificaions/notification_entries.dart';
+import '../notificaions/notifications_provider.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 import 'vms.dart';
@@ -33,7 +35,17 @@ class BulkActionsBar extends ConsumerWidget {
         VmActionButton(
           action: action,
           currentStatuses: statuses,
-          function: () => function(selectedVms),
+          function: () {
+            final notification = OperationNotification(
+              text: '${action.continuousTense} ${selectedVms.length} instances',
+              future: function(selectedVms).then((_) {
+                return '${action.pastTense} ${selectedVms.length} instances';
+              }).onError((_, __) {
+                throw 'Failed to ${action.name.toLowerCase()} instances';
+              }),
+            );
+            ref.read(notificationsProvider.notifier).add(notification);
+          },
         ),
     ];
 
