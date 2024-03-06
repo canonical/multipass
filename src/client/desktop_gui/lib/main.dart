@@ -80,7 +80,7 @@ class App extends ConsumerWidget {
       VmTableScreen.sidebarKey: const VmTableScreen(),
       SettingsScreen.sidebarKey: const SettingsScreen(),
       HelpScreen.sidebarKey: const HelpScreen(),
-      for (final name in vms) 'vm-$name': VmDetailsScreen(name: name),
+      for (final name in vms) 'vm-$name': VmDetailsScreen(name),
     };
 
     final content = Stack(fit: StackFit.expand, children: [
