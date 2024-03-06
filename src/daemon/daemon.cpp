@@ -1182,9 +1182,7 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            std::function<std::string()> bridge_name,
                                            std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks,
                                            std::function<bool()> user_authorized,
-                                           std::function<std::string()> mac_generator,
-                                           const QString backend_data_directory,
-                                           std::function<void(std::vector<mp::NetworkInterface>&)> prepare_networking)
+                                           std::function<void(const std::string&, const std::string&)> add_interface)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
                                                                                       operative_instances,
@@ -1195,9 +1193,7 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                                                                       std::move(bridge_name),
                                                                                       host_networks,
                                                                                       user_authorized,
-                                                                                      std::move(mac_generator),
-                                                                                      backend_data_directory,
-                                                                                      std::move(prepare_networking)));
+                                                                                      add_interface));
 }
 
 mp::SettingsHandler* register_snapshot_mod(
@@ -1341,9 +1337,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           },
           [this]() { return config->factory->networks(); },
           [this]() { return user_authorized; },
-          [this]() { return generate_unused_mac_address(allocated_mac_addrs); },
-          mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name()),
-          [this](std::vector<mp::NetworkInterface>& v) { return config->factory->prepare_networking(v); })},
+          [this](const std::string& n, const std::string& b) { return add_bridged_interface(n, b); })},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
@@ -3597,5 +3591,47 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         auto current_release =
             mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
         instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
+    }
+}
+
+void mp::Daemon::add_bridged_interface(const std::string& instance_name, const std::string& br_interface)
+{
+    // These two use operator[] to access elements because this function is called after existence was checked.
+    mp::VMSpecs& spec = vm_instance_specs[instance_name];
+    mp::VirtualMachine::ShPtr instance = operative_instances[instance_name];
+
+    mp::NetworkInterface new_if{br_interface, generate_unused_mac_address(allocated_mac_addrs), true};
+    mpl::log(mpl::Level::debug,
+             category,
+             fmt::format("New interface {{\"{}\", \"{}\", {}}}", new_if.id, new_if.mac_address, new_if.auto_mode));
+
+    // Add the new interface to the spec.
+    spec.extra_interfaces.push_back(new_if);
+
+    mpl::log(mpl::Level::trace, category, "Prepare networking");
+    config->factory->prepare_networking(spec.extra_interfaces);
+    new_if = spec.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
+    mpl::log(mpl::Level::trace, category, fmt::format("Done preparation, new interface id is now \"{}\"", new_if.id));
+
+    // Add the new interface to the VM.
+    mpl::log(mpl::Level::trace, category, "Adding new interface to instance");
+    try
+    {
+        instance->add_network_interface(spec.extra_interfaces.size() - 1, new_if);
+        mpl::log(mpl::Level::trace, category, "Done adding");
+
+        // Configure the new interface via cloud-init (this won't throw).
+        std::vector<mp::NetworkInterface> interfaces_to_add{new_if};
+        mpl::log(mpl::Level::trace, category, "Adding new interface to cloud-init");
+        instance->add_extra_interfaces_to_cloud_init(spec.default_mac_address, interfaces_to_add);
+        mpl::log(mpl::Level::trace, category, "Done adding");
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::debug, category, "Failure adding interface to instance, rolling back");
+
+        spec.extra_interfaces.pop_back();
+
+        throw mp::BridgeFailureException("Cannot update instance settings", instance_name, br_interface);
     }
 }

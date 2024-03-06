@@ -21,7 +21,6 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
-#include <multipass/logging/log.h>
 #include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
@@ -31,7 +30,6 @@ namespace mp = multipass;
 
 namespace
 {
-constexpr auto category = "instance settings handler";
 constexpr auto cpus_suffix = "cpus";
 constexpr auto mem_suffix = "memory";
 constexpr auto disk_suffix = "disk";
@@ -168,52 +166,6 @@ bool is_bridged(const mp::VMSpecs& spec, const std::string& br_interface, const 
                        });
 }
 
-void insert_interface_on_instance(const std::string& instance_name,
-                                  mp::VirtualMachine& instance,
-                                  mp::VMSpecs& spec,
-                                  const std::string& br_interface,
-                                  std::function<std::string()> mac_generator,
-                                  const QString backend_data_directory,
-                                  std::function<void(std::vector<mp::NetworkInterface>&)> prepare_networking)
-{
-    mp::NetworkInterface new_if{br_interface, mac_generator(), true};
-    mpl::log(mpl::Level::debug,
-             category,
-             fmt::format("New interface {{\"{}\", \"{}\", {}}}", new_if.id, new_if.mac_address, new_if.auto_mode));
-
-    // Add the new interface to the spec.
-    spec.extra_interfaces.push_back(new_if);
-
-    mpl::log(mpl::Level::trace, category, "Prepare networking");
-    prepare_networking(spec.extra_interfaces);
-    new_if = spec.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
-    mpl::log(mpl::Level::trace, category, fmt::format("Done preparation, new interface id is now \"{}\"", new_if.id));
-
-    // Add the new interface to the VM.
-    mpl::log(mpl::Level::trace, category, "Adding new interface to instance");
-    try
-    {
-        instance.add_network_interface(spec.extra_interfaces.size() - 1, new_if);
-        mpl::log(mpl::Level::trace, category, "Done adding");
-
-        // Configure the new interface via cloud-init (this won't throw).
-        std::vector<mp::NetworkInterface> interfaces_to_add{new_if};
-        mpl::log(mpl::Level::trace, category, "Adding new interface to cloud-init");
-        instance.add_extra_interfaces_to_cloud_init(spec.default_mac_address,
-                                                    interfaces_to_add,
-                                                    backend_data_directory);
-        mpl::log(mpl::Level::trace, category, "Done adding");
-    }
-    catch (const std::exception& e)
-    {
-        mpl::log(mpl::Level::debug, category, "Failure adding interface to instance, rolling back");
-
-        spec.extra_interfaces.pop_back();
-
-        throw mp::BridgeFailureException(operation_msg(Operation::Modify), instance_name, br_interface);
-    }
-}
-
 void checked_update_bridged(const QString& key,
                             const QString& val,
                             const std::string& instance_name,
@@ -222,9 +174,7 @@ void checked_update_bridged(const QString& key,
                             const std::string& br_interface,
                             const std::string& br_name,
                             bool needs_authorization,
-                            std::function<std::string()> mac_generator,
-                            const QString backend_data_directory,
-                            std::function<void(std::vector<mp::NetworkInterface>&)> prepare_networking)
+                            std::function<void(const std::string&, const std::string&)> add_interface)
 {
     auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
 
@@ -242,13 +192,7 @@ void checked_update_bridged(const QString& key,
                                                            br_interface);
         }
 
-        insert_interface_on_instance(instance_name,
-                                     instance,
-                                     spec,
-                                     br_interface,
-                                     mac_generator,
-                                     backend_data_directory,
-                                     prepare_networking);
+        add_interface(instance_name, br_interface);
     }
 }
 
@@ -261,9 +205,7 @@ void update_bridged(const QString& key,
                     std::function<std::string()> bridge_name,
                     std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks,
                     std::function<bool()> user_authorized,
-                    std::function<std::string()> mac_generator,
-                    const QString backend_data_directory,
-                    std::function<void(std::vector<mp::NetworkInterface>&)> prepare_networking)
+                    std::function<void(const std::string&, const std::string&)> add_interface)
 {
     const auto& host_nets = host_networks(); // This will throw if not implemented on this backend.
     const auto& br = bridged_interface();
@@ -287,9 +229,7 @@ void update_bridged(const QString& key,
                            br,
                            bridge_name(),
                            needs_authorization,
-                           mac_generator,
-                           backend_data_directory,
-                           prepare_networking);
+                           add_interface);
 }
 } // namespace
 
@@ -309,9 +249,7 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::function<std::string()> bridge_name,
     std::function<std::vector<NetworkInterfaceInfo>()> host_networks,
     std::function<bool()> user_authorized_bridge,
-    std::function<std::string()> mac_generator,
-    const QString backend_data_directory,
-    std::function<void(std::vector<mp::NetworkInterface>&)> prepare_networking)
+    std::function<void(const std::string&, const std::string&)> add_interface)
     : vm_instance_specs{vm_instance_specs},
       operative_instances{operative_instances},
       deleted_instances{deleted_instances},
@@ -321,9 +259,7 @@ mp::InstanceSettingsHandler::InstanceSettingsHandler(
       bridge_name{std::move(bridge_name)},
       host_networks{std::move(host_networks)},
       user_authorized_bridge{user_authorized_bridge},
-      mac_generator{mac_generator},
-      backend_data_directory{backend_data_directory},
-      prepare_networking{prepare_networking}
+      add_interface{add_interface}
 {
 }
 
@@ -382,9 +318,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
                        bridge_name,
                        host_networks,
                        user_authorized_bridge,
-                       mac_generator,
-                       backend_data_directory,
-                       prepare_networking);
+                       add_interface);
     }
     else
     {

@@ -47,9 +47,7 @@ public:
                             std::function<std::string()> bridge_name,
                             std::function<std::vector<NetworkInterfaceInfo>()> host_networks,
                             std::function<bool()> user_authorized,
-                            std::function<std::string()> mac_generator,
-                            const QString backend_data_directory,
-                            std::function<void(std::vector<NetworkInterface>&)> prepare_networking);
+                            std::function<void(const std::string&, const std::string&)> add_interface);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -71,9 +69,7 @@ private:
     std::function<std::string()> bridge_name;
     std::function<std::vector<NetworkInterfaceInfo>()> host_networks;
     std::function<bool()> user_authorized_bridge;
-    std::function<std::string()> mac_generator;
-    const QString backend_data_directory;
-    std::function<void(std::vector<NetworkInterface>&)> prepare_networking;
+    std::function<void(const std::string&, const std::string&)> add_interface;
 };
 
 class InstanceSettingsException : public SettingsException
