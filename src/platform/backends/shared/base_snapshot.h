@@ -49,6 +49,7 @@ public:
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
     MemorySize get_disk_space() const noexcept override;
+    std::vector<NetworkInterface> get_extra_interfaces() const noexcept override;
     VirtualMachine::State get_state() const noexcept override;
 
     // Note that these return references - careful not to delete the snapshot while they are in use
@@ -85,6 +86,7 @@ private:
                  int num_cores,
                  MemorySize mem_size,
                  MemorySize disk_space,
+                 std::vector<NetworkInterface> extra_interfaces,
                  VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts,
                  QJsonObject metadata,
@@ -108,6 +110,7 @@ private:
     const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const MemorySize disk_space;                           // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::vector<NetworkInterface> extra_interfaces;  // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const VirtualMachine::State state;                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -179,6 +182,11 @@ inline auto multipass::BaseSnapshot::get_mem_size() const noexcept -> MemorySize
 inline auto multipass::BaseSnapshot::get_disk_space() const noexcept -> MemorySize
 {
     return disk_space;
+}
+
+inline auto multipass::BaseSnapshot::get_extra_interfaces() const noexcept -> std::vector<NetworkInterface>
+{
+    return extra_interfaces;
 }
 
 inline auto multipass::BaseSnapshot::get_state() const noexcept -> VirtualMachine::State

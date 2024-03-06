@@ -3,6 +3,8 @@
     "comment": "A comment",
     "creation_timestamp": "2023-11-15T12:35:13.585Z",
     "disk_space": "5368709120",
+    "extra_interfaces": [
+    ],
     "index": 3,
     "mem_size": "1073741824",
     "metadata": {

@@ -20,10 +20,14 @@
 
 #include "singleton.h"
 
+#include <multipass/network_interface.h>
+
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QString>
 
 #include <string>
+#include <vector>
 
 #define MP_JSONUTILS multipass::JsonUtils::instance()
 
@@ -36,6 +40,8 @@ public:
 
     virtual void write_json(const QJsonObject& root, QString file_name) const; // transactional; creates parent dirs
     virtual std::string json_to_string(const QJsonObject& root) const;
+    virtual QJsonArray extra_interfaces_to_json_array(const std::vector<NetworkInterface>& extra_interfaces) const;
+    virtual std::vector<NetworkInterface> read_extra_interfaces(const QJsonObject& record) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_JSON_UTILS_H
