@@ -20,6 +20,7 @@
 #include "tests/mock_file_ops.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/network_interface.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -343,4 +344,32 @@ write_files:
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
     EXPECT_EQ(original_iso, new_iso);
+}
+
+TEST_F(CloudInitIso, updateCloudInitWithNewExtraInterfaces)
+{
+    constexpr std::string_view meta_data_content = R"(#cloud-config
+instance-id: vm1
+local-hostname: vm1
+cloud-name: multipass)";
+
+    mp::CloudInitIso original_iso;
+
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("network-data", "");
+    original_iso.write_to(iso_path);
+
+    const std::string& default_mac_addr = "52:54:00:56:78:90";
+    const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true},
+                                                                {"id", "52:54:00:56:78:92", true}};
+    EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+                                                                                       extra_interfaces,
+                                                                                       iso_path.toStdString()));
+
+    // update this later
+    constexpr std::string_view modified_meta_data_content =
+        "#cloud-config\ninstance-id: \"vm1\\n_e\"\nlocal-hostname: vm1\ncloud-name: multipass\n\n";
+    mp::CloudInitIso new_iso;
+    new_iso.read_from(iso_path.toStdString());
+    EXPECT_EQ(new_iso.at("meta-data"), modified_meta_data_content);
 }
