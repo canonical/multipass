@@ -91,8 +91,18 @@ class TerminalTabs extends StatefulWidget {
 }
 
 class _TerminalTabsState extends State<TerminalTabs> {
-  var currentIndex = 0;
-  late final shells = [(1, GlobalKey())];
+  var _currentIndex = 0;
+
+  get currentIndex => _currentIndex;
+
+  set currentIndex(value) {
+    final (_, key) = shells[value];
+    FocusManager.instance.primaryFocus?.unfocus();
+    key.currentState?.focusNode.requestFocus();
+    _currentIndex = value;
+  }
+
+  final shells = [(1, GlobalKey<VmTerminalState>())];
 
   @override
   Widget build(BuildContext context) {
@@ -131,8 +141,8 @@ class _TerminalTabsState extends State<TerminalTabs> {
         onPressed: () => setState(() {
           final shellIds = shells.map((e) => e.$1).toSet();
           final newShellId = 1.to(1000).whereNot(shellIds.contains).first;
-          currentIndex = shells.length;
           shells.add((newShellId, GlobalKey()));
+          currentIndex = shells.length - 1;
         }),
       ),
     );

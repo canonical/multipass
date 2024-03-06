@@ -20,6 +20,7 @@ final sidebarKeyProvider = StateProvider<String>((ref) {
       ref.invalidateSelf();
     }
   });
+  ref.listenSelf((_, __) => FocusManager.instance.primaryFocus?.unfocus());
   return CatalogueScreen.sidebarKey;
 });
 
