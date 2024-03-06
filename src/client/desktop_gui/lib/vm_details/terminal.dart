@@ -22,18 +22,20 @@ class VmTerminal extends ConsumerStatefulWidget {
   const VmTerminal(this.name, {super.key});
 
   @override
-  ConsumerState<VmTerminal> createState() => _VmTerminalState();
+  ConsumerState<VmTerminal> createState() => VmTerminalState();
 }
 
-class _VmTerminalState extends ConsumerState<VmTerminal> {
+class VmTerminalState extends ConsumerState<VmTerminal> {
   Terminal? terminal;
   Isolate? isolate;
   final scrollController = ScrollController();
+  final focusNode = FocusNode();
 
   @override
   void dispose() {
     isolate?.kill(priority: Isolate.immediate);
     scrollController.dispose();
+    focusNode.dispose();
     super.dispose();
   }
 
@@ -90,6 +92,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           isolate?.kill(priority: Isolate.immediate);
       }
     });
+    focusNode.requestFocus();
   }
 
   @override
@@ -145,6 +148,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           thisTerminal,
           scrollController: scrollController,
           autofocus: true,
+          focusNode: focusNode,
           shortcuts: const {},
           hardwareKeyboardOnly: true,
           padding: const EdgeInsets.all(4),
