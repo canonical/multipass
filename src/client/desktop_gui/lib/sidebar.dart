@@ -10,6 +10,7 @@ import 'extensions.dart';
 import 'help.dart';
 import 'providers.dart';
 import 'settings/settings.dart';
+import 'vm_details/terminal.dart';
 import 'vm_table/vm_table_screen.dart';
 
 final sidebarKeyProvider = StateProvider<String>((ref) {
@@ -117,10 +118,15 @@ class SideBar extends ConsumerWidget {
 
     final vmEntries = vmNames.map((name) {
       final key = 'vm-$name';
+      final hasShells = ref.watch(vmShellsProvider(name).select((n) => n > 0));
       return SidebarEntry(
-        icon: Flexible(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 30),
+        key: ValueKey(key),
+        icon: Opacity(
+          opacity: hasShells ? 1 : 0,
+          child: SvgPicture.asset(
+            'assets/shell.svg',
+            width: 15,
+            height: 15,
           ),
         ),
         selected: isSelected(key) && expanded,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:isolate';
+import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:dartssh2/dartssh2.dart';
@@ -10,6 +11,10 @@ import 'package:xterm/xterm.dart';
 
 import '../logger.dart';
 import '../providers.dart';
+
+final vmShellsProvider = StateProvider.autoDispose.family<int, String>((_, __) {
+  return 0;
+});
 
 class VmTerminal extends ConsumerStatefulWidget {
   final String name;
@@ -33,6 +38,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   }
 
   Future<void> initTerminal() async {
+    final vmShellsNotifier = ref.read(vmShellsProvider(widget.name).notifier);
     final thisTerminal = terminal;
     if (thisTerminal == null) return;
 
@@ -55,6 +61,8 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       errorsAreFatal: true,
     );
 
+    vmShellsNotifier.update((state) => state + 1);
+
     errorReceiver.listen((es) {
       logger.e(
         'Error from ${widget.name} ssh isolate',
@@ -67,6 +75,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       receiver.close();
       errorReceiver.close();
       exitReceiver.close();
+      vmShellsNotifier.update((state) => max(0, state - 1));
       if (mounted) setState(() => terminal = null);
     });
     receiver.listen((event) {
