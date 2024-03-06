@@ -24,11 +24,6 @@ class NoVms extends ConsumerWidget {
       ref.read(sidebarKeyProvider.notifier).state = CatalogueScreen.sidebarKey;
     }
 
-    final launchPrimary = TextButton(
-      onPressed: () {},
-      child: const Text('Launch primary image'),
-    );
-
     return Center(
       child: SizedBox(
         width: 400,
@@ -46,8 +41,6 @@ class NoVms extends ConsumerWidget {
               ' to choose your instance or get started with the primary Ubuntu Image'
                   .span,
             ].spans.size(16)),
-            const SizedBox(height: 24),
-            launchPrimary,
           ],
         ),
       ),
