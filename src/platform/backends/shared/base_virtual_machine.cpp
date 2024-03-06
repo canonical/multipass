@@ -25,7 +25,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/utils.h>
 #include <multipass/vm_specs.h>
 
 #include <scope_guard.hpp>
@@ -86,15 +85,9 @@ void BaseVirtualMachine::add_extra_interfaces_to_cloud_init(const std::string& d
         std::filesystem::path(backend_data_direcotry.toStdString()) / "vault" / "instances" / vm_name /
         "cloud-init-config.iso";
 
-    CloudInitIso qemu_iso;
-    qemu_iso.read_from(cloud_init_config_iso_file_path);
-    std::string& meta_data_file_content = qemu_iso.at("meta-data");
-    meta_data_file_content =
-        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content));
-    // overwrite the whole network-config file content
-    qemu_iso["network-config"] =
-        mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
-    qemu_iso.write_to(QString::fromStdString(cloud_init_config_iso_file_path.string()));
+    mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+                                                                       extra_interfaces,
+                                                                       cloud_init_config_iso_file_path);
 }
 
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
