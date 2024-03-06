@@ -87,8 +87,7 @@ std::vector<mp::NetworkInterface> mp::JsonUtils::read_extra_interfaces(const QJs
         {
             auto id = entry.toObject()["id"].toString().toStdString();
             auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
-            // Allow empty addresses (for nonconfigured interfaces).
-            if (!mac_address.empty() && !mpu::valid_mac_address(mac_address))
+            if (!mpu::valid_mac_address(mac_address))
             {
                 throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
             }

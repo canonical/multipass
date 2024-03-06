@@ -1375,10 +1375,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // only if this instance is not invalid.
         auto new_macs = mac_set_from(spec);
 
-        if (new_macs.size() <= (size_t)count_if(spec.extra_interfaces.cbegin(),
-                                                spec.extra_interfaces.cend(),
-                                                [](const auto& i) { return !i.mac_address.empty(); }) ||
-            !merge_if_disjoint(new_macs, allocated_mac_addrs))
+        if (new_macs.size() <= spec.extra_interfaces.size() || !merge_if_disjoint(new_macs, allocated_mac_addrs))
         {
             // There is at least one repeated address in new_macs.
             mpl::log(mpl::Level::warning, category, fmt::format("{} has repeated MAC addresses", name));
