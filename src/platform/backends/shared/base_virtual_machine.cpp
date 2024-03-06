@@ -192,20 +192,15 @@ void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, co
     mpl::log(logging::Level::debug, vm_name, "Caching initial SSH session");
 }
 
-std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
+std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider&) // TODO@ricab remove param
 {
     std::vector<std::string> all_ipv4;
 
     if (mpu::is_running(current_state()))
     {
-        QString ip_a_output;
-
         try
         {
-            SSHSession session{ssh_hostname(), ssh_port(), ssh_username(), key_provider};
-
-            ip_a_output = QString::fromStdString(
-                mpu::run_in_ssh_session(session, "ip -brief -family inet address show scope global"));
+            auto ip_a_output = QString::fromStdString(ssh_exec("ip -brief -family inet address show scope global"));
 
             QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*(metric \\d+)?\\s*$"),
                                        QRegularExpression::MultilineOption};
