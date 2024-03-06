@@ -86,6 +86,7 @@ class App extends ConsumerWidget {
     final content = Stack(fit: StackFit.expand, children: [
       for (final MapEntry(:key, value: widget) in widgets.entries)
         Visibility(
+          key: Key(key),
           maintainState: true,
           visible: key == currentKey,
           child: widget,
