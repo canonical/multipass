@@ -172,6 +172,7 @@ void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, co
 {
     drop_ssh_session();
     ssh_session = wait_until_ssh_up_helper(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
+    mpl::log(logging::Level::debug, vm_name, "Caching initial SSH session");
 }
 
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
