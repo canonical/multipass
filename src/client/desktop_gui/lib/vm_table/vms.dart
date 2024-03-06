@@ -50,7 +50,7 @@ class Vms extends ConsumerWidget {
       ),
       TextButton(
         onPressed: goToCatalogue,
-        child: const Text('Launch image'),
+        child: const Text('Launch'),
       )
     ]);
 
