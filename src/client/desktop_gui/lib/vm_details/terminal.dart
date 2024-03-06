@@ -5,6 +5,7 @@ import 'package:async/async.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:xterm/xterm.dart';
 
 import '../logger.dart';
@@ -103,17 +104,26 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     final thisTerminal = terminal;
     if (thisTerminal == null) {
       return Container(
-        color: Colors.black,
+        color: const Color(0xff380c2a),
         alignment: Alignment.center,
-        child: OutlinedButton(
-          style: buttonStyle,
-          onPressed: !vmRunning
-              ? null
-              : () => setState(() {
-                    terminal = Terminal(maxLines: 10000);
-                    initTerminal();
-                  }),
-          child: const Text('Open shell'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset('assets/shell.svg'),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              style: buttonStyle,
+              onPressed: !vmRunning
+                  ? null
+                  : () => setState(() {
+                        terminal = Terminal(maxLines: 10000);
+                        initTerminal();
+                      }),
+              child: const Text('Open shell'),
+            ),
+            const SizedBox(height: 32),
+          ],
         ),
       );
     }
