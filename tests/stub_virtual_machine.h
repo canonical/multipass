@@ -90,6 +90,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
+    std::string ssh_exec(const std::string& cmd) override
+    {
+        return {};
+    }
+
     void ensure_vm_is_running() override
     {
         throw std::runtime_error("Not running");

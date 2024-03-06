@@ -49,7 +49,10 @@ public:
                        const Path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name, const SSHKeyProvider& key_provider, const Path& instance_dir);
 
+    virtual std::string ssh_exec(const std::string& cmd) override;
+
     void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
+
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
     void add_network_interface(int index, const NetworkInterface& net) override
     {

@@ -168,6 +168,23 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
                                                                        cloud_init_config_iso_file_path);
 }
 
+std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
+{
+    const std::unique_lock lock{state_mutex};
+    if (!ssh_session || !ssh_session->is_connected())
+    {
+        if (!mpu::is_running(current_state())) // spend time updating state only if we need a new session
+            throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
+
+        mpl::log(logging::Level::debug,
+                 vm_name,
+                 fmt::format("{} SSH session", ssh_session ? "Renewing" : "Caching new"));
+        ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    }
+
+    return mpu::run_in_ssh_session(*ssh_session, cmd);
+}
+
 void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
     drop_ssh_session();

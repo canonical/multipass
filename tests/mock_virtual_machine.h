@@ -66,6 +66,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::string, management_ipv4, (const SSHKeyProvider&), (override));
     MOCK_METHOD(std::vector<std::string>, get_all_ipv4, (const SSHKeyProvider&), (override));
     MOCK_METHOD(std::string, ipv6, (), (override));
+    MOCK_METHOD(std::string, ssh_exec, (const std::string& cmd), (override));
     MOCK_METHOD(void, ensure_vm_is_running, (), (override));
     MOCK_METHOD(void, wait_until_ssh_up, (std::chrono::milliseconds, const SSHKeyProvider&), (override));
     MOCK_METHOD(void, update_state, (), (override));
