@@ -60,9 +60,7 @@ struct TestInstanceSettingsHandler : public Test
                                            make_fake_bridge_name(),
                                            make_fake_host_networks(),
                                            make_fake_authorization(),
-                                           make_fake_mac_generator(),
-                                           "",
-                                           make_fake_prepare_networking()};
+                                           make_fake_add()};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)
@@ -102,14 +100,11 @@ struct TestInstanceSettingsHandler : public Test
         return [this]() { return user_authorized; };
     }
 
-    std::function<std::string()> make_fake_mac_generator()
+    std::function<void(const std::string&, const std::string&)> make_fake_add()
     {
-        return []() { return mpu::generate_mac_address(); };
-    }
-
-    std::function<void(std::vector<mp::NetworkInterface>&)> make_fake_prepare_networking()
-    {
-        return [](std::vector<mp::NetworkInterface>&) { return; };
+        return [this](const std::string& n, const std::string& b) {
+            specs[n].extra_interfaces.push_back(mp::NetworkInterface{b, mpu::generate_mac_address(), true});
+        };
     }
 
     template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NiceMock>
