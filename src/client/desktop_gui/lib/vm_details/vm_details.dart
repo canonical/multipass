@@ -15,7 +15,7 @@ import 'vm_status_icon.dart';
 class VmDetailsScreen extends StatelessWidget {
   final String name;
 
-  const VmDetailsScreen({super.key, required this.name});
+  const VmDetailsScreen(this.name, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,7 @@ class VmDetailsScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(20).copyWith(top: 75),
         child: Column(children: [
-          VmDetails(name: name),
+          VmDetails(name),
           Expanded(child: TerminalTabs(name)),
         ]),
       ),
@@ -35,7 +35,7 @@ class VmDetailsScreen extends StatelessWidget {
 class VmDetails extends ConsumerWidget {
   final String name;
 
-  const VmDetails({super.key, required this.name});
+  const VmDetails(this.name, {super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
