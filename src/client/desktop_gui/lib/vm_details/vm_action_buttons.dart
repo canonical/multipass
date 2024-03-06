@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../extensions.dart';
+import '../notificaions/notification_entries.dart';
+import '../notificaions/notifications_provider.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 
@@ -20,19 +22,33 @@ class VmActionButtons extends ConsumerWidget {
     final client = ref.watch(grpcClientProvider);
 
     final actions = [
-      (VmAction.edit, () => Scaffold.of(context).openEndDrawer()),
-      (VmAction.start, () => client.start([name])),
-      (VmAction.stop, () => client.stop([name])),
-      (VmAction.suspend, () => client.suspend([name])),
-      (VmAction.delete, () => client.delete([name])),
+      (VmAction.start, client.start),
+      (VmAction.stop, client.stop),
+      (VmAction.suspend, client.suspend),
+      (VmAction.delete, client.delete),
     ];
 
     final actionButtons = [
+      VmActionButton(
+        action: VmAction.edit,
+        currentStatuses: {status},
+        function: () => Scaffold.of(context).openEndDrawer(),
+      ),
       for (final (action, function) in actions)
         VmActionButton(
           action: action,
           currentStatuses: {status},
-          function: function,
+          function: () {
+            final notification = OperationNotification(
+              text: '${action.continuousTense} $name',
+              future: function([name]).then((_) {
+                return '${action.pastTense} $name';
+              }).onError((_, __) {
+                throw 'Failed to ${action.name.toLowerCase()} $name';
+              }),
+            );
+            ref.read(notificationsProvider.notifier).add(notification);
+          },
         ),
     ];
 
