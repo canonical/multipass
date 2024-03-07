@@ -42,6 +42,7 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
+namespace mpu = mp::utils;
 
 using namespace testing;
 
@@ -777,6 +778,14 @@ TEST(Utils, wait_for_cloud_init_cannot_connect_times_out)
     std::chrono::milliseconds timeout(1);
     MP_EXPECT_THROW_THAT(MP_UTILS.wait_for_cloud_init(&vm, timeout, key_provider), std::runtime_error,
                          mpt::match_what(StrEq("timed out waiting for initialization to complete")));
+}
+
+TEST(UtilsTests, makeCloudInitMetaConfig)
+{
+    const YAML::Node meta_data_node = mpu::make_cloud_init_meta_config("vm1");
+    EXPECT_EQ(mpu::emit_yaml(meta_data_node["instance-id"]), "vm1\n");
+    EXPECT_EQ(mpu::emit_yaml(meta_data_node["local-hostname"]), "vm1\n");
+    EXPECT_EQ(mpu::emit_yaml(meta_data_node["cloud-name"]), "multipass\n");
 }
 
 TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
