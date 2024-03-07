@@ -366,9 +366,8 @@ cloud-name: multipass)";
                                                                                        extra_interfaces,
                                                                                        iso_path.toStdString()));
 
-    // update this later
     constexpr std::string_view modified_meta_data_content =
-        "#cloud-config\ninstance-id: \"vm1\\n_e\"\nlocal-hostname: vm1\ncloud-name: multipass\n\n";
+        "#cloud-config\ninstance-id: vm1_e\nlocal-hostname: vm1\ncloud-name: multipass\n\n";
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
     EXPECT_EQ(new_iso.at("meta-data"), modified_meta_data_content);
