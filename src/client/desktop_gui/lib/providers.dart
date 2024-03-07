@@ -39,25 +39,25 @@ final pollTickProvider = Provider<void>((ref) {
   ref.onDispose(sub.cancel);
 });
 
-final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) {
+final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
   final grpcClient = ref.watch(grpcClientProvider);
-  final controller = StreamController<List<VmInfo>>();
   // this is to de-duplicate errors received from the stream
   Object? lastError;
-  ref.listen(pollTickProvider, (_, __) async {
+  while (true) {
+    final timer = Future.delayed(const Duration(seconds: 1));
     try {
-      controller.add(await grpcClient.info());
+      yield await grpcClient.info();
       lastError = null;
     } catch (error, stackTrace) {
       if (error != lastError) {
         logger.e('Error on polling info', error: error, stackTrace: stackTrace);
-        controller.addError(error, stackTrace);
+        yield* Stream.error(error, stackTrace);
       }
       lastError = error;
+    } finally {
+      await timer;
     }
-  }, fireImmediately: true);
-
-  return controller.stream;
+  }
 });
 
 final daemonAvailableProvider = Provider((ref) {
