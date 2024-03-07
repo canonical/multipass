@@ -11,7 +11,7 @@ import '../dropdown.dart';
 import '../providers.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
-final passphraseProvider = daemonSettingProvider2(passphraseKey);
+final passphraseProvider = daemonSettingProvider(passphraseKey);
 final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
 
 class UsageSettings extends ConsumerWidget {

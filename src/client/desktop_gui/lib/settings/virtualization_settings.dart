@@ -8,7 +8,7 @@ import '../dropdown.dart';
 import '../providers.dart';
 
 final networksProvider = Provider.autoDispose((ref) {
-  ref.watch(daemonSettingProvider2(driverKey));
+  ref.watch(daemonSettingProvider(driverKey));
   if (ref.watch(daemonAvailableProvider)) {
     ref.watch(grpcClientProvider).networks().then((networks) {
       return ref.state = networks.map((n) => n.name).toBuiltSet();
@@ -17,8 +17,8 @@ final networksProvider = Provider.autoDispose((ref) {
   return BuiltSet<String>();
 });
 
-final driverProvider = daemonSettingProvider2(driverKey);
-final bridgedNetworkProvider = daemonSettingProvider2(bridgedNetworkKey);
+final driverProvider = daemonSettingProvider(driverKey);
+final bridgedNetworkProvider = daemonSettingProvider(bridgedNetworkKey);
 
 class VirtualizationSettings extends ConsumerWidget {
   const VirtualizationSettings({super.key});
