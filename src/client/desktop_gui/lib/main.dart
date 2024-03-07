@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -10,7 +11,9 @@ import 'catalogue/catalogue.dart';
 import 'daemon_unavailable.dart';
 import 'help.dart';
 import 'logger.dart';
+import 'notificaions/notification_entries.dart';
 import 'notificaions/notifications_list.dart';
+import 'notificaions/notifications_provider.dart';
 import 'providers.dart';
 import 'settings/settings.dart';
 import 'sidebar.dart';
@@ -39,6 +42,7 @@ void main() async {
   await setupLogger();
 
   await windowManager.ensureInitialized();
+  await windowManager.setPreventClose(true);
   const windowOptions = WindowOptions(
     size: Size(1400, 800),
     title: 'Multipass',
@@ -60,16 +64,21 @@ void main() async {
   runApp(
     UncontrolledProviderScope(
       container: providerContainer,
-      child: const App(),
+      child: MaterialApp(theme: theme, home: const App()),
     ),
   );
 }
 
-class App extends ConsumerWidget {
+class App extends ConsumerStatefulWidget {
   const App({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<App> createState() => _AppState();
+}
+
+class _AppState extends ConsumerState<App> with WindowListener {
+  @override
+  Widget build(BuildContext context) {
     final currentKey = ref.watch(sidebarKeyProvider);
     final sidebarExpanded = ref.watch(sidebarExpandedProvider);
     final sidebarPushContent = ref.watch(sidebarPushContentProvider);
@@ -93,27 +102,84 @@ class App extends ConsumerWidget {
         ),
     ]);
 
-    return MaterialApp(
-      theme: theme,
-      home: Stack(children: [
-        AnimatedPositioned(
-          duration: SideBar.animationDuration,
-          bottom: 0,
-          right: 0,
-          top: 0,
-          left: sidebarPushContent && sidebarExpanded
-              ? SideBar.expandedWidth
-              : SideBar.collapsedWidth,
-          child: content,
-        ),
-        const SideBar(),
-        const Align(
-          alignment: Alignment.bottomRight,
-          child: SizedBox(width: 300, child: NotificationList()),
-        ),
-        const DaemonUnavailable(),
-      ]),
-    );
+    return Stack(children: [
+      AnimatedPositioned(
+        duration: SideBar.animationDuration,
+        bottom: 0,
+        right: 0,
+        top: 0,
+        left: sidebarPushContent && sidebarExpanded
+            ? SideBar.expandedWidth
+            : SideBar.collapsedWidth,
+        child: content,
+      ),
+      const SideBar(),
+      const Align(
+        alignment: Alignment.bottomRight,
+        child: SizedBox(width: 300, child: NotificationList()),
+      ),
+      const DaemonUnavailable(),
+    ]);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onWindowClose() {
+    final instancesRunning = ref
+        .read(vmStatusesProvider)
+        .values
+        .any((status) => status == Status.RUNNING);
+    if (!instancesRunning) exit(0);
+
+    stopAllInstances() {
+      final notification = OperationNotification(
+        text: 'Stopping all instances',
+        future: ref.read(grpcClientProvider).stop([]).then((_) {
+          windowManager.destroy();
+          return 'Stopped all instances';
+        }).onError((_, __) => throw 'Failed to stop all instances'),
+      );
+      ref.read(notificationsProvider.notifier).add(notification);
+    }
+
+    switch (ref.read(guiSettingProvider(onAppCloseKey))) {
+      case 'nothing':
+        exit(0);
+      case 'stop':
+        stopAllInstances();
+      default:
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Keep instances running in the background?'),
+            actions: [
+              TextButton(
+                child: const Text('No'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  stopAllInstances();
+                },
+              ),
+              TextButton(
+                child: const Text('Yes'),
+                onPressed: () => exit(0),
+              ),
+            ],
+          ),
+        );
+    }
   }
 }
 
