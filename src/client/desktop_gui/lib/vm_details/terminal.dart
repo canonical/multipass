@@ -230,6 +230,6 @@ Future<void> sshIsolate(SshShellInfo info) async {
     }
   });
 
-  StreamGroup.merge([session.stdout, session.stderr])
-      .listen((event) => info.sender.send(utf8.decoder.convert(event)));
+  StreamGroup.merge([session.stdout, session.stderr]).listen(
+      (event) => info.sender.send(utf8.decode(event, allowMalformed: true)));
 }
