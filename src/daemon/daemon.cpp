@@ -39,6 +39,7 @@
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
+#include <multipass/settings/bool_setting_spec.h>
 #include <multipass/settings/settings.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
@@ -1178,21 +1179,15 @@ mp::SettingsHandler* register_instance_mod(std::unordered_map<std::string, mp::V
                                            const InstanceTable& deleted_instances,
                                            const std::unordered_set<std::string>& preparing_instances,
                                            std::function<void()> instance_persister,
-                                           std::function<std::string()> bridged_interface,
-                                           std::function<std::string()> bridge_name,
-                                           std::function<std::vector<mp::NetworkInterfaceInfo>()> host_networks,
-                                           std::function<bool()> user_authorized,
-                                           std::function<void(const std::string&, const std::string&)> add_interface)
+                                           std::function<bool(const std::string&)> is_bridged,
+                                           std::function<void(const std::string&)> add_interface)
 {
     return MP_SETTINGS.register_handler(std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
                                                                                       operative_instances,
                                                                                       deleted_instances,
                                                                                       preparing_instances,
                                                                                       std::move(instance_persister),
-                                                                                      std::move(bridged_interface),
-                                                                                      std::move(bridge_name),
-                                                                                      host_networks,
-                                                                                      user_authorized,
+                                                                                      is_bridged,
                                                                                       add_interface));
 }
 
@@ -1331,13 +1326,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           deleted_instances,
           preparing_instances,
           [this] { persist_instances(); },
-          get_bridged_interface_name,
-          [this]() {
-              return config->factory->bridge_name_for(MP_SETTINGS.get(mp::bridged_interface_key).toStdString());
-          },
-          [this]() { return config->factory->networks(); },
-          [this]() { return user_authorized; },
-          [this](const std::string& n, const std::string& b) { return add_bridged_interface(n, b); })},
+          [this](const std::string& n) { return is_bridged(n); },
+          [this](const std::string& n) { return add_bridged_interface(n); })},
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
@@ -3594,11 +3584,46 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     }
 }
 
-void mp::Daemon::add_bridged_interface(const std::string& instance_name, const std::string& br_interface)
+bool mp::Daemon::is_bridged(const std::string& instance_name)
+{
+    const auto& spec = vm_instance_specs[instance_name];
+    const auto& br_interface = get_bridged_interface_name();
+    const auto& br_name = config->factory->bridge_name_for(br_interface);
+
+    return std::any_of(spec.extra_interfaces.cbegin(),
+                       spec.extra_interfaces.cend(),
+                       [&br_interface, &br_name](const auto& network) -> bool {
+                           return network.id == br_interface || network.id == br_name;
+                       });
+}
+
+void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 {
     // These two use operator[] to access elements because this function is called after existence was checked.
     mp::VMSpecs& spec = vm_instance_specs[instance_name];
     mp::VirtualMachine::ShPtr instance = operative_instances[instance_name];
+
+    const auto& br_interface = get_bridged_interface_name();
+    const auto& host_nets = config->factory->networks(); // This will throw if not implemented on this backend.
+    const auto& info = std::find_if(host_nets.cbegin(), host_nets.cend(), [br_interface](const auto& i) {
+        return i.id == br_interface;
+    });
+
+    if (info == host_nets.cend())
+    {
+        throw std::runtime_error(
+            fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
+                        "correct. See `multipass networks` for valid names.",
+                        br_interface,
+                        mp::bridged_interface_key));
+    }
+
+    bool needs_authorization = info->needs_authorization && !user_authorized;
+
+    if (needs_authorization)
+    {
+        throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings", instance_name, br_interface);
+    }
 
     mp::NetworkInterface new_if{br_interface, generate_unused_mac_address(allocated_mac_addrs), true};
     mpl::log(mpl::Level::debug,

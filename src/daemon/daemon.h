@@ -202,7 +202,8 @@ private:
     void
     populate_instance_info(VirtualMachine& vm, InfoReply& response, bool runtime_info, bool deleted, bool& have_mounts);
 
-    void add_bridged_interface(const std::string& instance_name, const std::string& br_interface);
+    bool is_bridged(const std::string& instance_name);
+    void add_bridged_interface(const std::string& instance_name);
 
     std::unique_ptr<const DaemonConfig> config;
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
