@@ -8,6 +8,7 @@ import 'package:grpc/grpc.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../providers.dart';
+import '../sidebar.dart';
 import 'launch_panel.dart';
 
 class LaunchOperationProgress extends ConsumerWidget {
@@ -32,6 +33,7 @@ class LaunchOperationProgress extends ConsumerWidget {
         stream: stream.doOnData((r) {
           if (r == null) {
             Scaffold.of(context).closeEndDrawer();
+            ref.read(sidebarKeyProvider.notifier).state = 'vm-$name';
             Timer(
               const Duration(milliseconds: 200),
               () => ref.invalidate(launchOperationProvider),
