@@ -114,27 +114,7 @@ const primaryNameKey = 'client.primary-name';
 final clientSettingProvider = NotifierProvider.autoDispose
     .family<ClientSettingNotifier, String, String>(ClientSettingNotifier.new);
 
-class DaemonSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
-  @override
-  String? build(String arg) {
-    if (ref.watch(daemonAvailableProvider)) {
-      final grpcClient = ref.watch(grpcClientProvider);
-      grpcClient.get(arg).then((value) => state = value).ignore();
-    }
-
-    return stateOrNull;
-  }
-
-  void set(String value) {
-    ref.read(grpcClientProvider).set(arg, value).ignore();
-    state = value;
-  }
-
-  @override
-  bool updateShouldNotify(String? previous, String? next) => previous != next;
-}
-
-class DaemonSettingNotifier2
+class DaemonSettingNotifier
     extends AutoDisposeFamilyAsyncNotifier<String, String> {
   @override
   Future<String> build(String arg) async {
@@ -163,11 +143,8 @@ const driverKey = 'local.driver';
 const bridgedNetworkKey = 'local.bridged-network';
 const privilegedMountsKey = 'local.privileged-mounts';
 const passphraseKey = 'local.passphrase';
-final daemonSettingProvider = NotifierProvider.autoDispose
-    .family<DaemonSettingNotifier, String?, String>(DaemonSettingNotifier.new);
-
-final daemonSettingProvider2 = AsyncNotifierProvider.autoDispose
-    .family<DaemonSettingNotifier2, String, String>(DaemonSettingNotifier2.new);
+final daemonSettingProvider = AsyncNotifierProvider.autoDispose
+    .family<DaemonSettingNotifier, String, String>(DaemonSettingNotifier.new);
 
 class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
   final SharedPreferences sharedPreferences;

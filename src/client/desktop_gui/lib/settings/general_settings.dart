@@ -17,7 +17,7 @@ final updateProvider = Provider.autoDispose((ref) {
   return UpdateInfo();
 });
 
-final privilegedMountsProvider = daemonSettingProvider2(privilegedMountsKey);
+final privilegedMountsProvider = daemonSettingProvider(privilegedMountsKey);
 
 class GeneralSettings extends ConsumerWidget {
   const GeneralSettings({super.key});

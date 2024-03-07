@@ -45,13 +45,13 @@ class _EditVmFormState extends ConsumerState<EditVmForm> {
   }
 
   void _initState() async {
-    cpusInitial = await ref.read(daemonSettingProvider2(cpusKey).future);
+    cpusInitial = await ref.read(daemonSettingProvider(cpusKey).future);
     cpusController.text = cpusInitial;
-    memoryInitial = await ref.read(daemonSettingProvider2(memoryKey).future);
+    memoryInitial = await ref.read(daemonSettingProvider(memoryKey).future);
     memoryController.text = memoryInitial;
-    diskInitial = await ref.read(daemonSettingProvider2(diskKey).future);
+    diskInitial = await ref.read(daemonSettingProvider(diskKey).future);
     diskController.text = diskInitial;
-    bridgedInitial = (await ref.read(daemonSettingProvider2(bridgedKey).future))
+    bridgedInitial = (await ref.read(daemonSettingProvider(bridgedKey).future))
         .toBoolOption
         .toNullable();
     hasNetworks = await ref
@@ -158,7 +158,7 @@ class _EditVmFormState extends ConsumerState<EditVmForm> {
 
         final keys = [cpusKey, memoryKey, diskKey, if (hasNetworks) bridgedKey];
         for (final key in keys) {
-          ref.read(daemonSettingProvider2(key).notifier).set(formValues[key]!);
+          ref.read(daemonSettingProvider(key).notifier).set(formValues[key]!);
         }
 
         if (mounted) Scaffold.of(context).closeEndDrawer();
