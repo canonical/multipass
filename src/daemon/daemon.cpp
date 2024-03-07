@@ -93,6 +93,8 @@ constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 const std::string sshfs_error_template = "Error enabling mount support in '{}'"
                                          "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
+const std::string invalid_network_template = "Invalid network '{}' set as bridged interface, use `multipass set "
+                                             "{}=<name>` to correct. See `multipass networks` for valid names.";
 
 // Images which cannot be bridged with --network.
 const std::unordered_set<std::string> no_bridging_release = { // images to check from release and daily remotes
@@ -466,10 +468,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequ
         if (host_net_it == factory_networks->cend())
         {
             if (net.id() == mp::bridged_network_name)
-                throw std::runtime_error(
-                    fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
-                                "correct. See `multipass networks` for valid names.",
-                                net_id, mp::bridged_interface_key));
+                throw std::runtime_error(fmt::format(invalid_network_template, net_id, mp::bridged_interface_key));
 
             mpl::log(mpl::Level::warning, category, fmt::format("Invalid network name \"{}\"", net_id));
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
@@ -3616,11 +3615,7 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 
     if (info == host_nets.cend())
     {
-        throw std::runtime_error(
-            fmt::format("Invalid network '{}' set as bridged interface, use `multipass set {}=<name>` to "
-                        "correct. See `multipass networks` for valid names.",
-                        br_interface,
-                        mp::bridged_interface_key));
+        throw std::runtime_error(fmt::format(invalid_network_template, br_interface, mp::bridged_interface_key));
     }
 
     if (info->needs_authorization && !user_authorized_bridges.count(br_interface))
