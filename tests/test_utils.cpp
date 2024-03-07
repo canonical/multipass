@@ -783,9 +783,9 @@ TEST(Utils, wait_for_cloud_init_cannot_connect_times_out)
 TEST(UtilsTests, makeCloudInitMetaConfig)
 {
     const YAML::Node meta_data_node = mpu::make_cloud_init_meta_config("vm1");
-    EXPECT_EQ(mpu::emit_yaml(meta_data_node["instance-id"]), "vm1\n");
-    EXPECT_EQ(mpu::emit_yaml(meta_data_node["local-hostname"]), "vm1\n");
-    EXPECT_EQ(mpu::emit_yaml(meta_data_node["cloud-name"]), "multipass\n");
+    EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm1");
+    EXPECT_EQ(meta_data_node["local-hostname"].as<std::string>(), "vm1");
+    EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
 
 TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
