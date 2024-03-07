@@ -634,7 +634,7 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
 
 std::string mp::utils::emit_cloud_config(const YAML::Node& node)
 {
-    return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
+    return fmt::format("#cloud-config\n{}", emit_yaml(node));
 }
 
 YAML::Node mp::utils::make_cloud_init_meta_config(const std::string& name, const std::string& file_content)

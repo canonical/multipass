@@ -370,7 +370,6 @@ cloud-name: multipass)";
 instance-id: vm1_e
 local-hostname: vm1
 cloud-name: multipass
-
 )";
     constexpr std::string_view expected_generated_network_config_data_content = R"(#cloud-config
 version: 2
@@ -386,7 +385,6 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
-
 )";
 
     mp::CloudInitIso new_iso;
