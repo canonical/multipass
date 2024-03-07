@@ -78,12 +78,10 @@ BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name, const mp::Pat
     : VirtualMachine(vm_name, instance_dir){};
 
 void BaseVirtualMachine::add_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                                            const std::vector<NetworkInterface>& extra_interfaces,
-                                                            const QString& backend_data_direcotry)
+                                                            const std::vector<NetworkInterface>& extra_interfaces)
 {
     const std::filesystem::path cloud_init_config_iso_file_path =
-        std::filesystem::path(backend_data_direcotry.toStdString()) / "vault" / "instances" / vm_name /
-        "cloud-init-config.iso";
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
 
     mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
                                                                        extra_interfaces,

@@ -3391,9 +3391,7 @@ std::unordered_set<std::string> mp::Daemon::configure_new_interfaces(const std::
 
     if (added_good_interfaces)
     {
-        const QString backend_data_direcotry =
-            mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name());
-        vm.add_extra_interfaces_to_cloud_init(specs.default_mac_address, filtered_interfaces, backend_data_direcotry);
+        vm.add_extra_interfaces_to_cloud_init(specs.default_mac_address, filtered_interfaces);
     }
 
     mpl::log(mpl::Level::trace,

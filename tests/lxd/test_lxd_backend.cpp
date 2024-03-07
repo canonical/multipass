@@ -2411,7 +2411,7 @@ TEST_F(LXDBackend, addsNetworkInterfaceToCloudInit)
     const std::string& default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true},
                                                                 {"id", "52:54:00:56:78:92", true}};
-    EXPECT_NO_THROW(machine.add_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces, ""));
+    EXPECT_NO_THROW(machine.add_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces));
 }
 
 struct LXDNetworkNameTestSuite : LXDBackend, WithParamInterface<std::pair<std::string, std::string>>
