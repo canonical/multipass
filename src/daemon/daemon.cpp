@@ -2439,13 +2439,18 @@ try
 
     auto key = request->key();
     auto val = request->val();
-    user_authorized = request->authorized();
+    auto bridge_name = get_bridged_interface_name();
+
+    if (request->authorized())
+    {
+        user_authorized_bridges.insert(bridge_name);
+    }
 
     mpl::log(mpl::Level::trace, category, fmt::format("Trying to set {}={}", key, val));
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
 
-    user_authorized = false;
+    user_authorized_bridges.erase(bridge_name);
 
     status_promise->set_value(grpc::Status::OK);
 }
@@ -2463,13 +2468,13 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
     auto callback_request = SetRequest{};
     server->Read(&callback_request);
 
-    user_authorized = callback_request.authorized();
-
-    if (user_authorized)
+    if (callback_request.authorized())
     {
+        user_authorized_bridges.insert(get_bridged_interface_name());
+
         MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
 
-        user_authorized = false;
+        user_authorized_bridges.erase(get_bridged_interface_name());
 
         mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
 
@@ -3618,9 +3623,7 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
                         mp::bridged_interface_key));
     }
 
-    bool needs_authorization = info->needs_authorization && !user_authorized;
-
-    if (needs_authorization)
+    if (info->needs_authorization && !user_authorized_bridges.count(br_interface))
     {
         throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings", instance_name, br_interface);
     }
