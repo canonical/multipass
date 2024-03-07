@@ -171,18 +171,50 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
 std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
 {
     const std::unique_lock lock{state_mutex};
-    if (!ssh_session || !ssh_session->is_connected())
-    {
-        if (!mpu::is_running(current_state())) // spend time updating state only if we need a new session
-            throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
 
-        mpl::log(logging::Level::debug,
-                 vm_name,
-                 fmt::format("{} SSH session", ssh_session ? "Renewing" : "Caching new"));
-        ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    std::optional<std::string> log_details = std::nullopt;
+    bool retry = true;
+    while (true)
+    {
+        assert(retry && "we should have thrown otherwise");
+        if ((!ssh_session || !ssh_session->is_connected()) && retry)
+        {
+            const auto msg =
+                fmt::format("SSH session disconnected{}", log_details ? fmt::format(": {}", *log_details) : "");
+            mpl::log(logging::Level::info, vm_name, msg);
+
+            retry = false; // once only
+            renew_ssh_session();
+        }
+
+        try
+        {
+            return mpu::run_in_ssh_session(*ssh_session, cmd);
+        }
+        catch (const SSHException& e)
+        {
+            assert(ssh_session);
+            if (ssh_session->is_connected() || !retry)
+                throw;
+
+            log_details = e.what();
+            continue; // disconnections are often only detected after attempted use
+        }
     }
 
-    return mpu::run_in_ssh_session(*ssh_session, cmd);
+    assert(false && "we should never reach here");
+}
+
+void BaseVirtualMachine::renew_ssh_session()
+{
+    if (!mpu::is_running(current_state())) // spend time updating state only if we need a new session
+        throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
+
+    mpl::log(logging::Level::debug,
+             vm_name,
+             fmt::format("{} SSH session", ssh_session ? "Renewing cached" : "Caching new"));
+
+    ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 }
 
 void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
