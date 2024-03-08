@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../extensions.dart';
-import '../notificaions/notification_entries.dart';
-import '../notificaions/notifications_provider.dart';
+import '../notifications.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 import 'vms.dart';
