@@ -41,6 +41,7 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
+using St = mp::VirtualMachine::State;
 
 namespace
 {
@@ -52,6 +53,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     {
         auto& self = *this;
         const auto& const_self = self;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_all_ipv4, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, view_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_num_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, take_snapshot, mp::BaseVirtualMachine);
@@ -83,6 +85,18 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
 
+    void simulate_state(St state)
+    {
+        this->state = state;
+        ON_CALL(*this, current_state).WillByDefault(Return(state));
+    }
+
+    void simulate_ssh() // use if premocking libssh stuff
+    {
+        auto& self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, ssh_exec, mp::BaseVirtualMachine);
+    }
+
     void simulate_no_snapshots_support() const // doing this here to access protected method on the base
     {
         auto& self = *this;
@@ -92,32 +106,31 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
 
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
-    StubBaseVirtualMachine(mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
-        : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
+    StubBaseVirtualMachine(St s = St::off) : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
     {
     }
 
-    StubBaseVirtualMachine(mp::VirtualMachine::State s, std::unique_ptr<mpt::TempDir> tmp_dir)
+    StubBaseVirtualMachine(St s, std::unique_ptr<mpt::TempDir> tmp_dir)
         : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
     void start() override
     {
-        state = mp::VirtualMachine::State::running;
+        state = St::running;
     }
 
     void shutdown() override
     {
-        state = mp::VirtualMachine::State::off;
+        state = St::off;
     }
 
     void suspend() override
     {
-        state = mp::VirtualMachine::State::suspended;
+        state = St::suspended;
     }
 
-    mp::VirtualMachine::State current_state() override
+    St current_state() override
     {
         return state;
     }
@@ -243,35 +256,36 @@ struct BaseVM : public Test
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
-
+    vm.simulate_state(St::running);
+    vm.simulate_ssh();
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
 
-    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4(key_provider);
     EXPECT_EQ(ip_list.size(), 0u);
 }
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
+    vm.simulate_state(St::running);
+    vm.simulate_ssh();
 
     // Make SSH throw when trying to execute something.
     mock_ssh_test_fixture.request_exec.returnValue(SSH_ERROR);
 
-    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4(key_provider);
     EXPECT_EQ(ip_list.size(), 0u);
 }
 
 TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+    vm.simulate_state(St::off);
 
-    EXPECT_EQ(base_vm.get_all_ipv4(key_provider).size(), 0u);
+    EXPECT_EQ(vm.get_all_ipv4(key_provider).size(), 0u);
 }
 
 TEST_F(BaseVM, add_network_interface_throws)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+    StubBaseVirtualMachine base_vm(St::off);
 
     MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, {"eth1", "52:54:00:00:00:00", true}),
                          mp::NotImplementedOnThisBackendException,
@@ -291,7 +305,8 @@ struct IpExecution : public BaseVM, public WithParamInterface<IpTestParams>
 
 TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
+    vm.simulate_state(St::running);
+    vm.simulate_ssh();
 
     auto test_params = GetParam();
     auto remaining = test_params.output.size();
@@ -319,7 +334,7 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
     };
     REPLACE(ssh_channel_read_timeout, channel_read);
 
-    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4(key_provider);
     EXPECT_EQ(ip_list, test_params.expected_ips);
 }
 
@@ -718,7 +733,7 @@ TEST_F(BaseVM, restoresSnapshots)
                                      "12:12:12:12:12:12",
                                      {},
                                      "user",
-                                     mp::VirtualMachine::State::off,
+                                     St::off,
                                      {{"dst", mount}},
                                      false,
                                      metadata};
@@ -733,7 +748,7 @@ TEST_F(BaseVM, restoresSnapshots)
     changed_specs.num_cores = 3;
     changed_specs.mem_size = mp::MemorySize{"5G"};
     changed_specs.disk_space = mp::MemorySize{"35G"};
-    changed_specs.state = mp::VirtualMachine::State::stopped;
+    changed_specs.state = St::stopped;
     changed_specs.mounts.clear();
     changed_specs.metadata["data"] = "meta";
     changed_specs.metadata["meta"] = "toto";
@@ -1153,7 +1168,7 @@ TEST_F(BaseVM, rollsbackFailedRestore)
                                      "ab:ab:ab:ab:ab:ab",
                                      {},
                                      "me",
-                                     mp::VirtualMachine::State::off,
+                                     St::off,
                                      {},
                                      false,
                                      {}};
