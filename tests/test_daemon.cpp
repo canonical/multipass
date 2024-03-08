@@ -1919,10 +1919,9 @@ TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
 
     EXPECT_CALL(*mock_blueprint_provider, blueprint_timeout(_)).WillOnce(Return(blueprint_timeout));
 
-    EXPECT_CALL(
-        *instance_ptr,
-        wait_until_ssh_up(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout)),
-                          _))
+    EXPECT_CALL(*instance_ptr,
+                wait_until_ssh_up(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout))))
         .WillRepeatedly(Return());
     EXPECT_CALL(
         mock_utils,

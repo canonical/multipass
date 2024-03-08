@@ -157,7 +157,7 @@ TEST_F(LibVirtBackend, machine_sends_monitoring_events)
         return 0;
     };
 
-    machine->wait_until_ssh_up(2min, key_provider);
+    machine->wait_until_ssh_up(2min);
 
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();

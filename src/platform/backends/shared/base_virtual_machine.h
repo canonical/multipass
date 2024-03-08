@@ -50,7 +50,7 @@ public:
 
     virtual std::string ssh_exec(const std::string& cmd) override;
 
-    void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
+    void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
 
     std::vector<std::string> get_all_ipv4() override;
     void add_network_interface(int index, const NetworkInterface& net) override
@@ -139,10 +139,11 @@ private:
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
-private:
+protected:
     const SSHKeyProvider& key_provider;
-    std::optional<SSHSession> ssh_session = std::nullopt; // TODO@no-merge thread safety
 
+private:
+    std::optional<SSHSession> ssh_session = std::nullopt; // TODO@no-merge thread safety
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
