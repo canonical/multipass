@@ -27,6 +27,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
+#include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
