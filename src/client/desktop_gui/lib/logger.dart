@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -36,4 +37,20 @@ Future<void> setupLogger() async {
       FileOutput(file: File('${logFilePath.path}/multipass_desktop.log')),
     ]),
   );
+
+  FlutterError.onError = (details) {
+    logger.e(
+      'Flutter error',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+  PlatformDispatcher.instance.onError = (error, stackTrace) {
+    logger.e(
+      'Dart error',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    return true;
+  };
 }
