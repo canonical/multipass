@@ -3287,7 +3287,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
 {
     return mount.mount_type == VMMount::MountType::Classic
                ? std::make_unique<SSHFSMountHandler>(vm, config->ssh_key_provider.get(), target, mount)
-               : vm->make_native_mount_handler(config->ssh_key_provider.get(), target, mount);
+               : vm->make_native_mount_handler(target, mount);
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*

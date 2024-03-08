@@ -210,9 +210,9 @@ TEST_P(LXDMountHandlerInvalidGidUidParameterTests, mountWithGidOrUid)
     const mp::VMMount vm_mount{
         source_path, {{host_gid, instance_gid}}, {{host_uid, instance_uid}}, mp::VMMount::MountType::Native};
 
-    MP_EXPECT_THROW_THAT(lxd_vm.make_native_mount_handler(&key_provider, target_path, vm_mount);
-                         , std::runtime_error,
-                         mpt::match_what(StrEq("LXD native mount does not accept custom ID mappings.")));
+    MP_EXPECT_THROW_THAT(
+        lxd_vm.make_native_mount_handler(target_path, vm_mount);
+        , std::runtime_error, mpt::match_what(StrEq("LXD native mount does not accept custom ID mappings.")));
 }
 
 INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation, LXDMountHandlerInvalidGidUidParameterTests,
@@ -237,7 +237,7 @@ TEST_P(LXDMountHandlerValidGidUidParameterTests, mountWithGidOrUid)
                                {{host_uid, default_instance_id}},
                                mp::VMMount::MountType::Native};
 
-    EXPECT_NO_THROW(lxd_vm.make_native_mount_handler(&key_provider, target_path, vm_mount));
+    EXPECT_NO_THROW(lxd_vm.make_native_mount_handler(target_path, vm_mount));
 }
 
 INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation, LXDMountHandlerValidGidUidParameterTests,

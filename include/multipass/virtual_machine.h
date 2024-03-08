@@ -87,8 +87,7 @@ public:
     virtual void add_network_interface(int index, const NetworkInterface& net) = 0;
     virtual void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
                                                       const std::vector<NetworkInterface>& extra_interfaces) = 0;
-    virtual std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                                    const std::string& target,
+    virtual std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                                     const VMMount& mount) = 0;
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid confusion with C++ views

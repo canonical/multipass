@@ -652,11 +652,10 @@ void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backe
     return qemu_platform->add_network_interface(desc, net);
 }
 
-mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                                         const std::string& target,
+mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                          const VMMount& mount)
 {
-    return std::make_unique<QemuMountHandler>(this, ssh_key_provider, target, mount);
+    return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
 }
 
 mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args()
