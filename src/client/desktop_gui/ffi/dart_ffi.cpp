@@ -80,6 +80,23 @@ catch (...)
 
 static std::once_flag initialize_settings_once_flag;
 
+extern "C" const char* settings_file()
+try
+{
+    const auto file_name = mpc::persistent_settings_filename().toStdString();
+    return strdup(file_name.c_str());
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::warning, category, fmt::format("failed getting settings file: {}", e.what()));
+    return nullptr;
+}
+catch (...)
+{
+    mpl::log(mpl::Level::warning, category, "failed getting settings file");
+    return nullptr;
+}
+
 extern "C" enum SettingResult get_setting(const char* key, const char** output)
 {
     const QString key_string{key};

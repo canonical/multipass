@@ -44,6 +44,9 @@ extension on int {
   _SettingsResult get settingsResult => _SettingsResult.values[this];
 }
 
+final _settingsFile = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
+    ffi.Pointer<Utf8> Function()>('settings_file');
+
 final _getSetting = _lib.lookupFunction<
     ffi.Int32 Function(
       ffi.Pointer<Utf8>,
@@ -124,6 +127,8 @@ KeyCertificatePair getCertPair() {
   final key = utf8.encode(pair.pem_cert_key.string);
   return KeyCertificatePair(cert, key);
 }
+
+String settingsFile() => _settingsFile().string;
 
 String getSetting(String key) {
   final output = malloc<ffi.Pointer<Utf8>>();

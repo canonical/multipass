@@ -23,6 +23,8 @@ enum SettingResult
     UnexpectedError,
 };
 
+extern "C" const char* settings_file();
+
 extern "C" enum SettingResult get_setting(const char* key, const char** output);
 
 extern "C" enum SettingResult set_setting(const char* key, const char* value, const char** output);
