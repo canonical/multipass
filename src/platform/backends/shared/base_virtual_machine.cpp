@@ -217,7 +217,7 @@ void BaseVirtualMachine::renew_ssh_session()
     ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 }
 
-void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
+void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     drop_ssh_session();
     ssh_session = wait_until_ssh_up_helper(this, timeout, key_provider, [this] { ensure_vm_is_running(); });

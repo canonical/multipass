@@ -100,7 +100,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         throw std::runtime_error("Not running");
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds, const SSHKeyProvider&) override
+    void wait_until_ssh_up(std::chrono::milliseconds) override
     {
     }
 
