@@ -359,7 +359,7 @@ cloud-name: multipass)";
     original_iso.add_file("network-data", "");
     original_iso.write_to(iso_path);
 
-    const std::string& default_mac_addr = "52:54:00:56:78:90";
+    const std::string default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
     EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
                                                                                        extra_interfaces,
