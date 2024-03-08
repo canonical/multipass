@@ -86,22 +86,23 @@ mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
     return mp::utils::TimeoutAction::retry;
 };
 
-void wait_until_ssh_up_helper(mp::VirtualMachine* virtual_machine,
-                              std::chrono::milliseconds timeout,
-                              const mp::SSHKeyProvider& key_provider,
-                              std::function<void()> const& ensure_vm_is_running)
+std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtual_machine,
+                                                       std::chrono::milliseconds timeout,
+                                                       const mp::SSHKeyProvider& key_provider,
+                                                       std::function<void()> const& ensure_vm_is_running)
 {
     static constexpr auto wait_step = 1s;
     mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
 
-    auto action = [virtual_machine, &key_provider, &ensure_vm_is_running] {
+    std::optional<mp::SSHSession> session = std::nullopt;
+    auto action = [virtual_machine, &key_provider, &ensure_vm_is_running, &session] {
         ensure_vm_is_running();
         try
         {
-            mp::SSHSession session{virtual_machine->ssh_hostname(wait_step),
-                                   virtual_machine->ssh_port(),
-                                   virtual_machine->ssh_username(),
-                                   key_provider};
+            session.emplace(virtual_machine->ssh_hostname(wait_step),
+                            virtual_machine->ssh_port(),
+                            virtual_machine->ssh_username(),
+                            key_provider);
 
             std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
             virtual_machine->state = mp::VirtualMachine::State::running;
@@ -134,6 +135,7 @@ void wait_until_ssh_up_helper(mp::VirtualMachine* virtual_machine,
     };
 
     mp::utils::try_action_for(on_timeout, timeout, action);
+    return session;
 }
 } // namespace
 
@@ -161,7 +163,7 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
 
 void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
-    wait_until_ssh_up_helper(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
+    ssh_session = wait_until_ssh_up_helper(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
 }
 
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
