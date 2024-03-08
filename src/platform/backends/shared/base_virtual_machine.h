@@ -52,7 +52,7 @@ public:
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
 
-    std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
+    std::vector<std::string> get_all_ipv4() override;
     void add_network_interface(int index, const NetworkInterface& net) override
     {
         throw NotImplementedOnThisBackendException("networks");

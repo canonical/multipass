@@ -224,7 +224,7 @@ void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, co
     mpl::log(logging::Level::debug, vm_name, "Caching initial SSH session");
 }
 
-std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider&) // TODO@ricab remove param
+std::vector<std::string> BaseVirtualMachine::get_all_ipv4()
 {
     std::vector<std::string> all_ipv4;
 
