@@ -305,11 +305,11 @@ std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::st
 {
     auto proc = session.exec(cmd);
 
-    if (proc.exit_code() != 0)
+    if (auto ec = proc.exit_code() != 0)
     {
         auto error_msg = mp::utils::trim_end(proc.read_std_error());
         mpl::log(mpl::Level::warning, category, fmt::format("failed to run '{}', error message: '{}'", cmd, error_msg));
-        throw mp::SSHExecFailure(error_msg);
+        throw mp::SSHExecFailure(error_msg, ec);
     }
 
     auto output = proc.read_std_output();

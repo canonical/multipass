@@ -34,9 +34,17 @@ public:
 class SSHExecFailure : public SSHException
 {
 public:
-    SSHExecFailure(const std::string& what_arg) : SSHException(what_arg)
+    SSHExecFailure(const std::string& what_arg, int exit_code) : SSHException{what_arg}, ec{exit_code}
     {
     }
+
+    int exit_code() const
+    {
+        return ec;
+    }
+
+private:
+    int ec;
 };
 } // namespace multipass
 #endif // MULTIPASS_SSH_EXCEPTION_H
