@@ -56,10 +56,7 @@ struct TestInstanceSettingsHandler : public Test
                                            deleted_vms,
                                            preparing_vms,
                                            make_fake_persister(),
-                                           make_fake_bridged_interface(),
-                                           make_fake_bridge_name(),
-                                           make_fake_host_networks(),
-                                           make_fake_authorization(),
+                                           make_fake_is_bridged(),
                                            make_fake_add()};
     }
 
@@ -100,10 +97,25 @@ struct TestInstanceSettingsHandler : public Test
         return [this]() { return user_authorized; };
     }
 
-    std::function<void(const std::string&, const std::string&)> make_fake_add()
+    std::function<bool(const std::string&)> make_fake_is_bridged()
     {
-        return [this](const std::string& n, const std::string& b) {
-            specs[n].extra_interfaces.push_back(mp::NetworkInterface{b, mpu::generate_mac_address(), true});
+        return [this](const std::string& n) {
+            const std::string br_interface{"eth8"};
+            const std::string br_name{"br-" + br_interface};
+            const auto& spec = specs[n];
+
+            return std::any_of(spec.extra_interfaces.cbegin(),
+                               spec.extra_interfaces.cend(),
+                               [&br_interface, &br_name](const auto& network) -> bool {
+                                   return network.id == br_interface || network.id == br_name;
+                               });
+        };
+    }
+
+    std::function<void(const std::string&)> make_fake_add()
+    {
+        return [this](const std::string& n) {
+            specs[n].extra_interfaces.push_back(mp::NetworkInterface{"eth8", mpu::generate_mac_address(), true});
         };
     }
 
@@ -244,6 +256,8 @@ struct TestBridgedInstanceSettings : public TestInstanceSettingsHandler,
 {
 };
 
+// Since the instance handler calls functions from the daemon, which were replaced here by other ones, this test just
+// checks that the correct functions are called from the handler.
 TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
 {
     const auto [br_interface, bridged] = GetParam();
