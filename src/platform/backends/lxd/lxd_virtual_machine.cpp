@@ -508,14 +508,13 @@ void mp::LXDVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::stri
     lxd_wait(manager, base_url, json_reply, timeout_milliseconds);
 }
 
-std::unique_ptr<multipass::MountHandler>
-mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, const std::string& target,
-                                                 const VMMount& mount)
+std::unique_ptr<mp::MountHandler> mp::LXDVirtualMachine::make_native_mount_handler(const std::string& target,
+                                                                                   const VMMount& mount)
 {
     if (!uses_default_id_mappings(mount))
     {
         throw std::runtime_error("LXD native mount does not accept custom ID mappings.");
     }
 
-    return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);
+    return std::make_unique<LXDMountHandler>(manager, this, &key_provider, target, mount);
 }

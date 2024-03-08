@@ -80,7 +80,7 @@ struct MockVirtualMachineT : public T
                 (override));
     MOCK_METHOD(std::unique_ptr<MountHandler>,
                 make_native_mount_handler,
-                (const SSHKeyProvider*, const std::string&, const VMMount&),
+                (const std::string&, const VMMount&),
                 (override));
     MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (), (const, override));
     MOCK_METHOD(int, get_num_snapshots, (), (const, override));

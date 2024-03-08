@@ -57,9 +57,7 @@ public:
     {
         throw NotImplementedOnThisBackendException("networks");
     }
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                            const std::string& target,
-                                                            const VMMount& mount) override
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override
     {
         throw NotImplementedOnThisBackendException("native mounts");
     };
