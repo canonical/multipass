@@ -26,7 +26,7 @@ namespace multipass
 class SSHException : public std::runtime_error
 {
 public:
-    SSHException(const std::string& what_arg) : runtime_error(what_arg)
+    explicit SSHException(const std::string& what_arg) : runtime_error(what_arg)
     {
     }
 };
