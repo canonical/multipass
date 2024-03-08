@@ -1832,7 +1832,7 @@ try // clang-format on
         if (request->request_ipv4() && mp::utils::is_running(present_state))
         {
             std::string management_ip = vm.management_ipv4(*config->ssh_key_provider);
-            auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
+            auto all_ipv4 = vm.get_all_ipv4();
 
             if (is_ipv4_valid(management_ip))
                 entry->add_ipv4(management_ip);
@@ -3569,7 +3569,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
 
         std::string management_ip = vm.management_ipv4(*config->ssh_key_provider);
-        auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
+        auto all_ipv4 = vm.get_all_ipv4();
 
         if (is_ipv4_valid(management_ip))
             instance_info->add_ipv4(management_ip);

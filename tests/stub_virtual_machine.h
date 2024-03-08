@@ -80,7 +80,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override
+    std::vector<std::string> get_all_ipv4() override
     {
         return std::vector<std::string>{"192.168.2.123"};
     }

@@ -260,7 +260,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
     vm.simulate_ssh();
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
 
-    auto ip_list = vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4();
     EXPECT_EQ(ip_list.size(), 0u);
 }
 
@@ -272,7 +272,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
     // Make SSH throw when trying to execute something.
     mock_ssh_test_fixture.request_exec.returnValue(SSH_ERROR);
 
-    auto ip_list = vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4();
     EXPECT_EQ(ip_list.size(), 0u);
 }
 
@@ -280,7 +280,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
 {
     vm.simulate_state(St::off);
 
-    EXPECT_EQ(vm.get_all_ipv4(key_provider).size(), 0u);
+    EXPECT_EQ(vm.get_all_ipv4().size(), 0u);
 }
 
 TEST_F(BaseVM, add_network_interface_throws)
@@ -334,7 +334,7 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
     };
     REPLACE(ssh_channel_read_timeout, channel_read);
 
-    auto ip_list = vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4();
     EXPECT_EQ(ip_list, test_params.expected_ips);
 }
 
