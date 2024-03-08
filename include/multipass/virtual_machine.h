@@ -37,7 +37,6 @@
 namespace multipass
 {
 class MemorySize;
-class SSHKeyProvider;
 struct VMMount;
 struct VMSpecs;
 class MountHandler;

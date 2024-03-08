@@ -33,6 +33,7 @@ class Node;
 
 namespace multipass
 {
+class SSHKeyProvider;
 class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
