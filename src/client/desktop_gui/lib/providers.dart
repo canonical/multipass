@@ -34,11 +34,6 @@ final grpcClientProvider = Provider((_) {
   )));
 });
 
-final pollTickProvider = Provider<void>((ref) {
-  final sub = Stream.periodic(1.seconds).listen((_) => ref.notifyListeners());
-  ref.onDispose(sub.cancel);
-});
-
 final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
   final grpcClient = ref.watch(grpcClientProvider);
   // this is to de-duplicate errors received from the stream
@@ -95,9 +90,15 @@ final vmNamesProvider = Provider((ref) {
 });
 
 class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
+  final file = File(settingsFile());
+
   @override
   String build(String arg) {
-    ref.watch(pollTickProvider);
+    file.parent
+        .watch(events: FileSystemEvent.modify)
+        .where((event) => event.path == file.path)
+        .first
+        .whenComplete(() => Timer(10.milliseconds, ref.invalidateSelf));
     return getSetting(arg);
   }
 
