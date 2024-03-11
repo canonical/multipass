@@ -921,34 +921,37 @@ auto instances_running(const Instances& instances)
     return false;
 }
 
-grpc::Status stop_accepting_ssh_connections(mp::SSHSession& session)
+grpc::Status stop_accepting_ssh_connections(mp::VirtualMachine& vm)
 {
-    auto proc = session.exec(stop_ssh_cmd);
-    auto ecode = proc.exit_code();
-
-    return ecode == 0 ? grpc::Status::OK
-                      : grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                                     fmt::format("Could not stop sshd. '{}' exited with code {}", stop_ssh_cmd, ecode),
-                                     proc.read_std_error()};
-}
-
-grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string& username,
-                        const mp::SSHKeyProvider& key_provider)
-{
-    mp::SSHSession session{hostname, port, username, key_provider};
-
-    // This allows us to later detect when the machine has finished restarting by waiting for SSH to be back up.
-    // Otherwise, there would be a race condition, and we would be unable to distinguish whether it had ever been down.
-    stop_accepting_ssh_connections(session);
-
-    auto proc = session.exec(reboot_cmd);
     try
     {
-        auto ecode = proc.exit_code();
+        vm.ssh_exec(stop_ssh_cmd);
+    }
+    catch (const mp::SSHExecFailure& e)
+    {
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Could not stop sshd. '{}' exited with code {}.", stop_ssh_cmd, e.exit_code()),
+                            e.what()};
+    }
 
-        if (ecode != 0)
-            return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                                fmt::format("Reboot command exited with code {}", ecode), proc.read_std_error()};
+    return grpc::Status::OK;
+}
+
+grpc::Status ssh_reboot(mp::VirtualMachine& vm)
+{
+    // This allows us to later detect when the machine has finished restarting by waiting for SSH to be back up.
+    // Otherwise, there would be a race condition, and we would be unable to distinguish whether it had ever been down.
+    stop_accepting_ssh_connections(vm);
+
+    try
+    {
+        vm.ssh_exec(reboot_cmd);
+    }
+    catch (const mp::SSHExecFailure& e)
+    {
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Reboot command exited with code {}", e.exit_code()),
+                            e.what()};
     }
     catch (const mp::ExitlessSSHProcessException&)
     {
@@ -3138,7 +3141,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
                             fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
     mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
-    return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider);
+    return ssh_reboot(vm);
 }
 
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
