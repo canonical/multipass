@@ -541,6 +541,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     specs.num_cores = snapshot->get_num_cores();
     specs.mem_size = snapshot->get_mem_size();
     specs.disk_space = snapshot->get_disk_space();
+    const bool is_extra_interfaces_different = specs.extra_interfaces != snapshot->get_extra_interfaces();
     specs.extra_interfaces = snapshot->get_extra_interfaces();
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();
@@ -552,6 +553,14 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     }
 
     snapshot->apply();
+
+    if (is_extra_interfaces_different)
+    {
+        // change the name to apply_extra_interfaces_to_cloud_init, here we can use default_mac_address of the current
+        // state because it is an immutable variable.
+        add_extra_interfaces_to_cloud_init(specs.default_mac_address, snapshot->get_extra_interfaces());
+    }
+
     rollback.dismiss();
 }
 
