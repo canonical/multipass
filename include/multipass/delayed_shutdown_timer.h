@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
 #define MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
 
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/disabled_copy_move.h>
 #include <multipass/virtual_machine.h>
 
 #include <QObject>
@@ -29,7 +29,7 @@
 
 namespace multipass
 {
-class DelayedShutdownTimer : public QObject
+class DelayedShutdownTimer : public QObject, private DisabledCopyMove
 {
     Q_OBJECT
 
