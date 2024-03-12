@@ -26,6 +26,7 @@
 
 #include <chrono>
 #include <functional>
+#include <string>
 
 namespace multipass
 {
@@ -38,7 +39,7 @@ public:
     DelayedShutdownTimer(VirtualMachine* virtual_machine, const StopMounts& stop_mounts);
     ~DelayedShutdownTimer();
 
-    void start(const std::chrono::milliseconds delay);
+    void start(std::chrono::milliseconds delay);
     std::chrono::seconds get_time_remaining();
 
 signals:
