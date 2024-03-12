@@ -58,9 +58,8 @@ void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::minutes& 
 }
 } // namespace
 
-mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine, std::optional<SSHSession>&& session,
-                                               const StopMounts& stop_mounts)
-    : virtual_machine{virtual_machine}, ssh_session{std::move(session)}, stop_mounts{stop_mounts}
+mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine, const StopMounts& stop_mounts)
+    : virtual_machine{virtual_machine}, stop_mounts{stop_mounts}
 {
 }
 

@@ -43,7 +43,6 @@ struct DelayedShutdown : public Test
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mp::VirtualMachine::UPtr vm;
-    mp::SSHSession session{"a", 42, "ubuntu", key_provider};
     QEventLoop loop;
     ssh_channel_callbacks callbacks{nullptr};
 };
@@ -51,7 +50,7 @@ struct DelayedShutdown : public Test
 TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
 {
     mpt::Signal finished;
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session), [](const std::string&) {}};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
 
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this, &finished] {
         loop.quit();
@@ -68,7 +67,7 @@ TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
 TEST_F(DelayedShutdown, emits_finished_with_no_timer)
 {
     mpt::Signal finished;
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session), [](const std::string&) {}};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
 
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [&finished] { finished.signal(); });
 
@@ -94,7 +93,7 @@ TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
     REPLACE(ssh_event_dopoll, event_dopoll);
 
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::running);
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session), [](const std::string&) {}};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
 
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
@@ -117,7 +116,7 @@ TEST_F(DelayedShutdown, vm_state_running_after_cancel)
     REPLACE(ssh_event_dopoll, event_dopoll);
 
     {
-        mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session), [](const std::string&) {}};
+        mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
         delayed_shutdown_timer.start(std::chrono::milliseconds(1));
         EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
     }
