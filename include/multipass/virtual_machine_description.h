@@ -31,7 +31,6 @@
 
 namespace multipass
 {
-class SSHKeyProvider;
 class VirtualMachineDescription
 {
 public:

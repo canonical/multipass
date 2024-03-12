@@ -46,7 +46,6 @@ namespace multipass
 {
 
 // Fwd decl
-class SSHKeyProvider;
 class VirtualMachine;
 
 namespace utils
