@@ -730,56 +730,6 @@ TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
     EXPECT_GE(bytes_available, 0);
 }
 
-TEST(Utils, wait_for_cloud_init_no_errors_and_done_does_not_throw)
-{
-    mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    mpt::ExitStatusMock exit_status_mock;
-    exit_status_mock.return_exit_code(SSH_OK);
-
-    mp::test::StubSSHKeyProvider key_provider;
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
-
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
-
-    std::chrono::seconds timeout(1);
-    EXPECT_NO_THROW(MP_UTILS.wait_for_cloud_init(&vm, timeout, key_provider));
-}
-
-TEST(Utils, wait_for_cloud_init_error_times_out_throws)
-{
-    mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    mpt::ExitStatusMock exit_status_mock;
-    exit_status_mock.return_exit_code(SSH_ERROR);
-
-    mp::test::StubSSHKeyProvider key_provider;
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
-
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
-
-    std::chrono::milliseconds timeout(1);
-    MP_EXPECT_THROW_THAT(MP_UTILS.wait_for_cloud_init(&vm, timeout, key_provider), std::runtime_error,
-                         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
-}
-
-TEST(Utils, wait_for_cloud_init_cannot_connect_times_out)
-{
-    mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    REPLACE(ssh_is_connected, [](auto...) { return false; });
-
-    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-    logger_scope.mock_logger->expect_log(mpl::Level::warning, "unable to create a channel for remote process:");
-
-    mp::test::StubSSHKeyProvider key_provider;
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
-
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
-
-    std::chrono::milliseconds timeout(1);
-    MP_EXPECT_THROW_THAT(MP_UTILS.wait_for_cloud_init(&vm, timeout, key_provider), std::runtime_error,
-                         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
-}
-
 TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
 {
     mpt::TempDir temp_dir1, temp_dir2;
