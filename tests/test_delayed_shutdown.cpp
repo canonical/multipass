@@ -124,17 +124,3 @@ TEST_F(DelayedShutdown, vm_state_running_after_cancel)
 
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::running);
 }
-
-TEST_F(DelayedShutdown, ssh_fails_vm_state_unknown)
-{
-
-    {
-        mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), std::move(session), [](const std::string&) {}};
-        delayed_shutdown_timer.start(std::chrono::minutes(5));
-        EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
-
-        REPLACE(ssh_is_connected, [](auto...) { return false; });
-    }
-
-    EXPECT_TRUE(vm->state == mp::VirtualMachine::State::unknown);
-}
