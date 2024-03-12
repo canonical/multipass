@@ -174,17 +174,17 @@ std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
     const std::unique_lock lock{state_mutex};
 
     std::optional<std::string> log_details = std::nullopt;
-    bool retry = true;
+    bool reconnect = true;
     while (true)
     {
-        assert(retry && "we should have thrown otherwise");
-        if ((!ssh_session || !ssh_session->is_connected()) && retry)
+        assert(reconnect && "we should have thrown otherwise");
+        if ((!ssh_session || !ssh_session->is_connected()) && reconnect)
         {
             const auto msg =
                 fmt::format("SSH session disconnected{}", log_details ? fmt::format(": {}", *log_details) : "");
             mpl::log(logging::Level::info, vm_name, msg);
 
-            retry = false; // once only
+            reconnect = false; // once only
             renew_ssh_session();
         }
 
@@ -195,7 +195,7 @@ std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
         catch (const SSHException& e)
         {
             assert(ssh_session);
-            if (ssh_session->is_connected() || !retry)
+            if (ssh_session->is_connected() || !reconnect)
                 throw;
 
             log_details = e.what();
