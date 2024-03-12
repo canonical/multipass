@@ -3318,7 +3318,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 server->Write(reply);
             }
 
-            MP_UTILS.wait_for_cloud_init(vm.get(), timeout, *config->ssh_key_provider);
+            vm->wait_for_cloud_init(timeout);
         }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))

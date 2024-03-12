@@ -224,6 +224,28 @@ void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
     mpl::log(logging::Level::debug, vm_name, "Caching initial SSH session");
 }
 
+void BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
+{
+    auto action = [this] {
+        ensure_vm_is_running();
+        try
+        {
+            std::lock_guard lock{state_mutex};
+            auto ssh_process = ssh_session->exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
+            return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
+        }
+        catch (const std::exception& e)
+        {
+            std::lock_guard lock{state_mutex}; // TODO@ricab can't this just be moved up?
+            mpl::log(mpl::Level::warning, vm_name, e.what());
+            return mp::utils::TimeoutAction::retry;
+        }
+    };
+
+    auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
+    mp::utils::try_action_for(on_timeout, timeout, action);
+}
+
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4()
 {
     std::vector<std::string> all_ipv4;
