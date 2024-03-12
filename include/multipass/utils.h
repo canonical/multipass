@@ -216,9 +216,6 @@ public:
                                            const int timeout = 30000) const;
     virtual bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout = 30000) const;
 
-    // virtual machine helpers
-    virtual void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                                     const SSHKeyProvider& key_provider) const;
     virtual Path derive_instances_dir(const Path& data_dir,
                                       const Path& backend_directory_name,
                                       const Path& instances_subdir) const;

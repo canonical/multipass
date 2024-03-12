@@ -1923,10 +1923,9 @@ TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
                 wait_until_ssh_up(
                     std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout))))
         .WillRepeatedly(Return());
-    EXPECT_CALL(
-        mock_utils,
-        wait_for_cloud_init(
-            _, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout)), _))
+    EXPECT_CALL(*instance_ptr,
+                wait_for_cloud_init(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(expected_timeout))))
         .WillRepeatedly(Return());
 
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);

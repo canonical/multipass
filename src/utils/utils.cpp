@@ -132,31 +132,6 @@ void mp::Utils::make_file_with_content(const std::string& file_name, const std::
     return;
 }
 
-void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                                    const mp::SSHKeyProvider& key_provider) const
-{
-    auto action = [virtual_machine, &key_provider] {
-        virtual_machine->ensure_vm_is_running();
-        try
-        {
-            mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port(),
-                                   virtual_machine->ssh_username(), key_provider};
-
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-            auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-            return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
-        }
-        catch (const std::exception& e)
-        {
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-            mpl::log(mpl::Level::warning, virtual_machine->vm_name, e.what());
-            return mp::utils::TimeoutAction::retry;
-        }
-    };
-    auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
-}
-
 std::string mp::Utils::get_kernel_version() const
 {
     return QSysInfo::kernelVersion().toStdString();
