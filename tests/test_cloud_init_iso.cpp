@@ -361,7 +361,7 @@ write_files:
     EXPECT_EQ(original_iso, new_iso);
 }
 
-TEST_F(CloudInitIso, updateCloudInitWithNewExtraInterfaces)
+TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 {
     constexpr std::string_view meta_data_content = R"(#cloud-config
 instance-id: vm1
@@ -406,4 +406,26 @@ ethernets:
     new_iso.read_from(iso_path.toStdString());
     EXPECT_EQ(new_iso.at("meta-data"), expected_modified_meta_data_content);
     EXPECT_EQ(new_iso.at("network-config"), expected_generated_network_config_data_content);
+}
+
+TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
+{
+    constexpr std::string_view meta_data_content = R"(#cloud-config
+instance-id: vm1
+local-hostname: vm1
+cloud-name: multipass)";
+
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("network-data", "");
+    original_iso.write_to(iso_path);
+
+    const std::string& default_mac_addr = "52:54:00:56:78:90";
+    const std::vector<mp::NetworkInterface> empty_extra_interfaces{};
+    EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+                                                                                       empty_extra_interfaces,
+                                                                                       iso_path.toStdString()));
+    mp::CloudInitIso new_iso;
+    new_iso.read_from(iso_path.toStdString());
+    EXPECT_FALSE(new_iso.contains("network-config"));
 }
