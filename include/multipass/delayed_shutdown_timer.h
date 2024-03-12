@@ -52,7 +52,6 @@ private:
     VirtualMachine* virtual_machine;
     std::optional<SSHSession> ssh_session;
     const StopMounts stop_mounts;
-    std::chrono::milliseconds delay;
     std::chrono::milliseconds time_remaining;
 };
 } // namespace multipass
