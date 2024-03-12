@@ -24,7 +24,6 @@
 
 #include <multipass/network_interface.h>
 #include <multipass/process/process.h>
-#include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QObject>
@@ -72,7 +71,7 @@ public:
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();
-    void on_synchronize_clock(const SSHKeyProvider* key_provider);
+    void on_synchronize_clock();
 
 protected:
     // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
