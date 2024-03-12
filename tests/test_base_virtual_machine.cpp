@@ -97,6 +97,12 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, ssh_exec, mp::BaseVirtualMachine);
     }
 
+    void simulate_cloud_init()
+    {
+        auto& self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, wait_for_cloud_init, mp::BaseVirtualMachine);
+    }
+
     void simulate_no_snapshots_support() const // doing this here to access protected method on the base
     {
         auto& self = *this;
@@ -1222,4 +1228,25 @@ TEST(BaseVMStub, addExtraInterfacesToCloudInit)
     EXPECT_THROW(base_vm.apply_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces), std::runtime_error);
 }
 
+TEST_F(BaseVM, wait_for_cloud_init_no_errors_and_done_does_not_throw)
+{
+    vm.simulate_cloud_init();
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, ssh_exec).WillOnce(DoDefault());
+
+    std::chrono::seconds timeout(1); // TODO@ricab reduce?
+    EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
+}
+
+TEST_F(BaseVM, wait_for_cloud_init_error_times_out_throws)
+{
+    vm.simulate_cloud_init();
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
+
+    std::chrono::seconds timeout(1); // TODO@ricab reduce?
+    MP_EXPECT_THROW_THAT(vm.wait_for_cloud_init(timeout),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
+}
 } // namespace
