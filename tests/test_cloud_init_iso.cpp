@@ -28,6 +28,11 @@ using namespace testing;
 
 namespace
 {
+constexpr std::string_view meta_data_content = R"(#cloud-config
+instance-id: vm1
+local-hostname: vm1
+cloud-name: multipass)";
+
 auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
     file.setstate(std::ios::failbit);
     return file;
@@ -324,10 +329,6 @@ TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
 
 TEST_F(CloudInitIso, reads_iso_file_with_mocked_real_file_data)
 {
-    constexpr std::string_view meta_data_content = R"(#cloud-config
-instance-id: vm1
-local-hostname: vm1
-cloud-name: multipass)";
     constexpr std::string_view user_data_content = R"(#cloud-config
 {})";
     constexpr std::string_view vendor_data_content = R"(#cloud-config
@@ -363,11 +364,6 @@ write_files:
 
 TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 {
-    constexpr std::string_view meta_data_content = R"(#cloud-config
-instance-id: vm1
-local-hostname: vm1
-cloud-name: multipass)";
-
     mp::CloudInitIso original_iso;
 
     original_iso.add_file("meta-data", std::string(meta_data_content));
@@ -410,11 +406,6 @@ ethernets:
 
 TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 {
-    constexpr std::string_view meta_data_content = R"(#cloud-config
-instance-id: vm1
-local-hostname: vm1
-cloud-name: multipass)";
-
     mp::CloudInitIso original_iso;
     original_iso.add_file("meta-data", std::string(meta_data_content));
     original_iso.add_file("network-data", "");
