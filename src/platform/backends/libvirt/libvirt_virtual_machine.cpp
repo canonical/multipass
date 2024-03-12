@@ -21,8 +21,6 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
-#include <multipass/ssh/ssh_session.h>
-#include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <shared/linux/backend_utils.h>
