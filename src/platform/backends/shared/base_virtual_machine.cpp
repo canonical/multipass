@@ -89,15 +89,14 @@ mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
 
 std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtual_machine,
                                                        std::chrono::milliseconds timeout,
-                                                       const mp::SSHKeyProvider& key_provider,
-                                                       std::function<void()> const& ensure_vm_is_running)
+                                                       const mp::SSHKeyProvider& key_provider)
 {
     static constexpr auto wait_step = 1s;
     mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
 
     std::optional<mp::SSHSession> session = std::nullopt;
-    auto action = [virtual_machine, &key_provider, &ensure_vm_is_running, &session] {
-        ensure_vm_is_running();
+    auto action = [virtual_machine, &key_provider, &session] {
+        virtual_machine->ensure_vm_is_running();
         try
         {
             session.emplace(virtual_machine->ssh_hostname(wait_step),
@@ -221,7 +220,7 @@ void BaseVirtualMachine::renew_ssh_session()
 void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     drop_ssh_session();
-    ssh_session = wait_until_ssh_up_helper(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
+    ssh_session = wait_until_ssh_up_helper(this, timeout, key_provider);
     mpl::log(logging::Level::debug, vm_name, "Caching initial SSH session");
 }
 
