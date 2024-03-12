@@ -1234,7 +1234,7 @@ TEST_F(BaseVM, wait_for_cloud_init_no_errors_and_done_does_not_throw)
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
     EXPECT_CALL(vm, ssh_exec).WillOnce(DoDefault());
 
-    std::chrono::seconds timeout(1); // TODO@ricab reduce?
+    std::chrono::milliseconds timeout(1);
     EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
 }
 
@@ -1244,7 +1244,7 @@ TEST_F(BaseVM, wait_for_cloud_init_error_times_out_throws)
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
     EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
 
-    std::chrono::seconds timeout(1); // TODO@ricab reduce?
+    std::chrono::milliseconds timeout(1);
     MP_EXPECT_THROW_THAT(vm.wait_for_cloud_init(timeout),
                          std::runtime_error,
                          mpt::match_what(StrEq("timed out waiting for initialization to complete")));
