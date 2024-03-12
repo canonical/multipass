@@ -230,13 +230,15 @@ void BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
         ensure_vm_is_running();
         try
         {
-            std::lock_guard lock{state_mutex};
-            auto ssh_process = ssh_session->exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-            return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
+            ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
+            return mp::utils::TimeoutAction::done;
         }
-        catch (const std::exception& e)
+        catch (const SSHExecFailure& e)
         {
-            std::lock_guard lock{state_mutex}; // TODO@ricab can't this just be moved up?
+            return mp::utils::TimeoutAction::retry;
+        }
+        catch (const std::exception& e) // transitioning away from catching generic runtime errors
+        {                               // TODO remove once we're confident this is an anomaly
             mpl::log(mpl::Level::warning, vm_name, e.what());
             return mp::utils::TimeoutAction::retry;
         }
