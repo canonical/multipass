@@ -104,6 +104,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
+    void wait_for_cloud_init(std::chrono::milliseconds timeout) override
+    {
+    }
+
     void update_state() override
     {
     }

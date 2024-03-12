@@ -51,6 +51,7 @@ public:
     virtual std::string ssh_exec(const std::string& cmd) override;
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
+    void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
     std::vector<std::string> get_all_ipv4() override;
     void add_network_interface(int index, const NetworkInterface& net) override

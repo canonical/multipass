@@ -69,6 +69,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::string, ssh_exec, (const std::string& cmd), (override));
     MOCK_METHOD(void, ensure_vm_is_running, (), (override));
     MOCK_METHOD(void, wait_until_ssh_up, (std::chrono::milliseconds), (override));
+    MOCK_METHOD(void, wait_for_cloud_init, (std::chrono::milliseconds), (override));
     MOCK_METHOD(void, update_state, (), (override));
     MOCK_METHOD(void, update_cpus, (int), (override));
     MOCK_METHOD(void, resize_memory, (const MemorySize&), (override));
