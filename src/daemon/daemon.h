@@ -202,12 +202,16 @@ private:
     void
     populate_instance_info(VirtualMachine& vm, InfoReply& response, bool runtime_info, bool deleted, bool& have_mounts);
 
+    std::unique_ptr<const DaemonConfig> config;
+
+protected:
+    std::unordered_map<std::string, VMSpecs> vm_instance_specs;
+    InstanceTable operative_instances;
+
     bool is_bridged(const std::string& instance_name);
     void add_bridged_interface(const std::string& instance_name);
 
-    std::unique_ptr<const DaemonConfig> config;
-    std::unordered_map<std::string, VMSpecs> vm_instance_specs;
-    InstanceTable operative_instances;
+private:
     InstanceTable deleted_instances;
     std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
