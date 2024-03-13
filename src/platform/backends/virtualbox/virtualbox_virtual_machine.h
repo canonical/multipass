@@ -51,7 +51,6 @@ public:
     std::vector<std::string> get_all_ipv4() override;
     std::string ipv6() override;
     void ensure_vm_is_running() override;
-    void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
     void update_state() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
