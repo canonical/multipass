@@ -31,7 +31,6 @@
 #include <multipass/format.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image_vault.h>
-#include <multipass/yaml_node_utils.h>
 
 #include <QRegularExpression>
 
@@ -779,26 +778,6 @@ TEST(Utils, wait_for_cloud_init_cannot_connect_times_out)
     std::chrono::milliseconds timeout(1);
     MP_EXPECT_THROW_THAT(MP_UTILS.wait_for_cloud_init(&vm, timeout, key_provider), std::runtime_error,
                          mpt::match_what(StrEq("timed out waiting for initialization to complete")));
-}
-
-TEST(UtilsTests, makeCloudInitMetaConfig)
-{
-    const YAML::Node meta_data_node = mpu::make_cloud_init_meta_config("vm1");
-    EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm1");
-    EXPECT_EQ(meta_data_node["local-hostname"].as<std::string>(), "vm1");
-    EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
-}
-
-TEST(UtilsTests, makeCloudInitMetaConfigWithYAMLStr)
-{
-    constexpr std::string_view meta_data_content = R"(#cloud-config
-instance-id: vm2
-local-hostname: vm2
-cloud-name: multipass)";
-    const YAML::Node meta_data_node = mpu::make_cloud_init_meta_config("vm1", std::string{meta_data_content});
-    EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm1");
-    EXPECT_EQ(meta_data_node["local-hostname"].as<std::string>(), "vm1");
-    EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
 
 TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
