@@ -654,4 +654,9 @@ std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const QStri
     throw NotImplementedOnThisBackendException{"snapshots"};
 }
 
+void BaseVirtualMachine::drop_ssh_session()
+{
+    ssh_session.reset();
+}
+
 } // namespace multipass

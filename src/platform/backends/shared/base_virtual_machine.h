@@ -87,6 +87,7 @@ protected:
                                                              const std::string& comment,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
+    void drop_ssh_session(); // TODO@no-merge call from private backends
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;

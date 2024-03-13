@@ -344,24 +344,30 @@ void mp::QemuVirtualMachine::start()
 
 void mp::QemuVirtualMachine::shutdown()
 {
+    // TODO@no-merge this needs to lock
     if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
-    else if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) && vm_process &&
-             vm_process->running())
-    {
-        vm_process->write(qmp_execute_json("system_powerdown"));
-        vm_process->wait_for_finished(timeout);
-    }
     else
     {
-        if (state == State::starting)
-            update_shutdown_status = false;
+        drop_ssh_session();
 
-        if (vm_process)
+        if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) && vm_process &&
+            vm_process->running())
         {
-            vm_process->kill();
+            vm_process->write(qmp_execute_json("system_powerdown"));
+            vm_process->wait_for_finished(timeout);
+        }
+        else
+        {
+            if (state == State::starting)
+                update_shutdown_status = false;
+
+            if (vm_process)
+            {
+                vm_process->kill();
+            }
         }
     }
 }

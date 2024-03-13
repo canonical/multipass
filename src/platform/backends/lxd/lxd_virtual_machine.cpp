@@ -286,6 +286,7 @@ void mp::LXDVirtualMachine::shutdown()
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
+    drop_ssh_session();
     port = std::nullopt;
 
     if (update_shutdown_status)
