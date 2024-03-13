@@ -512,10 +512,7 @@ std::string mp::QemuVirtualMachine::ipv6()
 
 void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
 {
-    mp::utils::wait_until_ssh_up(this,
-                                 timeout,
-                                 key_provider,
-                                 std::bind(&QemuVirtualMachine::ensure_vm_is_running, this));
+    BaseVirtualMachine::wait_until_ssh_up(timeout, key_provider);
 
     if (is_starting_from_suspend)
     {

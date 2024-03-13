@@ -392,11 +392,6 @@ std::string mp::LXDVirtualMachine::ipv6()
     return {};
 }
 
-void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
-{
-    mpu::wait_until_ssh_up(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
-}
-
 const QUrl mp::LXDVirtualMachine::url()
 {
     return QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name);

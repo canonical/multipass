@@ -52,7 +52,6 @@ public:
     std::string ssh_username() override;
     std::string management_ipv4(const SSHKeyProvider& key_provider) override;
     std::string ipv6() override;
-    void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
     void ensure_vm_is_running() override;
     void update_state() override;
     void update_cpus(int num_cores) override;

@@ -88,6 +88,11 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
                                                                        cloud_init_config_iso_file_path);
 }
 
+void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
+{
+    mpu::wait_until_ssh_up(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
+}
+
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {
     std::vector<std::string> all_ipv4;
