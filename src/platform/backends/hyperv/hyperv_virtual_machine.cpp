@@ -119,8 +119,9 @@ void add_extra_net(mp::PowerShell& ps, const QString& name, const mp::NetworkInt
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
+                                               const SSHKeyProvider& key_provider,
                                                const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       power_shell{std::make_unique<PowerShell>(vm_name)},

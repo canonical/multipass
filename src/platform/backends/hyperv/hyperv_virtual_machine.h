@@ -39,7 +39,10 @@ class VMStatusMonitor;
 class HyperVVirtualMachine final : public BaseVirtualMachine
 {
 public:
-    HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, const Path& instance_dir);
+    HyperVVirtualMachine(const VirtualMachineDescription& desc,
+                         VMStatusMonitor& monitor,
+                         const SSHKeyProvider& key_provider,
+                         const Path& instance_dir);
     ~HyperVVirtualMachine();
     void start() override;
     void shutdown() override;
