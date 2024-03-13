@@ -31,6 +31,7 @@
 #include <multipass/format.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image_vault.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <QRegularExpression>
 

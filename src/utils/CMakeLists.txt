@@ -22,7 +22,8 @@ function(add_target TARGET_NAME)
     timer.cpp
     utils.cpp
     vm_image_vault_utils.cpp
-    vm_mount.cpp)
+    vm_mount.cpp
+    yaml_node_utils.cpp)
 
   target_link_libraries(${TARGET_NAME}
     cert

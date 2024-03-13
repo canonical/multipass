@@ -129,21 +129,6 @@ void wait_until_ssh_up(
     std::function<void()> const& ensure_vm_is_running = []() {});
 std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
 
-// yaml helpers
-std::string emit_yaml(const YAML::Node& node);
-std::string emit_cloud_config(const YAML::Node& node);
-// when file_content is non-empty, make_cloud_init_meta_config constructs the node based on the string and replaces
-// the original name occurrences with the input name
-YAML::Node make_cloud_init_meta_config(const std::string& name, const std::string& file_content = std::string{});
-// load the file_content to construct the node and tweak the instance-id, this is a hack to make cloud-init-config.iso
-// re-run, it will no longer be needed once cloud-init-config.iso has proper re-run external controlled mechanism
-YAML::Node make_cloud_init_meta_config_with_id_tweak(const std::string& file_content);
-// when file_content is non-empty, make_cloud_init_network_config constructs the node based on the string and replaces
-// the default mac address and extra interfaces
-YAML::Node make_cloud_init_network_config(const std::string& default_mac_addr,
-                                          const std::vector<multipass::NetworkInterface>& extra_interfaces,
-                                          const std::string& file_content = std::string{});
-
 // enum helpers
 template <typename RegisteredQtEnum>
 QString qenum_to_qstring(RegisteredQtEnum val);

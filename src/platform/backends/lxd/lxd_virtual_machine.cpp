@@ -31,9 +31,9 @@
 #include <multipass/network_access_manager.h>
 #include <multipass/snap_utils.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <shared/shared_backend_utils.h>
 

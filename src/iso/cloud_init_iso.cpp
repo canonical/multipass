@@ -20,7 +20,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
-#include <multipass/utils.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <QFile>
 
