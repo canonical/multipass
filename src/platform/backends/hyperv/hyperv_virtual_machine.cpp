@@ -209,7 +209,7 @@ void mp::HyperVVirtualMachine::start()
     }
 }
 
-void mp::HyperVVirtualMachine::stop()
+void mp::HyperVVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
@@ -234,11 +234,6 @@ void mp::HyperVVirtualMachine::stop()
 
     update_state();
     lock.unlock();
-}
-
-void mp::HyperVVirtualMachine::shutdown()
-{
-    stop();
 }
 
 void mp::HyperVVirtualMachine::suspend()

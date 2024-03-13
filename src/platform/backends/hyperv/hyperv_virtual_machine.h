@@ -41,7 +41,6 @@ class HyperVVirtualMachine final : public BaseVirtualMachine
 public:
     HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, const Path& instance_dir);
     ~HyperVVirtualMachine();
-    void stop() override;
     void start() override;
     void shutdown() override;
     void suspend() override;
