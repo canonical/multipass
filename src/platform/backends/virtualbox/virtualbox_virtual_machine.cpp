@@ -149,8 +149,9 @@ QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const 
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
+                                                       const SSHKeyProvider& key_provider,
                                                        const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       image_path{desc.image.image_path},

@@ -35,7 +35,10 @@ class VMStatusMonitor;
 class VirtualBoxVirtualMachine final : public BaseVirtualMachine
 {
 public:
-    VirtualBoxVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, const Path& instance_dir);
+    VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
+                             VMStatusMonitor& monitor,
+                             const SSHKeyProvider& key_provider,
+                             const Path& instance_dir);
     ~VirtualBoxVirtualMachine() override;
     void start() override;
     void shutdown() override;
