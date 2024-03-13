@@ -218,12 +218,14 @@ void mp::VirtualBoxVirtualMachine::shutdown()
     {
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "acpipowerbutton"}, "Could not stop VM: {}",
                                     name);
+        drop_ssh_session();
         state = State::stopped;
         port = std::nullopt;
     }
     else if (present_state == State::starting)
     {
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "poweroff"}, "Could not power VM off: {}", name);
+        drop_ssh_session();
         state = State::stopped;
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
         port = std::nullopt;
@@ -245,6 +247,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
     {
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "savestate"}, "Could not suspend VM: {}", name);
 
+        drop_ssh_session();
         if (update_suspend_status)
         {
             state = State::suspended;
@@ -267,6 +270,9 @@ mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
         return state;
 
     state = present_state;
+    if (state == State::suspended || state == State::suspending)
+        drop_ssh_session();
+
     return state;
 }
 
