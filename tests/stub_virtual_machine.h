@@ -75,7 +75,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4(const SSHKeyProvider& key_provider) override
+    std::string management_ipv4() override
     {
         return {};
     }

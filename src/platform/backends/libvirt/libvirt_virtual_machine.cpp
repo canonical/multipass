@@ -460,7 +460,7 @@ std::string mp::LibVirtVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::LibVirtVirtualMachine::management_ipv4(const SSHKeyProvider& /* not used on this backend */)
+std::string mp::LibVirtVirtualMachine::management_ipv4()
 {
     return management_ipv4_impl(management_ip, mac_addr, libvirt_wrapper);
 }
