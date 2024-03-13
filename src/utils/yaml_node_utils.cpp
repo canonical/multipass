@@ -23,6 +23,40 @@
 
 namespace mp = multipass;
 
+namespace
+{
+// remove this utility function once C++20 std::string::ends_with is available
+bool ends_with(const std::string_view search_str, const std::string_view sub_str)
+{
+    if (sub_str.size() > search_str.size())
+    {
+        return false;
+    }
+
+    return std::equal(sub_str.crbegin(), sub_str.crend(), search_str.crbegin());
+}
+
+std::string toggle_instance_id(const std::string& original_instance_id)
+{
+    std::string result_instance_id{original_instance_id};
+    const std::string tweak = "_e";
+
+    // Check if the instance_id already ends with the tweak.
+    if (ends_with(original_instance_id, tweak))
+    {
+        // Tweak found at the string end, remove it.
+        result_instance_id.erase(result_instance_id.size() - tweak.size(), tweak.size());
+    }
+    else
+    {
+        // Tweak not found, append it.
+        result_instance_id += tweak;
+    }
+
+    return result_instance_id;
+}
+} // namespace
+
 std::string mp::utils::emit_yaml(const YAML::Node& node)
 {
     YAML::Emitter emitter;
@@ -55,7 +89,7 @@ YAML::Node mp::utils::make_cloud_init_meta_config_with_id_tweak(const std::strin
 {
     YAML::Node meta_data = YAML::Load(file_content);
 
-    meta_data["instance-id"] = YAML::Node{meta_data["instance-id"].as<std::string>() + "_e"};
+    meta_data["instance-id"] = YAML::Node{toggle_instance_id(meta_data["instance-id"].as<std::string>())};
 
     return meta_data;
 }
