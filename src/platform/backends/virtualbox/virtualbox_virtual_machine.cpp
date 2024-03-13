@@ -316,16 +316,16 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::VirtualBoxVirtualMachine::management_ipv4(const SSHKeyProvider& /* unused on this backend */)
+std::string mp::VirtualBoxVirtualMachine::management_ipv4()
 {
     return "N/A";
 }
 
-std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
+std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4()
 {
     using namespace std;
 
-    auto all_ipv4 = BaseVirtualMachine::get_all_ipv4(key_provider);
+    auto all_ipv4 = BaseVirtualMachine::get_all_ipv4();
     all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), "10.0.2.15"), end(all_ipv4));
 
     return all_ipv4;
