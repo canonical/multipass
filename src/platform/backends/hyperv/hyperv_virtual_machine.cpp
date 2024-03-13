@@ -346,13 +346,12 @@ void mp::HyperVVirtualMachine::add_network_interface(int /* not used on this bac
     return add_extra_net(*power_shell, name, net);
 }
 
-mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const mp::SSHKeyProvider* ssh_key_provider,
-                                                                           const std::string& target,
+mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                            const mp::VMMount& mount)
 {
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
-                                             ssh_key_provider,
+                                             &key_provider,
                                              target,
                                              mount,
                                              instance_dir.absolutePath(),
