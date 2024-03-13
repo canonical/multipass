@@ -1179,7 +1179,7 @@ TEST(BaseVMStub, addExtraInterfacesToCloudInit)
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true},
                                                                 {"id", "52:54:00:56:78:92", true}};
     // use internal instance dir, in this unit test case, it will not find the cloud-init file, so it should throw
-    EXPECT_THROW(base_vm.add_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces), std::runtime_error);
+    EXPECT_THROW(base_vm.apply_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces), std::runtime_error);
 }
 
 } // namespace
