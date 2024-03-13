@@ -38,6 +38,16 @@ public:
                const SSHKeyProvider& key_provider,
                const std::chrono::milliseconds timeout = std::chrono::seconds(20));
 
+    // just being explicit (unique_ptr member already caused these to be deleted)
+    SSHSession(const SSHSession&) = delete;
+    SSHSession& operator=(const SSHSession&) = delete;
+
+    // we should be able to move just fine though
+    SSHSession(SSHSession&&) = default;
+    SSHSession& operator=(SSHSession&&) = default;
+
+    ~SSHSession();
+
     operator ssh_session();
     SSHProcess exec(const std::string& cmd);
     void force_shutdown();

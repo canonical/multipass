@@ -64,6 +64,12 @@ mp::SSHSession::SSHSession(const std::string& host,
                         key_provider.private_key());
 }
 
+multipass::SSHSession::~SSHSession()
+{
+    ssh_disconnect(session.get());
+    force_shutdown(); // do we really need this?
+}
+
 mp::SSHProcess mp::SSHSession::exec(const std::string& cmd)
 {
     mpl::log(mpl::Level::debug, "ssh session", fmt::format("Executing '{}'", cmd));
@@ -146,6 +152,5 @@ void mp::SSHSession::set_option(ssh_options_e type, const void* data)
 
 bool multipass::SSHSession::is_connected() const
 {
-    assert(session);
     return static_cast<bool>(ssh_is_connected(session.get()));
 }
