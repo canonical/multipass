@@ -129,10 +129,6 @@ void wait_until_ssh_up(
     std::function<void()> const& ensure_vm_is_running = []() {});
 std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
 
-// yaml helpers
-std::string emit_yaml(const YAML::Node& node);
-std::string emit_cloud_config(const YAML::Node& node);
-
 // enum helpers
 template <typename RegisteredQtEnum>
 QString qenum_to_qstring(RegisteredQtEnum val);

@@ -620,23 +620,6 @@ bool mp::utils::process_log_on_error(const QString& program, const QStringList& 
     return true;
 }
 
-std::string mp::utils::emit_yaml(const YAML::Node& node)
-{
-    YAML::Emitter emitter;
-    emitter.SetIndent(2);
-    emitter << node;
-    if (!emitter.good())
-        throw std::runtime_error{fmt::format("Failed to emit YAML: {}", emitter.GetLastError())};
-
-    emitter << YAML::Newline;
-    return emitter.c_str();
-}
-
-std::string mp::utils::emit_cloud_config(const YAML::Node& node)
-{
-    return fmt::format("#cloud-config\n{}\n", emit_yaml(node));
-}
-
 std::string mp::utils::get_resolved_target(mp::SSHSession& session, const std::string& target)
 {
     std::string absolute;

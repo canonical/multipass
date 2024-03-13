@@ -20,6 +20,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <QFile>
 
@@ -27,6 +28,7 @@
 #include <cctype>
 
 namespace mp = multipass;
+namespace mpu = multipass::utils;
 
 // ISO9660 + Joliet Extension format
 // ---------------------------------
@@ -471,6 +473,48 @@ void mp::CloudInitIso::add_file(const std::string& name, const std::string& data
     files.push_back(FileEntry{name, data});
 }
 
+bool mp::CloudInitIso::contains(const std::string& name) const
+{
+    return std::find_if(files.cbegin(), files.cend(), [name](const FileEntry& file_entry) -> bool {
+               return file_entry.name == name;
+           }) != std::cend(files);
+}
+
+const std::string& mp::CloudInitIso::at(const std::string& name) const
+{
+    if (auto iter = std::find_if(files.cbegin(),
+                                 files.cend(),
+                                 [name](const FileEntry& file_entry) -> bool { return file_entry.name == name; });
+        iter == std::cend(files))
+    {
+        throw std::runtime_error(fmt::format("Did not find the target file {} in the CloudInitIso instance.", name));
+    }
+    else
+    {
+        return iter->data;
+    }
+}
+
+std::string& mp::CloudInitIso::at(const std::string& name)
+{
+    return const_cast<std::string&>(const_cast<const mp::CloudInitIso*>(this)->at(name));
+}
+
+std::string& mp::CloudInitIso::operator[](const std::string& name)
+{
+    if (auto iter = std::find_if(files.begin(),
+                                 files.end(),
+                                 [name](const FileEntry& file_entry) -> bool { return file_entry.name == name; });
+        iter == std::end(files))
+    {
+        return files.emplace_back(FileEntry{name, std::string()}).data;
+    }
+    else
+    {
+        return iter->data;
+    }
+}
+
 void mp::CloudInitIso::write_to(const Path& path)
 {
     QFile f{path};
@@ -636,4 +680,20 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
 
         current_file_record_start_pos += to_u32(file_record_data_size);
     }
+}
+
+void mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(
+    const std::string& default_mac_addr,
+    const std::vector<NetworkInterface>& extra_interfaces,
+    const std::filesystem::path& cloud_init_path)
+{
+    CloudInitIso iso_file;
+    iso_file.read_from(cloud_init_path);
+    std::string& meta_data_file_content = iso_file.at("meta-data");
+    meta_data_file_content =
+        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content));
+    // overwrite the whole network-config file content
+    iso_file["network-config"] =
+        mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
+    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
 }

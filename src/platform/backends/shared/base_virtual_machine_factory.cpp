@@ -20,8 +20,8 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
-#include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/yaml_node_utils.h>
 
 namespace mp = multipass;
 namespace mpu = multipass::utils;

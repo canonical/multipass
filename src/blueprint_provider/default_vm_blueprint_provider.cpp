@@ -26,6 +26,7 @@
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <QFile>
 #include <QFileInfo>

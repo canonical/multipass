@@ -169,6 +169,7 @@ const QByteArray vm_info_data{
     "    \"image.version\": \"18.04\","
     "    \"limits.cpu\": \"2\","
     "    \"limits.memory\": \"3221225472\","
+    "    \"user.meta-data\": \"#cloud-config\ninstance-id: vm1\nlocal-hostname: vm1\ncloud-name: multipass\n\","
     "    \"volatile.apply_template\": \"create\","
     "    \"volatile.base_image\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\","
     "    \"volatile.eth0.hwaddr\": \"00:16:3e:b0:c5:f4\""

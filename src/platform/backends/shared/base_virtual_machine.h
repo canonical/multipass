@@ -53,6 +53,8 @@ public:
     {
         throw NotImplementedOnThisBackendException("native mounts");
     };
+    void add_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
+                                            const std::vector<NetworkInterface>& extra_interfaces) override;
 
     SnapshotVista view_snapshots() const override;
     int get_num_snapshots() const override;
