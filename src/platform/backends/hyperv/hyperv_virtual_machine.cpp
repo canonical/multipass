@@ -314,14 +314,6 @@ std::string mp::HyperVVirtualMachine::ipv6()
     return {};
 }
 
-void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
-{
-    mp::utils::wait_until_ssh_up(this,
-                                 timeout,
-                                 key_provider,
-                                 std::bind(&HyperVVirtualMachine::ensure_vm_is_running, this));
-}
-
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
