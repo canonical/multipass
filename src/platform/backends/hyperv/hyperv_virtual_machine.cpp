@@ -296,10 +296,12 @@ std::string mp::HyperVVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::HyperVVirtualMachine::management_ipv4(const SSHKeyProvider& key_provider)
+std::string mp::HyperVVirtualMachine::management_ipv4()
 {
     if (!ip)
     {
+        // Not using cached SSH session for this because a) the underlying functions do not guarantee constness;
+        // b) we endure the penalty of creating a new session only when we don't have the IP yet.
         auto result = remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
         if (result)
             ip.emplace(result.value());
