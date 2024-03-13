@@ -219,6 +219,7 @@ void mp::HyperVVirtualMachine::shutdown()
     {
         power_shell->run({"Stop-VM", "-Name", name});
         state = State::stopped;
+        drop_ssh_session();
         ip = std::nullopt;
     }
     else if (present_state == State::starting)
@@ -226,6 +227,7 @@ void mp::HyperVVirtualMachine::shutdown()
         power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
         state = State::off;
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
+        drop_ssh_session();
         ip = std::nullopt;
     }
     else if (present_state == State::suspended)
@@ -245,6 +247,7 @@ void mp::HyperVVirtualMachine::suspend()
     {
         power_shell->run({"Save-VM", "-Name", name});
 
+        drop_ssh_session();
         if (update_suspend_status)
         {
             state = State::suspended;
