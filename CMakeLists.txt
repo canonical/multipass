@@ -224,6 +224,8 @@ if(cmake_build_type_lower MATCHES "coverage")
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
       COMMAND ${LCOV} --directory . --capture --output-file coverage.info
+        --ignore-errors mismatch
+        --ignore-errors negative
       COMMAND ${LCOV}
         --remove coverage.info
         '/usr/*'
