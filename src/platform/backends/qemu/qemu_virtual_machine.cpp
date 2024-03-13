@@ -500,7 +500,7 @@ std::string mp::QemuVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::QemuVirtualMachine::management_ipv4(const SSHKeyProvider& /* unused on this backend */)
+std::string mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip)
     {

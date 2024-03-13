@@ -1166,7 +1166,7 @@ TEST_P(LXDNetworkInfoSuite, returns_expected_network_info)
                                   key_provider,
                                   instance_dir.path()};
 
-    EXPECT_EQ(machine.management_ipv4(mpt::StubSSHKeyProvider()), "10.217.27.168");
+    EXPECT_EQ(machine.management_ipv4(), "10.217.27.168");
     EXPECT_TRUE(machine.ipv6().empty());
     EXPECT_EQ(machine.ssh_username(), default_description.ssh_username);
     EXPECT_EQ(machine.ssh_port(), 22);
@@ -1261,7 +1261,7 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
                                   key_provider,
                                   instance_dir.path()};
 
-    EXPECT_EQ(machine.management_ipv4(mpt::StubSSHKeyProvider()), "UNKNOWN");
+    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
 }
 
 TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
