@@ -112,11 +112,14 @@ mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(const mp::P
 {
 }
 
-mp::VirtualMachine::UPtr
-mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
-                                                            VMStatusMonitor& monitor)
+auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                 const SSHKeyProvider& key_provider,
+                                                                 VMStatusMonitor& monitor) -> mp::VirtualMachine::UPtr
 {
-    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc, monitor, get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc,
+                                                          monitor,
+                                                          key_provider,
+                                                          get_instance_directory(desc.vm_name));
 }
 
 void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
