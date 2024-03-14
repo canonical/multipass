@@ -178,12 +178,7 @@ class _TableState<T> extends State<Table<T>> {
       cellBuilder: (_, v) => Container(
         decoration: BoxDecoration(
           border: Border(
-            top: v.row == 0 ? borderSide : BorderSide.none,
-            right: v.column == widget.headers.length
-                ? borderSide
-                : BorderSide.none,
-            bottom: borderSide,
-            left: v.column == 0 ? borderSide : BorderSide.none,
+            bottom: v.row < cells.length - 1 ? borderSide : BorderSide.none,
           ),
         ),
         child: cells.elementAtOrNull(v.row)?.elementAtOrNull(v.column),
@@ -194,7 +189,12 @@ class _TableState<T> extends State<Table<T>> {
       cursor: isResizingColumn == 0
           ? MouseCursor.defer
           : SystemMouseCursors.resizeColumn,
-      child: addScrollbars(table),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border.fromBorderSide(borderSide),
+        ),
+        child: addScrollbars(table),
+      ),
     );
   }
 }
