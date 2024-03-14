@@ -445,7 +445,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
 #if VIRTUALBOX_ENABLED
     if (driver == QStringLiteral("virtualbox"))
-        return std::make_unique<VirtualBoxVirtualMachineFactory>();
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
 #endif
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
