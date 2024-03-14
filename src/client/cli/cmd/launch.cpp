@@ -262,7 +262,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         if (remote_image_name.startsWith("file://"))
         {
             // Convert to absolute because the daemon doesn't know where the client is being executed.
-            auto file_info = QFileInfo(remote_image_name.remove(0, 7));
+            if (remote_image_name.remove(0, 7)[0] == '~')
+            {
+                remote_image_name.replace(0, 1, QDir::homePath());
+            }
+            auto file_info = QFileInfo(remote_image_name);
             auto absolute_file_path = file_info.absoluteFilePath();
 
             request.set_image("file://" + absolute_file_path.toStdString());
