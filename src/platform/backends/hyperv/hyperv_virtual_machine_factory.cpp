@@ -251,9 +251,13 @@ mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& dat
 }
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                                 const SSHKeyProvider& key_provider,
                                                                                  VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(desc, monitor, get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::HyperVVirtualMachine>(desc,
+                                                      monitor,
+                                                      key_provider,
+                                                      get_instance_directory(desc.vm_name));
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::string& name)

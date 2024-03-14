@@ -132,13 +132,14 @@ struct HyperVBackend : public Test
     mpt::PowerShellTestHelper ps_helper;
     mp::HyperVVirtualMachineFactory backend{data_dir.path()};
     mpt::StubVMStatusMonitor stub_monitor;
+    mpt::StubSSHKeyProvider stub_key_provider;
 };
 
 TEST_F(HyperVBackend, creates_in_off_state)
 {
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence());
 
-    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::off));
 }
@@ -149,7 +150,7 @@ TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
                                            default_description.vm_name, default_description.default_mac_address)};
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({network_run}));
 
-    backend.create_virtual_machine(default_description, stub_monitor);
+    backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
 }
 
 TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
@@ -159,7 +160,8 @@ TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
 
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({run}));
 
-    MP_EXPECT_THROW_THAT(backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error,
+    MP_EXPECT_THROW_THAT(backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
+                         std::runtime_error,
                          Property(&std::runtime_error::what, HasSubstr("default adapter")));
 }
 
@@ -179,7 +181,7 @@ TEST_F(HyperVBackend, adds_extra_network_adapters)
 
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(std::move(network_runs)));
 
-    backend.create_virtual_machine(default_description, stub_monitor);
+    backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
 }
 
 TEST_F(HyperVBackend, throws_on_failure_to_detect_switch_from_extra_interface)
@@ -191,7 +193,8 @@ TEST_F(HyperVBackend, throws_on_failure_to_detect_switch_from_extra_interface)
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({default_network_run, {failing_cmd, "", false}}));
 
     MP_EXPECT_THROW_THAT(
-        backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error,
+        backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
+        std::runtime_error,
         Property(&std::runtime_error::what, AllOf(HasSubstr("Could not find"), HasSubstr(extra_iface.id))));
 }
 
@@ -207,7 +210,8 @@ TEST_F(HyperVBackend, throws_on_failure_to_add_extra_interface)
         standard_ps_run_sequence({default_network_run, {"Get-VMSwitch"}, {failing_cmd, "", false}}));
 
     MP_EXPECT_THROW_THAT(
-        backend.create_virtual_machine(default_description, stub_monitor), std::runtime_error,
+        backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
+        std::runtime_error,
         Property(&std::runtime_error::what, AllOf(HasSubstr("Could not setup"), HasSubstr(extra_iface.id))));
 }
 
