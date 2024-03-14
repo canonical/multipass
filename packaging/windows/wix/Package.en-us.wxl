@@ -4,4 +4,9 @@ This file contains the declaration of all the localizable strings.
 <WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="en-US">
     <String Id="DowngradeError" Value="A newer version of [ProductName] is already installed." />
     <String Id="WelcomeDlgDescription" Value="Multipass: Ubuntu at your fingertips.&#13;&#13;Welcome to the Multipass installer. This will set up Multipass on your computer.&#13;&#13;Multipass gives you Ubuntu VMs in seconds. Just run `multipass launch` and it'll do all the setup for you.&#13;&#13;For more information, visit https://multipass.run/&#13;&#13;&#13;You will be guided through the steps necessary to install this software." />
+
+    <String Id="ChooseHypervisorDlgTitle" Value="{\WixUI_Font_Title}Hypervisor" />
+    <String Id="ChooseHypervisorDlgDescription" Value="Select a hypervisor to use with Multipass." />
+    <String Id="WixHyperV" Value="Microsoft Hyper-V (Recommended)" />
+    <String Id="WixVirtualBox" Value="Oracle VM VirtualBox" />
 </WixLocalization>
