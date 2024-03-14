@@ -173,20 +173,20 @@ mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm)
 
 mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
     : BaseSnapshot{
-          json["name"].toString().toStdString(),                                           // name
-          json["comment"].toString().toStdString(),                                        // comment
-          find_parent(json, vm),                                                           // parent
-          json["index"].toInt(),                                                           // index
-          QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
-          json["num_cores"].toInt(),                                                       // num_cores
-          MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
-          MemorySize{json["disk_space"].toString().toStdString()},                         // disk_space
-          MP_JSONUTILS.read_extra_interfaces(json),                                        // extra_interfaces
-          static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                   // state
-          load_mounts(json["mounts"].toArray()),                                           // mounts
-          json["metadata"].toObject(),                                                     // metadata
-          vm.instance_directory(),                                                         // storage_dir
-          true}                                                                            // captured
+          json["name"].toString().toStdString(),                                                  // name
+          json["comment"].toString().toStdString(),                                               // comment
+          find_parent(json, vm),                                                                  // parent
+          json["index"].toInt(),                                                                  // index
+          QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs),        // creation_timestamp
+          json["num_cores"].toInt(),                                                              // num_cores
+          MemorySize{json["mem_size"].toString().toStdString()},                                  // mem_size
+          MemorySize{json["disk_space"].toString().toStdString()},                                // disk_space
+          MP_JSONUTILS.read_extra_interfaces(json).value_or(std::vector<mp::NetworkInterface>{}), // extra_interfaces
+          static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                          // state
+          load_mounts(json["mounts"].toArray()),                                                  // mounts
+          json["metadata"].toObject(),                                                            // metadata
+          vm.instance_directory(),                                                                // storage_dir
+          true}                                                                                   // captured
 {
 }
 
