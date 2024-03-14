@@ -115,19 +115,21 @@ class Vms extends ConsumerWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 52),
+      padding: const EdgeInsets.all(20).copyWith(top: 52),
       child: Column(children: [
         heading,
         const SizedBox(height: 35),
         vmFilters,
         const BulkActionsBar(),
         const SizedBox(height: 10),
-        SizedBox(
-          height: (infos.length + 2) * 50 + 10,
-          child: Table<VmInfo>(
-            headers: enabledHeaders,
-            data: infos.toList(),
-            finalRow: totalUsageRow,
+        Flexible(
+          child: SizedBox(
+            height: (infos.length + 2) * 50,
+            child: Table<VmInfo>(
+              headers: enabledHeaders,
+              data: infos.toList(),
+              finalRow: totalUsageRow,
+            ),
           ),
         ),
       ]),
