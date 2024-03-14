@@ -8,7 +8,7 @@
 
         <FeatureRef Id="Main" />
 
-        <ui:WixUI Id="WixUI_InstallDir"  InstallDirectory="INSTALLFOLDER" />
+        <ui:WixUI Id="CustomWixUI_InstallDir"  InstallDirectory="INSTALLFOLDER" />
     </Package>
 
     <Fragment>
