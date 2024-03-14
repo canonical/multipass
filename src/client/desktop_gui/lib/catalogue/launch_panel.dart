@@ -21,10 +21,18 @@ class LaunchPanel extends ConsumerWidget {
     }
 
     final (stream, name, image) = values;
-    return LaunchOperationProgress(
-      stream: stream,
-      name: name,
-      image: image,
+    return FocusableActionDetector(
+      autofocus: true,
+      actions: {
+        DismissIntent: CallbackAction<DismissIntent>(
+          onInvoke: (_) => null,
+        ),
+      },
+      child: LaunchOperationProgress(
+        stream: stream,
+        name: name,
+        image: image,
+      ),
     );
   }
 }
