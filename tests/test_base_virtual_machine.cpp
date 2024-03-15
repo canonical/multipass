@@ -1258,6 +1258,20 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
                          mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
 
+TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
+{
+    vm.simulate_waiting_for_ssh();
+    EXPECT_CALL(vm, ssh_hostname(_)).WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    auto& mock_utils = *mock_utils_ptr;
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, sleep_for, mp::Utils);
+
+    MP_EXPECT_THROW_THAT(vm.wait_until_ssh_up(std::chrono::milliseconds{1}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("timed out waiting for response")));
+}
+
 using ExceptionParam =
     std::variant<std::runtime_error, mp::IPUnavailableException, mp::SSHException, mp::InternalTimeoutException>;
 class TestWaitForSSHExceptions : public BaseVM, public WithParamInterface<ExceptionParam>
