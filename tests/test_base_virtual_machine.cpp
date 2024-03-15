@@ -29,6 +29,7 @@
 
 #include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/level.h>
@@ -1257,15 +1258,26 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
                          mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
 
-TEST_F(BaseVM, waitForSSHUpRetriesOnInternalTimeout)
+using ExceptionParam =
+    std::variant<std::runtime_error, mp::IPUnavailableException, mp::SSHException, mp::InternalTimeoutException>;
+class TestWaitForSSHExceptions : public BaseVM, public WithParamInterface<ExceptionParam>
 {
+};
+
+TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
+{
+    static constexpr auto thrower = [](const auto& e) { throw e; };
+
     vm.simulate_waiting_for_ssh();
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
     EXPECT_CALL(vm, update_state()).WillRepeatedly(Return());
 
     auto timeout = std::chrono::seconds{2};
     EXPECT_CALL(vm, ssh_hostname(_))
-        .WillOnce(Throw(mp::InternalTimeoutException{"determine IP address", timeout}))
+        .WillOnce(WithoutArgs([this]() {
+            std::visit(thrower, GetParam());
+            return "neverland";
+        }))
         .WillRepeatedly(Return("underworld"));
 
     REPLACE(ssh_options_set, [](auto...) { return SSH_OK; });
@@ -1274,5 +1286,12 @@ TEST_F(BaseVM, waitForSSHUpRetriesOnInternalTimeout)
 
     EXPECT_NO_THROW(vm.wait_until_ssh_up(timeout));
 }
+
+INSTANTIATE_TEST_SUITE_P(TestWaitForSSHExceptions,
+                         TestWaitForSSHExceptions,
+                         Values(std::runtime_error{"todo-remove-eventually"},
+                                mp::IPUnavailableException{"noip"},
+                                mp::SSHException{"nossh"},
+                                mp::InternalTimeoutException{"notime", std::chrono::seconds{1}}));
 
 } // namespace
