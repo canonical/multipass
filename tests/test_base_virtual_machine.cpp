@@ -1288,7 +1288,7 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
 
     auto timeout = std::chrono::milliseconds{2};
     EXPECT_CALL(vm, ssh_hostname(_))
-        .WillOnce(WithoutArgs([this]() {
+        .WillOnce(WithoutArgs([]() {
             std::visit(thrower, GetParam());
             return "neverland";
         }))
