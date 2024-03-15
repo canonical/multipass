@@ -28,6 +28,7 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/exceptions/file_open_failed_exception.h>
+#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/level.h>
@@ -91,10 +92,16 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
         ON_CALL(*this, current_state).WillByDefault(Return(state));
     }
 
-    void simulate_ssh() // use if premocking libssh stuff
+    void simulate_ssh_exec() // use if premocking libssh stuff
     {
         auto& self = *this;
         MP_DELEGATE_MOCK_CALLS_ON_BASE(self, ssh_exec, mp::BaseVirtualMachine);
+    }
+
+    void simulate_waiting_for_ssh() // use if premocking libssh stuff
+    {
+        auto& self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, wait_until_ssh_up, mp::BaseVirtualMachine);
     }
 
     void simulate_cloud_init()
@@ -263,7 +270,7 @@ struct BaseVM : public Test
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 {
     vm.simulate_state(St::running);
-    vm.simulate_ssh();
+    vm.simulate_ssh_exec();
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
 
     auto ip_list = vm.get_all_ipv4();
@@ -273,7 +280,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
 {
     vm.simulate_state(St::running);
-    vm.simulate_ssh();
+    vm.simulate_ssh_exec();
 
     // Make SSH throw when trying to execute something.
     mock_ssh_test_fixture.request_exec.returnValue(SSH_ERROR);
@@ -312,7 +319,7 @@ struct IpExecution : public BaseVM, public WithParamInterface<IpTestParams>
 TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 {
     vm.simulate_state(St::running);
-    vm.simulate_ssh();
+    vm.simulate_ssh_exec();
 
     auto test_params = GetParam();
     auto remaining = test_params.output.size();
@@ -1249,4 +1256,23 @@ TEST_F(BaseVM, wait_for_cloud_init_error_times_out_throws)
                          std::runtime_error,
                          mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
+
+TEST_F(BaseVM, waitForSSHUpRetriesOnInternalTimeout)
+{
+    vm.simulate_waiting_for_ssh();
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, update_state()).WillRepeatedly(Return());
+
+    auto timeout = std::chrono::seconds{2};
+    EXPECT_CALL(vm, ssh_hostname(_))
+        .WillOnce(Throw(mp::InternalTimeoutException{"determine IP address", timeout}))
+        .WillRepeatedly(Return("underworld"));
+
+    REPLACE(ssh_options_set, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+
+    EXPECT_NO_THROW(vm.wait_until_ssh_up(timeout));
+}
+
 } // namespace
