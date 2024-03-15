@@ -9,4 +9,10 @@ This file contains the declaration of all the localizable strings.
     <String Id="ChooseHypervisorDlgDescription" Value="Select a hypervisor to use with Multipass." />
     <String Id="WixHyperV" Value="Microsoft Hyper-V (Recommended)" />
     <String Id="WixVirtualBox" Value="Oracle VM VirtualBox" />
+
+    <String Id="ChoosePathInstallDlgTitle" Value="{\WixUI_Font_Title}Add multipass to PATH?" />
+    <String Id="ChoosePathInstallDlgDescription" Value="To run Multipass without having to type the full installation path, the PATH variable needs to include multipass." />
+    <String Id="WixDoNotAddPath" Value="Do not add multipass to the PATH" />
+    <String Id="WixAddToSystemPath" Value="Add multipass to the system PATH for all users" />
+    <String Id="WixAddToUserPath" Value="Add multipass to the current user's PATH (Recommended)" />
 </WixLocalization>
