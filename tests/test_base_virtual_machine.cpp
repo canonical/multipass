@@ -1235,7 +1235,7 @@ TEST(BaseVMStub, addExtraInterfacesToCloudInit)
     EXPECT_THROW(base_vm.apply_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces), std::runtime_error);
 }
 
-TEST_F(BaseVM, wait_for_cloud_init_no_errors_and_done_does_not_throw)
+TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 {
     vm.simulate_cloud_init();
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
@@ -1245,7 +1245,7 @@ TEST_F(BaseVM, wait_for_cloud_init_no_errors_and_done_does_not_throw)
     EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
 }
 
-TEST_F(BaseVM, wait_for_cloud_init_error_times_out_throws)
+TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
 {
     vm.simulate_cloud_init();
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
