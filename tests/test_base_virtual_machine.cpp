@@ -1294,11 +1294,6 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
         }))
         .WillRepeatedly(Return("underworld"));
 
-    // TODO@ricab remove this
-    REPLACE(ssh_options_set, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, sleep_for(_)).WillRepeatedly(Return());
 
