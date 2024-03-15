@@ -10,7 +10,7 @@
 
         <ui:WixUI Id="CustomWixUI_InstallDir"  InstallDirectory="INSTALLFOLDER" />
         <Property Id="WixHypervisor" Value="HyperV" />
-        <Property Id="WixPath" Value="UserPath" />
+        <Property Id="WIX_PATH" Secure="yes" Value="UserPath" />
     </Package>
 
     <Fragment>
