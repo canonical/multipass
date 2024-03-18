@@ -20,6 +20,7 @@
 #include "tests/mock_file_ops.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/network_interface.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -49,6 +50,48 @@ struct CloudInitIso : public Test
     mpt::TempDir temp_dir;
     QString iso_path;
 };
+
+TEST_F(CloudInitIso, check_contains_false)
+{
+    mp::CloudInitIso iso;
+    EXPECT_FALSE(iso.contains("non_exist_file"));
+}
+
+TEST_F(CloudInitIso, check_contains_true)
+{
+    mp::CloudInitIso iso;
+    iso.add_file("test", "test data");
+    EXPECT_TRUE(iso.contains("test"));
+}
+
+TEST_F(CloudInitIso, check_at_operator_throw)
+{
+    mp::CloudInitIso iso;
+    MP_EXPECT_THROW_THAT(
+        iso.at("non_exist_file"),
+        std::runtime_error,
+        mpt::match_what(StrEq("Did not find the target file non_exist_file in the CloudInitIso instance.")));
+}
+
+TEST_F(CloudInitIso, check_at_operator_found_key)
+{
+    mp::CloudInitIso iso;
+    iso.add_file("test", "test data");
+    EXPECT_EQ(iso.at("test"), "test data");
+}
+
+TEST_F(CloudInitIso, check_index_operator_not_exist_default_return)
+{
+    mp::CloudInitIso iso;
+    EXPECT_EQ(iso["test"], std::string());
+}
+
+TEST_F(CloudInitIso, check_index_operator_found_key)
+{
+    mp::CloudInitIso iso;
+    iso.add_file("test", "test data");
+    EXPECT_EQ(iso["test"], "test data");
+}
 
 TEST_F(CloudInitIso, creates_iso_file)
 {
@@ -301,4 +344,51 @@ write_files:
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
     EXPECT_EQ(original_iso, new_iso);
+}
+
+TEST_F(CloudInitIso, updateCloudInitWithNewExtraInterfaces)
+{
+    constexpr std::string_view meta_data_content = R"(#cloud-config
+instance-id: vm1
+local-hostname: vm1
+cloud-name: multipass)";
+
+    mp::CloudInitIso original_iso;
+
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("network-data", "");
+    original_iso.write_to(iso_path);
+
+    const std::string default_mac_addr = "52:54:00:56:78:90";
+    const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
+    EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+                                                                                       extra_interfaces,
+                                                                                       iso_path.toStdString()));
+
+    // extra new line due to emit_cloud_config appending /n
+    constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
+instance-id: vm1_e
+local-hostname: vm1
+cloud-name: multipass
+)";
+    constexpr std::string_view expected_generated_network_config_data_content = R"(#cloud-config
+version: 2
+ethernets:
+  default:
+    match:
+      macaddress: "52:54:00:56:78:90"
+    dhcp4: true
+  extra0:
+    match:
+      macaddress: "52:54:00:56:78:91"
+    dhcp4: true
+    dhcp4-overrides:
+      route-metric: 200
+    optional: true
+)";
+
+    mp::CloudInitIso new_iso;
+    new_iso.read_from(iso_path.toStdString());
+    EXPECT_EQ(new_iso.at("meta-data"), expected_modified_meta_data_content);
+    EXPECT_EQ(new_iso.at("network-config"), expected_generated_network_config_data_content);
 }

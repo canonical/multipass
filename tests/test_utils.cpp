@@ -42,6 +42,7 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
+namespace mpu = mp::utils;
 
 using namespace testing;
 

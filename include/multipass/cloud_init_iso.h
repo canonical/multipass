@@ -28,10 +28,16 @@
 
 namespace multipass
 {
+struct NetworkInterface;
 class CloudInitIso
 {
 public:
     void add_file(const std::string& name, const std::string& data);
+    bool contains(const std::string& name) const;
+    const std::string& at(const std::string& name) const;
+    std::string& at(const std::string& name);
+    std::string& operator[](const std::string& name);
+
     void write_to(const Path& path);
     void read_from(const std::filesystem::path& path);
 
@@ -53,5 +59,12 @@ private:
     };
     std::vector<FileEntry> files;
 };
+
+namespace cloudInitIsoUtils
+{
+void update_cloud_init_with_new_extra_interfaces(const std::string& default_mac_addr,
+                                                 const std::vector<NetworkInterface>& extra_interfaces,
+                                                 const std::filesystem::path& cloud_init_path);
+}
 }
 #endif // MULTIPASS_CLOUD_INIT_ISO_H

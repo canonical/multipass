@@ -28,7 +28,7 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/memory_size.h>
 #include <multipass/url_downloader.h>
-#include <multipass/utils.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <Poco/Exception.h>
 

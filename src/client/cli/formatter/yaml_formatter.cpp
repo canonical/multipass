@@ -21,6 +21,7 @@
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/format.h>
 #include <multipass/utils.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <yaml-cpp/yaml.h>
 

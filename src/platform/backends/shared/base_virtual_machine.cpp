@@ -17,6 +17,7 @@
 
 #include "base_virtual_machine.h"
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
@@ -24,7 +25,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/utils.h>
 #include <multipass/vm_specs.h>
 
 #include <scope_guard.hpp>
@@ -76,6 +76,17 @@ BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
 
 BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name, const mp::Path& instance_dir)
     : VirtualMachine(vm_name, instance_dir){};
+
+void BaseVirtualMachine::add_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
+                                                            const std::vector<NetworkInterface>& extra_interfaces)
+{
+    const std::filesystem::path cloud_init_config_iso_file_path =
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
+
+    mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+                                                                       extra_interfaces,
+                                                                       cloud_init_config_iso_file_path);
+}
 
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {

@@ -115,6 +115,7 @@ add_executable(multipass_tests
   test_ubuntu_image_host.cpp
   test_url_downloader.cpp
   test_utils.cpp
+  test_yaml_node_utils.cpp
   test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
   test_blueprint_provider.cpp

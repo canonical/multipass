@@ -74,6 +74,10 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, resize_memory, (const MemorySize&), (override));
     MOCK_METHOD(void, resize_disk, (const MemorySize&), (override));
     MOCK_METHOD(void, add_network_interface, (int, const NetworkInterface&), (override));
+    MOCK_METHOD(void,
+                add_extra_interfaces_to_cloud_init,
+                (const std::string&, const std::vector<NetworkInterface>&),
+                (override));
     MOCK_METHOD(std::unique_ptr<MountHandler>,
                 make_native_mount_handler,
                 (const SSHKeyProvider*, const std::string&, const VMMount&),
