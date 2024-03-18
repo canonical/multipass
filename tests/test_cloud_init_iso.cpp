@@ -28,6 +28,11 @@ using namespace testing;
 
 namespace
 {
+constexpr std::string_view meta_data_content = R"(#cloud-config
+instance-id: vm1
+local-hostname: vm1
+cloud-name: multipass)";
+
 auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
     file.setstate(std::ios::failbit);
     return file;
@@ -62,6 +67,21 @@ TEST_F(CloudInitIso, check_contains_true)
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
     EXPECT_TRUE(iso.contains("test"));
+}
+
+TEST_F(CloudInitIso, check_erase_false)
+{
+    mp::CloudInitIso iso;
+    EXPECT_FALSE(iso.erase("non_exist_file"));
+}
+
+TEST_F(CloudInitIso, check_erase_true)
+{
+    mp::CloudInitIso iso;
+    iso.add_file("test", "test data");
+    EXPECT_TRUE(iso.contains("test"));
+    EXPECT_TRUE(iso.erase("test"));
+    EXPECT_FALSE(iso.contains("test"));
 }
 
 TEST_F(CloudInitIso, check_at_operator_throw)
@@ -309,10 +329,6 @@ TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
 
 TEST_F(CloudInitIso, reads_iso_file_with_mocked_real_file_data)
 {
-    constexpr std::string_view meta_data_content = R"(#cloud-config
-instance-id: vm1
-local-hostname: vm1
-cloud-name: multipass)";
     constexpr std::string_view user_data_content = R"(#cloud-config
 {})";
     constexpr std::string_view vendor_data_content = R"(#cloud-config
@@ -346,13 +362,8 @@ write_files:
     EXPECT_EQ(original_iso, new_iso);
 }
 
-TEST_F(CloudInitIso, updateCloudInitWithNewExtraInterfaces)
+TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 {
-    constexpr std::string_view meta_data_content = R"(#cloud-config
-instance-id: vm1
-local-hostname: vm1
-cloud-name: multipass)";
-
     mp::CloudInitIso original_iso;
 
     original_iso.add_file("meta-data", std::string(meta_data_content));
@@ -391,4 +402,21 @@ ethernets:
     new_iso.read_from(iso_path.toStdString());
     EXPECT_EQ(new_iso.at("meta-data"), expected_modified_meta_data_content);
     EXPECT_EQ(new_iso.at("network-config"), expected_generated_network_config_data_content);
+}
+
+TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
+{
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("network-data", "");
+    original_iso.write_to(iso_path);
+
+    const std::string& default_mac_addr = "52:54:00:56:78:90";
+    const std::vector<mp::NetworkInterface> empty_extra_interfaces{};
+    EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+                                                                                       empty_extra_interfaces,
+                                                                                       iso_path.toStdString()));
+    mp::CloudInitIso new_iso;
+    new_iso.read_from(iso_path.toStdString());
+    EXPECT_FALSE(new_iso.contains("network-config"));
 }

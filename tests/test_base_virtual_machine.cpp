@@ -756,6 +756,36 @@ TEST_F(BaseVM, restoresSnapshots)
     EXPECT_EQ(original_specs, changed_specs);
 }
 
+TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
+{
+    mock_snapshotting();
+
+    // default value of VMSpecs::state is off, so restore_snapshot will pass the assert_vm_stopped check, the other
+    // fields do not matter, and VMSpecs::extra_interfaces is defaulted to be empty, which is we want.
+    const mp::VMSpecs original_specs{};
+    const auto* snapshot_name = "snapshot1";
+    vm.take_snapshot(original_specs, snapshot_name, "");
+
+    ASSERT_EQ(snapshot_album.size(), 1);
+    const auto& snapshot = *snapshot_album[0];
+
+    mp::VMSpecs new_specs = original_specs;
+    new_specs.extra_interfaces =
+        std::vector<mp::NetworkInterface>{{"id", "52:54:00:56:78:91", true}, {"id", "52:54:00:56:78:92", true}};
+
+    // the ref return functions can not use the default mock behavior, so they need to be specified
+    EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
+    EXPECT_CALL(snapshot, get_metadata).WillOnce(ReturnRef(original_specs.metadata));
+
+    // set the behavior of get_extra_interfaces to cause the difference to the new spece extra interfaces
+    EXPECT_CALL(snapshot, get_extra_interfaces).Times(3).WillRepeatedly(Return(original_specs.extra_interfaces));
+    // Expect to getinto the if (is_extra_interfaces_different) branch
+    EXPECT_CALL(vm, apply_extra_interfaces_to_cloud_init).Times(1);
+
+    vm.restore_snapshot(snapshot_name, new_specs);
+    EXPECT_EQ(original_specs, new_specs);
+}
+
 TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
 {
     mock_snapshotting();
@@ -1179,7 +1209,7 @@ TEST(BaseVMStub, addExtraInterfacesToCloudInit)
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true},
                                                                 {"id", "52:54:00:56:78:92", true}};
     // use internal instance dir, in this unit test case, it will not find the cloud-init file, so it should throw
-    EXPECT_THROW(base_vm.add_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces), std::runtime_error);
+    EXPECT_THROW(base_vm.apply_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces), std::runtime_error);
 }
 
 } // namespace
