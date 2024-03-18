@@ -3609,16 +3609,14 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 
     const auto& br_interface = get_bridged_interface_name();
     const auto& host_nets = config->factory->networks(); // This will throw if not implemented on this backend.
-    const auto& info = std::find_if(host_nets.cbegin(), host_nets.cend(), [br_interface](const auto& i) {
-        return i.id == br_interface;
-    });
-
-    if (info == host_nets.cend())
+    if (const auto info = std::find_if(host_nets.cbegin(),
+                                       host_nets.cend(),
+                                       [br_interface](const auto& i) { return i.id == br_interface; });
+        info == host_nets.cend())
     {
         throw std::runtime_error(fmt::format(invalid_network_template, br_interface, mp::bridged_interface_key));
     }
-
-    if (info->needs_authorization && !user_authorized_bridges.count(br_interface))
+    else if (info->needs_authorization && !user_authorized_bridges.count(br_interface))
     {
         throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings", instance_name, br_interface);
     }
