@@ -3642,9 +3642,8 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
         mpl::log(mpl::Level::trace, category, "Done adding");
 
         // Configure the new interface via cloud-init (this won't throw).
-        std::vector<mp::NetworkInterface> interfaces_to_add{new_if};
         mpl::log(mpl::Level::trace, category, "Adding new interface to cloud-init");
-        instance->apply_extra_interfaces_to_cloud_init(spec.default_mac_address, interfaces_to_add);
+        instance->apply_extra_interfaces_to_cloud_init(spec.default_mac_address, spec.extra_interfaces);
         mpl::log(mpl::Level::trace, category, "Done adding");
     }
     catch (const std::exception& e)
