@@ -1307,4 +1307,13 @@ INSTANTIATE_TEST_SUITE_P(TestWaitForSSHExceptions,
                                 mp::SSHException{"nossh"},
                                 mp::InternalTimeoutException{"notime", std::chrono::seconds{1}}));
 
+TEST_F(BaseVM, sshExecRefusesToExecuteIfVMIsNotRunning)
+{
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session).Times(0);
+
+    vm.simulate_ssh_exec();
+    MP_EXPECT_THROW_THAT(vm.ssh_exec("echo"), mp::SSHException, mpt::match_what(HasSubstr("not running")));
+}
 } // namespace
