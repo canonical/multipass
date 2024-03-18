@@ -1392,7 +1392,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
-        auto instance = instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
+        auto instance = instance_record[name] =
+            config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
         instance->load_snapshots();
 
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
@@ -2848,7 +2849,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                            {},
                                            false,
                                            QJsonObject()};
-                operative_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+                operative_instances[name] =
+                    config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
                 preparing_instances.erase(name);
 
                 persist_instances();

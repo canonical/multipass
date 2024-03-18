@@ -382,7 +382,7 @@ TEST_F(LXDBackend, factory_creates_valid_virtual_machine_ptr)
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     EXPECT_NE(nullptr, machine);
 }
@@ -2382,7 +2382,7 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->shutdown();
 
@@ -2429,6 +2429,7 @@ TEST_F(LXDBackend, addsNetworkInterfaceToCloudInit)
                                   base_url,
                                   bridge_name,
                                   default_storage_pool,
+                                  key_provider,
                                   instance_dir.path()};
 
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);

@@ -123,6 +123,7 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& d
 }
 
 mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                                  const SSHKeyProvider& key_provider,
                                                                                   VMStatusMonitor& monitor)
 {
     if (bridge_name.empty())
@@ -132,6 +133,7 @@ mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machin
                                                        bridge_name,
                                                        monitor,
                                                        libvirt_wrapper,
+                                                       key_provider,
                                                        get_instance_directory(desc.vm_name));
 }
 

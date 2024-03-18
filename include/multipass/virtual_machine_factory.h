@@ -46,6 +46,7 @@ public:
     using UPtr = std::unique_ptr<VirtualMachineFactory>;
     virtual ~VirtualMachineFactory() = default;
     virtual VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
+                                                        const SSHKeyProvider& key_provider,
                                                         VMStatusMonitor& monitor) = 0;
 
     /** Removes any resources associated with a VM of the given name.
