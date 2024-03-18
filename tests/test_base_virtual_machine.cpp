@@ -1367,4 +1367,32 @@ TEST_F(BaseVM, sshExecTriesToReconnectAfterLateDetectionOfDisconnection)
     EXPECT_NO_THROW(vm.ssh_exec(cmd));
 }
 
+TEST_F(BaseVM, sshExecRethrowsOtherExceptions)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    vm.simulate_ssh_exec();
+    vm.public_renew_ssh_session();
+
+    MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd), std::runtime_error, mpt::match_what(HasSubstr("intentional")));
+}
+
+TEST_F(BaseVM, sshExecRethrowsSSHExceptionsWhenConnected)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(mp::SSHException{"intentional"}));
+
+    vm.simulate_ssh_exec();
+    vm.public_renew_ssh_session();
+
+    MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd), mp::SSHException, mpt::match_what(HasSubstr("intentional")));
+}
+
 } // namespace
