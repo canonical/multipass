@@ -87,6 +87,11 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
 
+    void public_renew_ssh_session()
+    {
+        renew_ssh_session();
+    }
+
     void simulate_state(St state)
     {
         this->state = state;
@@ -1315,5 +1320,19 @@ TEST_F(BaseVM, sshExecRefusesToExecuteIfVMIsNotRunning)
 
     vm.simulate_ssh_exec();
     MP_EXPECT_THROW_THAT(vm.ssh_exec("echo"), mp::SSHException, mpt::match_what(HasSubstr("not running")));
+}
+
+TEST_F(BaseVM, sshExecRunsDirectlyIfConnected)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
+
+    vm.simulate_ssh_exec();
+    vm.public_renew_ssh_session();
+
+    EXPECT_NO_THROW(vm.ssh_exec(cmd));
 }
 } // namespace
