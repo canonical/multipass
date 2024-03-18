@@ -5,21 +5,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'vm_table_headers.dart';
 
-class LastingPopupMenuItem extends PopupMenuItem<String> {
-  const LastingPopupMenuItem({super.key, required super.child})
-      : super(padding: EdgeInsets.zero);
-
-  @override
-  PopupMenuItemState<String, LastingPopupMenuItem> createState() =>
-      _LastingPopupMenuItemState();
-}
-
-class _LastingPopupMenuItemState
-    extends PopupMenuItemState<String, LastingPopupMenuItem> {
-  @override
-  void handleTap() {}
-}
-
 final enabledHeadersProvider = StateProvider(
   (_) => {for (final h in headers) h.name: true}.build(),
 );
@@ -35,7 +20,7 @@ class HeaderSelectionTile extends ConsumerWidget {
 
     return CheckboxListTile(
       controlAffinity: ListTileControlAffinity.leading,
-      title: Text(name),
+      title: Text(name, style: const TextStyle(color: Colors.black)),
       value: enabledHeaders[name],
       onChanged: (isSelected) => ref
           .read(enabledHeadersProvider.notifier)
@@ -51,10 +36,13 @@ class HeaderSelection extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton(
       position: PopupMenuPosition.under,
-      itemBuilder: (_) => headers
-          .skip(2)
-          .map((h) => LastingPopupMenuItem(child: HeaderSelectionTile(h.name)))
-          .toList(),
+      itemBuilder: (_) => headers.skip(2).map((h) {
+        return PopupMenuItem<void>(
+          padding: EdgeInsets.zero,
+          enabled: false,
+          child: HeaderSelectionTile(h.name),
+        );
+      }).toList(),
       child: Container(
         width: 120,
         height: 42,
@@ -70,10 +58,7 @@ class HeaderSelection extends StatelessWidget {
               BlendMode.srcIn,
             ),
           ),
-          const Text(
-            'Columns',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text('Columns', style: TextStyle(fontWeight: FontWeight.bold)),
         ]),
       ),
     );
