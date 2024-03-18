@@ -1335,4 +1335,36 @@ TEST_F(BaseVM, sshExecRunsDirectlyIfConnected)
 
     EXPECT_NO_THROW(vm.ssh_exec(cmd));
 }
+
+TEST_F(BaseVM, sshExecReconnectsIfDisconnected)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
+
+    vm.simulate_ssh_exec();
+
+    EXPECT_NO_THROW(vm.ssh_exec(cmd));
+}
+
+TEST_F(BaseVM, sshExecTriesToReconnectAfterLateDetectionOfDisconnection)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd))
+        .WillOnce(Throw(mp::SSHException{"intentional"}))
+        .WillOnce(DoDefault());
+
+    vm.simulate_ssh_exec();
+    vm.public_renew_ssh_session();
+
+    mock_ssh_test_fixture.is_connected.returnValue(true, false, false);
+
+    EXPECT_NO_THROW(vm.ssh_exec(cmd));
+}
+
 } // namespace
