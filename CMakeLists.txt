@@ -15,9 +15,15 @@
 cmake_minimum_required(VERSION 3.17)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
-if (APPLE)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12") # needs to be set before "project"
-  set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
+
+if("${HOST_OS_NAME}" STREQUAL "macOS")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0") # needs to be set before "project"
+  set(VCPKG_HOST_OS "osx")
+elseif("${HOST_OS_NAME}" STREQUAL "Windows")
+  set(VCPKG_HOST_OS "windows-static-md")
+else()
+  set(VCPKG_HOST_OS "linux")
 endif()
 
 # Use ccache if it's installed
@@ -26,6 +32,25 @@ if(CCACHE_PROGRAM)
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+  set(VCPKG_BUILD_DEFAULT TRUE)
+endif()
+
+if(NOT DEFINED VCPKG_BUILD_DEFAULT)
+  cmake_host_system_information(RESULT VCPKG_HOST_ARCH QUERY OS_PLATFORM)
+  if("${VCPKG_HOST_ARCH}" STREQUAL "x86_64" OR "${VCPKG_HOST_ARCH}" STREQUAL "AMD64")
+    set(VCPKG_HOST_ARCH "x64")
+  elseif("${VCPKG_HOST_ARCH}" STREQUAL "aarch64")
+    set(VCPKG_HOST_ARCH "arm64")
+  endif()
+
+  set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+  set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+endif()
+
+set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+  CACHE STRING "Vcpkg toolchain file")
 
 project(Multipass)
 
@@ -73,11 +98,17 @@ endif()
 # OpenSSL config
 find_package(OpenSSL REQUIRED)
 
+# gRPC config
+find_package(gRPC CONFIG REQUIRED)
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
 # Qt config
 find_package(Qt6 COMPONENTS Core Concurrent Network Widgets REQUIRED)
+
+# POCO config
+find_package(Poco REQUIRED COMPONENTS Foundation Zip)
 
 function(determine_version OUTPUT_VARIABLE)
   # use upstream repo as the authoritative reference when checking for release status

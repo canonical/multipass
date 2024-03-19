@@ -1,23 +1,4 @@
-include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
-
-FetchContent_Declare(gRPC
-  GIT_REPOSITORY https://github.com/CanonicalLtd/grpc.git
-  GIT_TAG e3acf245
-  GIT_SHALLOW TRUE
-  GIT_SUBMODULES "third_party/abseil-cpp third_party/cares/cares third_party/protobuf third_party/re2 third_party/zlib"
-  GIT_SUBMODULES_RECURSE false
-  GIT_PROGRESS TRUE
-)
-set(gRPC_SSL_PROVIDER "package" CACHE STRING "Provider of ssl library")
-
-FetchContent_MakeAvailable(gRPC)
-
-# Workaround for zlib placing its generated zconf.h file in the build dir,
-# and protobuf not knowing so finding the system version instead
-include_directories(${grpc_SOURCE_DIR}/third_party/zlib)
-
-set_property(DIRECTORY ${grpc_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
+set(BUILD_SHARED_LIBS OFF)
 
 if (MSVC)
   add_compile_options(-wd5045) #Disable warning about Spectre mitigation
@@ -53,9 +34,9 @@ function(generate_grpc_cpp SRCS DEST)
       "${DEST}/${FIL_WE}.grpc.pb.h"
       "${DEST}/${FIL_WE}.pb.cc"
       "${DEST}/${FIL_WE}.pb.h"
-      COMMAND $<TARGET_FILE:protoc>
-      ARGS --grpc_out=${DEST} --cpp_out=${DEST} --proto_path=${FIL_DIR} --proto_path=${grpc_SOURCE_DIR}/third_party/protobuf/src --plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin> ${ABS_FIL}
-      DEPENDS ${ABS_FIL} protoc grpc_cpp_plugin
+      COMMAND $<TARGET_FILE:protobuf::protoc>
+      ARGS --grpc_out=${DEST} --cpp_out=${DEST} --proto_path=${FIL_DIR} --proto_path=${grpc_SOURCE_DIR}/third_party/protobuf/src --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin> ${ABS_FIL}
+      DEPENDS ${ABS_FIL}
       COMMENT "Running gRPC C++ protocol buffer compiler on ${FIL}"
       VERBATIM)
   endforeach ()
@@ -66,14 +47,9 @@ endfunction()
 
 add_library(gRPC INTERFACE)
 
-target_include_directories(gRPC INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/grpc/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/grpc/third_party/protobuf/src)
-
 target_link_libraries(gRPC INTERFACE
-  grpc++
-  libprotobuf
-  zlibstatic)
+  gRPC::grpc++
+  protobuf::libprotobuf)
 
 if (NOT MSVC)
   target_compile_options(gRPC INTERFACE "-Wno-unused-parameter" "-Wno-non-virtual-dtor" "-Wno-pedantic")
@@ -117,7 +93,6 @@ target_compile_definitions(scope_guard INTERFACE
   SG_REQUIRE_NOEXCEPT_IN_CPP17)
 
 # semver library
-set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(semver EXCLUDE_FROM_ALL)
 target_include_directories(semver INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/semver/include)
@@ -127,33 +102,3 @@ add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
 
 # qhotkey config
 add_subdirectory(qhotkey EXCLUDE_FROM_ALL)
-
-# POCO library
-# Suppress CMake CMP0077 warning in POCO - see `cmake --help-policy CMP0077`
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-set(BUILD_SHARED_LIBS ON)
-option(ENABLE_NETSSL OFF)
-option(ENABLE_CRYPTO OFF)
-option(ENABLE_JWT OFF)
-option(ENABLE_ENCODINGS OFF)
-option(ENABLE_XML OFF)
-option(ENABLE_JSON OFF)
-option(ENABLE_MONGODB OFF)
-option(ENABLE_DATA_SQLITE OFF)
-option(ENABLE_REDIS OFF)
-option(ENABLE_UTIL OFF)
-option(ENABLE_NET OFF)
-option(ENABLE_PAGECOMPILER OFF)
-option(ENABLE_PAGECOMPILER_FILE2PAGE OFF)
-option(ENABLE_ACTIVERECORD_COMPILER OFF)
-option(ENABLE_ACTIVERECORD OFF)
-option(ENABLE_DATA OFF)
-option(ENABLE_PROMETHEUS OFF)
-
-add_subdirectory(poco EXCLUDE_FROM_ALL)
-
-install(TARGETS Foundation Zip LIBRARY COMPONENT multipassd)
-
-# Undo some settings that POCO sets to avoid polluting the rest of our build
-set(CMAKE_DEBUG_POSTFIX "" CACHE STRING "Set Debug library postfix" FORCE)
-set(BUILD_SHARED_LIBS OFF)
