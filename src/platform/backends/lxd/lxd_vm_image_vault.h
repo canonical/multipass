@@ -52,6 +52,10 @@ public:
     void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                        const ProgressMonitor& monitor) override;
     MemorySize minimum_image_size_for(const std::string& id) override;
+    void clone(const std::string& source_instance_name, const std::string& dist_instance_name) override
+    {
+        throw std::runtime_error("Clone methond is supported in LXDVMImageVault yet.");
+    }
 
 private:
     void lxd_download_image(const VMImageInfo& info, const Query& query, const ProgressMonitor& monitor,

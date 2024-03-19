@@ -33,6 +33,16 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
 {
     MOCK_METHOD(VirtualMachine::UPtr, create_virtual_machine, (const VirtualMachineDescription&, VMStatusMonitor&),
                 (override));
+    MOCK_METHOD(VirtualMachine::UPtr,
+                create_vm_and_instance_disk_data,
+                (const QString&,
+                 const VMSpecs&,
+                 const VMSpecs&,
+                 const std::string&,
+                 const std::string&,
+                 const VMImage&,
+                 VMStatusMonitor&),
+                (override));
     MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
 
     MOCK_METHOD(FetchType, fetch_type, (), (override));
@@ -49,6 +59,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD(std::vector<NetworkInterfaceInfo>, networks, (), (const, override));
     MOCK_METHOD(void, require_snapshots_support, (), (const, override));
     MOCK_METHOD(void, require_suspend_support, (), (const, override));
+    MOCK_METHOD(void, require_clone_support, (), (const, override));
     MOCK_METHOD(std::string, bridge_name_for, (const std::string&), (const, override));
 
     // originally protected:

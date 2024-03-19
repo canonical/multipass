@@ -45,6 +45,7 @@ struct VMSpecs
     bool deleted;
     QJsonObject metadata;
     std::vector<std::string> run_at_boot;
+    int clone_count = 0; // tracks the number of cloned vm from this source vm (regardless or deletes)
 };
 
 inline bool operator==(const VMSpecs& a, const VMSpecs& b)
@@ -59,7 +60,8 @@ inline bool operator==(const VMSpecs& a, const VMSpecs& b)
                     a.mounts,
                     a.deleted,
                     a.metadata,
-                    a.run_at_boot) == std::tie(b.num_cores,
+                    a.run_at_boot,
+                    a.clone_count) == std::tie(b.num_cores,
                                                b.mem_size,
                                                b.disk_space,
                                                b.default_mac_address,
@@ -69,7 +71,8 @@ inline bool operator==(const VMSpecs& a, const VMSpecs& b)
                                                b.mounts,
                                                b.deleted,
                                                b.metadata,
-                                               b.run_at_boot);
+                                               b.run_at_boot,
+                                               a.clone_count);
 }
 
 inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20

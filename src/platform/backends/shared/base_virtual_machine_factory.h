@@ -35,6 +35,16 @@ class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
     explicit BaseVirtualMachineFactory(const Path& instances_dir);
+    VirtualMachine::UPtr create_vm_and_instance_disk_data(const QString& data_directory,
+                                                          const VMSpecs& src_vm_spec,
+                                                          const VMSpecs& dest_vm_spec,
+                                                          const std::string& source_name,
+                                                          const std::string& destination_name,
+                                                          const VMImage& dest_vm_image,
+                                                          VMStatusMonitor& monitor) override
+    {
+        throw NotImplementedOnThisBackendException("clone");
+    }
 
     void remove_resources_for(const std::string& name) final;
 
@@ -81,6 +91,11 @@ public:
     {
         return "";
     };
+
+    void require_clone_support() const override
+    {
+        throw NotImplementedOnThisBackendException{"clone"};
+    }
 
 protected:
     static const Path instances_subdir;
