@@ -133,6 +133,8 @@ parts:
     - pkg-config
     - qt6-base-dev
     - qt6-base-dev-tools
+    - zip
+    - unzip
     stage-packages:
     - apparmor
     - libpng16-16
