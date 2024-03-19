@@ -5,11 +5,12 @@ import '../ffi.dart';
 
 class SpecInput extends StatelessWidget {
   final bool autofocus;
+  final bool enabled;
   final String? helper;
   final String? hint;
   final String? initialValue;
   final String? label;
-  final FormFieldSetter<String> onSaved;
+  final FormFieldSetter<String>? onSaved;
   final FormFieldValidator<String>? validator;
   final List<TextInputFormatter>? inputFormatters;
   final double width;
@@ -18,11 +19,12 @@ class SpecInput extends StatelessWidget {
   const SpecInput({
     super.key,
     this.autofocus = false,
+    this.enabled = true,
     this.helper,
     this.hint,
     this.initialValue,
     this.label,
-    required this.onSaved,
+    this.onSaved,
     this.validator,
     this.inputFormatters,
     this.width = 170,
@@ -46,11 +48,17 @@ class SpecInput extends StatelessWidget {
             helperText: helper,
             helperMaxLines: 3,
             helperStyle: const TextStyle(color: Colors.black),
+            disabledBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.black12),
+              borderRadius: BorderRadius.zero,
+            ),
           ),
+          enabled: enabled,
           initialValue: initialValue,
-          onSaved: onSaved,
-          validator: validator,
           inputFormatters: inputFormatters,
+          onSaved: onSaved,
+          style: const TextStyle(color: Colors.black),
+          validator: validator,
         ),
       ]),
     );
