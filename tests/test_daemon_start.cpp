@@ -88,10 +88,10 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     auto event_dopoll = [](auto...) { return SSH_ERROR; };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    std::vector<mp::NetworkInterface> unconfigured{{"eth7", "", true}};
+    std::vector<mp::NetworkInterface> extra_interfaces{{"eth7", "52:54:00:99:99:99", true}};
 
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, unconfigured));
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
@@ -101,7 +101,8 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     EXPECT_CALL(*instance_ptr, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
-    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(1);
+    // New networks configuration was moved to the instance settings handler, add_network_interface mustn't be called.
+    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(0);
 
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -118,67 +119,6 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
 
     EXPECT_THAT(status.error_message(), StrEq(""));
-    EXPECT_TRUE(status.ok());
-}
-
-TEST_F(TestDaemonStart, startShowsBridgingErrors)
-{
-    ssh_channel_callbacks callbacks{nullptr};
-    auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) {
-        callbacks = cb;
-        return SSH_OK;
-    };
-    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
-
-    auto event_dopoll = [&callbacks](auto...) {
-        if (!callbacks)
-            return SSH_ERROR;
-        callbacks->channel_exit_status_function(nullptr, nullptr, 0, callbacks->userdata);
-        return SSH_OK;
-    };
-    REPLACE(ssh_event_dopoll, event_dopoll);
-
-    std::string fake_output{"some output"};
-    auto remaining = fake_output.size();
-    auto channel_read = [&fake_output, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
-        const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
-        const auto begin = fake_output.begin() + fake_output.size() - remaining;
-        std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
-        remaining -= num_to_copy;
-        return num_to_copy;
-    };
-    REPLACE(ssh_channel_read_timeout, channel_read);
-
-    std::vector<mp::NetworkInterface> unconfigured{{"eth47", "", true}};
-
-    auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, unconfigured));
-
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
-    EXPECT_CALL(*mock_factory, create_virtual_machine(_, _)).WillOnce([&instance_ptr](const auto&, auto&) {
-        return std::move(instance_ptr);
-    });
-
-    EXPECT_CALL(*instance_ptr, wait_until_ssh_up).WillRepeatedly(Return());
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
-    EXPECT_CALL(*instance_ptr, start()).Times(1);
-    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).WillOnce(Throw(std::runtime_error("panic show")));
-
-    config_builder.data_directory = temp_dir->path();
-    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-
-    mp::Daemon daemon{config_builder.build()};
-
-    mp::StartRequest request;
-    request.mutable_instance_names()->add_instance_name(mock_instance_name);
-
-    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> server;
-
-    std::string log{"Cannot bridge eth47 for instance real-zebraphant. Please see the logs for more details.\n"};
-    EXPECT_CALL(server, Write(Property(&mp::StartReply::log_line, HasSubstr(log)), _)).Times(1);
-
-    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
-
     EXPECT_TRUE(status.ok());
 }
 

@@ -135,6 +135,23 @@ struct MockDaemon : public Daemon
     {
         status_promise->set_value(grpc::Status::OK);
     }
+
+    // The following functions are meant to test daemon's bridging functions.
+    // This tests bridged interface addition. The second parameter gives an instance to test on.
+    void test_add_bridged_interface(const std::string& instance_name, const VirtualMachine::ShPtr instance)
+    {
+        operative_instances.insert(std::make_pair(instance_name, instance));
+
+        return add_bridged_interface(instance_name);
+    }
+
+    // This tests if the daemon is able to tell whether an instance has a bridged interface or not.
+    bool test_is_bridged(const std::string& instance_name, const VMSpecs& specs)
+    {
+        vm_instance_specs.insert(std::make_pair(instance_name, specs));
+
+        return is_bridged(instance_name);
+    }
 };
 } // namespace test
 } // namespace multipass
