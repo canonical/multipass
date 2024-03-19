@@ -173,3 +173,13 @@ final guiSettingProvider = NotifierProvider.autoDispose
     .family<GuiSettingNotifier, String?, String>(() {
   throw UnimplementedError();
 });
+
+final networksProvider = Provider.autoDispose((ref) {
+  final driver = ref.watch(daemonSettingProvider(driverKey)).valueOrNull;
+  if (driver != null && ref.watch(daemonAvailableProvider)) {
+    ref.watch(grpcClientProvider).networks().then((networks) {
+      ref.state = networks.map((n) => n.name).toBuiltSet();
+    }).ignore();
+  }
+  return BuiltSet<String>();
+});

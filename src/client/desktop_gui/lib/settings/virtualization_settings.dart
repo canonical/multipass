@@ -1,21 +1,10 @@
 import 'dart:io';
 
-import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
 import '../providers.dart';
-
-final networksProvider = Provider.autoDispose((ref) {
-  ref.watch(daemonSettingProvider(driverKey));
-  if (ref.watch(daemonAvailableProvider)) {
-    ref.watch(grpcClientProvider).networks().then((networks) {
-      return ref.state = networks.map((n) => n.name).toBuiltSet();
-    }).ignore();
-  }
-  return BuiltSet<String>();
-});
 
 final driverProvider = daemonSettingProvider(driverKey);
 final bridgedNetworkProvider = daemonSettingProvider(bridgedNetworkKey);
