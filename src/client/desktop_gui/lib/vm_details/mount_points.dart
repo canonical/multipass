@@ -1,25 +1,40 @@
 import 'package:basics/basics.dart';
+import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 
 import '../ffi.dart';
 import '../providers.dart';
 
-class MountPoint extends StatelessWidget {
-  final double width = 265;
+class MountPoint extends StatefulWidget {
   final VoidCallback onDelete;
-  final FormFieldSetter<String> onSourceSaved;
-  final FormFieldSetter<String> onTargetSaved;
+  final Function(String source, String target) onSaved;
   final String initialSource;
   final String initialTarget;
 
   const MountPoint({
     super.key,
     required this.onDelete,
-    required this.onSourceSaved,
-    required this.onTargetSaved,
+    required this.onSaved,
     required this.initialSource,
     required this.initialTarget,
   });
+
+  @override
+  State<MountPoint> createState() => _MountPointState();
+}
+
+class _MountPointState extends State<MountPoint> {
+  final width = 265.0;
+  String? savedSource;
+  String? savedTarget;
+
+  void save() {
+    if (savedSource != null && savedTarget != null) {
+      widget.onSaved(savedSource!, savedTarget!);
+      savedSource = null;
+      savedTarget = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,23 +42,29 @@ class MountPoint extends StatelessWidget {
       SizedBox(
         width: width,
         child: TextFormField(
-          onSaved: onSourceSaved,
-          initialValue: initialSource,
+          initialValue: widget.initialSource,
+          onSaved: (value) {
+            savedSource = value;
+            save();
+          },
         ),
       ),
       const SizedBox(width: 24),
       SizedBox(
         width: width,
         child: TextFormField(
-          onSaved: onTargetSaved,
-          initialValue: initialTarget,
+          initialValue: widget.initialTarget,
+          onSaved: (value) {
+            savedTarget = value;
+            save();
+          },
         ),
       ),
       const SizedBox(width: 24),
       SizedBox(
         height: 42,
         child: OutlinedButton(
-          onPressed: onDelete,
+          onPressed: widget.onDelete,
           child: const Icon(Icons.delete_outline, color: Colors.grey),
         ),
       ),
@@ -52,9 +73,14 @@ class MountPoint extends StatelessWidget {
 }
 
 class MountPointList extends StatefulWidget {
-  final List<MountRequest> mountRequests;
+  final BuiltList<MountRequest> initialMountRequests;
+  final Function(BuiltList<MountRequest>) onSaved;
 
-  const MountPointList({super.key, required this.mountRequests});
+  MountPointList({
+    super.key,
+    required this.onSaved,
+    BuiltList<MountRequest>? initialMountRequests,
+  }) : initialMountRequests = initialMountRequests ?? BuiltList();
 
   @override
   State<MountPointList> createState() => _MountPointListState();
@@ -62,9 +88,18 @@ class MountPointList extends StatefulWidget {
 
 class _MountPointListState extends State<MountPointList> {
   final mounts = <UniqueKey, (String, String)>{};
+  final mountRequests = <MountRequest>[];
+
+  void save(MountRequest request) {
+    mountRequests.add(request);
+    if (mounts.length == mountRequests.length) {
+      widget.onSaved(mountRequests.build());
+      mountRequests.clear();
+    }
+  }
 
   void setExistingMounts() {
-    for (final mount in widget.mountRequests) {
+    for (final mount in widget.initialMountRequests) {
       mounts[UniqueKey()] = (
         mount.sourcePath,
         mount.targetPaths.first.targetPath,
@@ -95,20 +130,18 @@ class _MountPointListState extends State<MountPointList> {
           initialSource: initialSource,
           initialTarget: initialTarget,
           onDelete: () => setState(() => mounts.remove(key)),
-          onSourceSaved: (value) {
-            widget.mountRequests.add(MountRequest(
-              sourcePath: value,
+          onSaved: (source, target) {
+            final request = MountRequest(
+              sourcePath: source,
+              targetPaths: [
+                TargetPathInfo(targetPath: target.isBlank ? source : target)
+              ],
               mountMaps: MountMaps(
                 uidMappings: [IdMap(hostId: uid(), instanceId: default_id())],
                 gidMappings: [IdMap(hostId: gid(), instanceId: default_id())],
               ),
-            ));
-          },
-          onTargetSaved: (value) {
-            final request = widget.mountRequests.last;
-            request.targetPaths.add(TargetPathInfo(
-              targetPath: value.isNullOrBlank ? request.sourcePath : value!,
-            ));
+            );
+            save(request);
           },
         ),
       );
