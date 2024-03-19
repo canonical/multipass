@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'before_quit_dialog.dart';
 import 'catalogue/catalogue.dart';
 import 'daemon_unavailable.dart';
 import 'help.dart';
@@ -105,7 +108,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
   void initState() {
     super.initState();
     windowManager.addListener(this);
-    // windowManager.setPreventClose(true);
+    windowManager.setPreventClose(true);
   }
 
   @override
@@ -114,53 +117,49 @@ class _AppState extends ConsumerState<App> with WindowListener {
     super.dispose();
   }
 
-  // @override
-  // void onWindowClose() {
-  //   final instancesRunning = ref
-  //       .read(vmStatusesProvider)
-  //       .values
-  //       .any((status) => status == Status.RUNNING);
-  //   if (!instancesRunning) exit(0);
-  //
-  //   stopAllInstances() {
-  //     final notification = OperationNotification(
-  //       text: 'Stopping all instances',
-  //       future: ref.read(grpcClientProvider).stop([]).then((_) {
-  //         windowManager.destroy();
-  //         return 'Stopped all instances';
-  //       }).onError((_, __) => throw 'Failed to stop all instances'),
-  //     );
-  //     ref.read(notificationsProvider.notifier).add(notification);
-  //   }
-  //
-  //   switch (ref.read(guiSettingProvider(onAppCloseKey))) {
-  //     case 'nothing':
-  //       exit(0);
-  //     case 'stop':
-  //       stopAllInstances();
-  //     default:
-  //       showDialog(
-  //         context: context,
-  //         barrierDismissible: false,
-  //         builder: (context) => AlertDialog(
-  //           title: const Text('Keep instances running in the background?'),
-  //           actions: [
-  //             TextButton(
-  //               child: const Text('No'),
-  //               onPressed: () {
-  //                 Navigator.of(context).pop();
-  //                 stopAllInstances();
-  //               },
-  //             ),
-  //             TextButton(
-  //               child: const Text('Yes'),
-  //               onPressed: () => exit(0),
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //   }
-  // }
+  @override
+  void onWindowClose() {
+    if (!ref.read(vmStatusesProvider).values.contains(Status.RUNNING)) exit(0);
+
+    stopAllInstances() {
+      final notification = OperationNotification(
+        text: 'Stopping all instances',
+        future: ref.read(grpcClientProvider).stop([]).then((_) {
+          windowManager.destroy();
+          return 'Stopped all instances';
+        }).onError((_, __) => throw 'Failed to stop all instances'),
+      );
+      ref.read(notificationsProvider.notifier).add(notification);
+    }
+
+    switch (ref.read(guiSettingProvider(onAppCloseKey))) {
+      case 'nothing':
+        exit(0);
+      case 'stop':
+        stopAllInstances();
+      default:
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => BeforeQuitDialog(
+            onStop: (remember) {
+              ref
+                  .read(guiSettingProvider(onAppCloseKey).notifier)
+                  .set(remember ? 'stop' : 'ask');
+              stopAllInstances();
+              Navigator.pop(context);
+            },
+            onKeep: (remember) {
+              ref
+                  .read(guiSettingProvider(onAppCloseKey).notifier)
+                  .set(remember ? 'nothing' : 'ask');
+              windowManager.destroy();
+            },
+            onClose: () => Navigator.pop(context),
+          ),
+        );
+    }
+  }
 }
 
 final theme = ThemeData(
