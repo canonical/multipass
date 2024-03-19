@@ -98,14 +98,11 @@ class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
         .watch(events: FileSystemEvent.modify)
         .where((event) => event.path == file.path)
         .first
-        .whenComplete(() => Timer(10.milliseconds, ref.invalidateSelf));
+        .whenComplete(() => Timer(50.milliseconds, ref.invalidateSelf));
     return getSetting(arg);
   }
 
-  void set(String value) {
-    setSetting(arg, value);
-    state = value;
-  }
+  void set(String value) => setSetting(arg, value);
 
   @override
   bool updateShouldNotify(String previous, String next) => previous != next;
@@ -124,11 +121,12 @@ class DaemonSettingNotifier
         : state.valueOrNull ?? await Completer<String>().future;
   }
 
-  void set(String value) async {
-    state = await AsyncValue.guard(() async {
-      await ref.read(grpcClientProvider).set(arg, value);
-      return value;
-    });
+  void set(String value) {
+    ref
+        .read(grpcClientProvider)
+        .set(arg, value)
+        .whenComplete(() => Timer(50.milliseconds, ref.invalidateSelf))
+        .ignore();
   }
 
   @override
