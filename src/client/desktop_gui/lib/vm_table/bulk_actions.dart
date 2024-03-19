@@ -35,12 +35,15 @@ class BulkActionsBar extends ConsumerWidget {
           action: action,
           currentStatuses: statuses,
           function: () {
+            final object = selectedVms.length == 1
+                ? selectedVms.first
+                : '${selectedVms.length} instances';
             final notification = OperationNotification(
-              text: '${action.continuousTense} ${selectedVms.length} instances',
+              text: '${action.continuousTense} $object',
               future: function(selectedVms).then((_) {
-                return '${action.pastTense} ${selectedVms.length} instances';
+                return '${action.pastTense} $object';
               }).onError((_, __) {
-                throw 'Failed to ${action.name.toLowerCase()} instances';
+                throw 'Failed to ${action.name.toLowerCase()} $object';
               }),
             );
             ref.read(notificationsProvider.notifier).add(notification);
