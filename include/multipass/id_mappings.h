@@ -33,24 +33,20 @@ namespace multipass
 {
 using id_mappings = std::vector<std::pair<int, int>>;
 
-inline id_mappings unique_id_mappings(const id_mappings& xid_mappings)
+inline auto unique_id_mappings(id_mappings& xid_mappings)
 {
-    id_mappings ret;
-    std::set<std::pair<int, int>> id_set;
+    std::set<int> id_set;
+    std::set<int> rev_id_set;
 
-    auto is_mapping_repeated = [&id_set](const auto& m) {
-        if (id_set.insert(m).second)
+    auto is_mapping_repeated = [&id_set, &rev_id_set](const auto& m) {
+        if (id_set.insert(m.first).second && rev_id_set.insert(m.second).second)
             return false;
 
         mpl::log(mpl::Level::debug, "id_mappings", fmt::format("Dropping repeated mapping {}:{}", m.first, m.second));
-
         return true;
     };
 
-    std::remove_copy_if(xid_mappings.cbegin(), xid_mappings.cend(), std::back_insert_iterator(ret),
-                        is_mapping_repeated);
-
-    return ret;
+    return std::remove_if(xid_mappings.begin(), xid_mappings.end(), is_mapping_repeated);
 }
 } // namespace multipass
 
