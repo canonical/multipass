@@ -25,6 +25,7 @@ class VirtualizationSettings extends ConsumerWidget {
         value: driver,
         items: drivers,
         onChanged: (value) {
+          if (value == driver) return;
           ref.read(driverProvider.notifier).set(value!);
         },
       ),
