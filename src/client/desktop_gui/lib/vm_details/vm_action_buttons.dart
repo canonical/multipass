@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../extensions.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 
 class VmActionButtons extends ConsumerWidget {
   final String name;
-  final Status status;
 
-  const VmActionButtons({
-    super.key,
-    required this.name,
-    required this.status,
-  });
+  const VmActionButtons(this.name, {super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,17 +21,11 @@ class VmActionButtons extends ConsumerWidget {
       (VmAction.delete, client.delete),
     ];
 
-    final actionButtons = [
-      VmActionButton(
-        action: VmAction.edit,
-        currentStatuses: {status},
-        function: () => Scaffold.of(context).openEndDrawer(),
-      ),
+    final notifyingActions = [
       for (final (action, function) in actions)
-        VmActionButton(
-          action: action,
-          currentStatuses: {status},
-          function: () {
+        (
+          action,
+          () {
             final notification = OperationNotification(
               text: '${action.continuousTense} $name',
               future: function([name]).then((_) {
@@ -51,6 +39,62 @@ class VmActionButtons extends ConsumerWidget {
         ),
     ];
 
-    return Row(children: actionButtons.gap(width: 8).toList());
+    final actionButtons = [
+      for (final (action, function) in notifyingActions)
+        PopupMenuItem(
+          padding: EdgeInsets.zero,
+          enabled: false,
+          child: ActionTile(name, action, function),
+        ),
+    ];
+
+    return PopupMenuButton(
+      tooltip: 'Show actions',
+      position: PopupMenuPosition.under,
+      itemBuilder: (_) => actionButtons,
+      child: Container(
+        width: 110,
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xff333333)),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Text('Actions', style: TextStyle(fontWeight: FontWeight.bold)),
+            Icon(Icons.keyboard_arrow_down),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ActionTile extends ConsumerWidget {
+  final String name;
+  final VmAction action;
+  final VoidCallback function;
+
+  const ActionTile(this.name, this.action, this.function, {super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(vmInfoProvider(name).select((info) {
+      return action.allowedStatuses.contains(info.instanceStatus.status);
+    }));
+
+    return ListTile(
+      enabled: enabled,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      title: Text(
+        action.name,
+        style: enabled ? const TextStyle(color: Colors.black) : null,
+      ),
+      onTap: () {
+        Navigator.pop(context);
+        function();
+      },
+    );
   }
 }
