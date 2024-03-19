@@ -107,7 +107,7 @@ struct TestQemuSnapshot : public Test
             return metadata;
         }();
 
-        return mp::VMSpecs{cpus, mem_size, disk_space, "mac", extra_interfaces, "", state, mounts, false, metadata, {}};
+        return mp::VMSpecs{cpus, mem_size, disk_space, "mac", extra_interfaces, "", state, mounts, false, metadata};
     }();
 };
 

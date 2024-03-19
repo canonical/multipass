@@ -44,7 +44,6 @@ struct VMSpecs
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
     QJsonObject metadata;
-    std::vector<std::string> run_at_boot;
 };
 
 inline bool operator==(const VMSpecs& a, const VMSpecs& b)
@@ -58,18 +57,16 @@ inline bool operator==(const VMSpecs& a, const VMSpecs& b)
                     a.state,
                     a.mounts,
                     a.deleted,
-                    a.metadata,
-                    a.run_at_boot) == std::tie(b.num_cores,
-                                               b.mem_size,
-                                               b.disk_space,
-                                               b.default_mac_address,
-                                               b.extra_interfaces,
-                                               b.ssh_username,
-                                               b.state,
-                                               b.mounts,
-                                               b.deleted,
-                                               b.metadata,
-                                               b.run_at_boot);
+                    a.metadata) == std::tie(b.num_cores,
+                                            b.mem_size,
+                                            b.disk_space,
+                                            b.default_mac_address,
+                                            b.extra_interfaces,
+                                            b.ssh_username,
+                                            b.state,
+                                            b.mounts,
+                                            b.deleted,
+                                            b.metadata);
 }
 
 inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20

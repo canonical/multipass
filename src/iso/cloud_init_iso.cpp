@@ -515,6 +515,20 @@ std::string& mp::CloudInitIso::operator[](const std::string& name)
     }
 }
 
+bool mp::CloudInitIso::erase(const std::string& name)
+{
+    if (auto iter = std::find_if(files.cbegin(),
+                                 files.cend(),
+                                 [name](const FileEntry& file_entry) -> bool { return file_entry.name == name; });
+        iter != std::cend((files)))
+    {
+        files.erase(iter);
+        return true;
+    }
+
+    return false;
+}
+
 void mp::CloudInitIso::write_to(const Path& path)
 {
     QFile f{path};
@@ -692,8 +706,15 @@ void mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(
     std::string& meta_data_file_content = iso_file.at("meta-data");
     meta_data_file_content =
         mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content));
-    // overwrite the whole network-config file content
-    iso_file["network-config"] =
-        mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
+    if (extra_interfaces.empty())
+    {
+        iso_file.erase("network-config");
+    }
+    else
+    {
+        // overwrite the whole network-config file content
+        iso_file["network-config"] =
+            mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
+    }
     iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
 }

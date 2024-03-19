@@ -19,6 +19,7 @@
 #include "mock_virtual_machine.h"
 
 #include <multipass/constants.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
 
@@ -33,6 +34,7 @@
 
 namespace mp = multipass;
 namespace mpt = mp::test;
+namespace mpu = mp::utils;
 using namespace testing;
 
 namespace
@@ -54,10 +56,8 @@ struct TestInstanceSettingsHandler : public Test
                                            deleted_vms,
                                            preparing_vms,
                                            make_fake_persister(),
-                                           make_fake_bridged_interface(),
-                                           make_fake_bridge_name(),
-                                           make_fake_host_networks(),
-                                           make_fake_authorization()};
+                                           make_fake_is_bridged(),
+                                           make_fake_add()};
     }
 
     void fake_instance_state(const char* name, SpecialInstanceState special_state)
@@ -95,6 +95,28 @@ struct TestInstanceSettingsHandler : public Test
     std::function<bool()> make_fake_authorization()
     {
         return [this]() { return user_authorized; };
+    }
+
+    std::function<bool(const std::string&)> make_fake_is_bridged()
+    {
+        return [this](const std::string& n) {
+            const std::string br_interface{"eth8"};
+            const std::string br_name{"br-" + br_interface};
+            const auto& spec = specs[n];
+
+            return std::any_of(spec.extra_interfaces.cbegin(),
+                               spec.extra_interfaces.cend(),
+                               [&br_interface, &br_name](const auto& network) -> bool {
+                                   return network.id == br_interface || network.id == br_name;
+                               });
+        };
+    }
+
+    std::function<void(const std::string&)> make_fake_add()
+    {
+        return [this](const std::string& n) {
+            specs[n].extra_interfaces.push_back(mp::NetworkInterface{"eth8", mpu::generate_mac_address(), true});
+        };
     }
 
     template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NiceMock>
@@ -234,6 +256,8 @@ struct TestBridgedInstanceSettings : public TestInstanceSettingsHandler,
 {
 };
 
+// Since the instance handler calls functions from the daemon, which were replaced here by other ones, this test just
+// checks that the correct functions are called from the handler.
 TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
 {
     const auto [br_interface, bridged] = GetParam();
@@ -509,39 +533,7 @@ TEST_F(TestInstanceSettingsHandler, setAddsInterface)
     make_handler().set(make_key(target_instance_name, "bridged"), "true");
 
     EXPECT_EQ(specs[target_instance_name].extra_interfaces.size(), 2u);
-    EXPECT_EQ(specs[target_instance_name].extra_interfaces[1].mac_address, "");
-}
-
-TEST_F(TestInstanceSettingsHandler, setThrowsIfBridgingWrongInterface)
-{
-    bridged_interface = "wrong";
-
-    constexpr auto target_instance_name = "pappo";
-    specs.insert({{"blues", {}}, {"local", {}}, {target_instance_name, {}}});
-
-    mock_vm(target_instance_name); // TODO: make this an expectation.
-
-    std::string failure{"Invalid network 'wrong' set as bridged interface"};
-    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "bridged"), "true"),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr(failure)));
-}
-
-TEST_F(TestInstanceSettingsHandler, setWithoutAuthorizationThrows)
-{
-    user_authorized = false;
-    constexpr auto target_instance_name = "pappo";
-    specs.insert({{"blues", {}}, {"local", {}}, {target_instance_name, {}}});
-
-    mock_vm(target_instance_name); // TODO: make this an expectation.
-
-    std::string failure{
-        "Cannot update instance settings; instance: pappo; reason: Need user authorization to bridge eth8"};
-    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "bridged"), "true"),
-                         mp::NonAuthorizedBridgeSettingsException,
-                         mpt::match_what(HasSubstr(failure)));
-
-    EXPECT_EQ(specs[target_instance_name].extra_interfaces.size(), 0u);
+    EXPECT_TRUE(mpu::valid_mac_address(specs[target_instance_name].extra_interfaces[1].mac_address));
 }
 
 using VMSt = mp::VirtualMachine::State;

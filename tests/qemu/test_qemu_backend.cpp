@@ -732,7 +732,6 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
                             mp::VirtualMachine::State::stopped,
                             {},
                             false,
-                            {},
                             {}};
     auto snapshot = machine.make_specific_snapshot(snapshot_name, snapshot_comment, specs, nullptr);
     EXPECT_EQ(snapshot->get_name(), snapshot_name);

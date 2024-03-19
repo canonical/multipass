@@ -37,6 +37,7 @@ public:
     const std::string& at(const std::string& name) const;
     std::string& at(const std::string& name);
     std::string& operator[](const std::string& name);
+    bool erase(const std::string& name);
 
     void write_to(const Path& path);
     void read_from(const std::filesystem::path& path);

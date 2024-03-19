@@ -172,9 +172,6 @@ private:
                                VirtualMachine* vm);
 
     MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
-    std::unordered_set<std::string> configure_new_interfaces(const std::string& name,
-                                                             VirtualMachine& vm,
-                                                             VMSpecs& specs);
 
     struct AsyncOperationStatus
     {
@@ -205,11 +202,16 @@ private:
     void
     populate_instance_info(VirtualMachine& vm, InfoReply& response, bool runtime_info, bool deleted, bool& have_mounts);
 
-    void run_commands_at_boot_on_instance(const std::string& name, fmt::memory_buffer& warnings);
-
     std::unique_ptr<const DaemonConfig> config;
+
+protected:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     InstanceTable operative_instances;
+
+    bool is_bridged(const std::string& instance_name);
+    void add_bridged_interface(const std::string& instance_name);
+
+private:
     InstanceTable deleted_instances;
     std::unordered_map<std::string, std::unique_ptr<DelayedShutdownTimer>> delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
@@ -225,7 +227,7 @@ private:
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
-    bool user_authorized = false;
+    std::unordered_set<std::string> user_authorized_bridges;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_H

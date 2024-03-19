@@ -43,10 +43,8 @@ public:
                             const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
                             const std::unordered_set<std::string>& preparing_instances,
                             std::function<void()> instance_persister,
-                            std::function<std::string()> bridged_interface,
-                            std::function<std::string()> bridge_name,
-                            std::function<std::vector<NetworkInterfaceInfo>()> host_networks,
-                            std::function<bool()> user_authorized);
+                            std::function<bool(const std::string&)> is_bridged,
+                            std::function<void(const std::string&)> add_interface);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -64,10 +62,8 @@ private:
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
     const std::unordered_set<std::string>& preparing_instances;
     std::function<void()> instance_persister;
-    std::function<std::string()> bridged_interface;
-    std::function<std::string()> bridge_name;
-    std::function<std::vector<NetworkInterfaceInfo>()> host_networks;
-    std::function<bool()> user_authorized_bridge;
+    std::function<bool(const std::string&)> is_bridged;
+    std::function<void(const std::string&)> add_interface;
 };
 
 class InstanceSettingsException : public SettingsException
@@ -81,6 +77,15 @@ class NonAuthorizedBridgeSettingsException : public InstanceSettingsException
 public:
     NonAuthorizedBridgeSettingsException(const std::string& reason, const std::string& instance, const std::string& net)
         : InstanceSettingsException{reason, instance, fmt::format("Need user authorization to bridge {}", net)}
+    {
+    }
+};
+
+class BridgeFailureException : public InstanceSettingsException
+{
+public:
+    BridgeFailureException(const std::string& reason, const std::string& instance, const std::string& net)
+        : InstanceSettingsException{reason, instance, fmt::format("Failure to bridge {}", net)}
     {
     }
 };

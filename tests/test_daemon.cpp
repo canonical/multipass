@@ -2133,6 +2133,9 @@ INSTANTIATE_TEST_SUITE_P(
     Values(std::tuple{mp::NonAuthorizedBridgeSettingsException{"reason", "instance", "eth8"},
                       grpc::StatusCode::INTERNAL,
                       HasSubstr("Need user authorization to bridge eth8")},
+           std::tuple{mp::BridgeFailureException{"reason", "instance", "eth8"},
+                      grpc::StatusCode::INTERNAL,
+                      HasSubstr("Failure to bridge eth8")},
            std::tuple{mp::UnrecognizedSettingException{"foo"},
                       grpc::StatusCode::INVALID_ARGUMENT,
                       AllOf(HasSubstr("Unrecognized"), HasSubstr("foo"))},
@@ -2210,6 +2213,123 @@ TEST_F(Daemon, setDoesNotSetIfUserDeniesAuthorization)
 
     EXPECT_FALSE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
+
+TEST_F(Daemon, add_bridged_interface_works)
+{
+    std::string instance_name{"willy"};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::debug);
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "New interface {\"eth8\", ");
+
+    std::vector<mp::NetworkInterfaceInfo> net_info{{"eth8", "Ethernet", "A network adapter", {}, false}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
+    EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
+    EXPECT_CALL(*instance_ptr, add_network_interface(0, _)).Times(1);
+    EXPECT_CALL(*instance_ptr, apply_extra_interfaces_to_cloud_init(_, _)).Times(1);
+
+    EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
+}
+
+TEST_F(Daemon, add_bridged_interface_throws_if_backend_throws)
+{
+    std::string instance_name{"wonka"};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::debug);
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "New interface {\"eth8\", ");
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Failure adding interface to instance, rolling back");
+    std::vector<mp::NetworkInterfaceInfo> net_info{{"eth8", "Ethernet", "A network adapter", {}, false}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
+    EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
+    EXPECT_CALL(*instance_ptr, add_network_interface(0, _)).WillOnce(Throw(std::runtime_error("something bad")));
+    EXPECT_CALL(*instance_ptr, apply_extra_interfaces_to_cloud_init(_, _)).Times(0);
+
+    std::string msg{"Cannot update instance settings; instance: " + instance_name + "; reason: Failure to bridge eth8"};
+    MP_EXPECT_THROW_THAT(daemon.test_add_bridged_interface(instance_name, instance_ptr),
+                         std::runtime_error,
+                         mpt::match_what(msg));
+}
+
+TEST_F(Daemon, add_bridged_interface_throws_on_bad_bridged_network_setting)
+{
+    std::string instance_name{"bucket"};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    std::vector<mp::NetworkInterfaceInfo> net_info{{"eth9", "Ethernet", "An invalid network adapter", {}, false}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
+    EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, apply_extra_interfaces_to_cloud_init(_, _)).Times(0);
+
+    std::string msg{"Invalid network 'eth8' set as bridged interface, use `multipass set local.bridged-network=<name>` "
+                    "to correct. See `multipass networks` for valid names."};
+    MP_EXPECT_THROW_THAT(daemon.test_add_bridged_interface(instance_name, instance_ptr),
+                         std::runtime_error,
+                         mpt::match_what(msg));
+}
+
+TEST_F(Daemon, add_bridged_interface_throws_if_needs_authorization)
+{
+    std::string instance_name{"glass-elevator"};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    std::vector<mp::NetworkInterfaceInfo> net_info{{"eth8", "Ethernet", "A network adapter", {}, true}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
+    EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, apply_extra_interfaces_to_cloud_init(_, _)).Times(0);
+
+    std::string msg{
+        "Cannot update instance settings; instance: glass-elevator; reason: Need user authorization to bridge eth8"};
+    MP_EXPECT_THROW_THAT(daemon.test_add_bridged_interface(instance_name, instance_ptr),
+                         mp::NonAuthorizedBridgeSettingsException,
+                         mpt::match_what(msg));
+}
+
+struct DaemonIsBridged : public Daemon, public WithParamInterface<std::pair<std::vector<mp::NetworkInterface>, bool>>
+{
+};
+
+TEST_P(DaemonIsBridged, is_bridged_works)
+{
+    const auto [extra_interfaces, result] = GetParam();
+
+    std::string instance_name{"charlie"};
+
+    mp::VMSpecs specs;
+    specs.extra_interfaces = extra_interfaces;
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    EXPECT_CALL(*mock_factory, bridge_name_for(_)).WillOnce(Return("br-eth8"));
+
+    EXPECT_EQ(daemon.test_is_bridged(instance_name, specs), result);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Daemon,
+    DaemonIsBridged,
+    Values(std::make_pair(std::vector<mp::NetworkInterface>{{"eth8", "52:54:00:09:10:11", true}}, true),
+           std::make_pair(std::vector<mp::NetworkInterface>{{"br-eth8", "52:54:00:12:13:14", true}}, true),
+           std::make_pair(std::vector<mp::NetworkInterface>{{"eth9", "52:54:00:15:16:17", true}}, false),
+           std::make_pair(std::vector<mp::NetworkInterface>{{"br-eth9", "52:54:00:18:19:20", true}}, false)));
 
 TEST_F(Daemon, requests_networks)
 {
