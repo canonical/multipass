@@ -156,7 +156,7 @@ class LaunchForm extends ConsumerWidget {
         const SizedBox(height: 40),
         bridgedSwitch,
         const SizedBox(height: 40),
-        MountPointList(mountRequests: mountRequests),
+        MountPointList(onSaved: (requests) => mountRequests.addAll(requests)),
         const SizedBox(height: 40),
         Row(children: [
           launchButton,
