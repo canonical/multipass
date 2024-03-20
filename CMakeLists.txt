@@ -249,12 +249,20 @@ if(cmake_build_type_lower MATCHES "coverage")
     message(STATUS
       "Coverage enabled, use the 'covreport' target."
     )
+    execute_process(COMMAND ${LCOV} --version
+                    OUTPUT_VARIABLE LCOV_VERSION_RAW)
+    string(REGEX REPLACE "lcov: LCOV version " "" LCOV_VERSION_STR "${LCOV_VERSION_RAW}")
+    string(REGEX REPLACE "\\..*" "" LCOV_VERSION_MAJOR "${LCOV_VERSION_STR}")
+    if(${LCOV_VERSION_MAJOR} GREATER_EQUAL 2)
+      set(LCOV_IGNORE_ERRORS --ignore-errors mismatch --ignore-errors negative)
+    endif()
+
     add_custom_target(covreport
       DEPENDS multipass_tests
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
-      COMMAND ${LCOV} --directory . --capture --output-file coverage.info
+      COMMAND ${LCOV} --directory . --capture --output-file coverage.info ${LCOV_IGNORE_ERRORS}
       COMMAND ${LCOV}
         --remove coverage.info
         '/usr/*'
