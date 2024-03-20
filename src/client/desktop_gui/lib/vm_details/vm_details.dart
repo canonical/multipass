@@ -496,6 +496,7 @@ class MountDetails extends ConsumerStatefulWidget {
 class _MountDetailsState extends ConsumerState<MountDetails> {
   final formKey = GlobalKey<FormState>();
   bool editing = false;
+  final mountRequests = <MountRequest>[];
 
   @override
   Widget build(BuildContext context) {
@@ -509,17 +510,18 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     if (!stopped) editing = false;
 
     final viewMountPoints = Column(children: [
-      const DefaultTextStyle(
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
+      if (mounts.isNotEmpty)
+        const DefaultTextStyle(
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+          child: Row(children: [
+            Expanded(child: Text('SOURCE PATH')),
+            Expanded(child: Text('TARGET PATH')),
+          ]),
         ),
-        child: Row(children: [
-          Expanded(child: Text('SOURCE PATH')),
-          Expanded(child: Text('TARGET PATH')),
-        ]),
-      ),
       for (final mount in mounts) ...[
         const Divider(height: 20),
         Row(children: [
@@ -533,7 +535,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       ],
     ]);
 
-    final mountRequests = mounts.map((mount) {
+    final initialMountRequests = mounts.map((mount) {
       return MountRequest(
         mountMaps: mount.mountMaps,
         sourcePath: mount.sourcePath,
@@ -547,21 +549,21 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     });
 
     final editableMountPoints = MountPointList(
-      initialMountRequests: mountRequests.toBuiltList(),
-      onSaved: (newMounts) async {
-        final grpcClient = ref.read(grpcClientProvider);
-        await grpcClient.umount(widget.name);
-        for (final mountRequest in newMounts) {
-          mountRequest.targetPaths.first.instanceName = widget.name;
-          await grpcClient.mount(mountRequest);
-        }
-      },
+      initialMountRequests: initialMountRequests.toBuiltList(),
+      onSaved: (newMountRequests) => mountRequests.addAll(newMountRequests),
     );
 
     final saveButton = TextButton(
-      onPressed: () {
+      onPressed: () async {
+        mountRequests.clear();
         formKey.currentState?.save();
         setState(() => editing = false);
+        final grpcClient = ref.read(grpcClientProvider);
+        await grpcClient.umount(widget.name);
+        for (final mountRequest in mountRequests) {
+          mountRequest.targetPaths.first.instanceName = widget.name;
+          await grpcClient.mount(mountRequest);
+        }
       },
       child: const Text('Save'),
     );
