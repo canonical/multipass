@@ -142,7 +142,7 @@ protected:
     const SSHKeyProvider& key_provider;
 
 private:
-    std::optional<SSHSession> ssh_session = std::nullopt; // TODO@no-merge thread safety
+    std::optional<SSHSession> ssh_session = std::nullopt;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
