@@ -13,11 +13,11 @@
                 <Control Id="Description" Type="Text" X="25" Y="23" Width="340" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.ChoosePathInstallDlgDescription)" />
                 <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.ChoosePathInstallDlgTitle)" />
 
-                <Control Id="PathGroup" Type="RadioButtonGroup" X="20" Y="55" Width="330" Height="120" Property="WIX_PATH">
-                    <RadioButtonGroup Property="WIX_PATH">
-                        <RadioButton Value="NoPath" X="0" Y="0" Width="295" Height="16" Text="!(loc.WixDoNotAddPath)" />
-                        <RadioButton Value="SystemPath" X="0" Y="20" Width="295" Height="16" Text="!(loc.WixAddToSystemPath)" />
-                        <RadioButton Value="UserPath" X="0" Y="40" Width="295" Height="16" Text="!(loc.WixAddToUserPath)" />
+                <Control Id="PathGroup" Type="RadioButtonGroup" X="20" Y="55" Width="330" Height="120" Property="ENVIRONMENT">
+                    <RadioButtonGroup Property="ENVIRONMENT">
+                        <RadioButton Value="None" X="0" Y="0" Width="295" Height="16" Text="!(loc.WixDoNotAddPath)" />
+                        <RadioButton Value="System" X="0" Y="20" Width="295" Height="16" Text="!(loc.WixAddToSystemPath)" />
+                        <RadioButton Value="User" X="0" Y="40" Width="295" Height="16" Text="!(loc.WixAddToUserPath)" />
                     </RadioButtonGroup>
                 </Control>
             </Dialog>
