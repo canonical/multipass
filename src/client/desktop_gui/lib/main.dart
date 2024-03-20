@@ -120,7 +120,10 @@ class _AppState extends ConsumerState<App> with WindowListener {
 
   @override
   void onWindowClose() {
-    if (!ref.read(vmStatusesProvider).values.contains(Status.RUNNING)) exit(0);
+    final daemonAvailable = ref.read(daemonAvailableProvider);
+    final vmsRunning =
+        ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
+    if (!daemonAvailable || !vmsRunning) exit(0);
 
     stopAllInstances() {
       final notification = OperationNotification(
