@@ -725,22 +725,35 @@ TEST_F(QemuBackend, logsErrorOnFailureToConvertToQcow2V3UponConstruction)
                                    instance_dir.path()};
 }
 
-struct PublicSnapshotMakingQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
+struct MockQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
     using mpt::MockVirtualMachineT<mp::QemuVirtualMachine>::MockVirtualMachineT;
     using mp::QemuVirtualMachine::make_specific_snapshot;
     using mp::QemuVirtualMachine::require_snapshots_support;
+
+    MOCK_METHOD(void, drop_ssh_session, (), (override));
 };
+
+TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
+{
+    NiceMock<MockQemuVM> machine{"mock-qemu-vm", key_provider};
+    machine.state = multipass::VirtualMachine::State::stopped;
+
+    EXPECT_CALL(machine, drop_ssh_session());
+
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(machine, shutdown, mp::QemuVirtualMachine);
+    machine.shutdown();
+}
 
 TEST_F(QemuBackend, supportsSnapshots)
 {
-    PublicSnapshotMakingQemuVM vm{"asdf", key_provider};
+    MockQemuVM vm{"asdf", key_provider};
     EXPECT_NO_THROW(vm.require_snapshots_support());
 }
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 {
-    PublicSnapshotMakingQemuVM machine{"mock-qemu-vm", key_provider};
+    MockQemuVM machine{"mock-qemu-vm", key_provider};
 
     auto snapshot_name = "elvis";
     auto snapshot_comment = "has left the building";
@@ -767,7 +780,7 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
 {
-    PublicSnapshotMakingQemuVM machine{"mock-qemu-vm", key_provider};
+    MockQemuVM machine{"mock-qemu-vm", key_provider};
 
     const auto parent = std::make_shared<mpt::MockSnapshot>();
     EXPECT_CALL(machine, get_snapshot(2)).WillOnce(Return(parent));
