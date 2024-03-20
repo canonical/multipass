@@ -87,10 +87,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
 
-    void public_renew_ssh_session()
-    {
-        renew_ssh_session();
-    }
+    using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
     void simulate_state(St state)
     {
@@ -1331,7 +1328,7 @@ TEST_F(BaseVM, sshExecRunsDirectlyIfConnected)
     EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
 
     vm.simulate_ssh_exec();
-    vm.public_renew_ssh_session();
+    vm.renew_ssh_session();
 
     EXPECT_NO_THROW(vm.ssh_exec(cmd));
 }
@@ -1360,7 +1357,7 @@ TEST_F(BaseVM, sshExecTriesToReconnectAfterLateDetectionOfDisconnection)
         .WillOnce(DoDefault());
 
     vm.simulate_ssh_exec();
-    vm.public_renew_ssh_session();
+    vm.renew_ssh_session();
 
     mock_ssh_test_fixture.is_connected.returnValue(true, false, false);
 
@@ -1376,7 +1373,7 @@ TEST_F(BaseVM, sshExecRethrowsOtherExceptions)
     EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(std::runtime_error{"intentional"}));
 
     vm.simulate_ssh_exec();
-    vm.public_renew_ssh_session();
+    vm.renew_ssh_session();
 
     MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd), std::runtime_error, mpt::match_what(HasSubstr("intentional")));
 }
@@ -1390,7 +1387,7 @@ TEST_F(BaseVM, sshExecRethrowsSSHExceptionsWhenConnected)
     EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(mp::SSHException{"intentional"}));
 
     vm.simulate_ssh_exec();
-    vm.public_renew_ssh_session();
+    vm.renew_ssh_session();
 
     MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd), mp::SSHException, mpt::match_what(HasSubstr("intentional")));
 }
