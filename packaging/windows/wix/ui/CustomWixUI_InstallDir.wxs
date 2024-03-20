@@ -1,27 +1,5 @@
 <!-- Copyright (c) .NET Foundation and contributors. All rights reserved. Licensed under the Microsoft Reciprocal License. See LICENSE.TXT file in the project root for full license information. -->
 
-<!--
-First-time install dialog sequence:
- - CustomWelcomeDlg
- - WixUI_LicenseAgreementDlg
- - WixUI_ChooseHypervisorDlg
- - WixUI_ChoosePathInstallDlg
- - WixUI_InstallDirDlg
- - WixUI_VerifyReadyDlg
- - WixUI_DiskCostDlg
-
-Maintenance dialog sequence:
- - WixUI_MaintenanceWelcomeDlg
- - WixUI_MaintenanceTypeDlg
- - WixUI_InstallDirDlg
- - WixUI_VerifyReadyDlg
-
-Patch dialog sequence:
- - CustomWelcomeDlg
- - WixUI_VerifyReadyDlg
-
--->
-
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
     <?foreach WIXUIARCH in X86;X64;A64 ?>
     <Fragment>
