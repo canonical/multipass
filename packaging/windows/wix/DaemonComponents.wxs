@@ -20,6 +20,10 @@
         <CustomAction Id="CheckHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="CheckHyperV" Return="check" />
         <CustomAction Id="EnableHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="EnableHyperV" Return="check" />
 
+        <Property Id="VBOX_VERSION">
+            <RegistrySearch Id="VBOX_VERSION" Root="HKLM" Key="SOFTWARE\Oracle\VirtualBox" Name="Version" Type="raw" />
+        </Property>
+
         <InstallExecuteSequence>
             <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;HyperV&quot; AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;HyperV&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
