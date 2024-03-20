@@ -345,7 +345,6 @@ void mp::QemuVirtualMachine::start()
 
 void mp::QemuVirtualMachine::shutdown()
 {
-    // TODO@no-merge this needs to lock
     if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
