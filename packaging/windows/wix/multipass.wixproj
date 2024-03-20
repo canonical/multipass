@@ -31,4 +31,8 @@
             <Transforms>filter.xsl</Transforms>
         </HarvestDirectory>
     </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\CustomActions\CustomActions.csproj" />
+    </ItemGroup>
 </Project>
