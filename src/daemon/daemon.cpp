@@ -45,7 +45,6 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -53,6 +52,7 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <scope_guard.hpp>
 
@@ -165,50 +165,6 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider, const
     config["write_files"].push_back(pollinate_user_agent_node);
 
     return config;
-}
-
-auto make_cloud_init_meta_config(const std::string& name)
-{
-    YAML::Node meta_data;
-
-    meta_data["instance-id"] = name;
-    meta_data["local-hostname"] = name;
-    meta_data["cloud-name"] = "multipass";
-
-    return meta_data;
-}
-
-auto make_cloud_init_network_config(const std::string default_mac_addr,
-                                    const std::vector<mp::NetworkInterface>& extra_interfaces)
-{
-    YAML::Node network_data;
-
-    // Generate the cloud-init file only if there is at least one extra interface needing auto configuration.
-    if (std::find_if(extra_interfaces.begin(), extra_interfaces.end(),
-                     [](const auto& iface) { return iface.auto_mode; }) != extra_interfaces.end())
-    {
-        network_data["version"] = "2";
-
-        std::string name = "default";
-        network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
-        network_data["ethernets"][name]["dhcp4"] = true;
-
-        for (size_t i = 0; i < extra_interfaces.size(); ++i)
-        {
-            if (extra_interfaces[i].auto_mode)
-            {
-                name = "extra" + std::to_string(i);
-                network_data["ethernets"][name]["match"]["macaddress"] = extra_interfaces[i].mac_address;
-                network_data["ethernets"][name]["dhcp4"] = true;
-                // We make the default gateway associated with the first interface.
-                network_data["ethernets"][name]["dhcp4-overrides"]["route-metric"] = 200;
-                // Make the interface optional, which means that networkd will not wait for the device to be configured.
-                network_data["ethernets"][name]["optional"] = true;
-            }
-        }
-    }
-
-    return network_data;
 }
 
 void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
@@ -3073,7 +3029,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-            vm_desc.meta_data_config = make_cloud_init_meta_config(name);
+            vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
 
@@ -3081,7 +3037,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
             vm_desc.network_data_config =
-                make_cloud_init_network_config(vm_desc.default_mac_address, checked_args.extra_interfaces);
+                mpu::make_cloud_init_network_config(vm_desc.default_mac_address, checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
             config->factory->configure(vm_desc);
