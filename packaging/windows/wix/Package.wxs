@@ -9,7 +9,6 @@
         <FeatureRef Id="Main" />
 
         <ui:WixUI Id="CustomWixUI_InstallDir"  InstallDirectory="INSTALLFOLDER" />
-        <Property Id="WixHypervisor" Value="HyperV" />
     </Package>
 
     <Fragment>

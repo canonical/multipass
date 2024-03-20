@@ -12,5 +12,17 @@
                 <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="TypesSupported" Value="7" />
             </Component>
         </ComponentGroup>
+
+        <Property Id="DRIVER" Value="HyperV" Secure="yes" />
+        <Property Id="HYPER_V_STATE" Value="Disabled" Secure="yes" />
+
+        <Binary Id="CABinary" SourceFile="$(var.CustomActions.TargetDir)\$(var.CustomActions.TargetName).CA.dll" />
+        <CustomAction Id="CheckHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="CheckHyperV" Return="check" />
+        <CustomAction Id="EnableHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="EnableHyperV" Return="check" />
+
+        <InstallExecuteSequence>
+            <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;HyperV&quot; AND NOT Installed" />
+            <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;HyperV&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
+        </InstallExecuteSequence>
     </Fragment>
 </Wix>
