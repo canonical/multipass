@@ -404,7 +404,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
 
     final bridgedCheckbox = FormField<bool>(
       key: Key('bridged-$bridged'),
-      initialValue: bridged,
+      initialValue: bridged ?? false,
       onSaved: (value) {
         if (value!) {
           ref.read(bridgedProvider.notifier).set(value.toString());
@@ -425,8 +425,8 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
             networks.isEmpty
                 ? 'No networks found.'
                 : validBridgedNetwork
-                    ? 'No valid bridged network is set.'
-                    : "Once connection is established, you won't be able to unset it.",
+                    ? "Once connection is established, you won't be able to unset it."
+                    : 'No valid bridged network is set.',
           ),
         );
       },
