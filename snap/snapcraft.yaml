@@ -358,7 +358,7 @@ parts:
       export MP_PROTO_FILE_DIR=$HOME/parts/multipass/src/src/rpc
 
       mkdir -p lib/generated
-      /root/parts/multipass/build/bin/protoc --dart_out=grpc:lib/generated -I $MP_PROTO_FILE_DIR -I /root/parts/multipass/build/_deps/grpc-src/third_party/protobuf/src $MP_PROTO_FILE_DIR/multipass.proto google/protobuf/timestamp.proto
+      /root/parts/multipass/build/vcpkg_installed/x64-linux-release/tools/protobuf/protoc --dart_out=grpc:lib/generated -I $MP_PROTO_FILE_DIR -I /root/parts/multipass/build/_deps/grpc-src/third_party/protobuf/src $MP_PROTO_FILE_DIR/multipass.proto google/protobuf/timestamp.proto
 
       flutter pub get
       flutter build linux --release --verbose --target lib/main.dart
