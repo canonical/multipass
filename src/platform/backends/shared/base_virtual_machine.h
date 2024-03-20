@@ -92,7 +92,7 @@ protected:
                                                              const std::string& comment,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
-    void drop_ssh_session(); // TODO@no-merge call from private backends
+    virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
 
 private:
