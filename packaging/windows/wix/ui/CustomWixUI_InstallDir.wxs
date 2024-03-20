@@ -54,6 +54,9 @@ Patch dialog sequence:
             <DialogRef Id="ResumeDlg" />
             <DialogRef Id="UserExit" />
 
+            <ProgressText Action="CheckHyperVAction" Message="!(loc.CheckHyperV)" />
+            <ProgressText Action="EnableHyperVAction" Message="!(loc.EnableHyperV)" />
+
             <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg" Order="4" Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID&lt;&gt;&quot;1&quot;" />
 
             <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />

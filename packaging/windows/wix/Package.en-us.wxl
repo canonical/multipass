@@ -15,4 +15,7 @@ This file contains the declaration of all the localizable strings.
     <String Id="WixDoNotAddPath" Value="Do not add multipass to the PATH" />
     <String Id="WixAddToSystemPath" Value="Add multipass to the system PATH for all users" />
     <String Id="WixAddToUserPath" Value="Add multipass to the current user's PATH (Recommended)" />
+
+    <String Id="CheckHyperV" Value="Checking if Hyper-V is enabled" />
+    <String Id="EnableHyperV" Value="Enabling Hyper-V" />
 </WixLocalization>
